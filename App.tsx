@@ -1,20 +1,46 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import { GowunBatang_400Regular, GowunBatang_700Bold } from '@expo-google-fonts/gowun-batang';
 
-export default function App() {
+import { MandaratProvider, useMandarat } from './src/store/MandaratContext';
+import { UIProvider } from './src/navigation/ui';
+import { Root } from './src/navigation/Root';
+
+function Gate() {
+  const { ready } = useMandarat();
+  // keep a neutral background while the store hydrates
+  if (!ready) return <View style={{ flex: 1, backgroundColor: '#221F2E' }} />;
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <UIProvider>
+      <Root />
+    </UIProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    GowunBatang_400Regular,
+    GowunBatang_700Bold,
+  });
+
+  // Render once fonts resolve; a blank dark frame avoids a flash of unstyled text.
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#221F2E' }} />;
+
+  return (
+    <SafeAreaProvider>
+      <MandaratProvider>
+        <Gate />
+      </MandaratProvider>
+    </SafeAreaProvider>
+  );
+}

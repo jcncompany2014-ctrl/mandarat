@@ -1,0 +1,2452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mandarat — 만다라트 플래너</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'Pretendard', -apple-system, system-ui, sans-serif; }
+    button { font-family: inherit; }
+    textarea, input { font-family: inherit; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    @keyframes mxScreenIn { from { transform: translateY(12px); } to { transform: none; } }
+    .mx-screen { animation: mxScreenIn .3s cubic-bezier(.3,.85,.3,1); }
+    @keyframes mxPop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+    @keyframes mxPulse { 0%,100% { transform: scale(1); opacity: .5; } 50% { transform: scale(1.08); opacity: .95; } }
+    @keyframes mxFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes mxSlideUp { from { transform: translateY(100%); } to { transform: none; } }
+  </style>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <template id="__bundler_thumbnail">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#221F2E" />
+      <g fill="none" stroke="#C9A24B" stroke-width="1.4"><circle cx="50" cy="50" r="26"/><circle cx="50" cy="50" r="17"/><circle cx="50" cy="50" r="9"/></g>
+      <g fill="#C9A24B"><circle cx="50" cy="24" r="3.4"/><circle cx="68" cy="32" r="3.4"/><circle cx="76" cy="50" r="3.4"/><circle cx="68" cy="68" r="3.4"/><circle cx="50" cy="76" r="3.4"/><circle cx="32" cy="68" r="3.4"/><circle cx="24" cy="50" r="3.4"/><circle cx="32" cy="32" r="3.4"/></g>
+    </svg>
+  </template>
+  <script type="text/babel">
+
+/* ====== ios-frame.jsx ====== */
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+
+/* BEGIN USAGE */
+// iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
+// Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
+// Exports (to window): IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard
+//
+// Usage — wrap your screen content in <IOSDevice> to get the bezel, status bar
+// and home indicator (props: title, dark, keyboard):
+//
+//   <IOSDevice title="Settings">
+//     ...your screen content...
+//   </IOSDevice>
+//   <IOSDevice dark title="Search" keyboard>…</IOSDevice>
+/* END USAGE */
+
+// ─────────────────────────────────────────────────────────────
+// Status bar
+// ─────────────────────────────────────────────────────────────
+function IOSStatusBar({ dark = false, time = '9:41' }) {
+  const c = dark ? '#fff' : '#000';
+  return (
+    <div style={{
+      display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
+      padding: '21px 24px 19px', boxSizing: 'border-box',
+      position: 'relative', zIndex: 20, width: '100%',
+    }}>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+        <span style={{
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+          fontSize: 17, lineHeight: '22px', color: c,
+        }}>{time}</span>
+      </div>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+        <svg width="19" height="12" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Liquid glass pill — blur + tint + shine
+// ─────────────────────────────────────────────────────────────
+function IOSGlassPill({ children, dark = false, style = {} }) {
+  return (
+    <div style={{
+      height: 44, minWidth: 44, borderRadius: 9999,
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: dark
+        ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)'
+        : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
+      ...style,
+    }}>
+      {/* blur + tint */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)',
+      }} />
+      {/* shine */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+      }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Navigation bar — glass pills + large title
+// ─────────────────────────────────────────────────────────────
+function IOSNavBar({ title = 'Title', dark = false, trailingIcon = true }) {
+  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
+  const text = dark ? '#fff' : '#000';
+  const pillIcon = (content) => (
+    <IOSGlassPill dark={dark}>
+      <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {content}
+      </div>
+    </IOSGlassPill>
+  );
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 10,
+      paddingTop: 62, paddingBottom: 10, position: 'relative', zIndex: 5,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+      }}>
+        {/* back chevron */}
+        {pillIcon(
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ marginLeft: -1 }}>
+            <path d="M10 2L2 10l8 8" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {/* trailing ellipsis */}
+        {trailingIcon && pillIcon(
+          <svg width="22" height="6" viewBox="0 0 22 6">
+            <circle cx="3" cy="3" r="2.5" fill={muted}/>
+            <circle cx="11" cy="3" r="2.5" fill={muted}/>
+            <circle cx="19" cy="3" r="2.5" fill={muted}/>
+          </svg>
+        )}
+      </div>
+      {/* large title */}
+      <div style={{
+        padding: '0 16px',
+        fontFamily: '-apple-system, system-ui',
+        fontSize: 34, fontWeight: 700, lineHeight: '41px',
+        color: text, letterSpacing: 0.4,
+      }}>{title}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Grouped list (inset card, r:26) + row (52px)
+// ─────────────────────────────────────────────────────────────
+function IOSListRow({ title, detail, icon, chevron = true, isLast = false, dark = false }) {
+  const text = dark ? '#fff' : '#000';
+  const sec = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const ter = dark ? 'rgba(235,235,245,0.3)' : 'rgba(60,60,67,0.3)';
+  const sep = dark ? 'rgba(84,84,88,0.65)' : 'rgba(60,60,67,0.12)';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', minHeight: 52,
+      padding: '0 16px', position: 'relative',
+      fontFamily: '-apple-system, system-ui', fontSize: 17,
+      letterSpacing: -0.43,
+    }}>
+      {icon && (
+        <div style={{
+          width: 30, height: 30, borderRadius: 7, background: icon,
+          marginRight: 12, flexShrink: 0,
+        }} />
+      )}
+      <div style={{ flex: 1, color: text }}>{title}</div>
+      {detail && <span style={{ color: sec, marginRight: 6 }}>{detail}</span>}
+      {chevron && (
+        <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+          <path d="M1 1l6 6-6 6" stroke={ter} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+      {!isLast && (
+        <div style={{
+          position: 'absolute', bottom: 0, right: 0,
+          left: icon ? 58 : 16, height: 0.5, background: sep,
+        }} />
+      )}
+    </div>
+  );
+}
+
+function IOSList({ header, children, dark = false }) {
+  const hc = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const bg = dark ? '#1C1C1E' : '#fff';
+  return (
+    <div>
+      {header && (
+        <div style={{
+          fontFamily: '-apple-system, system-ui', fontSize: 13,
+          color: hc, textTransform: 'uppercase',
+          padding: '8px 36px 6px', letterSpacing: -0.08,
+        }}>{header}</div>
+      )}
+      <div style={{
+        background: bg, borderRadius: 26,
+        margin: '0 16px', overflow: 'hidden',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Device frame
+// ─────────────────────────────────────────────────────────────
+function IOSDevice({
+  children, width = 402, height = 874, dark = false,
+  title, keyboard = false,
+}) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: dark ? '#000' : '#F2F2F7',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      {/* status bar (absolute) */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={dark} />
+      </div>
+      {/* nav + content */}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {title !== undefined && <IOSNavBar title={title} dark={dark} />}
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        {keyboard && <IOSKeyboard dark={dark} />}
+      </div>
+      {/* home indicator — always on top */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: 139, height: 5, borderRadius: 100,
+          background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard — iOS 26 liquid glass
+// ─────────────────────────────────────────────────────────────
+function IOSKeyboard({ dark = false }) {
+  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
+  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
+  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
+
+  // special-key icons
+  const icons = {
+    shift: <svg width="19" height="17" viewBox="0 0 19 17"><path d="M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z" fill={glyph}/></svg>,
+    del: <svg width="23" height="17" viewBox="0 0 23 17"><path d="M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z" fill="none" stroke={glyph} strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 5l7 7M17 5l-7 7" stroke={glyph} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+    ret: <svg width="20" height="14" viewBox="0 0 20 14"><path d="M18 1v6H4m0 0l4-4M4 7l4 4" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  };
+
+  const key = (content, { w, flex, ret, fs = 25, k } = {}) => (
+    <div key={k} style={{
+      height: 42, borderRadius: 8.5,
+      flex: flex ? 1 : undefined, width: w, minWidth: 0,
+      background: ret ? '#08f' : keyBg,
+      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system, "SF Compact", system-ui',
+      fontSize: fs, fontWeight: 458, color: ret ? '#fff' : glyph,
+    }}>{content}</div>
+  );
+
+  const row = (keys, pad = 0) => (
+    <div style={{ display: 'flex', gap: 6.5, justifyContent: 'center', padding: `0 ${pad}px` }}>
+      {keys.map(l => key(l, { flex: true, k: l }))}
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'relative', zIndex: 15, borderRadius: 27, overflow: 'hidden',
+      padding: '11px 0 2px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      boxShadow: dark
+        ? '0 -2px 20px rgba(0,0,0,0.09)'
+        : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)',
+    }}>
+      {/* liquid glass bg — same recipe as nav pills */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* autocorrect bar */}
+      <div style={{
+        display: 'flex', gap: 20, alignItems: 'center',
+        padding: '8px 22px 13px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {['"The"', 'the', 'to'].map((w, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, height: 25, background: '#ccc', opacity: 0.3 }} />}
+            <div style={{
+              flex: 1, textAlign: 'center',
+              fontFamily: '-apple-system, system-ui', fontSize: 17,
+              color: sugg, letterSpacing: -0.43, lineHeight: '22px',
+            }}>{w}</div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* key layout */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 13,
+        padding: '0 6.5px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {row(['q','w','e','r','t','y','u','i','o','p'])}
+        {row(['a','s','d','f','g','h','j','k','l'], 20)}
+        <div style={{ display: 'flex', gap: 14.25, alignItems: 'center' }}>
+          {key(icons.shift, { w: 45, k: 'shift' })}
+          <div style={{ display: 'flex', gap: 6.5, flex: 1 }}>
+            {['z','x','c','v','b','n','m'].map(l => key(l, { flex: true, k: l }))}
+          </div>
+          {key(icons.del, { w: 45, k: 'del' })}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {key('ABC', { w: 92.25, fs: 18, k: 'abc' })}
+          {key('', { flex: true, k: 'space' })}
+          {key(icons.ret, { w: 92.25, ret: true, k: 'ret' })}
+        </div>
+      </div>
+
+      {/* bottom spacer (emoji+mic area, icons omitted) */}
+      <div style={{ height: 56, width: '100%', position: 'relative' }} />
+    </div>
+  );
+}
+
+Object.assign(window, {
+  IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard,
+});
+
+
+/* ====== tweaks-panel.jsx ====== */
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+
+/* BEGIN USAGE */
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+// Exports (to window): useTweaks, TweaksPanel, TweakSection, TweakRow, TweakSlider,
+//   TweakToggle, TweakRadio, TweakSelect, TweakText, TweakNumber, TweakColor, TweakButton.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "palette": ["#D97757", "#29261b", "#f6f4ef"],
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        options={['#D97757', '#2A6FDB', '#1F8A5B', '#7A5AE0']}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakColor  label="Palette" value={t.palette}
+//                        options={[['#D97757', '#29261b', '#f6f4ef'],
+//                                  ['#475569', '#0f172a', '#f1f5f9']]}
+//                        onChange={(v) => setTweak('palette', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// TweakRadio is the segmented control for 2–3 short options (auto-falls-back to
+// TweakSelect past ~16/~10 chars per label); reach for TweakSelect directly when
+// options are many or long. For color tweaks always curate 3-4 options rather than
+// a free picker; an option can also be a whole 2–5 color palette (the stored value
+// is the array). The Tweak* controls are a floor, not a ceiling — build custom
+// controls inside the panel if a tweak calls for UI they don't cover.
+/* END USAGE */
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;box-sizing:border-box;width:100%;min-width:0;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;box-sizing:border-box;min-width:0;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
+    transition:transform .12s cubic-bezier(.3,.7,.4,1),box-shadow .12s}
+  .twk-chip:hover{transform:translateY(-1px);
+    box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.12)}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),
+    0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip>span{position:absolute;top:0;bottom:0;right:0;width:34%;
+    display:flex;flex-direction:column;box-shadow:-1px 0 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i{flex:1;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
+  .twk-chip>span>i:first-child{box-shadow:none}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    // Same-window signal so in-page listeners (deck-stage rail thumbnails)
+    // can react — the parent message only reaches the host, not peers.
+    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" data-omelette-chrome=""
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  // Segments wrap mid-word once per-segment width runs out. The track is
+  // ~248px (280 panel − 28 body pad − 4 seg pad), each button loses 12px
+  // to its own padding, and 11.5px system-ui averages ~6.3px/char — so 2
+  // options fit ~16 chars each, 3 fit ~10. Past that (or >3 options), fall
+  // back to a dropdown rather than wrap.
+  const labelLen = (o) => String(typeof o === 'object' ? o.label : o).length;
+  const maxLen = options.reduce((m, o) => Math.max(m, labelLen(o)), 0);
+  const fitsAsSegments = maxLen <= ({ 2: 16, 3: 10 }[options.length] ?? 0);
+  if (!fitsAsSegments) {
+    // <select> emits strings — map back to the original option value so the
+    // fallback stays type-preserving (numbers, booleans) like the segment path.
+    const resolve = (s) => {
+      const m = options.find((o) => String(typeof o === 'object' ? o.value : o) === s);
+      return m === undefined ? s : typeof m === 'object' ? m.value : m;
+    };
+    return <TweakSelect label={label} value={value} options={options}
+                        onChange={(s) => onChange(resolve(s))} />;
+  }
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+// Relative-luminance contrast pick — checkmarks drawn over a swatch need to
+// read on both #111 and #fafafa without per-option configuration. Hex input
+// only (#rgb / #rrggbb); named or rgb()/hsl() colors fall through to "light".
+function __twkIsLight(hex) {
+  const h = String(hex).replace('#', '');
+  const x = h.length === 3 ? h.replace(/./g, (c) => c + c) : h.padEnd(6, '0');
+  const n = parseInt(x.slice(0, 6), 16);
+  if (Number.isNaN(n)) return true;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return r * 299 + g * 587 + b * 114 > 148000;
+}
+
+const __TwkCheck = ({ light }) => (
+  <svg viewBox="0 0 14 14" aria-hidden="true">
+    <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          stroke={light ? 'rgba(0,0,0,.78)' : '#fff'} />
+  </svg>
+);
+
+// TweakColor — curated color/palette picker. Each option is either a single
+// hex string or an array of 1-5 hex strings; the card adapts — a lone color
+// renders solid, a palette renders colors[0] as the hero (left ~2/3) with the
+// rest stacked in a sharp column on the right. onChange emits the
+// option in the shape it was passed (string stays string, array stays array).
+// Without options it falls back to the native color input for back-compat.
+function TweakColor({ label, value, options, onChange }) {
+  if (!options || !options.length) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <input type="color" className="twk-swatch" value={value}
+               onChange={(e) => onChange(e.target.value)} />
+      </div>
+    );
+  }
+  // Native <input type=color> emits lowercase hex per the HTML spec, so
+  // compare case-insensitively. String() guards JSON.stringify(undefined),
+  // which returns the primitive undefined (no .toLowerCase).
+  const key = (o) => String(JSON.stringify(o)).toLowerCase();
+  const cur = key(value);
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o, i) => {
+          const colors = Array.isArray(o) ? o : [o];
+          const [hero, ...rest] = colors;
+          const sup = rest.slice(0, 4);
+          const on = key(o) === cur;
+          return (
+            <button key={i} type="button" className="twk-chip" role="radio"
+                    aria-checked={on} data-on={on ? '1' : '0'}
+                    aria-label={colors.join(', ')} title={colors.join(' · ')}
+                    style={{ background: hero }}
+                    onClick={() => onChange(o)}>
+              {sup.length > 0 && (
+                <span>
+                  {sup.map((c, j) => <i key={j} style={{ background: c }} />)}
+                </span>
+              )}
+              {on && <__TwkCheck light={__twkIsLight(hero)} />}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+
+/* ====== mandarat-data.jsx ====== */
+// mandarat-data.jsx — example Mandalart content + palettes + helpers (→ window)
+
+// ── 8 theme colors (positional order: TL, T, TR, L, R, BL, B, BR) ──
+const THEMES = [
+  {
+    key: 'health', kr: '건강', en: 'Health', color: '#2FA968', icon: 'heart',
+    actions: [
+      { kr: '주 3회 운동', en: 'Workout 3×/week', done: true },
+      { kr: '하루 물 2L', en: '2L water daily', done: true },
+      { kr: '11시 취침', en: 'Sleep by 11pm', done: false },
+      { kr: '1만보 걷기', en: '10k steps', done: true },
+      { kr: '단 음식 줄이기', en: 'Less sugar', done: false },
+      { kr: '정기 건강검진', en: 'Health checkup', done: true },
+      { kr: '스트레칭 10분', en: '10min stretch', done: true },
+      { kr: '야식 끊기', en: 'No late snacks', done: false },
+    ],
+  },
+  {
+    key: 'career', kr: '커리어', en: 'Career', color: '#4F6BED', icon: 'briefcase',
+    actions: [
+      { kr: '사이드 프로젝트', en: 'Side project', done: true },
+      { kr: '발표 1회', en: 'Give a talk', done: false },
+      { kr: '멘토 찾기', en: 'Find a mentor', done: true },
+      { kr: '이력서 갱신', en: 'Update resume', done: false },
+      { kr: '새 기술 1개', en: 'Learn 1 skill', done: true },
+      { kr: '업계 네트워킹', en: 'Network', done: false },
+      { kr: '성과 기록', en: 'Track wins', done: false },
+      { kr: '자격증 취득', en: 'Get certified', done: false },
+    ],
+  },
+  {
+    key: 'learning', kr: '자기계발', en: 'Learning', color: '#E8A33D', icon: 'book',
+    actions: [
+      { kr: '책 12권 읽기', en: 'Read 12 books', done: true },
+      { kr: '온라인 강의', en: 'Online course', done: true },
+      { kr: '영어 회화', en: 'English speaking', done: false },
+      { kr: '매일 글쓰기', en: 'Write daily', done: true },
+      { kr: '새 언어 배우기', en: 'New language', done: false },
+      { kr: '다큐 시청', en: 'Watch docs', done: true },
+      { kr: '메모 정리', en: 'Organize notes', done: false },
+      { kr: '강연 참석', en: 'Attend talks', done: false },
+    ],
+  },
+  {
+    key: 'relationship', kr: '관계', en: 'Relationships', color: '#E5547F', icon: 'people',
+    actions: [
+      { kr: '부모님 주 1통화', en: 'Call parents', done: true },
+      { kr: '친구 모임', en: 'See friends', done: false },
+      { kr: '감사 표현하기', en: 'Show gratitude', done: true },
+      { kr: '데이트 나이트', en: 'Date night', done: false },
+      { kr: '새 친구 사귀기', en: 'New friends', done: false },
+      { kr: '손편지 쓰기', en: 'Write letters', done: false },
+      { kr: '경청 연습', en: 'Listen better', done: false },
+      { kr: '봉사활동', en: 'Volunteer', done: false },
+    ],
+  },
+  {
+    key: 'finance', kr: '재정', en: 'Finance', color: '#159E9E', icon: 'coin',
+    actions: [
+      { kr: '가계부 쓰기', en: 'Track budget', done: true },
+      { kr: '비상금 마련', en: 'Emergency fund', done: true },
+      { kr: '투자 공부', en: 'Study investing', done: false },
+      { kr: '구독 정리', en: 'Cut subscriptions', done: true },
+      { kr: '수입 20% 저축', en: 'Save 20%', done: false },
+      { kr: '부수입 만들기', en: 'Side income', done: false },
+      { kr: '소비 점검', en: 'Review spending', done: false },
+      { kr: '연금 점검', en: 'Check pension', done: false },
+    ],
+  },
+  {
+    key: 'hobby', kr: '취미', en: 'Hobby', color: '#8B5CF6', icon: 'palette',
+    actions: [
+      { kr: '사진 찍기', en: 'Photography', done: true },
+      { kr: '요리 10가지', en: 'Cook 10 dishes', done: true },
+      { kr: '악기 배우기', en: 'Learn instrument', done: false },
+      { kr: '그림 그리기', en: 'Draw', done: true },
+      { kr: '등산 가기', en: 'Go hiking', done: false },
+      { kr: '식물 키우기', en: 'Grow plants', done: true },
+      { kr: '보드게임', en: 'Board games', done: false },
+      { kr: '캠핑 가기', en: 'Go camping', done: false },
+    ],
+  },
+  {
+    key: 'mind', kr: '마음챙김', en: 'Mindfulness', color: '#4DA3E0', icon: 'lotus',
+    actions: [
+      { kr: '명상 10분', en: 'Meditate 10min', done: true },
+      { kr: '감사일기', en: 'Gratitude journal', done: true },
+      { kr: '디지털 디톡스', en: 'Digital detox', done: false },
+      { kr: '호흡 연습', en: 'Breathwork', done: true },
+      { kr: '산책하기', en: 'Daily walk', done: true },
+      { kr: '일기 쓰기', en: 'Journaling', done: false },
+      { kr: '요가', en: 'Yoga', done: true },
+      { kr: '감정 체크', en: 'Mood check', done: false },
+    ],
+  },
+  {
+    key: 'adventure', kr: '모험', en: 'Adventure', color: '#F4793B', icon: 'compass',
+    actions: [
+      { kr: '새 도시 3곳', en: '3 new cities', done: true },
+      { kr: '혼자 여행', en: 'Solo trip', done: false },
+      { kr: '번지점프', en: 'Bungee jump', done: false },
+      { kr: '콘서트 가기', en: 'Go to a concert', done: false },
+      { kr: '새 음식 도전', en: 'Try new food', done: false },
+      { kr: '일출 보기', en: 'Watch sunrise', done: false },
+      { kr: '외국어 대화', en: 'Speak a language', done: false },
+      { kr: '별 보기 캠핑', en: 'Stargazing', done: false },
+    ],
+  },
+];
+
+const CENTER = { kr: '2026 최고의 나', en: 'My Best 2026' };
+
+// today's curated picks — [themeIndex, actionIndex] · mix of done & not-done
+const TODAY_PICKS = [
+  [0, 0], [6, 0], [2, 2], [1, 1], [4, 0], [0, 2], [3, 1], [5, 5],
+];
+
+// per-theme habit streaks + last-7-day rings (1=done)
+const STREAKS = [
+  { cur: 12, best: 21, week: [1, 1, 1, 1, 1, 1, 0] },
+  { cur: 4, best: 9, week: [0, 1, 1, 0, 1, 1, 1] },
+  { cur: 7, best: 15, week: [1, 1, 0, 1, 1, 1, 1] },
+  { cur: 2, best: 6, week: [0, 0, 1, 1, 0, 1, 1] },
+  { cur: 5, best: 11, week: [1, 0, 1, 1, 1, 0, 1] },
+  { cur: 9, best: 14, week: [1, 1, 1, 0, 1, 1, 1] },
+  { cur: 16, best: 16, week: [1, 1, 1, 1, 1, 1, 1] },
+  { cur: 1, best: 4, week: [0, 0, 0, 1, 0, 1, 1] },
+];
+
+// ── mood palettes (vibe exploration) ──
+// gold = sacred accent · center = deep mandala core · hero = night-sky gradient
+const MOODS = {
+  '크림': { bg: '#F4EEE3', surface: '#FFFFFF', card: '#FFFFFF', ink: '#211F1A', sub: '#6E695E', faint: '#A39C8C', line: 'rgba(40,34,20,0.08)', tabBg: 'rgba(247,242,233,0.86)', dark: false, gold: '#B58A3A', center: '#221F2E', hero: 'linear-gradient(155deg,#2D2747 0%,#211B33 60%,#1A1528 100%)' },
+  '화이트': { bg: '#EEEFF3', surface: '#FFFFFF', card: '#FFFFFF', ink: '#16171C', sub: '#6B6E78', faint: '#A2A5B0', line: 'rgba(20,22,30,0.07)', tabBg: 'rgba(245,246,250,0.86)', dark: false, gold: '#A8842F', center: '#1A1A26', hero: 'linear-gradient(155deg,#262442 0%,#1A1930 60%,#14132450 100%)' },
+  '파스텔': { bg: '#F0ECFA', surface: '#FFFFFF', card: '#FFFFFF', ink: '#272040', sub: '#6E6794', faint: '#A89FC8', line: 'rgba(50,36,90,0.07)', tabBg: 'rgba(244,240,252,0.84)', dark: false, gold: '#9B82C4', center: '#271F44', hero: 'linear-gradient(155deg,#3A2F66 0%,#2A2150 60%,#221A42 100%)' },
+  '다크': { bg: '#0E0D14', surface: '#191824', card: '#1C1B28', ink: '#F1EFEA', sub: '#9C9AAA', faint: '#615F72', line: 'rgba(255,255,255,0.09)', tabBg: 'rgba(20,19,30,0.82)', dark: true, gold: '#CBA352', center: '#14121E', hero: 'linear-gradient(155deg,#221F33 0%,#17152340 60%,#100E1A 100%)' },
+};
+
+// ── helpers ──
+function tint(color, amt, dark) {
+  const base = dark ? '#1C1C22' : '#ffffff';
+  return `color-mix(in srgb, ${color} ${amt}%, ${base})`;
+}
+function themeProgress(theme, done) {
+  const n = theme.actions.filter((a, i) => done[`${THEMES.indexOf(theme)}-${i}`]).length;
+  return { done: n, total: theme.actions.length, pct: Math.round((n / theme.actions.length) * 100) };
+}
+function initialDone() {
+  const d = {};
+  THEMES.forEach((t, ti) => t.actions.forEach((a, ai) => { if (a.done) d[`${ti}-${ai}`] = true; }));
+  return d;
+}
+
+Object.assign(window, { THEMES, CENTER, TODAY_PICKS, STREAKS, MOODS, tint, themeProgress, initialDone });
+
+
+/* ====== mandarat-ui.jsx ====== */
+// mandarat-ui.jsx — Lucide SVG icons + mandala motif + atoms (→ window)
+
+// Map semantic names → Lucide icon keys (rendered from lucide.icons data)
+const ICON_LUCIDE = {
+  heart: 'Heart', briefcase: 'Briefcase', book: 'BookOpen', people: 'Users',
+  coin: 'PiggyBank', palette: 'Palette', lotus: 'Flower2', compass: 'Compass',
+  grid: 'Grid3x3', home: 'House', check: 'Check', checkCircle: 'CircleCheck',
+  chart: 'ChartColumnBig', plus: 'Plus', chevR: 'ChevronRight', chevL: 'ChevronLeft',
+  flame: 'Flame', sparkle: 'Sparkles', target: 'Target', pencil: 'Pencil',
+  dots: 'Ellipsis', calendar: 'Calendar', bell: 'Bell', settings: 'SlidersHorizontal',
+};
+const ICON_FILLED = new Set(['flame', 'sparkle']);
+
+function Icon({ name, size = 22, color = 'currentColor', fill, sw = 1.9, weight, style }) {
+  const L = window.lucide && window.lucide.icons;
+  const node = L && (L[ICON_LUCIDE[name]] || L[name]);
+  const kids = node ? node[2] : [];
+  const filled = fill === undefined ? ICON_FILLED.has(name) : fill;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'}
+      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
+      style={{ display: 'block', flexShrink: 0, ...style }}>
+      {kids.map((ch, i) => React.createElement(ch[0], { key: i, ...ch[1] }))}
+    </svg>
+  );
+}
+
+// Circular progress ring
+function Ring({ pct, size = 64, stroke = 6, color = '#2FA968', track = 'rgba(0,0,0,0.08)', children }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)}
+          style={{ transition: 'stroke-dashoffset .7s cubic-bezier(.4,1.2,.4,1)' }} />
+      </svg>
+      {children && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center' }}>{children}</div>
+      )}
+    </div>
+  );
+}
+
+// Animated checkbox
+function Check({ on, color, dark }) {
+  return (
+    <div style={{
+      width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+      border: on ? 'none' : `1.8px solid ${dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.16)'}`,
+      background: on ? color : 'transparent',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      transition: 'all .2s ease',
+    }}>
+      {on && <Icon name="check" size={16} color="#fff" weight={700} />}
+    </div>
+  );
+}
+
+// ── Mandala line-art motif: concentric rings + lotus petals ──
+function MandalaArt({ size = 220, stroke = '#fff', opacity = 0.14, rings = 3, petals = 16, sw = 1, style }) {
+  const c = size / 2;
+  const els = [];
+  for (let i = 1; i <= rings; i++) {
+    els.push(<circle key={'c' + i} cx={c} cy={c} r={(c - sw) * (i / rings)} fill="none" stroke={stroke} strokeWidth={sw} />);
+  }
+  // ring of lotus petals (almond shapes via quadratic paths)
+  const pr = c * 0.66, pw = c * 0.16, pl = c * 0.34;
+  for (let i = 0; i < petals; i++) {
+    const a = (i / petals) * Math.PI * 2;
+    const cx = c + pr * Math.cos(a), cy = c + pr * Math.sin(a);
+    const ux = Math.cos(a), uy = Math.sin(a);      // outward
+    const vx = -uy, vy = ux;                        // tangent
+    const tipX = cx + pl * ux, tipY = cy + pl * uy;
+    const baseX = cx - pl * ux, baseY = cy - pl * uy;
+    const lX = cx + pw * vx, lY = cy + pw * vy;
+    const rX = cx - pw * vx, rY = cy - pw * vy;
+    els.push(
+      <path key={'p' + i}
+        d={`M ${baseX} ${baseY} Q ${lX} ${lY} ${tipX} ${tipY} Q ${rX} ${rY} ${baseX} ${baseY} Z`}
+        fill="none" stroke={stroke} strokeWidth={sw} />
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ opacity, ...style }}>{els}</svg>
+  );
+}
+
+Object.assign(window, { Icon, Ring, Check, MandalaArt });
+
+
+/* ====== mandarat-mandala.jsx ====== */
+// mandarat-mandala.jsx — radial Mandala Wheel with bloom drilldown (→ window)
+const { useState: useMW } = React;
+
+function ringPositions(c, R, count, startAngle) {
+  return Array.from({ length: count }).map((_, i) => {
+    const a = startAngle + i * (Math.PI * 2 / count);
+    return { i, a, x: c + R * Math.cos(a), y: c + R * Math.sin(a) };
+  });
+}
+
+function MandalaWheel({ M, done, go }) {
+  const [bloom, setBloom] = useMW(null); // theme index or null
+  const size = 358, c = size / 2;
+  const R = 121, nodeR = 35;
+  const totalDone = Object.keys(done).filter(k => done[k]).length;
+  const pct = Math.round((totalDone / 64) * 100);
+  const pos = ringPositions(c, R, 8, -Math.PI / 2);
+
+  return (
+    <div style={{ position: 'relative', width: size, height: size, margin: '4px auto 0' }}>
+      {/* sacred geometry backdrop */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <MandalaArt size={size} stroke={bloom == null ? M.gold : THEMES[bloom].color} opacity={M.dark ? 0.22 : 0.16} rings={3} petals={24} sw={1} />
+      </div>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        <circle cx={c} cy={c} r={R} fill="none" stroke={bloom == null ? M.gold : THEMES[bloom].color} strokeOpacity={0.34} strokeWidth={1} />
+        {pos.map(n => (
+          <line key={n.i} x1={c + 58 * Math.cos(n.a)} y1={c + 58 * Math.sin(n.a)}
+            x2={n.x - (nodeR - 2) * Math.cos(n.a)} y2={n.y - (nodeR - 2) * Math.sin(n.a)}
+            stroke={bloom == null ? M.gold : THEMES[bloom].color} strokeOpacity={0.38} strokeWidth={1} />
+        ))}
+      </svg>
+
+      {bloom == null ? (
+        <div style={{ animation: 'mxPop .3s ease' }}>
+          {/* center core */}
+          <div style={{ position: 'absolute', left: c - 58, top: c - 58, width: 116, height: 116 }}>
+            <Ring pct={pct} size={116} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
+              <div style={{ position: 'absolute', inset: 5, borderRadius: '50%', background: M.center, overflow: 'hidden',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 8,
+                boxShadow: '0 8px 22px rgba(20,16,40,0.32)' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MandalaArt size={104} stroke={M.gold} opacity={0.32} rings={2} petals={12} sw={0.8} />
+                </div>
+                <div style={{ position: 'relative', fontFamily: "'Gowun Batang', serif", fontWeight: 700, fontSize: 14.5,
+                  color: '#fff', lineHeight: 1.18, letterSpacing: -0.2, wordBreak: 'keep-all' }}>{CENTER.kr}</div>
+                <div style={{ position: 'relative', fontSize: 11, fontWeight: 700, color: M.gold, fontFamily: 'Space Grotesk', marginTop: 3 }}>{pct}%</div>
+              </div>
+            </Ring>
+          </div>
+          {/* theme petals */}
+          {pos.map(n => {
+            const th = THEMES[n.i]; const p = themeProgress(th, done);
+            return (
+              <button key={n.i} onClick={() => setBloom(n.i)} style={{
+                position: 'absolute', left: n.x - nodeR, top: n.y - nodeR, width: nodeR * 2, height: nodeR * 2 + 22,
+                border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Ring pct={p.pct} size={nodeR * 2} stroke={3.5} color={th.color} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}>
+                  <div style={{ width: nodeR * 2 - 12, height: nodeR * 2 - 12, borderRadius: '50%',
+                    background: tint(th.color, M.dark ? 26 : 16, M.dark), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <Icon name={th.icon} size={21} color={th.color} />
+                    <div style={{ fontSize: 9, fontWeight: 800, color: th.color, fontFamily: 'Space Grotesk' }}>{p.done}/8</div>
+                  </div>
+                </Ring>
+                <div style={{ marginTop: 5, fontSize: 11, fontWeight: 700, color: M.ink, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>{th.kr}</div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <BloomLayer M={M} ti={bloom} done={done} c={c} R={R} nodeR={31} onBack={() => setBloom(null)} go={go} />
+      )}
+    </div>
+  );
+}
+
+function BloomLayer({ M, ti, done, c, R, nodeR, onBack, go }) {
+  const th = THEMES[ti];
+  const p = themeProgress(th, done);
+  const pos = ringPositions(c, R, 8, -Math.PI / 2);
+  return (
+    <div style={{ animation: 'mxPop .32s ease' }}>
+      {/* action nodes */}
+      {pos.map(n => {
+        const a = th.actions[n.i]; const isDone = !!done[`${ti}-${n.i}`];
+        return (
+          <button key={n.i} onClick={() => window.MX.openAction(ti, n.i)} style={{
+            position: 'absolute', left: n.x - nodeR, top: n.y - nodeR, width: nodeR * 2, height: nodeR * 2 + 22,
+            border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: nodeR * 2, height: nodeR * 2, borderRadius: '50%', position: 'relative',
+              background: isDone ? th.color : tint(th.color, M.dark ? 24 : 15, M.dark),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isDone ? `0 3px 12px ${th.color}55` : 'none', border: `1.5px solid ${isDone ? th.color : tint(th.color, 36, M.dark)}` }}>
+              {isDone ? <Icon name="check" size={22} color="#fff" sw={2.4} />
+                : <span style={{ fontSize: 13, fontWeight: 800, color: th.color, fontFamily: 'Space Grotesk' }}>{n.i + 1}</span>}
+            </div>
+            <div style={{ marginTop: 5, fontSize: 9.5, fontWeight: 600, color: M.sub, width: 72, textAlign: 'center',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.kr}</div>
+          </button>
+        );
+      })}
+      {/* center = theme */}
+      <button onClick={onBack} style={{ position: 'absolute', left: c - 58, top: c - 58, width: 116, height: 116,
+        border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}>
+        <Ring pct={p.pct} size={116} stroke={4} color={th.color} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
+          <div style={{ position: 'absolute', inset: 5, borderRadius: '50%', background: th.color, overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 8,
+            boxShadow: `0 8px 22px ${th.color}66` }}>
+            <Icon name={th.icon} size={24} color="#fff" />
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 3, lineHeight: 1.1, wordBreak: 'keep-all' }}>{th.kr}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.85)', fontFamily: 'Space Grotesk', marginTop: 2 }}>{p.done}/8 · 닫기</div>
+          </div>
+        </Ring>
+      </button>
+      {/* detail link */}
+      <button onClick={() => go('detail', ti)} style={{ position: 'absolute', left: '50%', bottom: -2, transform: 'translateX(-50%)',
+        border: 'none', cursor: 'pointer', background: tint(th.color, M.dark ? 18 : 11, M.dark), color: th.color,
+        fontSize: 12.5, fontWeight: 700, padding: '8px 16px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+        세부 보기 <Icon name="chevR" size={15} color={th.color} />
+      </button>
+    </div>
+  );
+}
+
+Object.assign(window, { MandalaWheel });
+
+
+/* ====== mandarat-power.jsx ====== */
+// mandarat-power.jsx — interactive overlays & power features (→ window)
+const { useState: useP, useEffect: useEP, useRef: useRP } = React;
+
+// ── bottom sheet shell (slide-up + scrim, CSS-driven) ──
+function Sheet({ M, onClose, children, maxH = '88%' }) {
+  return (
+    <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 55, display: 'flex', alignItems: 'flex-end',
+      background: 'rgba(12,9,22,0.46)', animation: 'mxFade .26s ease' }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: '100%', background: M.surface, color: M.ink, borderRadius: '28px 28px 0 0',
+        padding: '10px 0 30px', animation: 'mxSlideUp .34s cubic-bezier(.25,.9,.3,1)',
+        boxShadow: '0 -12px 44px rgba(0,0,0,0.28)', maxHeight: maxH, overflowY: 'auto',
+        border: `1px solid ${M.line}`, borderBottom: 'none' }}>
+        <div style={{ width: 42, height: 5, borderRadius: 3, background: M.line, margin: '0 auto 8px' }} />
+        {typeof children === 'function' ? children(onClose) : children}
+      </div>
+    </div>
+  );
+}
+
+function Pill({ M, color, children }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+      color, background: tint(color, M.dark ? 18 : 12, M.dark), padding: '5px 11px', borderRadius: 20 }}>
+      <span style={{ width: 7, height: 7, borderRadius: 4, background: color }} />{children}
+    </span>
+  );
+}
+
+// ── Action sheet: note · today · focus · complete ──
+function ActionSheet({ M, item, done, toggle, getNote, setNote, inToday, toggleToday, onFocus, onClose }) {
+  const { ti, ai } = item;
+  const th = THEMES[ti], a = th.actions[ai], key = `${ti}-${ai}`;
+  const isDone = !!done[key];
+  const [note, setLocal] = useP(getNote(key) || '');
+  const onToday = inToday(key);
+  const writeNote = (v) => { setLocal(v); setNote(key, v); };
+
+  return (
+    <Sheet M={M} onClose={onClose}>
+      {(close) => (
+        <div style={{ padding: '4px 20px 4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Pill M={M} color={th.color}>{th.kr}</Pill>
+            <button onClick={close} style={{ border: 'none', background: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+              width: 30, height: 30, borderRadius: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: M.sub }}>
+              <Icon name="plus" size={18} color={M.sub} style={{ transform: 'rotate(45deg)' }} />
+            </button>
+          </div>
+          <div style={{ fontSize: 23, fontWeight: 800, color: M.ink, letterSpacing: -0.4, lineHeight: 1.2 }}>{a.kr}</div>
+          <div style={{ fontSize: 13, color: M.faint, fontFamily: 'Space Grotesk', marginTop: 2 }}>{a.en}</div>
+
+          {/* complete toggle */}
+          <button onClick={() => toggle(ti, ai)} style={{
+            width: '100%', marginTop: 18, padding: '15px', borderRadius: 16, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+            background: isDone ? tint(th.color, M.dark ? 22 : 14, M.dark) : th.color,
+            color: isDone ? th.color : '#fff', fontSize: 16, fontWeight: 800, letterSpacing: -0.3 }}>
+            <Icon name={isDone ? 'checkCircle' : 'check'} size={20} color={isDone ? th.color : '#fff'} />
+            {isDone ? '완료됨 · 탭하여 해제' : '완료로 표시'}
+          </button>
+
+          {/* row toggles */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <button onClick={() => toggleToday(key)} style={{
+              flex: 1, padding: '13px 12px', borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+              border: `1.5px solid ${onToday ? th.color : M.line}`, background: onToday ? tint(th.color, M.dark ? 14 : 7, M.dark) : 'transparent' }}>
+              <Icon name="sparkle" size={18} color={onToday ? th.color : M.faint} />
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: M.ink, marginTop: 6, whiteSpace: 'nowrap' }}>오늘 할 일</div>
+              <div style={{ fontSize: 11, color: M.sub, fontWeight: 600 }}>{onToday ? '추가됨' : '추가하기'}</div>
+            </button>
+            <button onClick={() => onFocus(ti, ai)} style={{
+              flex: 1, padding: '13px 12px', borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+              border: `1.5px solid ${M.line}`, background: 'transparent' }}>
+              <Icon name="target" size={18} color={M.gold} />
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: M.ink, marginTop: 6, whiteSpace: 'nowrap' }}>집중 25분</div>
+              <div style={{ fontSize: 11, color: M.sub, fontWeight: 600 }}>몰입 타이머</div>
+            </button>
+          </div>
+
+          {/* note */}
+          <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 700, color: M.sub }}>메모</div>
+          <textarea value={note} onChange={e => writeNote(e.target.value)} placeholder="떠오르는 생각을 적어두세요…" rows={3}
+            style={{ width: '100%', marginTop: 7, padding: '12px 14px', borderRadius: 14, resize: 'none',
+              border: `1px solid ${M.line}`, background: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+              color: M.ink, fontSize: 14, lineHeight: 1.5, outline: 'none' }} />
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+// ── Focus timer: calm full-cover countdown ──
+function FocusTimer({ M, item, done, toggle, onClose }) {
+  const { ti, ai } = item;
+  const th = THEMES[ti], a = th.actions[ai], key = `${ti}-${ai}`;
+  const TOTAL = 25 * 60;
+  const [left, setLeft] = useP(TOTAL);
+  const [run, setRun] = useP(true);
+  useEP(() => {
+    if (!run || left <= 0) return;
+    const id = setInterval(() => setLeft(l => (l <= 1 ? 0 : l - 1)), 1000);
+    return () => clearInterval(id);
+  }, [run, left]);
+  const pct = (1 - left / TOTAL) * 100;
+  const mm = String(Math.floor(left / 60)).padStart(2, '0');
+  const ss = String(left % 60).padStart(2, '0');
+  const finished = left <= 0;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 60, background: M.center, color: '#fff',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28,
+      animation: 'mxPop .3s ease' }}>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
+        <MandalaArt size={360} stroke={th.color} opacity={0.18} rings={3} petals={24} sw={1} />
+      </div>
+      <button onClick={onClose} style={{ position: 'absolute', top: 56, right: 22, border: 'none', cursor: 'pointer',
+        background: 'rgba(255,255,255,0.12)', width: 40, height: 40, borderRadius: 20, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="plus" size={22} color="#fff" style={{ transform: 'rotate(45deg)' }} />
+      </button>
+
+      <Pill M={M} color={th.color}>{th.kr}</Pill>
+      <div style={{ position: 'relative', margin: '22px 0 8px' }}>
+        <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)">
+          <div style={{ fontSize: 56, fontWeight: 700, fontFamily: 'Space Grotesk', letterSpacing: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {finished ? '완료' : `${mm}:${ss}`}
+          </div>
+          <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginTop: 4, maxWidth: 170, textAlign: 'center', lineHeight: 1.3 }}>{a.kr}</div>
+        </Ring>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+        {!finished && (
+          <button onClick={() => setRun(r => !r)} style={{ padding: '13px 26px', borderRadius: 30, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+            background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: 15, fontWeight: 700 }}>{run ? '일시정지' : '계속'}</button>
+        )}
+        <button onClick={() => { if (!done[key]) toggle(ti, ai); onClose(); }} style={{
+          padding: '13px 26px', borderRadius: 30, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+          background: th.color, color: '#fff', fontSize: 15, fontWeight: 800 }}>
+          {finished ? '완료 처리' : '끝내고 완료'}
+        </button>
+      </div>
+      <div style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.45)', fontWeight: 500, whiteSpace: 'nowrap' }}>한 가지에만 머무르는 25분</div>
+    </div>
+  );
+}
+
+// ── Celebration: all today done ──
+function Celebration({ M, onClose, count }) {
+  return (
+    <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 65, background: M.center, color: '#fff',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 30, cursor: 'pointer', animation: 'mxPop .35s ease' }}>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', animation: 'mxPulse 3s ease-in-out infinite' }}>
+        <MandalaArt size={420} stroke={M.gold} opacity={0.5} rings={4} petals={32} sw={1} />
+      </div>
+      <div style={{ position: 'relative', textAlign: 'center', maxWidth: 300 }}>
+        <div style={{ width: 84, height: 84, borderRadius: '50%', margin: '0 auto 18px', background: M.gold,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 50px ${M.gold}` }}>
+          <Icon name="sparkle" size={40} color={M.center} />
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 3, color: M.gold, fontFamily: 'Space Grotesk', textTransform: 'uppercase' }}>Today Complete</div>
+        <div style={{ fontSize: 27, fontWeight: 700, fontFamily: "'Gowun Batang', serif", marginTop: 12, lineHeight: 1.4 }}>
+          <div style={{ whiteSpace: 'nowrap' }}>오늘의 만다라를</div>
+          <div style={{ whiteSpace: 'nowrap' }}>완성했어요</div>
+        </div>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', marginTop: 16, fontWeight: 500, whiteSpace: 'nowrap' }}>{count}가지 실천 · 중심에 한 걸음 더</div>
+        <div style={{ marginTop: 26, fontSize: 12.5, color: 'rgba(255,255,255,0.4)' }}>탭하여 닫기</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Mood row ──
+const MOODS_FACE = [
+  { ic: 'Angry', kr: '힘듦', c: '#E5547F' },
+  { ic: 'Frown', kr: '별로', c: '#F4793B' },
+  { ic: 'Meh', kr: '보통', c: '#E8A33D' },
+  { ic: 'Smile', kr: '좋음', c: '#2FA968' },
+  { ic: 'Laugh', kr: '최고', c: '#4DA3E0' },
+];
+function MoodRow({ M, value, onPick }) {
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      {MOODS_FACE.map((m, i) => {
+        const on = value === i;
+        return (
+          <button key={i} onClick={() => onPick(i)} style={{
+            flex: 1, padding: '11px 0 9px', borderRadius: 15, cursor: 'pointer',
+            border: `1.5px solid ${on ? m.c : M.line}`, background: on ? tint(m.c, M.dark ? 18 : 11, M.dark) : 'transparent',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, transition: 'all .15s' }}>
+            <Icon name={m.ic} size={24} color={on ? m.c : M.faint} />
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: on ? m.c : M.faint }}>{m.kr}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Quick-add FAB + sheet ──
+function FAB({ M, onClick }) {
+  return (
+    <button onClick={onClick} style={{ position: 'absolute', right: 18, bottom: 96, zIndex: 38,
+      width: 56, height: 56, borderRadius: 20, border: 'none', cursor: 'pointer', background: M.accent,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+      boxShadow: `0 8px 22px ${M.accent}66, 0 2px 6px rgba(0,0,0,0.2)` }}>
+      <Icon name="plus" size={28} color="#fff" sw={2.4} />
+    </button>
+  );
+}
+function QuickAdd({ M, onAdd, onClose }) {
+  const [ti, setTi] = useP(0);
+  const [text, setText] = useP('');
+  const add = (close) => { if (text.trim()) { onAdd(ti, text); close(); } };
+  return (
+    <Sheet M={M} onClose={onClose}>
+      {(close) => (
+        <div style={{ padding: '4px 20px 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: M.ink, letterSpacing: -0.3 }}>오늘 할 일 추가</div>
+          <div style={{ fontSize: 12.5, color: M.sub, marginTop: 2, fontWeight: 500 }}>어떤 영역의 실천인가요?</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 14 }}>
+            {THEMES.map((th, i) => {
+              const on = ti === i;
+              return (
+                <button key={i} onClick={() => setTi(i)} style={{ padding: '11px 4px 9px', borderRadius: 14, cursor: 'pointer',
+                  border: `1.5px solid ${on ? th.color : M.line}`, background: on ? tint(th.color, M.dark ? 18 : 11, M.dark) : 'transparent',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <Icon name={th.icon} size={20} color={th.color} />
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: M.ink, whiteSpace: 'nowrap' }}>{th.kr}</span>
+                </button>
+              );
+            })}
+          </div>
+          <input value={text} onChange={e => setText(e.target.value)} placeholder="실천 항목을 입력하세요"
+            onKeyDown={e => { if (e.key === 'Enter') add(close); }}
+            style={{ width: '100%', marginTop: 14, padding: '14px 16px', borderRadius: 14, border: `1px solid ${M.line}`,
+              background: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 15, outline: 'none' }} />
+          <button onClick={() => add(close)} style={{ width: '100%', marginTop: 12, padding: '15px', borderRadius: 16, border: 'none',
+            cursor: 'pointer', background: text.trim() ? THEMES[ti].color : M.line, color: '#fff', fontSize: 16, fontWeight: 800 }}>추가하기</button>
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+// ── Stats: contribution heatmap (70 days) ──
+function Heatmap({ M }) {
+  const weeks = 10, days = 7;
+  // deterministic pseudo-intensity
+  const cell = (w, d) => { const x = Math.sin((w * 7 + d) * 12.9898) * 43758.5453; const f = x - Math.floor(x); return Math.floor(f * 5); };
+  const dayLabels = ['', '월', '', '수', '', '금', ''];
+  return (
+    <div style={{ display: 'flex', gap: 7 }}>
+      <div style={{ display: 'grid', gridTemplateRows: `repeat(7, 1fr)`, gap: 4, paddingTop: 1 }}>
+        {dayLabels.map((l, i) => <div key={i} style={{ fontSize: 9, color: M.faint, fontWeight: 600, height: 13, lineHeight: '13px' }}>{l}</div>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, 1fr)`, gap: 4, flex: 1 }}>
+        {Array.from({ length: weeks }).map((_, w) => (
+          <div key={w} style={{ display: 'grid', gridTemplateRows: `repeat(${days}, 1fr)`, gap: 4 }}>
+            {Array.from({ length: days }).map((_, d) => {
+              const v = (w === weeks - 1 && d > 5) ? 0 : cell(w, d);
+              const op = [0.06, 0.28, 0.5, 0.72, 1][v];
+              return <div key={d} style={{ aspectRatio: '1', borderRadius: 4,
+                background: v === 0 ? (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') : `color-mix(in srgb, ${M.accent} ${op * 100}%, transparent)` }} />;
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InsightCard({ M, done }) {
+  const ranked = THEMES.map((th, ti) => ({ th, p: themeProgress(th, done).pct })).sort((a, b) => b.p - a.p);
+  const top = ranked[0], low = ranked[ranked.length - 1];
+  return (
+    <div style={{ borderRadius: 22, padding: 18, background: M.hero, color: '#fff', position: 'relative', overflow: 'hidden',
+      boxShadow: '0 12px 28px rgba(24,18,44,0.24)' }}>
+      <div style={{ position: 'absolute', right: -30, top: -20 }}><MandalaArt size={150} stroke={M.gold} opacity={0.28} rings={2} petals={16} sw={1} /></div>
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700,
+        letterSpacing: 1.5, color: M.gold, fontFamily: 'Space Grotesk', textTransform: 'uppercase' }}>
+        <Icon name="sparkle" size={14} color={M.gold} /> Insight
+      </div>
+      <div style={{ position: 'relative', fontSize: 16, fontWeight: 700, marginTop: 8, lineHeight: 1.45, letterSpacing: -0.2 }}>
+        <b style={{ color: M.gold }}>{top.th.kr}</b> 영역이 가장 빛나고 있어요.<br />
+        이번 주엔 <b style={{ color: '#fff' }}>{low.th.kr}</b>에 한 걸음 더 내딛어 볼까요?
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Sheet, Pill, ActionSheet, FocusTimer, Celebration, MoodRow, FAB, QuickAdd, Heatmap, InsightCard });
+
+
+/* ====== mandarat-screens-a.jsx ====== */
+// mandarat-screens-a.jsx — Grid, Dashboard, Detail (→ window)
+const { useState: useStateA } = React;
+
+// ── shared header ──
+function Header({ M, kr, en, right, onBack }) {
+  return (
+    <div style={{ padding: '54px 20px 12px', display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+      {onBack && (
+        <button onClick={onBack} style={{
+          width: 38, height: 38, borderRadius: 12, border: 'none', cursor: 'pointer',
+          background: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2,
+          color: M.ink, marginLeft: -4,
+        }}>
+          <Icon name="chevL" size={20} color={M.ink} sw={2.2} />
+        </button>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
+          color: M.faint, fontFamily: 'Space Grotesk, sans-serif', marginBottom: 1 }}>{en}</div>
+        <div style={{ fontSize: 26, fontWeight: 800, color: M.ink, letterSpacing: -0.5, lineHeight: 1.1 }}>{kr}</div>
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function IconBtn({ M, name, onClick, badge }) {
+  return (
+    <button onClick={onClick} style={{
+      width: 42, height: 42, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative',
+      background: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: M.ink,
+    }}>
+      <Icon name={name} size={21} color={M.ink} />
+      {badge && <span style={{ position: 'absolute', top: 9, right: 10, width: 7, height: 7,
+        borderRadius: 4, background: '#F4793B', border: `2px solid ${M.surface}` }} />}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MANDALART 9×9 GRID
+// ─────────────────────────────────────────────────────────────
+// cell slots for a block: returns 9 entries (idx 4 is center)
+function blockSlots(kind, ti, done) {
+  // kind: 'center' | 'theme'
+  const ring = [0, 1, 2, 3, null, 4, 5, 6, 7]; // map cellpos -> ring index (null=center)
+  return ring.map((r, pos) => {
+    if (pos === 4) {
+      return kind === 'center'
+        ? { type: 'main', label: CENTER.kr }
+        : { type: 'name', label: THEMES[ti].kr, color: THEMES[ti].color };
+    }
+    if (kind === 'center') {
+      const th = THEMES[r];
+      return { type: 'theme', label: th.kr, color: th.color, ti: r };
+    }
+    return { type: 'action', label: THEMES[ti].actions[r].kr, color: THEMES[ti].color,
+      done: !!done[`${ti}-${r}`] };
+  });
+}
+
+function Block({ kind, ti, done, M, t, onTap }) {
+  const cellR = t.cellShape === '각진' ? 2 : 6;
+  const slots = blockSlots(kind, ti, done);
+  return (
+    <div onClick={() => onTap && onTap(kind, ti)} style={{
+      display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2.5,
+      cursor: kind === 'theme' ? 'pointer' : 'default',
+    }}>
+      {slots.map((s, i) => {
+        let bg, col, fw = 500, fs = 7.4;
+        if (s.type === 'main') { bg = M.dark ? '#2A2731' : '#23211C'; col = '#fff'; fw = 800; fs = 8.2; }
+        else if (s.type === 'name') { bg = s.color; col = '#fff'; fw = 800; fs = 8.6; }
+        else if (s.type === 'theme') { bg = s.color; col = '#fff'; fw = 700; fs = 8.2; }
+        else { // action
+          bg = s.done ? s.color : tint(s.color, M.dark ? 24 : 16, M.dark);
+          col = s.done ? '#fff' : (M.dark ? 'rgba(255,255,255,0.82)' : 'rgba(20,18,12,0.78)');
+        }
+        return (
+          <div key={i} style={{
+            aspectRatio: '1', borderRadius: cellR, background: bg, color: col,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+            fontSize: fs, fontWeight: fw, lineHeight: 1.04, padding: '1px 2px', overflow: 'hidden',
+            letterSpacing: -0.2, position: 'relative', wordBreak: 'keep-all',
+            boxShadow: s.type === 'action' && s.done ? `0 1px 4px ${s.color}55` : 'none',
+          }}>
+            {s.type === 'action' && s.done && (
+              <span style={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6,
+                borderRadius: 4, background: 'rgba(255,255,255,0.9)' }} />
+            )}
+            {s.label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GridScreen({ M, t, done, go }) {
+  const [view, setView] = useStateA('mandala'); // mandala | full
+  const blockOrder = [0, 1, 2, 3, 'c', 4, 5, 6, 7];
+  const blockR = t.cellShape === '각진' ? 3 : 12;
+
+  return (
+    <div>
+      <Header M={M} en="Mandal-Art" kr="만다라트"
+        right={<IconBtn M={M} name="pencil" />} />
+
+      {/* view toggle */}
+      <div style={{ padding: '0 20px 14px' }}>
+        <div style={{ display: 'flex', gap: 4, background: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)',
+          padding: 4, borderRadius: 13 }}>
+          {[['mandala', '만다라 휠'], ['full', '격자 81칸']].map(([k, l]) => (
+            <button key={k} onClick={() => setView(k)} style={{
+              flex: 1, padding: '9px 0', border: 'none', borderRadius: 10, cursor: 'pointer',
+              fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2,
+              background: view === k ? M.surface : 'transparent',
+              color: view === k ? M.ink : M.sub,
+              boxShadow: view === k ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+            }}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {view === 'mandala' ? (
+        <div style={{ padding: '4px 12px 8px' }}>
+          <MandalaWheel M={M} done={done} go={go} />
+          <p style={{ textAlign: 'center', fontSize: 12.5, color: M.faint, marginTop: 20, fontWeight: 500 }}>
+            중심의 큰 뜻을 8개의 길이 에워쌉니다 · 탭하여 펼치기
+          </p>
+        </div>
+      ) : (
+        <div style={{ padding: '0 16px 8px' }}>
+          <div style={{ background: M.surface, borderRadius: blockR + 6, padding: 7,
+            boxShadow: M.dark ? 'none' : '0 6px 22px rgba(30,24,12,0.07)',
+            border: `1px solid ${M.line}` }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+              {blockOrder.map((b, i) => (
+                <div key={i} style={{ background: b === 'c' ? (M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(35,33,28,0.04)') : 'transparent',
+                  borderRadius: blockR, padding: b === 'c' ? 3 : 0, outline: b === 'c' ? `1.5px solid ${M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(35,33,28,0.14)'}` : 'none' }}>
+                  <Block kind={b === 'c' ? 'center' : 'theme'} ti={b === 'c' ? null : b}
+                    done={done} M={M} t={t} onTap={(kind, ti) => kind === 'theme' && go('detail', ti)} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 12.5, color: M.faint, marginTop: 12, fontWeight: 500 }}>
+            컬러 블록을 탭해 세부 목표를 열어보세요
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// big center 3×3 — main goal + 8 themes
+function FocusGrid({ M, t, done, go }) {
+  const cellR = t.cellShape === '각진' ? 4 : 16;
+  const cells = [0, 1, 2, 3, 'c', 4, 5, 6, 7];
+  return (
+    <div style={{ padding: '0 16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
+        {cells.map((c, i) => {
+          if (c === 'c') {
+            return (
+              <div key={i} style={{ aspectRatio: '1', borderRadius: cellR, background: M.dark ? '#2A2731' : '#23211C',
+                color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                textAlign: 'center', padding: 8, gap: 4 }}>
+                <Icon name="target" size={20} color="rgba(255,255,255,0.7)" />
+                <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.15, wordBreak: 'keep-all' }}>{CENTER.kr}</div>
+                <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.55)', fontFamily: 'Space Grotesk' }}>{CENTER.en}</div>
+              </div>
+            );
+          }
+          const th = THEMES[c];
+          const p = themeProgress(th, done);
+          return (
+            <button key={i} onClick={() => go('detail', c)} style={{
+              aspectRatio: '1', borderRadius: cellR, border: 'none', cursor: 'pointer',
+              background: tint(th.color, M.dark ? 22 : 14, M.dark), color: M.ink,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              textAlign: 'center', padding: 6, gap: 3, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ width: 30, height: 30, borderRadius: 10, background: th.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={th.icon} size={17} color="#fff" />
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.05, color: M.dark ? '#fff' : '#211F1A', wordBreak: 'keep-all' }}>{th.kr}</div>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: th.color, fontFamily: 'Space Grotesk' }}>{p.done}/8</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────────────────
+function Dashboard({ M, t, done, go, tx }) {
+  const totalDone = Object.keys(done).filter(k => done[k]).length;
+  const totalAll = 64;
+  const pct = Math.round((totalDone / totalAll) * 100);
+  const todayTotal = tx ? tx.tTotal : TODAY_PICKS.length;
+  const todayDone = tx ? tx.tDone : TODAY_PICKS.filter(([ti, ai]) => done[`${ti}-${ai}`]).length;
+
+  return (
+    <div>
+      <Header M={M} en="June 7 · Sat" kr="안녕하세요 👋"
+        right={<IconBtn M={M} name="bell" badge />} />
+
+      {/* hero — main goal */}
+      <div style={{ padding: '0 20px 16px' }}>
+        <div onClick={() => go('grid')} style={{
+          borderRadius: 26, padding: 22, cursor: 'pointer', position: 'relative', overflow: 'hidden',
+          background: M.hero, color: '#fff', boxShadow: '0 16px 34px rgba(24,18,44,0.28)',
+          border: `1px solid ${M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.08)'}` }}>
+          <div style={{ position: 'absolute', right: -40, top: '50%', transform: 'translateY(-50%)' }}>
+            <MandalaArt size={210} stroke={M.gold} opacity={0.3} rings={3} petals={20} sw={1} />
+          </div>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 18 }}>
+            <Ring pct={pct} size={90} stroke={6} color={M.gold} track="rgba(255,255,255,0.14)">
+              <Icon name="target" size={30} color={M.gold} />
+            </Ring>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 2, color: 'rgba(255,255,255,0.45)',
+                textTransform: 'uppercase', fontFamily: 'Space Grotesk' }}>My Core Goal</div>
+              <div style={{ fontSize: 25, fontWeight: 700, letterSpacing: -0.3, marginTop: 5, lineHeight: 1.12,
+                fontFamily: "'Gowun Batang', serif" }}>{CENTER.kr}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 9, fontWeight: 500 }}>
+                81칸 중 <b style={{ color: M.gold }}>{totalDone}개</b> 달성 · {pct}%
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* today focus strip */}
+      <div style={{ padding: '0 20px 18px' }}>
+        <div onClick={() => go('today')} style={{
+          display: 'flex', alignItems: 'center', gap: 14, padding: '15px 18px', borderRadius: 20, cursor: 'pointer',
+          background: M.surface, border: `1px solid ${M.line}`, boxShadow: M.dark ? 'none' : '0 4px 16px rgba(30,24,12,0.05)' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: tint(M.accent, M.dark ? 22 : 14, M.dark),
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="sparkle" size={22} color={M.accent} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: M.ink }}>오늘의 실천</div>
+            <div style={{ fontSize: 12.5, color: M.sub, marginTop: 1 }}>{todayDone}/{todayTotal} 완료 · 잘하고 있어요</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Ring pct={(todayDone / todayTotal) * 100} size={34} stroke={4} color={M.accent} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'} />
+            <Icon name="chevR" size={18} color={M.faint} />
+          </div>
+        </div>
+      </div>
+
+      {/* theme cards */}
+      <div style={{ padding: '0 20px 6px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: M.ink, letterSpacing: -0.3, whiteSpace: 'nowrap' }}>8가지 핵심 영역</div>
+        <div style={{ fontSize: 13, color: M.faint, fontWeight: 600, fontFamily: 'Space Grotesk', whiteSpace: 'nowrap' }}>8 Pillars</div>
+      </div>
+      <div style={{ padding: '10px 20px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {THEMES.map((th, ti) => {
+          const p = themeProgress(th, done);
+          return (
+            <button key={ti} onClick={() => go('detail', ti)} style={{
+              textAlign: 'left', border: `1px solid ${M.line}`, cursor: 'pointer',
+              background: M.surface, borderRadius: 20, padding: 15, position: 'relative', overflow: 'hidden',
+              boxShadow: M.dark ? 'none' : '0 4px 14px rgba(30,24,12,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: tint(th.color, M.dark ? 24 : 15, M.dark),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={th.icon} size={21} color={th.color} />
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: th.color, fontFamily: 'Space Grotesk' }}>{p.done}<span style={{ color: M.faint }}>/8</span></div>
+              </div>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: M.ink, letterSpacing: -0.3 }}>{th.kr}</div>
+              <div style={{ fontSize: 10.5, fontWeight: 600, color: M.faint, fontFamily: 'Space Grotesk', marginBottom: 11, letterSpacing: 0.2 }}>{th.en.toUpperCase()}</div>
+              <div style={{ height: 6, borderRadius: 3, background: M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${p.pct}%`, background: th.color, borderRadius: 3, transition: 'width .6s ease' }} />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Header, IconBtn, GridScreen, Dashboard });
+
+
+/* ====== mandarat-screens-b.jsx ====== */
+// mandarat-screens-b.jsx — Detail, Today (3 variants), Stats (→ window)
+const { useState: useStateB } = React;
+
+// ─────────────────────────────────────────────────────────────
+//  THEME DETAIL
+// ─────────────────────────────────────────────────────────────
+function Detail({ M, t, done, toggle, go, ti }) {
+  const th = THEMES[ti];
+  const p = themeProgress(th, done);
+  const cellR = t.cellShape === '각진' ? 4 : 14;
+  const ring = [0, 1, 2, 3, null, 4, 5, 6, 7];
+
+  return (
+    <div>
+      <Header M={M} en={th.en} kr={th.kr} onBack={() => go('grid')}
+        right={
+          <div style={{ display: 'flex', gap: 6 }}>
+            <IconBtn M={M} name="chevL" onClick={() => go('detail', (ti + 7) % 8)} />
+            <IconBtn M={M} name="chevR" onClick={() => go('detail', (ti + 1) % 8)} />
+          </div>
+        } />
+
+      {/* hero */}
+      <div style={{ padding: '0 20px 18px' }}>
+        <div style={{ borderRadius: 24, padding: 20, display: 'flex', alignItems: 'center', gap: 18,
+          background: tint(th.color, M.dark ? 20 : 12, M.dark), border: `1px solid ${tint(th.color, 30, M.dark)}` }}>
+          <Ring pct={p.pct} size={84} stroke={8} color={th.color} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}>
+            <div style={{ width: 40, height: 40, borderRadius: 13, background: th.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={th.icon} size={22} color="#fff" />
+            </div>
+          </Ring>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, color: M.ink, letterSpacing: -0.5, fontFamily: 'Space Grotesk' }}>
+              {p.done}<span style={{ fontSize: 18, color: M.faint }}> / 8</span>
+            </div>
+            <div style={{ fontSize: 13.5, color: M.sub, fontWeight: 600, marginTop: 2 }}>실천 항목 달성</div>
+            <div style={{ fontSize: 12, color: th.color, fontWeight: 700, marginTop: 6, whiteSpace: 'nowrap',
+              display: 'inline-flex', alignItems: 'center', gap: 4, background: M.surface, padding: '3px 9px', borderRadius: 20 }}>
+              <Icon name="flame" size={13} color={th.color} /> {STREAKS[ti].cur}일 연속
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* mini 3×3 */}
+      <div style={{ padding: '0 20px 6px', fontSize: 14, fontWeight: 800, color: M.ink }}>실천 보드</div>
+      <div style={{ padding: '10px 20px 20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
+          {ring.map((r, pos) => {
+            if (pos === 4) {
+              return (
+                <div key={pos} style={{ aspectRatio: '1', borderRadius: cellR, background: th.color, color: '#fff',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 6, gap: 4 }}>
+                  <Icon name={th.icon} size={20} color="rgba(255,255,255,0.85)" />
+                  <div style={{ fontSize: 14, fontWeight: 800, wordBreak: 'keep-all', lineHeight: 1.1 }}>{th.kr}</div>
+                </div>
+              );
+            }
+            const a = th.actions[r];
+            const isDone = !!done[`${ti}-${r}`];
+            return (
+              <button key={pos} onClick={() => toggle(ti, r)} style={{
+                aspectRatio: '1', borderRadius: cellR, border: 'none', cursor: 'pointer',
+                background: isDone ? th.color : tint(th.color, M.dark ? 20 : 12, M.dark),
+                color: isDone ? '#fff' : M.ink, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 7, gap: 5,
+                position: 'relative', transition: 'all .2s', wordBreak: 'keep-all' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, lineHeight: 1.12,
+                  color: isDone ? '#fff' : (M.dark ? '#fff' : '#211F1A') }}>{a.kr}</div>
+                {isDone && <span style={{ position: 'absolute', top: 6, right: 6 }}><Icon name="check" size={13} color="#fff" sw={2.6} /></span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* action list */}
+      <div style={{ padding: '0 20px 4px', fontSize: 14, fontWeight: 800, color: M.ink }}>체크리스트</div>
+      <div style={{ padding: '10px 20px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {th.actions.map((a, ai) => {
+          const isDone = !!done[`${ti}-${ai}`];
+          return (
+            <div key={ai} onClick={() => window.MX.openAction(ti, ai)} style={{
+              display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', borderRadius: 16, cursor: 'pointer',
+              border: `1px solid ${M.line}`, background: isDone ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface, textAlign: 'left' }}>
+              <button onClick={(e) => { e.stopPropagation(); toggle(ti, ai); }} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', display: 'flex' }}>
+                <Check on={isDone} color={th.color} dark={M.dark} />
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: isDone ? M.sub : M.ink,
+                  textDecoration: isDone ? 'line-through' : 'none', letterSpacing: -0.2 }}>{a.kr}</div>
+                <div style={{ fontSize: 11.5, color: M.faint, fontFamily: 'Space Grotesk', marginTop: 1 }}>{a.en}</div>
+              </div>
+              {window.MX.getNote(`${ti}-${ai}`) && <Icon name="pencil" size={14} color={M.faint} />}
+              <Icon name="chevR" size={17} color={M.faint} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  TODAY  (3 management styles)
+// ─────────────────────────────────────────────────────────────
+function Today({ M, t, done, toggle, go, tx }) {
+  const right = <IconBtn M={M} name="calendar" />;
+  return (
+    <div>
+      <Header M={M} en="Today · June 7" kr="오늘의 실천" right={right} />
+      {/* mgmt-style switch hint */}
+      <div style={{ padding: '0 20px 14px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+          color: M.sub, background: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', padding: '6px 11px', borderRadius: 20 }}>
+          <Icon name="sparkle" size={13} color={M.sub} /> 관리 방식 · {t.mgmt}
+        </div>
+      </div>
+      {t.mgmt === '습관 스트릭' ? <TodayStreak M={M} done={done} go={go} />
+        : t.mgmt === '칸반' ? <TodayKanban M={M} t={t} done={done} toggle={toggle} />
+          : <TodayChecklist M={M} t={t} done={done} toggle={toggle} go={go} tx={tx} />}
+    </div>
+  );
+}
+
+function TodayChecklist({ M, done, toggle, tx }) {
+  const { list, extra, toggleExtra, mood, setMood, reflection, setReflection, openAction, tDone, tTotal } = tx;
+  const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
+  return (
+    <div style={{ padding: '0 20px 16px' }}>
+      {/* progress banner */}
+      <div style={{ borderRadius: 22, padding: 20, marginBottom: 16, color: '#fff',
+        background: 'linear-gradient(135deg,#F4793B,#E5547F)', boxShadow: '0 10px 26px rgba(229,84,127,0.28)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.85, whiteSpace: 'nowrap' }}>오늘의 진행</div>
+            <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -1, fontFamily: 'Space Grotesk', marginTop: 2, whiteSpace: 'nowrap' }}>
+              {tDone}<span style={{ fontSize: 20, opacity: 0.7 }}>/{tTotal}</span>
+            </div>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.9 }}>{pct}%</div>
+        </div>
+        <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.28)', marginTop: 12, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: '#fff', borderRadius: 4, transition: 'width .5s ease' }} />
+        </div>
+      </div>
+
+      {/* mood + reflection */}
+      <div style={{ borderRadius: 20, padding: 16, marginBottom: 18, background: M.surface, border: `1px solid ${M.line}`,
+        boxShadow: M.dark ? 'none' : '0 4px 14px rgba(30,24,12,0.04)' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: M.ink, marginBottom: 11 }}>오늘의 기분</div>
+        <MoodRow M={M} value={mood} onPick={setMood} />
+        <input value={reflection} onChange={e => setReflection(e.target.value)} placeholder="한 줄 회고를 남겨보세요…"
+          style={{ width: '100%', marginTop: 12, padding: '12px 14px', borderRadius: 13, border: `1px solid ${M.line}`,
+            background: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14, outline: 'none' }} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {list.map(([ti, ai], i) => {
+          const th = THEMES[ti]; const a = th.actions[ai]; const isDone = !!done[`${ti}-${ai}`];
+          return (
+            <div key={'b' + i} onClick={() => openAction(ti, ai)} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 18, cursor: 'pointer',
+              border: `1px solid ${M.line}`, background: isDone ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface, textAlign: 'left',
+              boxShadow: M.dark ? 'none' : '0 3px 12px rgba(30,24,12,0.04)' }}>
+              <button onClick={(e) => { e.stopPropagation(); toggle(ti, ai); }} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', display: 'flex' }}>
+                <Check on={isDone} color={th.color} dark={M.dark} />
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 700, color: isDone ? M.sub : M.ink,
+                  textDecoration: isDone ? 'line-through' : 'none', letterSpacing: -0.2 }}>{a.kr}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, whiteSpace: 'nowrap' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 4, background: th.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11.5, color: M.sub, fontWeight: 600, whiteSpace: 'nowrap' }}>{th.kr}</span>
+                </div>
+              </div>
+              <Icon name="chevR" size={17} color={M.faint} />
+            </div>
+          );
+        })}
+
+        {/* custom tasks */}
+        {extra.map((x) => {
+          const th = THEMES[x.ti];
+          return (
+            <button key={'x' + x.id} onClick={() => toggleExtra(x.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 18, cursor: 'pointer', textAlign: 'left',
+              border: `1px dashed ${tint(th.color, 40, M.dark)}`, background: x.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}>
+              <Check on={x.done} color={th.color} dark={M.dark} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 700, color: x.done ? M.sub : M.ink,
+                  textDecoration: x.done ? 'line-through' : 'none', letterSpacing: -0.2 }}>{x.text}</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, whiteSpace: 'nowrap' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 4, background: th.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11.5, color: M.sub, fontWeight: 600 }}>{th.kr} · 직접 추가</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TodayStreak({ M, done, go }) {
+  const totalCur = STREAKS.reduce((s, x) => s + x.cur, 0);
+  const days = ['월', '화', '수', '목', '금', '토', '일'];
+  return (
+    <div style={{ padding: '0 20px 16px' }}>
+      <div style={{ borderRadius: 22, padding: 22, marginBottom: 18, color: '#fff', textAlign: 'center',
+        background: 'linear-gradient(135deg,#F4793B,#F4B43B)', boxShadow: '0 10px 26px rgba(244,121,59,0.3)' }}>
+        <Icon name="flame" size={40} color="#fff" style={{ margin: '0 auto' }} />
+        <div style={{ fontSize: 40, fontWeight: 800, fontFamily: 'Space Grotesk', letterSpacing: -1, marginTop: 4 }}>16<span style={{ fontSize: 18, opacity: 0.8 }}>일</span></div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.9, whiteSpace: 'nowrap' }}>최장 연속 달성 · 마음챙김 🔥</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {THEMES.map((th, ti) => {
+          const s = STREAKS[ti];
+          return (
+            <div key={ti} onClick={() => go('detail', ti)} style={{ display: 'flex', alignItems: 'center', gap: 13,
+              padding: '13px 15px', borderRadius: 18, border: `1px solid ${M.line}`, background: M.surface, cursor: 'pointer' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: tint(th.color, M.dark ? 24 : 15, M.dark),
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={th.icon} size={20} color={th.color} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: M.ink, whiteSpace: 'nowrap' }}>{th.kr}</div>
+                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                  {s.week.map((d, di) => (
+                    <div key={di} style={{ width: 14, height: 14, borderRadius: 5,
+                      background: d ? th.color : (M.dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)') }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 17, fontWeight: 800, color: th.color, fontFamily: 'Space Grotesk' }}>
+                  <Icon name="flame" size={15} color={th.color} />{s.cur}
+                </div>
+                <div style={{ fontSize: 10.5, color: M.faint, fontWeight: 600, whiteSpace: 'nowrap' }}>최고 {s.best}일</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TodayKanban({ M, t, done, toggle }) {
+  // derive 3 columns from today picks + a couple extra
+  const items = [...TODAY_PICKS, [7, 0], [5, 0]];
+  const [stage, setStage] = useStateB(() => {
+    const init = {};
+    items.forEach(([ti, ai], i) => { init[`${ti}-${ai}`] = done[`${ti}-${ai}`] ? 2 : (i % 3 === 0 ? 1 : 0); });
+    return init;
+  });
+  const cols = [['할 일', 0], ['진행 중', 1], ['완료', 2]];
+  const advance = (key) => setStage(s => ({ ...s, [key]: Math.min(2, (s[key] ?? 0) + 1) }));
+  return (
+    <div style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {cols.map(([label, ci]) => {
+        const list = items.filter(([ti, ai]) => (stage[`${ti}-${ai}`] ?? 0) === ci);
+        return (
+          <div key={ci}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px 8px' }}>
+              <span style={{ width: 9, height: 9, borderRadius: 5, flexShrink: 0, background: ci === 0 ? '#A39C8C' : ci === 1 ? '#F4793B' : '#2FA968' }} />
+              <span style={{ fontSize: 14, fontWeight: 800, color: M.ink, whiteSpace: 'nowrap' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: M.faint, fontFamily: 'Space Grotesk', whiteSpace: 'nowrap' }}>{list.length}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {list.map(([ti, ai], i) => {
+                const th = THEMES[ti]; const a = th.actions[ai]; const key = `${ti}-${ai}`;
+                return (
+                  <div key={i} onClick={() => advance(key)} style={{ display: 'flex', alignItems: 'center', gap: 11,
+                    padding: '12px 14px', borderRadius: 14, background: M.surface, border: `1px solid ${M.line}`, cursor: 'pointer',
+                    borderLeft: `3px solid ${th.color}` }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: M.ink,
+                        textDecoration: ci === 2 ? 'line-through' : 'none', opacity: ci === 2 ? 0.6 : 1 }}>{a.kr}</div>
+                      <div style={{ fontSize: 11, color: M.sub, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{th.kr} · {a.en}</div>
+                    </div>
+                    {ci < 2 ? <Icon name="chevR" size={17} color={M.faint} />
+                      : <Icon name="checkCircle" size={20} color="#2FA968" />}
+                  </div>
+                );
+              })}
+              {list.length === 0 && (
+                <div style={{ fontSize: 12.5, color: M.faint, padding: '10px 14px', fontWeight: 500 }}>비어 있음</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  STATS
+// ─────────────────────────────────────────────────────────────
+function Stats({ M, t, done, go }) {
+  const totalDone = Object.keys(done).filter(k => done[k]).length;
+  const pct = Math.round((totalDone / 64) * 100);
+  const week = [4, 6, 3, 7, 5, 8, 6];
+  const days = ['월', '화', '수', '목', '금', '토', '일'];
+  const maxW = Math.max(...week);
+  const ranked = THEMES.map((th, ti) => ({ th, ti, p: themeProgress(th, done) })).sort((a, b) => b.p.pct - a.p.pct);
+
+  return (
+    <div>
+      <Header M={M} en="Progress" kr="통계" right={<IconBtn M={M} name="sparkle" />} />
+
+      {/* insight */}
+      <div style={{ padding: '0 20px 16px' }}>
+        <InsightCard M={M} done={done} />
+      </div>
+
+      {/* top stats */}
+      <div style={{ padding: '0 20px 16px', display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 12 }}>
+        <div style={{ borderRadius: 22, padding: 18, background: M.surface, border: `1px solid ${M.line}`,
+          display: 'flex', alignItems: 'center', gap: 14, boxShadow: M.dark ? 'none' : '0 4px 16px rgba(30,24,12,0.05)' }}>
+          <Ring pct={pct} size={70} stroke={7} color={M.accent} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: M.ink, fontFamily: 'Space Grotesk' }}>{pct}%</div>
+          </Ring>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: M.ink, fontFamily: 'Space Grotesk', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>{totalDone}<span style={{ fontSize: 15, color: M.faint }}>/64</span></div>
+            <div style={{ fontSize: 12.5, color: M.sub, fontWeight: 600, whiteSpace: 'nowrap' }}>전체 달성</div>
+          </div>
+        </div>
+        <div style={{ borderRadius: 22, padding: 18, background: M.surface, border: `1px solid ${M.line}`,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, boxShadow: M.dark ? 'none' : '0 4px 16px rgba(30,24,12,0.05)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Icon name="flame" size={20} color="#F4793B" />
+            <span style={{ fontSize: 26, fontWeight: 800, color: M.ink, fontFamily: 'Space Grotesk' }}>16</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: M.sub, fontWeight: 600, whiteSpace: 'nowrap' }}>최장 연속일</div>
+        </div>
+      </div>
+
+      {/* weekly activity */}
+      <div style={{ padding: '0 20px 18px' }}>
+        <div style={{ borderRadius: 22, padding: 20, background: M.surface, border: `1px solid ${M.line}`, boxShadow: M.dark ? 'none' : '0 4px 16px rgba(30,24,12,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: M.ink, whiteSpace: 'nowrap' }}>이번 주 실천</span>
+            <span style={{ fontSize: 12.5, color: M.sub, fontWeight: 600, whiteSpace: 'nowrap' }}>총 {week.reduce((a, b) => a + b, 0)}회</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 9, height: 96 }}>
+            {week.map((v, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, height: '100%', justifyContent: 'flex-end' }}>
+                <div style={{ width: '100%', height: `${(v / maxW) * 78}px`, borderRadius: 7,
+                  background: i === 5 ? 'linear-gradient(#F4793B,#E5547F)' : (M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)') }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: i === 5 ? '#F4793B' : M.faint }}>{days[i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* contribution heatmap */}
+      <div style={{ padding: '0 20px 18px' }}>
+        <div style={{ borderRadius: 22, padding: 20, background: M.surface, border: `1px solid ${M.line}`, boxShadow: M.dark ? 'none' : '0 4px 16px rgba(30,24,12,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: M.ink, whiteSpace: 'nowrap' }}>최근 70일 실천</span>
+            <span style={{ fontSize: 12.5, color: M.sub, fontWeight: 600, whiteSpace: 'nowrap' }}>꾸준함의 무늬</span>
+          </div>
+          <Heatmap M={M} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
+            <span style={{ fontSize: 10.5, color: M.faint, fontWeight: 600 }}>적음</span>
+            {[0.06, 0.28, 0.5, 0.72, 1].map((o, i) => (
+              <span key={i} style={{ width: 11, height: 11, borderRadius: 3,
+                background: o === 0.06 ? (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') : `color-mix(in srgb, ${M.accent} ${o * 100}%, transparent)` }} />
+            ))}
+            <span style={{ fontSize: 10.5, color: M.faint, fontWeight: 600 }}>많음</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ranked theme bars */}
+      <div style={{ padding: '0 20px 6px', fontSize: 16, fontWeight: 800, color: M.ink }}>영역별 달성률</div>
+      <div style={{ padding: '12px 20px 16px', display: 'flex', flexDirection: 'column', gap: 13 }}>
+        {ranked.map(({ th, ti, p }) => (
+          <div key={ti} onClick={() => go('detail', ti)} style={{ cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 4, background: th.color }} />
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: M.ink, flex: 1 }}>{th.kr}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 800, color: th.color, fontFamily: 'Space Grotesk' }}>{p.pct}%</span>
+            </div>
+            <div style={{ height: 9, borderRadius: 5, background: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.055)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${p.pct}%`, background: th.color, borderRadius: 5, transition: 'width .6s ease' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Detail, Today, Stats });
+
+
+/* ====== mandarat-app.jsx ====== */
+// mandarat-app.jsx — shell, tab bar, tweaks, routing
+const { useState: useApp, useRef: useRefApp, useEffect: useEffectApp } = React;
+
+const TABS = [
+  { id: 'dashboard', icon: 'home', label: '홈' },
+  { id: 'grid', icon: 'grid', label: '만다라트' },
+  { id: 'today', icon: 'checkCircle', label: '오늘' },
+  { id: 'stats', icon: 'chart', label: '통계' },
+];
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "mood": "크림",
+  "mgmt": "일일 체크",
+  "cellShape": "둥근",
+  "accent": "#F4793B"
+}/*EDITMODE-END*/;
+
+function TabBar({ M, active, onTab }) {
+  return (
+    <div style={{
+      position: 'relative', zIndex: 30, paddingBottom: 26, paddingTop: 9,
+      background: M.tabBg, backdropFilter: 'blur(18px) saturate(180%)', WebkitBackdropFilter: 'blur(18px) saturate(180%)',
+      borderTop: `1px solid ${M.line}`, display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+    }}>
+      {TABS.map(tab => {
+        const on = active === tab.id;
+        return (
+          <button key={tab.id} onClick={() => onTab(tab.id)} style={{
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '4px 14px', flex: 1,
+          }}>
+            <Icon name={tab.icon} size={24} color={on ? M.accent : M.faint} sw={on ? 2.1 : 1.8} />
+            <span style={{ fontSize: 10.5, fontWeight: on ? 800 : 600, color: on ? M.accent : M.faint, letterSpacing: -0.2 }}>{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [route, setRoute] = useApp({ screen: 'dashboard', ti: 0 });
+  const [done, setDone] = useApp(() => initialDone());
+  // power state
+  const [sheet, setSheet] = useApp(null);     // { ti, ai }
+  const [focus, setFocus] = useApp(null);     // { ti, ai }
+  const [quick, setQuick] = useApp(false);
+  const [notes, setNotes] = useApp({});
+  const [todayExtra, setTodayExtra] = useApp([]); // { id, ti, text, done }
+  const [todayKeys, setTodayKeys] = useApp(() => new Set(TODAY_PICKS.map(p => p.join('-'))));
+  const [mood, setMood] = useApp(null);
+  const [reflection, setReflection] = useApp('');
+  const [celebrate, setCelebrate] = useApp(false);
+  const scrollRef = useRefApp(null);
+  const prevComplete = useRefApp(true);
+
+  const M = { ...MOODS[t.mood], accent: t.accent };
+  const go = (screen, ti = 0) => setRoute({ screen, ti });
+  const toggle = (ti, ai) => setDone(d => { const k = `${ti}-${ai}`; return { ...d, [k]: !d[k] }; });
+
+  // power handlers
+  const openAction = (ti, ai) => setSheet({ ti, ai });
+  const startFocus = (ti, ai) => { setSheet(null); setFocus({ ti, ai }); };
+  const setNote = (key, v) => setNotes(o => ({ ...o, [key]: v }));
+  const getNote = (key) => notes[key];
+  const inToday = (key) => todayKeys.has(key);
+  const toggleToday = (key) => setTodayKeys(s => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  const addCustom = (ti, text) => setTodayExtra(a => [...a, { id: Date.now(), ti, text: text.trim(), done: false }]);
+  const toggleExtra = (id) => setTodayExtra(a => a.map(x => x.id === id ? { ...x, done: !x.done } : x));
+  window.MX = { openAction, startFocus, getNote, inToday };
+
+  // today aggregation + celebration
+  const todayList = [...todayKeys].map(k => k.split('-').map(Number));
+  const tDone = todayList.filter(([ti, ai]) => done[`${ti}-${ai}`]).length + todayExtra.filter(x => x.done).length;
+  const tTotal = todayList.length + todayExtra.length;
+  useEffectApp(() => {
+    const complete = tTotal > 0 && tDone === tTotal;
+    if (complete && !prevComplete.current) setCelebrate(true);
+    prevComplete.current = complete;
+  }, [tDone, tTotal]);
+
+  useEffectApp(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [route.screen, route.ti]);
+
+  const activeTab = route.screen === 'detail' ? 'grid' : route.screen;
+  const tx = { list: todayList, extra: todayExtra, toggleExtra, mood, setMood, reflection, setReflection,
+    openAction, done, toggle, tDone, tTotal };
+
+  let screen;
+  if (route.screen === 'dashboard') screen = <Dashboard M={M} t={t} done={done} go={go} tx={tx} />;
+  else if (route.screen === 'grid') screen = <GridScreen M={M} t={t} done={done} go={go} />;
+  else if (route.screen === 'detail') screen = <Detail M={M} t={t} done={done} toggle={toggle} go={go} ti={route.ti} />;
+  else if (route.screen === 'today') screen = <Today M={M} t={t} done={done} toggle={toggle} go={go} tx={tx} />;
+  else if (route.screen === 'stats') screen = <Stats M={M} t={t} done={done} go={go} />;
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'radial-gradient(circle at 30% 20%, #eceae4, #d9d6cf)', padding: 24 }}>
+      <IOSDevice>
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: M.bg, color: M.ink,
+          position: 'relative', fontFamily: 'Pretendard, -apple-system, system-ui, sans-serif' }}>
+          <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+            <div key={route.screen + route.ti} className="mx-screen">{screen}</div>
+            <div style={{ height: 12 }} />
+          </div>
+          <TabBar M={M} active={activeTab} onTab={(id) => go(id)} />
+
+          <FAB M={M} onClick={() => setQuick(true)} />
+          {sheet && <ActionSheet M={M} item={sheet} done={done} toggle={toggle} getNote={getNote} setNote={setNote}
+            inToday={inToday} toggleToday={toggleToday} onFocus={startFocus} onClose={() => setSheet(null)} />}
+          {focus && <FocusTimer M={M} item={focus} done={done} toggle={toggle} onClose={() => setFocus(null)} />}
+          {quick && <QuickAdd M={M} onAdd={addCustom} onClose={() => setQuick(false)} />}
+          {celebrate && <Celebration M={M} count={tTotal} onClose={() => setCelebrate(false)} />}
+        </div>
+      </IOSDevice>
+
+      <TweaksPanel>
+        <TweakSection label="무드 / Mood" />
+        <TweakRadio label="배경 무드" value={t.mood} options={['크림', '화이트', '파스텔', '다크']}
+          onChange={v => setTweak('mood', v)} />
+        <TweakColor label="포인트 컬러" value={t.accent}
+          options={['#F4793B', '#4F6BED', '#2FA968', '#8B5CF6']}
+          onChange={v => setTweak('accent', v)} />
+        <TweakSection label="관리 방식 / Manage" />
+        <TweakRadio label="오늘 화면" value={t.mgmt} options={['일일 체크', '습관 스트릭', '칸반']}
+          onChange={v => setTweak('mgmt', v)} />
+        <TweakSection label="그리드 / Grid" />
+        <TweakRadio label="셀 모양" value={t.cellShape} options={['둥근', '각진']}
+          onChange={v => setTweak('cellShape', v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+
+  </script>
+</body>
+</html>
