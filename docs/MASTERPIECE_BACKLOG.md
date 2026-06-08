@@ -89,3 +89,4 @@
 - #17 MandalaArt·LotusBloom React.memo 적용으로 부모 리렌더 시 SVG 재구성 방지
 - #30 화면 전환 시 페이드+슬라이드 인 모션 추가(Root, Reduce Motion 존중)
 - #32 진입 시 연꽃 스플래시(Splash)로 폰트·하이드레이션 동안 다크 플래시 제거
+- #4(확대) GridScreen 뷰 토글·영역 블록·중앙 셀에 accessibilityRole/Label/State 추가

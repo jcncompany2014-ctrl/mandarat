@@ -79,7 +79,15 @@ function Block({
   );
 
   if (kind === 'theme') {
-    return <Pressable onPress={() => onTapTheme(ti)}>{content}</Pressable>;
+    return (
+      <Pressable
+        onPress={() => onTapTheme(ti)}
+        accessibilityRole="button"
+        accessibilityLabel={`${doc.themes[ti].title || `영역 ${ti + 1}`} 영역 열기`}
+      >
+        {content}
+      </Pressable>
+    );
   }
   // center block: only the center cell is tappable for editing; rest navigate to themes
   return (
@@ -95,6 +103,8 @@ function Block({
           <Pressable
             key={i}
             onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={s.type === 'main' ? '핵심 목표 편집' : s.type === 'theme' ? `${s.label} 영역 열기` : undefined}
             style={{ width: '31.5%', aspectRatio: 1, borderRadius: cellR, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', padding: 1, overflow: 'hidden' }}
           >
             <Text style={{ fontSize: 7.6, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 8.4 }} numberOfLines={2}>
@@ -127,6 +137,9 @@ export function GridScreen() {
             <Pressable
               key={k}
               onPress={() => setView(k)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: view === k }}
+              accessibilityLabel={l}
               style={[{ flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center', backgroundColor: view === k ? M.surface : 'transparent' }, view === k && !M.dark ? shadow(2) : null]}
             >
               <Text style={{ fontSize: 13.5, fontWeight: '700', color: view === k ? M.ink : M.sub }}>{l}</Text>
