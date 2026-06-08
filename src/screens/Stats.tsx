@@ -30,6 +30,12 @@ export function Stats() {
   const last7 = lastNDates(7);
   const week = last7.map((k) => (doc.dayLog[k] ?? []).length);
   const weekTotal = week.reduce((a, b) => a + b, 0);
+
+  // 최근 70일 중 가장 많이 실천한 날
+  const hmDates = lastNDates(70);
+  const hmCounts = hmDates.map((k) => (doc.dayLog[k] ?? []).length);
+  const bestIdx = hmCounts.reduce((b, c, i) => (c > hmCounts[b] ? i : b), 0);
+  const bestCount = hmCounts[bestIdx] ?? 0;
   const maxW = Math.max(1, ...week);
   // align weekday labels to the actual last-7 window
   const todayDow = new Date().getDay(); // 0=Sun
@@ -104,7 +110,9 @@ export function Stats() {
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>최근 70일 실천</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>꾸준함의 무늬</Text>
+            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>
+              {bestCount > 0 ? `최고의 날 ${bestCount}회 · ${fmtDay(hmDates[bestIdx])}` : '꾸준함의 무늬'}
+            </Text>
           </View>
           <Heatmap M={M} doc={doc} />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
