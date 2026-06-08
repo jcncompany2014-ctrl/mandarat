@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
-import { MandalaArt } from '../components/MandalaArt';
+import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
 import { FONTS } from '../theme/fonts';
 import { fade } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -186,15 +186,17 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
   const low = ranked[ranked.length - 1];
   const topName = top.th.title || `영역 ${top.ti + 1}`;
   const lowName = low.th.title || `영역 ${low.ti + 1}`;
+  const overallPct = Math.round((totalDone(doc) / 64) * 100);
 
   return (
     <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 18, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.18 : 0.24)]}>
-      <View style={{ position: 'absolute', right: -30, top: -20 }}>
-        <MandalaArt size={150} stroke={M.gold} opacity={M.heroLight ? 0.22 : 0.28} />
+      <View style={{ position: 'absolute', right: -26, top: -18, opacity: M.heroLight ? 0.55 : 0.6 }}>
+        <LotusBloom size={150} pct={overallPct} color={M.gold} />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name="sparkle" size={14} color={M.gold} />
         <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: M.gold, fontFamily: FONTS.grotesk }}>INSIGHT</Text>
+        <Text style={{ fontSize: 11, fontWeight: '700', color: M.heroSub }}>· 연꽃 {bloomLabel(bloomStage(overallPct))}</Text>
       </View>
       <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 8, lineHeight: 24, color: M.heroInk, letterSpacing: -0.2 }}>
         <Text style={{ color: M.gold, fontWeight: '800' }}>{topName}</Text> 영역이 가장 빛나고 있어요. 이번 주엔{' '}
