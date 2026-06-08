@@ -58,7 +58,12 @@ export function MandalaWheel({ M }: { M: M }) {
       {bloom == null ? (
         <>
           {/* center core */}
-          <View style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}>
+          <Pressable
+            onPress={() => openEditor({ kind: 'center' })}
+            accessibilityRole="button"
+            accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, ${pct}% · 편집`}
+            style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}
+          >
             <Ring pct={pct} size={112} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
               <View style={[{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5, borderRadius: 56, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 8 }, shadow(8, '#141028', 0.32)]}>
                 <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
@@ -70,7 +75,7 @@ export function MandalaWheel({ M }: { M: M }) {
                 <Text style={{ fontSize: 11, fontWeight: '700', color: M.gold, fontFamily: FONTS.grotesk, marginTop: 3 }}>{pct}%</Text>
               </View>
             </Ring>
-          </View>
+          </Pressable>
 
           {/* theme petals */}
           {pos.map((n) => {
