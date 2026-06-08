@@ -1,5 +1,4 @@
 import React from 'react';
-import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -13,11 +12,12 @@ import { MandaratProvider, useMandarat } from './src/store/MandaratContext';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { Splash } from './src/components/Splash';
 
 function Gate() {
   const { ready } = useMandarat();
-  // keep a neutral background while the store hydrates
-  if (!ready) return <View style={{ flex: 1, backgroundColor: '#221F2E' }} />;
+  // calm lotus splash while the store hydrates
+  if (!ready) return <Splash />;
   return (
     <UIProvider>
       <Root />
@@ -34,8 +34,8 @@ export default function App() {
     GowunBatang_700Bold,
   });
 
-  // Render once fonts resolve; a blank dark frame avoids a flash of unstyled text.
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#221F2E' }} />;
+  // Render once fonts resolve; the lotus splash avoids a flash of unstyled text.
+  if (!fontsLoaded) return <Splash />;
 
   return (
     <ErrorBoundary>
