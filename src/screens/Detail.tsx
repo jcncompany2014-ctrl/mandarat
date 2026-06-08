@@ -92,6 +92,9 @@ export function Detail({ ti }: { ti: number }) {
               <Pressable
                 key={pos}
                 onPress={() => onCell(ai)}
+                accessibilityRole={has ? 'checkbox' : 'button'}
+                accessibilityState={has ? { checked: a.done } : undefined}
+                accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력`}
                 style={{
                   width: '31.5%', aspectRatio: 1, borderRadius: cellR, alignItems: 'center', justifyContent: 'center', padding: 7,
                   backgroundColor: a.done ? th.color : tint(th.color, M.dark ? 20 : 12, M.dark),
@@ -120,11 +123,18 @@ export function Detail({ ti }: { ti: number }) {
             <Pressable
               key={ai}
               onPress={() => (has ? openAction(ti, ai) : openEditor({ kind: 'action', ti, ai }))}
+              accessibilityRole="button"
+              accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력하기`}
+              accessibilityHint={has ? '실천 항목 자세히 보기' : '실천 항목 입력하기'}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 16, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
             >
               <Pressable
                 onPress={() => { if (has) { tap(); toggleDone(ti, ai); } }}
-                hitSlop={8}
+                hitSlop={10}
+                disabled={!has}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: a.done, disabled: !has }}
+                accessibilityLabel={has ? `${a.text} 완료` : '실천 항목 완료'}
               >
                 <Check on={a.done} color={th.color} dark={M.dark} />
               </Pressable>

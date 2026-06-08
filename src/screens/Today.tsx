@@ -116,6 +116,9 @@ function TodayChecklist({ M }: { M: M }) {
                 <Pressable
                   key={c == null ? 'all' : c}
                   onPress={() => setCat(c)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${label} 필터`}
+                  accessibilityState={{ selected: on }}
                   style={{ paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: on ? color : M.line, backgroundColor: on ? tint(color, M.dark ? 18 : 11, M.dark) : 'transparent' }}
                 >
                   <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? color : M.sub }}>{label}</Text>
@@ -133,9 +136,18 @@ function TodayChecklist({ M }: { M: M }) {
             <Pressable
               key={`b${ti}-${ai}`}
               onPress={() => openAction(ti, ai)}
+              accessibilityRole="button"
+              accessibilityLabel={`${a.text}, ${th.title || `영역 ${ti + 1}`}`}
+              accessibilityHint="실천 항목 자세히 보기"
               style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark ? null : shadow(3)]}
             >
-              <Pressable onPress={() => { tap(); toggleDone(ti, ai); }} hitSlop={8}>
+              <Pressable
+                onPress={() => { tap(); toggleDone(ti, ai); }}
+                hitSlop={10}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: a.done }}
+                accessibilityLabel={`${a.text} 완료`}
+              >
                 <Check on={a.done} color={th.color} dark={M.dark} />
               </Pressable>
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -158,6 +170,9 @@ function TodayChecklist({ M }: { M: M }) {
             <Pressable
               key={`x${x.id}`}
               onPress={() => { tap(); toggleExtra(x.id); }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: x.done }}
+              accessibilityLabel={`${x.text} 완료`}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: tint(th.color, 40, M.dark), backgroundColor: x.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
             >
               <Check on={x.done} color={th.color} dark={M.dark} />

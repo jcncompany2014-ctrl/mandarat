@@ -12,8 +12,8 @@
 - [x] 3. 무드별 상태바 스타일 자동 전환 (온보딩도 heroLight 기준으로 보정)
 
 ## 2순위 — 접근성 (a11y)
-- [~] 4. 인터랙티브 요소에 accessibilityRole/Label (탭바·FAB·IconBtn·뒤로·닫기 완료, 체크리스트/그리드 남음)
-- [~] 5. 최소 터치 영역 44pt 보장 (공통 버튼 hitSlop 추가, 나머지 점검 중)
+- [x] 4. 인터랙티브 요소에 accessibilityRole/Label/State (탭바·FAB·공통버튼·오늘 체크리스트/필터·Detail 보드/체크리스트 완료)
+- [x] 5. 최소 터치 영역: 공통 버튼·체크박스 hitSlop 추가
 - [ ] 6. 색상 대비 점검 + faint 텍스트 가독성
 
 ## 3순위 — UX 디테일·마이크로카피
@@ -66,3 +66,4 @@
 - #1,#2 온보딩 화면을 hero 밝기(heroLight)에 적응시켜 연꽃 무드에서도 가독성 확보, MandalaArt 죽은 props 제거
 - #3 온보딩 상태바를 heroLight 기준으로 light/dark 자동 전환
 - #4,#5(부분) 탭바/FAB/IconBtn/뒤로/닫기 버튼에 accessibilityRole·Label·State, hitSlop 추가
+- #4,#5 오늘 체크리스트·필터칩, Detail 미니보드·체크리스트에 checkbox 역할/완료상태/라벨 부여 (a11y 완료)
