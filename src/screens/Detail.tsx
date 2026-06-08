@@ -65,7 +65,9 @@ export function Detail({ ti }: { ti: number }) {
             <Text style={{ fontSize: 13.5, color: M.sub, fontWeight: '600', marginTop: 2 }}>실천 항목 달성</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, alignSelf: 'flex-start', backgroundColor: M.surface, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20 }}>
               <Icon name="flame" size={13} color={th.color} />
-              <Text style={{ fontSize: 12, color: th.color, fontWeight: '700' }}>{streak.cur}일 연속</Text>
+              <Text style={{ fontSize: 12, color: th.color, fontWeight: '700' }}>
+                {streak.cur > 0 ? `${streak.cur}일 연속` : '오늘 시작해보세요'}
+              </Text>
             </View>
           </View>
         </View>
