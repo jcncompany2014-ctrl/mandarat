@@ -224,6 +224,8 @@ function TodayStreak({ M }: { M: M }) {
             <Pressable
               key={ti}
               onPress={() => go('detail', ti)}
+              accessibilityRole="button"
+              accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 현재 연속 ${s.cur}일, 최고 ${s.best}일`}
               style={[{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: M.surface }, M.dark ? null : shadow(3)]}
             >
               <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(th.color, M.dark ? 24 : 15, M.dark), alignItems: 'center', justifyContent: 'center' }}>
@@ -308,6 +310,9 @@ function TodayKanban({ M }: { M: M }) {
                   <Pressable
                     key={c.key}
                     onPress={() => advance(c)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${c.text}, ${th.title || `영역 ${c.ti + 1}`}, ${label}`}
+                    accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : undefined}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, borderLeftWidth: 3, borderLeftColor: th.color }}
                   >
                     <View style={{ flex: 1 }}>
