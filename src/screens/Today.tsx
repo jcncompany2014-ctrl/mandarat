@@ -92,6 +92,7 @@ function TodayChecklist({ M }: { M: M }) {
         <TextInput
           value={meta.reflection ?? ''}
           onChangeText={setDayReflection}
+          accessibilityLabel="오늘 한 줄 회고"
           placeholder="한 줄 회고를 남겨보세요…"
           placeholderTextColor={M.faint}
           style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14 }}

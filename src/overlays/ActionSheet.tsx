@@ -92,6 +92,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       <TextInput
         value={note}
         onChangeText={(v) => { setNote(v); setActionNote(ti, ai, v); }}
+        accessibilityLabel="실천 메모"
         placeholder="떠오르는 생각을 적어두세요…"
         placeholderTextColor={M.faint}
         multiline

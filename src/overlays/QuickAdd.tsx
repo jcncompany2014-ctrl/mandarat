@@ -50,6 +50,7 @@ export function QuickAdd() {
         <TextInput
           value={text}
           onChangeText={setText}
+          accessibilityLabel="오늘 할 일 입력"
           placeholder="예) 점심 후 15분 산책"
           placeholderTextColor={M.faint}
           autoFocus

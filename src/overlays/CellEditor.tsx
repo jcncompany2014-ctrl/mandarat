@@ -71,6 +71,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
             <TextInput
               value={text}
               onChangeText={setText}
+              accessibilityLabel={m.title}
               placeholder={m.placeholder}
               placeholderTextColor={M.faint}
               autoFocus
