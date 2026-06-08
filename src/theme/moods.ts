@@ -22,8 +22,8 @@ export interface Palette {
 export const MOODS: Record<Mood, Palette> = {
   // 연꽃 — 한지 미색 + 은은한 골드. 만다라의 명상적 뿌리를 곱고 단정하게.
   연꽃: {
-    bg: '#F7F2E8', surface: '#FFFDF8', card: '#FFFDF8', ink: '#2B2620', sub: '#6F6657',
-    faint: '#AAA08D', line: 'rgba(110,85,40,0.13)', tabBg: 'rgba(247,242,232,0.97)', dark: false,
+    bg: '#FBF9F4', surface: '#FFFFFF', card: '#FFFFFF', ink: '#2B2620', sub: '#6F6657',
+    faint: '#AAA08D', line: 'rgba(110,85,40,0.12)', tabBg: 'rgba(251,249,244,0.97)', dark: false,
     gold: '#B0883C', center: '#2B2620', hero: ['#F3EAD6', '#EFE3C9', '#E8D9B8'],
     heroInk: '#322B1E', heroSub: '#8C7E5F', heroLight: true,
   },
