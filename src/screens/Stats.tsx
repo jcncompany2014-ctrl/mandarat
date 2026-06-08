@@ -243,6 +243,9 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
   const topName = top.th.title || `영역 ${top.ti + 1}`;
   const lowName = low.th.title || `영역 ${low.ti + 1}`;
   const overallPct = Math.round((totalDone(doc) / 64) * 100);
+  const streak = overallStreak(doc);
+  const weekTotal = lastNDates(7).reduce((s, k) => s + (doc.dayLog[k]?.length ?? 0), 0);
+  const chipBg = M.heroLight ? 'rgba(70,52,18,0.10)' : 'rgba(255,255,255,0.13)';
 
   return (
     <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 18, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.18 : 0.24)]}>
@@ -258,6 +261,16 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
         <Text style={{ color: M.gold, fontWeight: '800' }}>{topName}</Text> 영역이 가장 빛나고 있어요. 이번 주엔{' '}
         <Text style={{ color: M.heroInk, fontWeight: '800' }}>{lowName}</Text>에 한 걸음 더 내딛어 볼까요?
       </Text>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
+          <Icon name="flame" size={13} color={M.gold} />
+          <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>연속 {streak}일</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
+          <Icon name="checkCircle" size={13} color={M.gold} />
+          <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>이번 주 {weekTotal}회</Text>
+        </View>
+      </View>
     </LinearGradient>
   );
 }
