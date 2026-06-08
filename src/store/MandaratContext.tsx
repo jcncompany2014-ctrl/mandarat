@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme } from '../types';
-import { blankDoc, sampleThemes, scaffoldThemes } from '../data/defaults';
+import { blankDoc, migrate, sampleThemes, scaffoldThemes } from '../data/defaults';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 
@@ -65,8 +65,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as MandaratDoc;
-          setDoc({ ...blankDoc(), ...parsed, settings: { ...blankDoc().settings, ...parsed.settings } });
+          setDoc(migrate(JSON.parse(raw)));
         }
       } catch (e) {
         console.warn('Mandarat load failed', e);

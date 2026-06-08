@@ -12,6 +12,7 @@ import { GowunBatang_400Regular, GowunBatang_700Bold } from '@expo-google-fonts/
 import { MandaratProvider, useMandarat } from './src/store/MandaratContext';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 function Gate() {
   const { ready } = useMandarat();
@@ -37,10 +38,12 @@ export default function App() {
   if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: '#221F2E' }} />;
 
   return (
-    <SafeAreaProvider>
-      <MandaratProvider>
-        <Gate />
-      </MandaratProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <MandaratProvider>
+          <Gate />
+        </MandaratProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

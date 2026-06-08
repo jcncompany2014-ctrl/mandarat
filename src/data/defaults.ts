@@ -111,3 +111,21 @@ export function blankDoc(): MandaratDoc {
     settings: { mood: '연꽃', accent: '#B0883C', mgmt: '일일 체크', cellShape: '둥근' },
   };
 }
+
+/**
+ * 저장된 문서를 현재 스키마로 안전하게 이행한다.
+ * - 누락/손상된 필드는 blankDoc 기본값으로 채운다.
+ * - settings는 깊은 병합으로 새 옵션 추가에도 안전.
+ * - 향후 스키마 변경 시 parsed.version 으로 분기해 단계적 업그레이드.
+ */
+export function migrate(parsed: unknown): MandaratDoc {
+  const base = blankDoc();
+  if (!parsed || typeof parsed !== 'object') return base;
+  const p = parsed as Partial<MandaratDoc>;
+  return {
+    ...base,
+    ...p,
+    version: 1,
+    settings: { ...base.settings, ...(p.settings ?? {}) },
+  };
+}
