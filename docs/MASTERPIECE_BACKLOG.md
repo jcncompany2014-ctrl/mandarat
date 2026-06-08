@@ -18,7 +18,7 @@
 
 ## 3순위 — UX 디테일·마이크로카피
 - [~] 7. 빈 상태 일러스트/문구 강화: 공통 EmptyState(만다라 문양) 컴포넌트 도입, Today 2곳 적용 (Stats/기타 남음)
-- [ ] 8. 저장/완료/추가 햅틱 + 마이크로 애니메이션 일관 적용
+- [x] 8. 완료 success 햅틱을 전 화면 통일 + 탭전환/FAB 햅틱 + 체크박스 스케일 팝 애니메이션
 - [x] 9. Undo 스낵바 인프라(UI provider toast + Snackbar 오버레이) + "오늘 할 일" 추가/제거 되돌리기. (추후 다른 동작에도 확대 가능)
 - [x] 10. 입력 글자수 제한(maxLength)·카운터, 실천 칸별 다양한 placeholder (CellEditor/QuickAdd/Onboarding/메모)
 
@@ -71,3 +71,4 @@
 - #1계열 Stats InsightCard hero 텍스트 가독성 보정(heroInk) + #2 잔여 죽은 props 전부 제거
 - #10 글자수 제한·카운터·칸별 다양한 placeholder 적용 (편집기/빠른추가/온보딩/메모)
 - #9 Toast/Snackbar 인프라(ui.tsx) + Snackbar 오버레이 신설, "오늘 할 일" 추가/제거에 되돌리기 연결
+- #8 완료 햅틱 전 화면 통일 + 탭/FAB 햅틱 + Check 스케일 팝 애니메이션 (3순위 UX 디테일 완료)

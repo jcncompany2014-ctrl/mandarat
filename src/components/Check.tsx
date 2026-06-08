@@ -1,11 +1,25 @@
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
 import { Icon } from './Icon';
 
-/** Round checkbox dot. */
+/** Round checkbox dot with a gentle scale-pop when it becomes checked. */
 export function Check({ on, color, dark }: { on: boolean; color: string; dark: boolean }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const first = useRef(true);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return; // no pop on initial mount
+    }
+    if (on) {
+      scale.setValue(0.7);
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 9, stiffness: 220 }).start();
+    }
+  }, [on, scale]);
+
   return (
-    <View
+    <Animated.View
       style={{
         width: 26,
         height: 26,
@@ -15,9 +29,10 @@ export function Check({ on, color, dark }: { on: boolean; color: string; dark: b
         backgroundColor: on ? color : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
+        transform: [{ scale }],
       }}
     >
       {on && <Icon name="check" size={16} color="#fff" sw={3} />}
-    </View>
+    </Animated.View>
   );
 }

@@ -14,7 +14,7 @@ import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
-import { tap } from '../lib/haptics';
+import { tap, success } from '../lib/haptics';
 
 const WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -144,7 +144,7 @@ function TodayChecklist({ M }: { M: M }) {
               style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark ? null : shadow(3)]}
             >
               <Pressable
-                onPress={() => { tap(); toggleDone(ti, ai); }}
+                onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
                 hitSlop={10}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: a.done }}
@@ -171,7 +171,7 @@ function TodayChecklist({ M }: { M: M }) {
           return (
             <Pressable
               key={`x${x.id}`}
-              onPress={() => { tap(); toggleExtra(x.id); }}
+              onPress={() => { tap(); if (!x.done) success(); toggleExtra(x.id); }}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: x.done }}
               accessibilityLabel={`${x.text} 완료`}

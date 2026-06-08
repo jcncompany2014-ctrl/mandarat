@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { shadow } from '../theme/shadow';
+import { tap } from '../lib/haptics';
 import { usePalette } from '../theme/usePalette';
 import { useUI, Screen } from './ui';
 import { useMandarat } from '../store/MandaratContext';
@@ -89,9 +90,9 @@ export function Root() {
         {screen}
       </ScrollView>
 
-      {showFab && <Fab onPress={ui.openQuick} />}
+      {showFab && <Fab onPress={() => { tap(); ui.openQuick(); }} />}
 
-      {ui.screen !== 'settings' && <TabBar active={activeTab} onTab={(id) => ui.go(id)} bottomInset={insets.bottom} />}
+      {ui.screen !== 'settings' && <TabBar active={activeTab} onTab={(id) => { if (id !== activeTab) tap(); ui.go(id); }} bottomInset={insets.bottom} />}
 
       {/* overlays */}
       <ActionSheet />

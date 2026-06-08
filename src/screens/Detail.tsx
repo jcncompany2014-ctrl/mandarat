@@ -9,7 +9,7 @@ import { tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, themeStreak } from '../store/MandaratContext';
-import { tap } from '../lib/haptics';
+import { tap, success } from '../lib/haptics';
 
 const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 
@@ -26,6 +26,7 @@ export function Detail({ ti }: { ti: number }) {
     const a = th.actions[ai];
     if (a.text.trim()) {
       tap();
+      if (!a.done) success();
       toggleDone(ti, ai);
     } else {
       openEditor({ kind: 'action', ti, ai });
@@ -129,7 +130,7 @@ export function Detail({ ti }: { ti: number }) {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 16, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
             >
               <Pressable
-                onPress={() => { if (has) { tap(); toggleDone(ti, ai); } }}
+                onPress={() => { if (has) { tap(); if (!a.done) success(); toggleDone(ti, ai); } }}
                 hitSlop={10}
                 disabled={!has}
                 accessibilityRole="checkbox"
