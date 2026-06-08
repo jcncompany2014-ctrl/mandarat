@@ -37,7 +37,7 @@ export function MandalaWheel({ M }: { M: M }) {
     <View style={{ width: SIZE, height: SIZE, alignSelf: 'center', marginTop: 4 }}>
       {/* backdrop */}
       <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-        <MandalaArt size={SIZE} stroke={lineColor} opacity={M.dark ? 0.22 : 0.16} rings={3} petals={24} sw={1} />
+        <MandalaArt size={SIZE} stroke={lineColor} opacity={M.dark ? 0.22 : 0.16} />
       </View>
       <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }} pointerEvents="none">
         <Circle cx={C} cy={C} r={R} fill="none" stroke={lineColor} strokeOpacity={0.34} strokeWidth={1} />
@@ -62,7 +62,7 @@ export function MandalaWheel({ M }: { M: M }) {
             <Ring pct={pct} size={112} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
               <View style={[{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5, borderRadius: 56, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 8 }, shadow(8, '#141028', 0.32)]}>
                 <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-                  <MandalaArt size={102} stroke={M.gold} opacity={0.32} rings={2} petals={12} sw={0.8} />
+                  <MandalaArt size={102} stroke={M.gold} opacity={0.32} />
                 </View>
                 <Text style={{ fontFamily: FONTS.serif, fontWeight: '700', fontSize: 13.5, color: '#fff', textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>
                   {doc.centerGoal || '핵심 목표'}

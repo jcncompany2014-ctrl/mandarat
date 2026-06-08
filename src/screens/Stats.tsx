@@ -188,17 +188,17 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
   const lowName = low.th.title || `영역 ${low.ti + 1}`;
 
   return (
-    <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 18, overflow: 'hidden' }, shadow(12, '#18122C', 0.24)]}>
+    <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 18, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.18 : 0.24)]}>
       <View style={{ position: 'absolute', right: -30, top: -20 }}>
-        <MandalaArt size={150} stroke={M.gold} opacity={0.28} rings={2} petals={16} sw={1} />
+        <MandalaArt size={150} stroke={M.gold} opacity={M.heroLight ? 0.22 : 0.28} />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name="sparkle" size={14} color={M.gold} />
         <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: M.gold, fontFamily: FONTS.grotesk }}>INSIGHT</Text>
       </View>
-      <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 8, lineHeight: 24, color: '#fff', letterSpacing: -0.2 }}>
+      <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 8, lineHeight: 24, color: M.heroInk, letterSpacing: -0.2 }}>
         <Text style={{ color: M.gold, fontWeight: '800' }}>{topName}</Text> 영역이 가장 빛나고 있어요. 이번 주엔{' '}
-        <Text style={{ color: '#fff', fontWeight: '800' }}>{lowName}</Text>에 한 걸음 더 내딛어 볼까요?
+        <Text style={{ color: M.heroInk, fontWeight: '800' }}>{lowName}</Text>에 한 걸음 더 내딛어 볼까요?
       </Text>
     </LinearGradient>
   );

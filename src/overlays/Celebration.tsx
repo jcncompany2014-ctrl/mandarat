@@ -29,7 +29,7 @@ export function Celebration({ count }: { count: number }) {
     <Modal visible animationType="fade" transparent onRequestClose={closeCelebrate} statusBarTranslucent>
       <Pressable onPress={closeCelebrate} style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
         <Animated.View style={{ position: 'absolute', transform: [{ scale: pulse }] }} pointerEvents="none">
-          <MandalaArt size={420} stroke={M.gold} opacity={0.5} rings={4} petals={32} sw={1} />
+          <MandalaArt size={420} stroke={M.gold} opacity={0.5} />
         </Animated.View>
         <View style={{ alignItems: 'center', maxWidth: 300 }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 18, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center' }}>

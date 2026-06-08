@@ -8,7 +8,7 @@
 
 ## 1순위 — 결함·일관성
 - [x] 1. 온보딩 가독성: hero 위 텍스트/칩/입력창 흰색 고정 → heroInk/heroSub 적응색
-- [x] 2. 죽은 props 정리: MandalaArt에 더 이상 안 쓰는 rings/petals/sw 전달 제거 (Onboarding)
+- [x] 2. 죽은 props 정리: MandalaArt rings/petals/sw 전달 전부 제거 (Onboarding/Stats/Celebration/FocusTimer/MandalaWheel)
 - [x] 3. 무드별 상태바 스타일 자동 전환 (온보딩도 heroLight 기준으로 보정)
 
 ## 2순위 — 접근성 (a11y)
@@ -68,3 +68,4 @@
 - #4,#5(부분) 탭바/FAB/IconBtn/뒤로/닫기 버튼에 accessibilityRole·Label·State, hitSlop 추가
 - #4,#5 오늘 체크리스트·필터칩, Detail 미니보드·체크리스트에 checkbox 역할/완료상태/라벨 부여 (a11y 완료)
 - #7(부분) 만다라 문양 기반 공통 EmptyState 컴포넌트 신설 + Today 빈 상태 2곳 통일
+- #1계열 Stats InsightCard hero 텍스트 가독성 보정(heroInk) + #2 잔여 죽은 props 전부 제거

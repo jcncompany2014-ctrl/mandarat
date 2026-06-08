@@ -51,7 +51,7 @@ export function FocusTimer() {
     <Modal visible animationType="fade" onRequestClose={closeFocus} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
         <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-          <MandalaArt size={360} stroke={th.color} opacity={0.18} rings={3} petals={24} sw={1} />
+          <MandalaArt size={360} stroke={th.color} opacity={0.18} />
         </View>
         <View style={{ position: 'absolute', top: insets.top + 16, right: 22 }}>
           <CloseBtn M={M} onPress={closeFocus} light />
