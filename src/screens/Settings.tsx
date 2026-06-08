@@ -2,6 +2,7 @@ import React from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
+import { MandalaArt } from '../components/MandalaArt';
 import { FONTS } from '../theme/fonts';
 import { MOODS, tint } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -11,6 +12,7 @@ import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import type { CellShape, Mgmt, Mood } from '../types';
 
+const APP_VERSION = '1.0.0'; // app.json version과 일치
 const MOOD_OPTS: Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const ACCENTS = ['#F4793B', '#4F6BED', '#2FA968', '#8B5CF6'];
 const MGMT_OPTS: Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
@@ -147,8 +149,28 @@ export function Settings() {
         </Pressable>
       </Card>
 
-      <Text style={{ textAlign: 'center', color: M.faint, fontSize: 12, marginTop: 22, fontFamily: FONTS.groteskMed }}>
-        Mandarat · v1.0
+      <Section M={M} label="정보 / About" />
+      <Card M={M}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.gold, M.dark ? 20 : 12, M.dark) }}>
+            <MandalaArt size={44} stroke={M.gold} opacity={0.9} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink }}>만다라트 · Mandarat</Text>
+            <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 2, lineHeight: 18 }}>
+              하나의 큰 뜻을 8개의 길과 64개의 실천으로 곱게 펼쳐가는 연꽃 플래너
+            </Text>
+          </View>
+        </View>
+        <View style={{ height: 1, backgroundColor: M.line }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>버전</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: M.ink, fontFamily: FONTS.groteskMed }}>{APP_VERSION}</Text>
+        </View>
+      </Card>
+
+      <Text style={{ textAlign: 'center', color: M.faint, fontSize: 11.5, marginTop: 20, marginBottom: 4, fontFamily: FONTS.groteskMed }}>
+        🪷 made with care
       </Text>
     </View>
   );
