@@ -2,11 +2,12 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Icon } from './Icon';
 import type { M } from '../theme/usePalette';
-import { analyzeAction } from '../lib/coach';
+import { analyzeAction, guideScore } from '../lib/coach';
 
 /** "무엇을 · 얼마나 · 언제·어디서" 구체성 코칭 칩. 채워지면 골드로 점등. */
 export function GuideChips({ M, text }: { M: M; text: string }) {
   const g = analyzeAction(text);
+  const score = guideScore(g);
   const items: [string, boolean][] = [
     ['무엇을', g.what],
     ['얼마나', g.howMuch],
@@ -29,8 +30,10 @@ export function GuideChips({ M, text }: { M: M; text: string }) {
           </View>
         ))}
       </View>
-      <Text style={{ fontSize: 11, color: M.faint, marginTop: 7, fontWeight: '500' }}>
-        구체적일수록 실천하기 쉬워요 · 예) 아침에 30분 책 읽기
+      <Text style={{ fontSize: 11, color: score === 3 ? M.gold : M.faint, marginTop: 7, fontWeight: score === 3 ? '700' : '500' }}>
+        {score === 3
+          ? '✨ 충분히 구체적이에요 · 실천하기 좋아요'
+          : '구체적일수록 실천하기 쉬워요 · 예) 아침에 30분 책 읽기'}
       </Text>
     </View>
   );
