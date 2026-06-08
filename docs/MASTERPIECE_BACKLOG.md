@@ -9,11 +9,11 @@
 ## 1순위 — 결함·일관성
 - [x] 1. 온보딩 가독성: hero 위 텍스트/칩/입력창 흰색 고정 → heroInk/heroSub 적응색
 - [x] 2. 죽은 props 정리: MandalaArt에 더 이상 안 쓰는 rings/petals/sw 전달 제거 (Onboarding)
-- [ ] 3. 무드별 상태바 스타일 자동 전환 (밝은/어두운)
+- [x] 3. 무드별 상태바 스타일 자동 전환 (온보딩도 heroLight 기준으로 보정)
 
 ## 2순위 — 접근성 (a11y)
-- [ ] 4. 인터랙티브 요소에 accessibilityRole/Label, 체크박스 accessibilityState
-- [ ] 5. 최소 터치 영역 44pt 보장(작은 아이콘 버튼 hitSlop)
+- [~] 4. 인터랙티브 요소에 accessibilityRole/Label (탭바·FAB·IconBtn·뒤로·닫기 완료, 체크리스트/그리드 남음)
+- [~] 5. 최소 터치 영역 44pt 보장 (공통 버튼 hitSlop 추가, 나머지 점검 중)
 - [ ] 6. 색상 대비 점검 + faint 텍스트 가독성
 
 ## 3순위 — UX 디테일·마이크로카피
@@ -64,3 +64,5 @@
 
 ## 진행 로그
 - #1,#2 온보딩 화면을 hero 밝기(heroLight)에 적응시켜 연꽃 무드에서도 가독성 확보, MandalaArt 죽은 props 제거
+- #3 온보딩 상태바를 heroLight 기준으로 light/dark 자동 전환
+- #4,#5(부분) 탭바/FAB/IconBtn/뒤로/닫기 버튼에 accessibilityRole·Label·State, hitSlop 추가

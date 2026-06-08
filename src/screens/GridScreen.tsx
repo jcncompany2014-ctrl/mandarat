@@ -118,7 +118,7 @@ export function GridScreen() {
 
   return (
     <View>
-      <Header M={M} en="Mandal-Art" kr="만다라트" right={<IconBtn M={M} name="pencil" onPress={() => openEditor({ kind: 'center' })} />} />
+      <Header M={M} en="Mandal-Art" kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 편집" onPress={() => openEditor({ kind: 'center' })} />} />
 
       {/* view toggle */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>

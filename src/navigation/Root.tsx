@@ -58,7 +58,7 @@ export function Root() {
   if (!doc.onboarded) {
     return (
       <>
-        <StatusBar style="light" />
+        <StatusBar style={M.heroLight ? 'dark' : 'light'} />
         <Onboarding />
       </>
     );
@@ -109,7 +109,14 @@ function TabBar({ active, onTab, bottomInset }: { active: Screen; onTab: (id: Sc
       {TABS.map((tab) => {
         const on = active === tab.id;
         return (
-          <Pressable key={tab.id} onPress={() => onTab(tab.id)} style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 }}>
+          <Pressable
+            key={tab.id}
+            onPress={() => onTab(tab.id)}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: on }}
+            style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 }}
+          >
             <Icon name={tab.icon} size={24} color={on ? M.accent : M.faint} sw={on ? 2.1 : 1.8} />
             <Text style={{ fontSize: 10.5, fontWeight: on ? '800' : '600', color: on ? M.accent : M.faint }}>{tab.label}</Text>
           </Pressable>
@@ -125,6 +132,8 @@ function Fab({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="실천 항목 추가"
       style={[
         {
           position: 'absolute', right: 18, bottom: 84 + Math.max(10, insets.bottom),

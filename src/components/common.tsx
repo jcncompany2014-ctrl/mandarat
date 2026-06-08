@@ -20,6 +20,9 @@ export function Header({
       {onBack && (
         <Pressable
           onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로 가기"
+          hitSlop={8}
           style={{
             width: 38, height: 38, borderRadius: 12, marginBottom: 2, marginLeft: -4,
             backgroundColor: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
@@ -43,16 +46,22 @@ export function Header({
 }
 
 export function IconBtn({
-  M, name, onPress, badge,
+  M, name, onPress, badge, label,
 }: {
   M: M;
   name: Parameters<typeof Icon>[0]['name'];
   onPress?: () => void;
   badge?: boolean;
+  label?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityElementsHidden={!label && !onPress}
+      importantForAccessibility={!label && !onPress ? 'no' : 'yes'}
+      hitSlop={6}
       style={{
         width: 42, height: 42, borderRadius: 13, position: 'relative',
         backgroundColor: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
@@ -131,6 +140,9 @@ export function CloseBtn({ M, onPress, light }: { M: M; onPress: () => void; lig
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="닫기"
+      hitSlop={8}
       style={{
         width: 32, height: 32, borderRadius: 16,
         backgroundColor: light ? 'rgba(255,255,255,0.14)' : M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',

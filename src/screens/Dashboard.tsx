@@ -44,7 +44,7 @@ export function Dashboard() {
 
   return (
     <View>
-      <Header M={M} en={dateLabel} kr="나의 만다라트" right={<IconBtn M={M} name="settings" onPress={() => go('settings')} />} />
+      <Header M={M} en={dateLabel} kr="나의 만다라트" right={<IconBtn M={M} name="settings" label="설정" onPress={() => go('settings')} />} />
 
       {/* 마스코트 말풍선 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 11 }}>

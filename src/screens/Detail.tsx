@@ -41,9 +41,9 @@ export function Detail({ ti }: { ti: number }) {
         onBack={() => go('grid')}
         right={
           <View style={{ flexDirection: 'row', gap: 6 }}>
-            <IconBtn M={M} name="pencil" onPress={() => openEditor({ kind: 'theme', ti })} />
-            <IconBtn M={M} name="chevL" onPress={() => go('detail', (ti + 7) % 8)} />
-            <IconBtn M={M} name="chevR" onPress={() => go('detail', (ti + 1) % 8)} />
+            <IconBtn M={M} name="pencil" label="영역 편집" onPress={() => openEditor({ kind: 'theme', ti })} />
+            <IconBtn M={M} name="chevL" label="이전 영역" onPress={() => go('detail', (ti + 7) % 8)} />
+            <IconBtn M={M} name="chevR" label="다음 영역" onPress={() => go('detail', (ti + 1) % 8)} />
           </View>
         }
       />
