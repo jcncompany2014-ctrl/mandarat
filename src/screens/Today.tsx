@@ -5,6 +5,7 @@ import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
+import { EmptyState } from '../components/EmptyState';
 import { MoodRow } from '../components/MoodRow';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
@@ -98,11 +99,12 @@ function TodayChecklist({ M }: { M: M }) {
       </View>
 
       {tTotal === 0 && (
-        <View style={{ alignItems: 'center', paddingVertical: 28 }}>
-          <Icon name="sparkle" size={30} color={M.faint} />
-          <Text style={{ color: M.sub, fontWeight: '600', marginTop: 10, textAlign: 'center' }}>아직 오늘 할 일이 없어요.</Text>
-          <Text style={{ color: M.faint, fontSize: 12.5, marginTop: 4, textAlign: 'center' }}>＋ 버튼이나 실천 항목에서 “오늘 할 일”로 추가하세요</Text>
-        </View>
+        <EmptyState
+          M={M}
+          icon="sparkle"
+          title="아직 오늘 할 일이 없어요"
+          subtitle="＋ 버튼이나 실천 항목에서 “오늘 할 일”로 더해보세요"
+        />
       )}
 
       {tTotal > 0 && (
@@ -287,10 +289,7 @@ function TodayKanban({ M }: { M: M }) {
   return (
     <View style={{ paddingHorizontal: 14, paddingBottom: 16, gap: 14 }}>
       {list.length + extra.length === 0 && (
-        <View style={{ alignItems: 'center', paddingVertical: 28 }}>
-          <Icon name="grid" size={30} color={M.faint} />
-          <Text style={{ color: M.sub, fontWeight: '600', marginTop: 10 }}>오늘 보드가 비어 있어요.</Text>
-        </View>
+        <EmptyState M={M} icon="grid" title="오늘 보드가 비어 있어요" subtitle="실천 항목을 오늘 할 일로 담아보세요" compact />
       )}
       {cols.map(([label, ci, dot]) => {
         const colCards = cards.filter((c) => stageOf(c) === ci);
