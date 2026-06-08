@@ -123,10 +123,32 @@ export function migrate(parsed: unknown): MandaratDoc {
   const base = blankDoc();
   if (!parsed || typeof parsed !== 'object') return base;
   const p = parsed as Partial<MandaratDoc>;
+
+  // themes는 항상 8개 슬롯이어야 한다. 손상된 저장본은 슬롯별로 안전하게 보정한다.
+  const seed = scaffoldThemes();
+  const rawThemes = Array.isArray(p.themes) ? p.themes : [];
+  const themes: Theme[] = seed.map((s, i) => {
+    const t = rawThemes[i] as Partial<Theme> | undefined;
+    if (!t || typeof t !== 'object') return s;
+    const actions = Array.isArray(t.actions) ? t.actions : [];
+    return {
+      title: typeof t.title === 'string' ? t.title : s.title,
+      color: typeof t.color === 'string' ? t.color : s.color,
+      icon: t.icon ?? s.icon,
+      actions: s.actions.map((blank, j) => {
+        const a = actions[j] as Partial<Theme['actions'][number]> | undefined;
+        return a && typeof a === 'object'
+          ? { text: typeof a.text === 'string' ? a.text : '', note: typeof a.note === 'string' ? a.note : '', done: !!a.done }
+          : blank;
+      }),
+    };
+  });
+
   return {
     ...base,
     ...p,
     version: 1,
+    themes,
     settings: { ...base.settings, ...(p.settings ?? {}) },
   };
 }
