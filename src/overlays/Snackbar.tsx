@@ -3,6 +3,7 @@ import { Animated, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { shadow } from '../theme/shadow';
+import { SP, R } from '../theme/tokens';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { tap } from '../lib/haptics';
@@ -47,9 +48,9 @@ export function Snackbar() {
         accessibilityLiveRegion="polite"
         style={[
           {
-            flexDirection: 'row', alignItems: 'center', gap: 12,
+            flexDirection: 'row', alignItems: 'center', gap: SP.md,
             backgroundColor: M.dark ? '#26242F' : M.center,
-            borderRadius: 16, paddingLeft: 16, paddingRight: 8, paddingVertical: 12,
+            borderRadius: R.lg, paddingLeft: SP.lg, paddingRight: SP.sm, paddingVertical: SP.md,
           },
           shadow(12, '#000', 0.34),
         ]}
