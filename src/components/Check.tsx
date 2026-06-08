@@ -1,22 +1,24 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
 import { Icon } from './Icon';
+import { useReducedMotion } from '../lib/useReducedMotion';
 
 /** Round checkbox dot with a gentle scale-pop when it becomes checked. */
 export function Check({ on, color, dark }: { on: boolean; color: string; dark: boolean }) {
   const scale = useRef(new Animated.Value(1)).current;
   const first = useRef(true);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (first.current) {
       first.current = false;
       return; // no pop on initial mount
     }
-    if (on) {
+    if (on && !reduceMotion) {
       scale.setValue(0.7);
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 9, stiffness: 220 }).start();
     }
-  }, [on, scale]);
+  }, [on, scale, reduceMotion]);
 
   return (
     <Animated.View

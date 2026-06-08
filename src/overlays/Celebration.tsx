@@ -6,6 +6,7 @@ import { FONTS } from '../theme/fonts';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { success, tap } from '../lib/haptics';
+import { useReducedMotion } from '../lib/useReducedMotion';
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 const PETAL_COUNT = 16;
@@ -49,17 +50,20 @@ function Petal({ index, color }: { index: number; color: string }) {
 export function Celebration({ count }: { count: number }) {
   const M = usePalette();
   const { celebrate, closeCelebrate } = useUI();
+  const reduceMotion = useReducedMotion();
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!celebrate) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.08, duration: 1500, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 1500, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
+    const loop = reduceMotion
+      ? null
+      : Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulse, { toValue: 1.08, duration: 1500, useNativeDriver: true }),
+            Animated.timing(pulse, { toValue: 1, duration: 1500, useNativeDriver: true }),
+          ]),
+        );
+    loop?.start();
     // 햅틱 안무: 성공 → 가벼운 두 번 → 마무리 성공
     success();
     const timers = [
@@ -68,10 +72,10 @@ export function Celebration({ count }: { count: number }) {
       setTimeout(() => success(), 600),
     ];
     return () => {
-      loop.stop();
+      loop?.stop();
       timers.forEach(clearTimeout);
     };
-  }, [celebrate, pulse]);
+  }, [celebrate, pulse, reduceMotion]);
 
   if (!celebrate) return null;
 
@@ -82,12 +86,14 @@ export function Celebration({ count }: { count: number }) {
           <MandalaArt size={420} stroke={M.gold} opacity={0.5} />
         </Animated.View>
 
-        {/* 흩날리는 연꽃잎 */}
-        <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="none">
-          {Array.from({ length: PETAL_COUNT }).map((_, i) => (
-            <Petal key={i} index={i} color={M.gold} />
-          ))}
-        </View>
+        {/* 흩날리는 연꽃잎 (동작 줄이기 시 생략) */}
+        {!reduceMotion && (
+          <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} pointerEvents="none">
+            {Array.from({ length: PETAL_COUNT }).map((_, i) => (
+              <Petal key={i} index={i} color={M.gold} />
+            ))}
+          </View>
+        )}
 
         <View style={{ alignItems: 'center', maxWidth: 300 }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 18, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center' }}>
