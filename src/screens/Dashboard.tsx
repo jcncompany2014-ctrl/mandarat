@@ -5,6 +5,7 @@ import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { MandalaArt } from '../components/MandalaArt';
+import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
 import { FONTS } from '../theme/fonts';
 import { shadow } from '../theme/shadow';
 import { tint } from '../theme/moods';
@@ -48,8 +49,11 @@ export function Dashboard() {
 
       {/* 마스코트 말풍선 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 11 }}>
-        <View style={[{ width: 52, height: 52, borderRadius: 26, backgroundColor: tint(M.gold, 13), alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, M.dark ? null : shadow(3)]}>
-          <MandalaArt size={46} stroke={M.gold} opacity={0.92} />
+        <View
+          accessibilityLabel={`연꽃 ${bloomLabel(bloomStage(pct))} · 달성 ${pct}%`}
+          style={[{ width: 52, height: 52, borderRadius: 26, backgroundColor: tint(M.gold, 13), alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, M.dark ? null : shadow(3)]}
+        >
+          <LotusBloom size={46} pct={pct} color={M.gold} />
         </View>
         <View style={[{ flex: 1, backgroundColor: M.surface, borderRadius: 18, borderTopLeftRadius: 5, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
           <Text style={{ fontSize: 13.5, fontWeight: '600', color: M.ink, lineHeight: 19 }}>{cheer}</Text>
