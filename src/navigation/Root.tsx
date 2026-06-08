@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { shadow } from '../theme/shadow';
 import { tap } from '../lib/haptics';
+import { useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
 import { useUI, Screen } from './ui';
 import { useMandarat } from '../store/MandaratContext';
@@ -37,11 +38,25 @@ export function Root() {
   const ui = useUI();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
+  const reduceMotion = useReducedMotion();
+  const fade = useRef(new Animated.Value(1)).current;
+  const slide = useRef(new Animated.Value(0)).current;
 
   // reset scroll when navigating
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [ui.screen, ui.ti]);
+
+  // gentle fade + slide-in on screen change (skipped under Reduce Motion)
+  useEffect(() => {
+    if (reduceMotion) { fade.setValue(1); slide.setValue(0); return; }
+    fade.setValue(0);
+    slide.setValue(8);
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 240, useNativeDriver: true }),
+      Animated.spring(slide, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 160 }),
+    ]).start();
+  }, [ui.screen, ui.ti, reduceMotion, fade, slide]);
 
   // today completion → celebration
   const todayDone =
@@ -87,7 +102,9 @@ export function Root() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {screen}
+        <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
+          {screen}
+        </Animated.View>
       </ScrollView>
 
       {showFab && <Fab onPress={() => { tap(); ui.openQuick(); }} />}
