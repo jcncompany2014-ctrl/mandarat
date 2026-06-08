@@ -138,6 +138,13 @@ export function Stats() {
   );
 }
 
+function fmtMinutes(min: number): string {
+  if (min < 60) return `${min}분`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+}
+
 function fmtDay(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
@@ -270,6 +277,12 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
           <Icon name="checkCircle" size={13} color={M.gold} />
           <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>이번 주 {weekTotal}회</Text>
         </View>
+        {(doc.focusMinutes ?? 0) > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
+            <Icon name="target" size={13} color={M.gold} />
+            <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>집중 {fmtMinutes(doc.focusMinutes)}</Text>
+          </View>
+        )}
       </View>
     </LinearGradient>
   );

@@ -108,6 +108,7 @@ export function blankDoc(): MandaratDoc {
     todayExtra: [],
     dayLog: {},
     dayMeta: {},
+    focusMinutes: 0,
     settings: { mood: '연꽃', accent: '#B0883C', mgmt: '일일 체크', cellShape: '둥근' },
   };
 }

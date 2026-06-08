@@ -16,7 +16,7 @@ export function FocusTimer() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
   const { focus, closeFocus } = useUI();
-  const { doc, toggleDone } = useMandarat();
+  const { doc, toggleDone, addFocusMinutes } = useMandarat();
   const [left, setLeft] = useState(TOTAL);
   const [run, setRun] = useState(true);
   const firedRef = useRef(false);
@@ -43,6 +43,8 @@ export function FocusTimer() {
   const finished = left <= 0;
 
   const finish = () => {
+    const elapsedMin = Math.round((TOTAL - left) / 60);
+    if (elapsedMin > 0) addFocusMinutes(elapsedMin);
     if (!a.done) toggleDone(focus.ti, focus.ai);
     closeFocus();
   };

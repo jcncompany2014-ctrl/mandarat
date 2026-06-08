@@ -52,5 +52,7 @@ export interface MandaratDoc {
   dayLog: Record<string, string[]>;
   /** date 'YYYY-MM-DD' -> mood index + one-line reflection */
   dayMeta: Record<string, { mood?: number; reflection?: string }>;
+  /** 누적 집중(포커스 타이머) 시간(분) */
+  focusMinutes: number;
   settings: Settings;
 }

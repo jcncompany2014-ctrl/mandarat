@@ -37,6 +37,7 @@ interface Ctx {
   setActionNote: (ti: number, ai: number, note: string) => void;
   // progress
   toggleDone: (ti: number, ai: number) => void;
+  addFocusMinutes: (minutes: number) => void;
   // today
   toggleToday: (key: string) => void;
   inToday: (key: string) => boolean;
@@ -149,6 +150,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  const addFocusMinutes = useCallback(
+    (minutes: number) =>
+      update((d) => ({ ...d, focusMinutes: (d.focusMinutes ?? 0) + Math.max(0, Math.round(minutes)) })),
+    [update],
+  );
+
   const toggleToday = useCallback(
     (key: string) =>
       update((d) => {
@@ -231,12 +238,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<Ctx>(
     () => ({
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
-      toggleDone, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
+      toggleDone, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
       setSetting, loadSample, resetAll, replaceDoc,
     }),
     [
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
-      toggleDone, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
+      toggleDone, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
       setSetting, loadSample, resetAll, replaceDoc,
     ],
   );
