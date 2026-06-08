@@ -8,6 +8,7 @@ import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
+import { suggestActions } from '../lib/suggest';
 
 export function QuickAdd() {
   const M = usePalette();
@@ -61,6 +62,24 @@ export function QuickAdd() {
           <Text style={{ alignSelf: 'flex-end', marginTop: 6, fontSize: 11, fontWeight: '700', color: text.length >= 60 ? doc.themes[ti].color : M.faint }}>
             {text.length}/60
           </Text>
+        )}
+        {text.trim().length === 0 && (
+          <View style={{ marginTop: 12 }}>
+            <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.faint, marginBottom: 8 }}>이런 실천은 어때요?</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+              {suggestActions(doc.themes[ti].title).map((s) => (
+                <Pressable
+                  key={s}
+                  onPress={() => { tap(); setText(s); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`실천 예시: ${s}`}
+                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }}
+                >
+                  <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>{s}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
         )}
         {text.trim().length > 0 && <GuideChips M={M} text={text} />}
         <Pressable onPress={submit} style={{ marginTop: 12, paddingVertical: 15, borderRadius: 16, alignItems: 'center', backgroundColor: text.trim() ? doc.themes[ti].color : M.line }}>
