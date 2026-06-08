@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme } from '../types';
 import { blankDoc, migrate, sampleThemes, scaffoldThemes } from '../data/defaults';
@@ -61,6 +62,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const [doc, setDoc] = useState<MandaratDoc>(() => blankDoc());
   const [ready, setReady] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const docRef = useRef(doc);
+  docRef.current = doc;
 
   // load once
   useEffect(() => {
@@ -91,6 +94,20 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [doc, ready]);
+
+  // flush immediately when the app goes to background (avoid losing the last <300ms of edits)
+  useEffect(() => {
+    if (!ready) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(docRef.current)).catch((e) =>
+          console.warn('Mandarat flush failed', e),
+        );
+      }
+    });
+    return () => sub.remove();
+  }, [ready]);
 
   const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc) => setDoc((d) => fn(d)), []);
 
