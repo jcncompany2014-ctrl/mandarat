@@ -14,6 +14,9 @@ export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i
           <Pressable
             key={i}
             onPress={() => onPick(i)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`오늘 기분 ${m.kr}`}
             style={{
               flex: 1, paddingTop: 11, paddingBottom: 9, borderRadius: 15, alignItems: 'center', gap: 4,
               borderWidth: 1.5, borderColor: on ? m.c : M.line,
