@@ -2,8 +2,9 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Header, IconBtn } from '../components/common';
-import { Icon } from '../components/Icon';
+import { Icon, MOOD_FACES } from '../components/Icon';
 import { Ring } from '../components/Ring';
+import { EmptyState } from '../components/EmptyState';
 import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
 import { FONTS } from '../theme/fonts';
 import { fade } from '../theme/moods';
@@ -131,7 +132,62 @@ export function Stats() {
           </Pressable>
         ))}
       </View>
+
+      <ReflectionFeed M={M} doc={doc} />
     </View>
+  );
+}
+
+function fmtDay(key: string): string {
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const w = ['일', '월', '화', '수', '목', '금', '토'][dt.getDay()];
+  return `${m}월 ${d}일 (${w})`;
+}
+
+/** 최근 2주의 기분·한 줄 회고를 모아 보여주는 저널 피드. */
+function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
+  const entries = lastNDates(14)
+    .slice()
+    .reverse()
+    .map((k) => ({ k, meta: doc.dayMeta[k] }))
+    .filter((e) => e.meta && (!!e.meta.reflection?.trim() || e.meta.mood !== undefined));
+
+  return (
+    <>
+      <Text style={{ paddingHorizontal: 20, fontSize: 16, fontWeight: '800', color: M.ink, marginTop: 4 }}>최근 회고</Text>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 10 }}>
+        {entries.length === 0 ? (
+          <EmptyState M={M} icon="pencil" title="아직 회고가 없어요" subtitle="오늘 화면에서 기분과 한 줄 회고를 남겨보세요" compact />
+        ) : (
+          entries.map(({ k, meta }) => {
+            const face = meta!.mood !== undefined ? MOOD_FACES[meta!.mood] : null;
+            const Face = face?.ic;
+            return (
+              <View
+                key={k}
+                accessibilityLabel={`${fmtDay(k)}${face ? `, 기분 ${face.kr}` : ''}${meta!.reflection?.trim() ? `, ${meta!.reflection}` : ''}`}
+                style={[{ flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(2)]}
+              >
+                <View style={{ width: 30, alignItems: 'center', paddingTop: 1 }}>
+                  {Face ? <Face size={22} color={face!.c} strokeWidth={1.9} /> : <Icon name="pencil" size={17} color={M.faint} />}
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>
+                    {fmtDay(k)}{face ? ` · ${face.kr}` : ''}
+                  </Text>
+                  {meta!.reflection?.trim() ? (
+                    <Text style={{ fontSize: 14, color: M.ink, marginTop: 3, lineHeight: 20 }}>{meta!.reflection}</Text>
+                  ) : (
+                    <Text style={{ fontSize: 13, color: M.faint, marginTop: 3 }}>기분만 기록한 날</Text>
+                  )}
+                </View>
+              </View>
+            );
+          })
+        )}
+      </View>
+    </>
   );
 }
 
