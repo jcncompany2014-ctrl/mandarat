@@ -85,7 +85,7 @@ export function Stats() {
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>이번 주 실천</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>총 {weekTotal}회</Text>
+            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>총 {weekTotal}회 · 하루 평균 {(weekTotal / 7).toFixed(1)}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 9, height: 96 }}>
             {week.map((v, i) => {
