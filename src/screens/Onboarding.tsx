@@ -22,6 +22,14 @@ export function Onboarding() {
     completeOnboarding(goal);
   };
 
+  // hero 그라데이션이 밝은 톤(연꽃)일 때도 읽히도록 색을 적응시킨다.
+  const onLight = M.heroLight;
+  const fieldBg = onLight ? 'rgba(60,45,15,0.05)' : 'rgba(255,255,255,0.10)';
+  const fieldBorder = onLight ? 'rgba(60,45,15,0.16)' : 'rgba(255,255,255,0.16)';
+  const chipBg = onLight ? 'rgba(60,45,15,0.05)' : 'rgba(255,255,255,0.08)';
+  const chipBorder = onLight ? 'rgba(60,45,15,0.12)' : 'rgba(255,255,255,0.12)';
+  const placeholderColor = onLight ? 'rgba(60,45,15,0.4)' : 'rgba(255,255,255,0.35)';
+
   return (
     <LinearGradient colors={M.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -30,7 +38,7 @@ export function Onboarding() {
       >
         <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: 'center' }}>
           <View style={{ position: 'absolute', top: '8%', alignSelf: 'center', opacity: 0.9 }}>
-            <MandalaArt size={300} stroke={M.gold} opacity={0.22} rings={3} petals={24} sw={1} />
+            <MandalaArt size={300} stroke={M.gold} opacity={0.22} />
           </View>
 
           <View style={{ alignItems: 'center', marginBottom: 34 }}>
@@ -40,10 +48,10 @@ export function Onboarding() {
             <Text style={{ fontSize: 13, fontWeight: '700', letterSpacing: 3, color: M.gold, fontFamily: FONTS.grotesk }}>
               MANDARAT
             </Text>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: '#fff', fontFamily: FONTS.serif, marginTop: 14, textAlign: 'center', lineHeight: 38 }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: M.heroInk, fontFamily: FONTS.serif, marginTop: 14, textAlign: 'center', lineHeight: 38 }}>
               올해, 이루고 싶은{'\n'}하나의 큰 뜻은?
             </Text>
-            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 12, textAlign: 'center', lineHeight: 21 }}>
+            <Text style={{ fontSize: 14, color: M.heroSub, marginTop: 12, textAlign: 'center', lineHeight: 21 }}>
               중심에 핵심 목표를 두고{'\n'}8개의 길과 64개의 실천으로 펼쳐가요
             </Text>
           </View>
@@ -52,12 +60,12 @@ export function Onboarding() {
             value={goal}
             onChangeText={setGoal}
             placeholder="예) 2026 최고의 나"
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor={placeholderColor}
             style={{
-              backgroundColor: 'rgba(255,255,255,0.10)',
-              borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
+              backgroundColor: fieldBg,
+              borderWidth: 1, borderColor: fieldBorder,
               borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16,
-              color: '#fff', fontSize: 17, fontWeight: '600', textAlign: 'center',
+              color: M.heroInk, fontSize: 17, fontWeight: '600', textAlign: 'center',
             }}
             returnKeyType="done"
             onSubmitEditing={start}
@@ -68,9 +76,9 @@ export function Onboarding() {
               <Pressable
                 key={s}
                 onPress={() => setGoal(s)}
-                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }}
+                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
               >
-                <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12.5, fontWeight: '600' }}>{s}</Text>
+                <Text style={{ color: M.heroInk, fontSize: 12.5, fontWeight: '600' }}>{s}</Text>
               </Pressable>
             ))}
           </View>
@@ -82,7 +90,7 @@ export function Onboarding() {
             <Text style={{ color: M.center, fontSize: 16.5, fontWeight: '800' }}>시작하기</Text>
             <Icon name="chevR" size={18} color={M.center} sw={2.6} />
           </Pressable>
-          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', marginTop: 14 }}>
+          <Text style={{ color: M.heroSub, fontSize: 12, textAlign: 'center', marginTop: 14 }}>
             나중에 언제든 바꿀 수 있어요
           </Text>
         </View>
