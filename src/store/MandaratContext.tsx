@@ -50,6 +50,7 @@ interface Ctx {
   // data management
   loadSample: () => void;
   resetAll: () => void;
+  replaceDoc: (d: MandaratDoc) => void;
 }
 
 const MandaratCtx = createContext<Ctx | null>(null);
@@ -225,16 +226,18 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  const replaceDoc = useCallback((d: MandaratDoc) => setDoc(d), []);
+
   const value = useMemo<Ctx>(
     () => ({
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
       toggleDone, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, resetAll,
+      setSetting, loadSample, resetAll, replaceDoc,
     }),
     [
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
       toggleDone, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, resetAll,
+      setSetting, loadSample, resetAll, replaceDoc,
     ],
   );
 

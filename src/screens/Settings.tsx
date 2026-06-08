@@ -52,18 +52,27 @@ function Segmented<T extends string>({ M, label, value, options, onChange }: { M
 
 export function Settings() {
   const M = usePalette();
-  const { go, openEditor } = useUI();
-  const { doc, setSetting, loadSample, resetAll } = useMandarat();
+  const { go, openEditor, showToast } = useUI();
+  const { doc, setSetting, loadSample, resetAll, replaceDoc } = useMandarat();
+
+  const doReset = () => {
+    const snapshot = doc; // 되돌리기용 직전 상태
+    resetAll();
+    showToast('모든 데이터를 초기화했어요', {
+      label: '되돌리기',
+      onPress: () => replaceDoc(snapshot),
+    });
+  };
 
   const confirmReset = () => {
     if (Platform.OS === 'web') {
       // eslint-disable-next-line no-alert
-      if (typeof window !== 'undefined' && window.confirm('모든 데이터를 초기화할까요? 되돌릴 수 없습니다.')) resetAll();
+      if (typeof window !== 'undefined' && window.confirm('모든 데이터를 초기화할까요?')) doReset();
       return;
     }
-    Alert.alert('전체 초기화', '모든 데이터를 초기화할까요? 되돌릴 수 없습니다.', [
+    Alert.alert('전체 초기화', '모든 데이터를 초기화할까요? 초기화 후에도 잠시 되돌릴 수 있어요.', [
       { text: '취소', style: 'cancel' },
-      { text: '초기화', style: 'destructive', onPress: resetAll },
+      { text: '초기화', style: 'destructive', onPress: doReset },
     ]);
   };
 
