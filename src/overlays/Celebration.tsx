@@ -78,6 +78,7 @@ export function Celebration({ count }: { count: number }) {
   }, [celebrate, pulse, reduceMotion]);
 
   if (!celebrate) return null;
+  const bloom = celebrate === 'bloom';
 
   return (
     <Modal visible animationType="fade" transparent onRequestClose={closeCelebrate} statusBarTranslucent>
@@ -99,12 +100,14 @@ export function Celebration({ count }: { count: number }) {
           <View style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 18, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="sparkle" size={40} color={M.center} />
           </View>
-          <Text style={{ fontSize: 13, fontWeight: '700', letterSpacing: 3, color: M.gold, fontFamily: FONTS.grotesk }}>TODAY COMPLETE</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', letterSpacing: 3, color: M.gold, fontFamily: FONTS.grotesk }}>
+            {bloom ? 'FULL BLOOM' : 'TODAY COMPLETE'}
+          </Text>
           <Text style={{ fontSize: 27, fontWeight: '700', color: '#fff', fontFamily: FONTS.serif, marginTop: 12, textAlign: 'center', lineHeight: 38 }}>
-            오늘의 만다라를{'\n'}완성했어요
+            {bloom ? '64칸이 모두\n만개했어요' : '오늘의 만다라를\n완성했어요'}
           </Text>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', marginTop: 16, fontWeight: '500', textAlign: 'center' }}>
-            {count}가지 실천 · 중심에 한 걸음 더
+            {bloom ? '한 해의 큰 뜻을 활짝 피워냈어요 · 정말 대단해요' : `${count}가지 실천 · 중심에 한 걸음 더`}
           </Text>
           <Text style={{ marginTop: 26, fontSize: 12.5, color: 'rgba(255,255,255,0.4)' }}>탭하여 닫기</Text>
         </View>

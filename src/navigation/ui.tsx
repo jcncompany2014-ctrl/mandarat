@@ -13,6 +13,8 @@ export interface Toast {
   action?: { label: string; onPress: () => void };
 }
 
+export type CelebrateKind = 'today' | 'bloom';
+
 interface UICtx {
   screen: Screen;
   ti: number;
@@ -30,8 +32,8 @@ interface UICtx {
   openQuick: () => void;
   closeQuick: () => void;
 
-  celebrate: boolean;
-  fireCelebrate: () => void;
+  celebrate: CelebrateKind | null;
+  fireCelebrate: (kind?: CelebrateKind) => void;
   closeCelebrate: () => void;
 
   editor: EditorTarget | null;
@@ -51,7 +53,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [sheet, setSheet] = useState<{ ti: number; ai: number } | null>(null);
   const [focus, setFocus] = useState<{ ti: number; ai: number } | null>(null);
   const [quick, setQuick] = useState(false);
-  const [celebrate, setCelebrate] = useState(false);
+  const [celebrate, setCelebrate] = useState<CelebrateKind | null>(null);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
 
@@ -79,7 +81,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       sheet, openAction, closeSheet: () => setSheet(null),
       focus, startFocus, closeFocus: () => setFocus(null),
       quick, openQuick: () => setQuick(true), closeQuick: () => setQuick(false),
-      celebrate, fireCelebrate: () => setCelebrate(true), closeCelebrate: () => setCelebrate(false),
+      celebrate, fireCelebrate: (kind: CelebrateKind = 'today') => setCelebrate(kind), closeCelebrate: () => setCelebrate(null),
       editor, openEditor: setEditor, closeEditor: () => setEditor(null),
       toast, showToast, hideToast,
     }),

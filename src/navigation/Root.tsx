@@ -8,7 +8,7 @@ import { tap } from '../lib/haptics';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
 import { useUI, Screen } from './ui';
-import { useMandarat } from '../store/MandaratContext';
+import { useMandarat, totalDone } from '../store/MandaratContext';
 
 import { Onboarding } from '../screens/Onboarding';
 import { Dashboard } from '../screens/Dashboard';
@@ -68,9 +68,17 @@ export function Root() {
   const prevComplete = useRef(true);
   useEffect(() => {
     const complete = todayTotal > 0 && todayDone === todayTotal;
-    if (complete && !prevComplete.current) ui.fireCelebrate();
+    if (complete && !prevComplete.current) ui.fireCelebrate('today');
     prevComplete.current = complete;
   }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 전체 64칸 만개 → 특별 축하 (세션 중 100% 도달 시 1회)
+  const allDone = totalDone(doc) === 64;
+  const prevAll = useRef(true);
+  useEffect(() => {
+    if (allDone && !prevAll.current) ui.fireCelebrate('bloom');
+    prevAll.current = allDone;
+  }, [allDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!doc.onboarded) {
     return (
