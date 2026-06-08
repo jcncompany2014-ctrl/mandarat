@@ -80,6 +80,9 @@ export function MandalaWheel({ M }: { M: M }) {
               <Pressable
                 key={n.i}
                 onPress={() => setBloom(n.i)}
+                accessibilityRole="button"
+                accessibilityLabel={`${th.title || `영역 ${n.i + 1}`}, 8칸 중 ${p.done}개 달성`}
+                accessibilityHint="영역 펼치기"
                 style={{ position: 'absolute', left: n.x - NODE, top: n.y - NODE, width: NODE * 2, height: NODE * 2 + 20, alignItems: 'center' }}
               >
                 <Ring pct={p.pct} size={NODE * 2} stroke={3.5} color={th.color} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}>
@@ -127,6 +130,8 @@ function BloomLayer({
           <Pressable
             key={n.i}
             onPress={() => (has ? openAction(ti, n.i) : openEditor({ kind: 'action', ti, ai: n.i }))}
+            accessibilityRole="button"
+            accessibilityLabel={has ? `${a.text}${isDone ? ', 완료됨' : ''}` : `실천 ${n.i + 1} 입력`}
             style={{ position: 'absolute', left: n.x - 30, top: n.y - 30, width: 60, height: 60 + 20, alignItems: 'center' }}
           >
             <View
@@ -155,7 +160,12 @@ function BloomLayer({
       })}
 
       {/* center = theme (tap to close) */}
-      <Pressable onPress={onBack} style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}>
+      <Pressable
+        onPress={onBack}
+        accessibilityRole="button"
+        accessibilityLabel={`${th.title || `영역 ${ti + 1}`} 닫기`}
+        style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}
+      >
         <Ring pct={p.pct} size={112} stroke={4} color={th.color} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
           <View style={[{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5, borderRadius: 56, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 8 }, shadow(8, th.color, 0.4)]}>
             <Icon name={th.icon} size={24} color="#fff" />
@@ -170,6 +180,8 @@ function BloomLayer({
       {/* detail link */}
       <Pressable
         onPress={() => go('detail', ti)}
+        accessibilityRole="button"
+        accessibilityLabel={`${th.title || `영역 ${ti + 1}`} 세부 보기`}
         style={{ position: 'absolute', left: 0, right: 0, bottom: -6, alignItems: 'center' }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: tint(th.color, M.dark ? 18 : 11, M.dark), paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}>
