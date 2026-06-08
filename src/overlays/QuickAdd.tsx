@@ -7,6 +7,7 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
+import { GuideChips } from '../components/GuideChips';
 
 export function QuickAdd() {
   const M = usePalette();
@@ -55,6 +56,7 @@ export function QuickAdd() {
           onSubmitEditing={submit}
           style={{ marginTop: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 15 }}
         />
+        {text.trim().length > 0 && <GuideChips M={M} text={text} />}
         <Pressable onPress={submit} style={{ marginTop: 12, paddingVertical: 15, borderRadius: 16, alignItems: 'center', backgroundColor: text.trim() ? doc.themes[ti].color : M.line }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>추가하기</Text>
         </Pressable>

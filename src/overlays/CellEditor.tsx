@@ -8,6 +8,7 @@ import { useUI, EditorTarget } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
+import { GuideChips } from '../components/GuideChips';
 
 function meta(target: EditorTarget, doc: MandaratDoc) {
   if (target.kind === 'center') {
@@ -67,6 +68,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
                 minHeight: m.multiline ? 64 : undefined, textAlignVertical: m.multiline ? 'top' : 'center',
               }}
             />
+            {editor.kind === 'action' && <GuideChips M={M} text={text} />}
             <Pressable onPress={save} style={{ marginTop: 14, backgroundColor: M.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
               <Icon name="check" size={18} color="#fff" sw={2.6} />
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>저장</Text>

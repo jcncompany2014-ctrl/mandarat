@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
@@ -57,6 +57,10 @@ function TodayChecklist({ M }: { M: M }) {
   const extra = doc.todayExtra;
   const meta = doc.dayMeta[dateKey()] ?? {};
 
+  const [cat, setCat] = useState<number | null>(null);
+  const fList = cat == null ? list : list.filter(([ti]) => ti === cat);
+  const fExtra = cat == null ? extra : extra.filter((x) => x.ti === cat);
+
   const tDone = list.filter(([ti, ai]) => doc.themes[ti].actions[ai].done).length + extra.filter((x) => x.done).length;
   const tTotal = list.length + extra.length;
   const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
@@ -101,8 +105,28 @@ function TodayChecklist({ M }: { M: M }) {
         </View>
       )}
 
+      {tTotal > 0 && (
+        <View style={{ marginBottom: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingRight: 8 }}>
+            {[null as number | null, ...doc.themes.map((_, i) => i)].map((c) => {
+              const on = cat === c;
+              const color = c == null ? M.gold : doc.themes[c].color;
+              const label = c == null ? '전체' : doc.themes[c].title || `영역 ${c + 1}`;
+              return (
+                <Pressable
+                  key={c == null ? 'all' : c}
+                  onPress={() => setCat(c)}
+                  style={{ paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: on ? color : M.line, backgroundColor: on ? tint(color, M.dark ? 18 : 11, M.dark) : 'transparent' }}
+                >
+                  <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? color : M.sub }}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
       <View style={{ gap: 10 }}>
-        {list.map(([ti, ai]) => {
+        {fList.map(([ti, ai]) => {
           const th = doc.themes[ti];
           const a = th.actions[ai];
           return (
@@ -128,7 +152,7 @@ function TodayChecklist({ M }: { M: M }) {
           );
         })}
 
-        {extra.map((x) => {
+        {fExtra.map((x) => {
           const th = doc.themes[x.ti];
           return (
             <Pressable
