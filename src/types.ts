@@ -6,7 +6,7 @@ export type IconName =
   | 'flame' | 'sparkle' | 'target' | 'pencil' | 'dots' | 'calendar' | 'bell' | 'settings'
   | 'close' | 'reset' | 'trash';
 
-export type Mood = '크림' | '화이트' | '파스텔' | '다크';
+export type Mood = '연꽃' | '크림' | '화이트' | '파스텔' | '다크';
 export type Mgmt = '일일 체크' | '습관 스트릭' | '칸반';
 export type CellShape = '둥근' | '각진';
 

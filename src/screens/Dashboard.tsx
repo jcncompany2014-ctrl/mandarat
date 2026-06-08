@@ -44,23 +44,23 @@ export function Dashboard() {
             colors={M.hero}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
-            style={[{ borderRadius: 26, padding: 22, overflow: 'hidden' }, shadow(16, '#18122C', 0.28)]}
+            style={[{ borderRadius: 26, padding: 22, overflow: 'hidden' }, shadow(16, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.28)]}
           >
             <View style={{ position: 'absolute', right: -40, top: -10 }}>
-              <MandalaArt size={210} stroke={M.gold} opacity={0.3} rings={3} petals={20} sw={1} />
+              <MandalaArt size={210} stroke={M.gold} opacity={M.heroLight ? 0.22 : 0.3} rings={3} petals={20} sw={1} />
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-              <Ring pct={pct} size={90} stroke={6} color={M.gold} track="rgba(255,255,255,0.14)">
+              <Ring pct={pct} size={90} stroke={6} color={M.gold} track={M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.14)'}>
                 <Icon name="target" size={30} color={M.gold} />
               </Ring>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: 2, color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.grotesk }}>
+                <Text style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: 2, color: M.heroSub, fontFamily: FONTS.grotesk }}>
                   MY CORE GOAL
                 </Text>
-                <Text style={{ fontSize: 24, fontWeight: '700', color: '#fff', marginTop: 5, lineHeight: 30, fontFamily: FONTS.serif }} numberOfLines={2}>
+                <Text style={{ fontSize: 24, fontWeight: '700', color: M.heroInk, marginTop: 5, lineHeight: 30, fontFamily: FONTS.serif }} numberOfLines={2}>
                   {doc.centerGoal || '핵심 목표를 입력하세요'}
                 </Text>
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 9, fontWeight: '500' }}>
+                <Text style={{ fontSize: 13, color: M.heroSub, marginTop: 9, fontWeight: '500' }}>
                   64칸 중 <Text style={{ color: M.gold, fontWeight: '800' }}>{done}개</Text> 달성 · {pct}%
                 </Text>
               </View>
