@@ -21,6 +21,7 @@ import { FocusTimer } from '../overlays/FocusTimer';
 import { QuickAdd } from '../overlays/QuickAdd';
 import { Celebration } from '../overlays/Celebration';
 import { CellEditor } from '../overlays/CellEditor';
+import { Snackbar } from '../overlays/Snackbar';
 
 const TABS: { id: Screen; icon: Parameters<typeof Icon>[0]['name']; label: string }[] = [
   { id: 'dashboard', icon: 'home', label: '홈' },
@@ -98,6 +99,7 @@ export function Root() {
       <QuickAdd />
       <CellEditor />
       <Celebration count={todayTotal} />
+      <Snackbar />
     </View>
   );
 }

@@ -7,6 +7,12 @@ export type EditorTarget =
   | { kind: 'theme'; ti: number }
   | { kind: 'action'; ti: number; ai: number };
 
+export interface Toast {
+  id: number;
+  message: string;
+  action?: { label: string; onPress: () => void };
+}
+
 interface UICtx {
   screen: Screen;
   ti: number;
@@ -31,6 +37,10 @@ interface UICtx {
   editor: EditorTarget | null;
   openEditor: (e: EditorTarget) => void;
   closeEditor: () => void;
+
+  toast: Toast | null;
+  showToast: (message: string, action?: { label: string; onPress: () => void }) => void;
+  hideToast: () => void;
 }
 
 const Ctx = createContext<UICtx | null>(null);
@@ -43,6 +53,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [quick, setQuick] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
 
   const go = useCallback((s: Screen, nextTi = 0) => {
     setScreen(s);
@@ -55,6 +66,13 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     setFocus({ ti: t, ai: a });
   }, []);
 
+  const showToast = useCallback(
+    (message: string, action?: { label: string; onPress: () => void }) =>
+      setToast({ id: Date.now(), message, action }),
+    [],
+  );
+  const hideToast = useCallback(() => setToast(null), []);
+
   const value = useMemo<UICtx>(
     () => ({
       screen, ti, go,
@@ -63,8 +81,9 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       quick, openQuick: () => setQuick(true), closeQuick: () => setQuick(false),
       celebrate, fireCelebrate: () => setCelebrate(true), closeCelebrate: () => setCelebrate(false),
       editor, openEditor: setEditor, closeEditor: () => setEditor(null),
+      toast, showToast, hideToast,
     }),
-    [screen, ti, go, sheet, openAction, startFocus, focus, quick, celebrate, editor],
+    [screen, ti, go, sheet, openAction, startFocus, focus, quick, celebrate, editor, toast, showToast, hideToast],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

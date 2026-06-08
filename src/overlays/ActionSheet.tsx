@@ -21,13 +21,22 @@ export function ActionSheet() {
 
 function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
-  const { closeSheet, startFocus, openEditor } = useUI();
+  const { closeSheet, startFocus, openEditor, showToast } = useUI();
   const { doc, toggleDone, toggleToday, inToday, setActionNote } = useMandarat();
   const th = doc.themes[ti];
   const a = th.actions[ai];
   const key = `${ti}-${ai}`;
   const onToday = inToday(key);
   const [note, setNote] = useState(a.note);
+
+  const handleToday = () => {
+    tap();
+    toggleToday(key);
+    showToast(onToday ? '오늘에서 뺐어요' : '오늘 할 일에 담았어요', {
+      label: '되돌리기',
+      onPress: () => toggleToday(key),
+    });
+  };
 
   return (
     <View style={{ paddingHorizontal: 20 }}>
@@ -58,7 +67,10 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       {/* row toggles */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
         <Pressable
-          onPress={() => { tap(); toggleToday(key); }}
+          onPress={handleToday}
+          accessibilityRole="button"
+          accessibilityLabel={onToday ? '오늘 할 일에서 빼기' : '오늘 할 일에 추가'}
+          accessibilityState={{ selected: onToday }}
           style={{ flex: 1, padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: onToday ? th.color : M.line, backgroundColor: onToday ? tint(th.color, M.dark ? 14 : 7, M.dark) : 'transparent' }}
         >
           <Icon name="sparkle" size={18} color={onToday ? th.color : M.faint} />
