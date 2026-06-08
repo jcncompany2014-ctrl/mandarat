@@ -6,6 +6,7 @@ import { Icon, MOOD_FACES } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { EmptyState } from '../components/EmptyState';
 import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
+import { LotusRadar } from '../components/LotusRadar';
 import { FONTS } from '../theme/fonts';
 import { fade } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -112,6 +113,24 @@ export function Stats() {
               <View key={i} style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: o === 0 ? (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') : fade(M.accent, o * 100) }} />
             ))}
             <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>많음</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* area balance radar */}
+      <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+        <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>영역 균형</Text>
+            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>고르게 피었나요?</Text>
+          </View>
+          <View style={{ alignItems: 'center', paddingVertical: 4 }}>
+            <LotusRadar
+              size={216}
+              accent={M.accent}
+              line={M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}
+              data={doc.themes.map((th) => ({ pct: themeProgress(th).pct, color: th.color }))}
+            />
           </View>
         </View>
       </View>
