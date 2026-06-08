@@ -11,7 +11,7 @@ import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import type { CellShape, Mgmt, Mood } from '../types';
 
-const MOOD_OPTS: Mood[] = ['크림', '화이트', '파스텔', '다크'];
+const MOOD_OPTS: Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const ACCENTS = ['#F4793B', '#4F6BED', '#2FA968', '#8B5CF6'];
 const MGMT_OPTS: Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 const SHAPE_OPTS: CellShape[] = ['둥근', '각진'];
