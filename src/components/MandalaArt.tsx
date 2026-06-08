@@ -9,7 +9,7 @@ import Svg, { Circle, G, Path } from 'react-native-svg';
  *  - stroke  → fill 색으로 사용
  *  - rings / petals / sw → 호환용(미사용)
  */
-export function MandalaArt({
+export const MandalaArt = React.memo(function MandalaArt({
   size = 220,
   stroke = '#fff',
   opacity = 0.14,
@@ -51,4 +51,4 @@ export function MandalaArt({
       {eight(<Circle cx={C} cy={64} r={15} fill={fill} />, 22.5)}
     </Svg>
   );
-}
+});

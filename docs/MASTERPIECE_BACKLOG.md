@@ -31,7 +31,7 @@
 ## 5순위 — 시각 완성도·성능·코드 품질
 - [~] 15. 디자인 토큰: theme/tokens.ts(SP/R 스케일) 신설 + Snackbar 적용(픽셀 동일). 나머지 화면 점진 이행
 - [ ] 16. 다크모드 디테일 점검
-- [ ] 17. 리스트 렌더 최적화(memo, key 안정성), 불필요 리렌더 제거
+- [~] 17. 순수 SVG 컴포넌트(MandalaArt·LotusBloom) React.memo로 리렌더 방지 (리스트 memo는 추후)
 - [ ] 18. 공통 컴포넌트 추출로 중복 제거
 
 ## 6순위 — 차별화 깊이 (Signature)
@@ -86,3 +86,4 @@
 - #23 템플릿 갤러리(4종) + 설정 가로 스크롤 카드, applyTemplate 스토어 액션 + 적용 후 그리드 이동 + Undo
 - #15 디자인 토큰(SP/R) 단일 출처 신설 + Snackbar 간격/라운드 토큰화(픽셀 동일)
 - #35 LotusRadar(8각 레이더) 신설 + 통계 "영역 균형" 카드로 8영역 진행 균형 시각화
+- #17 MandalaArt·LotusBloom React.memo 적용으로 부모 리렌더 시 SVG 재구성 방지

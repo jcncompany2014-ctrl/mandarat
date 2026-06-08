@@ -29,7 +29,7 @@ export function bloomLabel(stage: BloomStage): string {
  * - 바깥 8엽은 35% 이후부터 서서히 나타나 만개로 향한다.
  * 8방향 대칭으로 MandalaArt와 같은 결을 유지한다.
  */
-export function LotusBloom({
+export const LotusBloom = React.memo(function LotusBloom({
   size = 120, pct, color = '#B0883C',
 }: {
   size?: number;
@@ -70,4 +70,4 @@ export function LotusBloom({
       <Circle cx={C} cy={C} r={6 + 5 * p} fill={color} />
     </Svg>
   );
-}
+});
