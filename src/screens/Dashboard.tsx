@@ -62,7 +62,12 @@ export function Dashboard() {
 
       {/* hero — 핵심 목표 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
-        <Pressable onPress={() => go('grid')}>
+        <Pressable
+          onPress={() => go('grid')}
+          accessibilityRole="button"
+          accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, 64칸 중 ${done}개 달성 ${pct}%`}
+          accessibilityHint="만다라트 펼치기"
+        >
           <LinearGradient
             colors={M.hero}
             start={{ x: 0.1, y: 0 }}
@@ -95,7 +100,13 @@ export function Dashboard() {
       {/* 8영역 미니 만다라트 */}
       <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingBottom: 12 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>8가지 핵심 영역</Text>
-        <Pressable onPress={() => go('grid')} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }} hitSlop={8}>
+        <Pressable
+          onPress={() => go('grid')}
+          accessibilityRole="button"
+          accessibilityLabel="8가지 핵심 영역 펼쳐보기"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+          hitSlop={8}
+        >
           <Text style={{ fontSize: 13, color: M.gold, fontWeight: '700' }}>펼쳐보기</Text>
           <Icon name="chevR" size={15} color={M.gold} />
         </Pressable>
@@ -107,6 +118,8 @@ export function Dashboard() {
               <Pressable
                 key="center"
                 onPress={() => go('grid')}
+                accessibilityRole="button"
+                accessibilityLabel={`전체 달성 ${pct}%, 만다라트 열기`}
                 style={{ width: '31%', aspectRatio: 1, borderRadius: 18, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
               >
                 <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
@@ -125,6 +138,8 @@ export function Dashboard() {
             <Pressable
               key={ti}
               onPress={() => go('detail', ti)}
+              accessibilityRole="button"
+              accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 8칸 중 ${p.done}개 달성`}
               style={[
                 {
                   width: '31%', aspectRatio: 1, borderRadius: 18, padding: 10, justifyContent: 'space-between',
