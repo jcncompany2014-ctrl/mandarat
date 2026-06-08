@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
 import { MandalaArt } from '../components/MandalaArt';
@@ -10,6 +10,8 @@ import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
+import { TEMPLATES, templateThemes, type Template } from '../data/templates';
+import { tap } from '../lib/haptics';
 import type { CellShape, Mgmt, Mood } from '../types';
 
 const APP_VERSION = '1.0.0'; // app.json version과 일치
@@ -55,7 +57,15 @@ function Segmented<T extends string>({ M, label, value, options, onChange }: { M
 export function Settings() {
   const M = usePalette();
   const { go, openEditor, showToast } = useUI();
-  const { doc, setSetting, loadSample, resetAll, replaceDoc } = useMandarat();
+  const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc } = useMandarat();
+
+  const useTemplate = (t: Template) => {
+    tap();
+    const snapshot = doc; // 되돌리기용
+    applyTemplate(t.centerGoal, templateThemes(t));
+    go('grid');
+    showToast(`‘${t.name}’ 템플릿을 적용했어요`, { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+  };
 
   const doReset = () => {
     const snapshot = doc; // 되돌리기용 직전 상태
@@ -95,6 +105,38 @@ export function Settings() {
           <Icon name="pencil" size={17} color={M.faint} />
         </Pressable>
       </Card>
+
+      <Section M={M} label="템플릿으로 시작 / Templates" />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, gap: 11, paddingVertical: 2 }}
+      >
+        {TEMPLATES.map((t) => (
+          <Pressable
+            key={t.id}
+            onPress={() => useTemplate(t)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t.name} 템플릿 적용`}
+            accessibilityHint={t.desc}
+            style={[{ width: 168, borderRadius: 18, padding: 15, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}
+          >
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 11 }}>
+              {t.areas.slice(0, 4).map((a, i) => (
+                <View key={i} style={{ width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.accent, M.dark ? 20 : 12, M.dark) }}>
+                  <Icon name={a.icon} size={15} color={M.accent} />
+                </View>
+              ))}
+            </View>
+            <Text style={{ fontSize: 14.5, fontWeight: '800', color: M.ink }} numberOfLines={1}>{t.name}</Text>
+            <Text style={{ fontSize: 11.5, color: M.sub, marginTop: 3, lineHeight: 16 }} numberOfLines={2}>{t.desc}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: M.accent }}>적용하기</Text>
+              <Icon name="chevR" size={14} color={M.accent} />
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
 
       <Section M={M} label="무드 / Mood" />
       <Card M={M}>

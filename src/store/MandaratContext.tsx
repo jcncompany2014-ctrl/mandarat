@@ -50,6 +50,7 @@ interface Ctx {
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   // data management
   loadSample: () => void;
+  applyTemplate: (centerGoal: string, themes: Theme[]) => void;
   resetAll: () => void;
   replaceDoc: (d: MandaratDoc) => void;
 }
@@ -233,18 +234,31 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  const applyTemplate = useCallback(
+    (centerGoal: string, themes: Theme[]) =>
+      update((d) => ({
+        ...d,
+        centerGoal: centerGoal || d.centerGoal,
+        themes,
+        todayKeys: [],
+        todayExtra: [],
+        onboarded: true,
+      })),
+    [update],
+  );
+
   const replaceDoc = useCallback((d: MandaratDoc) => setDoc(d), []);
 
   const value = useMemo<Ctx>(
     () => ({
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
       toggleDone, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, resetAll, replaceDoc,
+      setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
     }),
     [
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
       toggleDone, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, resetAll, replaceDoc,
+      setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
     ],
   );
 
