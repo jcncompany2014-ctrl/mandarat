@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { FONTS } from '../theme/fonts';
 import { usePalette } from '../theme/usePalette';
 import { useMandarat } from '../store/MandaratContext';
+import { TEMPLATES, templateThemes } from '../data/templates';
 import { tap } from '../lib/haptics';
 
 const SUGGESTIONS = ['2026 최고의 나', '건강하고 단단한 삶', '성장하는 한 해', '균형 잡힌 일상'];
@@ -14,12 +15,19 @@ const SUGGESTIONS = ['2026 최고의 나', '건강하고 단단한 삶', '성장
 export function Onboarding() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding } = useMandarat();
+  const { completeOnboarding, applyTemplate } = useMandarat();
   const [goal, setGoal] = useState('');
 
   const start = () => {
     tap();
     completeOnboarding(goal);
+  };
+
+  const startWithTemplate = (id: string) => {
+    const t = TEMPLATES.find((x) => x.id === id);
+    if (!t) return;
+    tap();
+    applyTemplate(goal.trim() || t.centerGoal, templateThemes(t));
   };
 
   // hero 그라데이션이 밝은 톤(연꽃)일 때도 읽히도록 색을 적응시킨다.
@@ -86,11 +94,30 @@ export function Onboarding() {
 
           <Pressable
             onPress={start}
+            accessibilityRole="button"
+            accessibilityLabel="빈 만다라트로 시작하기"
             style={{ marginTop: 28, backgroundColor: M.gold, borderRadius: 18, paddingVertical: 17, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
           >
             <Text style={{ color: M.center, fontSize: 16.5, fontWeight: '800' }}>시작하기</Text>
             <Icon name="chevR" size={18} color={M.center} sw={2.6} />
           </Pressable>
+
+          <Text style={{ color: M.heroSub, fontSize: 11.5, fontWeight: '600', textAlign: 'center', marginTop: 18, marginBottom: 9 }}>
+            또는 템플릿으로 바로 시작
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+            {TEMPLATES.map((t) => (
+              <Pressable
+                key={t.id}
+                onPress={() => startWithTemplate(t.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`${t.name} 템플릿으로 시작`}
+                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
+              >
+                <Text style={{ color: M.heroInk, fontSize: 12.5, fontWeight: '700' }}>{t.name}</Text>
+              </Pressable>
+            ))}
+          </View>
           <Text style={{ color: M.heroSub, fontSize: 12, textAlign: 'center', marginTop: 14 }}>
             나중에 언제든 바꿀 수 있어요
           </Text>
