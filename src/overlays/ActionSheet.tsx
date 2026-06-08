@@ -83,6 +83,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
         placeholder="떠오르는 생각을 적어두세요…"
         placeholderTextColor={M.faint}
         multiline
+        maxLength={300}
         style={{ marginTop: 7, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14, minHeight: 72, textAlignVertical: 'top' }}
       />
     </View>

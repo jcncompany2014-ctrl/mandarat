@@ -49,13 +49,19 @@ export function QuickAdd() {
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="실천 항목을 입력하세요"
+          placeholder="예) 점심 후 15분 산책"
           placeholderTextColor={M.faint}
           autoFocus
+          maxLength={60}
           returnKeyType="done"
           onSubmitEditing={submit}
           style={{ marginTop: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 15 }}
         />
+        {text.length >= 42 && (
+          <Text style={{ alignSelf: 'flex-end', marginTop: 6, fontSize: 11, fontWeight: '700', color: text.length >= 60 ? doc.themes[ti].color : M.faint }}>
+            {text.length}/60
+          </Text>
+        )}
         {text.trim().length > 0 && <GuideChips M={M} text={text} />}
         <Pressable onPress={submit} style={{ marginTop: 12, paddingVertical: 15, borderRadius: 16, alignItems: 'center', backgroundColor: text.trim() ? doc.themes[ti].color : M.line }}>
           <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>추가하기</Text>

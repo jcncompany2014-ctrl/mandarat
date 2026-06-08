@@ -61,6 +61,7 @@ export function Onboarding() {
             onChangeText={setGoal}
             placeholder="예) 2026 최고의 나"
             placeholderTextColor={placeholderColor}
+            maxLength={40}
             style={{
               backgroundColor: fieldBg,
               borderWidth: 1, borderColor: fieldBorder,

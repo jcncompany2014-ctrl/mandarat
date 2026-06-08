@@ -10,15 +10,31 @@ import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
 
+// 실천 칸마다 살짝 다른 예시를 보여 구체적으로 적도록 유도한다.
+const ACTION_EG = [
+  '예) 주 3회 30분 달리기',
+  '예) 매일 아침 물 2잔 마시기',
+  '예) 자기 전 책 10쪽 읽기',
+  '예) 점심 후 15분 산책',
+  '예) 주 1회 가계부 정리',
+  '예) 매주 일요일 주간 회고',
+  '예) 하루 한 번 감사 메모',
+  '예) 퇴근 후 30분 공부',
+];
+
 function meta(target: EditorTarget, doc: MandaratDoc) {
   if (target.kind === 'center') {
-    return { title: '핵심 목표', placeholder: '예) 2026 최고의 나', initial: doc.centerGoal, multiline: true };
+    return { title: '핵심 목표', placeholder: '예) 2026 최고의 나', initial: doc.centerGoal, multiline: true, max: 40 };
   }
   if (target.kind === 'theme') {
-    return { title: `${target.ti + 1}번째 영역`, placeholder: '예) 건강', initial: doc.themes[target.ti].title, multiline: false };
+    return { title: `${target.ti + 1}번째 영역`, placeholder: '예) 건강', initial: doc.themes[target.ti].title, multiline: false, max: 18 };
   }
   const a = doc.themes[target.ti].actions[target.ai];
-  return { title: `${doc.themes[target.ti].title || '영역'} · 실천 ${target.ai + 1}`, placeholder: '예) 주 3회 운동', initial: a.text, multiline: true };
+  return {
+    title: `${doc.themes[target.ti].title || '영역'} · 실천 ${target.ai + 1}`,
+    placeholder: ACTION_EG[target.ai % ACTION_EG.length],
+    initial: a.text, multiline: true, max: 60,
+  };
 }
 
 export function CellEditor() {
@@ -59,6 +75,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
               placeholderTextColor={M.faint}
               autoFocus
               multiline={m.multiline}
+              maxLength={m.max}
               returnKeyType="done"
               blurOnSubmit
               onSubmitEditing={save}
@@ -68,6 +85,11 @@ function Editor({ editor }: { editor: EditorTarget }) {
                 minHeight: m.multiline ? 64 : undefined, textAlignVertical: m.multiline ? 'top' : 'center',
               }}
             />
+            {text.length >= m.max * 0.7 && (
+              <Text style={{ alignSelf: 'flex-end', marginTop: 6, fontSize: 11, fontWeight: '700', color: text.length >= m.max ? M.accent : M.faint }}>
+                {text.length}/{m.max}
+              </Text>
+            )}
             {editor.kind === 'action' && <GuideChips M={M} text={text} />}
             <Pressable onPress={save} style={{ marginTop: 14, backgroundColor: M.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
               <Icon name="check" size={18} color="#fff" sw={2.6} />
