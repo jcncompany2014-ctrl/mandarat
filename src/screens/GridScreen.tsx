@@ -77,10 +77,12 @@ function Block({
         if (s.type === 'main') { bg = M.dark ? '#2A2731' : '#23211C'; col = '#fff'; weight = '800'; }
         else if (s.type === 'name') { bg = s.color; col = '#fff'; weight = '800'; }
         else if (s.type === 'theme') { bg = s.color; col = '#fff'; weight = '700'; }
-        else {
-          bg = tint(s.color, s.done ? (M.dark ? 30 : 20) : (M.dark ? 15 : 8), M.dark);
-          col = s.done ? s.color : M.dark ? 'rgba(255,255,255,0.66)' : 'rgba(20,18,12,0.6)';
-          weight = s.done ? '800' : '500';
+        else if (s.done) {
+          bg = s.color; col = '#fff'; weight = '800';
+        } else {
+          bg = tint(s.color, M.dark ? 20 : 13, M.dark);
+          col = M.dark ? 'rgba(255,255,255,0.9)' : '#2A2521';
+          weight = '600';
         }
         const showDot = s.type === 'action' && s.done;
         return (
@@ -101,7 +103,7 @@ function Block({
               {wrap2(s.label)}
             </Text>
             {showDot && (
-              <View style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: s.color }} />
+              <View style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.95)' }} />
             )}
           </View>
         );
