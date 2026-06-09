@@ -163,17 +163,21 @@ export function GridScreen() {
       ) : (
         <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
           <View style={[{ backgroundColor: M.surface, borderRadius: blockR + 6, padding: 7, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(6)]}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
               {blockOrder.map((b, i) => (
                 <View
                   key={i}
                   style={{
                     width: '31.5%',
-                    backgroundColor: b === 'c' ? (M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(35,33,28,0.04)') : 'transparent',
+                    backgroundColor: b === 'c'
+                      ? (M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(35,33,28,0.06)')
+                      : (M.dark ? 'rgba(255,255,255,0.035)' : 'rgba(35,33,28,0.03)'),
                     borderRadius: blockR,
-                    padding: b === 'c' ? 3 : 0,
-                    borderWidth: b === 'c' ? 1.5 : 0,
-                    borderColor: b === 'c' ? (M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(35,33,28,0.14)') : 'transparent',
+                    padding: 3,
+                    borderWidth: 1,
+                    borderColor: b === 'c'
+                      ? (M.dark ? 'rgba(255,255,255,0.16)' : 'rgba(35,33,28,0.16)')
+                      : (M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(35,33,28,0.06)'),
                   }}
                 >
                   <Block
