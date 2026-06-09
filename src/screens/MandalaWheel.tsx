@@ -65,9 +65,9 @@ export function MandalaWheel({ M }: { M: M }) {
             style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}
           >
             <Ring pct={pct} size={112} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
-              <View style={[{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5, borderRadius: 56, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 8 }, shadow(8, '#141028', 0.32)]}>
+              <View style={[{ width: 100, height: 100, borderRadius: 50, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 9 }, shadow(8, '#141028', 0.32)]}>
                 <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-                  <MandalaArt size={102} stroke={M.gold} opacity={0.32} />
+                  <MandalaArt size={100} stroke={M.gold} opacity={0.32} />
                 </View>
                 <Text style={{ fontFamily: FONTS.serif, fontWeight: '700', fontSize: 13.5, color: '#fff', textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>
                   {doc.centerGoal || '핵심 목표'}
@@ -172,7 +172,7 @@ function BloomLayer({
         style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}
       >
         <Ring pct={p.pct} size={112} stroke={4} color={th.color} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
-          <View style={[{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5, borderRadius: 56, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 8 }, shadow(8, th.color, 0.4)]}>
+          <View style={[{ width: 100, height: 100, borderRadius: 50, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 9 }, shadow(8, th.color, 0.4)]}>
             <Icon name={th.icon} size={24} color="#fff" />
             <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 3, textAlign: 'center' }} numberOfLines={1}>
               {th.title || `영역 ${ti + 1}`}

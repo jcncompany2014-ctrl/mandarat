@@ -85,8 +85,8 @@ export function Dashboard() {
                 <Text style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: 2, color: M.heroSub, fontFamily: FONTS.grotesk }}>
                   MY CORE GOAL
                 </Text>
-                <Text style={{ fontSize: 24, fontWeight: '700', color: M.heroInk, marginTop: 5, lineHeight: 30, fontFamily: FONTS.serif }} numberOfLines={2}>
-                  {doc.centerGoal || '핵심 목표를 입력하세요'}
+                <Text style={{ fontSize: doc.centerGoal ? 24 : 22, fontWeight: '700', color: doc.centerGoal ? M.heroInk : M.heroSub, marginTop: 5, lineHeight: doc.centerGoal ? 30 : 28, fontFamily: FONTS.serif }} numberOfLines={2}>
+                  {doc.centerGoal || '핵심 목표를\n입력해 주세요'}
                 </Text>
                 <Text style={{ fontSize: 13, color: M.heroSub, marginTop: 9, fontWeight: '500' }}>
                   64칸 중 <Text style={{ color: M.gold, fontWeight: '800' }}>{done}개</Text> 달성 · {pct}%
