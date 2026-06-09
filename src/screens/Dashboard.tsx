@@ -142,20 +142,25 @@ export function Dashboard() {
               accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 8칸 중 ${p.done}개 달성`}
               style={[
                 {
-                  width: '31%', aspectRatio: 1, borderRadius: 18, padding: 10, justifyContent: 'space-between',
-                  backgroundColor: filled ? th.color : tint(th.color, M.dark ? 17 : 11, M.dark),
-                  borderWidth: 1, borderColor: filled ? th.color : tint(th.color, M.dark ? 30 : 22, M.dark),
+                  width: '31%', aspectRatio: 1, borderRadius: 18, padding: 11, justifyContent: 'space-between',
+                  backgroundColor: filled ? th.color : M.surface,
+                  borderWidth: 1, borderColor: filled ? th.color : M.line,
                 },
-                M.dark ? null : shadow(2),
+                M.dark ? null : shadow(3),
               ]}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Icon name={th.icon} size={17} color={filled ? '#fff' : th.color} />
-                <Text style={{ fontSize: 10, fontWeight: '800', color: filled ? '#fff' : th.color, fontFamily: FONTS.grotesk }}>{p.done}/8</Text>
+                <View style={{ width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: filled ? 'rgba(255,255,255,0.22)' : tint(th.color, M.dark ? 22 : 13, M.dark) }}>
+                  <Icon name={th.icon} size={15} color={filled ? '#fff' : th.color} />
+                </View>
+                <Text style={{ fontSize: 10.5, fontWeight: '800', color: filled ? '#fff' : th.color, fontFamily: FONTS.grotesk }}>{p.done}/8</Text>
               </View>
               <Text style={{ fontSize: 12.5, fontWeight: '800', color: filled ? '#fff' : M.ink, letterSpacing: -0.3 }} numberOfLines={2}>
                 {th.title || `영역 ${ti + 1}`}
               </Text>
+              <View style={{ height: 4, borderRadius: 2, marginTop: 6, backgroundColor: filled ? 'rgba(255,255,255,0.3)' : M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: `${p.pct}%`, borderRadius: 2, backgroundColor: filled ? '#fff' : th.color }} />
+              </View>
             </Pressable>
           );
         })}
