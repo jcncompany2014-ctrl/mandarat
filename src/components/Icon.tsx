@@ -5,9 +5,10 @@ import {
   Grid3x3, House, Check as CheckIcon, CircleCheck, ChartColumnBig, Plus,
   ChevronRight, ChevronLeft, Flame, Sparkles, Target, Pencil, Ellipsis,
   Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2,
-  Angry, Frown, Meh, Smile, Laugh, LucideIcon,
+  LucideIcon,
 } from 'lucide-react-native';
 import type { IconName } from '../types';
+import { FaceHard, FaceLow, FaceNeutral, FaceGood, FaceBest, FaceProps } from './MoodFaces';
 
 const MAP: Record<IconName, LucideIcon> = {
   heart: Heart, briefcase: Briefcase, book: BookOpen, people: Users, coin: PiggyBank,
@@ -18,12 +19,13 @@ const MAP: Record<IconName, LucideIcon> = {
   close: X, reset: RotateCcw, trash: Trash2,
 };
 
-export const MOOD_FACES: { ic: LucideIcon; kr: string; c: string }[] = [
-  { ic: Angry, kr: '힘듦', c: '#E5547F' },
-  { ic: Frown, kr: '별로', c: '#F4793B' },
-  { ic: Meh, kr: '보통', c: '#E8A33D' },
-  { ic: Smile, kr: '좋음', c: '#2FA968' },
-  { ic: Laugh, kr: '최고', c: '#4DA3E0' },
+type FaceComp = React.ComponentType<FaceProps>;
+export const MOOD_FACES: { ic: FaceComp; kr: string; c: string }[] = [
+  { ic: FaceHard, kr: '힘듦', c: '#E5547F' },
+  { ic: FaceLow, kr: '별로', c: '#F4793B' },
+  { ic: FaceNeutral, kr: '보통', c: '#E8A33D' },
+  { ic: FaceGood, kr: '좋음', c: '#2FA968' },
+  { ic: FaceBest, kr: '최고', c: '#4DA3E0' },
 ];
 
 const FILLED = new Set<IconName>(['flame', 'sparkle']);
