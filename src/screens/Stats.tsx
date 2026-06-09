@@ -26,6 +26,7 @@ export function Stats() {
   const done = totalDone(doc);
   const pct = Math.round((done / 64) * 100);
   const streak = overallStreak(doc);
+  const hasData = done > 0 || Object.keys(doc.dayLog).length > 0;
 
   const last7 = lastNDates(7);
   const week = last7.map((k) => (doc.dayLog[k] ?? []).length);
@@ -80,6 +81,8 @@ export function Stats() {
         </View>
       </View>
 
+      {hasData ? (
+      <>
       {/* weekly activity */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
@@ -161,6 +164,19 @@ export function Stats() {
       </View>
 
       <ReflectionFeed M={M} doc={doc} />
+      </>
+      ) : (
+        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+          <View style={[{ borderRadius: 22, paddingVertical: 8, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
+            <EmptyState
+              M={M}
+              icon="chart"
+              title="아직 통계가 비어 있어요"
+              subtitle="오늘 첫 실천을 체크하면 주간 흐름·히트맵·영역 균형이 이곳에 피어나요"
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -292,8 +308,12 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
         <Text style={{ fontSize: 11, fontWeight: '700', color: M.heroSub }}>· 연꽃 {bloomLabel(bloomStage(overallPct))}</Text>
       </View>
       <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 8, lineHeight: 24, color: M.heroInk, letterSpacing: -0.2 }}>
-        <Text style={{ color: M.gold, fontWeight: '800' }}>{topName}</Text> 영역이 가장 빛나고 있어요. 이번 주엔{' '}
-        <Text style={{ color: M.heroInk, fontWeight: '800' }}>{lowName}</Text>에 한 걸음 더 내딛어 볼까요?
+        {overallPct === 0 ? (
+          <>첫 걸음을 기다리는 연꽃 한 송이예요.{'\n'}오늘 <Text style={{ color: M.gold, fontWeight: '800' }}>한 칸</Text>부터 천천히 피워볼까요?</>
+        ) : (
+          <><Text style={{ color: M.gold, fontWeight: '800' }}>{topName}</Text> 영역이 가장 빛나고 있어요. 이번 주엔{' '}
+          <Text style={{ color: M.heroInk, fontWeight: '800' }}>{lowName}</Text>에 한 걸음 더 내딛어 볼까요?</>
+        )}
       </Text>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
