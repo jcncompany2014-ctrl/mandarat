@@ -13,6 +13,26 @@ import type { MandaratDoc } from '../types';
 
 const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 
+/**
+ * 좁은 격자 칸에서 한글이 글자 단위로 끊기는 걸 막는다.
+ * 공백이 있으면 가운데에 가장 가까운 공백에서 두 줄로 나누고(어절 경계),
+ * 공백이 없으면 글자 수 중간에서 균형 있게 나눈다. ("건강 실천 1" → "건강\n실천 1")
+ */
+function wrap2(label: string): string {
+  const s = label.trim();
+  if (s.length <= 3) return s;
+  const half = s.length / 2;
+  const spaces: number[] = [];
+  for (let i = 0; i < s.length; i++) if (s[i] === ' ') spaces.push(i);
+  if (spaces.length) {
+    let best = spaces[0];
+    for (const sp of spaces) if (Math.abs(sp - half) < Math.abs(best - half)) best = sp;
+    return s.slice(0, best) + '\n' + s.slice(best + 1);
+  }
+  const mid = Math.round(half);
+  return s.slice(0, mid) + '\n' + s.slice(mid);
+}
+
 type Slot =
   | { type: 'main'; label: string }
   | { type: 'name'; label: string; color: string }
@@ -67,12 +87,18 @@ function Block({
           <View
             key={i}
             style={{
-              width: '31.5%', aspectRatio: 1, borderRadius: cellR, backgroundColor: bg,
+              width: '31.5%', aspectRatio: 0.84, borderRadius: cellR, backgroundColor: bg,
               alignItems: 'center', justifyContent: 'center', padding: 3, overflow: 'hidden',
             }}
           >
-            <Text style={{ fontSize: 7.4, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 8.4 }} numberOfLines={2}>
-              {s.label}
+            <Text
+              style={{ fontSize: 9, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 10.5 }}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              ellipsizeMode="tail"
+            >
+              {wrap2(s.label)}
             </Text>
             {showDot && (
               <View style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: s.color }} />
@@ -110,10 +136,16 @@ function Block({
             onPress={onPress}
             accessibilityRole="button"
             accessibilityLabel={s.type === 'main' ? '핵심 목표 편집' : s.type === 'theme' ? `${s.label} 영역 열기` : undefined}
-            style={{ width: '31.5%', aspectRatio: 1, borderRadius: cellR, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', padding: 1, overflow: 'hidden' }}
+            style={{ width: '31.5%', aspectRatio: 0.84, borderRadius: cellR, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', padding: 3, overflow: 'hidden' }}
           >
-            <Text style={{ fontSize: 7.6, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 8.4 }} numberOfLines={2}>
-              {s.label}
+            <Text
+              style={{ fontSize: 9.5, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 11 }}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              ellipsizeMode="tail"
+            >
+              {wrap2(s.label)}
             </Text>
           </Pressable>
         );
@@ -161,9 +193,9 @@ export function GridScreen() {
           </Text>
         </View>
       ) : (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <View style={{ paddingHorizontal: 11, paddingBottom: 8 }}>
           <View style={[{ backgroundColor: M.surface, borderRadius: blockR + 6, padding: 7, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(6)]}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {blockOrder.map((b, i) => (
                 <View
                   key={i}
