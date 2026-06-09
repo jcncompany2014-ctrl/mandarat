@@ -68,22 +68,24 @@ function TodayChecklist({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      {/* progress banner */}
-      <LinearGradient colors={['#F4793B', '#E5547F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[{ borderRadius: 22, padding: 20, marginBottom: 16 }, shadow(10, '#E5547F', 0.28)]}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <View>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.85)' }}>오늘의 진행</Text>
-            <Text style={{ fontSize: 34, fontWeight: '800', color: '#fff', fontFamily: FONTS.grotesk, marginTop: 2 }}>
-              {tDone}
-              <Text style={{ fontSize: 20, color: 'rgba(255,255,255,0.7)' }}>/{tTotal}</Text>
-            </Text>
+      {/* progress banner — 무드 hero 톤으로 통일, 할 일이 없으면 숨김 */}
+      {tTotal > 0 && (
+        <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 20, marginBottom: 16, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <View>
+              <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub, letterSpacing: 0.2 }}>오늘의 진행</Text>
+              <Text style={{ fontSize: 34, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 2 }}>
+                {tDone}
+                <Text style={{ fontSize: 20, color: M.heroSub }}>/{tTotal}</Text>
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: M.gold }}>{pct}%</Text>
           </View>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>{pct}%</Text>
-        </View>
-        <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.28)', marginTop: 12, overflow: 'hidden' }}>
-          <View style={{ height: '100%', width: `${pct}%`, backgroundColor: '#fff', borderRadius: 4 }} />
-        </View>
-      </LinearGradient>
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.22)', marginTop: 12, overflow: 'hidden' }}>
+            <View style={{ height: '100%', width: `${pct}%`, backgroundColor: M.gold, borderRadius: 4 }} />
+          </View>
+        </LinearGradient>
+      )}
 
       {/* mood + reflection */}
       <View style={[{ borderRadius: 20, padding: 16, marginBottom: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
