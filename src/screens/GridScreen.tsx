@@ -58,20 +58,25 @@ function Block({
         else if (s.type === 'name') { bg = s.color; col = '#fff'; weight = '800'; }
         else if (s.type === 'theme') { bg = s.color; col = '#fff'; weight = '700'; }
         else {
-          bg = s.done ? s.color : tint(s.color, M.dark ? 24 : 16, M.dark);
-          col = s.done ? '#fff' : M.dark ? 'rgba(255,255,255,0.82)' : 'rgba(20,18,12,0.78)';
+          bg = tint(s.color, s.done ? (M.dark ? 30 : 20) : (M.dark ? 15 : 8), M.dark);
+          col = s.done ? s.color : M.dark ? 'rgba(255,255,255,0.66)' : 'rgba(20,18,12,0.6)';
+          weight = s.done ? '800' : '500';
         }
+        const showDot = s.type === 'action' && s.done;
         return (
           <View
             key={i}
             style={{
               width: '31.5%', aspectRatio: 1, borderRadius: cellR, backgroundColor: bg,
-              alignItems: 'center', justifyContent: 'center', padding: 1, overflow: 'hidden',
+              alignItems: 'center', justifyContent: 'center', padding: 3, overflow: 'hidden',
             }}
           >
-            <Text style={{ fontSize: 7.4, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 8.2 }} numberOfLines={2}>
+            <Text style={{ fontSize: 7.4, fontWeight: weight, color: col, textAlign: 'center', lineHeight: 8.4 }} numberOfLines={2}>
               {s.label}
             </Text>
+            {showDot && (
+              <View style={{ position: 'absolute', top: 3, right: 3, width: 4, height: 4, borderRadius: 2, backgroundColor: s.color }} />
+            )}
           </View>
         );
       })}
