@@ -1,18 +1,22 @@
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import {
-  Heart, Briefcase, BookOpen, Users, PiggyBank, Palette, Flower2, Compass,
   Grid3x3, House, Check as CheckIcon, CircleCheck, ChartColumnBig, Plus,
   ChevronRight, ChevronLeft, Flame, Sparkles, Target, Pencil, Ellipsis,
   Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2,
-  LucideIcon,
 } from 'lucide-react-native';
 import type { IconName } from '../types';
 import { FaceHard, FaceLow, FaceNeutral, FaceGood, FaceBest, FaceProps } from './MoodFaces';
+import {
+  IcSprout, IcCase, IcBook, IcPeople, IcCoin, IcBrush, IcLotus, IcMountain,
+} from './AreaIcons';
 
-const MAP: Record<IconName, LucideIcon> = {
-  heart: Heart, briefcase: Briefcase, book: BookOpen, people: Users, coin: PiggyBank,
-  palette: Palette, lotus: Flower2, compass: Compass, grid: Grid3x3, home: House,
+// 동양풍 커스텀 아이콘과 lucide 아이콘을 함께 담으므로 값 타입은 느슨하게 둔다(렌더 지점 단일).
+type AnyIcon = React.ComponentType<any>;
+
+const MAP: Record<IconName, AnyIcon> = {
+  heart: IcSprout, briefcase: IcCase, book: IcBook, people: IcPeople, coin: IcCoin,
+  palette: IcBrush, lotus: IcLotus, compass: IcMountain, grid: Grid3x3, home: House,
   check: CheckIcon, checkCircle: CircleCheck, chart: ChartColumnBig, plus: Plus,
   chevR: ChevronRight, chevL: ChevronLeft, flame: Flame, sparkle: Sparkles, target: Target,
   pencil: Pencil, dots: Ellipsis, calendar: Calendar, bell: Bell, settings: SlidersHorizontal,
