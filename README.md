@@ -17,11 +17,22 @@ Expo + TypeScript로 만들었고, 모든 데이터는 기기에 로컬 저장�
 
 | 탭 | 설명 |
 |----|------|
-| **홈** | 진행률 따라 피어나는 연꽃 마스코트, 핵심 목표 진행률, 8영역 3×3 미니 만다라트, 오늘의 실천 + 이번 주(월~일) 리듬 |
-| **만다라트** | 만다라 휠(방사형, 탭하여 펼치기) ↔ 격자 81칸 토글 |
+| **홈** | 숨 쉬며 피어나는 연꽃 마스코트, 핵심 목표 진행률, 오늘의 실천(남은 일 3개 바로 체크) + 이번 주 리듬, 8영역 3×3 미니 만다라트 |
+| **만다라트** | 만다라 휠(중심에서 피어나고, 탭하여 펼치기) ↔ 격자 81칸, 다음 한 걸음 제안 |
 | **오늘** | 관리 방식 3종(일일 체크 / 습관 스트릭 / 칸반)을 화면 위에서 바로 전환, 요일 루틴 자동 등장, 영역 필터, 하루 마무리(기분·한 줄 회고) |
 | **통계** | 인사이트, 전체 달성률·연속일·집중 시간, 이번 주 돌아보기(지난주 대비·루틴 지킴·최고의 날·활발한 영역), 10주 달력 히트맵, 이름이 붙은 영역 균형 레이더, 영역별 달성률, 최근 회고, 요약 공유 |
 | **설정** | 무드(연꽃·크림·화이트·파스텔·다크) · 포인트 컬러 · 관리 방식 · 셀 모양 · 템플릿 갤러리 · 백업 내보내기/불러오기 · 예시 채우기 · 전체 초기화(되돌리기) · 정보 |
+
+### 모션 · 손끝 감촉
+
+앱 전체가 하나의 호흡으로 움직이도록 시간·곡선·스프링을 `src/theme/motion.ts` 한 곳에서 정합니다.
+
+- **손끝**: 모든 카드·버튼이 눌리면 살짝 들어갔다 탄력 있게 돌아오고(Pressy), 체크하는 순간 톡 튀며 영역 색 물결이 퍼집니다.
+- **등장**: 화면 덩어리가 위에서부터 차례로 떠오르고, 링은 한 바퀴 그리듯 차오르며 숫자는 세어 올라가고 막대는 자랍니다.
+- **길 찾기**: 탭 아래 받침이 활성 탭을 따라 미끄러지고, 상세·설정은 오른쪽에서 들어와 왼쪽으로 돌아갑니다. 상세 화면은 좌우로 쓸어 영역을 넘깁니다.
+- **시트**: 탄력 있게 올라오고, 닫을 땐 아래로 미끄러지며, 손잡이를 끌어내려 닫을 수 있습니다.
+- **시그니처**: 만다라 휠은 중심에서 8영역이 피어나고 영역을 누르면 접혔다가 8실천이 꽃잎처럼 펼쳐집니다(뒤의 연꽃이 반 칸 회전). 집중 타이머는 4초 들숨·4초 날숨에 맞춰 연꽃이 숨 쉬고, 오늘을 모두 마치면 연꽃이 비틀며 열리는 축하가 이어집니다. 첫 화면·온보딩·스플래시도 같은 결로 피어납니다.
+- **동작 줄이기**를 켜면 장식 애니메이션은 모두 생략됩니다.
 
 ### 요일 루틴
 
@@ -75,9 +86,11 @@ src/
   types.ts                   데이터 모델
   data/                      defaults(8영역 시드·예시·migrate) · templates(목적별 템플릿)
   store/MandaratContext.tsx  AsyncStorage 영속 + 파생 셀렉터 + 집중시간/되돌리기
-  theme/                     무드 팔레트(연꽃 등) · 색 헬퍼 · 폰트 · 그림자 · tokens(SP/R)
-  lib/                       routine(요일 루틴·오늘 목록·하루 정리) · review(주간 돌아보기) · backup · coach · suggest · haptics · webFile
+  theme/                     무드 팔레트(연꽃 등) · 색 헬퍼 · 폰트 · 그림자 · tokens(SP/R) · motion(시간·곡선·스프링)
+  lib/                       routine(요일 루틴·오늘 목록·하루 정리) · review(주간 돌아보기) · nextStep(다음 한 걸음) · backup · coach · suggest
+                             · useReducedMotion · layoutAnim · useSettle · useTween · haptics · webFile
   components/                Icon · Ring · Check · MandalaArt · LotusBloom · LotusRadar · EmptyState · GuideChips · MoodRow · Splash · ErrorBoundary · 공통 UI
+                             · Pressy · Reveal/Pop/Breathe · AnimatedNumber · ProgressBar · GrowBar · SegmentedControl · DayPicker · WeekDots
   navigation/                라우팅 · 오버레이/토스트 컨텍스트 · Root 셸(전환 모션)
   screens/                   Onboarding · Dashboard · Grid · MandalaWheel · Detail · Today · Stats · Settings
   overlays/                  ActionSheet · FocusTimer · QuickAdd · Celebration · CellEditor · BackupImport · Snackbar
