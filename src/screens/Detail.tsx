@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { PanResponder, Pressable, Text, View } from 'react-native';
+import { PanResponder, Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
@@ -56,7 +57,7 @@ export function Detail({ ti }: { ti: number }) {
     <View {...swipe.panHandlers}>
       <Header
         M={M}
-        en={`Pillar ${ti + 1}`}
+        sub={`영역 ${ti + 1} / 8`}
         kr={th.title || `영역 ${ti + 1}`}
         onBack={() => go('grid')}
         right={

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Share, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
-import { MandalaArt } from '../components/MandalaArt';
+import { GridMark } from '../components/GridMark';
 import { Pressy } from '../components/Pressy';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { FONTS } from '../theme/fonts';
@@ -28,7 +29,7 @@ const SHAPE_OPTS: CellShape[] = ['둥근', '각진'];
 
 function Section({ M, label }: { M: M; label: string }) {
   return (
-    <Text style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8, fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: M.faint, textTransform: 'uppercase' }}>
+    <Text style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8, fontSize: 13, fontWeight: '700', color: M.sub }}>
       {label}
     </Text>
   );
@@ -149,9 +150,9 @@ export function Settings() {
 
   return (
     <View>
-      <Header M={M} en="Settings" kr="설정" onBack={() => go('dashboard')} />
+      <Header M={M} kr="설정" onBack={() => go('dashboard')} />
 
-      <Section M={M} label="핵심 목표 / Goal" />
+      <Section M={M} label="핵심 목표" />
       <Card M={M}>
         <Pressy onPress={() => { tap(); openEditor({ kind: 'center' }); }} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`핵심 목표 ${doc.centerGoal || '입력'} · 수정`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
@@ -165,7 +166,7 @@ export function Settings() {
         </Pressy>
       </Card>
 
-      <Section M={M} label="템플릿으로 시작 / Templates" />
+      <Section M={M} label="템플릿으로 시작" />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -198,9 +199,9 @@ export function Settings() {
         ))}
       </ScrollView>
 
-      <Section M={M} label="무드 / Mood" />
+      <Section M={M} label="테마" />
       <Card M={M}>
-        <Segmented M={M} label="배경 무드" value={doc.settings.mood} options={MOOD_OPTS} onChange={(v) => setSetting('mood', v)} />
+        <Segmented M={M} label="배경" value={doc.settings.mood} options={MOOD_OPTS} onChange={(v) => setSetting('mood', v)} />
         <View>
           <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>포인트 컬러</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -227,17 +228,17 @@ export function Settings() {
         </View>
       </Card>
 
-      <Section M={M} label="관리 방식 / Manage" />
+      <Section M={M} label="오늘 화면" />
       <Card M={M}>
-        <Segmented M={M} label="오늘 화면" value={doc.settings.mgmt} options={MGMT_OPTS} onChange={(v) => setSetting('mgmt', v)} />
+        <Segmented M={M} label="보기 방식" value={doc.settings.mgmt} options={MGMT_OPTS} onChange={(v) => setSetting('mgmt', v)} />
       </Card>
 
-      <Section M={M} label="그리드 / Grid" />
+      <Section M={M} label="만다라트 칸" />
       <Card M={M}>
         <Segmented M={M} label="셀 모양" value={doc.settings.cellShape} options={SHAPE_OPTS} onChange={(v) => setSetting('cellShape', v)} />
       </Card>
 
-      <Section M={M} label="데이터 / Data" />
+      <Section M={M} label="데이터" />
       <Card M={M}>
         <Row
           M={M} icon="download" color={M.accent} title="백업 내보내기"
@@ -247,7 +248,7 @@ export function Settings() {
         <View style={{ height: 1, backgroundColor: M.line }} />
         <Row M={M} icon="restore" color={SEMANTIC.done} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" onPress={() => { tap(); setImporting(true); }} />
         <View style={{ height: 1, backgroundColor: M.line }} />
-        <Row M={M} icon="sparkle" color={M.gold} title="예시로 채우기" sub="8영역 · 64실천 샘플을 불러와요" onPress={confirmSample} />
+        <Row M={M} icon="grid" color={M.gold} title="예시로 채우기" sub="8개 영역 · 64개 실천 예시를 불러와요" onPress={confirmSample} />
         <View style={{ height: 1, backgroundColor: M.line }} />
         <Row M={M} icon="reset" color={SEMANTIC.danger} title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} danger />
       </Card>
@@ -255,16 +256,16 @@ export function Settings() {
         기록은 이 기기에만 저장돼요. 기기를 바꾸거나 앱을 지우기 전에 백업을 내보내 두세요.
       </Text>
 
-      <Section M={M} label="정보 / About" />
+      <Section M={M} label="정보" />
       <Card M={M}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={{ width: 48, height: 48, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.gold, M.dark ? 20 : 12, M.dark) }}>
-            <MandalaArt size={44} stroke={M.gold} opacity={0.9} heart={M.surface} />
+          <View style={{ width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: M.gold }}>
+            <GridMark size={24} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink }}>만다라트 · Mandarat</Text>
             <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 2, lineHeight: 18 }}>
-              하나의 큰 뜻을 8개의 길과 64개의 실천으로 곱게 펼쳐가는 연꽃 플래너
+              목표 하나를 8개 영역, 64개 실천으로 나눠 실행하는 플래너
             </Text>
           </View>
         </View>
@@ -275,9 +276,6 @@ export function Settings() {
         </View>
       </Card>
 
-      <Text style={{ textAlign: 'center', color: M.faint, fontSize: 11.5, marginTop: 20, marginBottom: 4, fontFamily: FONTS.groteskMed }}>
-        🪷 made with care
-      </Text>
       {importing && <BackupImport onClose={() => setImporting(false)} />}
     </View>
   );

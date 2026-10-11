@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Text, View } from 'react-native';
+import { Animated, Modal, View } from 'react-native';
+import { AnimatedText, Text } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
 import { EASE } from '../theme/motion';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ring } from '../components/Ring';
-import { MandalaArt } from '../components/MandalaArt';
 import { Pill, CloseBtn } from '../components/common';
 import { FONTS } from '../theme/fonts';
 import { usePalette } from '../theme/usePalette';
@@ -55,7 +55,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     }
   }, [left, reduce, bloom]);
 
-  // 4초 들숨 · 4초 날숨 — 연꽃이 숨 쉬듯 커졌다 작아지고, 글귀가 박자를 알려 준다
+  // 4초 들이쉬기 · 4초 내쉬기 — 빛이 커졌다 작아지고, 글귀가 박자를 알려 준다
   useEffect(() => {
     if (!run || finished || reduce) return;
     let up = true;
@@ -81,13 +81,6 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     opacity: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.05, 0.15] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })),
     transform: [{ scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.06] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] })) }],
   }), [breath, bloom]);
-  const lotus = useMemo(() => ({
-    opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.13, 0.27] }),
-    transform: [
-      { scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.05] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })) },
-      { rotate: bloom.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22.5deg'] }) },
-    ],
-  }), [breath, bloom]);
   const cueStyle = useMemo(() => ({ opacity: cue, transform: [{ translateY: cue.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }), [cue]);
 
   const th = doc.themes[ti];
@@ -106,22 +99,16 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     closeFocus();
   };
 
-  const cueText = finished ? '잘 머물렀어요' : !run ? '잠시 쉬는 중' : reduce ? '천천히, 한 가지에만' : inhale ? '들숨 · 천천히 채우기' : '날숨 · 가만히 내려놓기';
+  const cueText = finished ? '25분 집중 완료' : !run ? '일시정지됨' : reduce ? '집중하는 중' : inhale ? '들이쉬기' : '내쉬기';
 
   return (
     <Modal visible animationType="fade" onRequestClose={closeFocus} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
-        {/* 숨 쉬는 연꽃 + 은은한 빛 */}
+        {/* 호흡에 맞춰 커졌다 작아지는 은은한 빛 */}
         <Animated.View
           pointerEvents="none"
           style={[{ position: 'absolute', width: 290, height: 290, borderRadius: 145, backgroundColor: th.color }, glow]}
         />
-        <Animated.View
-          pointerEvents="none"
-          style={[{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }, lotus]}
-        >
-          <MandalaArt size={360} stroke={th.color} opacity={1} />
-        </Animated.View>
         <View style={{ position: 'absolute', top: insets.top + 16, right: 22 }}>
           <CloseBtn M={M} onPress={closeFocus} light />
         </View>
@@ -141,13 +128,13 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
             </Text>
           </Ring>
         </View>
-        <Animated.Text
+        <AnimatedText
           // 들숨·날숨은 4초마다 바뀌므로 읽어 주지 않고, 멈춤·완료만 알린다
           accessibilityLiveRegion={!run || finished ? 'polite' : 'none'}
           style={[{ fontSize: 13, color: th.color, fontWeight: '700', letterSpacing: 0.3 }, cueStyle]}
         >
           {cueText}
-        </Animated.Text>
+        </AnimatedText>
 
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
           {!finished && (
@@ -159,7 +146,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
             <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{finished ? '완료 처리' : '끝내고 완료'}</Text>
           </Pressy>
         </View>
-        <Text style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.45)', fontWeight: '500' }}>한 가지에만 머무르는 25분</Text>
+        <Text style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.45)', fontWeight: '500' }}>25분 동안 한 가지에만</Text>
       </View>
     </Modal>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Pop, Reveal } from '../components/Reveal';
@@ -162,9 +163,9 @@ function Block({
   );
 }
 
-const STEP_REASON = { today: '오늘 남은 일', weakest: '가장 덜 핀 영역', empty: '비어 있는 칸' } as const;
+const STEP_REASON = { today: '오늘 남은 일', weakest: '가장 더딘 영역', empty: '비어 있는 칸' } as const;
 
-/** 다음 한 걸음 — 지금 가장 의미 있는 한 칸을 하나만 권한다 */
+/** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만 권한다 */
 function NextStepCard({ M }: { M: M }) {
   const { doc } = useMandarat();
   const { openAction, openEditor } = useUI();
@@ -180,14 +181,14 @@ function NextStepCard({ M }: { M: M }) {
         onPress={() => { tap(); if (step.kind === 'empty') openEditor({ kind: 'action', ti: step.ti, ai: step.ai }); else openAction(step.ti, step.ai); }}
         scaleTo={0.98}
         accessibilityRole="button"
-        accessibilityLabel={`다음 한 걸음, ${STEP_REASON[step.kind]}: ${title}, ${area}`}
+        accessibilityLabel={`다음 할 일, ${STEP_REASON[step.kind]}: ${title}, ${area}`}
         style={[{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}
       >
         <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: tint(th.color, M.dark ? 22 : 13, M.dark), alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={step.kind === 'empty' ? 'pencil' : th.icon} size={20} color={th.color} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.gold, letterSpacing: 0.2 }}>다음 한 걸음 · {STEP_REASON[step.kind]}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>다음 할 일 · {STEP_REASON[step.kind]}</Text>
           <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink, marginTop: 3, letterSpacing: -0.2 }} numberOfLines={1}>{title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: th.color }} />
@@ -214,7 +215,7 @@ export function GridScreen() {
 
   return (
     <View>
-      <Header M={M} en="Mandal-Art" kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 편집" onPress={() => openEditor({ kind: 'center' })} />} />
+      <Header M={M} kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 편집" onPress={() => openEditor({ kind: 'center' })} />} />
 
       {/* view toggle — 받침이 미끄러지는 분절 선택기 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
@@ -230,7 +231,7 @@ export function GridScreen() {
         <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
           <MandalaWheel M={M} />
           <Text style={{ textAlign: 'center', fontSize: 12.5, color: M.faint, marginTop: 20, fontWeight: '500' }}>
-            중심의 큰 뜻을 8개의 길이 에워쌉니다 · 탭하여 펼치기
+            영역을 누르면 실천 8개가 펼쳐져요
           </Text>
           <NextStepCard M={M} />
         </View>

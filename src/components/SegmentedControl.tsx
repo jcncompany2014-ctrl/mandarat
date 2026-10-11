@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, Text, View, type AccessibilityRole } from 'react-native';
+import { Animated, Pressable, View, type AccessibilityRole } from 'react-native';
+import { Text } from './AppText';
 import { Icon } from './Icon';
 import { shadow } from '../theme/shadow';
 import { SPRING } from '../theme/motion';

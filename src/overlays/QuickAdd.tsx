@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Sheet, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
 import { tint } from '../theme/moods';

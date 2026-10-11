@@ -1,13 +1,12 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './AppText';
 import { Icon } from './Icon';
-import { MandalaArt } from './MandalaArt';
-import { Breathe, Pop } from './Reveal';
+import { Pop } from './Reveal';
 import type { M } from '../theme/usePalette';
 
 /**
- * 빈 상태 공통 표현. 연꽃 만다라 문양을 은은한 배경으로 깔고 그 위에
- * 아이콘 + 제목 + (선택)설명을 중앙 정렬한다. 모든 화면에서 동일한 톤을 유지한다.
+ * 빈 상태 공통 표현 — 옅은 원 안의 아이콘 + 제목 + (선택)설명을 가운데 정렬한다.
  */
 export function EmptyState({
   M, icon, title, subtitle, compact,
@@ -18,24 +17,18 @@ export function EmptyState({
   subtitle?: string;
   compact?: boolean;
 }) {
-  const ring = compact ? 76 : 104;
   return (
     <View
       accessible
       accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title}
       style={{ alignItems: 'center', paddingVertical: compact ? 24 : 36, paddingHorizontal: 24 }}
     >
-      <View style={{ width: ring, height: ring, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-        <View style={{ position: 'absolute' }} pointerEvents="none">
-          <Breathe amount={0.06} period={4200}>
-            <MandalaArt size={ring} stroke={M.gold} opacity={M.dark ? 0.18 : 0.16} />
-          </Breathe>
+      <Pop>
+        <View style={{ width: compact ? 48 : 56, height: compact ? 48 : 56, borderRadius: 999, alignItems: 'center', justifyContent: 'center', marginBottom: 14, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}>
+          <Icon name={icon} size={compact ? 22 : 24} color={M.faint} />
         </View>
-        <Pop delay={120}>
-          <Icon name={icon} size={compact ? 22 : 26} color={M.faint} />
-        </Pop>
-      </View>
-      <Text style={{ color: M.sub, fontWeight: '700', fontSize: 14.5, textAlign: 'center' }}>{title}</Text>
+      </Pop>
+      <Text style={{ color: M.ink, fontWeight: '700', fontSize: 15, textAlign: 'center' }}>{title}</Text>
       {subtitle && (
         <Text style={{ color: M.faint, fontSize: 12.5, marginTop: 5, textAlign: 'center', lineHeight: 18 }}>
           {subtitle}

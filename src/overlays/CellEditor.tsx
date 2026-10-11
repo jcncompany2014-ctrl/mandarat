@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import { CloseBtn } from '../components/common';
 import { shadow } from '../theme/shadow';

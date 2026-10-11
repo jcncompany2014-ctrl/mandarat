@@ -1,11 +1,10 @@
 import React from 'react';
-import { Platform, Pressable, Share, Text, View, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Platform, Pressable, Share, View, useWindowDimensions } from 'react-native';
+import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
 import { Icon, MOOD_FACES } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { EmptyState } from '../components/EmptyState';
-import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
 import { LotusRadar } from '../components/LotusRadar';
 import { Reveal, Pop } from '../components/Reveal';
 import { Pressy } from '../components/Pressy';
@@ -62,10 +61,10 @@ export function Stats() {
     tap();
     const top = ranked[0];
     const message = [
-      `🪷 나의 만다라트 — ${doc.centerGoal || '핵심 목표'}`,
-      `연꽃 ${bloomLabel(bloomStage(pct))} · 64칸 중 ${done}칸 달성 (${pct}%)`,
+      `나의 만다라트 — ${doc.centerGoal || '핵심 목표'}`,
+      `64칸 중 ${done}칸 달성 (${pct}%)`,
       `이번 주 ${weekTotal}회 실천 · 연속 ${streak}일`,
-      top && top.p.pct > 0 ? `가장 빛나는 영역: ${top.th.title || `영역 ${top.ti + 1}`} ${top.p.pct}%` : '',
+      top && top.p.pct > 0 ? `가장 앞선 영역: ${top.th.title || `영역 ${top.ti + 1}`} ${top.p.pct}%` : '',
     ].filter(Boolean).join('\n');
     try {
       await Share.share({ message });
@@ -82,7 +81,7 @@ export function Stats() {
 
   return (
     <View>
-      <Header M={M} en="Progress" kr="통계" right={<IconBtn M={M} name="share" label="통계 요약 공유" onPress={shareSummary} />} />
+      <Header M={M} kr="통계" right={<IconBtn M={M} name="share" label="통계 요약 공유" onPress={shareSummary} />} />
 
       {/* insight */}
       <Reveal index={0} style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
@@ -125,7 +124,7 @@ export function Stats() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>최근 10주 실천</Text>
             <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>
-              {best ? `최고의 날 ${best.n}회 · ${fmtDay(best.date)}` : '꾸준함의 무늬'}
+              {best ? `가장 많이 한 날 ${best.n}회 · ${fmtDay(best.date)}` : '아직 기록이 없어요'}
             </Text>
           </View>
           <Heatmap M={M} doc={doc} weeks={cal} />
@@ -139,12 +138,12 @@ export function Stats() {
         </View>
       </Reveal>
 
-      {/* area balance radar — 가운데서 피어나듯 */}
+      {/* area balance radar */}
       <Reveal index={4} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>영역 균형</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>고르게 피었나요?</Text>
+            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>8개 영역 달성률</Text>
           </View>
           <Pop delay={220} style={{ alignItems: 'center', paddingVertical: 4 }}>
             <LotusRadar
@@ -185,7 +184,7 @@ export function Stats() {
               M={M}
               icon="chart"
               title="아직 통계가 비어 있어요"
-              subtitle="오늘 첫 실천을 체크하면 주간 흐름·히트맵·영역 균형이 이곳에 피어나요"
+              subtitle="실천을 하나 체크하면 주간 흐름·히트맵·영역 균형이 여기에 나타나요"
             />
           </View>
         </View>
@@ -350,7 +349,7 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
               )}
               {d.isToday ? (
                 <GrowBar height={h} index={di}>
-                  <LinearGradient colors={[M.gold, M.accent]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1, borderRadius: 7 }} />
+                  <View style={{ flex: 1, borderRadius: 7, backgroundColor: M.accent }} />
                 </GrowBar>
               ) : d.future ? (
                 <View style={{ width: '100%', height: 4, borderRadius: 3, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(35,33,28,0.06)' }} />
@@ -388,47 +387,34 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
     .sort((a, b) => b.p - a.p);
   const top = ranked[0];
   const low = ranked[ranked.length - 1];
-  const topName = top.th.title || `영역 ${top.ti + 1}`;
-  const lowName = low.th.title || `영역 ${low.ti + 1}`;
   const overallPct = Math.round((totalDone(doc) / 64) * 100);
-  const streak = overallStreak(doc);
   const weekTotal = weekReview(doc, new Date()).total;
-  const chipBg = M.heroLight ? 'rgba(70,52,18,0.10)' : 'rgba(255,255,255,0.13)';
+  const focus = doc.focusMinutes ?? 0;
+  const row = (label: string, r: (typeof ranked)[number]) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <Text style={{ width: 64, fontSize: 13, fontWeight: '600', color: M.heroSub }}>{label}</Text>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.th.color }} />
+      <Text style={{ flex: 1, fontSize: 15.5, fontWeight: '700', color: M.heroInk }} numberOfLines={1}>{r.th.title || `영역 ${r.ti + 1}`}</Text>
+      <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk }}>{r.p}%</Text>
+    </View>
+  );
 
   return (
-    <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 18, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.18 : 0.24)]}>
-      <View style={{ position: 'absolute', right: -26, top: -18, opacity: M.heroLight ? 0.55 : 0.6 }}>
-        <LotusBloom size={150} pct={overallPct} color={M.gold} />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Icon name="sparkle" size={14} color={M.gold} />
-        <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: M.gold, fontFamily: FONTS.grotesk }}>INSIGHT</Text>
-        <Text style={{ fontSize: 11, fontWeight: '700', color: M.heroSub }}>· 연꽃 {bloomLabel(bloomStage(overallPct))}</Text>
-      </View>
-      <Text style={{ fontSize: 16, fontWeight: '700', marginTop: 8, lineHeight: 24, color: M.heroInk, letterSpacing: -0.2 }}>
-        {overallPct === 0 ? (
-          <>첫 걸음을 기다리는 연꽃 한 송이예요.{'\n'}오늘 <Text style={{ color: M.gold, fontWeight: '800' }}>한 칸</Text>부터 천천히 피워볼까요?</>
-        ) : (
-          <><Text style={{ color: M.gold, fontWeight: '800' }}>{topName}</Text> 영역이 가장 빛나고 있어요. 이번 주엔{' '}
-          <Text style={{ color: M.heroInk, fontWeight: '800' }}>{lowName}</Text>에 한 걸음 더 내딛어 볼까요?</>
-        )}
+    <View style={{ borderRadius: 22, padding: 18, backgroundColor: M.hero[1], gap: 10 }}>
+      {overallPct === 0 ? (
+        <Text style={{ fontSize: 15.5, fontWeight: '700', lineHeight: 23, color: M.heroInk }}>
+          아직 달성한 칸이 없어요.{'\n'}오늘 할 일부터 하나씩 체크해 보세요.
+        </Text>
+      ) : (
+        <>
+          {row('앞선 영역', top)}
+          {row('더딘 영역', low)}
+        </>
+      )}
+      <View style={{ height: 1, backgroundColor: M.heroLight ? 'rgba(70,52,18,0.10)' : 'rgba(255,255,255,0.12)', marginVertical: 2 }} />
+      <Text style={{ fontSize: 13, fontWeight: '600', color: M.heroSub }}>
+        이번 주 {weekTotal}회 실천{focus > 0 ? ` · 집중 ${fmtMinutes(focus)}` : ''}
       </Text>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
-          <Icon name="flame" size={13} color={M.gold} />
-          <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>연속 {streak}일</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
-          <Icon name="checkCircle" size={13} color={M.gold} />
-          <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>이번 주 {weekTotal}회</Text>
-        </View>
-        {(doc.focusMinutes ?? 0) > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: chipBg, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
-            <Icon name="target" size={13} color={M.gold} />
-            <Text style={{ fontSize: 12, fontWeight: '800', color: M.heroInk }}>집중 {fmtMinutes(doc.focusMinutes)}</Text>
-          </View>
-        )}
-      </View>
-    </LinearGradient>
+    </View>
   );
 }

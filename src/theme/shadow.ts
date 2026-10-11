@@ -1,14 +1,17 @@
 import { Platform, ViewStyle } from 'react-native';
 
-/** Cross-platform soft shadow. `e` ~ elevation/visual weight. */
-export function shadow(e = 6, color = '#1E180C', opacity = 0.08): ViewStyle {
+/**
+ * 아주 옅은 그림자 — 카드는 얇은 테두리로 구분하고, 그림자는 떠 있는 느낌만 살짝 준다.
+ * (진한 그림자·색 번짐은 쓰지 않는다) `e` ~ 떠 있는 정도.
+ */
+export function shadow(e = 6, color = '#1E180C', opacity = 0.06): ViewStyle {
   if (Platform.OS === 'android') {
-    return { elevation: e };
+    return { elevation: Math.max(1, Math.round(e * 0.5)) };
   }
   return {
     shadowColor: color,
-    shadowOffset: { width: 0, height: Math.round(e * 0.6) },
-    shadowOpacity: opacity,
-    shadowRadius: e * 1.4,
+    shadowOffset: { width: 0, height: Math.max(1, Math.round(e * 0.35)) },
+    shadowOpacity: Math.min(opacity, 0.07) * (color === '#000' ? 1.6 : 1),
+    shadowRadius: e * 0.9,
   };
 }

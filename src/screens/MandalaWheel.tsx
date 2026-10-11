@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { Pop } from '../components/Reveal';
 import { EASE, SPRING } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
@@ -7,7 +8,6 @@ import { tap } from '../lib/haptics';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { Ring } from '../components/Ring';
 import { Icon } from '../components/Icon';
-import { MandalaArt } from '../components/MandalaArt';
 import { FONTS } from '../theme/fonts';
 import { tint, alpha } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -26,7 +26,7 @@ const SIZE = 320;
 const C = SIZE / 2;
 const R = 110;
 const NODE = 33;
-/** 접히는(중심으로 모이는) 시간 — 그다음 새 꽃잎이 피어난다 */
+/** 접히는(중심으로 모이는) 시간 — 그다음 새 마디들이 펼쳐진다 */
 const FOLD_MS = 170;
 
 /**
@@ -79,9 +79,8 @@ export function MandalaWheel({ M }: { M: M }) {
   const { doc } = useMandarat();
   const { go, openAction, openEditor } = useUI();
   const [bloom, setBloom] = useState<number | null>(null);
-  // 펼침 전환: 지금 마디들을 중심으로 접은 뒤(out) 새 마디들이 피어난다(in)
+  // 펼침 전환: 지금 마디들을 중심으로 접은 뒤(out) 새 마디들이 펼쳐진다(in)
   const [phase, setPhase] = useState<'in' | 'out'>('in');
-  const spin = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
@@ -92,8 +91,6 @@ export function MandalaWheel({ M }: { M: M }) {
       return;
     }
     setPhase('out');
-    // 뒤의 연꽃이 꽃잎 반 칸만큼 돌아 다음 장면을 연다
-    Animated.spring(spin, { toValue: next == null ? 0 : 1, useNativeDriver: true, ...SPRING.gentle }).start();
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       setBloom(next);
@@ -108,13 +105,6 @@ export function MandalaWheel({ M }: { M: M }) {
 
   return (
     <View style={{ width: SIZE, height: SIZE, alignSelf: 'center', marginTop: 4 }}>
-      {/* backdrop — 펼칠 때마다 꽃잎 반 칸(22.5°)씩 돈다 */}
-      <Animated.View
-        style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22.5deg'] }) }] }}
-        pointerEvents="none"
-      >
-        <MandalaArt size={SIZE} stroke={lineColor} opacity={M.dark ? 0.22 : 0.16} />
-      </Animated.View>
       <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }} pointerEvents="none">
         <Circle cx={C} cy={C} r={R} fill="none" stroke={lineColor} strokeOpacity={0.34} strokeWidth={1} />
         {pos.map((n) => (
@@ -143,9 +133,6 @@ export function MandalaWheel({ M }: { M: M }) {
           >
             <Ring pct={pct} size={112} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
               <View style={[{ width: 100, height: 100, borderRadius: 50, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 9 }, shadow(8, '#141028', 0.32)]}>
-                <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-                  <MandalaArt size={100} stroke={M.gold} opacity={0.32} />
-                </View>
                 <Text style={{ fontFamily: FONTS.serif, fontWeight: '700', fontSize: 13.5, color: '#fff', textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>
                   {doc.centerGoal || '핵심 목표'}
                 </Text>

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Text } from './AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { Icon } from './Icon';
@@ -10,11 +11,12 @@ import type { M } from '../theme/usePalette';
 
 // ── Screen header (EN eyebrow + KR title + optional back/right) ───────────────
 export function Header({
-  M, kr, en, right, onBack,
+  M, kr, sub, right, onBack,
 }: {
   M: M;
   kr: string;
-  en: string;
+  /** 제목 위 작은 한글 라벨(날짜 등) — 정보가 있을 때만 */
+  sub?: string;
   right?: React.ReactNode;
   onBack?: () => void;
 }) {
@@ -37,10 +39,12 @@ export function Header({
         </Pressy>
       )}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', letterSpacing: 1, color: M.faint, fontFamily: FONTS.groteskMed, marginBottom: 2 }}>
-          {en.toUpperCase()}
-        </Text>
-        <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, letterSpacing: -0.5, lineHeight: 30 }}>
+        {!!sub && (
+          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginBottom: 3 }}>
+            {sub}
+          </Text>
+        )}
+        <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, letterSpacing: -0.6, lineHeight: 32 }}>
           {kr}
         </Text>
       </View>

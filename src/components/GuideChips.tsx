@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './AppText';
 import { Icon } from './Icon';
 import type { M } from '../theme/usePalette';
 import { analyzeAction, guideScore } from '../lib/coach';
@@ -25,14 +26,14 @@ export function GuideChips({ M, text }: { M: M; text: string }) {
               backgroundColor: on ? M.gold : M.dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.035)',
             }}
           >
-            <Icon name={on ? 'check' : 'sparkle'} size={11} color={on ? '#fff' : M.faint} sw={2.4} />
+            {on && <Icon name="check" size={11} color="#fff" sw={2.6} />}
             <Text style={{ fontSize: 11.5, fontWeight: '700', color: on ? '#fff' : M.faint }}>{label}</Text>
           </View>
         ))}
       </View>
       <Text style={{ fontSize: 11, color: score === 3 ? M.gold : M.faint, marginTop: 7, fontWeight: score === 3 ? '700' : '500' }}>
         {score === 3
-          ? '✨ 충분히 구체적이에요 · 실천하기 좋아요'
+          ? '충분히 구체적이에요'
           : '구체적일수록 실천하기 쉬워요 · 예) 아침에 30분 책 읽기'}
       </Text>
     </View>

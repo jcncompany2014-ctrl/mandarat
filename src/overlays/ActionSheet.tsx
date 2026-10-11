@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Sheet, Pill, CloseBtn, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
 import { DayPicker } from '../components/DayPicker';
@@ -133,7 +134,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           accessibilityState={{ selected: autoToday || onToday, disabled: autoToday }}
           style={{ flex: 1, padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: autoToday || onToday ? th.color : M.line, backgroundColor: autoToday || onToday ? tint(th.color, M.dark ? 14 : 7, M.dark) : 'transparent' }}
         >
-          <Icon name={autoToday ? 'repeat' : 'sparkle'} size={18} color={autoToday || onToday ? th.color : M.faint} />
+          <Icon name={autoToday ? 'repeat' : 'calendar'} size={18} color={autoToday || onToday ? th.color : M.faint} />
           <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginTop: 6 }}>오늘 할 일</Text>
           <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600' }}>
             {autoToday ? '반복 요일 · 자동 포함' : routine ? (onToday ? '오늘만 추가됨' : '오늘만 추가하기') : onToday ? '추가됨' : '추가하기'}
@@ -175,7 +176,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink }}>{a.done ? '만다라트 칸 달성됨' : '습관이 자리 잡았다면'}</Text>
             <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '500', marginTop: 1 }}>
-              {a.done ? '탭하면 달성을 해제해요' : '이 칸을 달성으로 채워 연꽃을 피워요'}
+              {a.done ? '탭하면 달성을 해제해요' : '이 칸을 달성으로 표시해요'}
             </Text>
           </View>
         </Pressy>

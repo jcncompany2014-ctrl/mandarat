@@ -1,5 +1,7 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from './AppText';
+import { GridMark } from './GridMark';
 
 interface Props { children: React.ReactNode }
 interface State { error: Error | null }
@@ -25,7 +27,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.error) {
       return (
         <View style={{ flex: 1, backgroundColor: '#14121E', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 42, marginBottom: 14 }}>🪷</Text>
+          <View style={{ marginBottom: 18 }}><GridMark size={40} color="#B0883C" /></View>
           <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800', textAlign: 'center' }}>잠시 길을 잃었어요</Text>
           <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 21 }}>
             예상치 못한 문제가 생겼어요.{'\n'}다시 시도하면 대부분 해결돼요.

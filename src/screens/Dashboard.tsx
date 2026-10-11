@@ -1,14 +1,13 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
-import { MandalaArt } from '../components/MandalaArt';
-import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
+import { MiniMandalart } from '../components/GridMark';
 import { Pressy } from '../components/Pressy';
-import { Reveal, Pop, Breathe } from '../components/Reveal';
+import { Reveal, Pop } from '../components/Reveal';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { ProgressBar } from '../components/ProgressBar';
 import { FONTS } from '../theme/fonts';
@@ -21,7 +20,6 @@ import { SEMANTIC } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import { DOW_KR, daysLabel, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { useSettle } from '../lib/useSettle';
-import { useTween } from '../lib/useTween';
 import { animateLayout } from '../lib/layoutAnim';
 import { success, tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
@@ -44,17 +42,9 @@ export function Dashboard() {
   const weekTotal = week.reduce((s, d) => s + d.count, 0);
   const dateLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 · ${WEEKDAYS[now.getDay()]}요일`;
 
-  // 진행률 따라 바뀌는 격려 한마디 (연꽃 = 피어남)
-  const cheer =
-    pct >= 100 ? '드디어 만개했어요. 정말 대단해요!'
-      : pct >= 60 ? '꽃이 활짝 피고 있어요. 조금만 더!'
-        : pct >= 20 ? '한 잎씩 곱게 피어나는 중이에요.'
-          : todayTotal > 0 ? '오늘 한 칸부터 천천히 가볼까요?'
-            : '가운데 핵심 목표부터 정해볼까요?';
-
   return (
     <View>
-      <Header M={M} en={dateLabel} kr="나의 만다라트" right={<IconBtn M={M} name="settings" label="설정" onPress={() => go('settings')} />} />
+      <Header M={M} sub={dateLabel} kr="나의 만다라트" right={<IconBtn M={M} name="settings" label="설정" onPress={() => go('settings')} />} />
 
       {storageError && (
         // 저장소를 읽지 못한 실행 — 기존 기록을 덮어쓰지 않으려고 저장을 멈춘 상태를 알린다
@@ -66,76 +56,44 @@ export function Dashboard() {
         </View>
       )}
 
-      {/* 마스코트 말풍선 — 연꽃이 숨 쉬듯 */}
+      {/* 핵심 목표 — 내 만다라트를 그대로 줄인 3×3과 함께 */}
       <Reveal index={0}>
-        <View style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 11 }}>
-          <View
-            accessibilityLabel={`연꽃 ${bloomLabel(bloomStage(pct))} · 달성 ${pct}%`}
-            style={[{ width: 52, height: 52, borderRadius: 26, backgroundColor: tint(M.gold, M.dark ? 20 : 13, M.dark), alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, M.dark ? null : shadow(3)]}
-          >
-            <Breathe amount={0.05} period={4200}>
-              <GrowingLotus pct={pct} color={M.gold} />
-            </Breathe>
-          </View>
-          <View style={[{ flex: 1, backgroundColor: M.surface, borderRadius: 18, borderTopLeftRadius: 5, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
-            <Text style={{ fontSize: 13.5, fontWeight: '600', color: M.ink, lineHeight: 19 }}>{cheer}</Text>
-          </View>
-        </View>
-      </Reveal>
-
-      {/* hero — 핵심 목표 */}
-      <Reveal index={1}>
-        <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+        <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
           <Pressy
             onPress={() => { tap(); go('grid'); }}
             scaleTo={0.985}
             accessibilityRole="button"
-            accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, 64칸 중 ${done}개 달성 ${pct}%`}
+            accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, 64칸 중 ${done}칸 달성 ${pct}%`}
             accessibilityHint="만다라트 펼치기"
+            style={{ borderRadius: 24, padding: 18, backgroundColor: M.hero[1], flexDirection: 'row', alignItems: 'center', gap: 18 }}
           >
-            <LinearGradient
-              colors={M.hero}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={[{ borderRadius: 26, padding: 22, overflow: 'hidden' }, shadow(16, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.28)]}
-            >
-              <View style={{ position: 'absolute', right: -40, top: -10 }}>
-                <MandalaArt size={210} stroke={M.gold} opacity={M.heroLight ? 0.22 : 0.3} />
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-                <Ring pct={pct} size={90} stroke={6} color={M.gold} delay={160} track={M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.14)'}>
-                  <Icon name="target" size={30} color={M.gold} />
-                </Ring>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 10.5, fontWeight: '700', letterSpacing: 2, color: M.heroSub, fontFamily: FONTS.grotesk }}>
-                    MY CORE GOAL
-                  </Text>
-                  <Text style={{ fontSize: doc.centerGoal ? 24 : 22, fontWeight: '700', color: doc.centerGoal ? M.heroInk : M.heroSub, marginTop: 5, lineHeight: doc.centerGoal ? 30 : 28, fontFamily: FONTS.serif }} numberOfLines={2}>
-                    {doc.centerGoal || '핵심 목표를\n입력해 주세요'}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: M.heroSub, marginTop: 9, fontWeight: '500' }}>
-                    64칸 중 <AnimatedNumber value={done} format={(n) => `${n}개`} style={{ color: M.gold, fontWeight: '800' }} /> 달성 · <AnimatedNumber value={pct} format={(n) => `${n}%`} />
-                  </Text>
-                </View>
-              </View>
-            </LinearGradient>
+            <MiniMandalart doc={doc} size={100} dark={!M.heroLight} centerBg={M.heroLight ? M.center : 'rgba(255,255,255,0.9)'} centerInk={M.heroLight ? '#FFFFFF' : M.center} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub }}>핵심 목표</Text>
+              <Text style={{ fontSize: doc.centerGoal ? 22 : 19, fontWeight: '800', color: doc.centerGoal ? M.heroInk : M.heroSub, marginTop: 4, lineHeight: doc.centerGoal ? 28 : 25 }} numberOfLines={2}>
+                {doc.centerGoal || '핵심 목표를\n정해 주세요'}
+              </Text>
+              <Text style={{ fontSize: 13, color: M.heroSub, marginTop: 8, fontWeight: '600' }}>
+                64칸 중 <AnimatedNumber value={done} format={(n) => `${n}칸`} style={{ color: M.heroInk, fontWeight: '800' }} /> · <AnimatedNumber value={pct} format={(n) => `${n}%`} />
+              </Text>
+            </View>
           </Pressy>
         </View>
       </Reveal>
 
       {/* 오늘의 실천 — 바로 체크할 수 있게 위로 */}
-      <Reveal index={2}>
+      <Reveal index={1}>
         <TodayCard M={M} doc={doc} todayDoneCount={todayDoneCount} todayTotal={todayTotal} week={week} weekTotal={weekTotal} />
       </Reveal>
 
-      {/* 8영역 미니 만다라트 */}
-      <Reveal index={3}>
+      {/* 8영역 */}
+      <Reveal index={2}>
         <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingBottom: 12, paddingTop: 4 }}>
-          <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>8가지 핵심 영역</Text>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>8개 영역</Text>
           <Pressable
             onPress={() => { tap(); go('grid'); }}
             accessibilityRole="button"
-            accessibilityLabel="8가지 핵심 영역 펼쳐보기"
+            accessibilityLabel="8개 영역 펼쳐보기"
             style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
             hitSlop={8}
           >
@@ -152,15 +110,10 @@ export function Dashboard() {
                   onPress={() => { tap(); go('grid'); }}
                   accessibilityRole="button"
                   accessibilityLabel={`전체 달성 ${pct}%, 만다라트 열기`}
-                  style={{ width: '31%', aspectRatio: 1, borderRadius: 18, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                  style={{ width: '31%', aspectRatio: 1, borderRadius: 18, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-                    <Breathe amount={0.035} period={5200}>
-                      <MandalaArt size={84} stroke={M.gold} opacity={0.28} />
-                    </Breathe>
-                  </View>
-                  <AnimatedNumber value={pct} format={(n) => `${n}%`} style={{ fontSize: 20, fontWeight: '800', color: M.gold, fontFamily: FONTS.grotesk }} />
-                  <Text style={{ fontSize: 9.5, fontWeight: '700', color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>전체 달성</Text>
+                  <AnimatedNumber value={pct} format={(n) => `${n}%`} style={{ fontSize: 22, fontWeight: '800', color: '#FFFFFF', fontFamily: FONTS.grotesk }} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.62)', marginTop: 2 }}>전체 달성</Text>
                 </Pressy>
               );
             }
@@ -207,12 +160,6 @@ export function Dashboard() {
       </Reveal>
     </View>
   );
-}
-
-/** 진행률을 따라 꽃잎이 실제로 열리며 자라는 마스코트 연꽃 */
-function GrowingLotus({ pct, color }: { pct: number; color: string }) {
-  const p = useTween(pct, { duration: 1100 });
-  return <LotusBloom size={46} pct={p} color={color} />;
 }
 
 /** 오늘의 실천 카드 — 남은 일 3개를 바로 체크하고, 이번 주 리듬을 본다 */
@@ -264,18 +211,15 @@ function TodayCard({
           onPress={() => { tap(); go('today'); }}
           scaleTo={0.985}
           accessibilityRole="button"
-          accessibilityLabel={`오늘의 실천 ${todayDoneCount}/${todayTotal} 완료`}
+          accessibilityLabel={`오늘 할 일 ${todayDoneCount}/${todayTotal} 완료`}
           accessibilityHint="오늘 화면 열기"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingTop: 16, paddingBottom: shown.length > 0 || allDone || todayTotal === 0 ? 10 : 16 }}
         >
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="sparkle" size={22} color={M.accent} />
-          </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink }}>오늘의 실천</Text>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink }}>오늘 할 일</Text>
             <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 1 }}>
               {todayTotal === 0 ? '아직 담긴 할 일이 없어요'
-                : todayDoneCount === todayTotal ? `${todayTotal}개 모두 완료 · 오늘의 만다라 완성`
+                : todayDoneCount === todayTotal ? `${todayTotal}개 모두 끝냈어요`
                   : `${todayDoneCount}/${todayTotal} 완료 · 남은 ${todayTotal - todayDoneCount}개`}
             </Text>
           </View>
@@ -328,8 +272,8 @@ function TodayCard({
         )}
         {allDone && (
           <View style={{ marginHorizontal: 18, marginBottom: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: tint(M.gold, M.dark ? 14 : 8, M.dark), flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Icon name="lotus" size={16} color={M.gold} />
-            <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.ink }}>오늘의 만다라를 모두 피웠어요</Text>
+            <Icon name="checkCircle" size={16} color={SEMANTIC.done} />
+            <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.ink }}>오늘 할 일을 모두 끝냈어요</Text>
           </View>
         )}
         {todayTotal === 0 && (

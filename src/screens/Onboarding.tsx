@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
 import { Reveal } from '../components/Reveal';
 import { reducedMotion } from '../lib/useReducedMotion';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MandalaArt } from '../components/MandalaArt';
+import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
-import { FONTS } from '../theme/fonts';
+import { readableOn } from '../theme/palette';
 import { usePalette } from '../theme/usePalette';
 import { useMandarat } from '../store/MandaratContext';
 import { TEMPLATES, templateThemes } from '../data/templates';
@@ -33,51 +33,40 @@ export function Onboarding() {
     applyTemplate(goal.trim() || t.centerGoal, templateThemes(t));
   };
 
-  // hero 그라데이션이 밝은 톤(연꽃)일 때도 읽히도록 색을 적응시킨다.
-  const onLight = M.heroLight;
-  const fieldBg = onLight ? 'rgba(60,45,15,0.05)' : 'rgba(255,255,255,0.10)';
-  const fieldBorder = onLight ? 'rgba(60,45,15,0.16)' : 'rgba(255,255,255,0.16)';
-  const chipBg = onLight ? 'rgba(60,45,15,0.05)' : 'rgba(255,255,255,0.08)';
-  const chipBorder = onLight ? 'rgba(60,45,15,0.12)' : 'rgba(255,255,255,0.12)';
-  const placeholderColor = onLight ? 'rgba(60,45,15,0.4)' : 'rgba(255,255,255,0.35)';
+  // 평평한 바탕 위 또렷한 글자 — 장식 없이 질문 하나에 집중
+  const fieldBg = M.surface;
+  const fieldBorder = M.line;
+  const chipBg = M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)';
+  const chipBorder = M.line;
+  const placeholderColor = M.faint;
 
   return (
-    <LinearGradient colors={M.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: M.bg }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
         <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: 'center' }}>
-          {/* 배경 연꽃 — 아주 천천히 돈다 */}
-          <SlowSpin style={{ position: 'absolute', top: '8%', alignSelf: 'center', opacity: 0.9 }}>
-            <MandalaArt size={300} stroke={M.gold} opacity={0.22} />
-          </SlowSpin>
-
           <View style={{ alignItems: 'center', marginBottom: 34 }}>
-            {/* 브랜드 엠블럼 — 앱 아이콘과 같은 금빛 바탕 + 3×3 심장을 품은 연꽃 */}
+            {/* 브랜드 표시 — 앱 아이콘과 같은 3×3 */}
             <BloomIn>
-              <LinearGradient
-                colors={['#D2AC62', '#BB9244', '#9F772E']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden' }}
-              >
-                <MandalaArt size={56} stroke="#FFF9EE" opacity={1} seed="#A97F33" heart="#FFF4DF" />
-              </LinearGradient>
+              <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
+                <GridMark size={32} color="#FFFFFF" />
+              </View>
             </BloomIn>
             <Reveal delay={260} from={6}>
-              <Text style={{ fontSize: 13, fontWeight: '700', letterSpacing: 3, color: M.gold, fontFamily: FONTS.grotesk, textAlign: 'center' }}>
-                MANDARAT
+              <Text style={{ fontSize: 14, fontWeight: '700', color: M.gold, textAlign: 'center' }}>
+                만다라트
               </Text>
             </Reveal>
             <Reveal delay={380} from={14} duration={560}>
-              <Text style={{ fontSize: 28, fontWeight: '700', color: M.heroInk, fontFamily: FONTS.serif, marginTop: 14, textAlign: 'center', lineHeight: 38 }}>
-                올해, 이루고 싶은{'\n'}하나의 큰 뜻은?
+              <Text style={{ fontSize: 27, fontWeight: '800', color: M.ink, marginTop: 10, textAlign: 'center', lineHeight: 36 }}>
+                올해 꼭 이루고 싶은{'\n'}목표는 무엇인가요?
               </Text>
             </Reveal>
             <Reveal delay={540} from={10}>
-              <Text style={{ fontSize: 14, color: M.heroSub, marginTop: 12, textAlign: 'center', lineHeight: 21 }}>
-                중심에 핵심 목표를 두고{'\n'}8개의 길과 64개의 실천으로 펼쳐가요
+              <Text style={{ fontSize: 15, color: M.sub, marginTop: 12, textAlign: 'center', lineHeight: 22 }}>
+                목표 하나를 8개 영역, 64개 실천으로{'\n'}나눠서 하나씩 해 나가요
               </Text>
             </Reveal>
           </View>
@@ -95,7 +84,7 @@ export function Onboarding() {
               backgroundColor: fieldBg,
               borderWidth: 1, borderColor: fieldBorder,
               borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16,
-              color: M.heroInk, fontSize: 17, fontWeight: '600', textAlign: 'center',
+              color: M.ink, fontSize: 17, fontWeight: '600', textAlign: 'center',
             }}
             returnKeyType="done"
             onSubmitEditing={start}
@@ -111,7 +100,7 @@ export function Onboarding() {
                 accessibilityLabel={`핵심 목표 예시: ${s}`}
                 style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
               >
-                <Text style={{ color: M.heroInk, fontSize: 12.5, fontWeight: '600' }}>{s}</Text>
+                <Text style={{ color: M.ink, fontSize: 13, fontWeight: '600' }}>{s}</Text>
               </Pressy>
             ))}
           </View>
@@ -123,13 +112,13 @@ export function Onboarding() {
             scaleTo={0.97}
             accessibilityRole="button"
             accessibilityLabel="빈 만다라트로 시작하기"
-            style={{ marginTop: 28, backgroundColor: M.gold, borderRadius: 18, paddingVertical: 17, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+            style={{ marginTop: 26, backgroundColor: M.accent, borderRadius: 16, paddingVertical: 17, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
           >
-            <Text style={{ color: M.center, fontSize: 16.5, fontWeight: '800' }}>시작하기</Text>
-            <Icon name="chevR" size={18} color={M.center} sw={2.6} />
+            <Text style={{ color: readableOn(M.accent), fontSize: 16.5, fontWeight: '800' }}>시작하기</Text>
+            <Icon name="chevR" size={18} color={readableOn(M.accent)} sw={2.6} />
           </Pressy>
 
-          <Text style={{ color: M.heroSub, fontSize: 11.5, fontWeight: '600', textAlign: 'center', marginTop: 18, marginBottom: 9 }}>
+          <Text style={{ color: M.sub, fontSize: 12.5, fontWeight: '600', textAlign: 'center', marginTop: 20, marginBottom: 10 }}>
             또는 템플릿으로 바로 시작
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
@@ -142,37 +131,21 @@ export function Onboarding() {
                 accessibilityLabel={`${t.name} 템플릿으로 시작`}
                 style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
               >
-                <Text style={{ color: M.heroInk, fontSize: 12.5, fontWeight: '700' }}>{t.name}</Text>
+                <Text style={{ color: M.ink, fontSize: 13, fontWeight: '700' }}>{t.name}</Text>
               </Pressy>
             ))}
           </View>
-          <Text style={{ color: M.heroSub, fontSize: 12, textAlign: 'center', marginTop: 14 }}>
+          <Text style={{ color: M.faint, fontSize: 12.5, textAlign: 'center', marginTop: 14 }}>
             나중에 언제든 바꿀 수 있어요
           </Text>
           </Reveal>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
-/** 아주 천천히 도는 배경(한 바퀴 2분) — 동작 줄이기에서는 멈춰 있다 */
-function SlowSpin({ children, style }: { children: React.ReactNode; style?: object }) {
-  const t = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (reducedMotion()) return;
-    const loop = Animated.loop(Animated.timing(t, { toValue: 1, duration: 120000, easing: Easing.linear, useNativeDriver: true }));
-    loop.start();
-    return () => loop.stop();
-  }, [t]);
-  return (
-    <Animated.View style={[style, { transform: [{ rotate: t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }]}>
-      {children}
-    </Animated.View>
-  );
-}
-
-/** 엠블럼이 비틀며 피어나는 등장 */
+/** 로고가 톡 자리 잡는 등장 */
 function BloomIn({ children }: { children: React.ReactNode }) {
   const t = useRef(new Animated.Value(reducedMotion() ? 1 : 0)).current;
   useEffect(() => {
@@ -183,7 +156,7 @@ function BloomIn({ children }: { children: React.ReactNode }) {
     <Animated.View
       style={{
         opacity: t.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1], extrapolate: 'clamp' }),
-        transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }, { rotate: t.interpolate({ inputRange: [0, 1], outputRange: ['-45deg', '0deg'] }) }],
+        transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
       }}
     >
       {children}

@@ -1,14 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Text, View } from 'react-native';
-import { MandalaArt } from './MandalaArt';
-import { Breathe } from './Reveal';
+import { Animated, View } from 'react-native';
+import { GridMark } from './GridMark';
 import { EASE } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 
 /**
- * 폰트 로딩·스토어 하이드레이션 동안 보여주는 정적 스플래시.
- * 기본 무드(연꽃)의 한지 미색 위에 연꽃 문양을 두어, 진입 시 칙칙한
- * 다크 프레임이 번쩍이지 않고 차분하게 시작하도록 한다. 기다리는 동안 연꽃이 숨 쉰다.
+ * 폰트 로딩·스토어 하이드레이션 동안 보여주는 정적 스플래시 — 미색 바탕에 앱 아이콘과 같은 3×3.
+ * (서체를 불러오기 전이라 글자는 쓰지 않는다)
  */
 export function Splash() {
   return (
@@ -20,18 +18,13 @@ export function Splash() {
 
 function SplashMark() {
   return (
-    <>
-      <Breathe amount={0.04} period={3000}>
-        <MandalaArt size={148} stroke="#B0883C" opacity={0.9} heart="#FBF9F4" />
-      </Breathe>
-      <Text style={{ marginTop: 18, fontSize: 13, fontWeight: '700', letterSpacing: 3, color: '#B0883C' }}>
-        MANDARAT
-      </Text>
-    </>
+    <View style={{ width: 84, height: 84, borderRadius: 24, backgroundColor: '#B0883C', alignItems: 'center', justifyContent: 'center' }}>
+      <GridMark size={42} color="#FFFFFF" />
+    </View>
   );
 }
 
-/** 준비가 끝나면 스플래시가 살짝 피어나며 걷히고, 아래에서 홈이 차례로 떠오른다 */
+/** 준비가 끝나면 스플래시가 살짝 커지며 걷히고, 아래에서 홈이 차례로 떠오른다 */
 export function SplashFade({ onDone }: { onDone: () => void }) {
   const t = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -49,7 +42,7 @@ export function SplashFade({ onDone }: { onDone: () => void }) {
         opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
       }}
     >
-      <Animated.View style={{ alignItems: 'center', transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }}>
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>
         <SplashMark />
       </Animated.View>
     </Animated.View>

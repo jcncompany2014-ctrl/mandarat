@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './AppText';
 import { tint } from '../theme/moods';
 import type { M } from '../theme/usePalette';
 import type { DayState } from '../lib/routine';

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
 import { Reveal } from '../components/Reveal';
 import { AnimatedNumber } from '../components/AnimatedNumber';
@@ -7,7 +8,6 @@ import { ProgressBar } from '../components/ProgressBar';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { useSettle } from '../lib/useSettle';
 import { animateLayout } from '../lib/layoutAnim';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Check } from '../components/Check';
@@ -54,11 +54,11 @@ export function Today() {
   const { doc, setSetting } = useMandarat();
   const mgmt = doc.settings.mgmt;
   const now = new Date();
-  const label = `Today · ${now.getMonth() + 1}월 ${now.getDate()}일`;
+  const label = `${now.getMonth() + 1}월 ${now.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][now.getDay()]}요일`;
 
   return (
     <View>
-      <Header M={M} en={label} kr="오늘의 실천" />
+      <Header M={M} sub={label} kr="오늘 할 일" />
       {/* 보기 방식 — 설정까지 가지 않고 바로 전환 (받침이 미끄러지며 따라온다) */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
         <SegmentedControl
@@ -226,11 +226,11 @@ function TodayChecklist({ M }: { M: M }) {
       {/* progress banner — 무드 hero 톤, 할 일이 없으면 숨김 */}
       {tTotal > 0 && (
         <Reveal index={0}>
-          <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 20, marginBottom: 16, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
+          <View style={{ borderRadius: 22, padding: 20, marginBottom: 16, backgroundColor: M.hero[1] }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <View>
-                <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub, letterSpacing: 0.2 }}>
-                  오늘의 진행{routines > 0 ? ` · 루틴 ${routines}개 포함` : ''}
+                <Text style={{ fontSize: 13, fontWeight: '700', color: M.heroSub }}>
+                  오늘 진행{routines > 0 ? ` · 반복 ${routines}개 포함` : ''}
                 </Text>
                 <Text style={{ fontSize: 34, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 2 }}>
                   <AnimatedNumber value={tDone} fromZero={false} />
@@ -246,16 +246,16 @@ function TodayChecklist({ M }: { M: M }) {
               track={M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.22)'}
               style={{ marginTop: 12 }}
             />
-          </LinearGradient>
+          </View>
         </Reveal>
       )}
 
       {tTotal === 0 && (
         <EmptyState
           M={M}
-          icon="sparkle"
-          title="아직 오늘 할 일이 없어요"
-          subtitle="실천 항목에 반복 요일을 정하면 그날 자동으로 나타나요. ＋ 버튼으로 바로 더할 수도 있어요"
+          icon="checkCircle"
+          title="오늘 할 일이 없어요"
+          subtitle="실천에 반복 요일을 정하면 그날 여기에 나타나요. 아래 ＋ 버튼으로 바로 추가할 수도 있어요"
         />
       )}
 
@@ -303,13 +303,13 @@ function TodayChecklist({ M }: { M: M }) {
 
       {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}
       <View style={[{ borderRadius: 20, padding: 16, marginTop: tTotal > 0 ? 18 : 6, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-        <Text style={{ fontSize: 13.5, fontWeight: '800', color: M.ink, marginBottom: 11 }}>하루 마무리 · 오늘의 기분</Text>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink, marginBottom: 11 }}>오늘 기분</Text>
         <MoodRow M={M} value={meta.mood} onPick={(i) => { tap(); setDayMood(i); }} />
         <TextInput
           value={meta.reflection ?? ''}
           onChangeText={setDayReflection}
           accessibilityLabel="오늘 한 줄 회고"
-          placeholder="한 줄 회고를 남겨보세요…"
+          placeholder="오늘을 한 줄로 남겨 보세요"
           placeholderTextColor={M.faint}
           maxLength={120}
           style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14 }}
@@ -330,16 +330,16 @@ function TodayStreak({ M }: { M: M }) {
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
       <Reveal index={0}>
-      <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 22, marginBottom: 18, alignItems: 'center', overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
+      <View style={{ borderRadius: 22, padding: 22, marginBottom: 18, alignItems: 'center', backgroundColor: M.hero[1] }}>
         <Icon name="flame" size={36} color={M.gold} />
         <Text style={{ fontSize: 40, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 4 }}>
           <AnimatedNumber value={best.best} />
           <Text style={{ fontSize: 18, color: M.heroSub }}>일</Text>
         </Text>
         <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.heroSub }}>
-          {best.best > 0 ? `최장 연속 달성 · ${bestName}` : '오늘부터 연속 기록을 시작해요'}
+          {best.best > 0 ? `가장 긴 연속 기록 · ${bestName}` : '아직 연속 기록이 없어요'}
         </Text>
-      </LinearGradient>
+      </View>
       </Reveal>
 
       <View style={{ gap: 10 }}>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './AppText';
 import { Pressy } from './Pressy';
 import type { M } from '../theme/usePalette';
 import { DOW_KR, WEEK_ORDER, normalizeDays } from '../lib/routine';

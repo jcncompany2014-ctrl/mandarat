@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
 import { tint } from '../theme/moods';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
-import { MandalaArt } from '../components/MandalaArt';
 import { shadow } from '../theme/shadow';
 import { success, tap } from '../lib/haptics';
 import { useReducedMotion } from '../lib/useReducedMotion';
@@ -37,7 +37,7 @@ const TABS: { id: Screen; icon: Parameters<typeof Icon>[0]['name']; label: strin
   { id: 'stats', icon: 'chart', label: '통계' },
 ];
 
-// 탭바 가운데 연꽃 추가 버튼: 지름 ADD, 바 위로 LIFT만큼 솟아오른다.
+// 탭바 가운데 추가 버튼: 지름 ADD, 바 위로 LIFT만큼 솟아오른다.
 const ADD = 58;
 const LIFT = 26;
 // 스크롤 끝이 탭바(+솟은 버튼)에 가리지 않도록 확보하는 여백
@@ -99,7 +99,7 @@ export function Root() {
     const ti = now.findIndex((n, i) => n === 8 && prev[i] === 7);
     if (ti < 0 || totalDone(doc) >= 64 || ui.toast?.action) return;
     success();
-    ui.showToast(`🪷 ${doc.themes[ti].title || `영역 ${ti + 1}`} 영역이 만개했어요`);
+    ui.showToast(`${doc.themes[ti].title || `영역 ${ti + 1}`} 영역 8칸을 모두 채웠어요`);
   }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 전체 64칸 만개 → 특별 축하 (세션 중 100% 도달 시 1회)
@@ -185,7 +185,7 @@ function navOffset(prev: { screen: Screen; ti: number }, next: { screen: Screen;
 }
 
 /**
- * 하단 탭바 — 홈·만다라트 | (연꽃 추가) | 오늘·통계.
+ * 하단 탭바 — 홈·만다라트 | (추가) | 오늘·통계.
  * 화면 위에 겹쳐 떠서 반투명 배경 너머로 콘텐츠가 비치고, 가운데 버튼은 바 위로 솟는다.
  * 솟은 버튼도 이 컨테이너 안에 있어야 안드로이드에서 터치가 잡히므로 paddingTop으로 공간을 확보한다.
  */
@@ -235,7 +235,7 @@ function TabBar({ active, onTab, onAdd, bottomInset }: { active: Screen; onTab: 
 
 const PILL = 54;
 
-/** 가운데 연꽃 ＋ 버튼 — 누르면 쏙 들어가며 꽃잎이 반 바퀴 돈다 */
+/** 가운데 ＋ 버튼 — 누르면 쏙 들어가며 ＋가 살짝 돈다 */
 function AddButton({ onPress }: { onPress: () => void }) {
   const M = usePalette();
   const t = useRef(new Animated.Value(0)).current;
@@ -260,15 +260,9 @@ function AddButton({ onPress }: { onPress: () => void }) {
             borderWidth: 4, borderColor: M.bg,
             transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0.9] }) }],
           },
-          shadow(8, M.accent, 0.42),
+          shadow(8),
         ]}
       >
-        <Animated.View
-          style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) }] }}
-          pointerEvents="none"
-        >
-          <MandalaArt size={ADD} stroke="#fff" opacity={0.2} />
-        </Animated.View>
         <Animated.View style={{ transform: [{ rotate: t.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] }) }] }}>
           <Icon name="plus" size={26} color="#fff" sw={2.6} />
         </Animated.View>

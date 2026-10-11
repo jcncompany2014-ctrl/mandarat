@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text, TextInput } from '../components/AppText';
 import { Sheet, CloseBtn, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
 import { tint } from '../theme/moods';

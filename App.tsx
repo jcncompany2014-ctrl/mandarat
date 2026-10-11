@@ -1,12 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import {
-  useFonts,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
-} from '@expo-google-fonts/space-grotesk';
-import { GowunBatang_400Regular, GowunBatang_700Bold } from '@expo-google-fonts/gowun-batang';
+import { useFonts } from 'expo-font';
 
 import { MandaratProvider, useMandarat } from './src/store/MandaratContext';
 import { UIProvider } from './src/navigation/ui';
@@ -32,12 +26,13 @@ function Gate() {
 }
 
 export default function App() {
+  // Pretendard — 굵기별 파일(400·500·600·700·800). 이름은 src/theme/fonts.ts의 PRETENDARD와 같아야 한다.
   const [fontsLoaded] = useFonts({
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
-    GowunBatang_400Regular,
-    GowunBatang_700Bold,
+    'Pretendard-Regular': require('pretendard/dist/public/static/Pretendard-Regular.otf'),
+    'Pretendard-Medium': require('pretendard/dist/public/static/Pretendard-Medium.otf'),
+    'Pretendard-SemiBold': require('pretendard/dist/public/static/Pretendard-SemiBold.otf'),
+    'Pretendard-Bold': require('pretendard/dist/public/static/Pretendard-Bold.otf'),
+    'Pretendard-ExtraBold': require('pretendard/dist/public/static/Pretendard-ExtraBold.otf'),
   });
 
   // Render once fonts resolve; the lotus splash avoids a flash of unstyled text.

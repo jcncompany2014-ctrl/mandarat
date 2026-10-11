@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Text, type StyleProp, type TextStyle } from 'react-native';
+import { Animated, type StyleProp, type TextStyle } from 'react-native';
+import { Text } from './AppText';
 import { DUR, EASE } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 

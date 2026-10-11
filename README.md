@@ -3,7 +3,7 @@
 목표를 중심에 두고 8개의 핵심 영역과 64개의 실천으로 펼쳐가는 만다라트(Mandalart) 플래너.
 Expo + TypeScript로 만들었고, 모든 데이터는 기기에 로컬 저장됩니다. (앱스토어 출시 목표)
 
-진행할수록 **연꽃이 피어나는**(봉오리→만개) 차분한 시각 정체성(기본 무드 ‘연꽃’)으로 달성을 성장의 은유로 보여줍니다.
+장식 대신 만다라트 자체(3×3 칸)를 정체성으로 삼은, 미색·골드의 담백한 디자인입니다. 홈의 작은 3×3은 실제 8개 영역의 달성률만큼 각 영역 색이 차오릅니다.
 
 ## 핵심 구조
 
@@ -17,8 +17,8 @@ Expo + TypeScript로 만들었고, 모든 데이터는 기기에 로컬 저장�
 
 | 탭 | 설명 |
 |----|------|
-| **홈** | 숨 쉬며 피어나는 연꽃 마스코트, 핵심 목표 진행률, 오늘의 실천(남은 일 3개 바로 체크) + 이번 주 리듬, 8영역 3×3 미니 만다라트 |
-| **만다라트** | 만다라 휠(중심에서 피어나고, 탭하여 펼치기) ↔ 격자 81칸, 다음 한 걸음 제안 |
+| **홈** | 핵심 목표 + 미니 만다라트(영역 색이 달성률만큼 차오름), 오늘 할 일(남은 일 3개 바로 체크) + 이번 주 리듬, 8개 영역 카드 |
+| **만다라트** | 만다라 휠(중심에서 펼쳐지고, 영역을 누르면 실천 8개가 펼쳐짐) ↔ 격자 81칸, 다음 할 일 제안 |
 | **오늘** | 관리 방식 3종(일일 체크 / 습관 스트릭 / 칸반)을 화면 위에서 바로 전환, 요일 루틴 자동 등장, 영역 필터, 하루 마무리(기분·한 줄 회고) |
 | **통계** | 인사이트, 전체 달성률·연속일·집중 시간, 이번 주 돌아보기(지난주 대비·루틴 지킴·최고의 날·활발한 영역), 10주 달력 히트맵, 이름이 붙은 영역 균형 레이더, 영역별 달성률, 최근 회고, 요약 공유 |
 | **설정** | 무드(연꽃·크림·화이트·파스텔·다크) · 포인트 컬러 · 관리 방식 · 셀 모양 · 템플릿 갤러리 · 백업 내보내기/불러오기 · 예시 채우기 · 전체 초기화(되돌리기) · 정보 |
@@ -31,7 +31,7 @@ Expo + TypeScript로 만들었고, 모든 데이터는 기기에 로컬 저장�
 - **등장**: 화면 덩어리가 위에서부터 차례로 떠오르고, 링은 한 바퀴 그리듯 차오르며 숫자는 세어 올라가고 막대는 자랍니다.
 - **길 찾기**: 탭 아래 받침이 활성 탭을 따라 미끄러지고, 상세·설정은 오른쪽에서 들어와 왼쪽으로 돌아갑니다. 상세 화면은 좌우로 쓸어 영역을 넘깁니다.
 - **시트**: 탄력 있게 올라오고, 닫을 땐 아래로 미끄러지며, 손잡이를 끌어내려 닫을 수 있습니다.
-- **시그니처**: 만다라 휠은 중심에서 8영역이 피어나고 영역을 누르면 접혔다가 8실천이 꽃잎처럼 펼쳐집니다(뒤의 연꽃이 반 칸 회전). 집중 타이머는 4초 들숨·4초 날숨에 맞춰 연꽃이 숨 쉬고, 오늘을 모두 마치면 연꽃이 비틀며 열리는 축하가 이어집니다. 첫 화면·온보딩·스플래시도 같은 결로 피어납니다.
+- **시그니처**: 만다라 휠은 중심에서 8영역이 펼쳐지고 영역을 누르면 접혔다가 실천 8개가 바깥으로 펼쳐집니다. 집중 타이머는 4초 들이쉬기·4초 내쉬기에 맞춰 빛이 커졌다 작아지고, 오늘 할 일을 모두 마치면 3×3 칸이 영역 색으로 차례로 채워지는 차분한 카드가 뜹니다.
 - **동작 줄이기**를 켜면 장식 애니메이션은 모두 생략됩니다.
 
 ### 요일 루틴
@@ -51,9 +51,9 @@ Expo + TypeScript로 만들었고, 모든 데이터는 기기에 로컬 저장�
 **백업 불러오기**(붙여넣기 또는 파일 선택 → 요약 확인 → 바꾸기, 잠시 되돌리기 가능)를 지원합니다.
 불러온 백업은 모든 필드를 검증해 손상된 값이 있어도 앱이 멈추지 않습니다.
 
-부가 기능: 실천 상세 시트(메모·오늘 추가·집중 25분 타이머·반복 요일), 탭바 가운데 연꽃 ＋ 버튼(빠른 추가)과 영역별 실천 제안, 구체성 코칭 칩(무엇을·얼마나·언제·어디서), 오늘 완료 시 연꽃잎 축하 + 햅틱, 되돌리기 스낵바, 목적별 템플릿, 칸 직접 편집.
+부가 기능: 실천 상세 시트(메모·오늘 추가·집중 25분 타이머·반복 요일), 탭바 가운데 ＋ 버튼(빠른 추가)과 영역별 실천 제안, 구체성 코칭 칩(무엇을·얼마나·언제·어디서), 오늘 완료 시 연꽃잎 축하 + 햅틱, 되돌리기 스낵바, 목적별 템플릿, 칸 직접 편집.
 
-접근성·견고성: VoiceOver 라벨/역할 전반 적용, 대비 기준(WCAG AA)에 맞춘 연꽃 팔레트와 버튼 글씨색, ‘동작 줄이기’ 설정 존중, iOS 키보드에 가리지 않는 시트, 진입 연꽃 스플래시, ErrorBoundary 복구 화면, 필드 단위 저장본 검증·이행.
+접근성·견고성: VoiceOver 라벨/역할 전반 적용, 대비 기준(WCAG AA)에 맞춘 영역 팔레트와 버튼 글씨색, ‘동작 줄이기’ 설정 존중, iOS 키보드에 가리지 않는 시트, 진입 연꽃 스플래시, ErrorBoundary 복구 화면, 필드 단위 저장본 검증·이행.
 
 ## 기술 스택
 
@@ -61,7 +61,7 @@ Expo + TypeScript로 만들었고, 모든 데이터는 기기에 로컬 저장�
 - **로컬 저장**: `@react-native-async-storage/async-storage` (단일 JSON 문서, 디바운스 저장)
 - **그래픽**: `react-native-svg` (진행 링·만다라 모티프), `expo-linear-gradient`
 - **아이콘**: `lucide-react-native`
-- **폰트**: Space Grotesk(숫자/영문), Gowun Batang(핵심 목표 세리프)
+- **폰트**: Pretendard(본문·숫자·제목 통일, SIL OFL) — `pretendard` npm 패키지의 굵기별 파일을 `expo-font`로 불러오고, `src/components/AppText.tsx`가 fontWeight를 해당 굵기 파일로 바꿔 끼웁니다
 
 ## 실행
 
@@ -86,11 +86,11 @@ src/
   types.ts                   데이터 모델
   data/                      defaults(8영역 시드·예시·migrate) · templates(목적별 템플릿)
   store/MandaratContext.tsx  AsyncStorage 영속 + 파생 셀렉터 + 집중시간/되돌리기
-  theme/                     무드 팔레트(연꽃 등) · 색 헬퍼 · 폰트 · 그림자 · tokens(SP/R) · motion(시간·곡선·스프링)
+  theme/                     무드 팔레트 · 색 헬퍼 · 폰트(Pretendard) · 그림자 · tokens(SP/R) · motion(시간·곡선·스프링)
   lib/                       routine(요일 루틴·오늘 목록·하루 정리) · review(주간 돌아보기) · nextStep(다음 한 걸음) · backup · coach · suggest
-                             · useReducedMotion · layoutAnim · useSettle · useTween · haptics · webFile
-  components/                Icon · Ring · Check · MandalaArt · LotusBloom · LotusRadar · EmptyState · GuideChips · MoodRow · Splash · ErrorBoundary · 공통 UI
-                             · Pressy · Reveal/Pop/Breathe · AnimatedNumber · ProgressBar · GrowBar · SegmentedControl · DayPicker · WeekDots
+                             · useReducedMotion · layoutAnim · useSettle · haptics · webFile
+  components/                Icon · Ring · Check · LotusRadar(영역 레이더) · EmptyState · GuideChips · MoodRow · Splash · ErrorBoundary · 공통 UI
+                             · AppText(서체) · GridMark/MiniMandalart(3×3) · Pressy · Reveal/Pop · AnimatedNumber · ProgressBar · GrowBar · SegmentedControl · DayPicker · WeekDots
   navigation/                라우팅 · 오버레이/토스트 컨텍스트 · Root 셸(전환 모션)
   screens/                   Onboarding · Dashboard · Grid · MandalaWheel · Detail · Today · Stats · Settings
   overlays/                  ActionSheet · FocusTimer · QuickAdd · Celebration · CellEditor · BackupImport · Snackbar
@@ -105,4 +105,4 @@ assets/                      앱 아이콘(iOS 라이트·다크·틴트, 안드
 - `app.json` 에 번들 ID(`com.jcncompany.mandarat`)·아이콘(iOS 라이트/다크/틴트, 안드로이드 적응형·모노크롬) 설정됨.
 - 네이티브 실행 화면을 브랜드 색으로 꾸미려면 `npx expo install expo-splash-screen` 후 config plugin으로 설정합니다(SDK 56은 최상위 `splash` 키 대신 이 플러그인을 씁니다).
 - 출시 빌드는 [EAS Build](https://docs.expo.dev/build/introduction/) 사용 권장: `eas build -p ios` / `-p android`.
-- 핵심 목표 세리프(Gowun Batang) 전체 글리프 폰트가 커서(약 8MB), 출시 전 서브셋 폰트로 교체하면 번들이 가벼워집니다.
+- Pretendard 5개 굵기(각 약 1.6MB)가 앱에 포함됩니다. 더 줄이려면 쓰는 굵기만 남기거나 서브셋 파일로 바꿉니다.

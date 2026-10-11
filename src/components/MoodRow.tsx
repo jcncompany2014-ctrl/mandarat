@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './AppText';
 import { Pressy } from './Pressy';
 import { MOOD_FACES } from './Icon';
 import { tint } from '../theme/moods';
