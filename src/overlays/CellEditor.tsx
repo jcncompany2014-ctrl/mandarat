@@ -9,6 +9,7 @@ import { useMandarat } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
+import { DayPicker } from '../components/DayPicker';
 
 // 실천 칸마다 살짝 다른 예시를 보여 구체적으로 적도록 유도한다.
 const ACTION_EG = [
@@ -46,16 +47,22 @@ export function CellEditor() {
 function Editor({ editor }: { editor: EditorTarget }) {
   const M = usePalette();
   const { closeEditor } = useUI();
-  const { doc, setCenterGoal, setThemeTitle, setActionText } = useMandarat();
+  const { doc, setCenterGoal, setThemeTitle, setActionText, setActionDays } = useMandarat();
   const m = meta(editor, doc);
   const [text, setText] = useState(m.initial);
+  const [days, setDays] = useState<number[]>(
+    editor.kind === 'action' ? doc.themes[editor.ti].actions[editor.ai].days ?? [] : [],
+  );
 
   const save = () => {
     tap();
     const v = text.trim();
     if (editor.kind === 'center') setCenterGoal(v || '나의 핵심 목표');
     else if (editor.kind === 'theme') setThemeTitle(editor.ti, v);
-    else setActionText(editor.ti, editor.ai, v);
+    else {
+      setActionText(editor.ti, editor.ai, v);
+      setActionDays(editor.ti, editor.ai, v ? days : []); // 비운 칸은 루틴도 해제
+    }
     closeEditor();
   };
 
@@ -92,6 +99,12 @@ function Editor({ editor }: { editor: EditorTarget }) {
               </Text>
             )}
             {editor.kind === 'action' && <GuideChips M={M} text={text} />}
+            {editor.kind === 'action' && (
+              <View style={{ marginTop: 14 }}>
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginBottom: 8 }}>반복 요일 · 정하면 그날 ‘오늘’에 자동 등장</Text>
+                <DayPicker M={M} days={days} color={doc.themes[editor.ti].color} onChange={setDays} />
+              </View>
+            )}
             <Pressable onPress={save} style={{ marginTop: 14, backgroundColor: M.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
               <Icon name="check" size={18} color="#fff" sw={2.6} />
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>저장</Text>

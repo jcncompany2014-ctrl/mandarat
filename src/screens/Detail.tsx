@@ -10,6 +10,7 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
+import { daysLabel, isRoutine } from '../lib/routine';
 
 const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 
@@ -148,6 +149,12 @@ export function Detail({ ti }: { ti: number }) {
                 >
                   {has ? a.text : `실천 ${ai + 1} 입력하기`}
                 </Text>
+                {has && isRoutine(a) && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                    <Icon name="repeat" size={11} color={th.color} sw={2.2} />
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: th.color }}>{daysLabel(a.days)} 반복</Text>
+                  </View>
+                )}
               </View>
               {!!a.note && <Icon name="pencil" size={14} color={M.faint} />}
               <Icon name="chevR" size={17} color={M.faint} />

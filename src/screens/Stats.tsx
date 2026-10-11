@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, Share, Text, View } from 'react-native';
+import { Platform, Pressable, Share, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Header, IconBtn } from '../components/common';
 import { Icon, MOOD_FACES } from '../components/Icon';
@@ -23,6 +23,9 @@ export function Stats() {
   const M = usePalette();
   const { doc } = useMandarat();
   const { go, showToast } = useUI();
+  const { width: winW } = useWindowDimensions();
+  // 카드 안쪽 폭(화면 - 바깥 여백 40 - 카드 패딩 40)에 맞춰, 작은 기기에서도 넘치지 않게
+  const radarSize = Math.max(220, Math.min(300, winW - 80));
 
   const done = totalDone(doc);
   const pct = Math.round((done / 64) * 100);
@@ -159,10 +162,10 @@ export function Stats() {
           </View>
           <View style={{ alignItems: 'center', paddingVertical: 4 }}>
             <LotusRadar
-              size={216}
+              size={radarSize}
               accent={M.accent}
               line={M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}
-              data={doc.themes.map((th) => ({ pct: themeProgress(th).pct, color: th.color }))}
+              data={doc.themes.map((th, ti) => ({ pct: themeProgress(th).pct, color: th.color, label: th.title || `영역 ${ti + 1}` }))}
             />
           </View>
         </View>

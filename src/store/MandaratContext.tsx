@@ -3,15 +3,13 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme } from '../types';
 import { blankDoc, migrate, sampleThemes, scaffoldThemes } from '../data/defaults';
+import { normalizeDays, toggleDayLog, ymd } from '../lib/routine';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 export function dateKey(d = new Date()): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return ymd(d);
 }
 
 export function lastNDates(n: number): string[] {
@@ -36,8 +34,12 @@ interface Ctx {
   setThemeTitle: (ti: number, title: string) => void;
   setActionText: (ti: number, ai: number, text: string) => void;
   setActionNote: (ti: number, ai: number, note: string) => void;
+  /** 반복 요일 설정 (빈 배열이면 루틴 해제) */
+  setActionDays: (ti: number, ai: number, days: number[]) => void;
   // progress
   toggleDone: (ti: number, ai: number) => void;
+  /** 루틴의 오늘 체크만 토글 (영구 달성 done은 그대로) */
+  toggleRoutineToday: (ti: number, ai: number) => void;
   addFocusMinutes: (minutes: number) => void;
   // today
   toggleToday: (key: string) => void;
@@ -142,6 +144,26 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     (ti: number, ai: number, note: string) =>
       editThemes(ti, (t) => ({ ...t, actions: t.actions.map((a, i) => (i === ai ? { ...a, note } : a)) })),
     [editThemes],
+  );
+
+  const setActionDays = useCallback(
+    (ti: number, ai: number, days: number[]) =>
+      editThemes(ti, (t) => ({
+        ...t,
+        actions: t.actions.map((a, i) => {
+          if (i !== ai) return a;
+          const next = normalizeDays(days);
+          const { days: _drop, ...rest } = a;
+          return next.length > 0 ? { ...rest, days: next } : rest;
+        }),
+      })),
+    [editThemes],
+  );
+
+  const toggleRoutineToday = useCallback(
+    (ti: number, ai: number) =>
+      update((d) => ({ ...d, dayLog: toggleDayLog(d.dayLog, `${ti}-${ai}`, dateKey()) })),
+    [update],
   );
 
   const toggleDone = useCallback(
@@ -268,13 +290,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
-      toggleDone, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
+      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
+      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
       setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
     }),
     [
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote,
-      toggleDone, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
+      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
+      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
       setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
     ],
   );

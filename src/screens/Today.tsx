@@ -3,10 +3,10 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
-import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
 import { EmptyState } from '../components/EmptyState';
 import { MoodRow } from '../components/MoodRow';
+import { WeekDots } from '../components/WeekDots';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -15,6 +15,7 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
+import { daysLabel, routineWeek, todayItems, type TodayItem } from '../lib/routine';
 import { SEMANTIC } from '../theme/palette';
 import type { IconName, Mgmt } from '../types';
 
@@ -24,15 +25,21 @@ const MODES: { v: Mgmt; icon: IconName }[] = [
   { v: '칸반', icon: 'grid' },
 ];
 
-/** Today's resolved focus items (existing, text-filled). */
-function useTodayItems() {
+/** 오늘 실천 목록 = 직접 담은 항목 ∪ 오늘 요일 루틴 */
+function useTodayList(): TodayItem[] {
   const { doc } = useMandarat();
-  return useMemo(() => {
-    const list = doc.todayKeys
-      .map((k) => k.split('-').map(Number) as [number, number])
-      .filter(([ti, ai]) => doc.themes[ti]?.actions[ai]?.text.trim());
-    return list;
-  }, [doc.todayKeys, doc.themes]);
+  return useMemo(() => todayItems(doc, new Date()), [doc]);
+}
+
+/** 루틴이면 오늘 기록만, 아니면 칸의 영구 달성을 토글한다. */
+function useCheck() {
+  const { toggleDone, toggleRoutineToday } = useMandarat();
+  return (it: TodayItem) => {
+    tap();
+    if (!it.done) success();
+    if (it.routine) toggleRoutineToday(it.ti, it.ai);
+    else toggleDone(it.ti, it.ai);
+  };
 }
 
 export function Today() {
@@ -73,28 +80,33 @@ export function Today() {
 
 // ── checklist (default) ───────────────────────────────────────────────────────
 function TodayChecklist({ M }: { M: M }) {
-  const { doc, toggleDone, toggleExtra, setDayMood, setDayReflection } = useMandarat();
+  const { doc, toggleExtra, setDayMood, setDayReflection } = useMandarat();
   const { openAction } = useUI();
-  const list = useTodayItems();
+  const list = useTodayList();
+  const check = useCheck();
   const extra = doc.todayExtra;
   const meta = doc.dayMeta[dateKey()] ?? {};
+  const now = new Date();
 
   const [cat, setCat] = useState<number | null>(null);
-  const fList = cat == null ? list : list.filter(([ti]) => ti === cat);
+  const fList = cat == null ? list : list.filter((it) => it.ti === cat);
   const fExtra = cat == null ? extra : extra.filter((x) => x.ti === cat);
 
-  const tDone = list.filter(([ti, ai]) => doc.themes[ti].actions[ai].done).length + extra.filter((x) => x.done).length;
+  const tDone = list.filter((it) => it.done).length + extra.filter((x) => x.done).length;
   const tTotal = list.length + extra.length;
+  const routines = list.filter((it) => it.routine).length;
   const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      {/* progress banner — 무드 hero 톤으로 통일, 할 일이 없으면 숨김 */}
+      {/* progress banner — 무드 hero 톤, 할 일이 없으면 숨김 */}
       {tTotal > 0 && (
         <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 20, marginBottom: 16, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <View>
-              <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub, letterSpacing: 0.2 }}>오늘의 진행</Text>
+              <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub, letterSpacing: 0.2 }}>
+                오늘의 진행{routines > 0 ? ` · 루틴 ${routines}개 포함` : ''}
+              </Text>
               <Text style={{ fontSize: 34, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 2 }}>
                 {tDone}
                 <Text style={{ fontSize: 20, color: M.heroSub }}>/{tTotal}</Text>
@@ -108,26 +120,12 @@ function TodayChecklist({ M }: { M: M }) {
         </LinearGradient>
       )}
 
-      {/* mood + reflection */}
-      <View style={[{ borderRadius: 20, padding: 16, marginBottom: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-        <Text style={{ fontSize: 13.5, fontWeight: '800', color: M.ink, marginBottom: 11 }}>오늘의 기분</Text>
-        <MoodRow M={M} value={meta.mood} onPick={(i) => { tap(); setDayMood(i); }} />
-        <TextInput
-          value={meta.reflection ?? ''}
-          onChangeText={setDayReflection}
-          accessibilityLabel="오늘 한 줄 회고"
-          placeholder="한 줄 회고를 남겨보세요…"
-          placeholderTextColor={M.faint}
-          style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14 }}
-        />
-      </View>
-
       {tTotal === 0 && (
         <EmptyState
           M={M}
           icon="sparkle"
           title="아직 오늘 할 일이 없어요"
-          subtitle="＋ 버튼이나 실천 항목에서 “오늘 할 일”로 더해보세요"
+          subtitle="실천 항목에 반복 요일을 정하면 그날 자동으로 나타나요. ＋ 버튼으로 바로 더할 수도 있어요"
         />
       )}
 
@@ -154,36 +152,49 @@ function TodayChecklist({ M }: { M: M }) {
           </ScrollView>
         </View>
       )}
+
       <View style={{ gap: 10 }}>
-        {fList.map(([ti, ai]) => {
-          const th = doc.themes[ti];
-          const a = th.actions[ai];
+        {fList.map((it) => {
+          const th = doc.themes[it.ti];
+          const a = th.actions[it.ai];
+          const area = th.title || `영역 ${it.ti + 1}`;
           return (
             <Pressable
-              key={`b${ti}-${ai}`}
-              onPress={() => openAction(ti, ai)}
+              key={`b${it.key}`}
+              onPress={() => openAction(it.ti, it.ai)}
               accessibilityRole="button"
-              accessibilityLabel={`${a.text}, ${th.title || `영역 ${ti + 1}`}`}
+              accessibilityLabel={`${a.text}, ${area}${it.routine ? `, ${daysLabel(a.days)} 반복` : ''}`}
               accessibilityHint="실천 항목 자세히 보기"
-              style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark ? null : shadow(3)]}
+              style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: it.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark ? null : shadow(3)]}
             >
               <Pressable
-                onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+                onPress={() => check(it)}
                 hitSlop={10}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: a.done }}
+                accessibilityState={{ checked: it.done }}
                 accessibilityLabel={`${a.text} 완료`}
               >
-                <Check on={a.done} color={th.color} dark={M.dark} />
+                <Check on={it.done} color={th.color} dark={M.dark} />
               </Pressable>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: a.done ? M.sub : M.ink, textDecorationLine: a.done ? 'line-through' : 'none' }} numberOfLines={1}>
+                <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={1}>
                   {a.text}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
                   <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-                  <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{th.title || `영역 ${ti + 1}`}</Text>
+                  <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{area}</Text>
+                  {it.routine && (
+                    <>
+                      <Icon name="repeat" size={11} color={th.color} sw={2.2} />
+                      <Text style={{ fontSize: 11.5, color: th.color, fontWeight: '700' }}>{daysLabel(a.days)}</Text>
+                    </>
+                  )}
                 </View>
+                {it.routine && (
+                  <View style={{ marginTop: 8 }}>
+                    <WeekDots M={M} states={routineWeek(doc, it.ti, it.ai, now)} color={th.color} size={12} />
+                  </View>
+                )}
               </View>
               <Icon name="chevR" size={17} color={M.faint} />
             </Pressable>
@@ -214,6 +225,21 @@ function TodayChecklist({ M }: { M: M }) {
             </Pressable>
           );
         })}
+      </View>
+
+      {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}
+      <View style={[{ borderRadius: 20, padding: 16, marginTop: tTotal > 0 ? 18 : 6, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
+        <Text style={{ fontSize: 13.5, fontWeight: '800', color: M.ink, marginBottom: 11 }}>하루 마무리 · 오늘의 기분</Text>
+        <MoodRow M={M} value={meta.mood} onPick={(i) => { tap(); setDayMood(i); }} />
+        <TextInput
+          value={meta.reflection ?? ''}
+          onChangeText={setDayReflection}
+          accessibilityLabel="오늘 한 줄 회고"
+          placeholder="한 줄 회고를 남겨보세요…"
+          placeholderTextColor={M.faint}
+          maxLength={120}
+          style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14 }}
+        />
       </View>
     </View>
   );
@@ -279,15 +305,16 @@ function TodayStreak({ M }: { M: M }) {
 
 // ── kanban ────────────────────────────────────────────────────────────────────
 function TodayKanban({ M }: { M: M }) {
-  const { doc, toggleDone, toggleExtra } = useMandarat();
-  const list = useTodayItems();
+  const { doc, toggleExtra } = useMandarat();
+  const list = useTodayList();
+  const check = useCheck();
   const extra = doc.todayExtra;
 
   // unified card list
-  type Card = { key: string; ti: number; text: string; done: boolean; isExtra: boolean; id?: string };
+  type Card = { key: string; ti: number; text: string; done: boolean; item?: TodayItem; id?: string };
   const cards: Card[] = [
-    ...list.map(([ti, ai]) => ({ key: `${ti}-${ai}`, ti, text: doc.themes[ti].actions[ai].text, done: doc.themes[ti].actions[ai].done, isExtra: false })),
-    ...extra.map((x) => ({ key: `x${x.id}`, ti: x.ti, text: x.text, done: x.done, isExtra: true, id: x.id })),
+    ...list.map((it) => ({ key: it.key, ti: it.ti, text: doc.themes[it.ti].actions[it.ai].text, done: it.done, item: it })),
+    ...extra.map((x) => ({ key: `x${x.id}`, ti: x.ti, text: x.text, done: x.done, id: x.id })),
   ];
 
   // local "진행 중" set for cards that aren't done yet
@@ -297,11 +324,11 @@ function TodayKanban({ M }: { M: M }) {
   const advance = (c: Card) => {
     const st = stageOf(c);
     if (st === 0) {
+      tap();
       setInProgress((s) => new Set(s).add(c.key));
     } else if (st === 1) {
-      tap();
-      if (c.isExtra && c.id) toggleExtra(c.id);
-      else { const [ti, ai] = c.key.split('-').map(Number); toggleDone(ti, ai); }
+      if (c.item) check(c.item);
+      else if (c.id) { tap(); success(); toggleExtra(c.id); }
       setInProgress((s) => { const n = new Set(s); n.delete(c.key); return n; });
     }
   };
@@ -314,8 +341,8 @@ function TodayKanban({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 14, paddingBottom: 16, gap: 14 }}>
-      {list.length + extra.length === 0 && (
-        <EmptyState M={M} icon="grid" title="오늘 보드가 비어 있어요" subtitle="실천 항목을 오늘 할 일로 담아보세요" compact />
+      {cards.length === 0 && (
+        <EmptyState M={M} icon="grid" title="오늘 보드가 비어 있어요" subtitle="실천 항목을 오늘 할 일로 담거나 반복 요일을 정해보세요" compact />
       )}
       {cols.map(([label, ci, dot]) => {
         const colCards = cards.filter((c) => stageOf(c) === ci);
@@ -329,6 +356,7 @@ function TodayKanban({ M }: { M: M }) {
             <View style={{ gap: 8 }}>
               {colCards.map((c) => {
                 const th = doc.themes[c.ti];
+                const routine = !!c.item?.routine;
                 return (
                   <Pressable
                     key={c.key}
@@ -342,7 +370,9 @@ function TodayKanban({ M }: { M: M }) {
                       <Text style={{ fontSize: 14.5, fontWeight: '700', color: M.ink, opacity: ci === 2 ? 0.6 : 1, textDecorationLine: ci === 2 ? 'line-through' : 'none' }} numberOfLines={1}>
                         {c.text}
                       </Text>
-                      <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600', marginTop: 2 }} numberOfLines={1}>{th.title || `영역 ${c.ti + 1}`}</Text>
+                      <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600', marginTop: 2 }} numberOfLines={1}>
+                        {th.title || `영역 ${c.ti + 1}`}{routine ? ` · ${daysLabel(th.actions[c.item!.ai].days)} 반복` : ''}
+                      </Text>
                     </View>
                     {ci < 2 ? <Icon name="chevR" size={17} color={M.faint} /> : <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
                   </Pressable>

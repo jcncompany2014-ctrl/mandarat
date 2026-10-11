@@ -10,6 +10,7 @@ import { useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
 import { useUI, Screen } from './ui';
 import { useMandarat, totalDone } from '../store/MandaratContext';
+import { todayProgress } from '../lib/routine';
 
 import { Onboarding } from '../screens/Onboarding';
 import { Dashboard } from '../screens/Dashboard';
@@ -65,13 +66,8 @@ export function Root() {
     ]).start();
   }, [ui.screen, ui.ti, reduceMotion, fade, slide]);
 
-  // today completion → celebration
-  const todayDone =
-    doc.todayKeys.filter((k) => {
-      const [ti, ai] = k.split('-').map(Number);
-      return doc.themes[ti]?.actions[ai]?.done;
-    }).length + doc.todayExtra.filter((x) => x.done).length;
-  const todayTotal = doc.todayKeys.length + doc.todayExtra.length;
+  // today completion → celebration (직접 담은 항목 + 오늘 요일 루틴 + 직접 추가한 할 일)
+  const { done: todayDone, total: todayTotal } = todayProgress(doc, new Date());
   const prevComplete = useRef(true);
   useEffect(() => {
     const complete = todayTotal > 0 && todayDone === todayTotal;

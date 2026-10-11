@@ -3,7 +3,7 @@ import { StyleProp, ViewStyle } from 'react-native';
 import {
   Grid3x3, House, Check as CheckIcon, CircleCheck, ChartColumnBig, Plus,
   ChevronRight, ChevronLeft, Flame, Sparkles, Target, Pencil, Ellipsis,
-  Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2, Share2,
+  Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2, Share2, Repeat,
 } from 'lucide-react-native';
 import type { IconName } from '../types';
 import { MOOD_COLORS } from '../theme/palette';
@@ -21,7 +21,7 @@ const MAP: Record<IconName, AnyIcon> = {
   check: CheckIcon, checkCircle: CircleCheck, chart: ChartColumnBig, plus: Plus,
   chevR: ChevronRight, chevL: ChevronLeft, flame: Flame, sparkle: Sparkles, target: Target,
   pencil: Pencil, dots: Ellipsis, calendar: Calendar, bell: Bell, settings: SlidersHorizontal,
-  close: X, reset: RotateCcw, trash: Trash2, share: Share2,
+  close: X, reset: RotateCcw, trash: Trash2, share: Share2, repeat: Repeat,
 };
 
 type FaceComp = React.ComponentType<FaceProps>;

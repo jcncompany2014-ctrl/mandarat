@@ -8,10 +8,11 @@ import { MandalaArt } from '../components/MandalaArt';
 import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
 import { FONTS } from '../theme/fonts';
 import { shadow } from '../theme/shadow';
-import { tint } from '../theme/moods';
+import { fade, tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
+import { DOW_KR, todayProgress, weekCounts } from '../lib/routine';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 // 3×3 만다라트 배치: 가운데(전체) + 8영역
@@ -25,14 +26,10 @@ export function Dashboard() {
   const done = totalDone(doc);
   const pct = Math.round((done / 64) * 100);
 
-  const todayDoneCount =
-    doc.todayKeys.filter((k) => {
-      const [ti, ai] = k.split('-').map(Number);
-      return doc.themes[ti]?.actions[ai]?.done;
-    }).length + doc.todayExtra.filter((x) => x.done).length;
-  const todayTotal = doc.todayKeys.length + doc.todayExtra.length;
-
   const now = new Date();
+  const { done: todayDoneCount, total: todayTotal } = todayProgress(doc, now);
+  const week = weekCounts(doc.dayLog, now);
+  const weekTotal = week.reduce((s, d) => s + d.count, 0);
   const dateLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 · ${WEEKDAYS[now.getDay()]}요일`;
 
   // 진행률 따라 바뀌는 격려 한마디 (연꽃 = 피어남)
@@ -166,24 +163,52 @@ export function Dashboard() {
         })}
       </View>
 
-      {/* 오늘의 실천 */}
+      {/* 오늘의 실천 + 이번 주 리듬 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <Pressable
           onPress={() => go('today')}
-          style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 15, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}
+          accessibilityRole="button"
+          accessibilityLabel={`오늘의 실천 ${todayDoneCount}/${todayTotal} 완료, 이번 주 ${weekTotal}회`}
+          accessibilityHint="오늘 화면 열기"
+          style={[{ paddingHorizontal: 18, paddingVertical: 15, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}
         >
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="sparkle" size={22} color={M.accent} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="sparkle" size={22} color={M.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>오늘의 실천</Text>
+              <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 1 }}>
+                {todayTotal === 0 ? '실천 항목을 추가해 보세요'
+                  : todayDoneCount === todayTotal ? `${todayTotal}개 모두 완료 · 오늘의 만다라 완성`
+                    : `${todayDoneCount}/${todayTotal} 완료 · 잘하고 있어요`}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ring pct={todayTotal ? (todayDoneCount / todayTotal) * 100 : 0} size={34} stroke={4} color={M.accent} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'} />
+              <Icon name="chevR" size={18} color={M.faint} />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>오늘의 실천</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 1 }}>
-              {todayTotal > 0 ? `${todayDoneCount}/${todayTotal} 완료 · 잘하고 있어요` : '실천 항목을 추가해 보세요'}
-            </Text>
+          <View style={{ height: 1, backgroundColor: M.line, marginTop: 14, marginBottom: 11 }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 9 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>이번 주</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: M.accent, fontFamily: FONTS.grotesk }}>{weekTotal}회</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Ring pct={todayTotal ? (todayDoneCount / todayTotal) * 100 : 0} size={34} stroke={4} color={M.accent} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'} />
-            <Icon name="chevR" size={18} color={M.faint} />
+          <View style={{ flexDirection: 'row' }}>
+            {week.map((d) => (
+              <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 5 }}>
+                <View
+                  style={{
+                    width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: d.count > 0 ? fade(M.accent, 22 + Math.min(4, d.count) * 17) : M.dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    borderWidth: d.isToday ? 1.5 : 0, borderColor: M.accent,
+                  }}
+                >
+                  {d.count > 0 && <Text style={{ fontSize: 11, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{d.count}</Text>}
+                </View>
+                <Text style={{ fontSize: 10.5, fontWeight: d.isToday ? '800' : '600', color: d.isToday ? M.accent : M.faint }}>{DOW_KR[d.dow]}</Text>
+              </View>
+            ))}
           </View>
         </Pressable>
       </View>

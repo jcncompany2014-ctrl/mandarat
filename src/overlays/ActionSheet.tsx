@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Sheet, Pill, CloseBtn } from '../components/common';
 import { Icon } from '../components/Icon';
+import { DayPicker } from '../components/DayPicker';
+import { WeekDots } from '../components/WeekDots';
 import { tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
-import { useMandarat } from '../store/MandaratContext';
+import { useMandarat, dateKey } from '../store/MandaratContext';
+import { daysLabel, doneOn, isRoutine, routineWeek, routineWeekCount } from '../lib/routine';
 import { tap, success } from '../lib/haptics';
 
 export function ActionSheet() {
@@ -22,12 +25,16 @@ export function ActionSheet() {
 function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
   const { closeSheet, startFocus, openEditor, showToast } = useUI();
-  const { doc, toggleDone, toggleToday, inToday, setActionNote } = useMandarat();
+  const { doc, toggleDone, toggleRoutineToday, toggleToday, inToday, setActionNote, setActionDays } = useMandarat();
   const th = doc.themes[ti];
   const a = th.actions[ai];
   const key = `${ti}-${ai}`;
   const onToday = inToday(key);
   const [note, setNote] = useState(a.note);
+  const now = new Date();
+  const routine = isRoutine(a);
+  const doneToday = doneOn(doc.dayLog, key, dateKey(now));
+  const week = routine ? routineWeekCount(doc, ti, ai, now) : null;
 
   const handleToday = () => {
     tap();
@@ -38,6 +45,11 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
     });
   };
 
+  const changeDays = (days: number[]) => {
+    setActionDays(ti, ai, days);
+    if (days.length > 0 && !routine) showToast(`${daysLabel(days)}마다 ‘오늘’에 자동으로 나타나요`);
+  };
+
   return (
     <View style={{ paddingHorizontal: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -45,24 +57,61 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
         <CloseBtn M={M} onPress={closeSheet} />
       </View>
 
-      <Pressable onPress={() => openEditor({ kind: 'action', ti, ai })} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Pressable onPress={() => openEditor({ kind: 'action', ti, ai })} accessibilityRole="button" accessibilityLabel="실천 문구 편집" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Text style={{ fontSize: 23, fontWeight: '800', color: M.ink, letterSpacing: -0.4, flex: 1 }}>{a.text || '실천 항목'}</Text>
         <Icon name="pencil" size={18} color={M.faint} />
       </Pressable>
 
-      {/* complete toggle */}
-      <Pressable
-        onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
-        style={{
-          marginTop: 18, paddingVertical: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
-          backgroundColor: a.done ? tint(th.color, M.dark ? 22 : 14, M.dark) : th.color,
-        }}
-      >
-        <Icon name={a.done ? 'checkCircle' : 'check'} size={20} color={a.done ? th.color : '#fff'} sw={2.4} />
-        <Text style={{ fontSize: 16, fontWeight: '800', color: a.done ? th.color : '#fff' }}>
-          {a.done ? '완료됨 · 탭하여 해제' : '완료로 표시'}
-        </Text>
-      </Pressable>
+      {routine && week && (
+        // 이번 주 리듬 — 하고만다 클로버 줄처럼
+        <View style={{ marginTop: 14, padding: 14, borderRadius: 16, backgroundColor: tint(th.color, M.dark ? 12 : 6, M.dark), borderWidth: 1, borderColor: tint(th.color, M.dark ? 26 : 18, M.dark) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Icon name="repeat" size={13} color={th.color} sw={2.2} />
+              <Text style={{ fontSize: 12.5, fontWeight: '800', color: th.color }}>{daysLabel(a.days)} 반복</Text>
+            </View>
+            <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub }}>
+              이번 주 <Text style={{ color: th.color, fontWeight: '800' }}>{week.done}</Text>/{week.planned}회
+            </Text>
+          </View>
+          <WeekDots M={M} states={routineWeek(doc, ti, ai, now)} color={th.color} size={22} labels />
+        </View>
+      )}
+
+      {/* 메인 완료 버튼 — 루틴은 오늘 기록, 아니면 칸의 영구 달성 */}
+      {routine ? (
+        <Pressable
+          onPress={() => { tap(); if (!doneToday) success(); toggleRoutineToday(ti, ai); }}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: doneToday }}
+          accessibilityLabel="오늘 실천 완료"
+          style={{
+            marginTop: 12, paddingVertical: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
+            backgroundColor: doneToday ? tint(th.color, M.dark ? 22 : 14, M.dark) : th.color,
+          }}
+        >
+          <Icon name={doneToday ? 'checkCircle' : 'check'} size={20} color={doneToday ? th.color : '#fff'} sw={2.4} />
+          <Text style={{ fontSize: 16, fontWeight: '800', color: doneToday ? th.color : '#fff' }}>
+            {doneToday ? '오늘 실천 완료 · 탭하여 해제' : '오늘 실천 완료로 표시'}
+          </Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: a.done }}
+          accessibilityLabel="실천 달성"
+          style={{
+            marginTop: 18, paddingVertical: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
+            backgroundColor: a.done ? tint(th.color, M.dark ? 22 : 14, M.dark) : th.color,
+          }}
+        >
+          <Icon name={a.done ? 'checkCircle' : 'check'} size={20} color={a.done ? th.color : '#fff'} sw={2.4} />
+          <Text style={{ fontSize: 16, fontWeight: '800', color: a.done ? th.color : '#fff' }}>
+            {a.done ? '완료됨 · 탭하여 해제' : '완료로 표시'}
+          </Text>
+        </Pressable>
+      )}
 
       {/* row toggles */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
@@ -79,6 +128,8 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
         </Pressable>
         <Pressable
           onPress={() => startFocus(ti, ai)}
+          accessibilityRole="button"
+          accessibilityLabel="집중 25분 타이머 시작"
           style={{ flex: 1, padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: M.line }}
         >
           <Icon name="target" size={18} color={M.gold} />
@@ -86,6 +137,34 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600' }}>몰입 타이머</Text>
         </Pressable>
       </View>
+
+      {/* 반복 요일 */}
+      <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub }}>반복 요일</Text>
+        <Text style={{ fontSize: 11, color: M.faint, fontWeight: '600' }}>{routine ? '그 요일마다 ‘오늘’에 나타나요' : '정하면 습관 루틴이 돼요'}</Text>
+      </View>
+      <View style={{ marginTop: 8 }}>
+        <DayPicker M={M} days={a.days ?? []} color={th.color} onChange={changeDays} />
+      </View>
+
+      {routine && (
+        // 루틴의 영구 달성 — 습관이 자리 잡으면 만다라트 칸을 채운다
+        <Pressable
+          onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: a.done }}
+          accessibilityLabel="만다라트 칸 달성"
+          style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: a.done ? th.color : M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : 'transparent' }}
+        >
+          <Icon name={a.done ? 'checkCircle' : 'lotus'} size={18} color={a.done ? th.color : M.faint} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink }}>{a.done ? '만다라트 칸 달성됨' : '습관이 자리 잡았다면'}</Text>
+            <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '500', marginTop: 1 }}>
+              {a.done ? '탭하면 달성을 해제해요' : '이 칸을 달성으로 채워 연꽃을 피워요'}
+            </Text>
+          </View>
+        </Pressable>
+      )}
 
       {/* note */}
       <Text style={{ marginTop: 14, fontSize: 12.5, fontWeight: '700', color: M.sub }}>메모</Text>

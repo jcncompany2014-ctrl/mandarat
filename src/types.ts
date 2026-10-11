@@ -4,7 +4,7 @@ export type IconName =
   | 'heart' | 'briefcase' | 'book' | 'people' | 'coin' | 'palette' | 'lotus' | 'compass'
   | 'grid' | 'home' | 'check' | 'checkCircle' | 'chart' | 'plus' | 'chevR' | 'chevL'
   | 'flame' | 'sparkle' | 'target' | 'pencil' | 'dots' | 'calendar' | 'bell' | 'settings'
-  | 'close' | 'reset' | 'trash' | 'share';
+  | 'close' | 'reset' | 'trash' | 'share' | 'repeat';
 
 export type Mood = '연꽃' | '크림' | '화이트' | '파스텔' | '다크';
 export type Mgmt = '일일 체크' | '습관 스트릭' | '칸반';
@@ -14,7 +14,10 @@ export type CellShape = '둥근' | '각진';
 export interface Action {
   text: string;
   note: string;
+  /** 만다라트 칸의 영구 달성 */
   done: boolean;
+  /** 반복 요일 (0=일 … 6=토). 있으면 루틴 — 오늘 체크는 dayLog에 날짜별로 기록된다. */
+  days?: number[];
 }
 
 /** One of the 8 sub-goals (each owns 8 actions). */

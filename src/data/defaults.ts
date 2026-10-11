@@ -1,6 +1,7 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
 import type { Action, MandaratDoc, Theme } from '../types';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
+import { normalizeDays } from '../lib/routine';
 
 export const CENTER_EN = 'My Best Self';
 
@@ -8,7 +9,7 @@ interface ThemeSeed {
   title: string;
   color: string;
   icon: Theme['icon'];
-  sample: { kr: string; done?: boolean }[];
+  sample: { kr: string; done?: boolean; days?: number[] }[];
 }
 
 // The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable.
@@ -16,9 +17,9 @@ export const THEME_SEEDS: ThemeSeed[] = [
   {
     title: '건강', color: PILLAR_COLORS[0], icon: 'heart',
     sample: [
-      { kr: '주 3회 운동', done: true }, { kr: '하루 물 2L', done: true }, { kr: '11시 취침' },
+      { kr: '주 3회 운동', done: true }, { kr: '하루 물 2L', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '11시 취침' },
       { kr: '1만보 걷기', done: true }, { kr: '단 음식 줄이기' }, { kr: '정기 건강검진', done: true },
-      { kr: '스트레칭 10분', done: true }, { kr: '야식 끊기' },
+      { kr: '스트레칭 10분', done: true, days: [1, 2, 3, 4, 5] }, { kr: '야식 끊기' },
     ],
   },
   {
@@ -33,7 +34,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     title: '자기계발', color: PILLAR_COLORS[2], icon: 'book',
     sample: [
       { kr: '책 12권 읽기', done: true }, { kr: '온라인 강의', done: true }, { kr: '영어 회화' },
-      { kr: '매일 글쓰기', done: true }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
+      { kr: '매일 글쓰기', done: true, days: [1, 3, 5] }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
       { kr: '메모 정리' }, { kr: '강연 참석' },
     ],
   },
@@ -48,7 +49,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
   {
     title: '재정', color: PILLAR_COLORS[4], icon: 'coin',
     sample: [
-      { kr: '가계부 쓰기', done: true }, { kr: '비상금 마련', done: true }, { kr: '투자 공부' },
+      { kr: '가계부 쓰기', done: true, days: [0] }, { kr: '비상금 마련', done: true }, { kr: '투자 공부' },
       { kr: '구독 정리', done: true }, { kr: '수입 20% 저축' }, { kr: '부수입 만들기' },
       { kr: '소비 점검' }, { kr: '연금 점검' },
     ],
@@ -64,7 +65,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
   {
     title: '마음챙김', color: PILLAR_COLORS[6], icon: 'lotus',
     sample: [
-      { kr: '명상 10분', done: true }, { kr: '감사일기', done: true }, { kr: '디지털 디톡스' },
+      { kr: '명상 10분', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '감사일기', done: true }, { kr: '디지털 디톡스' },
       { kr: '호흡 연습', done: true }, { kr: '산책하기', done: true }, { kr: '일기 쓰기' },
       { kr: '요가', done: true }, { kr: '감정 체크' },
     ],
@@ -94,7 +95,7 @@ export function scaffoldThemes(): Theme[] {
 export function sampleThemes(): Theme[] {
   return THEME_SEEDS.map((s) => ({
     title: s.title, color: s.color, icon: s.icon,
-    actions: s.sample.map((a) => ({ text: a.kr, note: '', done: !!a.done })),
+    actions: s.sample.map((a) => ({ text: a.kr, note: '', done: !!a.done, ...(a.days ? { days: a.days } : {}) })),
   }));
 }
 
@@ -139,9 +140,14 @@ export function migrate(parsed: unknown): MandaratDoc {
       icon: t.icon ?? s.icon,
       actions: s.actions.map((blank, j) => {
         const a = actions[j] as Partial<Theme['actions'][number]> | undefined;
-        return a && typeof a === 'object'
-          ? { text: typeof a.text === 'string' ? a.text : '', note: typeof a.note === 'string' ? a.note : '', done: !!a.done }
-          : blank;
+        if (!a || typeof a !== 'object') return blank;
+        const days = normalizeDays(a.days);
+        return {
+          text: typeof a.text === 'string' ? a.text : '',
+          note: typeof a.note === 'string' ? a.note : '',
+          done: !!a.done,
+          ...(days.length > 0 ? { days } : {}),
+        };
       }),
     };
   });
