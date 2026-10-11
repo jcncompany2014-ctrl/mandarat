@@ -159,7 +159,7 @@ export function Stats() {
 
       {/* ranked theme bars */}
       <Reveal index={5}>
-      <Text style={{ paddingHorizontal: 20, fontSize: 16, fontWeight: '800', color: M.ink }}>영역별 달성률</Text>
+      <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>영역별 달성률</Text>
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 13 }}>
         {ranked.map(({ th, ti, p }, i) => (
           <Pressy key={ti} onPress={() => { tap(); go('detail', ti); }} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`${th.title || `영역 ${ti + 1}`} ${p.pct}%, 세부 보기`}>
@@ -218,7 +218,7 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
 
   return (
     <>
-      <Text style={{ paddingHorizontal: 20, fontSize: 16, fontWeight: '800', color: M.ink, marginTop: 4 }}>최근 회고</Text>
+      <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, marginTop: 4, letterSpacing: -0.3 }}>최근 회고</Text>
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 10 }}>
         {entries.length === 0 ? (
           <EmptyState M={M} icon="pencil" title="아직 회고가 없어요" subtitle="오늘 화면에서 기분과 한 줄 회고를 남겨보세요" compact />

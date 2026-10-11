@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Header, IconBtn } from '../components/common';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { Pop } from '../components/Reveal';
+import { Pop, Reveal } from '../components/Reveal';
+import { Pressy } from '../components/Pressy';
+import { nextStep } from '../lib/nextStep';
+import { Icon } from '../components/Icon';
+import { tap } from '../lib/haptics';
 import { MandalaWheel } from './MandalaWheel';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
@@ -158,6 +162,44 @@ function Block({
   );
 }
 
+const STEP_REASON = { today: '오늘 남은 일', weakest: '가장 덜 핀 영역', empty: '비어 있는 칸' } as const;
+
+/** 다음 한 걸음 — 지금 가장 의미 있는 한 칸을 하나만 권한다 */
+function NextStepCard({ M }: { M: M }) {
+  const { doc } = useMandarat();
+  const { openAction, openEditor } = useUI();
+  const step = nextStep(doc, new Date());
+  if (!step) return null;
+  const th = doc.themes[step.ti];
+  const a = th.actions[step.ai];
+  const area = th.title || `영역 ${step.ti + 1}`;
+  const title = step.kind === 'empty' ? `${area}의 빈 칸 채우기` : a.text;
+  return (
+    <Reveal delay={420} style={{ paddingHorizontal: 8, marginTop: 18 }}>
+      <Pressy
+        onPress={() => { tap(); if (step.kind === 'empty') openEditor({ kind: 'action', ti: step.ti, ai: step.ai }); else openAction(step.ti, step.ai); }}
+        scaleTo={0.98}
+        accessibilityRole="button"
+        accessibilityLabel={`다음 한 걸음, ${STEP_REASON[step.kind]}: ${title}, ${area}`}
+        style={[{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}
+      >
+        <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: tint(th.color, M.dark ? 22 : 13, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={step.kind === 'empty' ? 'pencil' : th.icon} size={20} color={th.color} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.gold, letterSpacing: 0.2 }}>다음 한 걸음 · {STEP_REASON[step.kind]}</Text>
+          <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink, marginTop: 3, letterSpacing: -0.2 }} numberOfLines={1}>{title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: th.color }} />
+            <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{area}</Text>
+          </View>
+        </View>
+        <Icon name="chevR" size={18} color={M.faint} />
+      </Pressy>
+    </Reveal>
+  );
+}
+
 // 가운데 블록이 먼저, 이어서 왼쪽 위부터 시계 방향으로 (배치 순번 → 등장 순번)
 const BLOCK_BLOOM = [1, 2, 3, 8, 0, 4, 7, 6, 5];
 
@@ -190,6 +232,7 @@ export function GridScreen() {
           <Text style={{ textAlign: 'center', fontSize: 12.5, color: M.faint, marginTop: 20, fontWeight: '500' }}>
             중심의 큰 뜻을 8개의 길이 에워쌉니다 · 탭하여 펼치기
           </Text>
+          <NextStepCard M={M} />
         </View>
       ) : (
         <View style={{ paddingHorizontal: 11, paddingBottom: 8 }}>

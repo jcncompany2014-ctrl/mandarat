@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Icon } from './Icon';
 import { MandalaArt } from './MandalaArt';
+import { Breathe, Pop } from './Reveal';
 import type { M } from '../theme/usePalette';
 
 /**
@@ -26,9 +27,13 @@ export function EmptyState({
     >
       <View style={{ width: ring, height: ring, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
         <View style={{ position: 'absolute' }} pointerEvents="none">
-          <MandalaArt size={ring} stroke={M.gold} opacity={M.dark ? 0.18 : 0.16} />
+          <Breathe amount={0.06} period={4200}>
+            <MandalaArt size={ring} stroke={M.gold} opacity={M.dark ? 0.18 : 0.16} />
+          </Breathe>
         </View>
-        <Icon name={icon} size={compact ? 22 : 26} color={M.faint} />
+        <Pop delay={120}>
+          <Icon name={icon} size={compact ? 22 : 26} color={M.faint} />
+        </Pop>
       </View>
       <Text style={{ color: M.sub, fontWeight: '700', fontSize: 14.5, textAlign: 'center' }}>{title}</Text>
       {subtitle && (

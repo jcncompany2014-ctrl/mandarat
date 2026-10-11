@@ -11,6 +11,7 @@ import { tap } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
 import { readableOn } from '../theme/palette';
 import { sameDays } from '../lib/routine';
+import { Pop } from '../components/Reveal';
 import { DayPicker } from '../components/DayPicker';
 
 // 실천 칸마다 살짝 다른 예시를 보여 구체적으로 적도록 유도한다.
@@ -79,6 +80,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
     <Modal transparent visible animationType="fade" onRequestClose={closeEditor} statusBarTranslucent>
       <Pressable onPress={closeEditor} style={{ flex: 1, backgroundColor: 'rgba(12,9,22,0.5)', justifyContent: 'center', padding: 24 }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pop>
           <Pressable onPress={() => {}} style={[{ backgroundColor: M.surface, borderRadius: 24, padding: 20 }, shadow(16, '#000', 0.3)]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, flex: 1, marginRight: 10 }} numberOfLines={1}>{m.title}</Text>
@@ -122,6 +124,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
               <Text style={{ color: readableOn(M.accent), fontSize: 16, fontWeight: '800' }}>저장</Text>
             </Pressable>
           </Pressable>
+          </Pop>
         </KeyboardAvoidingView>
       </Pressable>
     </Modal>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { PanResponder, Pressable, Text, View } from 'react-native';
 import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
@@ -39,8 +39,21 @@ export function Detail({ ti }: { ti: number }) {
     }
   };
 
+  // 좌우로 쓸어 이전·다음 영역으로 (세로 스크롤은 그대로)
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+        onPanResponderRelease: (_, g) => {
+          if (g.dx < -60 || g.vx < -0.6) { tap(); go('detail', (ti + 1) % 8); }
+          else if (g.dx > 60 || g.vx > 0.6) { tap(); go('detail', (ti + 7) % 8); }
+        },
+      }),
+    [ti, go],
+  );
+
   return (
-    <View>
+    <View {...swipe.panHandlers}>
       <Header
         M={M}
         en={`Pillar ${ti + 1}`}
@@ -80,7 +93,7 @@ export function Detail({ ti }: { ti: number }) {
       </Reveal>
 
       {/* mini 3×3 board */}
-      <Text style={{ paddingHorizontal: 20, fontSize: 14, fontWeight: '800', color: M.ink }}>실천 보드</Text>
+      <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>실천 보드</Text>
       <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
           {RING_MAP.map((r, pos) => {
@@ -128,7 +141,7 @@ export function Detail({ ti }: { ti: number }) {
       </View>
 
       {/* checklist */}
-      <Text style={{ paddingHorizontal: 20, fontSize: 14, fontWeight: '800', color: M.ink }}>체크리스트</Text>
+      <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>체크리스트</Text>
       <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, gap: 8 }}>
         {th.actions.map((a, ai) => {
           const has = !!a.text.trim();

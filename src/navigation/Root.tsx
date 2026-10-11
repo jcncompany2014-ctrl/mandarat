@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { MandalaArt } from '../components/MandalaArt';
 import { shadow } from '../theme/shadow';
-import { tap } from '../lib/haptics';
+import { success, tap } from '../lib/haptics';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
 import { useUI, Screen } from './ui';
@@ -84,6 +84,21 @@ export function Root() {
     if (p && complete && !p.complete && todayDone > p.done && todayTotal === p.total) ui.fireCelebrate('today');
     prevToday.current = { done: todayDone, total: todayTotal, complete };
   }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 한 영역이 8칸을 모두 채우면 조용히 축하 (세션 중 7→8이 되는 순간)
+  const areaDone = doc.themes.map((t) => t.actions.filter((a) => a.done).length).join(',');
+  const prevAreas = useRef<number[] | null>(null);
+  useEffect(() => {
+    const now = areaDone.split(',').map(Number);
+    const prev = prevAreas.current;
+    prevAreas.current = now;
+    if (!prev) return;
+    const ti = now.findIndex((n, i) => n === 8 && prev[i] === 7);
+    if (ti >= 0 && totalDone(doc) < 64) {
+      success();
+      ui.showToast(`🪷 ${doc.themes[ti].title || `영역 ${ti + 1}`} 영역이 만개했어요`);
+    }
+  }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 전체 64칸 만개 → 특별 축하 (세션 중 100% 도달 시 1회)
   const allDone = totalDone(doc) === 64;
