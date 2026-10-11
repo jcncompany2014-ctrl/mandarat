@@ -42,7 +42,8 @@ interface UICtx {
 
   toast: Toast | null;
   showToast: (message: string, action?: { label: string; onPress: () => void }) => void;
-  hideToast: () => void;
+  /** id를 주면 그 토스트일 때만 숨긴다(새 토스트를 실수로 지우지 않게) */
+  hideToast: (id?: number) => void;
 }
 
 const Ctx = createContext<UICtx | null>(null);
@@ -73,7 +74,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       setToast({ id: Date.now(), message, action }),
     [],
   );
-  const hideToast = useCallback(() => setToast(null), []);
+  const hideToast = useCallback((id?: number) => setToast((t) => (id === undefined || t?.id === id ? null : t)), []);
 
   const value = useMemo<UICtx>(
     () => ({

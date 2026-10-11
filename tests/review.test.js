@@ -73,3 +73,13 @@ test('calendarWeeks: 열은 월~일, 마지막 열이 이번 주, 행 요일이 
   assert.deepEqual(cols[9].map((c) => c.future), [false, false, false, true, true, true, true]);
   assert.equal(cols[8].some((c) => c.future), false);
 });
+
+test('루틴 지킴은 반복을 정한 날(since) 이후만 센다', () => {
+  const d = doc((themes) => {
+    themes[0].actions[0] = { text: '물 2L', note: '', done: false, days: [0, 1, 2, 3, 4, 5, 6], since: '2026-10-14' };
+    return { dayLog: { '2026-10-14': ['0-0'] } };
+  });
+  const r = weekReview(d, WED);
+  assert.equal(r.routineDone, 1);
+  assert.equal(r.routinePlanned, 1);
+});

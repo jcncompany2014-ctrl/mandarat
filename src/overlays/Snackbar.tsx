@@ -22,6 +22,7 @@ export function Snackbar() {
 
   useEffect(() => {
     if (!toast) return;
+    const id = toast.id;
     Animated.parallel([
       Animated.timing(op, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.spring(y, { toValue: 0, useNativeDriver: true, damping: 18, stiffness: 200 }),
@@ -30,7 +31,7 @@ export function Snackbar() {
       Animated.parallel([
         Animated.timing(op, { toValue: 0, duration: 200, useNativeDriver: true }),
         Animated.timing(y, { toValue: 80, duration: 200, useNativeDriver: true }),
-      ]).start(() => hideToast());
+      ]).start(({ finished }) => { if (finished) hideToast(id); });
     }, DURATION);
     return () => clearTimeout(t);
   }, [toast, op, y, hideToast]);

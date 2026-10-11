@@ -33,6 +33,22 @@ test('메신저 등으로 앞뒤에 글이 붙어도 읽는다', () => {
   assert.equal(B.parseBackup(text).ok, true);
 });
 
+test('앞뒤 글에 {중괄호}가 섞여 있어도 백업을 찾아 읽는다', () => {
+  const b = B.makeBackup(sampleDoc());
+  for (const text of [`{홍길동}님이 보낸 백업\n${b}`, `${b}\n:}`, `[메모] {중요} ${b} {끝}`]) {
+    const r = B.parseBackup(text);
+    assert.equal(r.ok, true, text.slice(0, 20));
+    assert.equal(r.doc.centerGoal, '2026 최고의 나');
+  }
+});
+
+test('겉 포장이 잘려도 안쪽 문서가 온전하면 살려 낸다', () => {
+  const b = B.makeBackup(sampleDoc());
+  const r = B.parseBackup(b.slice(0, -1)); // 마지막 '}' 하나 빠짐
+  assert.equal(r.ok, true);
+  assert.equal(r.doc.centerGoal, '2026 최고의 나');
+});
+
 test('감싸지 않은 문서(JSON) 자체도 받아들이고, 온보딩은 끝난 것으로 본다', () => {
   const raw = { ...sampleDoc(), onboarded: false };
   const r = B.parseBackup(JSON.stringify(raw));
@@ -59,6 +75,8 @@ test('잘못된 입력은 이해하기 쉬운 오류로', () => {
     ['   \n ', '붙여넣은 내용이 없어요'],
     ['그냥 글', '백업 내용을 찾지 못했어요'],
     ['{"app":"mandarat","doc":{"themes":[', '잘렸거나'],
+    ['{"app":"mandarat","doc":{"themes":[{"title":"건강","actions":[{"text":"걷기"}', '잘렸거나'],
+    ['{bad}', '잘렸거나'],
     ['{"foo":1}', '만다라트 백업 형식이 아니에요'],
     ['{"app":"mandarat","doc":"x"}', '만다라트 백업 형식이 아니에요'],
     ['{"app":"mandarat","schema":99,"doc":{"themes":[]}}', '업데이트'],

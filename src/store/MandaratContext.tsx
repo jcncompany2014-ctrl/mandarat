@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { MandaratDoc, Settings, Theme } from '../types';
+import type { MandaratDoc, Settings, Theme, TodayExtra } from '../types';
 import { blankDoc, migrate, sampleThemes, scaffoldThemes } from '../data/defaults';
-import { extraLogKey, isRoutine, normalizeDays, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
+import { extraLogKey, isRoutine, normalizeDays, rolloverToday, sameDays, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 
@@ -47,6 +47,8 @@ interface Ctx {
   addExtra: (ti: number, text: string) => void;
   toggleExtra: (id: string) => void;
   removeExtra: (id: string) => void;
+  /** 지운 할 일을 원래 자리로 되살린다 (되돌리기) */
+  restoreExtra: (x: TodayExtra, index: number, logged: boolean) => void;
   // day meta
   setDayMood: (mood: number) => void;
   setDayReflection: (text: string) => void;
@@ -57,6 +59,8 @@ interface Ctx {
   applyTemplate: (centerGoal: string, themes: Theme[]) => void;
   resetAll: () => void;
   replaceDoc: (d: MandaratDoc) => void;
+  /** 편집 횟수 — 통째 되돌리기 전에 그 사이 다른 변경이 있었는지 확인하는 데 쓴다 */
+  revision: () => number;
 }
 
 const MandaratCtx = createContext<Ctx | null>(null);
@@ -67,26 +71,36 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef(doc);
   docRef.current = doc;
+  const revRef = useRef(0);
+  // 저장본을 읽지 못했다면(저장소 오류) 빈 문서로 덮어쓰지 않도록 이번 세션은 저장하지 않는다
+  const blockSave = useRef(false);
 
   // load once
   useEffect(() => {
     (async () => {
+      let raw: string | null = null;
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          setDoc(rolloverToday(migrate(JSON.parse(raw)), dateKey()));
-        }
+        raw = await AsyncStorage.getItem(STORAGE_KEY);
       } catch (e) {
         console.warn('Mandarat load failed', e);
-      } finally {
-        setReady(true);
+        blockSave.current = true;
       }
+      if (raw) {
+        try {
+          setDoc(rolloverToday(migrate(JSON.parse(raw)), dateKey()));
+        } catch (e) {
+          // 깨진 저장본은 따로 보관해 두고 새로 시작한다(원본을 잃지 않게)
+          console.warn('Mandarat parse failed — keeping a copy', e);
+          await AsyncStorage.setItem(`${STORAGE_KEY}:corrupt`, raw).catch(() => {});
+        }
+      }
+      setReady(true);
     })();
   }, []);
 
   // debounced persist
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || blockSave.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(doc)).catch((e) =>
@@ -100,7 +114,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   // flush immediately when the app goes to background (avoid losing the last <300ms of edits)
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || blockSave.current) return;
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'background' || state === 'inactive') {
         if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -127,7 +141,11 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ready]);
 
-  const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc) => setDoc((d) => fn(d)), []);
+  const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc) => {
+    revRef.current += 1;
+    setDoc((d) => fn(d));
+  }, []);
+  const revision = useCallback(() => revRef.current, []);
 
   const editThemes = useCallback(
     (ti: number, fn: (t: Theme) => Theme) =>
@@ -162,15 +180,16 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [editThemes],
   );
 
+  // 반복 요일이 바뀌면 그날부터 새 일정으로 센다(since) — 같은 요일이면 그대로 둔다
   const setActionDays = useCallback(
     (ti: number, ai: number, days: number[]) =>
       editThemes(ti, (t) => ({
         ...t,
         actions: t.actions.map((a, i) => {
-          if (i !== ai) return a;
+          if (i !== ai || sameDays(a.days, days)) return a;
           const next = normalizeDays(days);
-          const { days: _drop, ...rest } = a;
-          return next.length > 0 ? { ...rest, days: next } : rest;
+          const { days: _d, since: _s, ...rest } = a;
+          return next.length > 0 ? { ...rest, days: next, since: dateKey() } : rest;
         }),
       })),
     [editThemes],
@@ -264,6 +283,22 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 그 사이의 다른 변경은 건드리지 않고 지운 할 일만 되살린다
+  const restoreExtra = useCallback(
+    (x: TodayExtra, index: number, logged: boolean) =>
+      update((d) => {
+        if (d.todayExtra.some((e) => e.id === x.id)) return d;
+        const list = [...d.todayExtra];
+        list.splice(Math.max(0, Math.min(index, list.length)), 0, x);
+        return {
+          ...d,
+          todayExtra: list,
+          dayLog: logged ? setDayLog(d.dayLog, extraLogKey(x.ti, x.id), dateKey(), true) : d.dayLog,
+        };
+      }),
+    [update],
+  );
+
   const setDayMood = useCallback(
     (mood: number) =>
       update((d) => {
@@ -290,14 +325,17 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const loadSample = useCallback(
     () =>
-      update((d) => ({
-        ...d,
-        centerGoal: d.centerGoal || '2026 최고의 나',
-        themes: sampleThemes(),
-        // rebuild today's log so stats reflect the sample's done items
-        dayLog: { ...d.dayLog, [dateKey()]: sampleDoneKeys() },
-        onboarded: true,
-      })),
+      update((d) => {
+        const tk = dateKey();
+        return {
+          ...d,
+          centerGoal: d.centerGoal || '2026 최고의 나',
+          themes: sampleThemes(),
+          // 예시의 달성 칸을 오늘 기록에 더한다(기존 기록은 지우지 않고, 루틴은 체크하지 않는다)
+          dayLog: { ...d.dayLog, [tk]: [...new Set([...(d.dayLog[tk] ?? []), ...sampleDoneKeys()])] },
+          onboarded: true,
+        };
+      }),
     [update],
   );
 
@@ -323,18 +361,22 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
-  const replaceDoc = useCallback((d: MandaratDoc) => setDoc(d), []);
+  // 통째로 바꿀 때(되돌리기·백업 불러오기)도 오늘 날짜 기준으로 정리해 둔다
+  const replaceDoc = useCallback((d: MandaratDoc) => {
+    revRef.current += 1;
+    setDoc(rolloverToday(d, dateKey()));
+  }, []);
 
   const value = useMemo<Ctx>(
     () => ({
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
-      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
+      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection,
+      setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
     }),
     [
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
-      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
+      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection,
+      setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
     ],
   );
 
@@ -345,7 +387,7 @@ function sampleDoneKeys(): string[] {
   const keys: string[] = [];
   sampleThemes().forEach((t, ti) =>
     t.actions.forEach((a, ai) => {
-      if (a.done) keys.push(`${ti}-${ai}`);
+      if (a.done && !isRoutine(a)) keys.push(`${ti}-${ai}`);
     }),
   );
   return keys;

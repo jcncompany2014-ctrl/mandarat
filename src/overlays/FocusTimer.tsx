@@ -7,8 +7,9 @@ import { Pill, CloseBtn } from '../components/common';
 import { FONTS } from '../theme/fonts';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
-import { useMandarat } from '../store/MandaratContext';
+import { useMandarat, dateKey } from '../store/MandaratContext';
 import { success } from '../lib/haptics';
+import { doneOn, isRoutine } from '../lib/routine';
 
 const TOTAL = 25 * 60;
 
@@ -16,7 +17,7 @@ export function FocusTimer() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
   const { focus, closeFocus } = useUI();
-  const { doc, toggleDone, addFocusMinutes } = useMandarat();
+  const { doc, toggleDone, toggleRoutineToday, addFocusMinutes } = useMandarat();
   const [left, setLeft] = useState(TOTAL);
   const [run, setRun] = useState(true);
   const firedRef = useRef(false);
@@ -45,7 +46,10 @@ export function FocusTimer() {
   const finish = () => {
     const elapsedMin = Math.round((TOTAL - left) / 60);
     if (elapsedMin > 0) addFocusMinutes(elapsedMin);
-    if (!a.done) toggleDone(focus.ti, focus.ai);
+    // 루틴은 오늘 체크로, 아니면 칸의 달성으로 기록한다
+    if (isRoutine(a)) {
+      if (!doneOn(doc.dayLog, `${focus.ti}-${focus.ai}`, dateKey())) toggleRoutineToday(focus.ti, focus.ai);
+    } else if (!a.done) toggleDone(focus.ti, focus.ai);
     closeFocus();
   };
 

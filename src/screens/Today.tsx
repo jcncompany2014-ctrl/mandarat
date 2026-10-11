@@ -15,7 +15,7 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
-import { daysLabel, routineWeek, todayItems, type TodayItem } from '../lib/routine';
+import { daysLabel, doneOn, extraLogKey, routineWeek, todayItems, type TodayItem } from '../lib/routine';
 import { SEMANTIC } from '../theme/palette';
 import type { IconName, Mgmt } from '../types';
 
@@ -80,7 +80,7 @@ export function Today() {
 
 // ── checklist (default) ───────────────────────────────────────────────────────
 function TodayChecklist({ M }: { M: M }) {
-  const { doc, toggleExtra, removeExtra, replaceDoc, setDayMood, setDayReflection } = useMandarat();
+  const { doc, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection } = useMandarat();
   const { openAction, showToast } = useUI();
   const list = useTodayList();
   const check = useCheck();
@@ -97,11 +97,15 @@ function TodayChecklist({ M }: { M: M }) {
   const routines = list.filter((it) => it.routine).length;
   const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
 
+  // 되돌리기는 지운 할 일만 되살린다(그 사이 다른 체크는 그대로)
   const dropExtra = (id: string) => {
+    const index = extra.findIndex((e) => e.id === id);
+    if (index < 0) return;
     tap();
-    const snapshot = doc; // 되돌리기용
+    const x = extra[index];
+    const logged = doneOn(doc.dayLog, extraLogKey(x.ti, x.id), dateKey());
     removeExtra(id);
-    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => restoreExtra(x, index, logged) });
   };
 
   return (

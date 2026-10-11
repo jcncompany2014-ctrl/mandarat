@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Icon } from '../components/Icon';
 import { CloseBtn } from '../components/common';
 import { shadow } from '../theme/shadow';
@@ -48,6 +48,7 @@ export function CellEditor() {
 function Editor({ editor }: { editor: EditorTarget }) {
   const M = usePalette();
   const { closeEditor } = useUI();
+  const { height: winH } = useWindowDimensions();
   const { doc, setCenterGoal, setThemeTitle, setActionText, setActionDays } = useMandarat();
   const m = meta(editor, doc);
   const [text, setText] = useState(m.initial);
@@ -76,6 +77,8 @@ function Editor({ editor }: { editor: EditorTarget }) {
               <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, flex: 1, marginRight: 10 }} numberOfLines={1}>{m.title}</Text>
               <CloseBtn M={M} onPress={closeEditor} />
             </View>
+            {/* 작은 화면 + 키보드에서도 저장 버튼이 가려지지 않도록 가운데만 스크롤 */}
+            <ScrollView style={{ maxHeight: Math.max(170, winH * 0.36) }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <TextInput
               value={text}
               onChangeText={setText}
@@ -106,7 +109,8 @@ function Editor({ editor }: { editor: EditorTarget }) {
                 <DayPicker M={M} days={days} color={doc.themes[editor.ti].color} onChange={setDays} />
               </View>
             )}
-            <Pressable onPress={save} style={{ marginTop: 14, backgroundColor: M.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+            </ScrollView>
+            <Pressable onPress={save} accessibilityRole="button" accessibilityLabel="저장" style={{ marginTop: 14, backgroundColor: M.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
               <Icon name="check" size={18} color={readableOn(M.accent)} sw={2.6} />
               <Text style={{ color: readableOn(M.accent), fontSize: 16, fontWeight: '800' }}>저장</Text>
             </Pressable>

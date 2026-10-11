@@ -67,12 +67,14 @@ export function Root() {
   }, [ui.screen, ui.ti, reduceMotion, fade, slide]);
 
   // today completion → celebration (직접 담은 항목 + 오늘 요일 루틴 + 직접 추가한 할 일)
+  // 마지막 하나를 '체크'했을 때만 — 남은 일을 지우거나 기록을 통째로 바꿔서 다 찬 경우는 축하하지 않는다
   const { done: todayDone, total: todayTotal } = todayProgress(doc, new Date());
-  const prevComplete = useRef(true);
+  const prevToday = useRef<{ done: number; total: number; complete: boolean } | null>(null);
   useEffect(() => {
     const complete = todayTotal > 0 && todayDone === todayTotal;
-    if (complete && !prevComplete.current) ui.fireCelebrate('today');
-    prevComplete.current = complete;
+    const p = prevToday.current;
+    if (p && complete && !p.complete && todayDone > p.done && todayTotal === p.total) ui.fireCelebrate('today');
+    prevToday.current = { done: todayDone, total: todayTotal, complete };
   }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 전체 64칸 만개 → 특별 축하 (세션 중 100% 도달 시 1회)
@@ -88,6 +90,8 @@ export function Root() {
       <>
         <StatusBar style={M.heroLight ? 'dark' : 'light'} />
         <Onboarding />
+        {/* 전체 초기화 직후의 되돌리기 토스트가 온보딩 위에도 보이도록 */}
+        <Snackbar />
       </>
     );
   }

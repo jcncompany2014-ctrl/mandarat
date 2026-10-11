@@ -1,10 +1,14 @@
 // Core data model for the Mandalart planner.
 
-export type IconName =
-  | 'heart' | 'briefcase' | 'book' | 'people' | 'coin' | 'palette' | 'lotus' | 'compass'
-  | 'grid' | 'home' | 'check' | 'checkCircle' | 'chart' | 'plus' | 'chevR' | 'chevL'
-  | 'flame' | 'sparkle' | 'target' | 'pencil' | 'dots' | 'calendar' | 'bell' | 'settings'
-  | 'close' | 'reset' | 'trash' | 'share' | 'repeat' | 'download' | 'restore';
+/** 앱이 그릴 수 있는 아이콘 이름 — 저장본·백업 검증에도 쓰는 단일 출처 */
+export const ICON_NAMES = [
+  'heart', 'briefcase', 'book', 'people', 'coin', 'palette', 'lotus', 'compass',
+  'grid', 'home', 'check', 'checkCircle', 'chart', 'plus', 'chevR', 'chevL',
+  'flame', 'sparkle', 'target', 'pencil', 'dots', 'calendar', 'bell', 'settings',
+  'close', 'reset', 'trash', 'share', 'repeat', 'download', 'restore',
+] as const;
+
+export type IconName = (typeof ICON_NAMES)[number];
 
 export type Mood = '연꽃' | '크림' | '화이트' | '파스텔' | '다크';
 export type Mgmt = '일일 체크' | '습관 스트릭' | '칸반';
@@ -18,6 +22,8 @@ export interface Action {
   done: boolean;
   /** 반복 요일 (0=일 … 6=토). 있으면 루틴 — 오늘 체크는 dayLog에 날짜별로 기록된다. */
   days?: number[];
+  /** 반복 요일을 정한(바꾼) 날 'YYYY-MM-DD' — 그 전 날은 놓친 날로 세지 않는다 */
+  since?: string;
 }
 
 /** One of the 8 sub-goals (each owns 8 actions). */

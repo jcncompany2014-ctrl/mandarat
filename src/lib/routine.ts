@@ -29,6 +29,18 @@ export function isRoutine(a: Pick<Action, 'days'>): boolean {
   return normalizeDays(a.days).length > 0;
 }
 
+/** 같은 반복 요일인가 (순서·중복 무시) */
+export function sameDays(a: unknown, b: unknown): boolean {
+  return normalizeDays(a).join() === normalizeDays(b).join();
+}
+
+/** 이 루틴이 그날 예정돼 있었나 — 반복 요일이고, 반복을 정한 날(since) 이후 */
+export function scheduledOn(a: Pick<Action, 'days' | 'since'> | undefined, date: Date): boolean {
+  if (!a) return false;
+  if (!normalizeDays(a.days).includes(date.getDay())) return false;
+  return !a.since || ymd(date) >= a.since;
+}
+
 /** 반복 요일 라벨: 매일 · 평일 · 주말 · 월·수·금 (없으면 빈 문자열) */
 export function daysLabel(days: unknown): string {
   const d = normalizeDays(days);
@@ -76,18 +88,21 @@ export function extraLogKey(ti: number, id: string): string {
 /**
  * 날짜가 바뀌면 '오늘' 목록을 정리한다.
  * - 완료한 직접 추가 할 일은 기록(dayLog)만 남기고 목록에서 뺀다. 못 한 일은 이어서 남긴다.
- * - 직접 담은 실천 중 칸을 달성한 것과 글자가 지워진 것은 뺀다. 루틴은 매일 새로 체크하니 남긴다.
+ * - 직접 담은 실천 중 칸을 달성한 것과 글자가 지워진 것은 뺀다.
+ * - 직접 담은 루틴은 그날 하루만 — 반복 요일이면 어차피 자동으로 다시 나타난다.
  * - todayDate가 없던 이전 저장본은 날짜만 찍는다(언제 담았는지 몰라 지우지 않는다).
+ * - 날짜가 앞으로 갈 때만 정리한다(시계를 되돌리거나 시간대를 거슬러 가도 오늘 기록을 지우지 않게).
  * 바뀐 것이 없으면 같은 객체를 돌려줘 불필요한 저장·렌더를 막는다.
  */
 export function rolloverToday<T extends Pick<MandaratDoc, 'themes' | 'todayKeys' | 'todayExtra' | 'todayDate'>>(doc: T, todayKey: string): T {
   if (doc.todayDate === todayKey) return doc;
   if (!doc.todayDate) return { ...doc, todayDate: todayKey };
+  if (todayKey < doc.todayDate) return doc;
   const todayKeys = doc.todayKeys.filter((k) => {
     const [ti, ai] = k.split('-').map(Number);
     const a = doc.themes[ti]?.actions[ai];
     if (!a || !a.text.trim()) return false;
-    return isRoutine(a) || !a.done;
+    return !isRoutine(a) && !a.done;
   });
   const todayExtra = doc.todayExtra.filter((x) => !x.done);
   return { ...doc, todayKeys, todayExtra, todayDate: todayKey };
@@ -95,26 +110,26 @@ export function rolloverToday<T extends Pick<MandaratDoc, 'themes' | 'todayKeys'
 
 export type DayState = 'done' | 'today' | 'missed' | 'planned' | 'off';
 
-/** 루틴의 이번 주(월~일) 7칸 상태 */
+/** 루틴의 이번 주(월~일) 7칸 상태 — 반복을 정하기 전 날은 쉬는 날로 본다 */
 export function routineWeek(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): DayState[] {
-  const days = normalizeDays(doc.themes[ti]?.actions[ai]?.days);
+  const a = doc.themes[ti]?.actions[ai];
   const key = `${ti}-${ai}`;
   const todayKey = ymd(today);
   return weekDates(today).map((d) => {
     const k = ymd(d);
-    const scheduled = days.includes(d.getDay());
     if (doneOn(doc.dayLog, key, k)) return 'done';
-    if (!scheduled) return 'off';
+    if (!scheduledOn(a, d)) return 'off';
     if (k === todayKey) return 'today';
     return k < todayKey ? 'missed' : 'planned';
   });
 }
 
-/** 이번 주 달성 횟수 / 예정 횟수 (예정 = 이번 주에 반복 요일이 돌아오는 날 수) */
+/** 이번 주 예정일 중 해낸 횟수 / 예정 횟수 (쉬는 날에 한 것은 점으로만 보이고 비율엔 넣지 않는다) */
 export function routineWeekCount(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): { done: number; planned: number } {
-  const states = routineWeek(doc, ti, ai, today);
-  const days = normalizeDays(doc.themes[ti]?.actions[ai]?.days);
-  return { done: states.filter((s) => s === 'done').length, planned: days.length };
+  const a = doc.themes[ti]?.actions[ai];
+  const key = `${ti}-${ai}`;
+  const planned = weekDates(today).filter((d) => scheduledOn(a, d));
+  return { done: planned.filter((d) => doneOn(doc.dayLog, key, ymd(d))).length, planned: planned.length };
 }
 
 export interface TodayItem {

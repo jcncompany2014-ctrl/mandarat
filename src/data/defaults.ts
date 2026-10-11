@@ -1,5 +1,5 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
-import type { Action, CellShape, MandaratDoc, Mgmt, Mood, Settings, Theme, TodayExtra } from '../types';
+import { ICON_NAMES, type Action, type CellShape, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra } from '../types';
 import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 import { normalizeDays } from '../lib/routine';
@@ -197,16 +197,19 @@ export function migrate(parsed: unknown): MandaratDoc {
       title: typeof t.title === 'string' ? t.title : s.title,
       // 이전 원색 기본 팔레트였다면 연꽃 팔레트로 옮긴다(사용자가 고른 다른 색은 보존)
       color: typeof t.color === 'string' && HEX_RE.test(t.color) ? migrateAreaColor(t.color) : s.color,
-      icon: typeof t.icon === 'string' ? (t.icon as Theme['icon']) : s.icon,
+      // 아는 아이콘만 — 'constructor' 같은 이름이 그대로 그려지면 앱이 멈춘다
+      icon: (ICON_NAMES as readonly unknown[]).includes(t.icon) ? (t.icon as Theme['icon']) : s.icon,
       actions: s.actions.map((blank, j) => {
         const a = actions[j];
         if (!isRecord(a)) return blank;
         const days = normalizeDays(a.days);
+        const since = days.length > 0 && typeof a.since === 'string' && DATE_RE.test(a.since) ? a.since : undefined;
         return {
           text: typeof a.text === 'string' ? a.text : '',
           note: typeof a.note === 'string' ? a.note : '',
           done: !!a.done,
           ...(days.length > 0 ? { days } : {}),
+          ...(since ? { since } : {}),
         };
       }),
     };

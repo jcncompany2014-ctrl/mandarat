@@ -52,26 +52,58 @@ export function summarize(doc: MandaratDoc): BackupSummary {
   return { goal: doc.centerGoal.trim(), filled, done, days, routines };
 }
 
+const MAX_TRIES = 200;
+
+/** 만다라트 백업(감싼 형식) 또는 문서 자체로 보이는 객체인가 */
+function looksOurs(v: unknown): v is Record<string, unknown> {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const r = v as Record<string, unknown>;
+  return r.app === BACKUP_APP || Array.isArray(r.themes);
+}
+
+/**
+ * 붙여넣은 글에서 백업 JSON을 찾는다. 앞뒤에 {중괄호}가 섞인 글이 붙어 있어도 되도록
+ * '{"app"' 위치를 먼저, 그다음 각 '{'에서 시작해 뒤쪽 '}'부터 차례로 맞춰 본다.
+ */
+function extractBackup(t: string): { found?: Record<string, unknown>; parsedAny: boolean } {
+  const starts: number[] = [];
+  const anchor = t.search(/\{\s*"app"\s*:/);
+  if (anchor >= 0) starts.push(anchor);
+  for (let i = t.indexOf('{'); i >= 0 && starts.length < 24; i = t.indexOf('{', i + 1)) if (i !== anchor) starts.push(i);
+  const ends: number[] = [];
+  for (let j = t.lastIndexOf('}'); j >= 0 && ends.length < 24; j = t.lastIndexOf('}', j - 1)) ends.push(j);
+  let tries = 0;
+  let parsedAny = false;
+  for (const s of starts) {
+    for (const e of ends) {
+      if (e <= s || tries++ >= MAX_TRIES) break;
+      try {
+        const v: unknown = JSON.parse(t.slice(s, e + 1));
+        parsedAny = true;
+        if (looksOurs(v)) return { found: v, parsedAny };
+      } catch {
+        /* 다음 후보 */
+      }
+    }
+  }
+  return { parsedAny };
+}
+
 export function parseBackup(text: string): ParseResult {
   const t = text.trim();
   if (!t) return { ok: false, error: '붙여넣은 내용이 없어요' };
-  const start = t.indexOf('{');
-  if (start < 0) {
+  if (t.indexOf('{') < 0) {
     return { ok: false, error: '백업 내용을 찾지 못했어요. 내보낸 글 전체를 붙여넣어 주세요' };
   }
-  const end = t.lastIndexOf('}');
-  const broken = { ok: false as const, error: '백업 내용이 잘렸거나 손상됐어요. 처음부터 끝까지 다시 복사해 주세요' };
-  if (end <= start) return broken;
-  let raw: unknown;
-  try {
-    raw = JSON.parse(t.slice(start, end + 1));
-  } catch {
-    return broken;
+  const { found, parsedAny } = extractBackup(t);
+  if (!found) {
+    // 우리 백업의 흔적이 있는데 읽지 못했다면 잘린 것 — 아니면 다른 형식
+    const ours = /"app"\s*:\s*"mandarat"|"themes"\s*:/.test(t);
+    return ours || !parsedAny
+      ? { ok: false, error: '백업 내용이 잘렸거나 손상됐어요. 처음부터 끝까지 다시 복사해 주세요' }
+      : { ok: false, error: '만다라트 백업 형식이 아니에요' };
   }
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { ok: false, error: '만다라트 백업 형식이 아니에요' };
-  }
-  const r = raw as Record<string, unknown>;
+  const r = found;
   const wrapped = r.app === BACKUP_APP;
   if (wrapped && typeof r.schema === 'number' && r.schema > BACKUP_SCHEMA) {
     return { ok: false, error: '더 새로운 버전의 앱에서 만든 백업이에요. 앱을 업데이트한 뒤 불러와 주세요' };

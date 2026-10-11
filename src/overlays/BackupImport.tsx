@@ -5,8 +5,8 @@ import { Icon } from '../components/Icon';
 import { tint } from '../theme/moods';
 import { SEMANTIC, readableOn } from '../theme/palette';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
+import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { parseBackup } from '../lib/backup';
 import { pickTextFile } from '../lib/webFile';
 import { tap, success } from '../lib/haptics';
@@ -22,7 +22,7 @@ function fmtExported(iso?: string): string {
 export function BackupImport({ onClose }: { onClose: () => void }) {
   const M = usePalette();
   const { doc, replaceDoc } = useMandarat();
-  const { showToast } = useUI();
+  const offerUndo = useSnapshotUndo();
   const [text, setText] = useState('');
   const result = useMemo(() => (text.trim() ? parseBackup(text) : null), [text]);
 
@@ -38,7 +38,7 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
     const snapshot = doc; // 되돌리기용
     replaceDoc(result.doc);
     onClose();
-    showToast('백업을 불러왔어요', { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+    offerUndo('백업을 불러왔어요', snapshot);
   };
 
   const s = result?.ok ? result.summary : null;

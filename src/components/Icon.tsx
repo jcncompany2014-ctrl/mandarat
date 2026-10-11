@@ -46,7 +46,8 @@ export function Icon({
   fill?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const C = MAP[name] ?? Target;
+  // 저장본에서 온 이름이 Object.prototype 속성('constructor' 등)이어도 안전하게
+  const C = Object.prototype.hasOwnProperty.call(MAP, name) ? MAP[name] : Target;
   const isFilled = fill === undefined ? FILLED.has(name) : fill;
   return (
     <C size={size} color={color} strokeWidth={sw} fill={isFilled ? color : 'none'} style={style as any} />

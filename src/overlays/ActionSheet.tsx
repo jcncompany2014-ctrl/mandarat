@@ -8,7 +8,7 @@ import { tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
-import { daysLabel, doneOn, isRoutine, routineWeek, routineWeekCount } from '../lib/routine';
+import { daysLabel, doneOn, isRoutine, routineWeek, routineWeekCount, scheduledOn } from '../lib/routine';
 import { tap, success } from '../lib/haptics';
 
 export function ActionSheet() {
@@ -35,9 +35,15 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const routine = isRoutine(a);
   const doneToday = doneOn(doc.dayLog, key, dateKey(now));
   const week = routine ? routineWeekCount(doc, ti, ai, now) : null;
+  // 오늘이 반복 요일인 루틴은 이미 '오늘'에 자동으로 들어 있다
+  const autoToday = routine && scheduledOn(a, now);
 
   const handleToday = () => {
     tap();
+    if (autoToday) {
+      showToast('오늘은 반복 요일이라 ‘오늘’에 자동으로 들어 있어요');
+      return;
+    }
     toggleToday(key);
     showToast(onToday ? '오늘에서 뺐어요' : '오늘 할 일에 담았어요', {
       label: '되돌리기',
@@ -118,13 +124,15 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
         <Pressable
           onPress={handleToday}
           accessibilityRole="button"
-          accessibilityLabel={onToday ? '오늘 할 일에서 빼기' : '오늘 할 일에 추가'}
-          accessibilityState={{ selected: onToday }}
-          style={{ flex: 1, padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: onToday ? th.color : M.line, backgroundColor: onToday ? tint(th.color, M.dark ? 14 : 7, M.dark) : 'transparent' }}
+          accessibilityLabel={autoToday ? '오늘 반복 요일이라 자동 포함' : onToday ? '오늘 할 일에서 빼기' : '오늘 할 일에 추가'}
+          accessibilityState={{ selected: autoToday || onToday, disabled: autoToday }}
+          style={{ flex: 1, padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: autoToday || onToday ? th.color : M.line, backgroundColor: autoToday || onToday ? tint(th.color, M.dark ? 14 : 7, M.dark) : 'transparent' }}
         >
-          <Icon name="sparkle" size={18} color={onToday ? th.color : M.faint} />
+          <Icon name={autoToday ? 'repeat' : 'sparkle'} size={18} color={autoToday || onToday ? th.color : M.faint} />
           <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginTop: 6 }}>오늘 할 일</Text>
-          <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600' }}>{onToday ? '추가됨' : '추가하기'}</Text>
+          <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600' }}>
+            {autoToday ? '반복 요일 · 자동 포함' : routine ? (onToday ? '오늘만 추가됨' : '오늘만 추가하기') : onToday ? '추가됨' : '추가하기'}
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => startFocus(ti, ai)}

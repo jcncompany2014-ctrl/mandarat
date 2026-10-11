@@ -35,6 +35,26 @@ test('이전 원색 영역 색은 연꽃 팔레트로, 사용자 색은 보존, 
   assert.equal(d.themes[2].color, PILLAR_COLORS[2]);
 });
 
+test('아는 아이콘만 남기고 모르는 이름(프로토타입 속성 포함)은 슬롯 기본 아이콘', () => {
+  const d = migrate({ themes: [{ icon: 'constructor' }, { icon: '__proto__' }, { icon: 'lotus' }, { icon: 7 }] });
+  const base = blankDoc().themes;
+  assert.equal(d.themes[0].icon, base[0].icon);
+  assert.equal(d.themes[1].icon, base[1].icon);
+  assert.equal(d.themes[2].icon, 'lotus');
+  assert.equal(d.themes[3].icon, base[3].icon);
+});
+
+test('반복 시작일(since)은 날짜 형식이고 반복 요일이 있을 때만 남는다', () => {
+  const d = migrate({ themes: [{ actions: [
+    { text: 'a', days: [1], since: '2026-10-14' },
+    { text: 'b', days: [1], since: 'yesterday' },
+    { text: 'c', since: '2026-10-14' },
+  ] }] });
+  assert.equal(d.themes[0].actions[0].since, '2026-10-14');
+  assert.equal('since' in d.themes[0].actions[1], false);
+  assert.equal('since' in d.themes[0].actions[2], false);
+});
+
 test('반복 요일은 정리해서 보존하고, 비면 days 키를 두지 않는다', () => {
   const d = migrate({ themes: [{ actions: [{ text: 'a', days: [5, 1, 1, 9] }, { text: 'b', days: [] }, { text: 'c', days: 'mon' }] }] });
   assert.deepEqual(d.themes[0].actions[0].days, [1, 5]);

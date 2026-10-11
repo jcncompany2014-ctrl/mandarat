@@ -10,6 +10,7 @@ import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
+import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { TEMPLATES, templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
 import { ACCENTS, SEMANTIC } from '../theme/palette';
@@ -94,23 +95,21 @@ function Segmented<T extends string>({ M, label, value, options, onChange }: { M
 export function Settings() {
   const M = usePalette();
   const { go, openEditor, showToast } = useUI();
-  const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc } = useMandarat();
+  const { doc, setSetting, loadSample, applyTemplate, resetAll } = useMandarat();
+  const offerUndo = useSnapshotUndo();
 
   const useTemplate = (t: Template) => {
     tap();
     const snapshot = doc; // 되돌리기용
     applyTemplate(t.centerGoal, templateThemes(t));
     go('grid');
-    showToast(`‘${t.name}’ 템플릿을 적용했어요`, { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+    offerUndo(`‘${t.name}’ 템플릿을 적용했어요`, snapshot);
   };
 
   const doReset = () => {
     const snapshot = doc; // 되돌리기용 직전 상태
     resetAll();
-    showToast('모든 데이터를 초기화했어요', {
-      label: '되돌리기',
-      onPress: () => replaceDoc(snapshot),
-    });
+    offerUndo('모든 데이터를 초기화했어요', snapshot);
   };
 
   const confirmReset = () =>
@@ -120,7 +119,7 @@ export function Settings() {
   const doSample = () => {
     const snapshot = doc;
     loadSample();
-    showToast('예시 만다라트를 채웠어요', { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+    offerUndo('예시 만다라트를 채웠어요', snapshot);
   };
   const confirmSample = () => {
     tap();
@@ -139,7 +138,8 @@ export function Settings() {
     }
     try {
       const r = await Share.share({ title: backupFileName(now), message: makeBackup(doc, now) });
-      if (r.action === Share.sharedAction) showToast('백업을 보냈어요 · 안전한 곳에 보관해 주세요');
+      // 안드로이드는 공유 창을 닫아도 '공유됨'으로 알려 오므로 iOS에서만 완료를 알린다
+      if (Platform.OS === 'ios' && r.action === Share.sharedAction) showToast('백업을 보냈어요 · 안전한 곳에 보관해 주세요');
     } catch {
       showToast('백업을 내보내지 못했어요');
     }

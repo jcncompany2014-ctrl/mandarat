@@ -64,7 +64,9 @@ export function Stats() {
     ].filter(Boolean).join('\n');
     try {
       await Share.share({ message });
-    } catch {
+    } catch (e) {
+      // 브라우저 공유 창을 닫으면 AbortError — 복사로 대신하지 않고 조용히 끝낸다
+      if ((e as { name?: string } | null)?.name === 'AbortError') return;
       const clip = (globalThis as { navigator?: { clipboard?: { writeText: (t: string) => Promise<void> } } }).navigator?.clipboard;
       if (Platform.OS === 'web' && clip) {
         try { await clip.writeText(message); showToast('통계 요약을 복사했어요'); return; } catch { /* fall through */ }

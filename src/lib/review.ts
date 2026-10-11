@@ -52,7 +52,7 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, today: D
     if (ds.length === 0 || !a.text.trim()) return;
     const key = `${ti}-${ai}`;
     for (const d of span) {
-      if (!ds.includes(d.dow)) continue;
+      if (!ds.includes(d.dow) || (a.since && d.date < a.since)) continue; // 반복을 정하기 전 날은 제외
       const done = (doc.dayLog[d.date] ?? []).includes(key);
       if (d.isToday && !done) continue; // 오늘은 아직 진행 중
       routinePlanned++;

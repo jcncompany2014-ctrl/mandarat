@@ -89,7 +89,25 @@ test('routineWeek: 완료·오늘·놓침·예정·쉬는 날을 구분하고, �
   doc.dayLog['2026-10-12'] = ['0-0'];
   doc.dayLog['2026-10-14'] = ['0-0'];
   assert.deepEqual(R.routineWeek(doc, 0, 0, WED), ['done', 'done', 'done', 'off', 'planned', 'off', 'off']);
-  assert.deepEqual(R.routineWeekCount(doc, 0, 0, WED), { done: 3, planned: 3 });
+  // 쉬는 날(화) 실천은 점으로만 보이고 n/m 비율은 예정일만 센다 → 4/3회 같은 표시가 없다
+  assert.deepEqual(R.routineWeekCount(doc, 0, 0, WED), { done: 2, planned: 3 });
+});
+
+test('since: 반복을 정하기 전 날은 놓친 날이 아니라 쉬는 날', () => {
+  const doc = docWith((themes) => {
+    themes[0].actions[0] = { text: '물', note: '', done: false, days: [0, 1, 2, 3, 4, 5, 6], since: '2026-10-14' };
+    return { dayLog: { '2026-10-13': ['0-0'] } };
+  });
+  assert.deepEqual(R.routineWeek(doc, 0, 0, WED), ['off', 'done', 'today', 'planned', 'planned', 'planned', 'planned']);
+  assert.deepEqual(R.routineWeekCount(doc, 0, 0, WED), { done: 0, planned: 5 });
+  assert.equal(R.scheduledOn(doc.themes[0].actions[0], new Date(2026, 9, 13)), false);
+  assert.equal(R.scheduledOn(doc.themes[0].actions[0], WED), true);
+});
+
+test('sameDays는 순서·중복을 무시한다', () => {
+  assert.equal(R.sameDays([5, 1, 3], [1, 3, 5, 5]), true);
+  assert.equal(R.sameDays([1], [1, 2]), false);
+  assert.equal(R.sameDays(undefined, []), true);
 });
 
 test('todayItems: 직접 담은 항목이 먼저, 오늘 요일 루틴이 뒤에, 중복·빈 칸은 빠진다', () => {
@@ -144,7 +162,7 @@ test('rolloverToday: 같은 날이면 같은 객체, 날짜가 없던 저장본�
   assert.equal(r.todayExtra.length, 1);
 });
 
-test('rolloverToday: 다음 날엔 완료한 할 일·달성한 칸을 정리하고 못 한 일·루틴은 남긴다', () => {
+test('rolloverToday: 다음 날엔 완료한 할 일·달성한 칸·직접 담은 루틴을 정리하고 못 한 일은 남긴다', () => {
   const doc = docWith((themes) => {
     themes[0].actions[0] = { text: '끝낸 칸', note: '', done: true };
     themes[0].actions[1] = { text: '남은 칸', note: '', done: false };
@@ -156,8 +174,25 @@ test('rolloverToday: 다음 날엔 완료한 할 일·달성한 칸을 정리하
     };
   });
   const r = R.rolloverToday(doc, '2026-10-14');
-  assert.deepEqual(r.todayKeys, ['0-1', '0-2']);
+  // 루틴(0-2)은 그날 하루만 — 반복 요일엔 어차피 자동으로 다시 나타난다
+  assert.deepEqual(r.todayKeys, ['0-1']);
   assert.deepEqual(r.todayExtra.map((x) => x.id), ['b']);
   assert.equal(r.todayDate, '2026-10-14');
   assert.equal(doc.todayKeys.length, 4, '원본은 그대로');
+});
+
+test('rolloverToday: 시계를 되돌려도(날짜가 뒤로 가도) 오늘 기록을 지우지 않는다', () => {
+  const doc = docWith(() => ({ todayDate: '2026-10-14', todayExtra: [{ id: 'a', ti: 0, text: '끝낸 일', done: true }] }));
+  assert.equal(R.rolloverToday(doc, '2026-10-13'), doc);
+});
+
+test('직접 담은 루틴은 쉬는 날에도 그날은 보이고, 다음 날엔 사라진다', () => {
+  const doc = docWith((themes) => {
+    themes[1].actions[0] = { text: '글쓰기', note: '', done: false, days: [1, 3, 5] };
+    return { todayKeys: ['1-0'], todayDate: '2026-10-13' };
+  });
+  const tue = new Date(2026, 9, 13);
+  assert.deepEqual(R.todayItems(doc, tue).map((i) => [i.key, i.scheduled]), [['1-0', false]]);
+  const next = R.rolloverToday(doc, '2026-10-15');
+  assert.deepEqual(next.todayKeys, []);
 });
