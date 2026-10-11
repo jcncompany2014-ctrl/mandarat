@@ -1,5 +1,6 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
 import type { Action, MandaratDoc, Theme } from '../types';
+import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 
 export const CENTER_EN = 'My Best Self';
 
@@ -13,7 +14,7 @@ interface ThemeSeed {
 // The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable.
 export const THEME_SEEDS: ThemeSeed[] = [
   {
-    title: '건강', color: '#2FA968', icon: 'heart',
+    title: '건강', color: PILLAR_COLORS[0], icon: 'heart',
     sample: [
       { kr: '주 3회 운동', done: true }, { kr: '하루 물 2L', done: true }, { kr: '11시 취침' },
       { kr: '1만보 걷기', done: true }, { kr: '단 음식 줄이기' }, { kr: '정기 건강검진', done: true },
@@ -21,7 +22,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '커리어', color: '#4F6BED', icon: 'briefcase',
+    title: '커리어', color: PILLAR_COLORS[1], icon: 'briefcase',
     sample: [
       { kr: '사이드 프로젝트', done: true }, { kr: '발표 1회' }, { kr: '멘토 찾기', done: true },
       { kr: '이력서 갱신' }, { kr: '새 기술 1개', done: true }, { kr: '업계 네트워킹' },
@@ -29,7 +30,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '자기계발', color: '#E8A33D', icon: 'book',
+    title: '자기계발', color: PILLAR_COLORS[2], icon: 'book',
     sample: [
       { kr: '책 12권 읽기', done: true }, { kr: '온라인 강의', done: true }, { kr: '영어 회화' },
       { kr: '매일 글쓰기', done: true }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
@@ -37,7 +38,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '관계', color: '#E5547F', icon: 'people',
+    title: '관계', color: PILLAR_COLORS[3], icon: 'people',
     sample: [
       { kr: '부모님 주 1통화', done: true }, { kr: '친구 모임' }, { kr: '감사 표현하기', done: true },
       { kr: '데이트 나이트' }, { kr: '새 친구 사귀기' }, { kr: '손편지 쓰기' },
@@ -45,7 +46,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '재정', color: '#159E9E', icon: 'coin',
+    title: '재정', color: PILLAR_COLORS[4], icon: 'coin',
     sample: [
       { kr: '가계부 쓰기', done: true }, { kr: '비상금 마련', done: true }, { kr: '투자 공부' },
       { kr: '구독 정리', done: true }, { kr: '수입 20% 저축' }, { kr: '부수입 만들기' },
@@ -53,7 +54,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '취미', color: '#8B5CF6', icon: 'palette',
+    title: '취미', color: PILLAR_COLORS[5], icon: 'palette',
     sample: [
       { kr: '사진 찍기', done: true }, { kr: '요리 10가지', done: true }, { kr: '악기 배우기' },
       { kr: '그림 그리기', done: true }, { kr: '등산 가기' }, { kr: '식물 키우기', done: true },
@@ -61,7 +62,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '마음챙김', color: '#4DA3E0', icon: 'lotus',
+    title: '마음챙김', color: PILLAR_COLORS[6], icon: 'lotus',
     sample: [
       { kr: '명상 10분', done: true }, { kr: '감사일기', done: true }, { kr: '디지털 디톡스' },
       { kr: '호흡 연습', done: true }, { kr: '산책하기', done: true }, { kr: '일기 쓰기' },
@@ -69,7 +70,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
     ],
   },
   {
-    title: '모험', color: '#F4793B', icon: 'compass',
+    title: '모험', color: PILLAR_COLORS[7], icon: 'compass',
     sample: [
       { kr: '새 도시 3곳', done: true }, { kr: '혼자 여행' }, { kr: '번지점프' },
       { kr: '콘서트 가기' }, { kr: '새 음식 도전' }, { kr: '일출 보기' },
@@ -109,7 +110,7 @@ export function blankDoc(): MandaratDoc {
     dayLog: {},
     dayMeta: {},
     focusMinutes: 0,
-    settings: { mood: '연꽃', accent: '#B0883C', mgmt: '일일 체크', cellShape: '둥근' },
+    settings: { mood: '연꽃', accent: GOLD, mgmt: '일일 체크', cellShape: '둥근' },
   };
 }
 
@@ -133,7 +134,8 @@ export function migrate(parsed: unknown): MandaratDoc {
     const actions = Array.isArray(t.actions) ? t.actions : [];
     return {
       title: typeof t.title === 'string' ? t.title : s.title,
-      color: typeof t.color === 'string' ? t.color : s.color,
+      // 이전 원색 기본 팔레트였다면 연꽃 팔레트로 옮긴다(사용자가 고른 다른 색은 보존)
+      color: typeof t.color === 'string' ? migrateAreaColor(t.color) : s.color,
       icon: t.icon ?? s.icon,
       actions: s.actions.map((blank, j) => {
         const a = actions[j] as Partial<Theme['actions'][number]> | undefined;
@@ -144,11 +146,14 @@ export function migrate(parsed: unknown): MandaratDoc {
     };
   });
 
+  const settings = { ...base.settings, ...(p.settings ?? {}) };
+  settings.accent = migrateAccent(settings.accent);
+
   return {
     ...base,
     ...p,
     version: 1,
     themes,
-    settings: { ...base.settings, ...(p.settings ?? {}) },
+    settings,
   };
 }

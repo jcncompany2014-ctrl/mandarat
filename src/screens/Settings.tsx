@@ -12,11 +12,11 @@ import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { TEMPLATES, templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
+import { ACCENTS, SEMANTIC } from '../theme/palette';
 import type { CellShape, Mgmt, Mood } from '../types';
 
 const APP_VERSION = '1.0.0'; // app.json version과 일치
 const MOOD_OPTS: Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
-const ACCENTS = ['#F4793B', '#4F6BED', '#2FA968', '#8B5CF6'];
 const MGMT_OPTS: Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 const SHAPE_OPTS: CellShape[] = ['둥근', '각진'];
 
@@ -143,12 +143,22 @@ export function Settings() {
         <Segmented M={M} label="배경 무드" value={doc.settings.mood} options={MOOD_OPTS} onChange={(v) => setSetting('mood', v)} />
         <View>
           <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>포인트 컬러</Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {ACCENTS.map((c) => {
-              const on = doc.settings.accent === c;
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {ACCENTS.map(({ color: c, name }) => {
+              const on = doc.settings.accent.toLowerCase() === c.toLowerCase();
               return (
-                <Pressable key={c} onPress={() => setSetting('accent', c)} style={{ flex: 1, height: 42, borderRadius: 12, backgroundColor: c, alignItems: 'center', justifyContent: 'center', borderWidth: on ? 3 : 0, borderColor: M.surface, opacity: on ? 1 : 0.85 }}>
-                  {on && <Icon name="check" size={18} color="#fff" sw={3} />}
+                <Pressable
+                  key={c}
+                  onPress={() => { tap(); setSetting('accent', c); }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`포인트 컬러 ${name}`}
+                  accessibilityState={{ selected: on }}
+                  style={{ flex: 1, alignItems: 'center', gap: 6 }}
+                >
+                  <View style={{ width: '100%', height: 40, borderRadius: 12, backgroundColor: c, alignItems: 'center', justifyContent: 'center', borderWidth: on ? 2.5 : 0, borderColor: M.surface, opacity: on ? 1 : 0.88 }}>
+                    {on && <Icon name="check" size={17} color="#fff" sw={3} />}
+                  </View>
+                  <Text style={{ fontSize: 11, fontWeight: on ? '800' : '600', color: on ? M.ink : M.faint }}>{name}</Text>
                 </Pressable>
               );
             })}
@@ -169,8 +179,8 @@ export function Settings() {
       <Section M={M} label="데이터" />
       <Card M={M}>
         <Pressable onPress={loadSample} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint('#E8A33D', M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="sparkle" size={20} color="#E8A33D" />
+          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.gold, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="sparkle" size={20} color={M.gold} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>예시로 채우기</Text>
@@ -180,11 +190,11 @@ export function Settings() {
         </Pressable>
         <View style={{ height: 1, backgroundColor: M.line }} />
         <Pressable onPress={confirmReset} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint('#E5547F', M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="reset" size={20} color="#E5547F" />
+          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(SEMANTIC.danger, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="reset" size={20} color={SEMANTIC.danger} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#E5547F' }}>전체 초기화</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: SEMANTIC.danger }}>전체 초기화</Text>
             <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>모든 목표와 기록을 지웁니다</Text>
           </View>
           <Icon name="chevR" size={17} color={M.faint} />

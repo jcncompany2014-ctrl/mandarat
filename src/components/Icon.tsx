@@ -3,9 +3,10 @@ import { StyleProp, ViewStyle } from 'react-native';
 import {
   Grid3x3, House, Check as CheckIcon, CircleCheck, ChartColumnBig, Plus,
   ChevronRight, ChevronLeft, Flame, Sparkles, Target, Pencil, Ellipsis,
-  Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2,
+  Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2, Share2,
 } from 'lucide-react-native';
 import type { IconName } from '../types';
+import { MOOD_COLORS } from '../theme/palette';
 import { FaceHard, FaceLow, FaceNeutral, FaceGood, FaceBest, FaceProps } from './MoodFaces';
 import {
   IcSprout, IcCase, IcBook, IcPeople, IcCoin, IcBrush, IcLotus, IcMountain,
@@ -20,16 +21,16 @@ const MAP: Record<IconName, AnyIcon> = {
   check: CheckIcon, checkCircle: CircleCheck, chart: ChartColumnBig, plus: Plus,
   chevR: ChevronRight, chevL: ChevronLeft, flame: Flame, sparkle: Sparkles, target: Target,
   pencil: Pencil, dots: Ellipsis, calendar: Calendar, bell: Bell, settings: SlidersHorizontal,
-  close: X, reset: RotateCcw, trash: Trash2,
+  close: X, reset: RotateCcw, trash: Trash2, share: Share2,
 };
 
 type FaceComp = React.ComponentType<FaceProps>;
 export const MOOD_FACES: { ic: FaceComp; kr: string; c: string }[] = [
-  { ic: FaceHard, kr: '힘듦', c: '#E5547F' },
-  { ic: FaceLow, kr: '별로', c: '#F4793B' },
-  { ic: FaceNeutral, kr: '보통', c: '#E8A33D' },
-  { ic: FaceGood, kr: '좋음', c: '#2FA968' },
-  { ic: FaceBest, kr: '최고', c: '#4DA3E0' },
+  { ic: FaceHard, kr: '힘듦', c: MOOD_COLORS[0] },
+  { ic: FaceLow, kr: '별로', c: MOOD_COLORS[1] },
+  { ic: FaceNeutral, kr: '보통', c: MOOD_COLORS[2] },
+  { ic: FaceGood, kr: '좋음', c: MOOD_COLORS[3] },
+  { ic: FaceBest, kr: '최고', c: MOOD_COLORS[4] },
 ];
 
 const FILLED = new Set<IconName>(['flame', 'sparkle']);

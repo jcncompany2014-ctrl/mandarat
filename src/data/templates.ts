@@ -1,7 +1,8 @@
 import type { Action, Theme } from '../types';
+import { PILLAR_COLORS } from '../theme/palette';
 
-// 8 슬롯 색 팔레트 (THEME_SEEDS와 동일 계열)
-const COLORS = ['#2FA968', '#4F6BED', '#E8A33D', '#E5547F', '#159E9E', '#8B5CF6', '#4DA3E0', '#F4793B'];
+// 8 슬롯 색 팔레트 (THEME_SEEDS와 동일한 연꽃 팔레트)
+const COLORS = PILLAR_COLORS;
 
 export interface Template {
   id: string;

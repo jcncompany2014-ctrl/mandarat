@@ -1,10 +1,11 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
+import { SEMANTIC } from '../theme/palette';
 
 /** Circular progress ring with optional centered children. */
 export function Ring({
-  pct, size = 64, stroke = 6, color = '#2FA968', track = 'rgba(0,0,0,0.08)', children,
+  pct, size = 64, stroke = 6, color = SEMANTIC.done, track = 'rgba(0,0,0,0.08)', children,
 }: {
   pct: number;
   size?: number;

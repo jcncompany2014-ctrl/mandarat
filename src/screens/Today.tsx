@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Header, IconBtn } from '../components/common';
+import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
@@ -15,8 +15,14 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
+import { SEMANTIC } from '../theme/palette';
+import type { IconName, Mgmt } from '../types';
 
-const WEEK = ['월', '화', '수', '목', '금', '토', '일'];
+const MODES: { v: Mgmt; icon: IconName }[] = [
+  { v: '일일 체크', icon: 'checkCircle' },
+  { v: '습관 스트릭', icon: 'flame' },
+  { v: '칸반', icon: 'grid' },
+];
 
 /** Today's resolved focus items (existing, text-filled). */
 function useTodayItems() {
@@ -31,18 +37,33 @@ function useTodayItems() {
 
 export function Today() {
   const M = usePalette();
-  const { doc } = useMandarat();
+  const { doc, setSetting } = useMandarat();
   const mgmt = doc.settings.mgmt;
   const now = new Date();
   const label = `Today · ${now.getMonth() + 1}월 ${now.getDate()}일`;
 
   return (
     <View>
-      <Header M={M} en={label} kr="오늘의 실천" right={<IconBtn M={M} name="calendar" />} />
+      <Header M={M} en={label} kr="오늘의 실천" />
+      {/* 보기 방식 — 설정까지 가지 않고 바로 전환 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20 }}>
-          <Icon name="sparkle" size={13} color={M.sub} />
-          <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.sub }}>관리 방식 · {mgmt}</Text>
+        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)', padding: 4, borderRadius: 13 }}>
+          {MODES.map((m) => {
+            const on = mgmt === m.v;
+            return (
+              <Pressable
+                key={m.v}
+                onPress={() => { if (!on) { tap(); setSetting('mgmt', m.v); } }}
+                accessibilityRole="tab"
+                accessibilityLabel={`보기 방식 ${m.v}`}
+                accessibilityState={{ selected: on }}
+                style={[{ flex: 1, flexDirection: 'row', gap: 5, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? M.surface : 'transparent' }, on && !M.dark ? shadow(2) : null]}
+              >
+                <Icon name={m.icon} size={14} color={on ? M.accent : M.faint} />
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? M.ink : M.sub }}>{m.v}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayChecklist M={M} />}
@@ -208,14 +229,14 @@ function TodayStreak({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      <LinearGradient colors={['#F4793B', '#F4B43B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[{ borderRadius: 22, padding: 22, marginBottom: 18, alignItems: 'center' }, shadow(10, '#F4793B', 0.3)]}>
-        <Icon name="flame" size={40} color="#fff" />
-        <Text style={{ fontSize: 40, fontWeight: '800', color: '#fff', fontFamily: FONTS.grotesk, marginTop: 4 }}>
+      <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 22, marginBottom: 18, alignItems: 'center', overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
+        <Icon name="flame" size={36} color={M.gold} />
+        <Text style={{ fontSize: 40, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 4 }}>
           {best.best}
-          <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.8)' }}>일</Text>
+          <Text style={{ fontSize: 18, color: M.heroSub }}>일</Text>
         </Text>
-        <Text style={{ fontSize: 13.5, fontWeight: '700', color: 'rgba(255,255,255,0.9)' }}>
-          {best.best > 0 ? `최장 연속 달성 · ${bestName} 🔥` : '오늘부터 연속 기록을 시작해요 🔥'}
+        <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.heroSub }}>
+          {best.best > 0 ? `최장 연속 달성 · ${bestName}` : '오늘부터 연속 기록을 시작해요'}
         </Text>
       </LinearGradient>
 
@@ -286,9 +307,9 @@ function TodayKanban({ M }: { M: M }) {
   };
 
   const cols: [string, 0 | 1 | 2, string][] = [
-    ['할 일', 0, '#A39C8C'],
-    ['진행 중', 1, '#F4793B'],
-    ['완료', 2, '#2FA968'],
+    ['할 일', 0, M.faint],
+    ['진행 중', 1, M.gold],
+    ['완료', 2, SEMANTIC.done],
   ];
 
   return (
@@ -323,7 +344,7 @@ function TodayKanban({ M }: { M: M }) {
                       </Text>
                       <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600', marginTop: 2 }} numberOfLines={1}>{th.title || `영역 ${c.ti + 1}`}</Text>
                     </View>
-                    {ci < 2 ? <Icon name="chevR" size={17} color={M.faint} /> : <Icon name="checkCircle" size={20} color="#2FA968" />}
+                    {ci < 2 ? <Icon name="chevR" size={17} color={M.faint} /> : <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
                   </Pressable>
                 );
               })}

@@ -73,7 +73,7 @@ function Block({
       {slots.map((s, i) => {
         let bg = 'transparent';
         let col = M.ink;
-        let weight: '500' | '700' | '800' = '500';
+        let weight: '500' | '600' | '700' | '800' = '500';
         if (s.type === 'main') { bg = M.dark ? '#2A2731' : '#23211C'; col = '#fff'; weight = '800'; }
         else if (s.type === 'name') { bg = s.color; col = '#fff'; weight = '800'; }
         else if (s.type === 'theme') { bg = s.color; col = '#fff'; weight = '700'; }

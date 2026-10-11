@@ -59,7 +59,10 @@ export function FocusTimer() {
           <CloseBtn M={M} onPress={closeFocus} light />
         </View>
 
-        <Pill M={M} color={th.color}>{th.title || `영역 ${focus.ti + 1}`}</Pill>
+        {/* Pill은 기본이 왼쪽 정렬이라, 가운데 정렬 레이아웃에 맞춰 감싼다 */}
+        <View style={{ alignSelf: 'center' }}>
+          <Pill M={M} color={th.color}>{th.title || `영역 ${focus.ti + 1}`}</Pill>
+        </View>
         <View style={{ marginTop: 22, marginBottom: 8 }}>
           <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)">
             <Text style={{ fontSize: 56, fontWeight: '700', color: '#fff', fontFamily: FONTS.grotesk }}>

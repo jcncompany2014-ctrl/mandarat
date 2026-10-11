@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Share, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Header, IconBtn } from '../components/common';
 import { Icon, MOOD_FACES } from '../components/Icon';
@@ -17,11 +17,12 @@ import {
   useMandarat, lastNDates, themeProgress, totalDone, overallStreak,
 } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
+import { tap } from '../lib/haptics';
 
 export function Stats() {
   const M = usePalette();
   const { doc } = useMandarat();
-  const { go } = useUI();
+  const { go, showToast } = useUI();
 
   const done = totalDone(doc);
   const pct = Math.round((done / 64) * 100);
@@ -49,9 +50,30 @@ export function Stats() {
     .map((th, ti) => ({ th, ti, p: themeProgress(th) }))
     .sort((a, b) => b.p.pct - a.p.pct);
 
+  // 통계 요약을 공유 — 네이티브는 공유 시트, 공유가 없는 브라우저는 클립보드로 대체
+  const shareSummary = async () => {
+    tap();
+    const top = ranked[0];
+    const message = [
+      `🪷 나의 만다라트 — ${doc.centerGoal || '핵심 목표'}`,
+      `연꽃 ${bloomLabel(bloomStage(pct))} · 64칸 중 ${done}칸 달성 (${pct}%)`,
+      `이번 주 ${weekTotal}회 실천 · 연속 ${streak}일`,
+      top && top.p.pct > 0 ? `가장 빛나는 영역: ${top.th.title || `영역 ${top.ti + 1}`} ${top.p.pct}%` : '',
+    ].filter(Boolean).join('\n');
+    try {
+      await Share.share({ message });
+    } catch {
+      const clip = (globalThis as { navigator?: { clipboard?: { writeText: (t: string) => Promise<void> } } }).navigator?.clipboard;
+      if (Platform.OS === 'web' && clip) {
+        try { await clip.writeText(message); showToast('통계 요약을 복사했어요'); return; } catch { /* fall through */ }
+      }
+      showToast('이 환경에서는 공유할 수 없어요');
+    }
+  };
+
   return (
     <View>
-      <Header M={M} en="Progress" kr="통계" right={<IconBtn M={M} name="sparkle" />} />
+      <Header M={M} en="Progress" kr="통계" right={<IconBtn M={M} name="share" label="통계 요약 공유" onPress={shareSummary} />} />
 
       {/* insight */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
@@ -74,7 +96,7 @@ export function Stats() {
         </View>
         <View style={[{ flex: 1, borderRadius: 22, padding: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, justifyContent: 'center' }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Icon name="flame" size={20} color="#F4793B" />
+            <Icon name="flame" size={20} color={M.accent} />
             <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{streak}</Text>
           </View>
           <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600', marginTop: 2 }}>현재 연속일</Text>
@@ -96,11 +118,11 @@ export function Stats() {
               return (
                 <View key={i} style={{ flex: 1, alignItems: 'center', gap: 7, height: '100%', justifyContent: 'flex-end' }}>
                   {isToday ? (
-                    <LinearGradient colors={['#F4793B', '#E5547F']} style={{ width: '100%', height: Math.max(4, (v / maxW) * 78), borderRadius: 7 }} />
+                    <LinearGradient colors={[M.gold, M.accent]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ width: '100%', height: Math.max(4, (v / maxW) * 78), borderRadius: 7 }} />
                   ) : (
                     <View style={{ width: '100%', height: Math.max(4, (v / maxW) * 78), borderRadius: 7, backgroundColor: M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)' }} />
                   )}
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: isToday ? '#F4793B' : M.faint }}>{labels[i]}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: isToday ? M.accent : M.faint }}>{labels[i]}</Text>
                 </View>
               );
             })}

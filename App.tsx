@@ -13,6 +13,9 @@ import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { Splash } from './src/components/Splash';
+import { installWebStyles } from './src/lib/webStyle';
+
+installWebStyles();
 
 function Gate() {
   const { ready } = useMandarat();

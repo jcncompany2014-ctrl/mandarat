@@ -40,7 +40,8 @@ export function Snackbar() {
       pointerEvents="box-none"
       style={{
         position: 'absolute', left: 14, right: 14, zIndex: 60,
-        bottom: 96 + Math.max(10, insets.bottom),
+        // 탭바 + 솟은 가운데 버튼 위로 띄운다
+        bottom: 112 + Math.max(10, insets.bottom),
         opacity: op, transform: [{ translateY: y }],
       }}
     >

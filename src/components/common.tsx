@@ -70,7 +70,7 @@ export function IconBtn({
     >
       <Icon name={name} size={21} color={M.ink} />
       {badge && (
-        <View style={{ position: 'absolute', top: 9, right: 10, width: 7, height: 7, borderRadius: 4, backgroundColor: '#F4793B', borderWidth: 2, borderColor: M.surface }} />
+        <View style={{ position: 'absolute', top: 9, right: 10, width: 7, height: 7, borderRadius: 4, backgroundColor: M.accent, borderWidth: 2, borderColor: M.surface }} />
       )}
     </Pressable>
   );

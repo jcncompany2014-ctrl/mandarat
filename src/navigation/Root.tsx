@@ -3,6 +3,7 @@ import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
+import { MandalaArt } from '../components/MandalaArt';
 import { shadow } from '../theme/shadow';
 import { tap } from '../lib/haptics';
 import { useReducedMotion } from '../lib/useReducedMotion';
@@ -31,6 +32,12 @@ const TABS: { id: Screen; icon: Parameters<typeof Icon>[0]['name']; label: strin
   { id: 'today', icon: 'checkCircle', label: '오늘' },
   { id: 'stats', icon: 'chart', label: '통계' },
 ];
+
+// 탭바 가운데 연꽃 추가 버튼: 지름 ADD, 바 위로 LIFT만큼 솟아오른다.
+const ADD = 58;
+const LIFT = 26;
+// 스크롤 끝이 탭바(+솟은 버튼)에 가리지 않도록 확보하는 여백
+const TAB_CLEARANCE = 92;
 
 export function Root() {
   const M = usePalette();
@@ -98,7 +105,7 @@ export function Root() {
   else if (ui.screen === 'settings') screen = <Settings />;
 
   const activeTab: Screen = ui.screen === 'detail' ? 'grid' : ui.screen;
-  const showFab = ui.screen !== 'settings';
+  const showTabs = ui.screen !== 'settings';
 
   return (
     <View style={{ flex: 1, backgroundColor: M.bg }}>
@@ -106,7 +113,7 @@ export function Root() {
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: showTabs ? TAB_CLEARANCE + Math.max(10, insets.bottom) : 24 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -115,9 +122,14 @@ export function Root() {
         </Animated.View>
       </ScrollView>
 
-      {showFab && <Fab onPress={() => { tap(); ui.openQuick(); }} />}
-
-      {ui.screen !== 'settings' && <TabBar active={activeTab} onTab={(id) => { if (id !== activeTab) tap(); ui.go(id); }} bottomInset={insets.bottom} />}
+      {showTabs && (
+        <TabBar
+          active={activeTab}
+          onTab={(id) => { if (id !== activeTab) tap(); ui.go(id); }}
+          onAdd={() => { tap(); ui.openQuick(); }}
+          bottomInset={insets.bottom}
+        />
+      )}
 
       {/* overlays */}
       <ActionSheet />
@@ -130,48 +142,58 @@ export function Root() {
   );
 }
 
-function TabBar({ active, onTab, bottomInset }: { active: Screen; onTab: (id: Screen) => void; bottomInset: number }) {
+/**
+ * 하단 탭바 — 홈·만다라트 | (연꽃 추가) | 오늘·통계.
+ * 화면 위에 겹쳐 떠서 반투명 배경 너머로 콘텐츠가 비치고, 가운데 버튼은 바 위로 솟는다.
+ * 솟은 버튼도 이 컨테이너 안에 있어야 안드로이드에서 터치가 잡히므로 paddingTop으로 공간을 확보한다.
+ */
+function TabBar({ active, onTab, onAdd, bottomInset }: { active: Screen; onTab: (id: Screen) => void; onAdd: () => void; bottomInset: number }) {
   const M = usePalette();
-  return (
-    <View style={{ paddingTop: 9, paddingBottom: Math.max(10, bottomInset), backgroundColor: M.tabBg, borderTopWidth: 1, borderTopColor: M.line, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
-      {TABS.map((tab) => {
-        const on = active === tab.id;
-        return (
-          <Pressable
-            key={tab.id}
-            onPress={() => onTab(tab.id)}
-            accessibilityRole="tab"
-            accessibilityLabel={tab.label}
-            accessibilityState={{ selected: on }}
-            style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 }}
-          >
-            <Icon name={tab.icon} size={24} color={on ? M.accent : M.faint} sw={on ? 2.1 : 1.8} />
-            <Text style={{ fontSize: 10.5, fontWeight: on ? '800' : '600', color: on ? M.accent : M.faint }}>{tab.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
+  const renderTab = (tab: (typeof TABS)[number]) => {
+    const on = active === tab.id;
+    return (
+      <Pressable
+        key={tab.id}
+        onPress={() => onTab(tab.id)}
+        accessibilityRole="tab"
+        accessibilityLabel={tab.label}
+        accessibilityState={{ selected: on }}
+        style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 }}
+      >
+        <Icon name={tab.icon} size={24} color={on ? M.accent : M.faint} sw={on ? 2.1 : 1.8} />
+        <Text style={{ fontSize: 10.5, fontWeight: on ? '800' : '600', color: on ? M.accent : M.faint }}>{tab.label}</Text>
+      </Pressable>
+    );
+  };
 
-function Fab({ onPress }: { onPress: () => void }) {
-  const M = usePalette();
-  const insets = useSafeAreaInsets();
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="실천 항목 추가"
-      style={[
-        {
-          position: 'absolute', right: 18, bottom: 84 + Math.max(10, insets.bottom),
-          width: 56, height: 56, borderRadius: 20, backgroundColor: M.accent,
-          alignItems: 'center', justifyContent: 'center', zIndex: 20,
-        },
-        shadow(8, M.accent, 0.5),
-      ]}
-    >
-      <Icon name="plus" size={28} color="#fff" sw={2.4} />
-    </Pressable>
+    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: LIFT }}>
+      <View style={{ paddingTop: 9, paddingBottom: Math.max(10, bottomInset), backgroundColor: M.tabBg, borderTopWidth: 1, borderTopColor: M.line, flexDirection: 'row', alignItems: 'center' }}>
+        {TABS.slice(0, 2).map(renderTab)}
+        <View style={{ flex: 1 }} />
+        {TABS.slice(2).map(renderTab)}
+      </View>
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center' }}>
+        <Pressable
+          onPress={onAdd}
+          accessibilityRole="button"
+          accessibilityLabel="실천 항목 추가"
+          hitSlop={6}
+          style={({ pressed }) => [
+            {
+              width: ADD, height: ADD, borderRadius: ADD / 2, backgroundColor: M.accent,
+              alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+              borderWidth: 4, borderColor: M.bg, transform: [{ scale: pressed ? 0.94 : 1 }],
+            },
+            shadow(8, M.accent, 0.42),
+          ]}
+        >
+          <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
+            <MandalaArt size={ADD} stroke="#fff" opacity={0.2} />
+          </View>
+          <Icon name="plus" size={26} color="#fff" sw={2.6} />
+        </Pressable>
+      </View>
+    </View>
   );
 }

@@ -4,7 +4,7 @@ export type IconName =
   | 'heart' | 'briefcase' | 'book' | 'people' | 'coin' | 'palette' | 'lotus' | 'compass'
   | 'grid' | 'home' | 'check' | 'checkCircle' | 'chart' | 'plus' | 'chevR' | 'chevL'
   | 'flame' | 'sparkle' | 'target' | 'pencil' | 'dots' | 'calendar' | 'bell' | 'settings'
-  | 'close' | 'reset' | 'trash';
+  | 'close' | 'reset' | 'trash' | 'share';
 
 export type Mood = '연꽃' | '크림' | '화이트' | '파스텔' | '다크';
 export type Mgmt = '일일 체크' | '습관 스트릭' | '칸반';
