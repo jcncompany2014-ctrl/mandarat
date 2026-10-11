@@ -13,7 +13,9 @@ const DURATION = 4000;
 /** 화면 하단에 잠깐 떠오르는 안내 + (선택)되돌리기 액션. */
 export function Snackbar() {
   const M = usePalette();
-  const { toast, hideToast } = useUI();
+  const { toast, hideToast, screen } = useUI();
+  // 설정 화면엔 탭바가 없으니 바닥 가까이, 나머지는 탭바 + 솟은 가운데 버튼 위로
+  const lift = screen === 'settings' ? 16 : 112;
   const insets = useSafeAreaInsets();
   const y = useRef(new Animated.Value(80)).current;
   const op = useRef(new Animated.Value(0)).current;
@@ -40,8 +42,7 @@ export function Snackbar() {
       pointerEvents="box-none"
       style={{
         position: 'absolute', left: 14, right: 14, zIndex: 60,
-        // 탭바 + 솟은 가운데 버튼 위로 띄운다
-        bottom: 112 + Math.max(10, insets.bottom),
+        bottom: lift + Math.max(10, insets.bottom),
         opacity: op, transform: [{ translateY: y }],
       }}
     >

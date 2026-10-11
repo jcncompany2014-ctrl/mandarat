@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Icon } from './Icon';
 import { FONTS } from '../theme/fonts';
 import { shadow } from '../theme/shadow';
@@ -110,7 +110,9 @@ export function Sheet({
 
   return (
     <Modal transparent visible animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <Animated.View style={{ flex: 1, backgroundColor: 'rgba(12,9,22,0.46)', opacity: op, justifyContent: 'flex-end' }}>
+      <Animated.View style={{ flex: 1, backgroundColor: 'rgba(12,9,22,0.46)', opacity: op }}>
+        {/* iOS 키보드가 시트의 입력칸을 가리지 않도록 함께 밀어 올린다 */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
         <Animated.View
           style={[
@@ -130,6 +132,7 @@ export function Sheet({
             {children}
           </ScrollView>
         </Animated.View>
+        </KeyboardAvoidingView>
       </Animated.View>
     </Modal>
   );

@@ -80,8 +80,8 @@ export function Today() {
 
 // ── checklist (default) ───────────────────────────────────────────────────────
 function TodayChecklist({ M }: { M: M }) {
-  const { doc, toggleExtra, setDayMood, setDayReflection } = useMandarat();
-  const { openAction } = useUI();
+  const { doc, toggleExtra, removeExtra, replaceDoc, setDayMood, setDayReflection } = useMandarat();
+  const { openAction, showToast } = useUI();
   const list = useTodayList();
   const check = useCheck();
   const extra = doc.todayExtra;
@@ -96,6 +96,13 @@ function TodayChecklist({ M }: { M: M }) {
   const tTotal = list.length + extra.length;
   const routines = list.filter((it) => it.routine).length;
   const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
+
+  const dropExtra = (id: string) => {
+    tap();
+    const snapshot = doc; // 되돌리기용
+    removeExtra(id);
+    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+  };
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
@@ -222,6 +229,15 @@ function TodayChecklist({ M }: { M: M }) {
                   <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{th.title || `영역 ${x.ti + 1}`} · 직접 추가</Text>
                 </View>
               </View>
+              <Pressable
+                onPress={() => dropExtra(x.id)}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={`${x.text} 지우기`}
+                style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+              >
+                <Icon name="close" size={15} color={M.faint} sw={2.2} />
+              </Pressable>
             </Pressable>
           );
         })}
@@ -330,6 +346,10 @@ function TodayKanban({ M }: { M: M }) {
       if (c.item) check(c.item);
       else if (c.id) { tap(); success(); toggleExtra(c.id); }
       setInProgress((s) => { const n = new Set(s); n.delete(c.key); return n; });
+    } else {
+      // 완료 → 다시 할 일로 (실수로 옮긴 카드 되돌리기)
+      if (c.item) check(c.item);
+      else if (c.id) { tap(); toggleExtra(c.id); }
     }
   };
 
@@ -363,7 +383,7 @@ function TodayKanban({ M }: { M: M }) {
                     onPress={() => advance(c)}
                     accessibilityRole="button"
                     accessibilityLabel={`${c.text}, ${th.title || `영역 ${c.ti + 1}`}, ${label}`}
-                    accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : undefined}
+                    accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : '완료 취소'}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, borderLeftWidth: 3, borderLeftColor: th.color }}
                   >
                     <View style={{ flex: 1 }}>

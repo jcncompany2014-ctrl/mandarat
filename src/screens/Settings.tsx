@@ -1,5 +1,5 @@
-import React from 'react';
-import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
 import { MandalaArt } from '../components/MandalaArt';
@@ -13,7 +13,10 @@ import { useMandarat } from '../store/MandaratContext';
 import { TEMPLATES, templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
 import { ACCENTS, SEMANTIC } from '../theme/palette';
-import type { CellShape, Mgmt, Mood } from '../types';
+import { backupFileName, makeBackup, summarize } from '../lib/backup';
+import { downloadText } from '../lib/webFile';
+import { BackupImport } from '../overlays/BackupImport';
+import type { CellShape, IconName, Mgmt, Mood } from '../types';
 
 const APP_VERSION = '1.0.0'; // app.json version과 일치
 const MOOD_OPTS: Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
@@ -33,6 +36,40 @@ function Card({ M, children }: { M: M; children: React.ReactNode }) {
     <View style={[{ marginHorizontal: 20, borderRadius: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, padding: 14, gap: 12 }, M.dark ? null : shadow(3)]}>
       {children}
     </View>
+  );
+}
+
+/** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
+function ask(title: string, message: string, ok: string, onOk: () => void, destructive = false) {
+  if (Platform.OS === 'web') {
+    // eslint-disable-next-line no-alert
+    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) onOk();
+    return;
+  }
+  Alert.alert(title, message, [
+    { text: '취소', style: 'cancel' },
+    { text: ok, style: destructive ? 'destructive' : 'default', onPress: onOk },
+  ]);
+}
+
+function Row({ M, icon, color, title, sub, onPress, danger }: { M: M; icon: IconName; color: string; title: string; sub: string; onPress: () => void; danger?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={sub}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.7 : 1 })}
+    >
+      <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(color, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={icon} size={20} color={color} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: danger ? color : M.ink }}>{title}</Text>
+        <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>{sub}</Text>
+      </View>
+      <Icon name="chevR" size={17} color={M.faint} />
+    </Pressable>
   );
 }
 
@@ -76,23 +113,44 @@ export function Settings() {
     });
   };
 
-  const confirmReset = () => {
+  const confirmReset = () =>
+    ask('전체 초기화', '모든 목표와 기록을 지울까요? 초기화 후에도 잠시 되돌릴 수 있어요.', '초기화', doReset, true);
+
+  // 예시로 채우기 — 이미 적어둔 실천이 있으면 먼저 묻고, 바꾼 뒤에도 되돌릴 수 있게
+  const doSample = () => {
+    const snapshot = doc;
+    loadSample();
+    showToast('예시 만다라트를 채웠어요', { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+  };
+  const confirmSample = () => {
+    tap();
+    if (summarize(doc).filled === 0) { doSample(); return; }
+    ask('예시로 채우기', '지금 적어둔 8영역·실천이 예시로 바뀌어요. 바꾼 뒤 잠시 되돌릴 수 있어요.', '채우기', doSample);
+  };
+
+  // 백업 내보내기 — 웹은 .json 파일로 저장, 네이티브는 공유 시트(메모·메신저·파일)로 보낸다
+  const exportBackup = async () => {
+    tap();
+    const now = new Date();
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      if (typeof window !== 'undefined' && window.confirm('모든 데이터를 초기화할까요?')) doReset();
+      if (downloadText(backupFileName(now), makeBackup(doc, now, true))) showToast('백업 파일을 저장했어요');
+      else showToast('이 브라우저에서는 저장할 수 없어요');
       return;
     }
-    Alert.alert('전체 초기화', '모든 데이터를 초기화할까요? 초기화 후에도 잠시 되돌릴 수 있어요.', [
-      { text: '취소', style: 'cancel' },
-      { text: '초기화', style: 'destructive', onPress: doReset },
-    ]);
+    try {
+      const r = await Share.share({ title: backupFileName(now), message: makeBackup(doc, now) });
+      if (r.action === Share.sharedAction) showToast('백업을 보냈어요 · 안전한 곳에 보관해 주세요');
+    } catch {
+      showToast('백업을 내보내지 못했어요');
+    }
   };
+  const [importing, setImporting] = useState(false);
 
   return (
     <View>
       <Header M={M} en="Settings" kr="설정" onBack={() => go('dashboard')} />
 
-      <Section M={M} label="핵심 목표" />
+      <Section M={M} label="핵심 목표 / Goal" />
       <Card M={M}>
         <Pressable onPress={() => openEditor({ kind: 'center' })} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
@@ -176,30 +234,23 @@ export function Settings() {
         <Segmented M={M} label="셀 모양" value={doc.settings.cellShape} options={SHAPE_OPTS} onChange={(v) => setSetting('cellShape', v)} />
       </Card>
 
-      <Section M={M} label="데이터" />
+      <Section M={M} label="데이터 / Data" />
       <Card M={M}>
-        <Pressable onPress={loadSample} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.gold, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="sparkle" size={20} color={M.gold} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>예시로 채우기</Text>
-            <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>8영역 · 64실천 샘플을 불러옵니다</Text>
-          </View>
-          <Icon name="chevR" size={17} color={M.faint} />
-        </Pressable>
+        <Row
+          M={M} icon="download" color={M.accent} title="백업 내보내기"
+          sub={Platform.OS === 'web' ? '목표·기록을 파일(.json)로 저장해요' : '목표·기록을 메모나 메신저로 보내 보관해요'}
+          onPress={exportBackup}
+        />
         <View style={{ height: 1, backgroundColor: M.line }} />
-        <Pressable onPress={confirmReset} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(SEMANTIC.danger, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="reset" size={20} color={SEMANTIC.danger} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: SEMANTIC.danger }}>전체 초기화</Text>
-            <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>모든 목표와 기록을 지웁니다</Text>
-          </View>
-          <Icon name="chevR" size={17} color={M.faint} />
-        </Pressable>
+        <Row M={M} icon="restore" color={SEMANTIC.done} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" onPress={() => { tap(); setImporting(true); }} />
+        <View style={{ height: 1, backgroundColor: M.line }} />
+        <Row M={M} icon="sparkle" color={M.gold} title="예시로 채우기" sub="8영역 · 64실천 샘플을 불러와요" onPress={confirmSample} />
+        <View style={{ height: 1, backgroundColor: M.line }} />
+        <Row M={M} icon="reset" color={SEMANTIC.danger} title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} danger />
       </Card>
+      <Text style={{ paddingHorizontal: 24, paddingTop: 8, fontSize: 11.5, color: M.faint, lineHeight: 17 }}>
+        기록은 이 기기에만 저장돼요. 기기를 바꾸거나 앱을 지우기 전에 백업을 내보내 두세요.
+      </Text>
 
       <Section M={M} label="정보 / About" />
       <Card M={M}>
@@ -224,6 +275,7 @@ export function Settings() {
       <Text style={{ textAlign: 'center', color: M.faint, fontSize: 11.5, marginTop: 20, marginBottom: 4, fontFamily: FONTS.groteskMed }}>
         🪷 made with care
       </Text>
+      {importing && <BackupImport onClose={() => setImporting(false)} />}
     </View>
   );
 }

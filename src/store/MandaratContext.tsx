@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme } from '../types';
 import { blankDoc, migrate, sampleThemes, scaffoldThemes } from '../data/defaults';
-import { normalizeDays, toggleDayLog, ymd } from '../lib/routine';
+import { extraLogKey, isRoutine, normalizeDays, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 
@@ -46,6 +46,7 @@ interface Ctx {
   inToday: (key: string) => boolean;
   addExtra: (ti: number, text: string) => void;
   toggleExtra: (id: string) => void;
+  removeExtra: (id: string) => void;
   // day meta
   setDayMood: (mood: number) => void;
   setDayReflection: (text: string) => void;
@@ -73,7 +74,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
-          setDoc(migrate(JSON.parse(raw)));
+          setDoc(rolloverToday(migrate(JSON.parse(raw)), dateKey()));
         }
       } catch (e) {
         console.warn('Mandarat load failed', e);
@@ -109,6 +110,21 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       }
     });
     return () => sub.remove();
+  }, [ready]);
+
+  // 날짜가 바뀌면 '오늘' 목록 정리 — 앱으로 돌아올 때 + 켜 둔 채 자정을 넘길 때(1분 간격 확인)
+  useEffect(() => {
+    if (!ready) return;
+    const roll = () => setDoc((d) => rolloverToday(d, dateKey()));
+    roll();
+    const timer = setInterval(roll, 60_000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') roll();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
   }, [ready]);
 
   const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc) => setDoc((d) => fn(d)), []);
@@ -169,20 +185,17 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const toggleDone = useCallback(
     (ti: number, ai: number) =>
       update((d) => {
-        const nowDone = !d.themes[ti].actions[ai].done;
-        const key = `${ti}-${ai}`;
-        const today = dateKey();
-        const log = { ...d.dayLog };
-        const todays = new Set(log[today] ?? []);
-        if (nowDone) todays.add(key);
-        else todays.delete(key);
-        log[today] = [...todays];
+        const a = d.themes[ti]?.actions[ai];
+        if (!a) return d;
+        const nowDone = !a.done;
+        // 루틴의 칸 달성은 하루 체크와 별개 — 루틴이 아닐 때만 오늘 실천 기록에 남긴다
+        const dayLog = isRoutine(a) ? d.dayLog : setDayLog(d.dayLog, `${ti}-${ai}`, dateKey(), nowDone);
         return {
           ...d,
-          dayLog: log,
+          dayLog,
           themes: d.themes.map((t, i) =>
             i === ti
-              ? { ...t, actions: t.actions.map((a, j) => (j === ai ? { ...a, done: nowDone } : a)) }
+              ? { ...t, actions: t.actions.map((x, j) => (j === ai ? { ...x, done: nowDone } : x)) }
               : t,
           ),
         };
@@ -213,17 +226,41 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     (ti: number, text: string) =>
       update((d) => ({
         ...d,
-        todayExtra: [...d.todayExtra, { id: String(Date.now()), ti, text: text.trim(), done: false }],
+        todayExtra: [
+          ...d.todayExtra,
+          { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, ti, text: text.trim(), done: false },
+        ],
       })),
     [update],
   );
 
+  // 직접 추가한 할 일도 완료하면 그날 기록(dayLog)에 남겨 연속 기록·히트맵에 반영한다
   const toggleExtra = useCallback(
     (id: string) =>
-      update((d) => ({
-        ...d,
-        todayExtra: d.todayExtra.map((x) => (x.id === id ? { ...x, done: !x.done } : x)),
-      })),
+      update((d) => {
+        const x = d.todayExtra.find((e) => e.id === id);
+        if (!x) return d;
+        const done = !x.done;
+        return {
+          ...d,
+          todayExtra: d.todayExtra.map((e) => (e.id === id ? { ...e, done } : e)),
+          dayLog: setDayLog(d.dayLog, extraLogKey(x.ti, x.id), dateKey(), done),
+        };
+      }),
+    [update],
+  );
+
+  const removeExtra = useCallback(
+    (id: string) =>
+      update((d) => {
+        const x = d.todayExtra.find((e) => e.id === id);
+        if (!x) return d;
+        return {
+          ...d,
+          todayExtra: d.todayExtra.filter((e) => e.id !== id),
+          dayLog: setDayLog(d.dayLog, extraLogKey(x.ti, x.id), dateKey(), false),
+        };
+      }),
     [update],
   );
 
@@ -291,12 +328,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<Ctx>(
     () => ({
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
-      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
+      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, setDayMood, setDayReflection,
       setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
     }),
     [
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
-      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, setDayMood, setDayReflection,
+      toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, setDayMood, setDayReflection,
       setSetting, loadSample, applyTemplate, resetAll, replaceDoc,
     ],
   );

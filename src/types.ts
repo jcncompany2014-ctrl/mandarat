@@ -4,7 +4,7 @@ export type IconName =
   | 'heart' | 'briefcase' | 'book' | 'people' | 'coin' | 'palette' | 'lotus' | 'compass'
   | 'grid' | 'home' | 'check' | 'checkCircle' | 'chart' | 'plus' | 'chevR' | 'chevL'
   | 'flame' | 'sparkle' | 'target' | 'pencil' | 'dots' | 'calendar' | 'bell' | 'settings'
-  | 'close' | 'reset' | 'trash' | 'share' | 'repeat';
+  | 'close' | 'reset' | 'trash' | 'share' | 'repeat' | 'download' | 'restore';
 
 export type Mood = '연꽃' | '크림' | '화이트' | '파스텔' | '다크';
 export type Mgmt = '일일 체크' | '습관 스트릭' | '칸반';
@@ -58,4 +58,6 @@ export interface MandaratDoc {
   /** 누적 집중(포커스 타이머) 시간(분) */
   focusMinutes: number;
   settings: Settings;
+  /** '오늘' 목록을 마지막으로 정리한 날짜 'YYYY-MM-DD' — 날짜가 바뀌면 완료한 항목을 정리한다 */
+  todayDate?: string;
 }

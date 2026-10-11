@@ -63,6 +63,36 @@ export function toggleDayLog(dayLog: MandaratDoc['dayLog'], key: string, dateKey
   return next;
 }
 
+/** dayLog[dateKey]에 key가 on 상태가 되도록 맞춘다(이미 그렇다면 같은 객체). */
+export function setDayLog(dayLog: MandaratDoc['dayLog'], key: string, dateKey: string, on: boolean): MandaratDoc['dayLog'] {
+  return doneOn(dayLog, key, dateKey) === on ? dayLog : toggleDayLog(dayLog, key, dateKey);
+}
+
+/** 직접 추가한 할 일의 dayLog 키 — `${ti}-` 접두사라 영역별 연속 기록에도 잡힌다. */
+export function extraLogKey(ti: number, id: string): string {
+  return `${ti}-x${id}`;
+}
+
+/**
+ * 날짜가 바뀌면 '오늘' 목록을 정리한다.
+ * - 완료한 직접 추가 할 일은 기록(dayLog)만 남기고 목록에서 뺀다. 못 한 일은 이어서 남긴다.
+ * - 직접 담은 실천 중 칸을 달성한 것과 글자가 지워진 것은 뺀다. 루틴은 매일 새로 체크하니 남긴다.
+ * - todayDate가 없던 이전 저장본은 날짜만 찍는다(언제 담았는지 몰라 지우지 않는다).
+ * 바뀐 것이 없으면 같은 객체를 돌려줘 불필요한 저장·렌더를 막는다.
+ */
+export function rolloverToday<T extends Pick<MandaratDoc, 'themes' | 'todayKeys' | 'todayExtra' | 'todayDate'>>(doc: T, todayKey: string): T {
+  if (doc.todayDate === todayKey) return doc;
+  if (!doc.todayDate) return { ...doc, todayDate: todayKey };
+  const todayKeys = doc.todayKeys.filter((k) => {
+    const [ti, ai] = k.split('-').map(Number);
+    const a = doc.themes[ti]?.actions[ai];
+    if (!a || !a.text.trim()) return false;
+    return isRoutine(a) || !a.done;
+  });
+  const todayExtra = doc.todayExtra.filter((x) => !x.done);
+  return { ...doc, todayKeys, todayExtra, todayDate: todayKey };
+}
+
 export type DayState = 'done' | 'today' | 'missed' | 'planned' | 'off';
 
 /** 루틴의 이번 주(월~일) 7칸 상태 */
