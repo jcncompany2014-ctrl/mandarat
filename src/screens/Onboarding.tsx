@@ -50,10 +50,15 @@ export function Onboarding() {
           </View>
 
           <View style={{ alignItems: 'center', marginBottom: 34 }}>
-            {/* 브랜드 엠블럼 — 탭바 추가 버튼과 같은 골드 위 연꽃 */}
-            <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden' }}>
-              <MandalaArt size={54} stroke="#FFFDF8" opacity={0.95} />
-            </View>
+            {/* 브랜드 엠블럼 — 앱 아이콘과 같은 금빛 바탕 + 3×3 심장을 품은 연꽃 */}
+            <LinearGradient
+              colors={['#D2AC62', '#BB9244', '#9F772E']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden' }}
+            >
+              <MandalaArt size={56} stroke="#FFF9EE" opacity={1} seed="#A97F33" heart="#FFF4DF" />
+            </LinearGradient>
             <Text style={{ fontSize: 13, fontWeight: '700', letterSpacing: 3, color: M.gold, fontFamily: FONTS.grotesk }}>
               MANDARAT
             </Text>

@@ -45,3 +45,23 @@ export function migrateAreaColor(color: string): string {
 export function migrateAccent(color: string): string {
   return LEGACY_ACCENT[color.toLowerCase()] ?? color;
 }
+
+/** 진한 먹색 — 밝은 바탕(골드 등) 위 글씨 */
+export const INK = '#2B2620';
+
+function luminance(hex: string): number {
+  const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const [r, g, b] = ch.map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** WCAG 대비율 (1~21) */
+export function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** 이 바탕색 위에서 읽기 쉬운 글씨색 — 흰 글씨가 AA(4.5)에 못 미치면 먹색. (골드 버튼은 먹색) */
+export function readableOn(bg: string): string {
+  return contrast('#FFFFFF', bg) >= 4.5 ? '#FFFFFF' : INK;
+}

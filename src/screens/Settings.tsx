@@ -256,7 +256,7 @@ export function Settings() {
       <Card M={M}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <View style={{ width: 48, height: 48, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.gold, M.dark ? 20 : 12, M.dark) }}>
-            <MandalaArt size={44} stroke={M.gold} opacity={0.9} />
+            <MandalaArt size={44} stroke={M.gold} opacity={0.9} heart={M.surface} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink }}>만다라트 · Mandarat</Text>

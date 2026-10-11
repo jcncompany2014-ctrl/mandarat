@@ -9,6 +9,7 @@ import { useMandarat } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
+import { readableOn } from '../theme/palette';
 import { DayPicker } from '../components/DayPicker';
 
 // 실천 칸마다 살짝 다른 예시를 보여 구체적으로 적도록 유도한다.
@@ -106,8 +107,8 @@ function Editor({ editor }: { editor: EditorTarget }) {
               </View>
             )}
             <Pressable onPress={save} style={{ marginTop: 14, backgroundColor: M.accent, borderRadius: 14, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
-              <Icon name="check" size={18} color="#fff" sw={2.6} />
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>저장</Text>
+              <Icon name="check" size={18} color={readableOn(M.accent)} sw={2.6} />
+              <Text style={{ color: readableOn(M.accent), fontSize: 16, fontWeight: '800' }}>저장</Text>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>

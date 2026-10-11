@@ -10,7 +10,7 @@ import { MandalaArt } from './MandalaArt';
 export function Splash() {
   return (
     <View style={{ flex: 1, backgroundColor: '#FBF9F4', alignItems: 'center', justifyContent: 'center' }}>
-      <MandalaArt size={148} stroke="#B0883C" opacity={0.9} />
+      <MandalaArt size={148} stroke="#B0883C" opacity={0.9} heart="#FBF9F4" />
       <Text style={{ marginTop: 18, fontSize: 13, fontWeight: '700', letterSpacing: 3, color: '#B0883C' }}>
         MANDARAT
       </Text>

@@ -3,7 +3,7 @@ import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Sheet, CloseBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { tint } from '../theme/moods';
-import { SEMANTIC } from '../theme/palette';
+import { SEMANTIC, readableOn } from '../theme/palette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
@@ -120,7 +120,7 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
             backgroundColor: result?.ok ? M.accent : M.line, opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ color: result?.ok ? '#fff' : M.faint, fontSize: 16, fontWeight: '800' }}>이 백업으로 바꾸기</Text>
+          <Text style={{ color: result?.ok ? readableOn(M.accent) : M.faint, fontSize: 16, fontWeight: '800' }}>이 백업으로 바꾸기</Text>
         </Pressable>
       </View>
     </Sheet>
