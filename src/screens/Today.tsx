@@ -104,8 +104,11 @@ function TodayChecklist({ M }: { M: M }) {
   const pending = rows.filter((r) => !sunk(r));
   const finished = rows.filter(sunk);
 
+  // 체크할 땐 잠깐 붙잡아 체크 애니메이션을 보여 준 뒤 '완료'로 내려 보내고,
+  // 해제할 땐 바로 부드럽게 위로 올린다
   const toggleRow = (r: Row) => {
-    hold(r.key);
+    if (r.done) animateLayout();
+    else hold(r.key);
     if (r.it) check(r.it);
     else if (r.x) {
       tap();
@@ -281,16 +284,21 @@ function TodayChecklist({ M }: { M: M }) {
         </Reveal>
       )}
 
+      {/* 한 배열로 그려야 항목이 '완료' 위아래로 옮겨갈 때 다시 만들어지지 않고 그대로 미끄러진다 */}
       <View style={{ gap: 10 }}>
-        {pending.map((r, i) => renderRow(r, i))}
-        {finished.length > 0 && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 ? 6 : 0, marginBottom: 2 }} accessibilityRole="header">
-            <Icon name="checkCircle" size={14} color={SEMANTIC.done} />
-            <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub }}>완료 · {finished.length}</Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
-          </View>
-        )}
-        {finished.map((r, i) => renderRow(r, pending.length + i))}
+        {[
+          ...pending.map((r, i) => renderRow(r, i)),
+          ...(finished.length > 0
+            ? [
+                <View key="done-header" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 ? 6 : 0, marginBottom: 2 }} accessibilityRole="header">
+                  <Icon name="checkCircle" size={14} color={SEMANTIC.done} />
+                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub }}>완료 · {finished.length}</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
+                </View>,
+              ]
+            : []),
+          ...finished.map((r, i) => renderRow(r, pending.length + i)),
+        ]}
       </View>
 
       {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}

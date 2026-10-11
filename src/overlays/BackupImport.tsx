@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Sheet, CloseBtn, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
@@ -22,7 +22,7 @@ function fmtExported(iso?: string): string {
 export function BackupImport({ onClose }: { onClose: () => void }) {
   const M = usePalette();
   return (
-    <Sheet M={M} onClose={onClose} maxHeightPct={0.9}>
+    <Sheet M={M} onClose={onClose} maxHeightPct={0.9} ownClose>
       <BackupImportBody />
     </Sheet>
   );
@@ -48,8 +48,11 @@ function BackupImportBody() {
     if (t != null) setText(t);
   };
 
+  // 한 번만 — 두 번 눌리면 두 번째 스냅샷이 이미 불러온 문서가 되어 되돌리기가 의미를 잃는다
+  const applied = useRef(false);
   const apply = () => {
-    if (!result?.ok) return;
+    if (!result?.ok || applied.current) return;
+    applied.current = true;
     success();
     const snapshot = doc; // 되돌리기용
     replaceDoc(result.doc);

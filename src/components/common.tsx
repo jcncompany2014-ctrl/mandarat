@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { DUR, EASE, SPRING } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
@@ -109,17 +109,21 @@ export function useSheetDismiss() {
  * - 손잡이를 끌어내려도 닫힌다(충분히 끌거나 빠르게 튕기면). 덜 끌면 제자리로 돌아온다.
  */
 export function Sheet({
-  M, onClose, children, maxHeightPct = 0.9,
+  M, onClose, children, maxHeightPct = 0.9, ownClose = false,
 }: {
   M: M;
   onClose: () => void;
   children: React.ReactNode;
   maxHeightPct?: number;
+  /** 시트 안에 닫기(×) 버튼이 따로 있으면 true — 손잡이를 스크린리더에서 숨겨 '닫기'가 두 번 읽히지 않게 */
+  ownClose?: boolean;
 }) {
   const enter = useRef(new Animated.Value(reducedMotion() ? 1 : 0)).current; // 0 → 1 등장
   const drag = useRef(new Animated.Value(0)).current; // 끌어내린 거리 · 퇴장 거리
   const height = useRef(560);
   const closing = useRef(false);
+  // 내려가는 동안에는 손을 대도 반응하지 않게(같은 버튼을 두 번 누르는 사고 방지)
+  const [leaving, setLeaving] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -131,6 +135,7 @@ export function Sheet({
   const dismiss = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
+    setLeaving(true);
     if (reducedMotion()) {
       onCloseRef.current();
       return;
@@ -171,6 +176,7 @@ export function Sheet({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={dismiss} />
         <Animated.View
+          pointerEvents={leaving ? 'none' : 'auto'}
           onLayout={(e) => { height.current = e.nativeEvent.layout.height; }}
           style={[
             {
@@ -187,7 +193,10 @@ export function Sheet({
           {/* 손잡이 — 끌어내려 닫기 */}
           <View
             {...pan.panHandlers}
-            accessible
+            testID="sheet-handle"
+            accessible={!ownClose}
+            importantForAccessibility={ownClose ? 'no-hide-descendants' : 'auto'}
+            accessibilityElementsHidden={ownClose}
             accessibilityRole="button"
             accessibilityLabel="시트 닫기"
             accessibilityHint="아래로 끌어내려도 닫혀요"

@@ -76,7 +76,7 @@ export function SegmentedControl<T extends string>({
             }}
             accessibilityRole={role}
             accessibilityLabel={o.a11yLabel ?? o.label}
-            accessibilityState={{ selected: on }}
+            accessibilityState={role === 'radio' ? { checked: on } : { selected: on }}
             style={{ flex: 1, flexDirection: 'row', gap: 5, paddingVertical: compact ? 8 : 9, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }}
           >
             {o.icon && <Icon name={o.icon} size={14} color={on ? M.accent : M.faint} />}

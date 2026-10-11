@@ -34,8 +34,7 @@ function QuickAddBody({ ti, setTi }: { ti: number; setTi: (i: number) => void })
     if (!text.trim()) return;
     tap();
     addExtra(ti, text);
-    setText('');
-    dismiss();
+    dismiss(); // 내용은 그대로 둔 채 내려간다(내려가는 중에 칩이 다시 나타나 높이가 바뀌지 않게)
   };
 
   return (
@@ -52,7 +51,7 @@ function QuickAddBody({ ti, setTi }: { ti: number; setTi: (i: number) => void })
                 scaleTo={0.93}
                 accessibilityRole="radio"
                 accessibilityLabel={`${th.title || `영역 ${i + 1}`} 영역`}
-                accessibilityState={{ selected: on }}
+                accessibilityState={{ checked: on }}
                 style={{ width: '22%', flexGrow: 1, paddingVertical: 11, borderRadius: 14, alignItems: 'center', gap: 5, borderWidth: 1.5, borderColor: on ? th.color : M.line, backgroundColor: on ? tint(th.color, M.dark ? 18 : 11, M.dark) : 'transparent' }}
               >
                 <Icon name={th.icon} size={20} color={th.color} />

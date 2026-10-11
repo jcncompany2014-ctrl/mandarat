@@ -303,7 +303,10 @@ function TodayCard({
                   </Pressable>
                   <Pressable
                     onPress={() => (r.onOpen ? (tap(), r.onOpen()) : check(r))}
-                    accessibilityRole="button"
+                    // 실천은 자세히 보기, 직접 추가한 할 일은 글자를 눌러도 체크된다
+                    accessibilityRole={r.onOpen ? 'button' : 'checkbox'}
+                    accessibilityState={r.onOpen ? undefined : { checked: r.done }}
+                    accessibilityHint={r.onOpen ? '실천 항목 자세히 보기' : undefined}
                     accessibilityLabel={`${r.text}, ${th.title || `영역 ${r.ti + 1}`}`}
                     style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}
                   >

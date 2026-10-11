@@ -17,7 +17,7 @@ export function ActionSheet() {
   const M = usePalette();
   if (!sheet) return null;
   return (
-    <Sheet M={M} onClose={closeSheet}>
+    <Sheet M={M} onClose={closeSheet} ownClose>
       <ActionSheetBody ti={sheet.ti} ai={sheet.ai} />
     </Sheet>
   );

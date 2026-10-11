@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Text, View } from 'react-native';
 import { Pressy } from '../components/Pressy';
 import { EASE } from '../theme/motion';
@@ -76,6 +76,20 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     };
   }, [run, finished, reduce, breath, cue]);
 
+  // 매초 다시 그려져도 같은 애니메이션 노드를 쓰도록 한 번만 만든다
+  const glow = useMemo(() => ({
+    opacity: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.05, 0.15] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })),
+    transform: [{ scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.06] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] })) }],
+  }), [breath, bloom]);
+  const lotus = useMemo(() => ({
+    opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.13, 0.27] }),
+    transform: [
+      { scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.05] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })) },
+      { rotate: bloom.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22.5deg'] }) },
+    ],
+  }), [breath, bloom]);
+  const cueStyle = useMemo(() => ({ opacity: cue, transform: [{ translateY: cue.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }), [cue]);
+
   const th = doc.themes[ti];
   const a = th.actions[ai];
   const pct = (1 - left / TOTAL) * 100;
@@ -100,22 +114,11 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
         {/* 숨 쉬는 연꽃 + 은은한 빛 */}
         <Animated.View
           pointerEvents="none"
-          style={{
-            position: 'absolute', width: 290, height: 290, borderRadius: 145, backgroundColor: th.color,
-            opacity: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.05, 0.15] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })),
-            transform: [{ scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.06] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] })) }],
-          }}
+          style={[{ position: 'absolute', width: 290, height: 290, borderRadius: 145, backgroundColor: th.color }, glow]}
         />
         <Animated.View
           pointerEvents="none"
-          style={{
-            position: 'absolute', alignItems: 'center', justifyContent: 'center',
-            opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.13, 0.27] }),
-            transform: [
-              { scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.05] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })) },
-              { rotate: bloom.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22.5deg'] }) },
-            ],
-          }}
+          style={[{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }, lotus]}
         >
           <MandalaArt size={360} stroke={th.color} opacity={1} />
         </Animated.View>
@@ -128,7 +131,8 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           <Pill M={M} color={th.color}>{th.title || `영역 ${ti + 1}`}</Pill>
         </View>
         <View style={{ marginTop: 22, marginBottom: 8 }}>
-          <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)" animate={!finished}>
+          {/* 1초에 둘레의 1/1500씩 — 따로 애니메이션할 필요 없이 그대로 그린다 */}
+          <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)" animate={false}>
             <Text style={{ fontSize: 56, fontWeight: '700', color: '#fff', fontFamily: FONTS.grotesk, fontVariant: ['tabular-nums'] }}>
               {finished ? '완료' : `${mm}:${ss}`}
             </Text>
@@ -138,8 +142,9 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           </Ring>
         </View>
         <Animated.Text
-          accessibilityLiveRegion="polite"
-          style={{ fontSize: 13, color: th.color, fontWeight: '700', letterSpacing: 0.3, opacity: cue, transform: [{ translateY: cue.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }}
+          // 들숨·날숨은 4초마다 바뀌므로 읽어 주지 않고, 멈춤·완료만 알린다
+          accessibilityLiveRegion={!run || finished ? 'polite' : 'none'}
+          style={[{ fontSize: 13, color: th.color, fontWeight: '700', letterSpacing: 0.3 }, cueStyle]}
         >
           {cueText}
         </Animated.Text>

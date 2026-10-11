@@ -85,7 +85,8 @@ export function Root() {
     prevToday.current = { done: todayDone, total: todayTotal, complete };
   }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 한 영역이 8칸을 모두 채우면 조용히 축하 (세션 중 7→8이 되는 순간)
+  // 한 영역이 8칸을 모두 채우면 조용히 축하 — 칸 하나를 직접 체크해 7→8이 된 순간에만.
+  // (백업 불러오기·되돌리기처럼 통째로 바뀐 경우는 제외하고, 되돌리기가 달린 안내는 덮지 않는다)
   const areaDone = doc.themes.map((t) => t.actions.filter((a) => a.done).length).join(',');
   const prevAreas = useRef<number[] | null>(null);
   useEffect(() => {
@@ -93,11 +94,12 @@ export function Root() {
     const prev = prevAreas.current;
     prevAreas.current = now;
     if (!prev) return;
+    const changed = now.map((n, i) => n - prev[i]).filter((d) => d !== 0);
+    if (changed.length !== 1 || changed[0] !== 1) return;
     const ti = now.findIndex((n, i) => n === 8 && prev[i] === 7);
-    if (ti >= 0 && totalDone(doc) < 64) {
-      success();
-      ui.showToast(`🪷 ${doc.themes[ti].title || `영역 ${ti + 1}`} 영역이 만개했어요`);
-    }
+    if (ti < 0 || totalDone(doc) >= 64 || ui.toast?.action) return;
+    success();
+    ui.showToast(`🪷 ${doc.themes[ti].title || `영역 ${ti + 1}`} 영역이 만개했어요`);
   }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 전체 64칸 만개 → 특별 축하 (세션 중 100% 도달 시 1회)
@@ -122,7 +124,7 @@ export function Root() {
   let screen: React.ReactNode = null;
   if (ui.screen === 'dashboard') screen = <Dashboard />;
   else if (ui.screen === 'grid') screen = <GridScreen />;
-  else if (ui.screen === 'detail') screen = <Detail ti={ui.ti} />;
+  else if (ui.screen === 'detail') screen = <Detail key={ui.ti} ti={ui.ti} />;
   else if (ui.screen === 'today') screen = <Today />;
   else if (ui.screen === 'stats') screen = <Stats />;
   else if (ui.screen === 'settings') screen = <Settings />;
