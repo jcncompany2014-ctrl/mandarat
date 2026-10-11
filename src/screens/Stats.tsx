@@ -7,6 +7,11 @@ import { Ring } from '../components/Ring';
 import { EmptyState } from '../components/EmptyState';
 import { LotusBloom, bloomStage, bloomLabel } from '../components/LotusBloom';
 import { LotusRadar } from '../components/LotusRadar';
+import { Reveal, Pop } from '../components/Reveal';
+import { Pressy } from '../components/Pressy';
+import { AnimatedNumber } from '../components/AnimatedNumber';
+import { ProgressBar } from '../components/ProgressBar';
+import { GrowBar } from '../components/GrowBar';
 import { FONTS } from '../theme/fonts';
 import { fade } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -80,19 +85,19 @@ export function Stats() {
       <Header M={M} en="Progress" kr="통계" right={<IconBtn M={M} name="share" label="통계 요약 공유" onPress={shareSummary} />} />
 
       {/* insight */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+      <Reveal index={0} style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
         <InsightCard M={M} doc={doc} />
-      </View>
+      </Reveal>
 
       {/* top stats */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', gap: 12 }}>
+      <Reveal index={1} style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', gap: 12 }}>
         <View style={[{ flex: 1.3, borderRadius: 22, padding: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, flexDirection: 'row', alignItems: 'center', gap: 14 }, M.dark ? null : shadow(4)]}>
-          <Ring pct={pct} size={70} stroke={7} color={M.accent} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{pct}%</Text>
+          <Ring pct={pct} size={70} stroke={7} color={M.accent} delay={120} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}>
+            <AnimatedNumber value={pct} format={(n) => `${n}%`} style={{ fontSize: 18, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }} />
           </Ring>
           <View>
             <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>
-              {done}
+              <AnimatedNumber value={done} />
               <Text style={{ fontSize: 15, color: M.faint }}>/64</Text>
             </Text>
             <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>전체 달성</Text>
@@ -101,21 +106,21 @@ export function Stats() {
         <View style={[{ flex: 1, borderRadius: 22, padding: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, justifyContent: 'center' }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <Icon name="flame" size={20} color={M.accent} />
-            <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{streak}</Text>
+            <AnimatedNumber value={streak} style={{ fontSize: 26, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }} />
           </View>
           <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600', marginTop: 2 }}>현재 연속일</Text>
         </View>
-      </View>
+      </Reveal>
 
       {hasData ? (
       <>
       {/* weekly review */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+      <Reveal index={2} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <WeekCard M={M} doc={doc} review={review} />
-      </View>
+      </Reveal>
 
       {/* heatmap */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+      <Reveal index={3} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>최근 10주 실천</Text>
@@ -132,44 +137,46 @@ export function Stats() {
             <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>많음</Text>
           </View>
         </View>
-      </View>
+      </Reveal>
 
-      {/* area balance radar */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+      {/* area balance radar — 가운데서 피어나듯 */}
+      <Reveal index={4} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>영역 균형</Text>
             <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>고르게 피었나요?</Text>
           </View>
-          <View style={{ alignItems: 'center', paddingVertical: 4 }}>
+          <Pop delay={220} style={{ alignItems: 'center', paddingVertical: 4 }}>
             <LotusRadar
               size={radarSize}
               accent={M.accent}
               line={M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}
               data={doc.themes.map((th, ti) => ({ pct: themeProgress(th).pct, color: th.color, label: th.title || `영역 ${ti + 1}` }))}
             />
-          </View>
+          </Pop>
         </View>
-      </View>
+      </Reveal>
 
       {/* ranked theme bars */}
+      <Reveal index={5}>
       <Text style={{ paddingHorizontal: 20, fontSize: 16, fontWeight: '800', color: M.ink }}>영역별 달성률</Text>
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 13 }}>
-        {ranked.map(({ th, ti, p }) => (
-          <Pressable key={ti} onPress={() => go('detail', ti)}>
+        {ranked.map(({ th, ti, p }, i) => (
+          <Pressy key={ti} onPress={() => { tap(); go('detail', ti); }} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`${th.title || `영역 ${ti + 1}`} ${p.pct}%, 세부 보기`}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: th.color }} />
               <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '700', color: M.ink }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
               <Text style={{ fontSize: 12.5, fontWeight: '800', color: th.color, fontFamily: FONTS.grotesk }}>{p.pct}%</Text>
             </View>
-            <View style={{ height: 9, borderRadius: 5, backgroundColor: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.055)', overflow: 'hidden' }}>
-              <View style={{ height: '100%', width: `${p.pct}%`, backgroundColor: th.color, borderRadius: 5 }} />
-            </View>
-          </Pressable>
+            <ProgressBar pct={p.pct} height={9} radius={5} delayIndex={i} color={th.color} track={M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.055)'} />
+          </Pressy>
         ))}
       </View>
+      </Reveal>
 
-      <ReflectionFeed M={M} doc={doc} />
+      <Reveal index={6}>
+        <ReflectionFeed M={M} doc={doc} />
+      </Reveal>
       </>
       ) : (
         <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
@@ -334,7 +341,7 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
         )}
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 9, height: 104 }}>
-        {review.days.map((d) => {
+        {review.days.map((d, di) => {
           const h = Math.max(4, (d.count / maxW) * 72);
           return (
             <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
@@ -342,11 +349,15 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
                 <Text style={{ fontSize: 10.5, fontWeight: '700', color: d.isToday ? M.accent : M.sub, fontFamily: FONTS.grotesk }}>{d.count}</Text>
               )}
               {d.isToday ? (
-                <LinearGradient colors={[M.gold, M.accent]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ width: '100%', height: h, borderRadius: 7 }} />
+                <GrowBar height={h} index={di}>
+                  <LinearGradient colors={[M.gold, M.accent]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1, borderRadius: 7 }} />
+                </GrowBar>
               ) : d.future ? (
                 <View style={{ width: '100%', height: 4, borderRadius: 3, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(35,33,28,0.06)' }} />
               ) : (
-                <View style={{ width: '100%', height: h, borderRadius: 7, backgroundColor: M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)' }} />
+                <GrowBar height={h} index={di}>
+                  <View style={{ flex: 1, borderRadius: 7, backgroundColor: M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)' }} />
+                </GrowBar>
               )}
               <Text style={{ fontSize: 11, fontWeight: d.isToday ? '800' : '700', color: d.isToday ? M.accent : M.faint, opacity: d.future ? 0.55 : 1 }}>{DOW_KR[d.dow]}</Text>
             </View>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Pressy } from './Pressy';
 import { MOOD_FACES } from './Icon';
 import { tint } from '../theme/moods';
 import type { M } from '../theme/usePalette';
@@ -11,8 +12,9 @@ export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i
         const on = value === i;
         const Face = m.ic;
         return (
-          <Pressable
+          <Pressy
             key={i}
+            scaleTo={0.9}
             onPress={() => onPick(i)}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
@@ -25,7 +27,7 @@ export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i
           >
             <Face size={24} color={on ? m.c : M.faint} strokeWidth={1.9} />
             <Text style={{ fontSize: 10.5, fontWeight: '700', color: on ? m.c : M.faint }}>{m.kr}</Text>
-          </Pressable>
+          </Pressy>
         );
       })}
     </View>

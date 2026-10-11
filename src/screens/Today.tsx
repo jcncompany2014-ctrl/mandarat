@@ -1,5 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressy } from '../components/Pressy';
+import { Reveal } from '../components/Reveal';
+import { AnimatedNumber } from '../components/AnimatedNumber';
+import { ProgressBar } from '../components/ProgressBar';
+import { SegmentedControl } from '../components/SegmentedControl';
+import { useSettle } from '../lib/useSettle';
+import { animateLayout } from '../lib/layoutAnim';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
@@ -17,7 +24,7 @@ import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
 import { daysLabel, doneOn, extraLogKey, routineWeek, todayItems, type TodayItem } from '../lib/routine';
 import { SEMANTIC } from '../theme/palette';
-import type { IconName, Mgmt } from '../types';
+import type { IconName, Mgmt, TodayExtra } from '../types';
 
 const MODES: { v: Mgmt; icon: IconName }[] = [
   { v: '일일 체크', icon: 'checkCircle' },
@@ -52,26 +59,15 @@ export function Today() {
   return (
     <View>
       <Header M={M} en={label} kr="오늘의 실천" />
-      {/* 보기 방식 — 설정까지 가지 않고 바로 전환 */}
+      {/* 보기 방식 — 설정까지 가지 않고 바로 전환 (받침이 미끄러지며 따라온다) */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
-        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)', padding: 4, borderRadius: 13 }}>
-          {MODES.map((m) => {
-            const on = mgmt === m.v;
-            return (
-              <Pressable
-                key={m.v}
-                onPress={() => { if (!on) { tap(); setSetting('mgmt', m.v); } }}
-                accessibilityRole="tab"
-                accessibilityLabel={`보기 방식 ${m.v}`}
-                accessibilityState={{ selected: on }}
-                style={[{ flex: 1, flexDirection: 'row', gap: 5, paddingVertical: 8, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? M.surface : 'transparent' }, on && !M.dark ? shadow(2) : null]}
-              >
-                <Icon name={m.icon} size={14} color={on ? M.accent : M.faint} />
-                <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? M.ink : M.sub }}>{m.v}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <SegmentedControl
+          M={M}
+          compact
+          value={mgmt}
+          onChange={(v) => { animateLayout(); setSetting('mgmt', v); }}
+          options={MODES.map((m) => ({ value: m.v, label: m.v, icon: m.icon, a11yLabel: `보기 방식 ${m.v}` }))}
+        />
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayChecklist M={M} />}
     </View>
@@ -89,6 +85,7 @@ function TodayChecklist({ M }: { M: M }) {
   const now = new Date();
 
   const [cat, setCat] = useState<number | null>(null);
+  const { held, hold } = useSettle();
   const fList = cat == null ? list : list.filter((it) => it.ti === cat);
   const fExtra = cat == null ? extra : extra.filter((x) => x.ti === cat);
 
@@ -96,6 +93,26 @@ function TodayChecklist({ M }: { M: M }) {
   const tTotal = list.length + extra.length;
   const routines = list.filter((it) => it.routine).length;
   const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
+
+  // 남은 일이 위, 끝낸 일은 '완료' 아래로 — 방금 체크한 일은 잠깐 제자리에 머문 뒤 내려간다
+  type Row = { key: string; done: boolean; it?: TodayItem; x?: TodayExtra };
+  const rows: Row[] = [
+    ...fList.map((it) => ({ key: `b${it.key}`, done: it.done, it })),
+    ...fExtra.map((x) => ({ key: `x${x.id}`, done: x.done, x })),
+  ];
+  const sunk = (r: Row) => r.done && !held.has(r.key);
+  const pending = rows.filter((r) => !sunk(r));
+  const finished = rows.filter(sunk);
+
+  const toggleRow = (r: Row) => {
+    hold(r.key);
+    if (r.it) check(r.it);
+    else if (r.x) {
+      tap();
+      if (!r.x.done) success();
+      toggleExtra(r.x.id);
+    }
+  };
 
   // 되돌리기는 지운 할 일만 되살린다(그 사이 다른 체크는 그대로)
   const dropExtra = (id: string) => {
@@ -105,31 +122,129 @@ function TodayChecklist({ M }: { M: M }) {
     const x = extra[index];
     const day = dateKey();
     const logged = doneOn(doc.dayLog, extraLogKey(x.ti, x.id), day);
+    animateLayout();
     removeExtra(id);
-    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => restoreExtra(x, index, logged, day) });
+    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => { animateLayout(); restoreExtra(x, index, logged, day); } });
+  };
+
+  const renderRow = (r: Row, i: number) => {
+    if (r.it) {
+      const it = r.it;
+      const th = doc.themes[it.ti];
+      const a = th.actions[it.ai];
+      const area = th.title || `영역 ${it.ti + 1}`;
+      return (
+        <Reveal key={r.key} index={2 + i}>
+          <Pressy
+            onPress={() => { tap(); openAction(it.ti, it.ai); }}
+            scaleTo={0.985}
+            accessibilityRole="button"
+            accessibilityLabel={`${a.text}, ${area}${it.routine ? `, ${daysLabel(a.days)} 반복` : ''}${it.done ? ', 완료' : ''}`}
+            accessibilityHint="실천 항목 자세히 보기"
+            // VoiceOver는 행 전체를 한 요소로 읽으므로 안쪽 체크는 사용자 지정 동작으로도 제공
+            accessibilityActions={[{ name: 'toggle', label: it.done ? '완료 해제' : '완료로 표시' }]}
+            onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'toggle') toggleRow(r); }}
+            style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: it.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark || it.done ? null : shadow(3)]}
+          >
+            <Pressable
+              onPress={() => toggleRow(r)}
+              hitSlop={10}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: it.done }}
+              accessibilityLabel={`${a.text} 완료`}
+            >
+              <Check on={it.done} color={th.color} dark={M.dark} />
+            </Pressable>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={1}>
+                {a.text}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
+                <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{area}</Text>
+                {it.routine && (
+                  <>
+                    <Icon name="repeat" size={11} color={th.color} sw={2.2} />
+                    <Text style={{ fontSize: 11.5, color: th.color, fontWeight: '700' }}>{daysLabel(a.days)}</Text>
+                  </>
+                )}
+              </View>
+              {it.routine && (
+                <View style={{ marginTop: 8 }}>
+                  <WeekDots M={M} states={routineWeek(doc, it.ti, it.ai, now)} color={th.color} size={12} />
+                </View>
+              )}
+            </View>
+            <Icon name="chevR" size={17} color={M.faint} />
+          </Pressy>
+        </Reveal>
+      );
+    }
+    const x = r.x!;
+    const th = doc.themes[x.ti];
+    return (
+      <Reveal key={r.key} index={2 + i}>
+        <Pressy
+          onPress={() => toggleRow(r)}
+          scaleTo={0.985}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: x.done }}
+          accessibilityLabel={`${x.text} 완료`}
+          accessibilityActions={[{ name: 'delete', label: '지우기' }]}
+          onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') dropExtra(x.id); }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: tint(th.color, 40, M.dark), backgroundColor: x.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
+        >
+          <Check on={x.done} color={th.color} dark={M.dark} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: x.done ? M.sub : M.ink, textDecorationLine: x.done ? 'line-through' : 'none' }} numberOfLines={1}>
+              {x.text}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
+              <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{th.title || `영역 ${x.ti + 1}`} · 직접 추가</Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => dropExtra(x.id)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={`${x.text} 지우기`}
+            style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+          >
+            <Icon name="close" size={15} color={M.faint} sw={2.2} />
+          </Pressable>
+        </Pressy>
+      </Reveal>
+    );
   };
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
       {/* progress banner — 무드 hero 톤, 할 일이 없으면 숨김 */}
       {tTotal > 0 && (
-        <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 20, marginBottom: 16, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <View>
-              <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub, letterSpacing: 0.2 }}>
-                오늘의 진행{routines > 0 ? ` · 루틴 ${routines}개 포함` : ''}
-              </Text>
-              <Text style={{ fontSize: 34, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 2 }}>
-                {tDone}
-                <Text style={{ fontSize: 20, color: M.heroSub }}>/{tTotal}</Text>
-              </Text>
+        <Reveal index={0}>
+          <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 20, marginBottom: 16, overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <View>
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub, letterSpacing: 0.2 }}>
+                  오늘의 진행{routines > 0 ? ` · 루틴 ${routines}개 포함` : ''}
+                </Text>
+                <Text style={{ fontSize: 34, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 2 }}>
+                  <AnimatedNumber value={tDone} fromZero={false} />
+                  <Text style={{ fontSize: 20, color: M.heroSub }}>/{tTotal}</Text>
+                </Text>
+              </View>
+              <AnimatedNumber value={pct} fromZero={false} format={(n) => `${n}%`} style={{ fontSize: 13, fontWeight: '800', color: M.gold }} />
             </View>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: M.gold }}>{pct}%</Text>
-          </View>
-          <View style={{ height: 8, borderRadius: 4, backgroundColor: M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.22)', marginTop: 12, overflow: 'hidden' }}>
-            <View style={{ height: '100%', width: `${pct}%`, backgroundColor: M.gold, borderRadius: 4 }} />
-          </View>
-        </LinearGradient>
+            <ProgressBar
+              pct={pct}
+              height={8}
+              color={M.gold}
+              track={M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.22)'}
+              style={{ marginTop: 12 }}
+            />
+          </LinearGradient>
+        </Reveal>
       )}
 
       {tTotal === 0 && (
@@ -142,115 +257,40 @@ function TodayChecklist({ M }: { M: M }) {
       )}
 
       {tTotal > 0 && (
-        <View style={{ marginBottom: 12 }}>
+        <Reveal index={1} style={{ marginBottom: 12 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingRight: 8 }}>
             {[null as number | null, ...doc.themes.map((_, i) => i)].map((c) => {
               const on = cat === c;
               const color = c == null ? M.gold : doc.themes[c].color;
               const label = c == null ? '전체' : doc.themes[c].title || `영역 ${c + 1}`;
               return (
-                <Pressable
+                <Pressy
                   key={c == null ? 'all' : c}
-                  onPress={() => setCat(c)}
+                  onPress={() => { if (!on) { tap(); animateLayout(); setCat(c); } }}
+                  scaleTo={0.94}
                   accessibilityRole="button"
                   accessibilityLabel={`${label} 필터`}
                   accessibilityState={{ selected: on }}
                   style={{ paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: on ? color : M.line, backgroundColor: on ? tint(color, M.dark ? 18 : 11, M.dark) : 'transparent' }}
                 >
                   <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? color : M.sub }}>{label}</Text>
-                </Pressable>
+                </Pressy>
               );
             })}
           </ScrollView>
-        </View>
+        </Reveal>
       )}
 
       <View style={{ gap: 10 }}>
-        {fList.map((it) => {
-          const th = doc.themes[it.ti];
-          const a = th.actions[it.ai];
-          const area = th.title || `영역 ${it.ti + 1}`;
-          return (
-            <Pressable
-              key={`b${it.key}`}
-              onPress={() => openAction(it.ti, it.ai)}
-              accessibilityRole="button"
-              accessibilityLabel={`${a.text}, ${area}${it.routine ? `, ${daysLabel(a.days)} 반복` : ''}${it.done ? ', 완료' : ''}`}
-              accessibilityHint="실천 항목 자세히 보기"
-              // VoiceOver는 행 전체를 한 요소로 읽으므로 안쪽 체크는 사용자 지정 동작으로도 제공
-              accessibilityActions={[{ name: 'toggle', label: it.done ? '완료 해제' : '완료로 표시' }]}
-              onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'toggle') check(it); }}
-              style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: it.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark ? null : shadow(3)]}
-            >
-              <Pressable
-                onPress={() => check(it)}
-                hitSlop={10}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: it.done }}
-                accessibilityLabel={`${a.text} 완료`}
-              >
-                <Check on={it.done} color={th.color} dark={M.dark} />
-              </Pressable>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={1}>
-                  {a.text}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-                  <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{area}</Text>
-                  {it.routine && (
-                    <>
-                      <Icon name="repeat" size={11} color={th.color} sw={2.2} />
-                      <Text style={{ fontSize: 11.5, color: th.color, fontWeight: '700' }}>{daysLabel(a.days)}</Text>
-                    </>
-                  )}
-                </View>
-                {it.routine && (
-                  <View style={{ marginTop: 8 }}>
-                    <WeekDots M={M} states={routineWeek(doc, it.ti, it.ai, now)} color={th.color} size={12} />
-                  </View>
-                )}
-              </View>
-              <Icon name="chevR" size={17} color={M.faint} />
-            </Pressable>
-          );
-        })}
-
-        {fExtra.map((x) => {
-          const th = doc.themes[x.ti];
-          return (
-            <Pressable
-              key={`x${x.id}`}
-              onPress={() => { tap(); if (!x.done) success(); toggleExtra(x.id); }}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: x.done }}
-              accessibilityLabel={`${x.text} 완료`}
-              accessibilityActions={[{ name: 'delete', label: '지우기' }]}
-              onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') dropExtra(x.id); }}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: tint(th.color, 40, M.dark), backgroundColor: x.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
-            >
-              <Check on={x.done} color={th.color} dark={M.dark} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: x.done ? M.sub : M.ink, textDecorationLine: x.done ? 'line-through' : 'none' }} numberOfLines={1}>
-                  {x.text}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-                  <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{th.title || `영역 ${x.ti + 1}`} · 직접 추가</Text>
-                </View>
-              </View>
-              <Pressable
-                onPress={() => dropExtra(x.id)}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel={`${x.text} 지우기`}
-                style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
-              >
-                <Icon name="close" size={15} color={M.faint} sw={2.2} />
-              </Pressable>
-            </Pressable>
-          );
-        })}
+        {pending.map((r, i) => renderRow(r, i))}
+        {finished.length > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 ? 6 : 0, marginBottom: 2 }} accessibilityRole="header">
+            <Icon name="checkCircle" size={14} color={SEMANTIC.done} />
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub }}>완료 · {finished.length}</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
+          </View>
+        )}
+        {finished.map((r, i) => renderRow(r, pending.length + i))}
       </View>
 
       {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}
@@ -281,24 +321,27 @@ function TodayStreak({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+      <Reveal index={0}>
       <LinearGradient colors={M.hero} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={[{ borderRadius: 22, padding: 22, marginBottom: 18, alignItems: 'center', overflow: 'hidden' }, shadow(12, M.heroLight ? '#B9923F' : '#18122C', M.heroLight ? 0.16 : 0.26)]}>
         <Icon name="flame" size={36} color={M.gold} />
         <Text style={{ fontSize: 40, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 4 }}>
-          {best.best}
+          <AnimatedNumber value={best.best} />
           <Text style={{ fontSize: 18, color: M.heroSub }}>일</Text>
         </Text>
         <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.heroSub }}>
           {best.best > 0 ? `최장 연속 달성 · ${bestName}` : '오늘부터 연속 기록을 시작해요'}
         </Text>
       </LinearGradient>
+      </Reveal>
 
       <View style={{ gap: 10 }}>
         {doc.themes.map((th, ti) => {
           const s = streaks[ti];
           return (
-            <Pressable
-              key={ti}
-              onPress={() => go('detail', ti)}
+            <Reveal key={ti} index={1 + ti}>
+            <Pressy
+              onPress={() => { tap(); go('detail', ti); }}
+              scaleTo={0.985}
               accessibilityRole="button"
               accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 현재 연속 ${s.cur}일, 최고 ${s.best}일`}
               style={[{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: M.surface }, M.dark ? null : shadow(3)]}
@@ -321,7 +364,8 @@ function TodayStreak({ M }: { M: M }) {
                 </View>
                 <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>최고 {s.best}일</Text>
               </View>
-            </Pressable>
+            </Pressy>
+            </Reveal>
           );
         })}
       </View>
@@ -349,6 +393,7 @@ function TodayKanban({ M }: { M: M }) {
   const stageOf = (c: Card): 0 | 1 | 2 => (c.done ? 2 : inProgress.has(c.key) ? 1 : 0);
   const advance = (c: Card) => {
     const st = stageOf(c);
+    animateLayout();
     if (st === 0) {
       tap();
       setInProgress((s) => new Set(s).add(c.key));
@@ -388,9 +433,10 @@ function TodayKanban({ M }: { M: M }) {
                 const th = doc.themes[c.ti];
                 const routine = !!c.item?.routine;
                 return (
-                  <Pressable
+                  <Pressy
                     key={c.key}
                     onPress={() => advance(c)}
+                    scaleTo={0.98}
                     accessibilityRole="button"
                     accessibilityLabel={`${c.text}, ${th.title || `영역 ${c.ti + 1}`}, ${label}`}
                     accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : '완료 취소'}
@@ -405,7 +451,7 @@ function TodayKanban({ M }: { M: M }) {
                       </Text>
                     </View>
                     {ci < 2 ? <Icon name="chevR" size={17} color={M.faint} /> : <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
-                  </Pressable>
+                  </Pressy>
                 );
               })}
               {colCards.length === 0 && <Text style={{ fontSize: 12.5, color: M.faint, paddingHorizontal: 14, paddingVertical: 10 }}>비어 있음</Text>}

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import { Sheet, Pill, CloseBtn } from '../components/common';
+import { Sheet, Pill, CloseBtn, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
 import { DayPicker } from '../components/DayPicker';
 import { WeekDots } from '../components/WeekDots';
+import { Pressy } from '../components/Pressy';
 import { tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
@@ -24,7 +25,8 @@ export function ActionSheet() {
 
 function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
-  const { closeSheet, startFocus, openEditor, showToast } = useUI();
+  const { startFocus, openEditor, showToast } = useUI();
+  const dismiss = useSheetDismiss();
   const { doc, toggleDone, toggleRoutineToday, toggleToday, inToday, setActionNote, setActionDays } = useMandarat();
   const th = doc.themes[ti];
   const a = th.actions[ai];
@@ -60,7 +62,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
     <View style={{ paddingHorizontal: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <Pill M={M} color={th.color}>{th.title || `영역 ${ti + 1}`}</Pill>
-        <CloseBtn M={M} onPress={closeSheet} />
+        <CloseBtn M={M} onPress={dismiss} />
       </View>
 
       <Pressable onPress={() => openEditor({ kind: 'action', ti, ai })} accessibilityRole="button" accessibilityLabel="실천 문구 편집" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -86,8 +88,9 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
 
       {/* 메인 완료 버튼 — 루틴은 오늘 기록, 아니면 칸의 영구 달성 */}
       {routine ? (
-        <Pressable
+        <Pressy
           onPress={() => { tap(); if (!doneToday) success(); toggleRoutineToday(ti, ai); }}
+          scaleTo={0.97}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: doneToday }}
           accessibilityLabel="오늘 실천 완료"
@@ -100,10 +103,11 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <Text style={{ fontSize: 16, fontWeight: '800', color: doneToday ? th.color : '#fff' }}>
             {doneToday ? '오늘 실천 완료 · 탭하여 해제' : '오늘 실천 완료로 표시'}
           </Text>
-        </Pressable>
+        </Pressy>
       ) : (
-        <Pressable
+        <Pressy
           onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+          scaleTo={0.97}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: a.done }}
           accessibilityLabel="실천 달성"
@@ -116,13 +120,14 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <Text style={{ fontSize: 16, fontWeight: '800', color: a.done ? th.color : '#fff' }}>
             {a.done ? '완료됨 · 탭하여 해제' : '완료로 표시'}
           </Text>
-        </Pressable>
+        </Pressy>
       )}
 
       {/* row toggles */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-        <Pressable
+        <Pressy
           onPress={handleToday}
+          scaleTo={0.96}
           accessibilityRole="button"
           accessibilityLabel={autoToday ? '오늘 반복 요일이라 자동 포함' : onToday ? '오늘 할 일에서 빼기' : '오늘 할 일에 추가'}
           accessibilityState={{ selected: autoToday || onToday, disabled: autoToday }}
@@ -133,9 +138,10 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600' }}>
             {autoToday ? '반복 요일 · 자동 포함' : routine ? (onToday ? '오늘만 추가됨' : '오늘만 추가하기') : onToday ? '추가됨' : '추가하기'}
           </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => startFocus(ti, ai)}
+        </Pressy>
+        <Pressy
+          onPress={() => { tap(); startFocus(ti, ai); }}
+          scaleTo={0.96}
           accessibilityRole="button"
           accessibilityLabel="집중 25분 타이머 시작"
           style={{ flex: 1, padding: 13, borderRadius: 14, borderWidth: 1.5, borderColor: M.line }}
@@ -143,7 +149,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <Icon name="target" size={18} color={M.gold} />
           <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginTop: 6 }}>집중 25분</Text>
           <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600' }}>몰입 타이머</Text>
-        </Pressable>
+        </Pressy>
       </View>
 
       {/* 반복 요일 */}
@@ -157,8 +163,9 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
 
       {routine && (
         // 루틴의 영구 달성 — 습관이 자리 잡으면 만다라트 칸을 채운다
-        <Pressable
+        <Pressy
           onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+          scaleTo={0.98}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: a.done }}
           accessibilityLabel="만다라트 칸 달성"
@@ -171,7 +178,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
               {a.done ? '탭하면 달성을 해제해요' : '이 칸을 달성으로 채워 연꽃을 피워요'}
             </Text>
           </View>
-        </Pressable>
+        </Pressy>
       )}
 
       {/* note */}

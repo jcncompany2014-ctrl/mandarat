@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Header, IconBtn } from '../components/common';
+import { SegmentedControl } from '../components/SegmentedControl';
+import { Pop } from '../components/Reveal';
 import { MandalaWheel } from './MandalaWheel';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
@@ -156,6 +158,9 @@ function Block({
   );
 }
 
+// 가운데 블록이 먼저, 이어서 왼쪽 위부터 시계 방향으로 (배치 순번 → 등장 순번)
+const BLOCK_BLOOM = [1, 2, 3, 8, 0, 4, 7, 6, 5];
+
 export function GridScreen() {
   const M = usePalette();
   const { doc } = useMandarat();
@@ -169,22 +174,14 @@ export function GridScreen() {
     <View>
       <Header M={M} en="Mandal-Art" kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 편집" onPress={() => openEditor({ kind: 'center' })} />} />
 
-      {/* view toggle */}
+      {/* view toggle — 받침이 미끄러지는 분절 선택기 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
-        <View style={{ flexDirection: 'row', gap: 4, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)', padding: 4, borderRadius: 13 }}>
-          {([['mandala', '만다라 휠'], ['full', '격자 81칸']] as const).map(([k, l]) => (
-            <Pressable
-              key={k}
-              onPress={() => setView(k)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: view === k }}
-              accessibilityLabel={l}
-              style={[{ flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center', backgroundColor: view === k ? M.surface : 'transparent' }, view === k && !M.dark ? shadow(2) : null]}
-            >
-              <Text style={{ fontSize: 13.5, fontWeight: '700', color: view === k ? M.ink : M.sub }}>{l}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <SegmentedControl
+          M={M}
+          value={view}
+          onChange={setView}
+          options={[{ value: 'mandala', label: '만다라 휠' }, { value: 'full', label: '격자 81칸' }]}
+        />
       </View>
 
       {view === 'mandala' ? (
@@ -199,10 +196,9 @@ export function GridScreen() {
           <View style={[{ backgroundColor: M.surface, borderRadius: blockR + 6, padding: 7, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(6)]}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {blockOrder.map((b, i) => (
+                <Pop key={i} index={BLOCK_BLOOM[i]} delay={40} style={{ width: '31.5%' }}>
                 <View
-                  key={i}
                   style={{
-                    width: '31.5%',
                     backgroundColor: b === 'c'
                       ? (M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(35,33,28,0.06)')
                       : (M.dark ? 'rgba(255,255,255,0.035)' : 'rgba(35,33,28,0.03)'),
@@ -224,6 +220,7 @@ export function GridScreen() {
                     onTapCenter={() => openEditor({ kind: 'center' })}
                   />
                 </View>
+                </Pop>
               ))}
             </View>
           </View>

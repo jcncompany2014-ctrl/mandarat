@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
-import { Sheet, CloseBtn } from '../components/common';
+import { Sheet, CloseBtn, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
 import { tint } from '../theme/moods';
 import { SEMANTIC, readableOn } from '../theme/palette';
@@ -21,6 +21,16 @@ function fmtExported(iso?: string): string {
 /** 백업 불러오기 — 붙여넣거나(웹은 파일 선택) 확인한 뒤 바꾸고, 잠시 되돌릴 수 있다. */
 export function BackupImport({ onClose }: { onClose: () => void }) {
   const M = usePalette();
+  return (
+    <Sheet M={M} onClose={onClose} maxHeightPct={0.9}>
+      <BackupImportBody />
+    </Sheet>
+  );
+}
+
+function BackupImportBody() {
+  const M = usePalette();
+  const dismiss = useSheetDismiss();
   const { doc, replaceDoc } = useMandarat();
   const offerUndo = useSnapshotUndo();
   const [text, setText] = useState('');
@@ -43,14 +53,13 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
     success();
     const snapshot = doc; // 되돌리기용
     replaceDoc(result.doc);
-    onClose();
+    dismiss();
     offerUndo('백업을 불러왔어요', snapshot);
   };
 
   const s = result?.ok ? result.summary : null;
 
   return (
-    <Sheet M={M} onClose={onClose} maxHeightPct={0.9}>
       <View style={{ paddingHorizontal: 20, paddingBottom: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <View style={{ flex: 1 }}>
@@ -59,7 +68,7 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
               내보낸 백업 글을 그대로 붙여넣어 주세요. 지금 기록은 백업 내용으로 바뀌고, 잠시 동안 되돌릴 수 있어요.
             </Text>
           </View>
-          <CloseBtn M={M} onPress={onClose} />
+          <CloseBtn M={M} onPress={dismiss} />
         </View>
 
         {Platform.OS === 'web' && (
@@ -129,6 +138,5 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
           <Text style={{ color: result?.ok ? readableOn(M.accent) : M.faint, fontSize: 16, fontWeight: '800' }}>이 백업으로 바꾸기</Text>
         </Pressable>
       </View>
-    </Sheet>
   );
 }

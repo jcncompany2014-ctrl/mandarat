@@ -4,6 +4,9 @@ import { Header, IconBtn } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
+import { Pressy } from '../components/Pressy';
+import { Reveal, Pop } from '../components/Reveal';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
@@ -13,6 +16,8 @@ import { tap, success } from '../lib/haptics';
 import { daysLabel, isRoutine } from '../lib/routine';
 
 const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
+// 가운데 영역이 먼저, 그다음 왼쪽 위에서 시계 방향으로 꽃잎처럼 펼쳐지는 순서 (실천 번호 → 등장 순번)
+const CLOCKWISE = [1, 2, 3, 8, 4, 7, 6, 5];
 
 export function Detail({ ti }: { ti: number }) {
   const M = usePalette();
@@ -51,7 +56,7 @@ export function Detail({ ti }: { ti: number }) {
       />
 
       {/* hero */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+      <Reveal index={0} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <View style={{ borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 18, backgroundColor: tint(th.color, M.dark ? 20 : 12, M.dark), borderWidth: 1, borderColor: tint(th.color, 30, M.dark) }}>
           <Ring pct={p.pct} size={84} stroke={8} color={th.color} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}>
             <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center' }}>
@@ -60,7 +65,7 @@ export function Detail({ ti }: { ti: number }) {
           </Ring>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 30, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>
-              {p.done}
+              <AnimatedNumber value={p.done} />
               <Text style={{ fontSize: 18, color: M.faint }}> / 8</Text>
             </Text>
             <Text style={{ fontSize: 13.5, color: M.sub, fontWeight: '600', marginTop: 2 }}>실천 항목 달성</Text>
@@ -72,7 +77,7 @@ export function Detail({ ti }: { ti: number }) {
             </View>
           </View>
         </View>
-      </View>
+      </Reveal>
 
       {/* mini 3×3 board */}
       <Text style={{ paddingHorizontal: 20, fontSize: 14, fontWeight: '800', color: M.ink }}>실천 보드</Text>
@@ -81,26 +86,29 @@ export function Detail({ ti }: { ti: number }) {
           {RING_MAP.map((r, pos) => {
             if (pos === 4) {
               return (
-                <View key={pos} style={{ width: '31.5%', aspectRatio: 1, borderRadius: cellR, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 6 }}>
-                  <Icon name={th.icon} size={20} color="rgba(255,255,255,0.9)" />
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', marginTop: 4, textAlign: 'center' }} numberOfLines={1}>
-                    {th.title || `영역 ${ti + 1}`}
-                  </Text>
-                </View>
+                <Pop key={pos} index={0} delay={60} style={{ width: '31.5%', aspectRatio: 1 }}>
+                  <View style={{ flex: 1, borderRadius: cellR, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 6 }}>
+                    <Icon name={th.icon} size={20} color="rgba(255,255,255,0.9)" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', marginTop: 4, textAlign: 'center' }} numberOfLines={1}>
+                      {th.title || `영역 ${ti + 1}`}
+                    </Text>
+                  </View>
+                </Pop>
               );
             }
             const ai = r as number;
             const a = th.actions[ai];
             const has = !!a.text.trim();
             return (
-              <Pressable
-                key={pos}
+              <Pop key={pos} index={CLOCKWISE[ai]} delay={90} style={{ width: '31.5%', aspectRatio: 1 }}>
+              <Pressy
                 onPress={() => onCell(ai)}
+                scaleTo={0.93}
                 accessibilityRole={has ? 'checkbox' : 'button'}
                 accessibilityState={has ? { checked: a.done } : undefined}
                 accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력`}
                 style={{
-                  width: '31.5%', aspectRatio: 1, borderRadius: cellR, alignItems: 'center', justifyContent: 'center', padding: 7,
+                  flex: 1, borderRadius: cellR, alignItems: 'center', justifyContent: 'center', padding: 7,
                   backgroundColor: a.done ? th.color : tint(th.color, M.dark ? 20 : 12, M.dark),
                 }}
               >
@@ -112,7 +120,8 @@ export function Detail({ ti }: { ti: number }) {
                     <Icon name="check" size={13} color="#fff" sw={2.8} />
                   </View>
                 )}
-              </Pressable>
+              </Pressy>
+              </Pop>
             );
           })}
         </View>
@@ -124,9 +133,10 @@ export function Detail({ ti }: { ti: number }) {
         {th.actions.map((a, ai) => {
           const has = !!a.text.trim();
           return (
-            <Pressable
-              key={ai}
-              onPress={() => (has ? openAction(ti, ai) : openEditor({ kind: 'action', ti, ai }))}
+            <Reveal key={ai} index={2 + ai}>
+            <Pressy
+              onPress={() => { tap(); if (has) openAction(ti, ai); else openEditor({ kind: 'action', ti, ai }); }}
+              scaleTo={0.985}
               accessibilityRole="button"
               accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력하기`}
               accessibilityHint={has ? '실천 항목 자세히 보기' : '실천 항목 입력하기'}
@@ -158,7 +168,8 @@ export function Detail({ ti }: { ti: number }) {
               </View>
               {!!a.note && <Icon name="pencil" size={14} color={M.faint} />}
               <Icon name="chevR" size={17} color={M.faint} />
-            </Pressable>
+            </Pressy>
+            </Reveal>
           );
         })}
       </View>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Pressy } from './Pressy';
 import type { M } from '../theme/usePalette';
 import { DOW_KR, WEEK_ORDER, normalizeDays } from '../lib/routine';
 import { tap } from '../lib/haptics';
@@ -27,8 +28,9 @@ export function DayPicker({ M, days, color, onChange }: {
     onChange(normalizeDays([...n]));
   };
   const chip = (label: string, on: boolean, onPress: () => void, a11y: string) => (
-    <Pressable
+    <Pressy
       key={label}
+      scaleTo={0.92}
       onPress={() => { tap(); onPress(); }}
       accessibilityRole="button"
       accessibilityLabel={a11y}
@@ -37,7 +39,7 @@ export function DayPicker({ M, days, color, onChange }: {
       style={{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: on ? color : M.line, backgroundColor: on ? color : 'transparent' }}
     >
       <Text style={{ fontSize: 12, fontWeight: '700', color: on ? '#fff' : M.sub }}>{label}</Text>
-    </Pressable>
+    </Pressy>
   );
 
   return (
@@ -46,8 +48,9 @@ export function DayPicker({ M, days, color, onChange }: {
         {WEEK_ORDER.map((d) => {
           const on = set.has(d);
           return (
-            <Pressable
+            <Pressy
               key={d}
+              scaleTo={0.88}
               onPress={() => toggle(d)}
               accessibilityRole="checkbox"
               accessibilityLabel={`${DOW_KR[d]}요일 반복`}
@@ -59,7 +62,7 @@ export function DayPicker({ M, days, color, onChange }: {
               }}
             >
               <Text style={{ fontSize: 13, fontWeight: '800', color: on ? '#fff' : M.sub }}>{DOW_KR[d]}</Text>
-            </Pressable>
+            </Pressy>
           );
         })}
       </View>

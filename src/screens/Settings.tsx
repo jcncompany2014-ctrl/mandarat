@@ -3,6 +3,8 @@ import { Alert, Platform, Pressable, ScrollView, Share, Text, View } from 'react
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
 import { MandalaArt } from '../components/MandalaArt';
+import { Pressy } from '../components/Pressy';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { FONTS } from '../theme/fonts';
 import { MOODS, tint } from '../theme/moods';
 import { shadow } from '../theme/shadow';
@@ -55,12 +57,13 @@ function ask(title: string, message: string, ok: string, onOk: () => void, destr
 
 function Row({ M, icon, color, title, sub, onPress, danger }: { M: M; icon: IconName; color: string; title: string; sub: string; onPress: () => void; danger?: boolean }) {
   return (
-    <Pressable
+    <Pressy
       onPress={onPress}
+      scaleTo={0.98}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityHint={sub}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.7 : 1 })}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
     >
       <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(color, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={20} color={color} />
@@ -70,7 +73,7 @@ function Row({ M, icon, color, title, sub, onPress, danger }: { M: M; icon: Icon
         <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>{sub}</Text>
       </View>
       <Icon name="chevR" size={17} color={M.faint} />
-    </Pressable>
+    </Pressy>
   );
 }
 
@@ -78,16 +81,14 @@ function Segmented<T extends string>({ M, label, value, options, onChange }: { M
   return (
     <View>
       <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>{label}</Text>
-      <View style={{ flexDirection: 'row', gap: 4, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)', padding: 4, borderRadius: 12 }}>
-        {options.map((o) => {
-          const on = o === value;
-          return (
-            <Pressable key={o} onPress={() => onChange(o)} style={[{ flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center', backgroundColor: on ? M.surface : 'transparent' }, on && !M.dark ? shadow(2) : null]}>
-              <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? M.ink : M.sub }}>{o}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SegmentedControl
+        M={M}
+        compact
+        role="radio"
+        value={value}
+        onChange={onChange}
+        options={options.map((o) => ({ value: o, label: o, a11yLabel: `${label} ${o}` }))}
+      />
     </View>
   );
 }
@@ -152,7 +153,7 @@ export function Settings() {
 
       <Section M={M} label="핵심 목표 / Goal" />
       <Card M={M}>
-        <Pressable onPress={() => openEditor({ kind: 'center' })} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Pressy onPress={() => { tap(); openEditor({ kind: 'center' }); }} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`핵심 목표 ${doc.centerGoal || '입력'} · 수정`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="target" size={20} color={M.accent} />
           </View>
@@ -161,7 +162,7 @@ export function Settings() {
             <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>탭하여 수정</Text>
           </View>
           <Icon name="pencil" size={17} color={M.faint} />
-        </Pressable>
+        </Pressy>
       </Card>
 
       <Section M={M} label="템플릿으로 시작 / Templates" />
@@ -171,9 +172,10 @@ export function Settings() {
         contentContainerStyle={{ paddingHorizontal: 20, gap: 11, paddingVertical: 2 }}
       >
         {TEMPLATES.map((t) => (
-          <Pressable
+          <Pressy
             key={t.id}
             onPress={() => useTemplate(t)}
+            scaleTo={0.96}
             accessibilityRole="button"
             accessibilityLabel={`${t.name} 템플릿 적용`}
             accessibilityHint={t.desc}
@@ -192,7 +194,7 @@ export function Settings() {
               <Text style={{ fontSize: 12, fontWeight: '700', color: M.accent }}>적용하기</Text>
               <Icon name="chevR" size={14} color={M.accent} />
             </View>
-          </Pressable>
+          </Pressy>
         ))}
       </ScrollView>
 
@@ -205,9 +207,10 @@ export function Settings() {
             {ACCENTS.map(({ color: c, name }) => {
               const on = doc.settings.accent.toLowerCase() === c.toLowerCase();
               return (
-                <Pressable
+                <Pressy
                   key={c}
                   onPress={() => { tap(); setSetting('accent', c); }}
+                  scaleTo={0.92}
                   accessibilityRole="radio"
                   accessibilityLabel={`포인트 컬러 ${name}`}
                   accessibilityState={{ selected: on }}
@@ -217,7 +220,7 @@ export function Settings() {
                     {on && <Icon name="check" size={17} color="#fff" sw={3} />}
                   </View>
                   <Text style={{ fontSize: 11, fontWeight: on ? '800' : '600', color: on ? M.ink : M.faint }}>{name}</Text>
-                </Pressable>
+                </Pressy>
               );
             })}
           </View>
