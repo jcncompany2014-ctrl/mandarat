@@ -52,7 +52,8 @@ export function summarize(doc: MandaratDoc): BackupSummary {
   return { goal: doc.centerGoal.trim(), filled, done, days, routines };
 }
 
-const MAX_TRIES = 200;
+const MAX_STEPS = 2_000_000; // 글자 훑기 상한 — 아주 긴·이상한 입력에도 멈추지 않게
+const MAX_CANDIDATES = 40;
 
 /** 만다라트 백업(감싼 형식) 또는 문서 자체로 보이는 객체인가 */
 function looksOurs(v: unknown): v is Record<string, unknown> {
@@ -62,46 +63,69 @@ function looksOurs(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * 붙여넣은 글에서 백업 JSON을 찾는다. 앞뒤에 {중괄호}가 섞인 글이 붙어 있어도 되도록
- * '{"app"' 위치를 먼저, 그다음 각 '{'에서 시작해 뒤쪽 '}'부터 차례로 맞춰 본다.
+ * 글에서 바깥쪽 {…} 덩어리를 찾는다(문자열 안의 괄호는 무시). 끝까지 닫히지 않는 덩어리는
+ * 그 안쪽에서 다시 찾아, 겉 포장이 잘려도 안쪽 문서를 살릴 수 있게 한다.
  */
-function extractBackup(t: string): { found?: Record<string, unknown>; parsedAny: boolean } {
-  const starts: number[] = [];
-  const anchor = t.search(/\{\s*"app"\s*:/);
-  if (anchor >= 0) starts.push(anchor);
-  for (let i = t.indexOf('{'); i >= 0 && starts.length < 24; i = t.indexOf('{', i + 1)) if (i !== anchor) starts.push(i);
-  const ends: number[] = [];
-  for (let j = t.lastIndexOf('}'); j >= 0 && ends.length < 24; j = t.lastIndexOf('}', j - 1)) ends.push(j);
-  let tries = 0;
-  let parsedAny = false;
-  for (const s of starts) {
-    for (const e of ends) {
-      if (e <= s || tries++ >= MAX_TRIES) break;
-      try {
-        const v: unknown = JSON.parse(t.slice(s, e + 1));
-        parsedAny = true;
-        if (looksOurs(v)) return { found: v, parsedAny };
-      } catch {
-        /* 다음 후보 */
+function blocks(t: string): { spans: [number, number][]; unclosed: boolean } {
+  const spans: [number, number][] = [];
+  let unclosed = false;
+  let steps = 0;
+  let i = t.indexOf('{');
+  while (i >= 0 && spans.length < MAX_CANDIDATES && steps < MAX_STEPS) {
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let end = -1;
+    for (let j = i; j < t.length && steps < MAX_STEPS; j++, steps++) {
+      const c = t[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+      } else if (c === '"') inStr = true;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) {
+        end = j;
+        break;
       }
     }
+    if (end >= 0) {
+      spans.push([i, end]);
+      i = t.indexOf('{', end + 1);
+    } else {
+      unclosed = true;
+      i = t.indexOf('{', i + 1);
+    }
   }
-  return { parsedAny };
+  return { spans, unclosed };
 }
+
+const NOT_FOUND = '백업 내용을 찾지 못했어요. 내보낸 글 전체를 붙여넣어 주세요';
+const BROKEN = '백업 내용이 잘렸거나 손상됐어요. 처음부터 끝까지 다시 복사해 주세요';
+const NOT_OURS = '만다라트 백업 형식이 아니에요';
 
 export function parseBackup(text: string): ParseResult {
   const t = text.trim();
   if (!t) return { ok: false, error: '붙여넣은 내용이 없어요' };
-  if (t.indexOf('{') < 0) {
-    return { ok: false, error: '백업 내용을 찾지 못했어요. 내보낸 글 전체를 붙여넣어 주세요' };
+  const { spans, unclosed } = blocks(t);
+  let found: Record<string, unknown> | undefined;
+  let parsedAny = false;
+  for (const [a, b] of spans) {
+    try {
+      const v: unknown = JSON.parse(t.slice(a, b + 1));
+      parsedAny = true;
+      if (looksOurs(v)) {
+        found = v;
+        break;
+      }
+    } catch {
+      /* 다음 덩어리 */
+    }
   }
-  const { found, parsedAny } = extractBackup(t);
   if (!found) {
-    // 우리 백업의 흔적이 있는데 읽지 못했다면 잘린 것 — 아니면 다른 형식
-    const ours = /"app"\s*:\s*"mandarat"|"themes"\s*:/.test(t);
-    return ours || !parsedAny
-      ? { ok: false, error: '백업 내용이 잘렸거나 손상됐어요. 처음부터 끝까지 다시 복사해 주세요' }
-      : { ok: false, error: '만다라트 백업 형식이 아니에요' };
+    // 우리 백업의 흔적이 있는데 읽지 못했다면 잘린 것, 다른 JSON이면 형식이 다른 것
+    if (/"app"\s*:\s*"mandarat"|"themes"\s*:/.test(t) || (unclosed && !parsedAny)) return { ok: false, error: BROKEN };
+    return { ok: false, error: parsedAny ? NOT_OURS : NOT_FOUND };
   }
   const r = found;
   const wrapped = r.app === BACKUP_APP;
@@ -110,7 +134,7 @@ export function parseBackup(text: string): ParseResult {
   }
   const candidate = wrapped ? r.doc : r;
   if (!candidate || typeof candidate !== 'object' || !Array.isArray((candidate as { themes?: unknown }).themes)) {
-    return { ok: false, error: '만다라트 백업 형식이 아니에요' };
+    return { ok: false, error: NOT_OURS };
   }
   // 불러온 문서는 이미 시작한 사용자의 것이므로 온보딩을 다시 띄우지 않는다
   const doc: MandaratDoc = { ...migrate(candidate), onboarded: true };

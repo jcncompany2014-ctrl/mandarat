@@ -10,6 +10,7 @@ import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
 import { readableOn } from '../theme/palette';
+import { sameDays } from '../lib/routine';
 import { DayPicker } from '../components/DayPicker';
 
 // 실천 칸마다 살짝 다른 예시를 보여 구체적으로 적도록 유도한다.
@@ -59,11 +60,17 @@ function Editor({ editor }: { editor: EditorTarget }) {
   const save = () => {
     tap();
     const v = text.trim();
-    if (editor.kind === 'center') setCenterGoal(v || '나의 핵심 목표');
-    else if (editor.kind === 'theme') setThemeTitle(editor.ti, v);
-    else {
-      setActionText(editor.ti, editor.ai, v);
-      setActionDays(editor.ti, editor.ai, v ? days : []); // 비운 칸은 루틴도 해제
+    // 바뀐 것만 저장 — 아무것도 안 바꾼 저장이 다른 되돌리기를 막지 않게
+    if (editor.kind === 'center') {
+      const next = v || '나의 핵심 목표';
+      if (next !== doc.centerGoal) setCenterGoal(next);
+    } else if (editor.kind === 'theme') {
+      if (v !== doc.themes[editor.ti].title) setThemeTitle(editor.ti, v);
+    } else {
+      const a = doc.themes[editor.ti].actions[editor.ai];
+      if (v !== a.text) setActionText(editor.ti, editor.ai, v);
+      const nextDays = v ? days : []; // 비운 칸은 루틴도 해제
+      if (!sameDays(a.days, nextDays)) setActionDays(editor.ti, editor.ai, nextDays);
     }
     closeEditor();
   };

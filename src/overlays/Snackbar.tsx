@@ -63,7 +63,7 @@ export function Snackbar() {
         </Text>
         {toast.action && (
           <Pressable
-            onPress={() => { tap(); toast.action!.onPress(); hideToast(); }}
+            onPress={() => { const id = toast.id; tap(); toast.action!.onPress(); hideToast(id); }}
             accessibilityRole="button"
             accessibilityLabel={toast.action.label}
             hitSlop={8}

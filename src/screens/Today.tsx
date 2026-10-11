@@ -103,9 +103,10 @@ function TodayChecklist({ M }: { M: M }) {
     if (index < 0) return;
     tap();
     const x = extra[index];
-    const logged = doneOn(doc.dayLog, extraLogKey(x.ti, x.id), dateKey());
+    const day = dateKey();
+    const logged = doneOn(doc.dayLog, extraLogKey(x.ti, x.id), day);
     removeExtra(id);
-    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => restoreExtra(x, index, logged) });
+    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => restoreExtra(x, index, logged, day) });
   };
 
   return (

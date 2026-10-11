@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Sheet, CloseBtn } from '../components/common';
 import { Icon } from '../components/Icon';
@@ -24,7 +24,13 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
   const { doc, replaceDoc } = useMandarat();
   const offerUndo = useSnapshotUndo();
   const [text, setText] = useState('');
-  const result = useMemo(() => (text.trim() ? parseBackup(text) : null), [text]);
+  // 입력이 멈추면 한 번만 읽는다(긴 글을 한 글자씩 고칠 때마다 다시 해석하지 않게)
+  const [settled, setSettled] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(text), 180);
+    return () => clearTimeout(t);
+  }, [text]);
+  const result = useMemo(() => (settled.trim() ? parseBackup(settled) : null), [settled]);
 
   const openFile = async () => {
     tap();

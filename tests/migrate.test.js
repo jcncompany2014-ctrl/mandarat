@@ -117,6 +117,8 @@ test('todayExtra·todayKeys·focusMinutes·todayDate를 검증한다', () => {
   assert.equal(migrate({ focusMinutes: -5 }).focusMinutes, 0);
   assert.equal(migrate({ focusMinutes: 'x' }).focusMinutes, 0);
   assert.equal('todayDate' in migrate({ todayDate: 'today' }), false);
+  assert.equal('todayDate' in migrate({ todayDate: '2026-99-99' }), false);
+  assert.deepEqual(migrate({ dayLog: { '2026-13-01': ['0-0'], '2026-02-30': ['0-0'] } }).dayLog, { '2026-02-30': ['0-0'] });
 });
 
 test('기본 필드와 알 수 없는 필드', () => {

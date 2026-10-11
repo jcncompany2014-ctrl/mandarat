@@ -47,8 +47,8 @@ interface Ctx {
   addExtra: (ti: number, text: string) => void;
   toggleExtra: (id: string) => void;
   removeExtra: (id: string) => void;
-  /** 지운 할 일을 원래 자리로 되살린다 (되돌리기) */
-  restoreExtra: (x: TodayExtra, index: number, logged: boolean) => void;
+  /** 지운 할 일을 원래 자리로 되살린다 (되돌리기) — day: 지울 때의 날짜 */
+  restoreExtra: (x: TodayExtra, index: number, logged: boolean, day: string) => void;
   // day meta
   setDayMood: (mood: number) => void;
   setDayReflection: (text: string) => void;
@@ -61,6 +61,8 @@ interface Ctx {
   replaceDoc: (d: MandaratDoc) => void;
   /** 편집 횟수 — 통째 되돌리기 전에 그 사이 다른 변경이 있었는지 확인하는 데 쓴다 */
   revision: () => number;
+  /** 저장소를 읽거나 쓰지 못해 이번 실행의 변경을 저장하지 않는 중 */
+  storageError: boolean;
 }
 
 const MandaratCtx = createContext<Ctx | null>(null);
@@ -68,6 +70,7 @@ const MandaratCtx = createContext<Ctx | null>(null);
 export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const [doc, setDoc] = useState<MandaratDoc>(() => blankDoc());
   const [ready, setReady] = useState(false);
+  const [storageError, setStorageError] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const docRef = useRef(doc);
   docRef.current = doc;
@@ -89,11 +92,16 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         try {
           setDoc(rolloverToday(migrate(JSON.parse(raw)), dateKey()));
         } catch (e) {
-          // 깨진 저장본은 따로 보관해 두고 새로 시작한다(원본을 잃지 않게)
+          // 깨진 저장본은 따로 보관해 두고 새로 시작한다 — 보관도 못 하면 원본을 덮어쓰지 않는다
           console.warn('Mandarat parse failed — keeping a copy', e);
-          await AsyncStorage.setItem(`${STORAGE_KEY}:corrupt`, raw).catch(() => {});
+          try {
+            await AsyncStorage.setItem(`${STORAGE_KEY}:corrupt`, raw);
+          } catch {
+            blockSave.current = true;
+          }
         }
       }
+      if (blockSave.current) setStorageError(true);
       setReady(true);
     })();
   }, []);
@@ -180,7 +188,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [editThemes],
   );
 
-  // 반복 요일이 바뀌면 그날부터 새 일정으로 센다(since) — 같은 요일이면 그대로 둔다
+  // 새로 루틴이 되는 날을 since로 남긴다(그 전 날은 놓친 날이 아님).
+  // 이미 루틴이면 요일을 고쳐도 since를 유지 — 요일 칩을 껐다 켜도 이번 주 기록이 흔들리지 않게
   const setActionDays = useCallback(
     (ti: number, ai: number, days: number[]) =>
       editThemes(ti, (t) => ({
@@ -189,7 +198,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
           if (i !== ai || sameDays(a.days, days)) return a;
           const next = normalizeDays(days);
           const { days: _d, since: _s, ...rest } = a;
-          return next.length > 0 ? { ...rest, days: next, since: dateKey() } : rest;
+          if (next.length === 0) return rest;
+          const since = isRoutine(a) ? a.since : dateKey();
+          return { ...rest, days: next, ...(since ? { since } : {}) };
         }),
       })),
     [editThemes],
@@ -283,18 +294,17 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
-  // 그 사이의 다른 변경은 건드리지 않고 지운 할 일만 되살린다
+  // 그 사이의 다른 변경은 건드리지 않고 지운 할 일만 되살린다.
+  // 기록은 지운 날짜로 되돌리고, 그새 날짜가 바뀌었으면 끝낸 일은 목록에 다시 넣지 않는다(하루 정리와 같게)
   const restoreExtra = useCallback(
-    (x: TodayExtra, index: number, logged: boolean) =>
+    (x: TodayExtra, index: number, logged: boolean, day: string) =>
       update((d) => {
         if (d.todayExtra.some((e) => e.id === x.id)) return d;
+        const dayLog = logged ? setDayLog(d.dayLog, extraLogKey(x.ti, x.id), day, true) : d.dayLog;
+        if (x.done && day !== dateKey()) return { ...d, dayLog };
         const list = [...d.todayExtra];
         list.splice(Math.max(0, Math.min(index, list.length)), 0, x);
-        return {
-          ...d,
-          todayExtra: list,
-          dayLog: logged ? setDayLog(d.dayLog, extraLogKey(x.ti, x.id), dateKey(), true) : d.dayLog,
-        };
+        return { ...d, todayExtra: list, dayLog };
       }),
     [update],
   );
@@ -330,7 +340,11 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         return {
           ...d,
           centerGoal: d.centerGoal || '2026 최고의 나',
-          themes: sampleThemes(),
+          // 예시 루틴은 오늘부터 시작 — 이번 주 지난 날이 놓친 날로 보이지 않게
+          themes: sampleThemes().map((t) => ({
+            ...t,
+            actions: t.actions.map((a) => (isRoutine(a) ? { ...a, since: tk } : a)),
+          })),
           // 예시의 달성 칸을 오늘 기록에 더한다(기존 기록은 지우지 않고, 루틴은 체크하지 않는다)
           dayLog: { ...d.dayLog, [tk]: [...new Set([...(d.dayLog[tk] ?? []), ...sampleDoneKeys()])] },
           onboarded: true,
@@ -371,12 +385,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     () => ({
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
       toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
+      setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision, storageError,
     }),
     [
       doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionDays,
       toggleDone, toggleRoutineToday, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection,
-      setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
+      setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision, storageError,
     ],
   );
 

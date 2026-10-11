@@ -181,9 +181,21 @@ test('rolloverToday: 다음 날엔 완료한 할 일·달성한 칸·직접 담�
   assert.equal(doc.todayKeys.length, 4, '원본은 그대로');
 });
 
-test('rolloverToday: 시계를 되돌려도(날짜가 뒤로 가도) 오늘 기록을 지우지 않는다', () => {
-  const doc = docWith(() => ({ todayDate: '2026-10-14', todayExtra: [{ id: 'a', ti: 0, text: '끝낸 일', done: true }] }));
-  assert.equal(R.rolloverToday(doc, '2026-10-13'), doc);
+test('rolloverToday: 날짜가 뒤로 가면 지우지 않고 날짜만 다시 맞춰, 다음 날 정리가 멈추지 않는다', () => {
+  const doc = docWith(() => ({ todayDate: '2027-01-05', todayExtra: [{ id: 'a', ti: 0, text: '끝낸 일', done: true }] }));
+  const back = R.rolloverToday(doc, '2026-10-13');
+  assert.equal(back.todayDate, '2026-10-13');
+  assert.equal(back.todayExtra.length, 1);
+  const next = R.rolloverToday(back, '2026-10-14');
+  assert.equal(next.todayExtra.length, 0);
+});
+
+test('todayItems: 반복 시작일(since)이 아직 오지 않은 루틴은 자동으로 나타나지 않는다', () => {
+  const doc = docWith((themes) => {
+    themes[0].actions[0] = { text: '물', note: '', done: false, days: [3], since: '2026-10-21' };
+    return {};
+  });
+  assert.deepEqual(R.todayItems(doc, WED), []);
 });
 
 test('직접 담은 루틴은 쉬는 날에도 그날은 보이고, 다음 날엔 사라진다', () => {

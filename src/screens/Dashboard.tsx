@@ -11,6 +11,7 @@ import { shadow } from '../theme/shadow';
 import { fade, tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
+import { SEMANTIC } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import { DOW_KR, todayProgress, weekCounts } from '../lib/routine';
 
@@ -21,7 +22,7 @@ const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 export function Dashboard() {
   const M = usePalette();
   const { go } = useUI();
-  const { doc } = useMandarat();
+  const { doc, storageError } = useMandarat();
 
   const done = totalDone(doc);
   const pct = Math.round((done / 64) * 100);
@@ -43,6 +44,16 @@ export function Dashboard() {
   return (
     <View>
       <Header M={M} en={dateLabel} kr="나의 만다라트" right={<IconBtn M={M} name="settings" label="설정" onPress={() => go('settings')} />} />
+
+      {storageError && (
+        // 저장소를 읽지 못한 실행 — 기존 기록을 덮어쓰지 않으려고 저장을 멈춘 상태를 알린다
+        <View accessibilityRole="alert" style={{ marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16, backgroundColor: tint(SEMANTIC.danger, M.dark ? 16 : 9, M.dark), borderWidth: 1, borderColor: tint(SEMANTIC.danger, 30, M.dark) }}>
+          <Text style={{ fontSize: 13.5, fontWeight: '800', color: SEMANTIC.danger }}>기록을 불러오지 못했어요</Text>
+          <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 3, lineHeight: 18 }}>
+            기존 기록을 지키려고 이번에는 저장하지 않아요. 앱을 완전히 닫았다가 다시 열어 주세요.
+          </Text>
+        </View>
+      )}
 
       {/* 마스코트 말풍선 */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 11 }}>

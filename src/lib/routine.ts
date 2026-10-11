@@ -91,13 +91,14 @@ export function extraLogKey(ti: number, id: string): string {
  * - 직접 담은 실천 중 칸을 달성한 것과 글자가 지워진 것은 뺀다.
  * - 직접 담은 루틴은 그날 하루만 — 반복 요일이면 어차피 자동으로 다시 나타난다.
  * - todayDate가 없던 이전 저장본은 날짜만 찍는다(언제 담았는지 몰라 지우지 않는다).
- * - 날짜가 앞으로 갈 때만 정리한다(시계를 되돌리거나 시간대를 거슬러 가도 오늘 기록을 지우지 않게).
+ * - 날짜가 앞으로 갈 때만 정리하고, 뒤로 가면(시계 되돌림·시간대 이동) 지우지 않고 날짜만 다시 맞춘다.
  * 바뀐 것이 없으면 같은 객체를 돌려줘 불필요한 저장·렌더를 막는다.
  */
 export function rolloverToday<T extends Pick<MandaratDoc, 'themes' | 'todayKeys' | 'todayExtra' | 'todayDate'>>(doc: T, todayKey: string): T {
   if (doc.todayDate === todayKey) return doc;
-  if (!doc.todayDate) return { ...doc, todayDate: todayKey };
-  if (todayKey < doc.todayDate) return doc;
+  // 날짜가 없던 이전 저장본, 또는 기기 시계보다 앞선 날짜(시계 조정·다른 시간대에서 가져온 백업)는
+  // 아무것도 지우지 않고 오늘로 다시 맞춘다 — 그래야 다음 날 정리가 멈추지 않는다
+  if (!doc.todayDate || todayKey < doc.todayDate) return { ...doc, todayDate: todayKey };
   const todayKeys = doc.todayKeys.filter((k) => {
     const [ti, ai] = k.split('-').map(Number);
     const a = doc.themes[ti]?.actions[ai];
@@ -146,7 +147,6 @@ export interface TodayItem {
 
 /** 오늘 실천 목록 = 직접 담은 항목 ∪ 오늘 요일 루틴. 글자가 없는 칸은 뺀다. */
 export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>, today: Date): TodayItem[] {
-  const dow = today.getDay();
   const tk = ymd(today);
   const seen = new Set<string>();
   const out: TodayItem[] = [];
@@ -155,16 +155,15 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
     const a = doc.themes[ti]?.actions[ai];
     if (seen.has(key) || !a || !a.text.trim()) return;
     seen.add(key);
-    const days = normalizeDays(a.days);
-    const routine = days.length > 0;
-    out.push({ ti, ai, key, routine, scheduled: days.includes(dow), done: routine ? doneOn(doc.dayLog, key, tk) : a.done });
+    const routine = isRoutine(a);
+    out.push({ ti, ai, key, routine, scheduled: scheduledOn(a, today), done: routine ? doneOn(doc.dayLog, key, tk) : a.done });
   };
   for (const k of doc.todayKeys) {
     const [ti, ai] = k.split('-').map(Number);
     push(ti, ai);
   }
   doc.themes.forEach((t, ti) => t.actions.forEach((a, ai) => {
-    if (normalizeDays(a.days).includes(dow)) push(ti, ai);
+    if (scheduledOn(a, today)) push(ti, ai);
   }));
   return out;
 }

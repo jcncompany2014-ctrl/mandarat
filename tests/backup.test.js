@@ -42,6 +42,21 @@ test('앞뒤 글에 {중괄호}가 섞여 있어도 백업을 찾아 읽는다',
   }
 });
 
+test('같은 백업을 두 번 붙여넣어도 첫 번째를 읽는다', () => {
+  const b = B.makeBackup(sampleDoc());
+  const r = B.parseBackup(`${b}\n${b}`);
+  assert.equal(r.ok, true);
+});
+
+test('아주 길거나 이상한 입력도 빨리 끝난다', () => {
+  for (const text of ['{'.repeat(300000), `${'{"a":'.repeat(50000)}1`, `"${'{'.repeat(100000)}`]) {
+    const t0 = Date.now();
+    const r = B.parseBackup(text);
+    assert.equal(r.ok, false);
+    assert.ok(Date.now() - t0 < 1500, `${Date.now() - t0}ms`);
+  }
+});
+
 test('겉 포장이 잘려도 안쪽 문서가 온전하면 살려 낸다', () => {
   const b = B.makeBackup(sampleDoc());
   const r = B.parseBackup(b.slice(0, -1)); // 마지막 '}' 하나 빠짐
@@ -76,7 +91,8 @@ test('잘못된 입력은 이해하기 쉬운 오류로', () => {
     ['그냥 글', '백업 내용을 찾지 못했어요'],
     ['{"app":"mandarat","doc":{"themes":[', '잘렸거나'],
     ['{"app":"mandarat","doc":{"themes":[{"title":"건강","actions":[{"text":"걷기"}', '잘렸거나'],
-    ['{bad}', '잘렸거나'],
+    ['{bad}', '백업 내용을 찾지 못했어요'],
+    ['안녕 {친구} 잘 지내?', '백업 내용을 찾지 못했어요'],
     ['{"foo":1}', '만다라트 백업 형식이 아니에요'],
     ['{"app":"mandarat","doc":"x"}', '만다라트 백업 형식이 아니에요'],
     ['{"app":"mandarat","schema":99,"doc":{"themes":[]}}', '업데이트'],
