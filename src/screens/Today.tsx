@@ -170,8 +170,11 @@ function TodayChecklist({ M }: { M: M }) {
               key={`b${it.key}`}
               onPress={() => openAction(it.ti, it.ai)}
               accessibilityRole="button"
-              accessibilityLabel={`${a.text}, ${area}${it.routine ? `, ${daysLabel(a.days)} 반복` : ''}`}
+              accessibilityLabel={`${a.text}, ${area}${it.routine ? `, ${daysLabel(a.days)} 반복` : ''}${it.done ? ', 완료' : ''}`}
               accessibilityHint="실천 항목 자세히 보기"
+              // VoiceOver는 행 전체를 한 요소로 읽으므로 안쪽 체크는 사용자 지정 동작으로도 제공
+              accessibilityActions={[{ name: 'toggle', label: it.done ? '완료 해제' : '완료로 표시' }]}
+              onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'toggle') check(it); }}
               style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: it.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark ? null : shadow(3)]}
             >
               <Pressable
@@ -217,6 +220,8 @@ function TodayChecklist({ M }: { M: M }) {
               accessibilityRole="checkbox"
               accessibilityState={{ checked: x.done }}
               accessibilityLabel={`${x.text} 완료`}
+              accessibilityActions={[{ name: 'delete', label: '지우기' }]}
+              onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') dropExtra(x.id); }}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: tint(th.color, 40, M.dark), backgroundColor: x.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
             >
               <Check on={x.done} color={th.color} dark={M.dark} />
