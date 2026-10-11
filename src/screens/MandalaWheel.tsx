@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, Text, View } from 'react-native';
+import { Pop } from '../components/Reveal';
+import { EASE, SPRING } from '../theme/motion';
+import { reducedMotion } from '../lib/useReducedMotion';
+import { tap } from '../lib/haptics';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { Ring } from '../components/Ring';
 import { Icon } from '../components/Icon';
@@ -22,11 +26,80 @@ const SIZE = 320;
 const C = SIZE / 2;
 const R = 110;
 const NODE = 33;
+/** 접히는(중심으로 모이는) 시간 — 그다음 새 꽃잎이 피어난다 */
+const FOLD_MS = 170;
+
+/**
+ * 중심에서 제자리로 날아가 피어나는 마디. phase='out'이면 다시 중심으로 접혀 들어간다.
+ * 위치(left/top)는 처음부터 제자리라 탭은 언제나 정확하다.
+ */
+function FlyNode({
+  dx, dy, index, phase, style, children,
+}: {
+  dx: number;
+  dy: number;
+  index: number;
+  phase: 'in' | 'out';
+  style: object;
+  children: React.ReactNode;
+}) {
+  const t = useRef(new Animated.Value(reducedMotion() ? 1 : 0)).current;
+  useEffect(() => {
+    if (reducedMotion()) {
+      t.setValue(phase === 'in' ? 1 : 0);
+      return;
+    }
+    const a =
+      phase === 'in'
+        ? Animated.spring(t, { toValue: 1, delay: 60 + index * 38, useNativeDriver: true, damping: 14, stiffness: 150, mass: 0.9 })
+        : Animated.timing(t, { toValue: 0, duration: FOLD_MS, easing: EASE.in, useNativeDriver: true });
+    a.start();
+    return () => a.stop();
+  }, [phase, index, t]);
+  return (
+    <Animated.View
+      style={[
+        style,
+        {
+          opacity: t.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 1, 1], extrapolate: 'clamp' }),
+          transform: [
+            { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [-dx, 0] }) },
+            { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [-dy, 0] }) },
+            { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }) },
+          ],
+        },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 export function MandalaWheel({ M }: { M: M }) {
   const { doc } = useMandarat();
   const { go, openAction, openEditor } = useUI();
   const [bloom, setBloom] = useState<number | null>(null);
+  // 펼침 전환: 지금 마디들을 중심으로 접은 뒤(out) 새 마디들이 피어난다(in)
+  const [phase, setPhase] = useState<'in' | 'out'>('in');
+  const spin = useRef(new Animated.Value(0)).current;
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const switchTo = (next: number | null) => {
+    tap();
+    if (reducedMotion()) {
+      setBloom(next);
+      return;
+    }
+    setPhase('out');
+    // 뒤의 연꽃이 꽃잎 반 칸만큼 돌아 다음 장면을 연다
+    Animated.spring(spin, { toValue: next == null ? 0 : 1, useNativeDriver: true, ...SPRING.gentle }).start();
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setBloom(next);
+      setPhase('in');
+    }, FOLD_MS);
+  };
 
   const themes = doc.themes;
   const pct = Math.round((totalDone(doc) / 64) * 100);
@@ -35,10 +108,13 @@ export function MandalaWheel({ M }: { M: M }) {
 
   return (
     <View style={{ width: SIZE, height: SIZE, alignSelf: 'center', marginTop: 4 }}>
-      {/* backdrop */}
-      <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
+      {/* backdrop — 펼칠 때마다 꽃잎 반 칸(22.5°)씩 돈다 */}
+      <Animated.View
+        style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22.5deg'] }) }] }}
+        pointerEvents="none"
+      >
         <MandalaArt size={SIZE} stroke={lineColor} opacity={M.dark ? 0.22 : 0.16} />
-      </View>
+      </Animated.View>
       <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }} pointerEvents="none">
         <Circle cx={C} cy={C} r={R} fill="none" stroke={lineColor} strokeOpacity={0.34} strokeWidth={1} />
         {pos.map((n) => (
@@ -58,11 +134,12 @@ export function MandalaWheel({ M }: { M: M }) {
       {bloom == null ? (
         <>
           {/* center core */}
+          <Pop key="core" style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}>
           <Pressable
             onPress={() => openEditor({ kind: 'center' })}
             accessibilityRole="button"
             accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, ${pct}% · 편집`}
-            style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}
+            style={{ width: 112, height: 112 }}
           >
             <Ring pct={pct} size={112} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
               <View style={[{ width: 100, height: 100, borderRadius: 50, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 9 }, shadow(8, '#141028', 0.32)]}>
@@ -76,19 +153,20 @@ export function MandalaWheel({ M }: { M: M }) {
               </View>
             </Ring>
           </Pressable>
+          </Pop>
 
           {/* theme petals */}
           {pos.map((n) => {
             const th = themes[n.i];
             const p = themeProgress(th);
             return (
+              <FlyNode key={n.i} dx={n.x - C} dy={n.y - C} index={n.i} phase={phase} style={{ position: 'absolute', left: n.x - NODE, top: n.y - NODE, width: NODE * 2, height: NODE * 2 + 20 }}>
               <Pressable
-                key={n.i}
-                onPress={() => setBloom(n.i)}
+                onPress={() => switchTo(n.i)}
                 accessibilityRole="button"
                 accessibilityLabel={`${th.title || `영역 ${n.i + 1}`}, 8칸 중 ${p.done}개 달성`}
                 accessibilityHint="영역 펼치기"
-                style={{ position: 'absolute', left: n.x - NODE, top: n.y - NODE, width: NODE * 2, height: NODE * 2 + 20, alignItems: 'center' }}
+                style={{ width: NODE * 2, height: NODE * 2 + 20, alignItems: 'center' }}
               >
                 <Ring pct={p.pct} size={NODE * 2} stroke={3.5} color={th.color} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}>
                   <View style={{ width: NODE * 2 - 12, height: NODE * 2 - 12, borderRadius: NODE, backgroundColor: tint(th.color, M.dark ? 26 : 16, M.dark), alignItems: 'center', justifyContent: 'center' }}>
@@ -100,21 +178,23 @@ export function MandalaWheel({ M }: { M: M }) {
                   {th.title || `영역 ${n.i + 1}`}
                 </Text>
               </Pressable>
+              </FlyNode>
             );
           })}
         </>
       ) : (
-        <BloomLayer M={M} ti={bloom} onBack={() => setBloom(null)} pos={pos} go={go} openAction={openAction} openEditor={openEditor} />
+        <BloomLayer M={M} ti={bloom} phase={phase} onBack={() => switchTo(null)} pos={pos} go={go} openAction={openAction} openEditor={openEditor} />
       )}
     </View>
   );
 }
 
 function BloomLayer({
-  M, ti, onBack, pos, go, openAction, openEditor,
+  M, ti, phase, onBack, pos, go, openAction, openEditor,
 }: {
   M: M;
   ti: number;
+  phase: 'in' | 'out';
   onBack: () => void;
   pos: ReturnType<typeof ringPositions>;
   go: ReturnType<typeof useUI>['go'];
@@ -132,12 +212,12 @@ function BloomLayer({
         const has = !!a.text.trim();
         const isDone = a.done;
         return (
+          <FlyNode key={n.i} dx={n.x - C} dy={n.y - C} index={n.i} phase={phase} style={{ position: 'absolute', left: n.x - 30, top: n.y - 30, width: 60, height: 80 }}>
           <Pressable
-            key={n.i}
-            onPress={() => (has ? openAction(ti, n.i) : openEditor({ kind: 'action', ti, ai: n.i }))}
+            onPress={() => { tap(); if (has) openAction(ti, n.i); else openEditor({ kind: 'action', ti, ai: n.i }); }}
             accessibilityRole="button"
             accessibilityLabel={has ? `${a.text}${isDone ? ', 완료됨' : ''}` : `실천 ${n.i + 1} 입력`}
-            style={{ position: 'absolute', left: n.x - 30, top: n.y - 30, width: 60, height: 60 + 20, alignItems: 'center' }}
+            style={{ width: 60, height: 80, alignItems: 'center' }}
           >
             <View
               style={[
@@ -161,15 +241,17 @@ function BloomLayer({
               {has ? a.text : '입력'}
             </Text>
           </Pressable>
+          </FlyNode>
         );
       })}
 
       {/* center = theme (tap to close) */}
+      <Pop key={`theme${ti}`} style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}>
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
         accessibilityLabel={`${th.title || `영역 ${ti + 1}`} 닫기`}
-        style={{ position: 'absolute', left: C - 56, top: C - 56, width: 112, height: 112 }}
+        style={{ width: 112, height: 112 }}
       >
         <Ring pct={p.pct} size={112} stroke={4} color={th.color} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
           <View style={[{ width: 100, height: 100, borderRadius: 50, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 9 }, shadow(8, th.color, 0.4)]}>
@@ -181,10 +263,11 @@ function BloomLayer({
           </View>
         </Ring>
       </Pressable>
+      </Pop>
 
       {/* detail link */}
       <Pressable
-        onPress={() => go('detail', ti)}
+        onPress={() => { tap(); go('detail', ti); }}
         accessibilityRole="button"
         accessibilityLabel={`${th.title || `영역 ${ti + 1}`} 세부 보기`}
         style={{ position: 'absolute', left: 0, right: 0, bottom: -6, alignItems: 'center' }}

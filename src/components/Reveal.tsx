@@ -8,11 +8,14 @@ import { reducedMotion } from '../lib/useReducedMotion';
  * index 순서대로 조금씩 늦게 — 화면이 위에서 아래로 피어나듯 펼쳐진다.
  */
 export function Reveal({
-  index = 0, from = 12, style, children,
+  index = 0, from = 12, delay, duration, style, children,
 }: {
   index?: number;
   /** 아래에서 떠오르는 거리 */
   from?: number;
+  /** 직접 정한 시작 지연(ms) — 주면 index 간격 대신 쓴다 */
+  delay?: number;
+  duration?: number;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }) {
@@ -24,14 +27,14 @@ export function Reveal({
     }
     const anim = Animated.timing(t, {
       toValue: 1,
-      duration: DUR.gentle + 120,
-      delay: Math.min(index, 8) * STAGGER,
+      duration: duration ?? DUR.gentle + 120,
+      delay: delay ?? Math.min(index, 8) * STAGGER,
       easing: EASE.out,
       useNativeDriver: true,
     });
     anim.start();
     return () => anim.stop();
-  }, [t, index]);
+  }, [t, index, delay, duration]);
 
   return (
     <Animated.View

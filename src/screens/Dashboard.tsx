@@ -21,6 +21,7 @@ import { SEMANTIC } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import { DOW_KR, daysLabel, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { useSettle } from '../lib/useSettle';
+import { useTween } from '../lib/useTween';
 import { animateLayout } from '../lib/layoutAnim';
 import { success, tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
@@ -73,7 +74,7 @@ export function Dashboard() {
             style={[{ width: 52, height: 52, borderRadius: 26, backgroundColor: tint(M.gold, M.dark ? 20 : 13, M.dark), alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, M.dark ? null : shadow(3)]}
           >
             <Breathe amount={0.05} period={4200}>
-              <LotusBloom size={46} pct={pct} color={M.gold} />
+              <GrowingLotus pct={pct} color={M.gold} />
             </Breathe>
           </View>
           <View style={[{ flex: 1, backgroundColor: M.surface, borderRadius: 18, borderTopLeftRadius: 5, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
@@ -206,6 +207,12 @@ export function Dashboard() {
       </Reveal>
     </View>
   );
+}
+
+/** 진행률을 따라 꽃잎이 실제로 열리며 자라는 마스코트 연꽃 */
+function GrowingLotus({ pct, color }: { pct: number; color: string }) {
+  const p = useTween(pct, { duration: 1100 });
+  return <LotusBloom size={46} pct={p} color={color} />;
 }
 
 /** 오늘의 실천 카드 — 남은 일 3개를 바로 체크하고, 이번 주 리듬을 본다 */

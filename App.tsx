@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -12,18 +12,21 @@ import { MandaratProvider, useMandarat } from './src/store/MandaratContext';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
-import { Splash } from './src/components/Splash';
+import { Splash, SplashFade } from './src/components/Splash';
 import { installWebStyles } from './src/lib/webStyle';
 
 installWebStyles();
 
 function Gate() {
   const { ready } = useMandarat();
-  // calm lotus splash while the store hydrates
+  const [splashGone, setSplashGone] = useState(false);
+  const hideSplash = useCallback(() => setSplashGone(true), []);
+  // calm lotus splash while the store hydrates — then it fades away over the first screen
   if (!ready) return <Splash />;
   return (
     <UIProvider>
       <Root />
+      {!splashGone && <SplashFade onDone={hideSplash} />}
     </UIProvider>
   );
 }

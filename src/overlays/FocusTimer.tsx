@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Animated, Modal, Text, View } from 'react-native';
+import { Pressy } from '../components/Pressy';
+import { EASE } from '../theme/motion';
+import { useReducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ring } from '../components/Ring';
 import { MandalaArt } from '../components/MandalaArt';
@@ -8,19 +11,35 @@ import { FONTS } from '../theme/fonts';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
-import { success } from '../lib/haptics';
+import { success, tap } from '../lib/haptics';
 import { doneOn, isRoutine } from '../lib/routine';
 
 const TOTAL = 25 * 60;
 
 export function FocusTimer() {
+  const { focus } = useUI();
+  if (!focus) return null;
+  // 세션마다 새로 그려 남은 시간·호흡이 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
+  return <FocusSession ti={focus.ti} ai={focus.ai} />;
+}
+
+/** 호흡 한 박자(들숨 또는 날숨) */
+const BREATH = 4000;
+
+function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
   const insets = useSafeAreaInsets();
-  const { focus, closeFocus } = useUI();
+  const { closeFocus } = useUI();
   const { doc, toggleDone, toggleRoutineToday, addFocusMinutes } = useMandarat();
+  const reduce = useReducedMotion();
   const [left, setLeft] = useState(TOTAL);
   const [run, setRun] = useState(true);
+  const [inhale, setInhale] = useState(true);
   const firedRef = useRef(false);
+  const breath = useRef(new Animated.Value(0)).current;
+  const cue = useRef(new Animated.Value(1)).current;
+  const bloom = useRef(new Animated.Value(0)).current;
+  const finished = left <= 0;
 
   useEffect(() => {
     if (!run || left <= 0) return;
@@ -32,44 +51,85 @@ export function FocusTimer() {
     if (left <= 0 && !firedRef.current) {
       firedRef.current = true;
       success();
+      if (!reduce) Animated.spring(bloom, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 90 }).start();
     }
-  }, [left]);
+  }, [left, reduce, bloom]);
 
-  if (!focus) return null;
-  const th = doc.themes[focus.ti];
-  const a = th.actions[focus.ai];
+  // 4초 들숨 · 4초 날숨 — 연꽃이 숨 쉬듯 커졌다 작아지고, 글귀가 박자를 알려 준다
+  useEffect(() => {
+    if (!run || finished || reduce) return;
+    let up = true;
+    const step = () => {
+      setInhale(up);
+      cue.setValue(0);
+      Animated.parallel([
+        Animated.timing(breath, { toValue: up ? 1 : 0, duration: BREATH, easing: EASE.breath, useNativeDriver: true }),
+        Animated.timing(cue, { toValue: 1, duration: 700, easing: EASE.out, useNativeDriver: true }),
+      ]).start();
+      up = !up;
+    };
+    step();
+    const id = setInterval(step, BREATH);
+    return () => {
+      clearInterval(id);
+      breath.stopAnimation();
+    };
+  }, [run, finished, reduce, breath, cue]);
+
+  const th = doc.themes[ti];
+  const a = th.actions[ai];
   const pct = (1 - left / TOTAL) * 100;
   const mm = String(Math.floor(left / 60)).padStart(2, '0');
   const ss = String(left % 60).padStart(2, '0');
-  const finished = left <= 0;
 
   const finish = () => {
     const elapsedMin = Math.round((TOTAL - left) / 60);
     if (elapsedMin > 0) addFocusMinutes(elapsedMin);
     // 루틴은 오늘 체크로, 아니면 칸의 달성으로 기록한다
     if (isRoutine(a)) {
-      if (!doneOn(doc.dayLog, `${focus.ti}-${focus.ai}`, dateKey())) toggleRoutineToday(focus.ti, focus.ai);
-    } else if (!a.done) toggleDone(focus.ti, focus.ai);
+      if (!doneOn(doc.dayLog, `${ti}-${ai}`, dateKey())) toggleRoutineToday(ti, ai);
+    } else if (!a.done) toggleDone(ti, ai);
     closeFocus();
   };
+
+  const cueText = finished ? '잘 머물렀어요' : !run ? '잠시 쉬는 중' : reduce ? '천천히, 한 가지에만' : inhale ? '들숨 · 천천히 채우기' : '날숨 · 가만히 내려놓기';
 
   return (
     <Modal visible animationType="fade" onRequestClose={closeFocus} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
-        <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-          <MandalaArt size={360} stroke={th.color} opacity={0.18} />
-        </View>
+        {/* 숨 쉬는 연꽃 + 은은한 빛 */}
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', width: 290, height: 290, borderRadius: 145, backgroundColor: th.color,
+            opacity: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.05, 0.15] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })),
+            transform: [{ scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.06] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] })) }],
+          }}
+        />
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', alignItems: 'center', justifyContent: 'center',
+            opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.13, 0.27] }),
+            transform: [
+              { scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.05] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })) },
+              { rotate: bloom.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '22.5deg'] }) },
+            ],
+          }}
+        >
+          <MandalaArt size={360} stroke={th.color} opacity={1} />
+        </Animated.View>
         <View style={{ position: 'absolute', top: insets.top + 16, right: 22 }}>
           <CloseBtn M={M} onPress={closeFocus} light />
         </View>
 
         {/* Pill은 기본이 왼쪽 정렬이라, 가운데 정렬 레이아웃에 맞춰 감싼다 */}
         <View style={{ alignSelf: 'center' }}>
-          <Pill M={M} color={th.color}>{th.title || `영역 ${focus.ti + 1}`}</Pill>
+          <Pill M={M} color={th.color}>{th.title || `영역 ${ti + 1}`}</Pill>
         </View>
         <View style={{ marginTop: 22, marginBottom: 8 }}>
-          <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)">
-            <Text style={{ fontSize: 56, fontWeight: '700', color: '#fff', fontFamily: FONTS.grotesk }}>
+          <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)" animate={!finished}>
+            <Text style={{ fontSize: 56, fontWeight: '700', color: '#fff', fontFamily: FONTS.grotesk, fontVariant: ['tabular-nums'] }}>
               {finished ? '완료' : `${mm}:${ss}`}
             </Text>
             <Text style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginTop: 4, maxWidth: 170, textAlign: 'center' }} numberOfLines={2}>
@@ -77,16 +137,22 @@ export function FocusTimer() {
             </Text>
           </Ring>
         </View>
+        <Animated.Text
+          accessibilityLiveRegion="polite"
+          style={{ fontSize: 13, color: th.color, fontWeight: '700', letterSpacing: 0.3, opacity: cue, transform: [{ translateY: cue.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }}
+        >
+          {cueText}
+        </Animated.Text>
 
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
           {!finished && (
-            <Pressable onPress={() => setRun((r) => !r)} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.14)' }}>
+            <Pressy onPress={() => { tap(); setRun((r) => !r); }} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={run ? '일시정지' : '계속'} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.14)' }}>
               <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{run ? '일시정지' : '계속'}</Text>
-            </Pressable>
+            </Pressy>
           )}
-          <Pressable onPress={finish} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: th.color }}>
+          <Pressy onPress={finish} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={finished ? '완료 처리' : '끝내고 완료'} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: th.color }}>
             <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{finished ? '완료 처리' : '끝내고 완료'}</Text>
-          </Pressable>
+          </Pressy>
         </View>
         <Text style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.45)', fontWeight: '500' }}>한 가지에만 머무르는 25분</Text>
       </View>
