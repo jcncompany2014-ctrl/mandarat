@@ -18,6 +18,10 @@ import {
 } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
+import { DOW_KR } from '../lib/routine';
+import { calendarWeeks, weekReview, type WeekReview } from '../lib/review';
+import { SEMANTIC } from '../theme/palette';
+import { tint } from '../theme/moods';
 
 export function Stats() {
   const M = usePalette();
@@ -32,22 +36,17 @@ export function Stats() {
   const streak = overallStreak(doc);
   const hasData = done > 0 || Object.keys(doc.dayLog).length > 0;
 
-  const last7 = lastNDates(7);
-  const week = last7.map((k) => (doc.dayLog[k] ?? []).length);
-  const weekTotal = week.reduce((a, b) => a + b, 0);
+  // 이번 주 = 월~일 (홈 주간 띠와 같은 기준)
+  const now = new Date();
+  const review = weekReview(doc, now);
+  const weekTotal = review.total;
 
-  // 최근 70일 중 가장 많이 실천한 날
-  const hmDates = lastNDates(70);
-  const hmCounts = hmDates.map((k) => (doc.dayLog[k] ?? []).length);
-  const bestIdx = hmCounts.reduce((b, c, i) => (c > hmCounts[b] ? i : b), 0);
-  const bestCount = hmCounts[bestIdx] ?? 0;
-  const maxW = Math.max(1, ...week);
-  // align weekday labels to the actual last-7 window
-  const todayDow = new Date().getDay(); // 0=Sun
-  const labels = last7.map((_, i) => {
-    const d = (todayDow - (6 - i) + 7) % 7; // 0=Sun..6=Sat
-    return ['일', '월', '화', '수', '목', '금', '토'][d];
-  });
+  // 최근 10주 달력 히트맵 — 그중 가장 많이 실천한 날
+  const cal = calendarWeeks(now, 10);
+  const best = cal.flat().filter((c) => !c.future).reduce<{ date: string; n: number } | null>((b, c) => {
+    const n = (doc.dayLog[c.date] ?? []).length;
+    return n > (b?.n ?? 0) ? { date: c.date, n } : b;
+  }, null);
 
   const ranked = doc.themes
     .map((th, ti) => ({ th, ti, p: themeProgress(th) }))
@@ -108,41 +107,21 @@ export function Stats() {
 
       {hasData ? (
       <>
-      {/* weekly activity */}
+      {/* weekly review */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
-        <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>이번 주 실천</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>총 {weekTotal}회 · 하루 평균 {(weekTotal / 7).toFixed(1)}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 9, height: 96 }}>
-            {week.map((v, i) => {
-              const isToday = i === week.length - 1;
-              return (
-                <View key={i} style={{ flex: 1, alignItems: 'center', gap: 7, height: '100%', justifyContent: 'flex-end' }}>
-                  {isToday ? (
-                    <LinearGradient colors={[M.gold, M.accent]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ width: '100%', height: Math.max(4, (v / maxW) * 78), borderRadius: 7 }} />
-                  ) : (
-                    <View style={{ width: '100%', height: Math.max(4, (v / maxW) * 78), borderRadius: 7, backgroundColor: M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)' }} />
-                  )}
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: isToday ? M.accent : M.faint }}>{labels[i]}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </View>
+        <WeekCard M={M} doc={doc} review={review} />
       </View>
 
       {/* heatmap */}
       <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
         <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>최근 70일 실천</Text>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>최근 10주 실천</Text>
             <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>
-              {bestCount > 0 ? `최고의 날 ${bestCount}회 · ${fmtDay(hmDates[bestIdx])}` : '꾸준함의 무늬'}
+              {best ? `최고의 날 ${best.n}회 · ${fmtDay(best.date)}` : '꾸준함의 무늬'}
             </Text>
           </View>
-          <Heatmap M={M} doc={doc} />
+          <Heatmap M={M} doc={doc} weeks={cal} />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
             <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>적음</Text>
             {[0, 0.28, 0.5, 0.72, 1].map((o, i) => (
@@ -266,12 +245,10 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
   );
 }
 
-function Heatmap({ M, doc }: { M: M; doc: MandaratDoc }) {
-  const weeks = 10;
-  const days = 7;
-  const dates = lastNDates(weeks * days); // oldest -> newest
-  const counts = dates.map((k) => (doc.dayLog[k] ?? []).length);
-  const max = Math.max(1, ...counts);
+function Heatmap({ M, doc, weeks }: { M: M; doc: MandaratDoc; weeks: { date: string; future: boolean }[][] }) {
+  // 열 = 주(월~일), 행 = 요일 고정 → 왼쪽 월·수·금 라벨이 늘 맞는다. 아직 오지 않은 날은 비워 둔다.
+  const counts = weeks.map((col) => col.map((c) => (c.future ? -1 : (doc.dayLog[c.date] ?? []).length)));
+  const max = Math.max(1, ...counts.flat());
   const intensity = (c: number): number => {
     if (c <= 0) return 0;
     const r = c / max;
@@ -280,7 +257,8 @@ function Heatmap({ M, doc }: { M: M; doc: MandaratDoc }) {
     if (r <= 0.75) return 0.72;
     return 1;
   };
-  const dayLabels = ['', '월', '', '수', '', '금', ''];
+  const empty = M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  const dayLabels = ['월', '', '수', '', '금', '', ''];
 
   return (
     <View style={{ flexDirection: 'row', gap: 7 }}>
@@ -290,18 +268,100 @@ function Heatmap({ M, doc }: { M: M; doc: MandaratDoc }) {
         ))}
       </View>
       <View style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
-        {Array.from({ length: weeks }).map((_, w) => (
+        {counts.map((col, w) => (
           <View key={w} style={{ flex: 1, gap: 4 }}>
-            {Array.from({ length: days }).map((_, d) => {
-              const idx = w * days + d;
-              const o = intensity(counts[idx] ?? 0);
-              return (
-                <View
-                  key={d}
-                  style={{ aspectRatio: 1, borderRadius: 4, backgroundColor: o === 0 ? (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') : fade(M.accent, o * 100) }}
-                />
-              );
-            })}
+            {col.map((c, d) => (
+              <View
+                key={d}
+                style={c < 0
+                  ? { aspectRatio: 1, borderRadius: 4, borderWidth: 1, borderColor: empty, borderStyle: 'dashed' }
+                  : { aspectRatio: 1, borderRadius: 4, backgroundColor: c === 0 ? empty : fade(M.accent, intensity(c) * 100) }}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** 이번 주(월~일) 막대 + 지난주 같은 기간 대비 + 루틴 지킴·최고의 날·활발한 영역 */
+function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekReview }) {
+  const maxW = Math.max(1, ...review.days.map((d) => d.count));
+  const delta = review.total - review.prev;
+  const showDelta = review.total > 0 || review.prev > 0;
+  const deltaColor = delta > 0 ? SEMANTIC.done : M.sub;
+  const deltaText = delta === 0 ? '지난주와 같아요' : `지난주보다 ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`;
+  const rPct = review.routinePlanned > 0 ? Math.round((review.routineDone / review.routinePlanned) * 100) : 0;
+  const top = review.topArea ? doc.themes[review.topArea.ti] : null;
+  const avg = review.total / Math.max(1, review.days.filter((d) => !d.future).length);
+
+  const metrics: { label: string; value: string; sub: string; color?: string }[] = [
+    {
+      label: '루틴 지킴',
+      value: review.routinePlanned > 0 ? `${review.routineDone}/${review.routinePlanned}` : '—',
+      sub: review.routinePlanned > 0 ? `${rPct}%` : '반복 요일 없음',
+    },
+    {
+      label: '최고의 날',
+      value: review.bestDay ? `${DOW_KR[review.bestDay.dow]}요일` : '—',
+      sub: review.bestDay ? `${review.bestDay.count}회` : '아직 기록 없음',
+    },
+    {
+      label: '활발한 영역',
+      value: top ? top.title || `영역 ${review.topArea!.ti + 1}` : '—',
+      sub: review.topArea ? `${review.topArea.count}회` : '아직 기록 없음',
+      color: top?.color,
+    },
+  ];
+
+  return (
+    <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 8 }}>
+        <View>
+          <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>이번 주 실천</Text>
+          <Text style={{ fontSize: 12, color: M.sub, fontWeight: '600', marginTop: 2 }}>총 {review.total}회 · 하루 평균 {avg.toFixed(1)}</Text>
+        </View>
+        {showDelta && (
+          <View
+            accessibilityLabel={delta === 0 ? '지난주 같은 기간과 같아요' : `지난주 같은 기간보다 ${Math.abs(delta)}회 ${delta > 0 ? '많아요' : '적어요'}`}
+            style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: delta > 0 ? tint(SEMANTIC.done, M.dark ? 18 : 11, M.dark) : (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)') }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '800', color: deltaColor }}>{deltaText}</Text>
+          </View>
+        )}
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 9, height: 104 }}>
+        {review.days.map((d) => {
+          const h = Math.max(4, (d.count / maxW) * 72);
+          return (
+            <View key={d.date} style={{ flex: 1, alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+              {!d.future && d.count > 0 && (
+                <Text style={{ fontSize: 10.5, fontWeight: '700', color: d.isToday ? M.accent : M.sub, fontFamily: FONTS.grotesk }}>{d.count}</Text>
+              )}
+              {d.isToday ? (
+                <LinearGradient colors={[M.gold, M.accent]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ width: '100%', height: h, borderRadius: 7 }} />
+              ) : d.future ? (
+                <View style={{ width: '100%', height: 4, borderRadius: 3, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(35,33,28,0.06)' }} />
+              ) : (
+                <View style={{ width: '100%', height: h, borderRadius: 7, backgroundColor: M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)' }} />
+              )}
+              <Text style={{ fontSize: 11, fontWeight: d.isToday ? '800' : '700', color: d.isToday ? M.accent : M.faint, opacity: d.future ? 0.55 : 1 }}>{DOW_KR[d.dow]}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <View style={{ height: 1, backgroundColor: M.line, marginTop: 16, marginBottom: 14 }} />
+      <View style={{ flexDirection: 'row' }}>
+        {metrics.map((m, i) => (
+          <View
+            key={m.label}
+            accessibilityLabel={`${m.label} ${m.value}${m.sub ? `, ${m.sub}` : ''}`}
+            style={{ flex: 1, paddingHorizontal: 6, borderLeftWidth: i === 0 ? 0 : 1, borderLeftColor: M.line, alignItems: 'center' }}
+          >
+            <Text style={{ fontSize: 11, color: M.faint, fontWeight: '700' }}>{m.label}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: m.color ?? M.ink, marginTop: 4 }} numberOfLines={1}>{m.value}</Text>
+            <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600', marginTop: 2 }} numberOfLines={1}>{m.sub}</Text>
           </View>
         ))}
       </View>
@@ -319,7 +379,7 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
   const lowName = low.th.title || `영역 ${low.ti + 1}`;
   const overallPct = Math.round((totalDone(doc) / 64) * 100);
   const streak = overallStreak(doc);
-  const weekTotal = lastNDates(7).reduce((s, k) => s + (doc.dayLog[k]?.length ?? 0), 0);
+  const weekTotal = weekReview(doc, new Date()).total;
   const chipBg = M.heroLight ? 'rgba(70,52,18,0.10)' : 'rgba(255,255,255,0.13)';
 
   return (
