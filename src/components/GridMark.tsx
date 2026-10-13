@@ -72,3 +72,39 @@ export function MiniMandalart({
     </View>
   );
 }
+
+/**
+ * 내 만다라트 81칸 전체를 작게 — 홈 맨 위의 '올해 한눈에'. 이룬 칸은 영역 색으로 칠해지고,
+ * 쓰기만 한 칸은 옅게, 빈 칸은 종이색 그대로. 칸이 차오를수록 한 장의 모자이크가 된다.
+ */
+export function MiniChart({ doc, size = 132, dark, ink }: { doc: MandaratDoc; size?: number; dark: boolean; ink: string }) {
+  const outerGap = Math.max(3, Math.round(size * 0.035));
+  const innerGap = Math.max(1, Math.round(size * 0.012));
+  const block = (size - outerGap * 2) / 3;
+  const cell = (block - innerGap * 2) / 3;
+  const blank = dark ? 'rgba(255,255,255,0.07)' : 'rgba(60,45,20,0.08)';
+  const done = doc.themes.reduce((s, t) => s + t.actions.filter((a) => a.done).length, 0);
+  const blockCells = (b: number): string[] => AREA_AT.map((a) => {
+    if (b === 4) return a < 0 ? ink : doc.themes[a].color; // 가운데 블록: 핵심 목표 + 8영역 이름 칸
+    const th = doc.themes[AREA_AT[b] as number];
+    if (a < 0) return th.color; // 블록 가운데 = 영역 이름 칸
+    const act = th.actions[a];
+    if (act.done) return th.color;
+    return act.text.trim() ? tint(th.color, dark ? 32 : 24, dark) : blank;
+  });
+  return (
+    <View
+      style={{ width: size, height: size, flexDirection: 'row', flexWrap: 'wrap', gap: outerGap }}
+      accessible
+      accessibilityLabel={`만다라트 81칸 중 실천 ${done}칸 달성`}
+    >
+      {Array.from({ length: 9 }, (_, b) => (
+        <View key={b} style={{ width: block, height: block, flexDirection: 'row', flexWrap: 'wrap', gap: innerGap }}>
+          {blockCells(b).map((c, i) => (
+            <View key={i} style={{ width: cell, height: cell, borderRadius: Math.max(1, cell * 0.18), backgroundColor: c }} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}

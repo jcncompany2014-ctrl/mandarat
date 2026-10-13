@@ -9,7 +9,7 @@ import { reducedMotion } from '../lib/useReducedMotion';
  * Text 안에 넣어 쓸 수 있다(중첩 Text).
  */
 export function AnimatedNumber({
-  value, style, format = String, duration = DUR.count, fromZero = true,
+  value, style, format = String, duration = DUR.count, fromZero = false,
 }: {
   value: number;
   style?: StyleProp<TextStyle>;

@@ -12,27 +12,21 @@ import type { M } from '../theme/usePalette';
 // ── 묶음 목록 ────────────────────────────────────────────────────────────────
 
 /**
- * 묶음 목록의 한 줄 — 같은 묶음의 줄들이 테두리 하나인 한 면처럼 이어지고, 사이엔 가는 선만 남는다.
+ * 묶음 목록의 한 줄 — 수첩처럼 종이 위에 줄만 긋는다(카드 없이). 묶음 처음엔 윗줄, 끝엔 진한 아랫줄.
  * 줄을 하나씩 그리므로 항목이 묶음 사이를 옮겨 갈 때도 제자리에서 미끄러진다(LayoutAnimation).
+ * (radius는 예전 카드 모양의 흔적 — 지금은 쓰지 않는다)
  */
-export function groupEdge(M: M, first: boolean, last: boolean, radius = 18): ViewStyle {
+export function groupEdge(M: M, first: boolean, last: boolean, _radius = 18): ViewStyle {
   return {
-    backgroundColor: M.surface,
     borderColor: M.line,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
     borderTopWidth: first ? 1 : 0,
     borderBottomWidth: last ? 1 : 0,
-    borderTopLeftRadius: first ? radius : 0,
-    borderTopRightRadius: first ? radius : 0,
-    borderBottomLeftRadius: last ? radius : 0,
-    borderBottomRightRadius: last ? radius : 0,
   };
 }
 
-/** 묶음 목록 줄을 누르고 있을 때의 바탕 — 면 색에서 글자 색 쪽으로 조금(밝은 테마 6%, 다크 10%) */
+/** 묶음 목록 줄을 누르고 있을 때의 바탕 — 종이 색에서 글자 색 쪽으로 조금(밝은 테마 5%, 다크 9%) */
 export function pressedRow(M: M): ViewStyle {
-  return { backgroundColor: mix(M.surface, M.ink, M.dark ? 0.1 : 0.06) };
+  return { backgroundColor: mix(M.bg, M.ink, M.dark ? 0.09 : 0.05) };
 }
 
 /** 묶음 목록 줄 사이의 가는 선 — 왼쪽 체크 칸 다음, 글자가 시작하는 곳부터 */

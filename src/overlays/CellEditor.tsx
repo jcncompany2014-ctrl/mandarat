@@ -81,7 +81,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
     <Modal transparent visible animationType="fade" onRequestClose={closeEditor} statusBarTranslucent>
       <Pressable onPress={closeEditor} style={{ flex: 1, backgroundColor: 'rgba(12,9,22,0.5)', justifyContent: 'center', padding: 24 }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <Pop>
+          <Pop animate>
           <Pressable onPress={() => {}} style={[{ backgroundColor: M.surface, borderRadius: 24, padding: 20 }, shadow(16, '#000', 0.3)]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, flex: 1, marginRight: 10 }} numberOfLines={1}>{m.title}</Text>

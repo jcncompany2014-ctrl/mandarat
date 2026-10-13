@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
 import { Reveal } from '../components/Reveal';
-import { reducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
 import { readableOn } from '../theme/palette';
 import { tint } from '../theme/moods';
+import { PaperDots } from '../components/PaperDots';
 import { usePalette } from '../theme/usePalette';
 import { useMandarat } from '../store/MandaratContext';
 import { TEMPLATES, templateThemes } from '../data/templates';
@@ -43,6 +43,7 @@ export function Onboarding() {
 
   return (
     <View style={{ flex: 1, backgroundColor: M.bg }}>
+      <PaperDots M={M} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         // 키보드 회피(padding)가 아래 여백을 덮어쓰므로, 홈 바 여백은 스크롤 안쪽에 둔다
@@ -54,28 +55,22 @@ export function Onboarding() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={{ alignItems: 'center', marginBottom: 34 }}>
-            {/* 브랜드 표시 — 앱 아이콘과 같은 3×3 */}
+          {/* 수첩 첫 장처럼 — 가운데 정렬 대신 왼쪽부터 또박또박 */}
+          <View style={{ marginBottom: 30 }}>
             <BloomIn>
-              <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
-                <GridMark size={32} color="#FFFFFF" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center' }}>
+                  <GridMark size={20} color="#FFFFFF" />
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>만다라트</Text>
               </View>
             </BloomIn>
-            <Reveal delay={260} from={6}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: M.gold, textAlign: 'center' }}>
-                만다라트
-              </Text>
-            </Reveal>
-            <Reveal delay={380} from={14} duration={560}>
-              <Text style={{ fontSize: 27, fontWeight: '800', color: M.ink, marginTop: 10, textAlign: 'center', lineHeight: 36 }}>
-                올해 꼭 이루고 싶은{'\n'}목표는 무엇인가요?
-              </Text>
-            </Reveal>
-            <Reveal delay={540} from={10}>
-              <Text style={{ fontSize: 15, color: M.sub, marginTop: 12, textAlign: 'center', lineHeight: 22 }}>
-                목표 하나를 8개 영역, 64개 실천으로{'\n'}나눠서 하나씩 해 나가요
-              </Text>
-            </Reveal>
+            <Text style={{ fontSize: 30, fontWeight: '800', color: M.ink, lineHeight: 40, letterSpacing: -0.8 }}>
+              올해 꼭 이루고 싶은{'\n'}목표 하나를 적어 주세요
+            </Text>
+            <Text style={{ fontSize: 15, color: M.sub, marginTop: 12, lineHeight: 23 }}>
+              그 목표를 8개 영역, 64개 실천으로 나눠{'\n'}하루에 하나씩 해 나가요
+            </Text>
           </View>
 
           <Reveal delay={680} from={12}>
@@ -91,13 +86,13 @@ export function Onboarding() {
               backgroundColor: fieldBg,
               borderWidth: 1, borderColor: fieldBorder,
               borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16,
-              color: M.ink, fontSize: 17, fontWeight: '600', textAlign: 'center',
+              color: M.ink, fontSize: 17, fontWeight: '600',
             }}
             returnKeyType="done"
             onSubmitEditing={start}
           />
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 14 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
             {SUGGESTIONS.map((s) => (
               <Pressy
                 key={s}
@@ -126,10 +121,10 @@ export function Onboarding() {
             <Icon name="chevR" size={18} color={readableOn(M.accent)} sw={2.6} />
           </Pressy>
 
-          <Text style={{ color: M.sub, fontSize: 12.5, fontWeight: '600', textAlign: 'center', marginTop: 20, marginBottom: 10 }}>
+          <Text style={{ color: M.sub, fontSize: 12.5, fontWeight: '600', marginTop: 24, marginBottom: 10 }}>
             또는 영역 8개가 채워진 템플릿으로 시작
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {TEMPLATES.map((t) => (
               <Pressy
                 key={t.id}
@@ -145,7 +140,7 @@ export function Onboarding() {
               </Pressy>
             ))}
           </View>
-          <Text style={{ color: M.faint, fontSize: 12.5, textAlign: 'center', marginTop: 14 }}>
+          <Text style={{ color: M.sub, fontSize: 12.5, marginTop: 14 }}>
             나중에 언제든 바꿀 수 있어요
           </Text>
           </Reveal>
@@ -155,21 +150,7 @@ export function Onboarding() {
   );
 }
 
-/** 로고가 톡 자리 잡는 등장 */
+/** 로고 자리 — 처음 화면은 움직이는 연출 없이 바로 보인다 */
 function BloomIn({ children }: { children: React.ReactNode }) {
-  const t = useRef(new Animated.Value(reducedMotion() ? 1 : 0)).current;
-  useEffect(() => {
-    if (reducedMotion()) return;
-    Animated.spring(t, { toValue: 1, delay: 80, useNativeDriver: true, damping: 11, stiffness: 120 }).start();
-  }, [t]);
-  return (
-    <Animated.View
-      style={{
-        opacity: t.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 1, 1], extrapolate: 'clamp' }),
-        transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
+  return <View>{children}</View>;
 }

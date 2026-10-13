@@ -11,7 +11,6 @@ import { daysLabel, isRoutine, todayItems } from '../lib/routine';
 import { DUR, EASE } from '../theme/motion';
 import { FONTS } from '../theme/fonts';
 import { fade, tint } from '../theme/moods';
-import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
@@ -73,20 +72,17 @@ function Block({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
+      // 인쇄된 만다라트 시트처럼 — 블록은 진한 테두리, 칸 사이는 가는 선(타일 사이 틈 없이)
       style={({ pressed }) => ({
-        backgroundColor: center
-          ? (M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(35,33,28,0.06)')
-          : (M.dark ? 'rgba(255,255,255,0.035)' : 'rgba(35,33,28,0.03)'),
         borderRadius: blockR,
-        padding: 3,
-        borderWidth: 1,
-        borderColor: center
-          ? (M.dark ? 'rgba(255,255,255,0.16)' : 'rgba(35,33,28,0.16)')
-          : (M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(35,33,28,0.06)'),
+        borderWidth: 1.3,
+        borderColor: M.dark ? 'rgba(255,255,255,0.3)' : 'rgba(43,38,32,0.42)',
+        backgroundColor: center ? (M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(43,38,32,0.035)') : 'transparent',
+        overflow: 'hidden',
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2.5 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
         {RING_MAP.map((r, pos) => {
           let bg: string;
           let col = '#FFFFFF';
@@ -109,8 +105,9 @@ function Block({
               text = a.text;
               if (a.done) { bg = th.color; doneMark = true; }
               else {
-                bg = tint(th.color, M.dark ? 20 : 13, M.dark);
-                col = M.dark ? 'rgba(255,255,255,0.9)' : '#2A2521';
+                // 아직 못 한 칸은 종이 그대로 — 글자만
+                bg = 'transparent';
+                col = M.dark ? 'rgba(255,255,255,0.88)' : '#2A2521';
                 weight = '600';
               }
             }
@@ -118,7 +115,10 @@ function Block({
           return (
             <View
               key={pos}
-              style={{ width: '31.5%', aspectRatio: 0.84, borderRadius: cellR, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', padding: 3, overflow: 'hidden' }}
+              style={{
+                width: '33.333%', aspectRatio: 0.84, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', padding: 3, overflow: 'hidden',
+                borderColor: M.line, borderRightWidth: pos % 3 < 2 ? 1 : 0, borderBottomWidth: pos < 6 ? 1 : 0,
+              }}
             >
               <Text
                 style={{ fontSize: center ? 9.5 : 9, fontWeight: weight, color: col, textAlign: 'center', lineHeight: center ? 11 : 10.5 }}
@@ -149,13 +149,15 @@ function Block({
 
 // ── 크게 보기 ──────────────────────────────────────────────────────────────────
 
-/** 3×3을 화면 폭 가득 — 칸마다 눌러서 바로 연다 */
-function Grid3({ children }: { children: React.ReactNode[] }) {
+/** 3×3을 화면 폭 가득 — 인쇄된 표처럼 바깥은 진한 테두리, 칸 사이는 가는 선. 칸마다 눌러서 바로 연다 */
+function Grid3({ M, radius, children }: { M: M; radius: number; children: React.ReactNode[] }) {
   return (
-    <View style={{ flex: 1, gap: 6 }}>
+    <View style={{ flex: 1, borderRadius: radius, borderWidth: 1.3, borderColor: M.dark ? 'rgba(255,255,255,0.3)' : 'rgba(43,38,32,0.42)', overflow: 'hidden' }}>
       {[0, 1, 2].map((row) => (
-        <View key={row} style={{ flex: 1, flexDirection: 'row', gap: 6 }}>
-          {children.slice(row * 3, row * 3 + 3)}
+        <View key={row} style={{ flex: 1, flexDirection: 'row', borderBottomWidth: row < 2 ? 1 : 0, borderColor: M.line }}>
+          {children.slice(row * 3, row * 3 + 3).map((child, col) => (
+            <View key={col} style={{ flex: 1, borderRightWidth: col < 2 ? 1 : 0, borderColor: M.line }}>{child}</View>
+          ))}
         </View>
       ))}
     </View>
@@ -181,16 +183,16 @@ function ActionCell({
         scaleTo={0.95}
         accessibilityRole="button"
         accessibilityLabel={`실천 ${ai + 1} 채우기`}
-        style={{ flex: 1, borderRadius: radius, borderWidth: 1.5, borderStyle: 'dashed', borderColor: tint(color, 45, M.dark), alignItems: 'center', justifyContent: 'center', gap: 4 }}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 }}
       >
-        <Icon name="plus" size={18} color={color} sw={2.2} />
-        <Text style={{ fontSize: 12, fontWeight: '700', color }}>채우기</Text>
+        <Icon name="plus" size={18} color={M.faint} sw={2} />
+        <Text style={{ fontSize: 12, fontWeight: '600', color: M.sub }}>채우기</Text>
       </Pressy>
     );
   }
   const done = a.done;
   const routine = isRoutine(a);
-  const soft = done ? '#FFFFFF' : M.sub;
+  const soft = M.sub;
   return (
     <Pressy
       onPress={onOpen}
@@ -200,23 +202,23 @@ function ActionCell({
       accessibilityRole="button"
       accessibilityLabel={`${a.text}${done ? ', 달성' : ''}${routine ? `, ${daysLabel(a.days)} 반복` : ''}${today ? ', 오늘 할 일' : ''}`}
       accessibilityHint="실천 열기. 길게 누르면 글자를 고쳐요"
-      style={{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: done ? color : tint(color, M.dark ? 20 : 12, M.dark), justifyContent: 'space-between' }}
+      style={{ flex: 1, padding: 10, backgroundColor: done ? tint(color, M.dark ? 30 : 20, M.dark) : 'transparent', justifyContent: 'space-between' }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 18 }}>
         {today ? (
-          <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: done ? '#FFFFFF' : color }}>
-            <Text style={{ fontSize: 10, fontWeight: '800', color: done ? color : '#FFFFFF' }}>오늘</Text>
+          <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: color }}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF' }}>오늘</Text>
           </View>
         ) : <View />}
-        {done && <Icon name="check" size={15} color="#FFFFFF" sw={2.8} />}
+        {done && <Icon name="check" size={16} color={color} sw={2.8} />}
       </View>
-      <Text style={{ fontSize: 13.5, fontWeight: '700', lineHeight: 18, color: done ? '#FFFFFF' : M.ink }} numberOfLines={4} maxFontSizeMultiplier={1.5}>
+      <Text style={{ fontSize: 13.5, fontWeight: '700', lineHeight: 18, color: M.ink }} numberOfLines={4} maxFontSizeMultiplier={1.5}>
         {a.text}
       </Text>
       <View style={{ minHeight: 14, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
         {routine && (
           <>
-            <Icon name="repeat" size={11} color={done ? '#FFFFFF' : color} sw={2.2} />
+            <Icon name="repeat" size={11} color={color} sw={2.2} />
             <Text style={{ flexShrink: 1, fontSize: 10.5, fontWeight: '700', color: soft }} numberOfLines={1}>{daysLabel(a.days)}</Text>
           </>
         )}
@@ -242,7 +244,7 @@ function AreaFocus({ M, doc, ti, radius, todaySet }: { M: M; doc: MandaratDoc; t
           accessibilityRole="button"
           accessibilityLabel={`${areaName(doc, ti)}, 8칸 중 ${p.done}칸 달성, 세부 보기`}
           accessibilityHint="길게 누르면 영역 이름을 고쳐요"
-          style={[{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', gap: 3 }, shadow(4, th.color, 0.35)]}
+          style={{ flex: 1, padding: 10, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', gap: 3 }}
         >
           <Icon name={th.icon} size={22} color="#FFFFFF" />
           <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', lineHeight: 19 }} numberOfLines={2} maxFontSizeMultiplier={1.4}>
@@ -270,7 +272,7 @@ function AreaFocus({ M, doc, ti, radius, todaySet }: { M: M; doc: MandaratDoc; t
       />
     );
   });
-  return <Grid3>{cells}</Grid3>;
+  return <Grid3 M={M} radius={radius}>{cells}</Grid3>;
 }
 
 /** 가운데 블록 크게 — 둘레 8칸은 영역(누르면 그 블록으로), 가운데는 핵심 목표 */
@@ -287,7 +289,7 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
           scaleTo={0.95}
           accessibilityRole="button"
           accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, 전체 ${pct}%, 고치기`}
-          style={{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center', gap: 4 }}
+          style={{ flex: 1, padding: 10, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center', gap: 4 }}
         >
           <Text style={{ fontSize: 13.5, fontWeight: '800', color: coreInk(M), textAlign: 'center', lineHeight: 18 }} numberOfLines={4} maxFontSizeMultiplier={1.4}>
             {doc.centerGoal ? noOrphan(doc.centerGoal) : '핵심 목표를 정해 주세요'}
@@ -305,11 +307,9 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
         scaleTo={0.95}
         accessibilityRole="button"
         accessibilityLabel={`${areaName(doc, r)}, 8칸 중 ${p.done}칸 달성, 블록 크게 보기`}
-        style={{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: tint(th.color, M.dark ? 20 : 12, M.dark), justifyContent: 'space-between' }}
+        style={{ flex: 1, padding: 10, justifyContent: 'space-between' }}
       >
-        <View style={{ width: 28, height: 28, borderRadius: 9, backgroundColor: tint(th.color, M.dark ? 32 : 22, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={th.icon} size={16} color={th.color} />
-        </View>
+        <Icon name={th.icon} size={18} color={th.color} />
         <Text style={{ fontSize: 13.5, fontWeight: '800', color: M.ink, lineHeight: 18 }} numberOfLines={2} maxFontSizeMultiplier={1.4}>{areaName(doc, r)}</Text>
         <View>
           <Text style={{ fontSize: 11, fontWeight: '800', color: M.sub, fontFamily: FONTS.grotesk }}>{p.done}/8</Text>
@@ -320,7 +320,7 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
       </Pressy>
     );
   });
-  return <Grid3>{cells}</Grid3>;
+  return <Grid3 M={M} radius={radius}>{cells}</Grid3>;
 }
 
 // ── 화면 ──────────────────────────────────────────────────────────────────────
@@ -335,9 +335,9 @@ export function FullGrid({ M }: { M: M }) {
   const t = useRef(new Animated.Value(gridMemory.focus != null ? 1 : 0)).current;
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const rects = useRef<Partial<Record<string, LayoutRectangle>>>({});
-  const cellR = doc.settings.cellShape === '각진' ? 2 : 6;
-  const blockR = doc.settings.cellShape === '각진' ? 3 : 12;
-  const bigR = doc.settings.cellShape === '각진' ? 4 : 14;
+  const cellR = doc.settings.cellShape === '각진' ? 0 : 4;
+  const blockR = doc.settings.cellShape === '각진' ? 0 : 6;
+  const bigR = doc.settings.cellShape === '각진' ? 2 : 10;
 
   const todaySet = useMemo(() => new Set(todayItems(doc, new Date()).map((it) => `${it.ti}-${it.ai}`)), [doc]);
   const done = totalDone(doc);
@@ -449,11 +449,12 @@ export function FullGrid({ M }: { M: M }) {
         )}
       </View>
 
-      <View style={[{ backgroundColor: M.surface, borderRadius: blockR + 6, padding: 7, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(6)]}>
+      {/* 판 — 종이 위에 바로 인쇄된 표처럼(흰 카드 없이) */}
+      <View>
         <View onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
           {/* 81칸 — 크게 보는 동안엔 흐려지고 눌리지 않는다 */}
           <Animated.View
-            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, opacity: gridOpacity }}
+            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, opacity: gridOpacity }}
             pointerEvents={focus == null ? 'auto' : 'none'}
             accessibilityElementsHidden={focus != null}
             importantForAccessibility={focus != null ? 'no-hide-descendants' : 'auto'}

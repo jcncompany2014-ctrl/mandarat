@@ -5,7 +5,7 @@ import { SPRING } from '../theme/motion';
 import { useReducedMotion } from '../lib/useReducedMotion';
 
 /**
- * 둥근 체크 — 체크되는 순간 톡 튀어 오르고, 영역 색 물결이 한 번 퍼진다.
+ * 수첩 체크 칸 — 모서리가 살짝 둥근 네모. 체크되는 순간 톡 눌리며 칸이 영역 색으로 칠해진다.
  * 처음 그려질 때는 조용히(이미 체크된 항목이 우르르 튀지 않게).
  */
 export function Check({ on, color, dark, size = 26 }: { on: boolean; color: string; dark: boolean; size?: number }) {
@@ -42,21 +42,21 @@ export function Check({ on, color, dark, size = 26 }: { on: boolean; color: stri
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      {/* 퍼지는 물결 */}
+      {/* 퍼지는 테두리 */}
       <Animated.View
         pointerEvents="none"
         style={{
-          position: 'absolute', width: size, height: size, borderRadius: size / 2,
+          position: 'absolute', width: size, height: size, borderRadius: size * 0.28,
           borderWidth: 2, borderColor: color,
           opacity: ripple.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.55, 0] }),
-          transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [1, 2.1] }) }],
+          transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }],
         }}
       />
       <Animated.View
         style={{
-          width: size, height: size, borderRadius: size / 2,
-          borderWidth: on ? 0 : 1.8,
-          borderColor: dark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.16)',
+          width: size, height: size, borderRadius: size * 0.28,
+          borderWidth: on ? 0 : 1.6,
+          borderColor: dark ? 'rgba(255,255,255,0.3)' : 'rgba(43,38,32,0.32)',
           backgroundColor: on ? color : 'transparent',
           alignItems: 'center', justifyContent: 'center',
           transform: [{ scale }],

@@ -3,7 +3,6 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
 import { Reveal } from '../components/Reveal';
-import { AnimatedNumber } from '../components/AnimatedNumber';
 import { ProgressBar } from '../components/ProgressBar';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { useSettle } from '../lib/useSettle';
@@ -16,7 +15,6 @@ import { MoodRow } from '../components/MoodRow';
 import { WeekDots } from '../components/WeekDots';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
-import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
@@ -25,13 +23,9 @@ import { tap, success } from '../lib/haptics';
 import { DOW_KR, daysLabel, doneOn, extraLogKey, routineWeek, todayItems, type TodayItem } from '../lib/routine';
 import { pickSections } from '../lib/pick';
 import { SEMANTIC } from '../theme/palette';
-import type { IconName, Mgmt, TodayExtra } from '../types';
+import type { Mgmt, TodayExtra } from '../types';
 
-const MODES: { v: Mgmt; icon: IconName }[] = [
-  { v: '일일 체크', icon: 'checkCircle' },
-  { v: '습관 스트릭', icon: 'flame' },
-  { v: '칸반', icon: 'grid' },
-];
+const MODES: { v: Mgmt }[] = [{ v: '일일 체크' }, { v: '습관 스트릭' }, { v: '칸반' }];
 
 /** 오늘 실천 목록 = 직접 담은 항목 ∪ 오늘 요일 루틴 */
 function useTodayList(): TodayItem[] {
@@ -67,7 +61,7 @@ export function Today() {
           compact
           value={mgmt}
           onChange={(v) => { animateLayout(); setSetting('mgmt', v); }}
-          options={MODES.map((m) => ({ value: m.v, label: m.v, icon: m.icon, a11yLabel: `보기 방식 ${m.v}` }))}
+          options={MODES.map((m) => ({ value: m.v, label: m.v, a11yLabel: `보기 방식 ${m.v}` }))}
         />
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayChecklist M={M} />}
@@ -253,31 +247,18 @@ function TodayChecklist({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      {/* progress banner — 무드 hero 톤, 할 일이 없으면 숨김 */}
+      {/* 진행 — 한 문장과 가는 줄 하나(종이 위에, 카드 없이). 할 일이 없으면 숨김 */}
       {tTotal > 0 && (
-        <Reveal index={0}>
-          <View style={{ borderRadius: 22, padding: 20, marginBottom: 16, backgroundColor: M.hero[1] }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <View>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: M.heroSub }}>
-                  오늘 진행{routines > 0 ? ` · 반복 ${routines}개 포함` : ''}
-                </Text>
-                <Text style={{ fontSize: 34, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 2 }}>
-                  <AnimatedNumber value={tDone} fromZero={false} />
-                  <Text style={{ fontSize: 20, color: M.heroSub }}>/{tTotal}</Text>
-                </Text>
-              </View>
-              <AnimatedNumber value={pct} fromZero={false} format={(n) => `${n}%`} style={{ fontSize: 13, fontWeight: '800', color: M.gold }} />
-            </View>
-            <ProgressBar
-              pct={pct}
-              height={8}
-              color={M.gold}
-              track={M.heroLight ? 'rgba(70,52,18,0.12)' : 'rgba(255,255,255,0.22)'}
-              style={{ marginTop: 12 }}
-            />
+        <View style={{ marginBottom: 18 }} accessible accessibilityLabel={`오늘 ${tTotal}개 중 ${tDone}개 했어요, ${pct}%`}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: M.sub }}>
+              {tTotal}개 중 <Text style={{ fontSize: 28, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{tDone}</Text>개 했어요
+            </Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: M.sub, fontFamily: FONTS.grotesk }}>{pct}%</Text>
           </View>
-        </Reveal>
+          <ProgressBar pct={pct} height={4} color={M.ink} track={M.line} style={{ marginTop: 10 }} />
+          {routines > 0 && <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 8 }}>반복 실천 {routines}개가 저절로 담겼어요</Text>}
+        </View>
       )}
 
       {tTotal === 0 && (
@@ -339,8 +320,8 @@ function TodayChecklist({ M }: { M: M }) {
       )}
 
       {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}
-      <View style={[{ borderRadius: 20, padding: 16, marginTop: tTotal > 0 ? 18 : 6, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-        <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink, marginBottom: 11 }}>오늘 기분</Text>
+      <View style={{ marginTop: tTotal > 0 ? 28 : 8 }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 12 }} accessibilityRole="header">오늘 기분</Text>
         <MoodRow M={M} value={meta.mood} onPick={(i) => { tap(); setDayMood(i); }} />
         <TextInput
           value={meta.reflection ?? ''}
@@ -366,22 +347,18 @@ function TodayStreak({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      <Reveal index={0}>
-      <View style={{ borderRadius: 22, padding: 22, marginBottom: 18, alignItems: 'center', backgroundColor: M.hero[1] }}>
-        <Icon name="flame" size={36} color={M.gold} />
-        <Text style={{ fontSize: 40, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk, marginTop: 4 }}>
-          <AnimatedNumber value={best.best} />
-          <Text style={{ fontSize: 18, color: M.heroSub }}>일</Text>
+      {/* 가장 긴 기록 — 큰 숫자 하나와 한 문장(종이 위에) */}
+      <View style={{ marginBottom: 22 }} accessible accessibilityLabel={best.best > 0 ? `가장 길게 이어 온 기록 ${best.best}일, ${bestName}` : '아직 이어 온 기록이 없어요'}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>가장 길게 이어 온 기록</Text>
+        <Text style={{ fontSize: 44, lineHeight: 50, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk, letterSpacing: -1.5 }}>
+          {best.best}<Text style={{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }}>일</Text>
         </Text>
-        <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.heroSub }}>
-          {best.best > 0 ? `가장 긴 연속 기록 · ${bestName}` : '아직 연속 기록이 없어요'}
-        </Text>
+        <Text style={{ fontSize: 13.5, color: M.sub }}>{best.best > 0 ? `${bestName} 영역이에요` : '하루 하나씩 체크하면 여기에 쌓여요'}</Text>
       </View>
-      </Reveal>
 
       {/* 칸 7개 = 최근 7일(맨 오른쪽이 오늘) — 행마다 쓰지 않고 위에 한 번만 요일을 단다 */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={{ width: 38 + 13 }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2, marginBottom: 7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={{ width: 24 + 13 }} />
         <View style={{ flexDirection: 'row', gap: 4 }}>
           {lastNDates(7).map((k, i) => {
             const [y, m, d] = k.split('-').map(Number);
@@ -408,27 +385,26 @@ function TodayStreak({ M }: { M: M }) {
               accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 현재 연속 ${s.cur}일, 최고 ${s.best}일`}
               style={({ pressed }) => [
                 groupEdge(M, first, ti === doc.themes.length - 1),
-                { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 12 },
+                { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 2, paddingVertical: 12 },
                 pressed ? pressedRow(M) : null,
               ]}
             >
-              {!first && <RowDivider M={M} inset={67} />}
-              <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(th.color, M.dark ? 24 : 15, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+              {!first && <RowDivider M={M} inset={39} />}
+              <View style={{ width: 24, alignItems: 'center' }}>
                 <Icon name={th.icon} size={20} color={th.color} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontSize: 14.5, fontWeight: '700', color: M.ink }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
                 <View style={{ flexDirection: 'row', gap: 4, marginTop: 6 }}>
                   {s.week.map((d, di) => (
-                    <View key={di} style={{ width: 14, height: 14, borderRadius: 5, backgroundColor: d ? th.color : M.dark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)' }} />
+                    <View key={di} style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: d ? th.color : 'transparent', borderWidth: d ? 0 : 1, borderColor: M.line }} />
                   ))}
                 </View>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Icon name="flame" size={15} color={s.cur > 0 ? th.color : M.faint} />
-                  <Text style={{ fontSize: 17, fontWeight: '800', color: s.cur > 0 ? th.color : M.faint, fontFamily: FONTS.grotesk }}>{s.cur}</Text>
-                </View>
+                <Text style={{ fontSize: 17, fontWeight: '800', color: s.cur > 0 ? M.ink : M.faint, fontFamily: FONTS.grotesk }}>
+                  {s.cur}<Text style={{ fontSize: 12, fontWeight: '600', color: M.sub }}>일째</Text>
+                </Text>
                 <Text style={{ fontSize: 10.5, color: M.sub, fontWeight: '600' }}>최고 {s.best}일</Text>
               </View>
             </Pressable>

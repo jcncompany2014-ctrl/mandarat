@@ -18,7 +18,7 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 
-const STEP_REASON = { today: '오늘 남은 일', weakest: '가장 더딘 영역', empty: '비어 있는 칸' } as const;
+const STEP_REASON = { today: '오늘 남은 일', weakest: '가장 더딘 영역의 다음 실천', empty: '아직 비어 있는 칸' } as const;
 
 /** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만 권한다 */
 function NextStepCard({ M }: { M: M }) {
@@ -37,13 +37,10 @@ function NextStepCard({ M }: { M: M }) {
         scaleTo={0.98}
         accessibilityRole="button"
         accessibilityLabel={`다음 할 일, ${STEP_REASON[step.kind]}: ${title}, ${area}`}
-        style={[{ flexDirection: 'row', alignItems: 'center', gap: 13, padding: 15, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 15, paddingHorizontal: 18, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }}
       >
-        <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: tint(th.color, M.dark ? 22 : 13, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={step.kind === 'empty' ? 'pencil' : th.icon} size={20} color={th.color} />
-        </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>다음 할 일 · {STEP_REASON[step.kind]}</Text>
+          <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>{STEP_REASON[step.kind]}</Text>
           <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink, marginTop: 3, letterSpacing: -0.2 }} numberOfLines={2}>{title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: th.color }} />

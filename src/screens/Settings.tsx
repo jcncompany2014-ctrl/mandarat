@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Platform, ScrollView, Share, View } from 'react-native';
+import { Alert, Platform, Pressable, Share, View } from 'react-native';
 import { Text } from '../components/AppText';
-import { Header } from '../components/common';
+import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { Icon } from '../components/Icon';
 import { GridMark } from '../components/GridMark';
 import { Pressy } from '../components/Pressy';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { FONTS } from '../theme/fonts';
-import { tint } from '../theme/moods';
-import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
@@ -31,15 +29,16 @@ const SHAPE_OPTS: CellShape[] = ['둥근', '각진'];
 
 function Section({ M, label }: { M: M; label: string }) {
   return (
-    <Text style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8, fontSize: 13, fontWeight: '700', color: M.sub }}>
+    <Text style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: 8, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">
       {label}
     </Text>
   );
 }
 
+/** 종이 위 한 묶음 — 위아래 줄만 긋는다(흰 카드 없이) */
 function Card({ M, children }: { M: M; children: React.ReactNode }) {
   return (
-    <View style={[{ marginHorizontal: 20, borderRadius: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, padding: 14, gap: 12 }, M.dark ? null : shadow(3)]}>
+    <View style={{ marginHorizontal: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, paddingVertical: 14, gap: 14 }}>
       {children}
     </View>
   );
@@ -68,7 +67,7 @@ function Row({ M, icon, color, title, sub, onPress, danger }: { M: M; icon: Icon
       accessibilityHint={sub}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
     >
-      <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(color, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: 24, alignItems: 'center' }}>
         <Icon name={icon} size={20} color={color} />
       </View>
       <View style={{ flex: 1 }}>
@@ -157,7 +156,7 @@ export function Settings() {
       <Section M={M} label="핵심 목표" />
       <Card M={M}>
         <Pressy onPress={() => { tap(); openEditor({ kind: 'center' }); }} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`핵심 목표 ${doc.centerGoal || '입력'} · 수정`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 24, alignItems: 'center' }}>
             <Icon name="target" size={20} color={M.accent} />
           </View>
           <View style={{ flex: 1 }}>
@@ -169,37 +168,28 @@ export function Settings() {
       </Card>
 
       <Section M={M} label="템플릿으로 시작" />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 11, paddingVertical: 2 }}
-      >
-        {TEMPLATES.map((t) => (
-          <Pressy
+      <View style={{ marginHorizontal: 20 }}>
+        {TEMPLATES.map((t, i) => (
+          <Pressable
             key={t.id}
             onPress={() => useTemplate(t)}
-            scaleTo={0.96}
             accessibilityRole="button"
             accessibilityLabel={`${t.name} 템플릿 적용`}
             accessibilityHint={t.desc}
-            style={[{ width: 168, borderRadius: 18, padding: 15, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}
+            style={({ pressed }) => [groupEdge(M, i === 0, i === TEMPLATES.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
           >
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 11 }}>
-              {t.areas.slice(0, 4).map((a, i) => (
-                <View key={i} style={{ width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.accent, M.dark ? 20 : 12, M.dark) }}>
-                  <Icon name={a.icon} size={15} color={M.accent} />
-                </View>
-              ))}
+            {i > 0 && <RowDivider M={M} inset={0} />}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{t.name}</Text>
+              <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 2 }} numberOfLines={1}>{t.desc}</Text>
             </View>
-            <Text style={{ fontSize: 14.5, fontWeight: '800', color: M.ink }} numberOfLines={1}>{t.name}</Text>
-            <Text style={{ fontSize: 11.5, color: M.sub, marginTop: 3, lineHeight: 16 }} numberOfLines={2}>{t.desc}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: M.accent }}>적용하기</Text>
-              <Icon name="chevR" size={14} color={M.accent} />
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {t.areas.slice(0, 4).map((a, j) => <Icon key={j} name={a.icon} size={15} color={M.sub} />)}
             </View>
-          </Pressy>
+            <Icon name="chevR" size={16} color={M.faint} />
+          </Pressable>
         ))}
-      </ScrollView>
+      </View>
 
       <Section M={M} label="테마" />
       <Card M={M}>

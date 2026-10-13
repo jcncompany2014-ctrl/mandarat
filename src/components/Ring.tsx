@@ -8,8 +8,7 @@ import { reducedMotion } from '../lib/useReducedMotion';
 const ACircle = Animated.createAnimatedComponent(Circle);
 
 /**
- * 원형 진행 링 — 처음 그려질 때 0에서 값까지 한 바퀴 그리듯 차오르고,
- * 값이 바뀌면 그 차이만큼 부드럽게 움직인다. (animate=false면 즉시)
+ * 원형 진행 링 — 처음엔 그 값으로 그려져 있고, 값이 바뀌면 그 차이만큼 부드럽게 움직인다. (animate=false면 즉시)
  */
 export function Ring({
   pct, size = 64, stroke = 6, color = SEMANTIC.done, track = 'rgba(0,0,0,0.08)', children, animate = true, delay = 0,
@@ -21,32 +20,25 @@ export function Ring({
   track?: string;
   children?: React.ReactNode;
   animate?: boolean;
-  /** 처음 차오르기 시작할 때까지 기다리는 시간(ms) */
+  /** (예전 이름 — 처음엔 차오르지 않으므로 쓰지 않는다) */
   delay?: number;
 }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const target = Math.max(0, Math.min(100, pct || 0));
-  const still = !animate || reducedMotion();
-  const anim = useRef(new Animated.Value(still ? target : 0)).current;
+  const anim = useRef(new Animated.Value(target)).current;
   const first = useRef(true);
 
   useEffect(() => {
-    if (!animate || reducedMotion()) {
+    if (first.current || !animate || reducedMotion()) {
+      first.current = false;
       anim.setValue(target);
       return;
     }
-    const a = Animated.timing(anim, {
-      toValue: target,
-      duration: first.current ? DUR.slow + 240 : DUR.slow,
-      delay: first.current ? delay : 0,
-      easing: EASE.out,
-      useNativeDriver: false,
-    });
-    first.current = false;
+    const a = Animated.timing(anim, { toValue: target, duration: DUR.slow, easing: EASE.out, useNativeDriver: false });
     a.start();
     return () => a.stop();
-  }, [target, animate, anim, delay]);
+  }, [target, animate, anim]);
 
   const offset = anim.interpolate({ inputRange: [0, 100], outputRange: [c, 0] });
 

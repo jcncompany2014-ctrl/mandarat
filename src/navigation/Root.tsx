@@ -27,6 +27,7 @@ import { ActionSheet } from '../overlays/ActionSheet';
 import { FocusTimer } from '../overlays/FocusTimer';
 import { QuickAdd } from '../overlays/QuickAdd';
 import { PickToday } from '../overlays/PickToday';
+import { PaperDots } from '../components/PaperDots';
 import { Celebration } from '../overlays/Celebration';
 import { CellEditor } from '../overlays/CellEditor';
 import { Snackbar } from '../overlays/Snackbar';
@@ -144,6 +145,7 @@ export function Root() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <PaperDots M={M} />
         <Animated.View style={{ flexGrow: 1, opacity: fade, transform: [{ translateX: slide }] }}>
           {screen}
         </Animated.View>

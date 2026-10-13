@@ -1,19 +1,13 @@
 import React from 'react';
-import { Platform, Share, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, Share, View, useWindowDimensions } from 'react-native';
 import { Text } from '../components/AppText';
-import { Header, IconBtn } from '../components/common';
+import { Header, IconBtn, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { Icon, MOOD_FACES } from '../components/Icon';
-import { Ring } from '../components/Ring';
 import { EmptyState } from '../components/EmptyState';
 import { LotusRadar } from '../components/LotusRadar';
-import { Reveal, Pop } from '../components/Reveal';
-import { Pressy } from '../components/Pressy';
-import { AnimatedNumber } from '../components/AnimatedNumber';
-import { ProgressBar } from '../components/ProgressBar';
 import { GrowBar } from '../components/GrowBar';
 import { FONTS } from '../theme/fonts';
 import { fade } from '../theme/moods';
-import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
@@ -79,114 +73,103 @@ export function Stats() {
     }
   };
 
+  // 섹션 머리 — 종이 위 작은 제목 한 줄(카드 없이)
+  const head = (title: string, right?: string) => (
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 20, paddingTop: 30, paddingBottom: 12 }}>
+      <Text style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">{title}</Text>
+      {!!right && <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>{right}</Text>}
+    </View>
+  );
+
   return (
     <View>
       <Header M={M} kr="통계" right={<IconBtn M={M} name="share" label="통계 요약 공유" onPress={shareSummary} />} />
 
-      {/* insight */}
-      <Reveal index={0} style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-        <InsightCard M={M} doc={doc} />
-      </Reveal>
+      {/* 큰 숫자 둘 — 전체 달성 · 이어 온 날 */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: 20, paddingTop: 2 }}>
+        <View style={{ flex: 1 }} accessible accessibilityLabel={`전체 64칸 중 ${done}칸 달성, ${pct}%`}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>전체 달성</Text>
+          <Text style={{ fontSize: 46, lineHeight: 52, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk, letterSpacing: -1.5 }}>
+            {pct}<Text style={{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }}>%</Text>
+          </Text>
+          <Text style={{ fontSize: 13, color: M.sub }}>64칸 중 {done}칸</Text>
+        </View>
+        <View style={{ width: 1, backgroundColor: M.line, marginHorizontal: 18 }} />
+        <View style={{ flex: 1 }} accessible accessibilityLabel={streak > 0 ? `${streak}일째 이어 가는 중` : '아직 이어 온 날이 없어요'}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>이어 온 날</Text>
+          <Text style={{ fontSize: 46, lineHeight: 52, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk, letterSpacing: -1.5 }}>
+            {streak}<Text style={{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }}>일</Text>
+          </Text>
+          <Text style={{ fontSize: 13, color: M.sub }}>{streak > 0 ? '오늘까지 이어지는 중' : '하나 체크하면 시작돼요'}</Text>
+        </View>
+      </View>
 
-      {/* top stats */}
-      <Reveal index={1} style={{ paddingHorizontal: 20, paddingBottom: 16, flexDirection: 'row', gap: 12 }}>
-        <View style={[{ flex: 1.3, borderRadius: 22, padding: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, flexDirection: 'row', alignItems: 'center', gap: 14 }, M.dark ? null : shadow(4)]}>
-          <Ring pct={pct} size={70} stroke={7} color={M.accent} delay={120} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}>
-            <AnimatedNumber value={pct} format={(n) => `${n}%`} style={{ fontSize: 18, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }} />
-          </Ring>
-          <View>
-            <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>
-              <AnimatedNumber value={done} />
-              <Text style={{ fontSize: 15, color: M.faint }}>/64</Text>
-            </Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>전체 달성</Text>
-          </View>
-        </View>
-        <View style={[{ flex: 1, borderRadius: 22, padding: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, justifyContent: 'center' }, M.dark ? null : shadow(4)]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Icon name="flame" size={20} color={M.accent} />
-            <AnimatedNumber value={streak} style={{ fontSize: 26, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }} />
-          </View>
-          <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600', marginTop: 2 }}>현재 연속일</Text>
-        </View>
-      </Reveal>
+      <InsightCard M={M} doc={doc} />
 
       {hasData ? (
       <>
-      {/* weekly review */}
-      <Reveal index={2} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
+      {head('이번 주')}
+      <View style={{ paddingHorizontal: 20 }}>
         <WeekCard M={M} doc={doc} review={review} />
-      </Reveal>
+      </View>
 
-      {/* heatmap */}
-      <Reveal index={3} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
-        <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>최근 10주 실천</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>
-              {best ? `가장 많이 한 날 ${best.n}회 · ${fmtDay(best.date)}` : '아직 기록이 없어요'}
-            </Text>
-          </View>
-          <Heatmap M={M} doc={doc} weeks={cal} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
-            <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>적음</Text>
-            {[0, 0.28, 0.5, 0.72, 1].map((o, i) => (
-              <View key={i} style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: o === 0 ? (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)') : fade(M.accent, o * 100) }} />
-            ))}
-            <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>많음</Text>
-          </View>
+      {head('최근 10주', best ? `가장 많이 한 날 ${fmtDay(best.date)} · ${best.n}번` : '아직 기록이 없어요')}
+      {/* 하루 한 칸 — 많이 한 날일수록 진하게 */}
+      <View style={{ paddingHorizontal: 20 }}>
+        <Heatmap M={M} doc={doc} weeks={cal} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
+          <Text style={{ fontSize: 10.5, color: M.sub, fontWeight: '600' }}>적게</Text>
+          {[0, 0.28, 0.5, 0.72, 1].map((o, i) => (
+            <View key={i} style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: o === 0 ? 'transparent' : fade(M.accent, o * 100), borderWidth: o === 0 ? 1 : 0, borderColor: M.line }} />
+          ))}
+          <Text style={{ fontSize: 10.5, color: M.sub, fontWeight: '600' }}>많이</Text>
         </View>
-      </Reveal>
+      </View>
 
-      {/* area balance radar */}
-      <Reveal index={4} style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
-        <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>영역 균형</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600' }}>8개 영역 달성률</Text>
-          </View>
-          <Pop delay={220} style={{ alignItems: 'center', paddingVertical: 4 }}>
-            <LotusRadar
-              size={radarSize}
-              accent={M.accent}
-              line={M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}
-              data={doc.themes.map((th, ti) => ({ pct: themeProgress(th).pct, color: th.color, label: th.title || `영역 ${ti + 1}` }))}
-            />
-          </Pop>
-        </View>
-      </Reveal>
+      {head('영역 균형', '8개 영역 달성률')}
+      <View style={{ alignItems: 'center', paddingHorizontal: 20 }}>
+        <LotusRadar
+          size={radarSize}
+          accent={M.accent}
+          line={M.dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}
+          data={doc.themes.map((th, ti) => ({ pct: themeProgress(th).pct, color: th.color, label: th.title || `영역 ${ti + 1}` }))}
+        />
+      </View>
 
-      {/* ranked theme bars */}
-      <Reveal index={5}>
-      <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>영역별 달성률</Text>
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 13 }}>
+      {head('영역별 달성')}
+      {/* 장부처럼 한 줄씩 — 앞선 영역부터 */}
+      <View style={{ paddingHorizontal: 20 }}>
         {ranked.map(({ th, ti, p }, i) => (
-          <Pressy key={ti} onPress={() => { tap(); go('detail', ti); }} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`${th.title || `영역 ${ti + 1}`} ${p.pct}%, 세부 보기`}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: th.color }} />
-              <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '700', color: M.ink }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
-              <Text style={{ fontSize: 12.5, fontWeight: '800', color: th.color, fontFamily: FONTS.grotesk }}>{p.pct}%</Text>
+          <Pressable
+            key={ti}
+            onPress={() => { tap(); go('detail', ti); }}
+            accessibilityRole="button"
+            accessibilityLabel={`${th.title || `영역 ${ti + 1}`} ${p.pct}%, 세부 보기`}
+            style={({ pressed }) => [groupEdge(M, i === 0, i === ranked.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
+          >
+            {i > 0 && <RowDivider M={M} inset={0} />}
+            <View style={{ width: 9, height: 9, borderRadius: 2.5, backgroundColor: th.color }} />
+            <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
+            <View style={{ flexDirection: 'row', gap: 3 }}>
+              {th.actions.map((a, ai) => (
+                <View key={ai} style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: a.done ? th.color : 'transparent', borderWidth: a.done ? 0 : 1, borderColor: a.text.trim() ? tint(th.color, 55, M.dark) : M.line }} />
+              ))}
             </View>
-            <ProgressBar pct={p.pct} height={9} radius={5} delayIndex={i} color={th.color} track={M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.055)'} />
-          </Pressy>
+            <Text style={{ width: 38, textAlign: 'right', fontSize: 12.5, fontWeight: '700', color: M.sub, fontFamily: FONTS.grotesk }}>{p.pct}%</Text>
+          </Pressable>
         ))}
       </View>
-      </Reveal>
 
-      <Reveal index={6}>
-        <ReflectionFeed M={M} doc={doc} />
-      </Reveal>
+      <ReflectionFeed M={M} doc={doc} />
       </>
       ) : (
-        <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
-          <View style={[{ borderRadius: 22, paddingVertical: 8, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
-            <EmptyState
-              M={M}
-              icon="chart"
-              title="아직 통계가 비어 있어요"
-              subtitle="실천을 하나 체크하면 주간 흐름·히트맵·영역 균형이 여기에 나타나요"
-            />
-          </View>
+        <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+          <EmptyState
+            M={M}
+            icon="chart"
+            title="아직 통계가 비어 있어요"
+            subtitle="실천을 하나 체크하면 이번 주 흐름, 최근 10주, 영역 균형이 여기에 나타나요"
+          />
         </View>
       )}
     </View>
@@ -217,12 +200,12 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
 
   return (
     <>
-      <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, marginTop: 4, letterSpacing: -0.3 }}>최근 회고</Text>
+      <Text style={{ paddingHorizontal: 20, paddingTop: 30, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">최근 회고</Text>
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }}>
         {entries.length === 0 ? (
           <EmptyState M={M} icon="pencil" title="아직 회고가 없어요" subtitle="오늘 화면에서 기분과 한 줄 회고를 남겨보세요" compact />
         ) : (
-          <View style={[{ borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
+          <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
           {entries.map(({ k, meta }, i) => {
             const face = meta!.mood !== undefined ? MOOD_FACES[meta!.mood] : null;
             const Face = face?.ic;
@@ -231,7 +214,7 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
                 key={k}
                 accessible
                 accessibilityLabel={`${fmtDay(k)}${face ? `, 기분 ${face.kr}` : ''}${meta!.reflection?.trim() ? `, ${meta!.reflection}` : ''}`}
-                style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 14, paddingVertical: 13, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: M.line }}
+                style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 2, paddingVertical: 13, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: M.line }}
               >
                 <View style={{ width: 30, alignItems: 'center', paddingTop: 1 }}>
                   {Face ? <Face size={22} color={face!.c} strokeWidth={1.9} /> : <Icon name="pencil" size={17} color={M.faint} />}
@@ -283,8 +266,11 @@ function Heatmap({ M, doc, weeks }: { M: M; doc: MandaratDoc; weeks: { date: str
               <View
                 key={w}
                 style={c < 0
-                  ? { flex: 1, aspectRatio: 1, borderRadius: 4, borderWidth: 1, borderColor: empty, borderStyle: 'dashed' }
-                  : { flex: 1, aspectRatio: 1, borderRadius: 4, backgroundColor: c === 0 ? empty : fade(M.accent, intensity(c) * 100) }}
+                  // 한 날은 포인트 색 동그라미(많이 한 날일수록 진하게), 안 한 날은 빈 동그라미, 아직 안 온 날은 점선
+                  ? { flex: 1, aspectRatio: 1, borderRadius: 999, borderWidth: 1, borderColor: empty, borderStyle: 'dashed' }
+                  : c === 0
+                    ? { flex: 1, aspectRatio: 1, borderRadius: 999, borderWidth: 1, borderColor: M.line }
+                    : { flex: 1, aspectRatio: 1, borderRadius: 999, backgroundColor: fade(M.accent, intensity(c) * 100) }}
               />
             );
           })}
@@ -325,21 +311,12 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
   ];
 
   return (
-    <View style={[{ borderRadius: 22, padding: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 8 }}>
-        <View>
-          <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>이번 주 실천</Text>
-          <Text style={{ fontSize: 12, color: M.sub, fontWeight: '600', marginTop: 2 }}>총 {review.total}회 · 하루 평균 {avg.toFixed(1)}</Text>
-        </View>
-        {showDelta && (
-          <View
-            accessibilityLabel={delta === 0 ? '지난주 같은 기간과 같아요' : `지난주 같은 기간보다 ${Math.abs(delta)}회 ${delta > 0 ? '많아요' : '적어요'}`}
-            style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: delta > 0 ? tint(SEMANTIC.done, M.dark ? 18 : 11, M.dark) : (M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)') }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '800', color: deltaColor }}>{deltaText}</Text>
-          </View>
-        )}
-      </View>
+    // 종이 위에 그대로 — 한 문장 요약, 막대, 세 가지 수
+    <View>
+      <Text style={{ fontSize: 14, color: M.sub, lineHeight: 20, marginBottom: 14 }} accessibilityLabel={`모두 ${review.total}번, 하루 평균 ${avg.toFixed(1)}번${showDelta ? `, ${delta === 0 ? '지난주 같은 기간과 같아요' : `지난주 같은 기간보다 ${Math.abs(delta)}번 ${delta > 0 ? '많아요' : '적어요'}`}` : ''}`}>
+        모두 <Text style={{ fontWeight: '800', color: M.ink }}>{review.total}번</Text>, 하루 평균 {avg.toFixed(1)}번
+        {showDelta ? <Text style={{ color: deltaColor, fontWeight: '700' }}>{`  ${deltaText}`}</Text> : null}
+      </Text>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 9, height: 104 }}>
         {review.days.map((d, di) => {
           const h = Math.max(4, (d.count / maxW) * 72);
@@ -391,31 +368,29 @@ function InsightCard({ M, doc }: { M: M; doc: MandaratDoc }) {
   const overallPct = Math.round((totalDone(doc) / 64) * 100);
   const weekTotal = weekReview(doc, new Date()).total;
   const focus = doc.focusMinutes ?? 0;
-  const row = (label: string, r: (typeof ranked)[number]) => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <Text style={{ width: 64, fontSize: 13, fontWeight: '600', color: M.heroSub }}>{label}</Text>
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: r.th.color }} />
-      <Text style={{ flex: 1, fontSize: 15.5, fontWeight: '700', color: M.heroInk }} numberOfLines={1}>{r.th.title || `영역 ${r.ti + 1}`}</Text>
-      <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.heroInk, fontFamily: FONTS.grotesk }}>{r.p}%</Text>
+  const row = (label: string, r: (typeof ranked)[number], first: boolean) => (
+    <View style={[groupEdge(M, first, !first), { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 2 }]}>
+      {!first && <RowDivider M={M} inset={0} />}
+      <Text style={{ width: 92, fontSize: 13, fontWeight: '600', color: M.sub }}>{label}</Text>
+      <View style={{ width: 9, height: 9, borderRadius: 2.5, backgroundColor: r.th.color }} />
+      <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{r.th.title || `영역 ${r.ti + 1}`}</Text>
+      <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{r.p}%</Text>
     </View>
   );
+  const week = weekTotal > 0 ? `이번 주에 ${weekTotal}번 실천했어요.` : '이번 주엔 아직 실천 기록이 없어요.';
+  const total = focus > 0 ? ` 지금까지 ${fmtMinutes(focus)} 집중했어요.` : '';
 
   return (
-    <View style={{ borderRadius: 22, padding: 18, backgroundColor: M.hero[1], gap: 10 }}>
+    <View style={{ paddingHorizontal: 20, paddingTop: 26 }}>
       {overallPct === 0 ? (
-        <Text style={{ fontSize: 15.5, fontWeight: '700', lineHeight: 23, color: M.heroInk }}>
-          아직 달성한 칸이 없어요.{'\n'}오늘 할 일부터 하나씩 체크해 보세요.
-        </Text>
+        <Text style={{ fontSize: 15, lineHeight: 22, color: M.ink }}>아직 이룬 칸이 없어요. 오늘 할 일부터 하나씩 체크해 보세요.</Text>
       ) : (
         <>
-          {row('앞선 영역', top)}
-          {row('더딘 영역', low)}
+          {row('가장 앞선 영역', top, true)}
+          {row('가장 더딘 영역', low, false)}
         </>
       )}
-      <View style={{ height: 1, backgroundColor: M.heroLight ? 'rgba(70,52,18,0.10)' : 'rgba(255,255,255,0.12)', marginVertical: 2 }} />
-      <Text style={{ fontSize: 13, fontWeight: '600', color: M.heroSub }}>
-        이번 주 {weekTotal}회 실천{focus > 0 ? ` · 집중 ${fmtMinutes(focus)}` : ''}
-      </Text>
+      <Text style={{ fontSize: 13.5, color: M.sub, marginTop: 12, lineHeight: 20 }}>{week}{total}</Text>
     </View>
   );
 }
