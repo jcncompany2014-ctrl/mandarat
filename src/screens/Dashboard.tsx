@@ -12,7 +12,8 @@ import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { SEMANTIC, readableOn } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
-import { DOW_KR, todayItems, todayProgress, weekCounts } from '../lib/routine';
+import { DOW_KR, todayItems, todayProgress, weekCounts, ymd } from '../lib/routine';
+import { josa } from '../lib/text';
 import { countInfo, fmtNum, kindLine } from '../lib/kinds';
 import { useSettle } from '../lib/useSettle';
 import { GUIDE_FILL_TARGET, firstAreaWithEmpty, guideSteps, pickSections } from '../lib/pick';
@@ -182,7 +183,7 @@ export function Dashboard() {
 /** 오늘 할 일 — 남은 일 3개를 바로 체크한다(카드 없이 줄만) */
 function TodaySection({ M, doc, todayDoneCount, todayTotal }: { M: M; doc: MandaratDoc; todayDoneCount: number; todayTotal: number }) {
   const { go, openAction, openQuick, openPick } = useUI();
-  const { checkToday, toggleExtra } = useMandarat();
+  const { checkToday, toggleExtra, addCount } = useMandarat();
   const { showToast } = useUI();
   const { held, hold } = useSettle();
   const now = new Date();
@@ -195,10 +196,14 @@ function TodaySection({ M, doc, todayDoneCount, todayTotal }: { M: M; doc: Manda
         key: it.key, text: a.text, ti: it.ti, done: it.done,
         sub: kindLine(doc, it.ti, it.ai, now)?.long ?? '',
         onCheck: () => {
-          // 쌓기가 이번 체크로 목표에 닿으면 알려 준다
-          if (it.kind === 'count' && !it.done) {
-            const c = countInfo(a);
-            if (!c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
+          // 쌓기: 이번 체크로 목표에 닿으면 알려 주고, 해제(그날 더한 것 모두 되돌림)는 되살릴 수 있게
+          if (it.kind === 'count') {
+            const c = countInfo(a, ymd(now));
+            if (!it.done && !c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
+            if (it.done && c.today > 0) {
+              const amount = c.today;
+              showToast(`오늘 더한 ${josa(`${fmtNum(amount)}${c.unit}`, '을/를')} 되돌렸어요`, { label: '되돌리기', onPress: () => addCount(it.ti, it.ai, amount) });
+            }
           }
           checkToday(it.ti, it.ai);
         },

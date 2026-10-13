@@ -42,18 +42,19 @@ export function CountBar({ M, pct, color, height = 3 }: { M: M; pct: number; col
 /**
  * 마음가짐 점수 1~5 — 네모 다섯 칸. onRate가 있으면 눌러서 매기고, 같은 점수를 다시 누르면 지운다.
  */
-export function RatingBoxes({ M, value, color, onRate, size = 34, label }: {
+export function RatingBoxes({ M, value, color, onRate, size = 34, gap = 6, label }: {
   M: M;
   value: number;
   color: string;
   onRate?: (score: number) => void;
   size?: number;
+  gap?: number;
   /** 화면 읽기용 이름(무엇의 점수인지) */
   label: string;
 }) {
   return (
     <View
-      style={{ flexDirection: 'row', gap: 6 }}
+      style={{ flexDirection: 'row', gap }}
       // 매길 수 있으면 다섯 칸을 한 묶음(radiogroup)으로, 보기만 하면 점수 한 마디로 읽는다
       accessibilityRole={onRate ? 'radiogroup' : 'text'}
       accessible={!onRate}

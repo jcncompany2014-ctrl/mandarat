@@ -8,7 +8,8 @@ import { migrate } from '../data/defaults';
 import { isRoutine, ymd } from './routine';
 
 export const BACKUP_APP = 'mandarat';
-export const BACKUP_SCHEMA = 1;
+// 2: 실천 유형 값(kind·count·log·ratings·due …)이 생긴 문서 — 이전 앱은 '새 버전 백업'으로 알아보고 값을 조용히 잃지 않는다
+export const BACKUP_SCHEMA = 2;
 
 export interface BackupSummary {
   goal: string;

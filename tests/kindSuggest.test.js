@@ -87,3 +87,10 @@ test('제안에는 화면에 쓸 이름이 붙는다', () => {
   assert.equal(suggestKind('책 12권 읽기').label, '쌓기 12권');
   assert.equal(suggestKind('1,000만 원 모으기').label, '쌓기 1,000만 원');
 });
+
+test('주 N회의 여러 말투 — 범위는 적은 쪽, "한 주에"·"일주일" 포함', () => {
+  assert.equal(pick('주 3~4회 운동'), 'habit:주3');
+  assert.equal(pick('주 2-3회 수영'), 'habit:주2');
+  assert.equal(pick('한 주에 3번 요가'), 'habit:주3');
+  assert.equal(pick('일주일 2회 영어 스터디'), 'habit:주2');
+});

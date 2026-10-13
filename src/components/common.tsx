@@ -162,7 +162,7 @@ export function useSheetDismiss() {
  * - 손잡이를 끌어내려도 닫힌다(충분히 끌거나 빠르게 튕기면). 덜 끌면 제자리로 돌아온다.
  */
 export function Sheet({
-  M, onClose, children, maxHeightPct = 0.9, ownClose = false,
+  M, onClose, children, maxHeightPct = 0.9, ownClose = false, overlay,
 }: {
   M: M;
   onClose: () => void;
@@ -170,6 +170,8 @@ export function Sheet({
   maxHeightPct?: number;
   /** 시트 안에 닫기(×) 버튼이 따로 있으면 true — 손잡이를 스크린리더에서 숨겨 '닫기'가 두 번 읽히지 않게 */
   ownClose?: boolean;
+  /** 시트 위에 떠야 하는 것(안내 토스트) — 모달 밖에 두면 시트에 가려진다 */
+  overlay?: React.ReactNode;
 }) {
   const enter = useRef(new Animated.Value(reducedMotion() ? 1 : 0)).current; // 0 → 1 등장
   const drag = useRef(new Animated.Value(0)).current; // 끌어내린 거리 · 퇴장 거리
@@ -266,6 +268,7 @@ export function Sheet({
           </SheetDismiss.Provider>
         </Animated.View>
       </KeyboardAvoidingView>
+      {overlay}
     </Modal>
   );
 }

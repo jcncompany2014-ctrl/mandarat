@@ -62,8 +62,8 @@ export function suggestKind(text: string): KindSuggestion | null {
   const t = text.replace(/\s+/g, ' ').trim();
   if (!t) return null;
 
-  // 1) 주 N회 · 일주일에 N번 · 주 1통화
-  const pw = t.match(/(?:주|일주일에|1주일에|매주)\s*(\d)\s*(?:회|번|통|차례)/);
+  // 1) 주 N회 · 일주일에 N번 · 한 주에 N번 · 주 1통화 · 주 3~4회(적은 쪽을 목표로)
+  const pw = t.match(/(?:주|일주일에?|1주일에?|한\s*주에?|매주)\s*(\d)(?:\s*[~\-–]\s*\d)?\s*(?:회|번|통|차례)/);
   if (pw) {
     const n = Number(pw[1]);
     if (n >= 7) return habitDays(EVERY_DAY);

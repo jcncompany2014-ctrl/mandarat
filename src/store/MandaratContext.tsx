@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme, TodayExtra } from '../types';
 import { blankDoc, migrate, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
-import { addCount as addCountTo, applyConfig, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
+import { addCount as addCountTo, applyConfig, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 
@@ -37,6 +37,8 @@ interface Ctx {
   setActionNote: (ti: number, ai: number, note: string) => void;
   /** 실천 유형과 그 값(요일·주 N회·목표·마감) — 바뀐 게 없으면 아무것도 하지 않는다 */
   setActionConfig: (ti: number, ai: number, cfg: KindConfig) => void;
+  /** 칸 비우기 — 글·유형 값·달성을 지우고(메모는 남김) 오늘 목록에서도 뺀다 */
+  clearAction: (ti: number, ai: number) => void;
   // progress
   toggleDone: (ti: number, ai: number) => void;
   /** 습관의 오늘 체크만 토글 (영구 달성 done은 그대로) */
@@ -202,12 +204,33 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       const a = docRef.current.themes[ti]?.actions[ai];
       // 유형을 적어 두지 않은 이전 칸도 같은 설정이면 그대로 — 아무것도 안 바꾼 저장이 되돌리기를 막지 않게
       if (!a || (kindOf(a) === cfg.kind && sameConfig(configOf(a), cfg))) return;
-      editThemes(ti, (t) => ({
-        ...t,
-        actions: t.actions.map((x, i) => (i === ai ? applyConfig(x, cfg, dateKey()) : x)),
-      }));
+      update((d) => {
+        const tk = dateKey();
+        const prev = d.themes[ti]?.actions[ai];
+        if (!prev) return d;
+        const next = applyConfig(prev, cfg, tk);
+        // 쌓기는 그날 더한 수가 곧 그날 기록 — 지금까지를 줄여 그날 것이 사라졌다면 기록에서도 뺀다
+        const dayLog = kindOf(next) === 'count'
+          ? setDayLog(d.dayLog, `${ti}-${ai}`, tk, (next.log?.[tk] ?? 0) > 0)
+          : d.dayLog;
+        return {
+          ...d,
+          dayLog,
+          themes: d.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((x, j) => (j === ai ? next : x)) } : t)),
+        };
+      });
     },
-    [editThemes],
+    [update],
+  );
+
+  const clearAction = useCallback(
+    (ti: number, ai: number) =>
+      update((d) => ({
+        ...d,
+        todayKeys: d.todayKeys.filter((k) => k !== `${ti}-${ai}`),
+        themes: d.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((x, j) => (j === ai ? clearedAction(x) : x)) } : t)),
+      })),
+    [update],
   );
 
   const toggleRoutineToday = useCallback(
@@ -232,8 +255,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         const a = d.themes[ti]?.actions[ai];
         if (!a) return d;
         const nowDone = !a.done;
-        // 습관의 칸 달성은 하루 체크와 별개 — 습관이 아닐 때만 오늘 실천 기록에 남긴다
-        const dayLog = isRoutine(a) ? d.dayLog : setDayLog(d.dayLog, `${ti}-${ai}`, dateKey(), nowDone);
+        // 습관의 칸 달성은 하루 체크와 별개, 쌓기의 그날 기록은 더한 수로만 — 그 밖(한 번·마음가짐)만 오늘 기록에 남긴다
+        const kind = kindOf(a);
+        const dayLog = kind === 'habit' || kind === 'count' ? d.dayLog : setDayLog(d.dayLog, `${ti}-${ai}`, dateKey(), nowDone);
         return {
           ...d,
           dayLog,
@@ -409,12 +433,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<Ctx>(
     () => ({
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionConfig,
+      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra,
       setDayMood, setDayReflection, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision, storageError,
     }),
     [
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionConfig,
+      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra,
       setDayMood, setDayReflection, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision, storageError,
     ],
@@ -427,7 +451,9 @@ function sampleDoneKeys(): string[] {
   const keys: string[] = [];
   sampleThemes().forEach((t, ti) =>
     t.actions.forEach((a, ai) => {
-      if (a.done && !isRoutine(a)) keys.push(`${ti}-${ai}`);
+      // 습관의 그날 체크·쌓기의 그날 더한 수는 칸 달성과 따로라 오늘 기록에 넣지 않는다
+      const kind = kindOf(a);
+      if (a.done && kind !== 'habit' && kind !== 'count') keys.push(`${ti}-${ai}`);
     }),
   );
   return keys;

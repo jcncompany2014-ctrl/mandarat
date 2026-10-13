@@ -5,6 +5,7 @@ import { Sheet, Pill, CloseBtn, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';
 import { WeekDots } from '../components/WeekDots';
 import { Pressy } from '../components/Pressy';
+import { Snackbar } from './Snackbar';
 import { ProgressBar } from '../components/ProgressBar';
 import { RatingBoxes, WeekSlots, alertInk } from '../components/KindBits';
 import { FONTS } from '../theme/fonts';
@@ -23,7 +24,8 @@ export function ActionSheet() {
   const M = usePalette();
   if (!sheet) return null;
   return (
-    <Sheet M={M} onClose={closeSheet} ownClose>
+    // 시트에서 띄운 안내(오늘에 담았어요 · 되돌리기 등)가 시트에 가려지지 않게 시트 안에도 토스트 자리를 둔다
+    <Sheet M={M} onClose={closeSheet} ownClose overlay={<Snackbar />}>
       <ActionSheetBody ti={sheet.ti} ai={sheet.ai} />
     </Sheet>
   );

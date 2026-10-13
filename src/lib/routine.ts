@@ -145,6 +145,20 @@ export function weekDone(dayLog: MandaratDoc['dayLog'], key: string, today: Date
   }).length;
 }
 
+/**
+ * 주 N회 습관의 이번 주 목표 횟수 — 습관을 정한 주에는 남은 날 수까지만(토요일에 정한 주 3회는 그 주 2회).
+ * 주 N회가 아니면 0.
+ */
+export function weekTarget(a: Pick<Action, 'kind' | 'days' | 'perWeek' | 'since'> | undefined, today: Date): number {
+  const n = perWeekOf(a);
+  if (n === 0 || !a?.since) return n;
+  const week = weekDates(today);
+  const mon = ymd(week[0]);
+  if (a.since <= mon) return n;
+  const left = daysBetween(a.since, ymd(week[6])) + 1;
+  return Math.max(1, Math.min(n, left));
+}
+
 /** 오늘 했는가 — 습관은 오늘 체크, 쌓기는 오늘 더한 수, 한 번은 칸 달성. 마음가짐은 늘 거짓. */
 export function doneToday(doc: Pick<MandaratDoc, 'dayLog'>, a: Action, key: string, todayKey: string): boolean {
   const kind = kindOf(a);
@@ -166,11 +180,10 @@ export function autoToday(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: numbe
   const kind = kindOf(a);
   const tk = ymd(today);
   if (kind === 'habit') {
-    const n = perWeekOf(a);
-    if (n === 0) return scheduledOn(a, today);
+    if (perWeekOf(a) === 0) return scheduledOn(a, today);
     if (a.since && tk < a.since) return false;
     const key = `${ti}-${ai}`;
-    return doneOn(doc.dayLog, key, tk) || weekDone(doc.dayLog, key, today, a.since, false) < n;
+    return doneOn(doc.dayLog, key, tk) || weekDone(doc.dayLog, key, today, a.since, false) < weekTarget(a, today);
   }
   if (kind === 'once') {
     if (!a.due || daysBetween(tk, a.due) > DUE_SOON) return false;
@@ -229,13 +242,12 @@ export function routineWeek(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: num
 /**
  * 이번 주 해낸 횟수 / 정한 횟수.
  * 요일 습관은 예정일 중 해낸 날 / 예정일 수(쉬는 날에 한 것은 점으로만 보이고 비율엔 넣지 않는다),
- * 주 N회 습관은 이번 주 한 날 수 / N.
+ * 주 N회 습관은 이번 주 한 날 수 / 이번 주 목표(정한 주에는 남은 날만큼).
  */
 export function routineWeekCount(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): { done: number; planned: number } {
   const a = doc.themes[ti]?.actions[ai];
   const key = `${ti}-${ai}`;
-  const n = perWeekOf(a);
-  if (n > 0) return { done: weekDone(doc.dayLog, key, today, a?.since), planned: n };
+  if (perWeekOf(a) > 0) return { done: weekDone(doc.dayLog, key, today, a?.since), planned: weekTarget(a, today) };
   const planned = weekDates(today).filter((d) => scheduledOn(a, d));
   return { done: planned.filter((d) => doneOn(doc.dayLog, key, ymd(d))).length, planned: planned.length };
 }

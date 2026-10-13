@@ -1,7 +1,7 @@
 // 주간 돌아보기 + 달력형 히트맵 날짜 계산 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // "이번 주"는 앱 전체에서 월~일 기준으로 통일한다(홈 주간 띠와 같은 숫자).
 import type { MandaratDoc } from '../types';
-import { habitDays, kindOf, perWeekOf, weekDates, weekDone, ymd } from './routine';
+import { habitDays, kindOf, perWeekOf, weekDates, weekDone, weekTarget, ymd } from './routine';
 import { countInfo, countWeekAdded, ratingOf } from './kinds';
 
 export interface WeekDay {
@@ -79,8 +79,8 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, today: D
       return;
     }
     if (kind !== 'habit') return;
-    const n = perWeekOf(a);
-    if (n > 0) {
+    if (perWeekOf(a) > 0) {
+      const n = weekTarget(a, today);
       weeklyTarget += n;
       weeklyDone += Math.min(n, weekDone(doc.dayLog, key, today, a.since));
       return;

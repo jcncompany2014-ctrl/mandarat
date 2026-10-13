@@ -323,3 +323,52 @@ test('duePresets·addDays·dateText', () => {
   assert.equal(K.dateText('2026-10-20', WED), '10월 20일 (화)');
   assert.equal(K.dateText('2027-01-04', WED), '2027년 1월 4일 (월)');
 });
+
+test('주 N회를 정한 주에는 남은 날만큼만 목표로 센다(토요일에 정한 주 3회 → 그 주 2회)', () => {
+  const SAT = new Date(2026, 9, 17);
+  const doc = docWith((t) => {
+    t[0].actions[0] = { text: '운동', note: '', done: false, kind: 'habit', perWeek: 3, since: '2026-10-17' };
+    return {};
+  });
+  assert.equal(R.weekTarget(doc.themes[0].actions[0], SAT), 2);
+  assert.deepEqual(R.routineWeekCount(doc, 0, 0, SAT), { done: 0, planned: 2 });
+  assert.equal(K.kindLine(doc, 0, 0, SAT).long, '이번 주 0/2회');
+  // 토·일 두 번 하면 그 주는 다 채운 것
+  doc.dayLog = { '2026-10-17': ['0-0'] };
+  assert.equal(R.todayItems(doc, new Date(2026, 9, 18)).length, 1, '일요일: 1/2라 아직 담김');
+  doc.dayLog['2026-10-18'] = ['0-0'];
+  assert.equal(R.routineWeekCount(doc, 0, 0, new Date(2026, 9, 18)).done, 2);
+  // 다음 주부터는 3회
+  assert.equal(R.weekTarget(doc.themes[0].actions[0], new Date(2026, 9, 20)), 3);
+});
+
+test('편집 창에서 지금까지를 줄이면 그날 더한 수도 그 안으로 — 체크 해제가 어긋나지 않는다', () => {
+  const day = '2026-10-14';
+  let d = K.addCount(countDoc({ count: 10 }), 2, 0, 3, day); // 13, 오늘 +3
+  const a = K.applyConfig(d.themes[2].actions[0], { kind: 'count', goal: 12, unit: '권', step: 1, count: 2 }, day);
+  assert.equal(a.count, 2);
+  assert.deepEqual(a.log, { [day]: 2 });
+  d = { ...d, themes: d.themes.map((t, i) => (i === 2 ? { ...t, actions: t.actions.map((x, j) => (j === 0 ? a : x)) } : t)) };
+  const off = K.toggleCountToday(d, 2, 0, day);
+  assert.equal(off.themes[2].actions[0].count, 0);
+  assert.equal(day in off.themes[2].actions[0].log, false);
+  assert.equal(day in off.dayLog, false);
+  // 0으로 줄였다면 그날 기록도 지운다
+  const zero = K.applyConfig(d.themes[2].actions[0], { kind: 'count', goal: 12, step: 1, count: 0 }, day);
+  assert.equal(day in zero.log, false);
+});
+
+test('어긋난 기록(지금까지 0인데 그날 +1)도 체크 해제로 정리된다', () => {
+  const day = '2026-10-14';
+  const d = countDoc({ count: 0, log: { [day]: 1 } });
+  d.dayLog = { [day]: ['2-0'] };
+  const off = K.toggleCountToday(d, 2, 0, day);
+  assert.notEqual(off, d);
+  assert.equal(day in off.themes[2].actions[0].log, false);
+  assert.equal(day in off.dayLog, false);
+});
+
+test('clearedAction: 글·유형 값·달성을 지우고 메모만 남긴다', () => {
+  const a = { text: '책', note: '메모', done: true, kind: 'count', goal: 12, count: 12, log: { '2026-10-14': 1 }, ratings: { '2026-10-12': 3 }, days: [1], since: '2026-10-01' };
+  assert.deepEqual(K.clearedAction(a), { text: '', note: '메모', done: false });
+});

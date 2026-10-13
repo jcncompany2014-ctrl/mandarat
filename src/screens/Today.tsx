@@ -23,6 +23,7 @@ import { useMandarat, dateKey, lastNDates, themeStreak } from '../store/Mandarat
 import { tap, success } from '../lib/haptics';
 import { DOW_KR, doneOn, extraLogKey, kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, type TodayItem } from '../lib/routine';
 import { countInfo, fmtNum, kindLine, ratingOf } from '../lib/kinds';
+import { josa } from '../lib/text';
 import { pickSections } from '../lib/pick';
 import { SEMANTIC } from '../theme/palette';
 import type { Mgmt, TodayExtra } from '../types';
@@ -40,14 +41,19 @@ function useTodayList(): TodayItem[] {
  * 쌓기가 이번 체크로 목표에 닿으면 알려 준다.
  */
 function useCheck() {
-  const { doc, checkToday } = useMandarat();
+  const { doc, checkToday, addCount } = useMandarat();
   const { showToast } = useUI();
   return (it: TodayItem) => {
     tap();
     if (!it.done) success();
-    if (it.kind === 'count' && !it.done) {
-      const c = countInfo(doc.themes[it.ti].actions[it.ai]);
-      if (!c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
+    if (it.kind === 'count') {
+      const c = countInfo(doc.themes[it.ti].actions[it.ai], dateKey());
+      if (!it.done && !c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
+      // 체크 해제는 그날 더한 것을 한꺼번에 되돌리므로, 잘못 눌렀을 때 살릴 수 있게
+      if (it.done && c.today > 0) {
+        const amount = c.today;
+        showToast(`오늘 더한 ${josa(`${fmtNum(amount)}${c.unit}`, '을/를')} 되돌렸어요`, { label: '되돌리기', onPress: () => addCount(it.ti, it.ai, amount) });
+      }
     }
     checkToday(it.ti, it.ai);
   };
@@ -399,7 +405,7 @@ function MindWeek({ M }: { M: M }) {
                 <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
               </View>
             </Pressable>
-            <RatingBoxes M={M} value={ratingOf(a, now)} color={th.color} label={`${a.text} 이번 주 점수`} size={26} onRate={(s) => rateMind(ti, ai, s)} />
+            <RatingBoxes M={M} value={ratingOf(a, now)} color={th.color} label={`${a.text} 이번 주 점수`} size={32} gap={5} onRate={(s) => rateMind(ti, ai, s)} />
           </View>
         );
       })}

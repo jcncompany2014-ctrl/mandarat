@@ -93,7 +93,6 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     const elapsedMin = Math.round((TOTAL - left) / 60);
     if (elapsedMin > 0) addFocusMinutes(elapsedMin);
     // 습관은 오늘 체크로, 한 번은 칸의 달성으로 기록한다(쌓기는 얼마나 했는지 몰라 시간만 남긴다)
-    const kind = kindOf(a);
     if (kind === 'habit') {
       if (!doneOn(doc.dayLog, `${ti}-${ai}`, dateKey())) toggleRoutineToday(ti, ai);
     } else if (kind === 'once' && !a.done) toggleDone(ti, ai);
@@ -101,6 +100,11 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   };
 
   const cueText = finished ? '25분 집중 완료' : !run ? '일시정지됨' : reduce ? '집중하는 중' : inhale ? '들이쉬기' : '내쉬기';
+  // 끝낼 때 무엇이 기록되는지 그대로 — 습관은 오늘 체크, 한 번은 완료, 쌓기는 집중 시간만(얼마나 쌓였는지는 모르므로)
+  const kind = kindOf(a);
+  const finishLabel = kind === 'habit' ? (finished ? '오늘 체크하기' : '끝내고 오늘 체크')
+    : kind === 'once' && !a.done ? (finished ? '완료 처리' : '끝내고 완료')
+    : finished ? '닫기' : '끝내기';
 
   return (
     <Modal visible animationType="fade" onRequestClose={closeFocus} statusBarTranslucent>
@@ -143,8 +147,8 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
               <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{run ? '일시정지' : '계속'}</Text>
             </Pressy>
           )}
-          <Pressy onPress={finish} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={finished ? '완료 처리' : '끝내고 완료'} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: th.color }}>
-            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{finished ? '완료 처리' : '끝내고 완료'}</Text>
+          <Pressy onPress={finish} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={finishLabel} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: th.color }}>
+            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{finishLabel}</Text>
           </Pressy>
         </View>
         <Text style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.45)', fontWeight: '500' }}>25분 동안 한 가지에만</Text>

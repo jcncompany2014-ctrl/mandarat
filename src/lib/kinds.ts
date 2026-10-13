@@ -92,7 +92,8 @@ function editAction<T extends Pick<MandaratDoc, 'themes'>>(doc: T, ti: number, a
 /**
  * 쌓기 수를 delta만큼 바꾼 새 문서. 그날 기록(action.log·dayLog)을 함께 맞추고,
  * 목표 선을 넘나들 때만 칸 달성을 바꾼다(직접 달성으로 표시해 둔 것은 그대로 둔다).
- * 0 아래로는 내려가지 않는다. 바뀐 게 없으면 같은 객체.
+ * 0 아래로는 내려가지 않고, 그날 더한 수는 지금까지의 수를 넘지 않는다(편집 창에서 수를 줄인 뒤에도 어긋나지 않게).
+ * 바뀐 게 없으면 같은 객체.
  */
 export function addCount<T extends Pick<MandaratDoc, 'themes' | 'dayLog'>>(doc: T, ti: number, ai: number, delta: number, day: string): T {
   const a = doc.themes[ti]?.actions[ai];
@@ -100,8 +101,8 @@ export function addCount<T extends Pick<MandaratDoc, 'themes' | 'dayLog'>>(doc: 
   const c = countInfo(a, day);
   const next = Math.min(MAX_NUM, round2(Math.max(0, c.count + delta)));
   const real = round2(next - c.count);
-  if (real === 0) return doc;
-  const todayAmt = round2(Math.max(0, c.today + real));
+  const todayAmt = round2(Math.min(next, Math.max(0, c.today + real)));
+  if (real === 0 && todayAmt === c.today) return doc;
   const log = { ...(a.log ?? {}) };
   if (todayAmt > 0) log[day] = todayAmt;
   else delete log[day];
@@ -298,11 +299,24 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
     if (step !== 1) out.step = step;
     else delete out.step;
     if (!before || before.goal !== goal || before.count !== count) out.done = count >= goal;
+    // 지금까지의 수를 줄였다면 그날 더한 수도 그 안으로 — 목록 체크가 그날 기록과 어긋나지 않게
+    const todayAmt = cleanNum(out.log?.[todayKey]) ?? 0;
+    if (todayAmt > count) {
+      const log = { ...(out.log ?? {}) };
+      if (count > 0) log[todayKey] = count;
+      else delete log[todayKey];
+      out.log = log;
+    }
   } else if (cfg.kind === 'once') {
     if (cfg.due && /^\d{4}-\d{2}-\d{2}$/.test(cfg.due)) out.due = cfg.due;
     else delete out.due;
   }
   return out;
+}
+
+/** 칸을 비울 때 — 글과 유형별 값·달성을 모두 지우고 메모만 남긴다(다음에 쓰는 실천이 이전 숫자·기록을 이어받지 않게) */
+export function clearedAction(a: Action): Action {
+  return { text: '', note: a.note, done: false };
 }
 
 // ── 화면에 붙는 한 줄 ─────────────────────────────────────────────────────────
@@ -329,7 +343,7 @@ export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number
     const n = perWeekOf(a);
     if (n > 0) {
       const w = routineWeekCount(doc, ti, ai, today);
-      return { icon: 'repeat', short: `이번 주 ${w.done}/${n}`, long: `이번 주 ${w.done}/${n}회`, plan: `주 ${n}회` };
+      return { icon: 'repeat', short: `이번 주 ${w.done}/${w.planned}`, long: `이번 주 ${w.done}/${w.planned}회`, plan: `주 ${n}회` };
     }
     const label = `${daysLabel(habitDays(a))} 반복`;
     return { icon: 'repeat', short: daysLabel(habitDays(a)), long: label, plan: label };
