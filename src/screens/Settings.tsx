@@ -24,6 +24,8 @@ import type { CellShape, IconName, Mgmt, Mood } from '../types';
 
 const APP_VERSION = '1.0.0'; // app.json version과 일치
 const MOOD_OPTS: Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
+// 저장값은 예전 이름 그대로 두고(기존 기록 호환) 화면에는 지금 이름을 보여 준다
+const MOOD_LABEL: Partial<Record<Mood, string>> = { 연꽃: '미색' };
 const MGMT_OPTS: Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 const SHAPE_OPTS: CellShape[] = ['둥근', '각진'];
 
@@ -78,7 +80,7 @@ function Row({ M, icon, color, title, sub, onPress, danger }: { M: M; icon: Icon
   );
 }
 
-function Segmented<T extends string>({ M, label, value, options, onChange }: { M: M; label: string; value: T; options: T[]; onChange: (v: T) => void }) {
+function Segmented<T extends string>({ M, label, value, options, onChange, labels }: { M: M; label: string; value: T; options: T[]; onChange: (v: T) => void; labels?: Partial<Record<T, string>> }) {
   return (
     <View>
       <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>{label}</Text>
@@ -88,7 +90,7 @@ function Segmented<T extends string>({ M, label, value, options, onChange }: { M
         role="radio"
         value={value}
         onChange={onChange}
-        options={options.map((o) => ({ value: o, label: o, a11yLabel: `${label} ${o}` }))}
+        options={options.map((o) => ({ value: o, label: labels?.[o] ?? o, a11yLabel: `${label} ${labels?.[o] ?? o}` }))}
       />
     </View>
   );
@@ -201,7 +203,7 @@ export function Settings() {
 
       <Section M={M} label="테마" />
       <Card M={M}>
-        <Segmented M={M} label="배경" value={doc.settings.mood} options={MOOD_OPTS} onChange={(v) => setSetting('mood', v)} />
+        <Segmented M={M} label="배경" value={doc.settings.mood} options={MOOD_OPTS} labels={MOOD_LABEL} onChange={(v) => setSetting('mood', v)} />
         <View>
           <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>포인트 컬러</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>

@@ -11,7 +11,7 @@ import type { M } from '../theme/usePalette';
 
 // ── Screen header (EN eyebrow + KR title + optional back/right) ───────────────
 export function Header({
-  M, kr, sub, right, onBack,
+  M, kr, sub, right, onBack, stacked,
 }: {
   M: M;
   kr: string;
@@ -19,32 +19,56 @@ export function Header({
   sub?: string;
   right?: React.ReactNode;
   onBack?: () => void;
+  /**
+   * 버튼 줄을 위에, 제목을 그 아래 전체 폭으로 — 사용자가 지은 긴 이름이 버튼 사이에 끼어 세 줄로 접히지 않게.
+   * (이름 길이에 따라 바꾸지 않고 화면마다 고정해야, 이전/다음을 연달아 누를 때 버튼이 손가락 밑에서 움직이지 않는다)
+   */
+  stacked?: boolean;
 }) {
+  const back = onBack && (
+    <Pressy
+      onPress={onBack}
+      scaleTo={0.88}
+      accessibilityRole="button"
+      accessibilityLabel="뒤로 가기"
+      hitSlop={8}
+      style={{
+        width: 38, height: 38, borderRadius: 12, marginLeft: -4,
+        backgroundColor: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+        alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <Icon name="chevL" size={20} color={M.ink} sw={2.2} />
+    </Pressy>
+  );
+  if (stacked) {
+    return (
+      <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          {back ?? <View />}
+          {right}
+        </View>
+        {!!sub && (
+          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginBottom: 3 }}>
+            {sub}
+          </Text>
+        )}
+        <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: '800', color: M.ink, letterSpacing: -0.6, lineHeight: 32 }} numberOfLines={2}>
+          {kr}
+        </Text>
+      </View>
+    );
+  }
   return (
     <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
-      {onBack && (
-        <Pressy
-          onPress={onBack}
-          scaleTo={0.88}
-          accessibilityRole="button"
-          accessibilityLabel="뒤로 가기"
-          hitSlop={8}
-          style={{
-            width: 38, height: 38, borderRadius: 12, marginBottom: 2, marginLeft: -4,
-            backgroundColor: M.dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
-            alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <Icon name="chevL" size={20} color={M.ink} sw={2.2} />
-        </Pressy>
-      )}
+      {back && <View style={{ marginBottom: 2 }}>{back}</View>}
       <View style={{ flex: 1, minWidth: 0 }}>
         {!!sub && (
           <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginBottom: 3 }}>
             {sub}
           </Text>
         )}
-        <Text style={{ fontSize: 26, fontWeight: '800', color: M.ink, letterSpacing: -0.6, lineHeight: 32 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: '800', color: M.ink, letterSpacing: -0.6, lineHeight: 32 }}>
           {kr}
         </Text>
       </View>

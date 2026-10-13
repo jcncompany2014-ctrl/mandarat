@@ -20,9 +20,9 @@ import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
-import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
+import { useMandarat, dateKey, lastNDates, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
-import { daysLabel, doneOn, extraLogKey, routineWeek, todayItems, type TodayItem } from '../lib/routine';
+import { DOW_KR, daysLabel, doneOn, extraLogKey, routineWeek, todayItems, type TodayItem } from '../lib/routine';
 import { SEMANTIC } from '../theme/palette';
 import type { IconName, Mgmt, TodayExtra } from '../types';
 
@@ -77,7 +77,7 @@ export function Today() {
 // ── checklist (default) ───────────────────────────────────────────────────────
 function TodayChecklist({ M }: { M: M }) {
   const { doc, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection } = useMandarat();
-  const { openAction, showToast } = useUI();
+  const { openAction, openQuick, showToast } = useUI();
   const list = useTodayList();
   const check = useCheck();
   const extra = doc.todayExtra;
@@ -159,12 +159,12 @@ function TodayChecklist({ M }: { M: M }) {
               <Check on={it.done} color={th.color} dark={M.dark} />
             </Pressable>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={1}>
+              <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={2}>
                 {a.text}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
                 <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-                <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{area}</Text>
+                <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{area}</Text>
                 {it.routine && (
                   <>
                     <Icon name="repeat" size={11} color={th.color} sw={2.2} />
@@ -199,12 +199,12 @@ function TodayChecklist({ M }: { M: M }) {
         >
           <Check on={x.done} color={th.color} dark={M.dark} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: x.done ? M.sub : M.ink, textDecorationLine: x.done ? 'line-through' : 'none' }} numberOfLines={1}>
+            <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: x.done ? M.sub : M.ink, textDecorationLine: x.done ? 'line-through' : 'none' }} numberOfLines={2}>
               {x.text}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
               <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-              <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{th.title || `영역 ${x.ti + 1}`} · 직접 추가</Text>
+              <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{th.title || `영역 ${x.ti + 1}`} · 직접 추가</Text>
             </View>
           </View>
           <Pressable
@@ -255,7 +255,8 @@ function TodayChecklist({ M }: { M: M }) {
           M={M}
           icon="checkCircle"
           title="오늘 할 일이 없어요"
-          subtitle="실천에 반복 요일을 정하면 그날 여기에 나타나요. 아래 ＋ 버튼으로 바로 추가할 수도 있어요"
+          subtitle="반복 요일을 정한 실천은 그날 자동으로 담겨요"
+          action={{ label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
         />
       )}
 
@@ -342,6 +343,23 @@ function TodayStreak({ M }: { M: M }) {
       </View>
       </Reveal>
 
+      {/* 칸 7개 = 최근 7일(맨 오른쪽이 오늘) — 행마다 쓰지 않고 위에 한 번만 요일을 단다 */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={{ width: 38 + 13 }} />
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          {lastNDates(7).map((k, i) => {
+            const [y, m, d] = k.split('-').map(Number);
+            const today = i === 6;
+            return (
+              <Text key={k} style={{ width: 14, textAlign: 'center', fontSize: 9.5, fontWeight: today ? '800' : '600', color: today ? M.accent : M.faint }}>
+                {DOW_KR[new Date(y, m - 1, d).getDay()]}
+              </Text>
+            );
+          })}
+        </View>
+        <Text style={{ flex: 1, textAlign: 'right', fontSize: 10.5, fontWeight: '600', color: M.faint }}>최근 7일</Text>
+      </View>
+
       <View style={{ gap: 10 }}>
         {doc.themes.map((th, ti) => {
           const s = streaks[ti];
@@ -367,8 +385,8 @@ function TodayStreak({ M }: { M: M }) {
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Icon name="flame" size={15} color={th.color} />
-                  <Text style={{ fontSize: 17, fontWeight: '800', color: th.color, fontFamily: FONTS.grotesk }}>{s.cur}</Text>
+                  <Icon name="flame" size={15} color={s.cur > 0 ? th.color : M.faint} />
+                  <Text style={{ fontSize: 17, fontWeight: '800', color: s.cur > 0 ? th.color : M.faint, fontFamily: FONTS.grotesk }}>{s.cur}</Text>
                 </View>
                 <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>최고 {s.best}일</Text>
               </View>
@@ -382,8 +400,13 @@ function TodayStreak({ M }: { M: M }) {
 }
 
 // ── kanban ────────────────────────────────────────────────────────────────────
+// '진행 중'은 그날 하루만 의미가 있어 저장하지 않고, 앱이 켜져 있는 동안 날짜별로 기억한다
+// (탭을 오가거나 보기 방식을 바꿔도 그대로 남는다)
+const doingByDay = new Map<string, Set<string>>();
+
 function TodayKanban({ M }: { M: M }) {
   const { doc, toggleExtra } = useMandarat();
+  const { openQuick } = useUI();
   const list = useTodayList();
   const check = useCheck();
   const extra = doc.todayExtra;
@@ -395,8 +418,14 @@ function TodayKanban({ M }: { M: M }) {
     ...extra.map((x) => ({ key: `x${x.id}`, ti: x.ti, text: x.text, done: x.done, id: x.id })),
   ];
 
-  // local "진행 중" set for cards that aren't done yet
-  const [inProgress, setInProgress] = useState<Set<string>>(new Set());
+  const day = dateKey();
+  const [inProgress, setDoing] = useState<Set<string>>(() => doingByDay.get(day) ?? new Set());
+  const setInProgress = (f: (s: Set<string>) => Set<string>) => setDoing((s) => {
+    const n = f(s);
+    doingByDay.clear();
+    doingByDay.set(day, n);
+    return n;
+  });
 
   const stageOf = (c: Card): 0 | 1 | 2 => (c.done ? 2 : inProgress.has(c.key) ? 1 : 0);
   const advance = (c: Card) => {
@@ -424,8 +453,19 @@ function TodayKanban({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: 14, paddingBottom: 16, gap: 14 }}>
-      {cards.length === 0 && (
-        <EmptyState M={M} icon="grid" title="오늘 보드가 비어 있어요" subtitle="실천 항목을 오늘 할 일로 담거나 반복 요일을 정해보세요" compact />
+      {cards.length === 0 ? (
+        <EmptyState
+          M={M}
+          icon="grid"
+          title="오늘 보드가 비어 있어요"
+          subtitle="반복 요일을 정한 실천은 그날 자동으로 담겨요"
+          action={{ label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
+          compact
+        />
+      ) : (
+        <Text style={{ fontSize: 12, color: M.faint, fontWeight: '600', paddingHorizontal: 8, marginBottom: -4 }}>
+          카드를 누를 때마다 할 일 → 진행 중 → 완료로 옮겨져요
+        </Text>
       )}
       {cols.map(([label, ci, dot]) => {
         const colCards = cards.filter((c) => stageOf(c) === ci);
@@ -448,17 +488,22 @@ function TodayKanban({ M }: { M: M }) {
                     accessibilityRole="button"
                     accessibilityLabel={`${c.text}, ${th.title || `영역 ${c.ti + 1}`}, ${label}`}
                     accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : '완료 취소'}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, borderLeftWidth: 3, borderLeftColor: th.color }}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: ci === 2 ? tint(th.color, M.dark ? 12 : 6, M.dark) : M.surface, borderWidth: 1, borderColor: ci === 1 ? tint(M.gold, 55, M.dark) : M.line }}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14.5, fontWeight: '700', color: M.ink, opacity: ci === 2 ? 0.6 : 1, textDecorationLine: ci === 2 ? 'line-through' : 'none' }} numberOfLines={1}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ fontSize: 14.5, fontWeight: '700', color: ci === 2 ? M.sub : M.ink, textDecorationLine: ci === 2 ? 'line-through' : 'none' }} numberOfLines={2}>
                         {c.text}
                       </Text>
-                      <Text style={{ fontSize: 11, color: M.sub, fontWeight: '600', marginTop: 2 }} numberOfLines={1}>
-                        {th.title || `영역 ${c.ti + 1}`}{routine ? ` · ${daysLabel(th.actions[c.item!.ai].days)} 반복` : ''}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
+                        <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>
+                          {th.title || `영역 ${c.ti + 1}`}{routine ? ` · ${daysLabel(th.actions[c.item!.ai].days)} 반복` : ''}
+                        </Text>
+                      </View>
                     </View>
-                    {ci < 2 ? <Icon name="chevR" size={17} color={M.faint} /> : <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
+                    {ci === 0 && <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.faint }}>시작</Text>}
+                    {ci === 1 && <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.gold }}>완료하기</Text>}
+                    {ci === 2 && <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
                   </Pressy>
                 );
               })}

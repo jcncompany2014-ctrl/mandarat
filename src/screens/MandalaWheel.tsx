@@ -103,8 +103,11 @@ export function MandalaWheel({ M }: { M: M }) {
   const pos = ringPositions(C, R, 8, -Math.PI / 2);
   const lineColor = bloom == null ? M.gold : themes[bloom].color;
 
+  const openTh = bloom == null ? null : themes[bloom];
+
   return (
-    <View style={{ width: SIZE, height: SIZE, alignSelf: 'center', marginTop: 4 }}>
+    <View style={{ alignItems: 'center' }}>
+    <View style={{ width: SIZE, height: SIZE, marginTop: 4 }}>
       <Svg width={SIZE} height={SIZE} style={{ position: 'absolute' }} pointerEvents="none">
         <Circle cx={C} cy={C} r={R} fill="none" stroke={lineColor} strokeOpacity={0.34} strokeWidth={1} />
         {pos.map((n) => (
@@ -170,21 +173,42 @@ export function MandalaWheel({ M }: { M: M }) {
           })}
         </>
       ) : (
-        <BloomLayer M={M} ti={bloom} phase={phase} onBack={() => switchTo(null)} pos={pos} go={go} openAction={openAction} openEditor={openEditor} />
+        <BloomLayer M={M} ti={bloom} phase={phase} onBack={() => switchTo(null)} pos={pos} openAction={openAction} openEditor={openEditor} />
       )}
+    </View>
+
+    {/* 휠 아래 한 줄 — 평소엔 사용법, 영역을 펼치면 그 영역 세부 화면으로 가는 버튼 (휠 안에 두면 아래쪽 실천 이름을 가린다) */}
+    <View style={{ height: 40, marginTop: 10, alignItems: 'center', justifyContent: 'center' }}>
+      {bloom == null || !openTh ? (
+        <Text style={{ fontSize: 12.5, color: M.faint, fontWeight: '500' }}>영역을 누르면 실천 8개가 펼쳐져요</Text>
+      ) : (
+        <Pressable
+          onPress={() => { tap(); go('detail', bloom); }}
+          accessibilityRole="button"
+          accessibilityLabel={`${openTh.title || `영역 ${bloom + 1}`} 세부 보기`}
+          hitSlop={6}
+        >
+          <Pop key={`more${bloom}`} delay={200}>
+            <View style={{ maxWidth: 320, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: tint(openTh.color, M.dark ? 18 : 11, M.dark), paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20 }}>
+              <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '700', color: openTh.color }} numberOfLines={1}>{openTh.title || `영역 ${bloom + 1}`} 세부 보기</Text>
+              <Icon name="chevR" size={15} color={openTh.color} />
+            </View>
+          </Pop>
+        </Pressable>
+      )}
+    </View>
     </View>
   );
 }
 
 function BloomLayer({
-  M, ti, phase, onBack, pos, go, openAction, openEditor,
+  M, ti, phase, onBack, pos, openAction, openEditor,
 }: {
   M: M;
   ti: number;
   phase: 'in' | 'out';
   onBack: () => void;
   pos: ReturnType<typeof ringPositions>;
-  go: ReturnType<typeof useUI>['go'];
   openAction: ReturnType<typeof useUI>['openAction'];
   openEditor: ReturnType<typeof useUI>['openEditor'];
 }) {
@@ -251,19 +275,6 @@ function BloomLayer({
         </Ring>
       </Pressable>
       </Pop>
-
-      {/* detail link */}
-      <Pressable
-        onPress={() => { tap(); go('detail', ti); }}
-        accessibilityRole="button"
-        accessibilityLabel={`${th.title || `영역 ${ti + 1}`} 세부 보기`}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: -6, alignItems: 'center' }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: tint(th.color, M.dark ? 18 : 11, M.dark), paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}>
-          <Text style={{ fontSize: 12.5, fontWeight: '700', color: th.color }}>세부 보기</Text>
-          <Icon name="chevR" size={15} color={th.color} />
-        </View>
-      </Pressable>
     </>
   );
 }

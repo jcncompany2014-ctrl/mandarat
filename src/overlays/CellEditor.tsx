@@ -115,7 +115,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
             {editor.kind === 'action' && <GuideChips M={M} text={text} />}
             {editor.kind === 'action' && (
               <View style={{ marginTop: 14 }}>
-                <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginBottom: 8 }}>반복 요일 · 정하면 그날 ‘오늘’에 자동 등장</Text>
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginBottom: 8 }}>반복 요일 · 고른 요일마다 ‘오늘’에 담겨요</Text>
                 <DayPicker M={M} days={days} color={doc.themes[editor.ti].color} onChange={setDays} />
               </View>
             )}

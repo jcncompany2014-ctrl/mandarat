@@ -1,6 +1,6 @@
 import React, { createContext, forwardRef, useContext } from 'react';
 import {
-  Animated, StyleSheet, Text as RNText, TextInput as RNTextInput,
+  Animated, Platform, StyleSheet, Text as RNText, TextInput as RNTextInput,
   type TextInputProps, type TextProps, type TextStyle,
 } from 'react-native';
 import { faceFor, isPretendard } from '../theme/fonts';
@@ -11,8 +11,12 @@ import { faceFor, isPretendard } from '../theme/fonts';
  * - 다른 서체를 직접 지정하면 그대로 둔다.
  * - 중첩된 글자에 굵기를 따로 주지 않으면 부모 서체를 그대로 물려받는다.
  * - 큰 글자는 살짝 좁게(-0.2 ~ -0.4) — 한글 제목이 단단해 보이도록. 직접 준 자간이 있으면 그것을 따른다.
+ * - 한글은 어절 단위로 줄을 바꾼다("다정/한 나" 대신 "다정한 나"). 한 줄에 다 안 들어가는 긴 어절만 글자 단위로 끊긴다.
  */
 const Nested = createContext(false);
+
+// 웹 미리보기용 — RN 스타일 타입에는 없지만 react-native-web이 그대로 CSS로 넘긴다
+const KEEP_ALL = Platform.OS === 'web' ? ({ wordBreak: 'keep-all' } as unknown as TextStyle) : null;
 
 function typeset(style: TextProps['style'], nested: boolean): TextStyle | null {
   const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
@@ -31,11 +35,16 @@ function typeset(style: TextProps['style'], nested: boolean): TextStyle | null {
   return out;
 }
 
-export const Text = forwardRef<RNText, TextProps>(function Text({ style, children, ...rest }, ref) {
+export const Text = forwardRef<RNText, TextProps>(function Text({ style, children, lineBreakStrategyIOS = 'hangul-word', ...rest }, ref) {
   const nested = useContext(Nested);
   const extra = typeset(style, nested);
   return (
-    <RNText ref={ref} {...rest} style={extra ? [style, extra] : style}>
+    <RNText
+      ref={ref}
+      {...rest}
+      lineBreakStrategyIOS={lineBreakStrategyIOS}
+      style={[KEEP_ALL && !nested ? KEEP_ALL : null, style, extra]}
+    >
       {nested ? children : <Nested.Provider value>{children}</Nested.Provider>}
     </RNText>
   );

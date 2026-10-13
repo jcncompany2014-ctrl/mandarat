@@ -1,5 +1,7 @@
 import React from 'react';
-import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Line, Polygon, Text as SvgText, TSpan } from 'react-native-svg';
+import { PRETENDARD } from '../theme/fonts';
+import { labelLines } from '../lib/labelFit';
 
 export interface RadarDatum { pct: number; color: string; label?: string }
 
@@ -7,25 +9,6 @@ const LABEL_FS = 11.5;
 // 축 끝 이름이 들어갈 바깥 여백(한글 4자 + 여유)
 const LABEL_MARGIN = 60;
 const LABEL_GAP = 10;
-
-/** SVG 글자 폭 근사치 — 한글·한자 1em, 영문·숫자 약 0.62em, 공백 약 0.32em. */
-function textWidth(s: string, fs: number): number {
-  let w = 0;
-  for (const ch of s) {
-    const c = ch.codePointAt(0) ?? 0;
-    const wide = (c >= 0x1100 && c <= 0x11ff) || (c >= 0x2e80 && c <= 0xd7af) || (c >= 0xf900 && c <= 0xfaff) || (c >= 0xff00 && c <= 0xffef);
-    w += wide ? fs : ch === ' ' ? fs * 0.32 : ch === '…' ? fs * 0.9 : fs * 0.62;
-  }
-  return w;
-}
-
-/** 주어진 폭에 맞지 않으면 말줄임표로 줄인다(사용자가 긴 영역 이름을 써도 잘리지 않게). */
-export function fitLabel(s: string, max: number, fs = LABEL_FS): string {
-  if (textWidth(s, fs) <= max) return s;
-  const chars = Array.from(s);
-  while (chars.length > 1 && textWidth(`${chars.join('').trimEnd()}…`, fs) > max) chars.pop();
-  return `${chars.join('').trimEnd()}…`;
-}
 
 /**
  * 8영역 균형을 보여주는 만다라형 8각 레이더.
@@ -82,10 +65,18 @@ export function LotusRadar({
         const sin = Math.sin(angle(i));
         const anchor = cos > 0.3 ? 'start' : cos < -0.3 ? 'end' : 'middle';
         const room = anchor === 'start' ? size - x - 3 : anchor === 'end' ? x - 3 : Math.min(2 * Math.min(x, size - x) - 6, LABEL_FS * 9);
-        const dy = sin > 0.3 ? 11 : sin < -0.3 ? -3 : 4;
+        const lines = labelLines(d.label, room, LABEL_FS);
+        const lh = Math.round(LABEL_FS * 1.2);
+        // 두 줄이면 위쪽 이름은 위로, 옆 이름은 반 줄 위로 올려 축 끝에서 균형 있게
+        const lift = lines.length > 1 ? (sin < -0.3 ? lh : sin > 0.3 ? 0 : lh / 2) : 0;
+        const dy = (sin > 0.3 ? 11 : sin < -0.3 ? -3 : 4) - lift;
         return (
-          <SvgText key={`l${i}`} x={x} y={y + dy} fill={d.color} fontSize={LABEL_FS} fontWeight="700" textAnchor={anchor}>
-            {fitLabel(d.label, room)}
+          <SvgText key={`l${i}`} x={x} y={y + dy} fill={d.color} fontSize={LABEL_FS} fontWeight="700" fontFamily={PRETENDARD[700]} textAnchor={anchor}>
+            {lines.length === 1
+              ? lines[0]
+              : lines.map((l, li) => (
+                  <TSpan key={li} x={x} dy={li === 0 ? 0 : lh}>{l}</TSpan>
+                ))}
           </SvgText>
         );
       })}

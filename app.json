@@ -14,7 +14,7 @@
       "backgroundColor": "#FBF9F4"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.jcncompany.mandarat",
       "icon": {
         "light": "./assets/icon.png",

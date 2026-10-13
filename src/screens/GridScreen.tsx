@@ -110,7 +110,9 @@ function Block({
               {wrap2(s.label)}
             </Text>
             {showDot && (
-              <View style={{ position: 'absolute', top: 3, right: 3, width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.95)' }} />
+              <View style={{ position: 'absolute', top: 2, right: 2 }}>
+                <Icon name="check" size={8} color="rgba(255,255,255,0.95)" sw={3.2} />
+              </View>
             )}
           </View>
         );
@@ -189,10 +191,10 @@ function NextStepCard({ M }: { M: M }) {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>다음 할 일 · {STEP_REASON[step.kind]}</Text>
-          <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink, marginTop: 3, letterSpacing: -0.2 }} numberOfLines={1}>{title}</Text>
+          <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink, marginTop: 3, letterSpacing: -0.2 }} numberOfLines={2}>{title}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: th.color }} />
-            <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '600' }}>{area}</Text>
+            <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{area}</Text>
           </View>
         </View>
         <Icon name="chevR" size={18} color={M.faint} />
@@ -214,7 +216,8 @@ export function GridScreen() {
   const blockOrder: (number | 'c')[] = [0, 1, 2, 3, 'c', 4, 5, 6, 7];
 
   return (
-    <View>
+    // flex:1 — 휠 보기에선 남는 세로 공간에 휠을 가운데 두고, '다음 할 일'은 아래에 붙인다
+    <View style={{ flex: 1 }}>
       <Header M={M} kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 편집" onPress={() => openEditor({ kind: 'center' })} />} />
 
       {/* view toggle — 받침이 미끄러지는 분절 선택기 */}
@@ -228,11 +231,10 @@ export function GridScreen() {
       </View>
 
       {view === 'mandala' ? (
-        <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
-          <MandalaWheel M={M} />
-          <Text style={{ textAlign: 'center', fontSize: 12.5, color: M.faint, marginTop: 20, fontWeight: '500' }}>
-            영역을 누르면 실천 8개가 펼쳐져요
-          </Text>
+        <View style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 8 }}>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <MandalaWheel M={M} />
+          </View>
           <NextStepCard M={M} />
         </View>
       ) : (
@@ -269,7 +271,7 @@ export function GridScreen() {
             </View>
           </View>
           <Text style={{ textAlign: 'center', fontSize: 12.5, color: M.faint, marginTop: 12, fontWeight: '500' }}>
-            컬러 블록을 탭해 세부 목표를 열어보세요
+            영역 블록을 누르면 그 영역의 실천 8개를 볼 수 있어요
           </Text>
         </View>
       )}

@@ -120,7 +120,7 @@ function BackupImportBody() {
             </View>
             <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }} numberOfLines={2}>{s.goal || '핵심 목표 없음'}</Text>
             <Text style={{ fontSize: 12.5, color: M.sub, fontWeight: '600', lineHeight: 18 }}>
-              채운 칸 {s.filled}/64 · 달성 {s.done}칸 · 기록 {s.days}일{s.routines > 0 ? ` · 루틴 ${s.routines}개` : ''}
+              채운 칸 {s.filled}/64 · 달성 {s.done}칸 · 기록 {s.days}일{s.routines > 0 ? ` · 반복 ${s.routines}개` : ''}
             </Text>
             {!!fmtExported(s.exportedAt) && (
               <Text style={{ fontSize: 11.5, color: M.faint, fontWeight: '600' }}>{fmtExported(s.exportedAt)}</Text>

@@ -218,18 +218,20 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
   return (
     <>
       <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, marginTop: 4, letterSpacing: -0.3 }}>최근 회고</Text>
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 10 }}>
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }}>
         {entries.length === 0 ? (
           <EmptyState M={M} icon="pencil" title="아직 회고가 없어요" subtitle="오늘 화면에서 기분과 한 줄 회고를 남겨보세요" compact />
         ) : (
-          entries.map(({ k, meta }) => {
+          <View style={[{ borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, overflow: 'hidden' }, M.dark ? null : shadow(3)]}>
+          {entries.map(({ k, meta }, i) => {
             const face = meta!.mood !== undefined ? MOOD_FACES[meta!.mood] : null;
             const Face = face?.ic;
             return (
               <View
                 key={k}
+                accessible
                 accessibilityLabel={`${fmtDay(k)}${face ? `, 기분 ${face.kr}` : ''}${meta!.reflection?.trim() ? `, ${meta!.reflection}` : ''}`}
-                style={[{ flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(2)]}
+                style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 14, paddingVertical: 13, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: M.line }}
               >
                 <View style={{ width: 30, alignItems: 'center', paddingTop: 1 }}>
                   {Face ? <Face size={22} color={face!.c} strokeWidth={1.9} /> : <Icon name="pencil" size={17} color={M.faint} />}
@@ -246,7 +248,8 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
                 </View>
               </View>
             );
-          })
+          })}
+          </View>
         )}
       </View>
     </>
@@ -268,32 +271,30 @@ function Heatmap({ M, doc, weeks }: { M: M; doc: MandaratDoc; weeks: { date: str
   const empty = M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
   const dayLabels = ['월', '', '수', '', '금', '', ''];
 
+  // 한 줄 = 한 요일(라벨 + 10주) — 칸 크기가 화면 폭에 따라 달라져도 라벨이 늘 제 줄에 붙는다
   return (
-    <View style={{ flexDirection: 'row', gap: 7 }}>
-      <View style={{ gap: 4, paddingTop: 1 }}>
-        {dayLabels.map((l, i) => (
-          <Text key={i} style={{ fontSize: 9, color: M.faint, fontWeight: '600', height: 13, lineHeight: 13 }}>{l}</Text>
-        ))}
-      </View>
-      <View style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
-        {counts.map((col, w) => (
-          <View key={w} style={{ flex: 1, gap: 4 }}>
-            {col.map((c, d) => (
+    <View style={{ gap: 4 }}>
+      {dayLabels.map((l, d) => (
+        <View key={d} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={{ width: 16, fontSize: 9.5, color: M.faint, fontWeight: '600' }}>{l}</Text>
+          {counts.map((col, w) => {
+            const c = col[d];
+            return (
               <View
-                key={d}
+                key={w}
                 style={c < 0
-                  ? { aspectRatio: 1, borderRadius: 4, borderWidth: 1, borderColor: empty, borderStyle: 'dashed' }
-                  : { aspectRatio: 1, borderRadius: 4, backgroundColor: c === 0 ? empty : fade(M.accent, intensity(c) * 100) }}
+                  ? { flex: 1, aspectRatio: 1, borderRadius: 4, borderWidth: 1, borderColor: empty, borderStyle: 'dashed' }
+                  : { flex: 1, aspectRatio: 1, borderRadius: 4, backgroundColor: c === 0 ? empty : fade(M.accent, intensity(c) * 100) }}
               />
-            ))}
-          </View>
-        ))}
-      </View>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
 
-/** 이번 주(월~일) 막대 + 지난주 같은 기간 대비 + 루틴 지킴·최고의 날·활발한 영역 */
+/** 이번 주(월~일) 막대 + 지난주 같은 기간 대비 + 반복 실천·최고의 날·활발한 영역 */
 function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekReview }) {
   const maxW = Math.max(1, ...review.days.map((d) => d.count));
   const delta = review.total - review.prev;
@@ -306,7 +307,7 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
 
   const metrics: { label: string; value: string; sub: string; color?: string }[] = [
     {
-      label: '루틴 지킴',
+      label: '반복 실천',
       value: review.routinePlanned > 0 ? `${review.routineDone}/${review.routinePlanned}` : '—',
       sub: review.routinePlanned > 0 ? `${rPct}%` : '반복 요일 없음',
     },
@@ -355,7 +356,7 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
                 <View style={{ width: '100%', height: 4, borderRadius: 3, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(35,33,28,0.06)' }} />
               ) : (
                 <GrowBar height={h} index={di}>
-                  <View style={{ flex: 1, borderRadius: 7, backgroundColor: M.dark ? 'rgba(255,255,255,0.13)' : 'rgba(35,33,28,0.13)' }} />
+                  <View style={{ flex: 1, borderRadius: 7, backgroundColor: fade(M.accent, M.dark ? 38 : 32) }} />
                 </GrowBar>
               )}
               <Text style={{ fontSize: 11, fontWeight: d.isToday ? '800' : '700', color: d.isToday ? M.accent : M.faint, opacity: d.future ? 0.55 : 1 }}>{DOW_KR[d.dow]}</Text>

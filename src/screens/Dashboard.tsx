@@ -41,6 +41,9 @@ export function Dashboard() {
   const week = weekCounts(doc.dayLog, now);
   const weekTotal = week.reduce((s, d) => s + d.count, 0);
   const dateLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 · ${WEEKDAYS[now.getDay()]}요일`;
+  // 핵심 목표는 길어도 다 보이게 — 길면 조금 작게, 세 줄까지
+  const goalLen = doc.centerGoal.length;
+  const goalSize = !doc.centerGoal ? 19 : goalLen > 22 ? 18 : goalLen > 12 ? 20 : 22;
 
   return (
     <View>
@@ -70,11 +73,11 @@ export function Dashboard() {
             <MiniMandalart doc={doc} size={100} dark={!M.heroLight} centerBg={M.heroLight ? M.center : 'rgba(255,255,255,0.9)'} centerInk={M.heroLight ? '#FFFFFF' : M.center} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub }}>핵심 목표</Text>
-              <Text style={{ fontSize: doc.centerGoal ? 22 : 19, fontWeight: '800', color: doc.centerGoal ? M.heroInk : M.heroSub, marginTop: 4, lineHeight: doc.centerGoal ? 28 : 25 }} numberOfLines={2}>
+              <Text style={{ fontSize: goalSize, fontWeight: '800', color: doc.centerGoal ? M.heroInk : M.heroSub, marginTop: 4, lineHeight: Math.round(goalSize * 1.28) }} numberOfLines={3}>
                 {doc.centerGoal || '핵심 목표를\n정해 주세요'}
               </Text>
               <Text style={{ fontSize: 13, color: M.heroSub, marginTop: 8, fontWeight: '600' }}>
-                64칸 중 <AnimatedNumber value={done} format={(n) => `${n}칸`} style={{ color: M.heroInk, fontWeight: '800' }} /> · <AnimatedNumber value={pct} format={(n) => `${n}%`} />
+                64칸 중 <AnimatedNumber value={done} format={(n) => `${n}칸`} style={{ color: M.heroInk, fontWeight: '800' }} /> 달성
               </Text>
             </View>
           </Pressy>
@@ -110,10 +113,11 @@ export function Dashboard() {
                   onPress={() => { tap(); go('grid'); }}
                   accessibilityRole="button"
                   accessibilityLabel={`전체 달성 ${pct}%, 만다라트 열기`}
-                  style={{ width: '31%', aspectRatio: 1, borderRadius: 18, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center' }}
+                  // 다크 모드에선 어두운 가운데 칸이 배경에 묻히므로 밝게 뒤집는다(홈 위 작은 3×3과 같은 규칙)
+                  style={{ width: '31%', aspectRatio: 1, borderRadius: 18, backgroundColor: M.dark ? M.ink : M.center, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <AnimatedNumber value={pct} format={(n) => `${n}%`} style={{ fontSize: 22, fontWeight: '800', color: '#FFFFFF', fontFamily: FONTS.grotesk }} />
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.62)', marginTop: 2 }}>전체 달성</Text>
+                  <AnimatedNumber value={pct} format={(n) => `${n}%`} style={{ fontSize: 22, fontWeight: '800', color: M.dark ? M.bg : '#FFFFFF', fontFamily: FONTS.grotesk }} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: M.dark ? fade(M.bg, 62) : 'rgba(255,255,255,0.62)', marginTop: 2 }}>전체 달성</Text>
                 </Pressy>
               );
             }
@@ -258,7 +262,7 @@ function TodayCard({
                       {r.text}
                     </Text>
                     <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: th.color }} />
-                    <Text style={{ fontSize: 11, color: M.faint, fontWeight: '600' }} numberOfLines={1}>{r.sub || th.title || `영역 ${r.ti + 1}`}</Text>
+                    <Text style={{ flexShrink: 0, maxWidth: 92, fontSize: 11, color: M.faint, fontWeight: '600' }} numberOfLines={1}>{r.sub || th.title || `영역 ${r.ti + 1}`}</Text>
                   </Pressable>
                 </View>
               );

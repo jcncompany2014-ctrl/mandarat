@@ -60,6 +60,7 @@ export function Detail({ ti }: { ti: number }) {
         sub={`영역 ${ti + 1} / 8`}
         kr={th.title || `영역 ${ti + 1}`}
         onBack={() => go('grid')}
+        stacked
         right={
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <IconBtn M={M} name="pencil" label="영역 편집" onPress={() => openEditor({ kind: 'theme', ti })} />
@@ -169,7 +170,7 @@ export function Detail({ ti }: { ti: number }) {
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
                   style={{ fontSize: 15, fontWeight: '600', letterSpacing: -0.2, color: has ? (a.done ? M.sub : M.ink) : M.faint, textDecorationLine: a.done ? 'line-through' : 'none' }}
-                  numberOfLines={1}
+                  numberOfLines={2}
                 >
                   {has ? a.text : `실천 ${ai + 1} 입력하기`}
                 </Text>

@@ -156,7 +156,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       {/* 반복 요일 */}
       <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub }}>반복 요일</Text>
-        <Text style={{ fontSize: 11, color: M.faint, fontWeight: '600' }}>{routine ? '그 요일마다 ‘오늘’에 나타나요' : '정하면 습관 루틴이 돼요'}</Text>
+        <Text style={{ fontSize: 11, color: M.faint, fontWeight: '600' }}>{routine ? '고른 요일마다 ‘오늘’에 담겨요' : '고르면 그 요일마다 ‘오늘’에 담겨요'}</Text>
       </View>
       <View style={{ marginTop: 8 }}>
         <DayPicker M={M} days={a.days ?? []} color={th.color} onChange={changeDays} />

@@ -25,7 +25,7 @@ export const TEMPLATES: Template[] = [
   {
     id: 'health', name: '건강한 몸과 마음', desc: '운동·식습관·수면·멘탈 중심', centerGoal: '건강한 나',
     areas: [
-      { title: '운동', icon: 'heart' }, { title: '식습관', icon: 'sparkle' }, { title: '수면', icon: 'lotus' },
+      { title: '운동', icon: 'heart' }, { title: '식습관', icon: 'repeat' }, { title: '수면', icon: 'lotus' },
       { title: '마음챙김', icon: 'compass' }, { title: '활력', icon: 'flame' }, { title: '자세·체형', icon: 'target' },
       { title: '휴식', icon: 'palette' }, { title: '건강관리', icon: 'book' },
     ],
@@ -34,14 +34,14 @@ export const TEMPLATES: Template[] = [
     id: 'career', name: '커리어 성장', desc: '전문성·네트워크·성과 중심', centerGoal: '성장하는 나',
     areas: [
       { title: '전문성', icon: 'book' }, { title: '네트워크', icon: 'people' }, { title: '성과', icon: 'target' },
-      { title: '사이드 프로젝트', icon: 'briefcase' }, { title: '학습', icon: 'sparkle' }, { title: '포트폴리오', icon: 'palette' },
+      { title: '사이드 프로젝트', icon: 'briefcase' }, { title: '학습', icon: 'pencil' }, { title: '포트폴리오', icon: 'palette' },
       { title: '건강', icon: 'heart' }, { title: '재정', icon: 'coin' },
     ],
   },
   {
     id: 'learn', name: '배움과 성장', desc: '독서·강의·언어·기록', centerGoal: '매일 배우는 나',
     areas: [
-      { title: '독서', icon: 'book' }, { title: '강의', icon: 'sparkle' }, { title: '언어', icon: 'people' },
+      { title: '독서', icon: 'book' }, { title: '강의', icon: 'calendar' }, { title: '언어', icon: 'people' },
       { title: '글쓰기', icon: 'pencil' }, { title: '복습', icon: 'compass' }, { title: '자격증', icon: 'target' },
       { title: '습관', icon: 'flame' }, { title: '회고', icon: 'lotus' },
     ],

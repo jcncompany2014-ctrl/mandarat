@@ -138,11 +138,12 @@ export function Root() {
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: showTabs ? TAB_CLEARANCE + Math.max(10, insets.bottom) : 24 }}
+        // flexGrow: 화면이 짧을 땐 남는 높이를 화면이 쓸 수 있게(만다라트 휠을 세로 가운데에 둔다)
+        contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingBottom: showTabs ? TAB_CLEARANCE + Math.max(10, insets.bottom) : 24 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Animated.View style={{ opacity: fade, transform: [{ translateX: slide }] }}>
+        <Animated.View style={{ flexGrow: 1, opacity: fade, transform: [{ translateX: slide }] }}>
           {screen}
         </Animated.View>
       </ScrollView>
@@ -186,7 +187,7 @@ function navOffset(prev: { screen: Screen; ti: number }, next: { screen: Screen;
 
 /**
  * 하단 탭바 — 홈·만다라트 | (추가) | 오늘·통계.
- * 화면 위에 겹쳐 떠서 반투명 배경 너머로 콘텐츠가 비치고, 가운데 버튼은 바 위로 솟는다.
+ * 화면 위에 겹쳐 뜨고(배경은 불투명 — 뒤 글자가 비쳐 지저분해 보이지 않게), 가운데 버튼은 바 위로 솟는다.
  * 솟은 버튼도 이 컨테이너 안에 있어야 안드로이드에서 터치가 잡히므로 paddingTop으로 공간을 확보한다.
  */
 function TabBar({ active, onTab, onAdd, bottomInset }: { active: Screen; onTab: (id: Screen) => void; onAdd: () => void; bottomInset: number }) {

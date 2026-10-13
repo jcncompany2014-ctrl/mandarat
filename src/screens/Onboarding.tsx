@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
 import { Reveal } from '../components/Reveal';
@@ -8,12 +8,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
 import { readableOn } from '../theme/palette';
+import { tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import { useMandarat } from '../store/MandaratContext';
 import { TEMPLATES, templateThemes } from '../data/templates';
 import { tap } from '../lib/haptics';
 
-const SUGGESTIONS = ['2026 최고의 나', '건강하고 단단한 삶', '성장하는 한 해', '균형 잡힌 일상'];
+// 목표 문장 예시 — 아래 템플릿 이름과 겹치지 않게(누르면 입력칸만 채운다)
+const SUGGESTIONS = ['2026 최고의 나', '매일 조금씩 성장하기', '단단하고 다정한 나', '나를 아끼는 한 해'];
 
 export function Onboarding() {
   const M = usePalette();
@@ -37,7 +39,6 @@ export function Onboarding() {
   const fieldBg = M.surface;
   const fieldBorder = M.line;
   const chipBg = M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)';
-  const chipBorder = M.line;
   const placeholderColor = M.faint;
 
   return (
@@ -46,7 +47,12 @@ export function Onboarding() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
-        <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: 'center' }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingVertical: 20, justifyContent: 'center' }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{ alignItems: 'center', marginBottom: 34 }}>
             {/* 브랜드 표시 — 앱 아이콘과 같은 3×3 */}
             <BloomIn>
@@ -98,9 +104,10 @@ export function Onboarding() {
                 onPress={() => { tap(); setGoal(s); }}
                 accessibilityRole="button"
                 accessibilityLabel={`핵심 목표 예시: ${s}`}
-                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
+                accessibilityHint="입력칸에 넣기"
+                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg }}
               >
-                <Text style={{ color: M.ink, fontSize: 13, fontWeight: '600' }}>{s}</Text>
+                <Text style={{ color: M.sub, fontSize: 13, fontWeight: '600' }}>{s}</Text>
               </Pressy>
             ))}
           </View>
@@ -119,7 +126,7 @@ export function Onboarding() {
           </Pressy>
 
           <Text style={{ color: M.sub, fontSize: 12.5, fontWeight: '600', textAlign: 'center', marginTop: 20, marginBottom: 10 }}>
-            또는 템플릿으로 바로 시작
+            또는 영역 8개가 채워진 템플릿으로 시작
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
             {TEMPLATES.map((t) => (
@@ -129,9 +136,11 @@ export function Onboarding() {
                 onPress={() => startWithTemplate(t.id)}
                 accessibilityRole="button"
                 accessibilityLabel={`${t.name} 템플릿으로 시작`}
-                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
+                accessibilityHint={t.desc}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: tint(M.accent, 45, M.dark), backgroundColor: tint(M.accent, M.dark ? 8 : 4, M.dark) }}
               >
-                <Text style={{ color: M.ink, fontSize: 13, fontWeight: '700' }}>{t.name}</Text>
+                <Icon name="grid" size={13} color={M.accent} sw={2.2} />
+                <Text style={{ color: M.accent, fontSize: 13, fontWeight: '700' }}>{t.name}</Text>
               </Pressy>
             ))}
           </View>
@@ -139,7 +148,7 @@ export function Onboarding() {
             나중에 언제든 바꿀 수 있어요
           </Text>
           </Reveal>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
