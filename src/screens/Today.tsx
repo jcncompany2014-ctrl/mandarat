@@ -400,9 +400,11 @@ function TodayStreak({ M }: { M: M }) {
 }
 
 // ── kanban ────────────────────────────────────────────────────────────────────
-// '진행 중'은 그날 하루만 의미가 있어 저장하지 않고, 앱이 켜져 있는 동안 날짜별로 기억한다
-// (탭을 오가거나 보기 방식을 바꿔도 그대로 남는다)
-const doingByDay = new Map<string, Set<string>>();
+// '진행 중'은 그날 하루만 의미가 있어 저장하지 않고, 앱이 켜져 있는 동안만 기억한다.
+// 탭을 오가거나 보기 방식을 바꿔도 남고, 날짜가 바뀌거나 그 자리의 글자가 바뀌면(초기화·백업 불러오기 등) 풀린다.
+// 카드 키는 자리(영역-칸)라서, 같은 자리에 다른 실천이 들어오면 이어받지 않도록 글자까지 맞춰 본다.
+let doingMemo: { day: string; keys: Map<string, string> } = { day: '', keys: new Map() };
+const NO_DOING = new Map<string, string>();
 
 function TodayKanban({ M }: { M: M }) {
   const { doc, toggleExtra } = useMandarat();
@@ -419,25 +421,27 @@ function TodayKanban({ M }: { M: M }) {
   ];
 
   const day = dateKey();
-  const [inProgress, setDoing] = useState<Set<string>>(() => doingByDay.get(day) ?? new Set());
-  const setInProgress = (f: (s: Set<string>) => Set<string>) => setDoing((s) => {
-    const n = f(s);
-    doingByDay.clear();
-    doingByDay.set(day, n);
-    return n;
+  const [memo, setMemo] = useState(doingMemo);
+  const doing = memo.day === day ? memo.keys : NO_DOING;
+  const setDoing = (c: Card, on: boolean) => setMemo((m) => {
+    const keys = new Map(m.day === day ? m.keys : NO_DOING);
+    if (on) keys.set(c.key, c.text);
+    else keys.delete(c.key);
+    doingMemo = { day, keys };
+    return doingMemo;
   });
 
-  const stageOf = (c: Card): 0 | 1 | 2 => (c.done ? 2 : inProgress.has(c.key) ? 1 : 0);
+  const stageOf = (c: Card): 0 | 1 | 2 => (c.done ? 2 : doing.get(c.key) === c.text ? 1 : 0);
   const advance = (c: Card) => {
     const st = stageOf(c);
     animateLayout();
     if (st === 0) {
       tap();
-      setInProgress((s) => new Set(s).add(c.key));
+      setDoing(c, true);
     } else if (st === 1) {
       if (c.item) check(c.item);
       else if (c.id) { tap(); success(); toggleExtra(c.id); }
-      setInProgress((s) => { const n = new Set(s); n.delete(c.key); return n; });
+      setDoing(c, false);
     } else {
       // 완료 → 다시 할 일로 (실수로 옮긴 카드 되돌리기)
       if (c.item) check(c.item);
@@ -501,8 +505,8 @@ function TodayKanban({ M }: { M: M }) {
                         </Text>
                       </View>
                     </View>
-                    {ci === 0 && <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.faint }}>시작</Text>}
-                    {ci === 1 && <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.gold }}>완료하기</Text>}
+                    {ci === 0 && <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.sub }}>시작</Text>}
+                    {ci === 1 && <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.ink }}>완료하기</Text>}
                     {ci === 2 && <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
                   </Pressy>
                 );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, Share, View } from 'react-native';
+import { Alert, Platform, ScrollView, Share, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header } from '../components/common';
 import { Icon } from '../components/Icon';
@@ -7,7 +7,7 @@ import { GridMark } from '../components/GridMark';
 import { Pressy } from '../components/Pressy';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { FONTS } from '../theme/fonts';
-import { MOODS, tint } from '../theme/moods';
+import { tint } from '../theme/moods';
 import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';

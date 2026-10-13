@@ -20,7 +20,6 @@ import { SEMANTIC } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import { DOW_KR, daysLabel, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { useSettle } from '../lib/useSettle';
-import { animateLayout } from '../lib/layoutAnim';
 import { success, tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
 

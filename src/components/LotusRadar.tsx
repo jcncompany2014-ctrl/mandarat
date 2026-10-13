@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import Svg, { Circle, Line, Polygon, Text as SvgText, TSpan } from 'react-native-svg';
 import { PRETENDARD } from '../theme/fonts';
 import { labelLines } from '../lib/labelFit';
@@ -9,6 +10,9 @@ const LABEL_FS = 11.5;
 // 축 끝 이름이 들어갈 바깥 여백(한글 4자 + 여유)
 const LABEL_MARGIN = 60;
 const LABEL_GAP = 10;
+// 굵은 서체 파일을 이름으로 고른다. iOS(react-native-svg → RCTFont)는 굵기 값으로 같은 가족에서 다시 고르므로 700을 주고,
+// 안드로이드는 굵기를 주면 그 이름의 '굵은 스타일'을 찾다 시스템 서체로 떨어지고 웹은 가짜 굵게가 되므로 normal
+const LABEL_WEIGHT = Platform.OS === 'ios' ? '700' : 'normal';
 
 /**
  * 8영역 균형을 보여주는 만다라형 8각 레이더.
@@ -71,7 +75,7 @@ export function LotusRadar({
         const lift = lines.length > 1 ? (sin < -0.3 ? lh : sin > 0.3 ? 0 : lh / 2) : 0;
         const dy = (sin > 0.3 ? 11 : sin < -0.3 ? -3 : 4) - lift;
         return (
-          <SvgText key={`l${i}`} x={x} y={y + dy} fill={d.color} fontSize={LABEL_FS} fontWeight="700" fontFamily={PRETENDARD[700]} textAnchor={anchor}>
+          <SvgText key={`l${i}`} x={x} y={y + dy} fill={d.color} fontSize={LABEL_FS} fontWeight={LABEL_WEIGHT} fontFamily={PRETENDARD[700]} textAnchor={anchor}>
             {lines.length === 1
               ? lines[0]
               : lines.map((l, li) => (

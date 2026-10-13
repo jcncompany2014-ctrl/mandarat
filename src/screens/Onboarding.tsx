@@ -45,11 +45,12 @@ export function Onboarding() {
     <View style={{ flex: 1, backgroundColor: M.bg }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
+        // 키보드 회피(padding)가 아래 여백을 덮어쓰므로, 홈 바 여백은 스크롤 안쪽에 둔다
+        style={{ flex: 1, paddingTop: insets.top }}
       >
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingVertical: 20, justifyContent: 'center' }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingTop: 20, paddingBottom: 20 + insets.bottom, justifyContent: 'center' }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -140,7 +141,7 @@ export function Onboarding() {
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: tint(M.accent, 45, M.dark), backgroundColor: tint(M.accent, M.dark ? 8 : 4, M.dark) }}
               >
                 <Icon name="grid" size={13} color={M.accent} sw={2.2} />
-                <Text style={{ color: M.accent, fontSize: 13, fontWeight: '700' }}>{t.name}</Text>
+                <Text style={{ color: M.ink, fontSize: 13, fontWeight: '700' }}>{t.name}</Text>
               </Pressy>
             ))}
           </View>

@@ -5,7 +5,6 @@ import { DUR, EASE, SPRING } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { Icon } from './Icon';
 import { Pressy } from './Pressy';
-import { FONTS } from '../theme/fonts';
 import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 

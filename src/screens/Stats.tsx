@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, Share, View, useWindowDimensions } from 'react-native';
+import { Platform, Share, View, useWindowDimensions } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
 import { Icon, MOOD_FACES } from '../components/Icon';
@@ -222,7 +222,7 @@ function ReflectionFeed({ M, doc }: { M: M; doc: MandaratDoc }) {
         {entries.length === 0 ? (
           <EmptyState M={M} icon="pencil" title="아직 회고가 없어요" subtitle="오늘 화면에서 기분과 한 줄 회고를 남겨보세요" compact />
         ) : (
-          <View style={[{ borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, overflow: 'hidden' }, M.dark ? null : shadow(3)]}>
+          <View style={[{ borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}>
           {entries.map(({ k, meta }, i) => {
             const face = meta!.mood !== undefined ? MOOD_FACES[meta!.mood] : null;
             const Face = face?.ic;
