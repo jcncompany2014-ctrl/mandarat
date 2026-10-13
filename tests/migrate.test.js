@@ -154,3 +154,34 @@ test('팔레트 이행 함수는 대소문자를 가리지 않고, 모르는 색
   assert.equal(migrateAccent('#f4793b'), GOLD);
   assert.equal(migrateAccent(GOLD), GOLD);
 });
+
+test('실천 유형 값: 형식이 맞는 것만 남기고, 이전 저장본(유형 없음)은 그대로 둔다', () => {
+  const d = migrate({ themes: [{ actions: [
+    { text: '책', kind: 'count', goal: 12, unit: ' 권 ', step: 1, count: 3, log: { '2026-10-14': 1, 'x': 2, '2026-10-13': -1 } },
+    { text: '운동', kind: 'habit', perWeek: 3, since: '2026-10-01' },
+    { text: '이력서', kind: 'once', due: '2026-10-20' },
+    { text: '감사', kind: 'mind', ratings: { '2026-10-12': 4, '2026-10-05': 9, '2026-09-28': 2.5 } },
+    { text: '이상한', kind: 'magic', goal: -1, count: 'many', step: 0, perWeek: 9, due: 'tomorrow', unit: 7 },
+    { text: '저축', kind: 'count', goal: 1e12, count: 50, step: 10, unit: '만원' },
+  ] }] });
+  const [c, h, o, m, bad, money] = d.themes[0].actions;
+  assert.deepEqual(c, { text: '책', note: '', done: false, kind: 'count', goal: 12, unit: '권', count: 3, log: { '2026-10-14': 1 } });
+  assert.deepEqual(h, { text: '운동', note: '', done: false, kind: 'habit', perWeek: 3, since: '2026-10-01' });
+  assert.deepEqual(o, { text: '이력서', note: '', done: false, kind: 'once', due: '2026-10-20' });
+  assert.deepEqual(m, { text: '감사', note: '', done: false, kind: 'mind', ratings: { '2026-10-12': 4 } });
+  assert.deepEqual(bad, { text: '이상한', note: '', done: false });
+  assert.deepEqual(money, { text: '저축', note: '', done: false, kind: 'count', unit: '만 원', step: 10, count: 50 });
+});
+
+test('예시 데이터는 유형을 고루 담고, 저장·이행을 거쳐도 그대로다', () => {
+  const themes = sampleThemes(new Date(2026, 9, 14));
+  const all = themes.flatMap((t) => t.actions);
+  const kinds = new Set(all.map((a) => a.kind ?? (a.days ? 'habit' : 'once')));
+  assert.deepEqual([...kinds].sort(), ['count', 'habit', 'mind', 'once']);
+  const resume = all.find((a) => a.text === '이력서 갱신');
+  assert.equal(resume.due, '2026-10-16');
+  const thanks = all.find((a) => a.text === '감사 표현하기');
+  assert.deepEqual(thanks.ratings, { '2026-09-14': 2, '2026-09-21': 3, '2026-09-28': 3, '2026-10-05': 4 });
+  const again = migrate({ ...blankDoc(), themes });
+  assert.deepEqual(again.themes, themes);
+});

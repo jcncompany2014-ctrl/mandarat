@@ -34,6 +34,7 @@ test('daysLabel은 매일·평일·주말·요일 나열(월요일 시작)로 �
   assert.equal(R.daysLabel([6, 0]), '주말');
   assert.equal(R.daysLabel([5, 1, 3]), '월·수·금');
   assert.equal(R.daysLabel([0, 1]), '월·일');
+  assert.equal(R.daysLabel([0]), '일요일', "하루만이면 '일'이 '일(work)'로 읽히지 않게");
 });
 
 test('isRoutine은 유효한 반복 요일이 있을 때만 참', () => {

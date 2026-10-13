@@ -12,12 +12,13 @@ const PRESETS: { label: string; days: number[] }[] = [
   { label: '주말', days: [0, 6] },
 ];
 
-/** 반복 요일 선택(월~일) + 매일·평일·주말 빠른 선택 + 해제. */
-export function DayPicker({ M, days, color, onChange }: {
+/** 반복 요일 선택(월~일) + 매일·평일·주말 빠른 선택 + 해제(hideClear면 해제 칩을 두지 않는다). */
+export function DayPicker({ M, days, color, onChange, hideClear = false }: {
   M: M;
   days: number[];
   color: string;
   onChange: (days: number[]) => void;
+  hideClear?: boolean;
 }) {
   const cur = normalizeDays(days);
   const set = new Set(cur);
@@ -69,7 +70,7 @@ export function DayPicker({ M, days, color, onChange }: {
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {PRESETS.map((p) => chip(p.label, cur.join() === p.days.join(), () => onChange(p.days), `${p.label} 반복`))}
-        {cur.length > 0 && chip('반복 안 함', false, () => onChange([]), '반복 해제')}
+        {cur.length > 0 && !hideClear && chip('반복 안 함', false, () => onChange([]), '반복 해제')}
       </View>
     </View>
   );

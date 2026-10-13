@@ -5,7 +5,7 @@ export const ICON_NAMES = [
   'heart', 'briefcase', 'book', 'people', 'coin', 'palette', 'lotus', 'compass',
   'grid', 'home', 'check', 'checkCircle', 'chart', 'plus', 'chevR', 'chevL',
   'flame', 'sparkle', 'target', 'pencil', 'dots', 'calendar', 'bell', 'settings',
-  'close', 'reset', 'trash', 'share', 'repeat', 'download', 'restore',
+  'close', 'reset', 'trash', 'share', 'repeat', 'download', 'restore', 'minus',
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -14,16 +14,43 @@ export type Mood = '연꽃' | '크림' | '화이트' | '파스텔' | '다크';
 export type Mgmt = '일일 체크' | '습관 스트릭' | '칸반';
 export type CellShape = '둥근' | '각진';
 
+/**
+ * 실천 유형 — 64칸은 성격이 저마다 다르다.
+ * - once(한 번): 해내면 끝나는 일. 마감일을 둘 수 있다.
+ * - habit(습관): 정한 요일마다, 또는 주 N회. 그날 체크는 dayLog에 남고 칸 달성(done)과는 별개.
+ * - count(쌓기): 숫자를 채워 가는 목표. 목표에 닿으면 칸이 달성된다.
+ * - mind(마음가짐): 매일 체크하지 않고 한 주에 한 번 1~5점으로 돌아본다.
+ */
+export type ActionKind = 'once' | 'habit' | 'count' | 'mind';
+
 /** One of the 64 execution items. */
 export interface Action {
   text: string;
   note: string;
   /** 만다라트 칸의 영구 달성 */
   done: boolean;
-  /** 반복 요일 (0=일 … 6=토). 있으면 루틴 — 오늘 체크는 dayLog에 날짜별로 기록된다. */
+  /** 실천 유형. 없으면 이전 저장본 — 반복 요일이 있으면 습관, 없으면 한 번으로 본다. */
+  kind?: ActionKind;
+  /** 습관: 반복 요일 (0=일 … 6=토) — 오늘 체크는 dayLog에 날짜별로 기록된다. */
   days?: number[];
-  /** 반복 요일을 정한(바꾼) 날 'YYYY-MM-DD' — 그 전 날은 놓친 날로 세지 않는다 */
+  /** 습관: 요일 대신 주 N회(1~6) — 이번 주 횟수를 채울 때까지 날마다 '오늘'에 담긴다. */
+  perWeek?: number;
+  /** 습관을 정한(바꾼) 날 'YYYY-MM-DD' — 그 전 날은 놓친 날로 세지 않는다 */
   since?: string;
+  /** 쌓기: 목표 수 */
+  goal?: number;
+  /** 쌓기: 단위(권·곳·km·만 원…) */
+  unit?: string;
+  /** 쌓기: 한 번 체크할 때 더하는 수(없으면 1) */
+  step?: number;
+  /** 쌓기: 지금까지 쌓은 수 */
+  count?: number;
+  /** 쌓기: 날짜 'YYYY-MM-DD'별로 더한 수 — 그날 했는지·이번 주 얼마나 늘었는지 */
+  log?: Record<string, number>;
+  /** 한 번: 마감일 'YYYY-MM-DD' */
+  due?: string;
+  /** 마음가짐: 주(그 주 월요일 'YYYY-MM-DD')별 점수 1~5 */
+  ratings?: Record<string, number>;
 }
 
 /** One of the 8 sub-goals (each owns 8 actions). */
@@ -57,7 +84,7 @@ export interface MandaratDoc {
   themes: Theme[]; // length 8
   todayKeys: string[]; // "ti-ai"
   todayExtra: TodayExtra[];
-  /** date 'YYYY-MM-DD' -> list of action keys ("ti-ai") completed that day */
+  /** date 'YYYY-MM-DD' -> list of action keys ("ti-ai") done that day (습관 체크·쌓기·달성·직접 추가한 할 일) */
   dayLog: Record<string, string[]>;
   /** date 'YYYY-MM-DD' -> mood index + one-line reflection */
   dayMeta: Record<string, { mood?: number; reflection?: string }>;

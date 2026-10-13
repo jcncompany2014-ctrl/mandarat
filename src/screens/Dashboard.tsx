@@ -12,7 +12,8 @@ import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { SEMANTIC, readableOn } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
-import { DOW_KR, daysLabel, todayItems, todayProgress, weekCounts } from '../lib/routine';
+import { DOW_KR, todayItems, todayProgress, weekCounts } from '../lib/routine';
+import { countInfo, fmtNum, kindLine } from '../lib/kinds';
 import { useSettle } from '../lib/useSettle';
 import { GUIDE_FILL_TARGET, firstAreaWithEmpty, guideSteps, pickSections } from '../lib/pick';
 import { showGridAt } from './gridMemory';
@@ -181,7 +182,8 @@ export function Dashboard() {
 /** 오늘 할 일 — 남은 일 3개를 바로 체크한다(카드 없이 줄만) */
 function TodaySection({ M, doc, todayDoneCount, todayTotal }: { M: M; doc: MandaratDoc; todayDoneCount: number; todayTotal: number }) {
   const { go, openAction, openQuick, openPick } = useUI();
-  const { toggleDone, toggleRoutineToday, toggleExtra } = useMandarat();
+  const { checkToday, toggleExtra } = useMandarat();
+  const { showToast } = useUI();
   const { held, hold } = useSettle();
   const now = new Date();
 
@@ -191,8 +193,15 @@ function TodaySection({ M, doc, todayDoneCount, todayTotal }: { M: M; doc: Manda
       const a = doc.themes[it.ti].actions[it.ai];
       return {
         key: it.key, text: a.text, ti: it.ti, done: it.done,
-        sub: it.routine ? `${daysLabel(a.days)} 반복` : '',
-        onCheck: () => (it.routine ? toggleRoutineToday(it.ti, it.ai) : toggleDone(it.ti, it.ai)),
+        sub: kindLine(doc, it.ti, it.ai, now)?.long ?? '',
+        onCheck: () => {
+          // 쌓기가 이번 체크로 목표에 닿으면 알려 준다
+          if (it.kind === 'count' && !it.done) {
+            const c = countInfo(a);
+            if (!c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
+          }
+          checkToday(it.ti, it.ai);
+        },
         onOpen: () => openAction(it.ti, it.ai),
       };
     }),

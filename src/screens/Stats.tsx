@@ -16,7 +16,9 @@ import {
 } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
-import { DOW_KR } from '../lib/routine';
+import { DOW_KR, kindOf } from '../lib/routine';
+import { countInfo, countText, countWeekAdded, fmtNum, ratingHistory, ratingOf } from '../lib/kinds';
+import { CountBar } from '../components/KindBits';
 import { calendarWeeks, weekReview, type WeekReview } from '../lib/review';
 import { SEMANTIC } from '../theme/palette';
 import { tint } from '../theme/moods';
@@ -160,6 +162,12 @@ export function Stats() {
         ))}
       </View>
 
+      {hasKind(doc, 'count') && head('쌓아 가는 목표', '숫자로 채우는 칸')}
+      <CountLedger M={M} doc={doc} />
+
+      {hasKind(doc, 'mind') && head('마음가짐 흐름', '최근 8주 점수')}
+      <MindLedger M={M} doc={doc} />
+
       <ReflectionFeed M={M} doc={doc} />
       </>
       ) : (
@@ -174,6 +182,10 @@ export function Stats() {
       )}
     </View>
   );
+}
+
+function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
+  return doc.themes.some((th) => th.actions.some((a) => a.text.trim() && kindOf(a) === kind));
 }
 
 function fmtMinutes(min: number): string {
@@ -280,22 +292,25 @@ function Heatmap({ M, doc, weeks }: { M: M; doc: MandaratDoc; weeks: { date: str
   );
 }
 
-/** 이번 주(월~일) 막대 + 지난주 같은 기간 대비 + 반복 실천·최고의 날·활발한 영역 */
+/** 이번 주(월~일) 막대 + 지난주 같은 기간 대비 + 습관·최고의 날·활발한 영역 + 쌓은 것·마음가짐 */
 function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekReview }) {
   const maxW = Math.max(1, ...review.days.map((d) => d.count));
   const delta = review.total - review.prev;
   const showDelta = review.total > 0 || review.prev > 0;
   const deltaColor = delta > 0 ? SEMANTIC.done : M.sub;
   const deltaText = delta === 0 ? '지난주와 같아요' : `지난주보다 ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`;
-  const rPct = review.routinePlanned > 0 ? Math.round((review.routineDone / review.routinePlanned) * 100) : 0;
+  // 습관 = 요일 습관(오늘까지 예정된 날) + 주 N회 습관(이번 주 정한 횟수)
+  const hDone = review.routineDone + review.weeklyDone;
+  const hPlanned = review.routinePlanned + review.weeklyTarget;
+  const rPct = hPlanned > 0 ? Math.round((hDone / hPlanned) * 100) : 0;
   const top = review.topArea ? doc.themes[review.topArea.ti] : null;
   const avg = review.total / Math.max(1, review.days.filter((d) => !d.future).length);
 
   const metrics: { label: string; value: string; sub: string; color?: string }[] = [
     {
-      label: '반복 실천',
-      value: review.routinePlanned > 0 ? `${review.routineDone}/${review.routinePlanned}` : '—',
-      sub: review.routinePlanned > 0 ? `${rPct}%` : '반복 요일 없음',
+      label: '습관',
+      value: hPlanned > 0 ? `${hDone}/${hPlanned}` : '—',
+      sub: hPlanned > 0 ? `${rPct}%` : '습관 없음',
     },
     {
       label: '최고의 날',
@@ -355,6 +370,119 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
           </View>
         ))}
       </View>
+      {/* 숫자로 쌓은 것과 마음가짐 — 있을 때만 한 줄씩 */}
+      {(review.added.length > 0 || review.mindTotal > 0) && <View style={{ height: 1, backgroundColor: M.line, marginTop: 14, marginBottom: 12 }} />}
+      {review.added.length > 0 && (
+        <Text style={{ fontSize: 13, color: M.sub, lineHeight: 19 }}>
+          <Text style={{ fontWeight: '800', color: M.ink }}>쌓은 것 </Text>
+          {review.added.slice(0, 3).map((x) => `${shortText(doc.themes[x.ti].actions[x.ai].text)} +${fmtNum(x.amount)}${x.unit}`).join(' · ')}
+          {review.added.length > 3 ? ` 외 ${review.added.length - 3}개` : ''}
+        </Text>
+      )}
+      {review.mindTotal > 0 && (
+        <Text style={{ fontSize: 13, color: M.sub, lineHeight: 19, marginTop: review.added.length > 0 ? 6 : 0 }}>
+          <Text style={{ fontWeight: '800', color: M.ink }}>마음가짐 </Text>
+          {review.mindRated > 0
+            ? `평균 ${(review.mindSum / review.mindRated).toFixed(1)}점 · ${review.mindTotal}개 중 ${review.mindRated}개 매김`
+            : `${review.mindTotal}개 · 이번 주 점수를 아직 매기지 않았어요`}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/** 긴 실천 글은 앞부분만 — 한 줄 요약에 여러 개를 이어 쓰므로 */
+function shortText(t: string, max = 12): string {
+  const s = t.trim();
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+/** 쌓아 가는 목표 — 숫자 목표마다 지금까지 / 목표, 진행 줄, 이번 주 더한 수 */
+function CountLedger({ M, doc }: { M: M; doc: MandaratDoc }) {
+  const { openAction } = useUI();
+  const now = new Date();
+  const items = doc.themes.flatMap((th, ti) => th.actions.map((a, ai) => ({ a, ti, ai, th })))
+    .filter(({ a }) => a.text.trim() && kindOf(a) === 'count')
+    .sort((x, y) => countInfo(y.a).pct - countInfo(x.a).pct);
+  if (items.length === 0) return null;
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      {items.map(({ a, ti, ai, th }, i) => {
+        const c = countInfo(a);
+        const week = countWeekAdded(a, now);
+        return (
+          <Pressable
+            key={`${ti}-${ai}`}
+            onPress={() => { tap(); openAction(ti, ai); }}
+            accessibilityRole="button"
+            accessibilityLabel={`${a.text}, ${countText(c)}, ${c.pct}%${week > 0 ? `, 이번 주 ${fmtNum(week)}${c.unit} 더함` : ''}`}
+            style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
+          >
+            {i > 0 && <RowDivider M={M} inset={0} />}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+              <View style={{ width: 9, height: 9, borderRadius: 2.5, backgroundColor: th.color }} />
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{a.text}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>{countText(c)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 17 }}>
+              <View style={{ flex: 1 }}><CountBar M={M} pct={c.pct} color={th.color} height={4} /></View>
+              <Text style={{ width: 84, textAlign: 'right', fontSize: 11.5, fontWeight: '600', color: M.sub }} numberOfLines={1}>
+                {c.reached ? '목표 달성' : week > 0 ? `이번 주 +${fmtNum(week)}` : `${c.pct}%`}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** 마음가짐 흐름 — 칸마다 최근 8주 점수를 작은 막대로 */
+function MindLedger({ M, doc }: { M: M; doc: MandaratDoc }) {
+  const { openAction } = useUI();
+  const now = new Date();
+  const items = doc.themes.flatMap((th, ti) => th.actions.map((a, ai) => ({ a, ti, ai, th })))
+    .filter(({ a }) => a.text.trim() && kindOf(a) === 'mind');
+  if (items.length === 0) return null;
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      {items.map(({ a, ti, ai, th }, i) => {
+        const hist = ratingHistory(a, now, 8);
+        const score = ratingOf(a, now);
+        const rated = hist.filter((h) => h.score > 0);
+        const avg = rated.length ? rated.reduce((s, h) => s + h.score, 0) / rated.length : 0;
+        return (
+          <Pressable
+            key={`${ti}-${ai}`}
+            onPress={() => { tap(); openAction(ti, ai); }}
+            accessibilityRole="button"
+            accessibilityLabel={`${a.text}, 이번 주 ${score ? `${score}점` : '점수 없음'}${rated.length ? `, 최근 8주 평균 ${avg.toFixed(1)}점` : ''}`}
+            style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
+          >
+            {i > 0 && <RowDivider M={M} inset={0} />}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{a.text}</Text>
+              <Text style={{ fontSize: 11.5, fontWeight: '600', color: M.sub, marginTop: 2 }} numberOfLines={1}>
+                {rated.length ? `8주 평균 ${avg.toFixed(1)}점` : '아직 매긴 주가 없어요'}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 26 }}>
+              {hist.map((h, hi) => (
+                <View
+                  key={h.week}
+                  style={{
+                    width: 7, height: h.score ? 5 + h.score * 4 : 3, borderRadius: 1.5,
+                    backgroundColor: h.score ? (hi === hist.length - 1 ? th.color : tint(th.color, M.dark ? 55 : 50, M.dark)) : M.line,
+                  }}
+                />
+              ))}
+            </View>
+            <Text style={{ width: 30, textAlign: 'right', fontSize: 13, fontWeight: '800', color: score ? M.ink : M.faint, fontFamily: FONTS.grotesk }}>
+              {score ? `${score}점` : '—'}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

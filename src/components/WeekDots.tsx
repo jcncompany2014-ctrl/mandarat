@@ -8,7 +8,7 @@ import type { DayState } from '../lib/routine';
 const LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
 /**
- * 루틴의 이번 주(월~일) 7칸 — 하고만다의 클로버 줄처럼 한눈에 보는 주간 리듬.
+ * 요일 습관의 이번 주(월~일) 7칸 — 하고만다의 클로버 줄처럼 한눈에 보는 주간 리듬.
  * 완료=영역 색으로 채움 · 오늘=테두리 · 놓친 날=흐리게 · 예정=옅게 · 쉬는 날=작은 점
  */
 export function WeekDots({ M, states, color, size = 14, labels = false }: {

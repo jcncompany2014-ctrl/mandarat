@@ -25,7 +25,8 @@ test('글자 있는 칸만, 달성한 일회성 칸은 빼고, 오늘 반복은 
   });
   const s = pickSections(d, WED);
   assert.deepEqual(s.map((x) => x.ti), [0, 3]);
-  assert.deepEqual(s[0].rows.map((r) => [r.ai, r.state, r.days]), [[0, 'off', ''], [2, 'auto', '매일'], [3, 'on', '주말']]);
+  assert.deepEqual(s[0].rows.map((r) => [r.ai, r.state, r.hint]), [[0, 'off', ''], [2, 'auto', '매일 반복'], [3, 'on', '주말 반복']]);
+  assert.equal(s[0].rows[1].why, '오늘은 저절로 담겨요');
   assert.equal(s[0].inToday, 2);
   assert.deepEqual(s[1].rows.map((r) => r.state), ['on']);
 });
@@ -76,4 +77,21 @@ test('다 끝낸 가이드는 날짜가 바뀌어 오늘 목록이 정리돼도 
   const next = rolloverToday(d, '2026-10-15');
   assert.deepEqual(next.todayKeys, []); // 끝낸 일은 정리됨
   assert.equal(guideSteps(next).next, -1);
+});
+
+test('유형별: 마음가짐은 빼고, 다 쌓은 칸도 빼고, 주 N회·다가온 마감은 저절로', () => {
+  const d = doc((t) => {
+    t[0].actions[0] = { text: '감사 표현', note: '', done: false, kind: 'mind' };
+    t[0].actions[1] = { text: '책 12권', note: '', done: true, kind: 'count', goal: 12, count: 12 };
+    t[0].actions[2] = { text: '요리 10가지', note: '', done: false, kind: 'count', goal: 10, unit: '가지', count: 4 };
+    t[0].actions[3] = { text: '운동', note: '', done: false, kind: 'habit', perWeek: 3 };
+    t[0].actions[4] = { text: '이력서', note: '', done: false, kind: 'once', due: '2026-10-16' };
+    return { dayLog: { '2026-10-12': ['0-3'] } };
+  });
+  const rows = pickSections(d, WED)[0].rows;
+  assert.deepEqual(rows.map((r) => [r.ai, r.state]), [[2, 'off'], [3, 'auto'], [4, 'auto']]);
+  assert.equal(rows[0].hint, '4/10가지');
+  assert.equal(rows[1].why, '이번 주 2회 남아 저절로 담겨요');
+  assert.equal(rows[2].why, '마감이 다가와 저절로 담겨요');
+  assert.equal(rows[2].hint, '마감 D-2');
 });

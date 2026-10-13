@@ -12,7 +12,7 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
 import { success, tap } from '../lib/haptics';
-import { doneOn, isRoutine } from '../lib/routine';
+import { doneOn, kindOf } from '../lib/routine';
 
 const TOTAL = 25 * 60;
 
@@ -92,10 +92,11 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const finish = () => {
     const elapsedMin = Math.round((TOTAL - left) / 60);
     if (elapsedMin > 0) addFocusMinutes(elapsedMin);
-    // 루틴은 오늘 체크로, 아니면 칸의 달성으로 기록한다
-    if (isRoutine(a)) {
+    // 습관은 오늘 체크로, 한 번은 칸의 달성으로 기록한다(쌓기는 얼마나 했는지 몰라 시간만 남긴다)
+    const kind = kindOf(a);
+    if (kind === 'habit') {
       if (!doneOn(doc.dayLog, `${ti}-${ai}`, dateKey())) toggleRoutineToday(ti, ai);
-    } else if (!a.done) toggleDone(ti, ai);
+    } else if (kind === 'once' && !a.done) toggleDone(ti, ai);
     closeFocus();
   };
 

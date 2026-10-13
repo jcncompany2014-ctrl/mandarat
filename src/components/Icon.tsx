@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import {
-  Grid3x3, House, Check as CheckIcon, CircleCheck, ChartColumnBig, Plus,
+  Grid3x3, House, Check as CheckIcon, CircleCheck, ChartColumnBig, Plus, Minus,
   ChevronRight, ChevronLeft, Flame, Sparkles, Target, Pencil, Ellipsis,
   Calendar, Bell, SlidersHorizontal, X, RotateCcw, Trash2, Share2, Repeat, Download, ArchiveRestore,
 } from 'lucide-react-native';
@@ -22,7 +22,7 @@ const MAP: Record<IconName, AnyIcon> = {
   chevR: ChevronRight, chevL: ChevronLeft, flame: Flame, sparkle: Sparkles, target: Target,
   pencil: Pencil, dots: Ellipsis, calendar: Calendar, bell: Bell, settings: SlidersHorizontal,
   close: X, reset: RotateCcw, trash: Trash2, share: Share2, repeat: Repeat,
-  download: Download, restore: ArchiveRestore,
+  download: Download, restore: ArchiveRestore, minus: Minus,
 };
 
 type FaceComp = React.ComponentType<FaceProps>;

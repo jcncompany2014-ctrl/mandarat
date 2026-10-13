@@ -130,7 +130,7 @@ function PickRowView({
       disabled={auto}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on, disabled: auto }}
-      accessibilityLabel={`${r.text}${r.days ? `, ${r.days} 반복` : ''}${auto ? ', 오늘 반복이라 저절로 담겨요' : ''}`}
+      accessibilityLabel={`${r.text}${r.hint ? `, ${r.hint}` : ''}${auto ? `, ${r.why}` : ''}`}
       style={({ pressed }) => [
         groupEdge(M, first, last, 16),
         { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
@@ -149,13 +149,10 @@ function PickRowView({
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: M.ink, lineHeight: 20 }} numberOfLines={2}>{r.text}</Text>
-        {!!r.days && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-            <Icon name="repeat" size={11} color={color} sw={2.2} />
-            <Text style={{ fontSize: 11.5, fontWeight: '600', color: M.sub }}>
-              {r.days} 반복{auto ? ' · 오늘은 저절로 담겨요' : ''}
-            </Text>
-          </View>
+        {(!!r.hint || auto) && (
+          <Text style={{ fontSize: 11.5, fontWeight: '600', color: M.sub, marginTop: 2 }} numberOfLines={2}>
+            {[r.hint, auto ? r.why : ''].filter(Boolean).join(' · ')}
+          </Text>
         )}
       </View>
     </Pressable>

@@ -12,7 +12,9 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
-import { daysLabel, isRoutine } from '../lib/routine';
+import { countInfo, kindLine } from '../lib/kinds';
+import { kindOf } from '../lib/routine';
+import { CountBar, KindMeta } from '../components/KindBits';
 
 const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 
@@ -24,6 +26,7 @@ export function Detail({ ti }: { ti: number }) {
   const p = themeProgress(th);
   const streak = themeStreak(doc, ti);
   const cellR = doc.settings.cellShape === '각진' ? 4 : 14;
+  const now = new Date();
 
   const onCell = (ai: number) => {
     const a = th.actions[ai];
@@ -123,6 +126,10 @@ export function Detail({ ti }: { ti: number }) {
                     <Icon name="check" size={13} color="#fff" sw={2.8} />
                   </View>
                 )}
+                {/* 쌓기 칸은 아래에 얼마나 찼는지 가는 줄 */}
+                {has && !a.done && kindOf(a) === 'count' && (
+                  <View pointerEvents="none" style={{ position: 'absolute', left: 0, bottom: 0, height: 3, width: `${countInfo(a).pct}%`, backgroundColor: th.color }} />
+                )}
               </Pressable>
               </Pop>
             );
@@ -137,6 +144,7 @@ export function Detail({ ti }: { ti: number }) {
         {th.actions.map((a, ai) => {
           const has = !!a.text.trim();
           const first = ai === 0;
+          const line = has ? kindLine(doc, ti, ai, now) : null;
           return (
             <Reveal key={ai} index={2 + ai} from={0}>
             <Pressable
@@ -168,10 +176,14 @@ export function Detail({ ti }: { ti: number }) {
                 >
                   {has ? a.text : `실천 ${ai + 1} 입력하기`}
                 </Text>
-                {has && isRoutine(a) && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                    <Icon name="repeat" size={11} color={th.color} sw={2.2} />
-                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.sub }}>{daysLabel(a.days)} 반복</Text>
+                {has && line && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
+                    <KindMeta M={M} line={line} color={th.color} />
+                  </View>
+                )}
+                {has && line?.pct !== undefined && !a.done && (
+                  <View style={{ marginTop: 6, maxWidth: 160 }}>
+                    <CountBar M={M} pct={line.pct} color={th.color} />
                   </View>
                 )}
               </View>

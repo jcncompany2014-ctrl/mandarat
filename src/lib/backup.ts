@@ -5,7 +5,7 @@
 // migrate()로 모든 필드를 검증해 손상된 값은 안전한 기본값으로 바꾼다.
 import type { MandaratDoc } from '../types';
 import { migrate } from '../data/defaults';
-import { ymd } from './routine';
+import { isRoutine, ymd } from './routine';
 
 export const BACKUP_APP = 'mandarat';
 export const BACKUP_SCHEMA = 1;
@@ -18,7 +18,7 @@ export interface BackupSummary {
   done: number;
   /** 실천 기록이 있는 날 수 */
   days: number;
-  /** 반복 요일이 있는 실천 수 */
+  /** 습관(요일·주 N회) 실천 수 */
   routines: number;
   /** 백업을 만든 시각 (ISO) — 백업 형식으로 감싼 경우에만 */
   exportedAt?: string;
@@ -45,7 +45,7 @@ export function summarize(doc: MandaratDoc): BackupSummary {
     for (const a of t.actions) {
       if (a.text.trim()) filled++;
       if (a.done) done++;
-      if (a.days && a.days.length > 0) routines++;
+      if (a.text.trim() && isRoutine(a)) routines++;
     }
   }
   const days = Object.values(doc.dayLog).filter((l) => l.length > 0).length;

@@ -1,8 +1,9 @@
 // '오늘 할 일 고르기'와 첫 사용 '시작 가이드' 판단 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 import type { MandaratDoc } from '../types';
-import { daysLabel, isRoutine, scheduledOn } from './routine';
+import { autoToday, daysBetween, isRoutine, kindOf, perWeekOf, routineWeekCount, ymd } from './routine';
+import { kindLine } from './kinds';
 
-/** auto = 반복 요일이 오늘이라 저절로 담김(고를 필요 없음), on/off = 오늘 목록에 담겼는지 */
+/** auto = 오늘 저절로 담김(반복 요일·주 N회·다가온 마감 — 고를 필요 없음), on/off = 오늘 목록에 담겼는지 */
 export type PickState = 'auto' | 'on' | 'off';
 
 export interface PickRow {
@@ -10,8 +11,10 @@ export interface PickRow {
   ai: number;
   text: string;
   state: PickState;
-  /** 반복 요일 라벨(매일·평일·월·수…), 반복이 아니면 '' */
-  days: string;
+  /** 정한 것 한 줄(월·수·금 반복 · 주 3회 · 6/12권 · 마감 D-3), 붙일 게 없으면 '' */
+  hint: string;
+  /** 저절로 담긴 까닭, 저절로가 아니면 '' */
+  why: string;
 }
 
 export interface PickSection {
@@ -21,21 +24,40 @@ export interface PickSection {
   inToday: number;
 }
 
+/** 저절로 담긴 까닭 한 줄 */
+function whyAuto(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): string {
+  const a = doc.themes[ti].actions[ai];
+  const kind = kindOf(a);
+  if (kind === 'once') {
+    const due = a.due ? daysBetween(ymd(today), a.due) : 0;
+    return due < 0 ? '마감이 지나 저절로 담겨요' : '마감이 다가와 저절로 담겨요';
+  }
+  const n = perWeekOf(a);
+  if (n > 0) {
+    const left = n - routineWeekCount(doc, ti, ai, today).done;
+    return left > 0 ? `이번 주 ${left}회 남아 저절로 담겨요` : '오늘 했어요';
+  }
+  return '오늘은 저절로 담겨요';
+}
+
 /**
  * 영역별로 고를 수 있는 실천 — 글자가 있는 칸만.
- * 이미 달성한 일회성 칸은 오늘 할 일로 담을 이유가 없어 뺀다(반복 실천은 달성해도 날마다 하므로 남긴다).
+ * 이미 달성한 한 번·쌓기 칸은 오늘 할 일로 담을 이유가 없어 뺀다(습관은 달성해도 날마다 하므로 남긴다).
+ * 마음가짐은 날마다 하는 일이 아니라 고르지 않는다.
  */
-export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys'>, today: Date): PickSection[] {
+export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'dayLog'>, today: Date): PickSection[] {
   const picked = new Set(doc.todayKeys);
   const out: PickSection[] = [];
   doc.themes.forEach((th, ti) => {
     const rows: PickRow[] = [];
     th.actions.forEach((a, ai) => {
       if (!a.text.trim()) return;
-      const routine = isRoutine(a);
-      if (!routine && a.done) return;
-      const state: PickState = routine && scheduledOn(a, today) ? 'auto' : picked.has(`${ti}-${ai}`) ? 'on' : 'off';
-      rows.push({ ti, ai, text: a.text, state, days: routine ? daysLabel(a.days) : '' });
+      const kind = kindOf(a);
+      if (kind === 'mind' || (kind !== 'habit' && a.done)) return;
+      const auto = autoToday(doc, ti, ai, today);
+      const state: PickState = auto ? 'auto' : picked.has(`${ti}-${ai}`) ? 'on' : 'off';
+      const line = kindLine(doc, ti, ai, today);
+      rows.push({ ti, ai, text: a.text, state, hint: line?.plan ?? '', why: auto ? whyAuto(doc, ti, ai, today) : '' });
     });
     if (rows.length) out.push({ ti, rows, inToday: rows.filter((r) => r.state !== 'off').length });
   });

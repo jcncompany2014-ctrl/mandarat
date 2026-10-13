@@ -80,7 +80,8 @@ test('요약: 목표·채운 칸·달성·기록 일수·루틴 수·백업 시�
   assert.equal(s.filled, 64);
   assert.equal(s.done, sampleThemes().flatMap((t) => t.actions).filter((a) => a.done).length);
   assert.equal(s.days, 2);
-  assert.equal(s.routines, 5);
+  // 습관 = 요일 습관 7 + 주 N회 습관 3
+  assert.equal(s.routines, 10);
   assert.equal(s.exportedAt, at.toISOString());
 });
 

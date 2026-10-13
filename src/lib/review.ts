@@ -1,7 +1,8 @@
 // 주간 돌아보기 + 달력형 히트맵 날짜 계산 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // "이번 주"는 앱 전체에서 월~일 기준으로 통일한다(홈 주간 띠와 같은 숫자).
 import type { MandaratDoc } from '../types';
-import { normalizeDays, weekDates, ymd } from './routine';
+import { habitDays, kindOf, perWeekOf, weekDates, weekDone, ymd } from './routine';
+import { countInfo, countWeekAdded, ratingOf } from './kinds';
 
 export interface WeekDay {
   date: string;
@@ -20,9 +21,18 @@ export interface WeekReview {
   total: number;
   /** 지난주 같은 기간(월~오늘과 같은 요일) 합계 — 공정한 비교용 */
   prev: number;
-  /** 이번 주 루틴: 예정된 날 중 해낸 횟수 / 예정 횟수(오늘은 해냈을 때만 셈) */
+  /** 이번 주 요일 습관: 예정된 날 중 해낸 횟수 / 예정 횟수(오늘은 해냈을 때만 셈) */
   routineDone: number;
   routinePlanned: number;
+  /** 이번 주 주 N회 습관: 채운 횟수(습관마다 N까지만) / 정한 횟수의 합 */
+  weeklyDone: number;
+  weeklyTarget: number;
+  /** 이번 주 쌓기: 더한 수(많이 쌓은 순) */
+  added: { ti: number; ai: number; amount: number; unit: string }[];
+  /** 이번 주 마음가짐: 점수를 매긴 수 · 점수 합 · 마음가짐 칸 수 */
+  mindRated: number;
+  mindSum: number;
+  mindTotal: number;
   /** 가장 많이 실천한 날 */
   bestDay: { dow: number; count: number } | null;
   /** 가장 많이 실천한 영역 */
@@ -47,10 +57,35 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, today: D
 
   let routineDone = 0;
   let routinePlanned = 0;
+  let weeklyDone = 0;
+  let weeklyTarget = 0;
+  let mindRated = 0;
+  let mindSum = 0;
+  let mindTotal = 0;
+  const added: WeekReview['added'] = [];
   doc.themes.forEach((t, ti) => t.actions.forEach((a, ai) => {
-    const ds = normalizeDays(a.days);
-    if (ds.length === 0 || !a.text.trim()) return;
+    if (!a.text.trim()) return;
     const key = `${ti}-${ai}`;
+    const kind = kindOf(a);
+    if (kind === 'count') {
+      const amount = countWeekAdded(a, today);
+      if (amount > 0) added.push({ ti, ai, amount, unit: countInfo(a).unit });
+      return;
+    }
+    if (kind === 'mind') {
+      mindTotal++;
+      const r = ratingOf(a, today);
+      if (r > 0) { mindRated++; mindSum += r; }
+      return;
+    }
+    if (kind !== 'habit') return;
+    const n = perWeekOf(a);
+    if (n > 0) {
+      weeklyTarget += n;
+      weeklyDone += Math.min(n, weekDone(doc.dayLog, key, today, a.since));
+      return;
+    }
+    const ds = habitDays(a);
     for (const d of span) {
       if (!ds.includes(d.dow) || (a.since && d.date < a.since)) continue; // 반복을 정하기 전 날은 제외
       const done = (doc.dayLog[d.date] ?? []).includes(key);
@@ -59,6 +94,7 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, today: D
       if (done) routineDone++;
     }
   }));
+  added.sort((x, y) => y.amount - x.amount);
 
   let bestDay: WeekReview['bestDay'] = null;
   for (const d of span) if (d.count > (bestDay?.count ?? 0)) bestDay = { dow: d.dow, count: d.count };
@@ -73,7 +109,7 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, today: D
   let topArea: WeekReview['topArea'] = null;
   perArea.forEach((c, ti) => { if (c > (topArea?.count ?? 0)) topArea = { ti, count: c }; });
 
-  return { days, total, prev, routineDone, routinePlanned, bestDay, topArea };
+  return { days, total, prev, routineDone, routinePlanned, weeklyDone, weeklyTarget, added, mindRated, mindSum, mindTotal, bestDay, topArea };
 }
 
 /**

@@ -76,7 +76,7 @@ export function Root() {
     ]).start();
   }, [ui.screen, ui.ti, reduceMotion, fade, slide]);
 
-  // today completion → celebration (직접 담은 항목 + 오늘 요일 루틴 + 직접 추가한 할 일)
+  // today completion → celebration (직접 담은 항목 + 저절로 담긴 습관·마감 + 직접 추가한 할 일)
   // 마지막 하나를 '체크'했을 때만 — 남은 일을 지우거나 기록을 통째로 바꿔서 다 찬 경우는 축하하지 않는다
   const { done: todayDone, total: todayTotal } = todayProgress(doc, new Date());
   const prevToday = useRef<{ done: number; total: number; complete: boolean } | null>(null);

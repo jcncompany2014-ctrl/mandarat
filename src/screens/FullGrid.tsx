@@ -7,7 +7,9 @@ import { Pop, Reveal } from '../components/Reveal';
 import { Pressy } from '../components/Pressy';
 import { tap } from '../lib/haptics';
 import { reducedMotion } from '../lib/useReducedMotion';
-import { daysLabel, isRoutine, todayItems } from '../lib/routine';
+import { kindOf, todayItems } from '../lib/routine';
+import { KIND_LABEL, countInfo, kindLine } from '../lib/kinds';
+import { CountBar, KindMeta } from '../components/KindBits';
 import { DUR, EASE } from '../theme/motion';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
@@ -90,6 +92,7 @@ function Block({
           let text: string;
           let doneMark = false;
           let bar: number | null = null;
+          let fill: { pct: number; color: string } | null = null;
           if (center) {
             if (pos === 4) { bg = coreBg(M); col = coreInk(M); text = doc.centerGoal || '핵심 목표'; }
             else {
@@ -105,10 +108,11 @@ function Block({
               text = a.text;
               if (a.done) { bg = th.color; doneMark = true; }
               else {
-                // 아직 못 한 칸은 종이 그대로 — 글자만
+                // 아직 못 한 칸은 종이 그대로 — 글자만(쌓기 칸은 바닥에 찬 만큼 가는 줄)
                 bg = 'transparent';
                 col = M.dark ? 'rgba(255,255,255,0.88)' : '#2A2521';
                 weight = '600';
+                if (a.text.trim() && kindOf(a) === 'count') fill = { pct: countInfo(a).pct, color: th.color };
               }
             }
           }
@@ -139,6 +143,9 @@ function Block({
                   <View style={{ width: `${bar}%`, height: '100%', backgroundColor: '#FFFFFF' }} />
                 </View>
               )}
+              {fill && fill.pct > 0 && (
+                <View style={{ position: 'absolute', left: 0, bottom: 0, height: 2, width: `${fill.pct}%`, backgroundColor: fill.color }} />
+              )}
             </View>
           );
         })}
@@ -164,10 +171,17 @@ function Grid3({ M, radius, children }: { M: M; radius: number; children: React.
   );
 }
 
+/** 크게 본 칸의 유형 한 줄 — 칸 안이 좁아 짧은 글로 */
+function cellLine(a: Action, ti: number, ai: number, doc: MandaratDoc) {
+  return a.text.trim() ? kindLine(doc, ti, ai, new Date()) : null;
+}
+
 function ActionCell({
-  M, color, a, ai, today, radius, onOpen, onEdit,
+  M, doc, ti, color, a, ai, today, radius, onOpen, onEdit,
 }: {
   M: M;
+  doc: MandaratDoc;
+  ti: number;
   color: string;
   a: Action;
   ai: number;
@@ -191,8 +205,8 @@ function ActionCell({
     );
   }
   const done = a.done;
-  const routine = isRoutine(a);
-  const soft = M.sub;
+  const kind = kindOf(a);
+  const line = cellLine(a, ti, ai, doc);
   return (
     <Pressy
       onPress={onOpen}
@@ -200,7 +214,7 @@ function ActionCell({
       delayLongPress={380}
       scaleTo={0.95}
       accessibilityRole="button"
-      accessibilityLabel={`${a.text}${done ? ', 달성' : ''}${routine ? `, ${daysLabel(a.days)} 반복` : ''}${today ? ', 오늘 할 일' : ''}`}
+      accessibilityLabel={`${a.text}, ${KIND_LABEL[kind]}${done ? ', 달성' : ''}${line ? `, ${line.long}` : ''}${today ? ', 오늘 할 일' : ''}`}
       accessibilityHint="실천 열기. 길게 누르면 글자를 고쳐요"
       style={{ flex: 1, padding: 10, backgroundColor: done ? tint(color, M.dark ? 30 : 20, M.dark) : 'transparent', justifyContent: 'space-between' }}
     >
@@ -215,13 +229,10 @@ function ActionCell({
       <Text style={{ fontSize: 13.5, fontWeight: '700', lineHeight: 18, color: M.ink }} numberOfLines={4} maxFontSizeMultiplier={1.5}>
         {a.text}
       </Text>
-      <View style={{ minHeight: 14, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        {routine && (
-          <>
-            <Icon name="repeat" size={11} color={color} sw={2.2} />
-            <Text style={{ flexShrink: 1, fontSize: 10.5, fontWeight: '700', color: soft }} numberOfLines={1}>{daysLabel(a.days)}</Text>
-          </>
-        )}
+      {/* 유형 한 줄 — 습관 요일·주 N회, 쌓기 숫자(+진행 줄), 마감, 마음가짐 점수 */}
+      <View style={{ minHeight: 14, gap: 4 }}>
+        {line && <KindMeta M={M} line={line} color={color} long={false} />}
+        {line?.pct !== undefined && !done && <CountBar M={M} pct={line.pct} color={color} height={2.5} />}
       </View>
     </Pressy>
   );
@@ -262,6 +273,8 @@ function AreaFocus({ M, doc, ti, radius, todaySet }: { M: M; doc: MandaratDoc; t
       <ActionCell
         key={pos}
         M={M}
+        doc={doc}
+        ti={ti}
         color={th.color}
         a={th.actions[r]}
         ai={r}

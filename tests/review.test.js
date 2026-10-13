@@ -83,3 +83,20 @@ test('루틴 지킴은 반복을 정한 날(since) 이후만 센다', () => {
   assert.equal(r.routineDone, 1);
   assert.equal(r.routinePlanned, 1);
 });
+
+test('유형별 주간 돌아보기: 주 N회는 N까지만, 쌓기는 이번 주 더한 수, 마음가짐은 점수', () => {
+  const themes = Array.from({ length: 8 }, () => ({ title: '', color: '#478058', icon: 'heart', actions: Array.from({ length: 8 }, () => ({ text: '', note: '', done: false })) }));
+  themes[0].actions[0] = { text: '운동', note: '', done: false, kind: 'habit', perWeek: 2 };
+  themes[0].actions[1] = { text: '독서', note: '', done: false, kind: 'count', goal: 12, unit: '권', count: 5, log: { '2026-10-12': 1, '2026-10-14': 2, '2026-10-01': 4 } };
+  themes[0].actions[2] = { text: '저축', note: '', done: false, kind: 'count', goal: 100, unit: '만 원', count: 50, log: { '2026-10-13': 30 } };
+  themes[0].actions[3] = { text: '감사', note: '', done: false, kind: 'mind', ratings: { '2026-10-12': 4 } };
+  themes[0].actions[4] = { text: '경청', note: '', done: false, kind: 'mind' };
+  themes[0].actions[5] = { text: '바꾼 칸', note: '', done: false, kind: 'once', days: [1, 2, 3] };
+  const dayLog = { '2026-10-12': ['0-0', '0-5'], '2026-10-13': ['0-0', '0-5'], '2026-10-14': ['0-0'] };
+  const r = weekReview({ themes, dayLog }, new Date(2026, 9, 14));
+  assert.equal(r.weeklyTarget, 2);
+  assert.equal(r.weeklyDone, 2, '세 번 했어도 2회까지만');
+  assert.deepEqual(r.added.map((x) => [x.ai, x.amount, x.unit]), [[2, 30, '만 원'], [1, 3, '권']]);
+  assert.deepEqual([r.mindRated, r.mindSum, r.mindTotal], [1, 4, 2]);
+  assert.equal(r.routinePlanned, 0, '한 번으로 바꾼 칸의 남은 요일은 습관으로 세지 않는다');
+});

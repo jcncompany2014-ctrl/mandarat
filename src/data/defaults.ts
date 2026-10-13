@@ -1,8 +1,9 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
-import { ICON_NAMES, type Action, type CellShape, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra } from '../types';
+import { ICON_NAMES, type Action, type ActionKind, type CellShape, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra } from '../types';
 import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
-import { normalizeDays } from '../lib/routine';
+import { KINDS, normalizeDays, normalizePerWeek, ymd } from '../lib/routine';
+import { MAX_NUM, cleanNum, cleanUnit } from '../lib/kinds';
 
 export const CENTER_EN = 'My Best Self';
 
@@ -10,7 +11,22 @@ interface ThemeSeed {
   title: string;
   color: string;
   icon: Theme['icon'];
-  sample: { kr: string; done?: boolean; days?: number[] }[];
+  sample: SampleAction[];
+}
+
+/** 예시 칸 — 유형별 값과, 마감은 오늘부터 며칠 뒤(dueIn)로 */
+interface SampleAction {
+  kr: string;
+  done?: boolean;
+  kind?: ActionKind;
+  days?: number[];
+  perWeek?: number;
+  goal?: number;
+  unit?: string;
+  count?: number;
+  dueIn?: number;
+  /** 마음가짐: 지난 몇 주의 점수(오래된 주 → 지난주) */
+  rated?: number[];
 }
 
 // The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable.
@@ -18,8 +34,8 @@ export const THEME_SEEDS: ThemeSeed[] = [
   {
     title: '건강', color: PILLAR_COLORS[0], icon: 'heart',
     sample: [
-      { kr: '주 3회 운동', done: true }, { kr: '하루 물 2L', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '11시 취침' },
-      { kr: '1만보 걷기', done: true }, { kr: '단 음식 줄이기' }, { kr: '정기 건강검진', done: true },
+      { kr: '주 3회 운동', kind: 'habit', perWeek: 3 }, { kr: '하루 물 2L', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '11시 취침', kind: 'habit', days: [0, 1, 2, 3, 4] },
+      { kr: '1만보 걷기', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '단 음식 줄이기' }, { kr: '정기 건강검진', done: true },
       { kr: '스트레칭 10분', done: true, days: [1, 2, 3, 4, 5] }, { kr: '야식 끊기' },
     ],
   },
@@ -27,30 +43,30 @@ export const THEME_SEEDS: ThemeSeed[] = [
     title: '커리어', color: PILLAR_COLORS[1], icon: 'briefcase',
     sample: [
       { kr: '사이드 프로젝트', done: true }, { kr: '발표 1회' }, { kr: '멘토 찾기', done: true },
-      { kr: '이력서 갱신' }, { kr: '새 기술 1개', done: true }, { kr: '업계 네트워킹' },
-      { kr: '성과 기록' }, { kr: '자격증 취득' },
+      { kr: '이력서 갱신', dueIn: 2 }, { kr: '새 기술 1개', done: true }, { kr: '업계 네트워킹' },
+      { kr: '성과 기록' }, { kr: '자격증 취득', dueIn: 45 },
     ],
   },
   {
     title: '자기계발', color: PILLAR_COLORS[2], icon: 'book',
     sample: [
-      { kr: '책 12권 읽기', done: true }, { kr: '온라인 강의', done: true }, { kr: '영어 회화' },
-      { kr: '매일 글쓰기', done: true, days: [1, 3, 5] }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
+      { kr: '책 12권 읽기', kind: 'count', goal: 12, unit: '권', count: 7 }, { kr: '온라인 강의', done: true }, { kr: '영어 회화', kind: 'habit', perWeek: 2 },
+      { kr: '아침 글쓰기', done: true, days: [1, 3, 5] }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
       { kr: '메모 정리' }, { kr: '강연 참석' },
     ],
   },
   {
     title: '관계', color: PILLAR_COLORS[3], icon: 'people',
     sample: [
-      { kr: '부모님 주 1통화', done: true }, { kr: '친구 모임' }, { kr: '감사 표현하기', done: true },
+      { kr: '부모님 주 1통화', done: true, kind: 'habit', perWeek: 1 }, { kr: '친구 모임' }, { kr: '감사 표현하기', kind: 'mind', rated: [2, 3, 3, 4] },
       { kr: '데이트 나이트' }, { kr: '새 친구 사귀기' }, { kr: '손편지 쓰기' },
-      { kr: '경청 연습' }, { kr: '봉사활동' },
+      { kr: '경청 연습', kind: 'mind', rated: [3, 2, 4] }, { kr: '봉사활동' },
     ],
   },
   {
     title: '재정', color: PILLAR_COLORS[4], icon: 'coin',
     sample: [
-      { kr: '가계부 쓰기', done: true, days: [0] }, { kr: '비상금 마련', done: true }, { kr: '투자 공부' },
+      { kr: '가계부 쓰기', done: true, days: [0] }, { kr: '비상금 300만 원', done: true, kind: 'count', goal: 300, unit: '만 원', count: 300 }, { kr: '투자 공부' },
       { kr: '구독 정리', done: true }, { kr: '수입 20% 저축' }, { kr: '부수입 만들기' },
       { kr: '소비 점검' }, { kr: '연금 점검' },
     ],
@@ -58,7 +74,7 @@ export const THEME_SEEDS: ThemeSeed[] = [
   {
     title: '취미', color: PILLAR_COLORS[5], icon: 'palette',
     sample: [
-      { kr: '사진 찍기', done: true }, { kr: '요리 10가지', done: true }, { kr: '악기 배우기' },
+      { kr: '사진 찍기', done: true }, { kr: '요리 10가지', done: true, kind: 'count', goal: 10, unit: '가지', count: 10 }, { kr: '악기 배우기' },
       { kr: '그림 그리기', done: true }, { kr: '등산 가기' }, { kr: '식물 키우기', done: true },
       { kr: '보드게임' }, { kr: '캠핑 가기' },
     ],
@@ -68,13 +84,13 @@ export const THEME_SEEDS: ThemeSeed[] = [
     sample: [
       { kr: '명상 10분', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '감사일기', done: true }, { kr: '디지털 디톡스' },
       { kr: '호흡 연습', done: true }, { kr: '산책하기', done: true }, { kr: '일기 쓰기' },
-      { kr: '요가', done: true }, { kr: '감정 체크' },
+      { kr: '요가', done: true }, { kr: '감정 체크', kind: 'mind' },
     ],
   },
   {
     title: '모험', color: PILLAR_COLORS[7], icon: 'compass',
     sample: [
-      { kr: '새 도시 3곳', done: true }, { kr: '혼자 여행' }, { kr: '번지점프' },
+      { kr: '새 도시 3곳', done: true, kind: 'count', goal: 3, unit: '곳', count: 3 }, { kr: '혼자 여행' }, { kr: '번지점프' },
       { kr: '콘서트 가기' }, { kr: '새 음식 도전' }, { kr: '일출 보기' },
       { kr: '외국어 대화' }, { kr: '별 보기 캠핑' },
     ],
@@ -92,12 +108,30 @@ export function scaffoldThemes(): Theme[] {
   }));
 }
 
-/** Themes fully populated from the sample (for "예시로 채우기"). */
-export function sampleThemes(): Theme[] {
+/** Themes fully populated from the sample (for "예시로 채우기"). 마감은 today 기준으로 정한다. */
+export function sampleThemes(today = new Date()): Theme[] {
   return THEME_SEEDS.map((s) => ({
     title: s.title, color: s.color, icon: s.icon,
-    actions: s.sample.map((a) => ({ text: a.kr, note: '', done: !!a.done, ...(a.days ? { days: a.days } : {}) })),
+    actions: s.sample.map((a): Action => ({
+      text: a.kr, note: '', done: !!a.done,
+      ...(a.kind ? { kind: a.kind } : {}),
+      ...(a.days ? { days: a.days } : {}),
+      ...(a.perWeek ? { perWeek: a.perWeek } : {}),
+      ...(a.kind === 'count' ? { goal: a.goal, count: a.count ?? 0, ...(a.unit ? { unit: a.unit } : {}) } : {}),
+      ...(a.dueIn !== undefined ? { due: ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + a.dueIn)) } : {}),
+      ...(a.rated ? { ratings: pastWeeks(today, a.rated) } : {}),
+    })),
   }));
+}
+
+/** 지난 몇 주(오래된 주 → 지난주)에 점수를 매긴 기록 — 주는 그 주 월요일 날짜 */
+function pastWeeks(today: Date, scores: number[]): Record<string, number> {
+  const mon = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
+  const out: Record<string, number> = {};
+  scores.forEach((score, i) => {
+    out[ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() - (scores.length - i) * 7))] = score;
+  });
+  return out;
 }
 
 export function blankDoc(): MandaratDoc {
@@ -160,6 +194,49 @@ function cleanDayMeta(v: unknown): MandaratDoc['dayMeta'] {
   return out;
 }
 
+/** 날짜 → 수 기록(쌓기의 그날 더한 수, 마음가짐의 주별 점수) — 날짜 형식과 값 검사를 통과한 것만 */
+function cleanDateNums(v: unknown, ok: (n: unknown) => number | undefined): Record<string, number> | undefined {
+  if (!isRecord(v)) return undefined;
+  const out: Record<string, number> = {};
+  for (const [day, n] of Object.entries(v)) {
+    if (!DATE_RE.test(day)) continue;
+    const c = ok(n);
+    if (c !== undefined) out[day] = c;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** 실천 칸 하나 — 모르는 값·깨진 값은 버리고, 유형별 값은 형식이 맞을 때만 남긴다 */
+function cleanAction(a: Record<string, unknown>): Action {
+  const days = normalizeDays(a.days);
+  const perWeek = normalizePerWeek(a.perWeek);
+  const since = (days.length > 0 || perWeek > 0) && typeof a.since === 'string' && DATE_RE.test(a.since) ? a.since : undefined;
+  const kind = (KINDS as readonly unknown[]).includes(a.kind) ? (a.kind as ActionKind) : undefined;
+  const goal = cleanNum(a.goal, 0.01);
+  const unit = cleanUnit(a.unit);
+  const step = cleanNum(a.step, 0.01);
+  const count = cleanNum(a.count, 0, MAX_NUM);
+  const log = cleanDateNums(a.log, (n) => cleanNum(n, 0.01));
+  const due = typeof a.due === 'string' && DATE_RE.test(a.due) ? a.due : undefined;
+  const ratings = cleanDateNums(a.ratings, (n) => (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 5 ? (n as number) : undefined));
+  return {
+    text: typeof a.text === 'string' ? a.text : '',
+    note: typeof a.note === 'string' ? a.note : '',
+    done: !!a.done,
+    ...(kind ? { kind } : {}),
+    ...(days.length > 0 ? { days } : {}),
+    ...(perWeek > 0 ? { perWeek } : {}),
+    ...(since ? { since } : {}),
+    ...(goal !== undefined ? { goal } : {}),
+    ...(unit ? { unit } : {}),
+    ...(step !== undefined && step !== 1 ? { step } : {}),
+    ...(count !== undefined ? { count } : {}),
+    ...(log ? { log } : {}),
+    ...(due ? { due } : {}),
+    ...(ratings ? { ratings } : {}),
+  };
+}
+
 function cleanExtras(v: unknown): TodayExtra[] {
   if (!Array.isArray(v)) return [];
   const seen = new Set<string>();
@@ -201,16 +278,7 @@ export function migrate(parsed: unknown): MandaratDoc {
       icon: (ICON_NAMES as readonly unknown[]).includes(t.icon) ? (t.icon as Theme['icon']) : s.icon,
       actions: s.actions.map((blank, j) => {
         const a = actions[j];
-        if (!isRecord(a)) return blank;
-        const days = normalizeDays(a.days);
-        const since = days.length > 0 && typeof a.since === 'string' && DATE_RE.test(a.since) ? a.since : undefined;
-        return {
-          text: typeof a.text === 'string' ? a.text : '',
-          note: typeof a.note === 'string' ? a.note : '',
-          done: !!a.done,
-          ...(days.length > 0 ? { days } : {}),
-          ...(since ? { since } : {}),
-        };
+        return isRecord(a) ? cleanAction(a) : blank;
       }),
     };
   });
