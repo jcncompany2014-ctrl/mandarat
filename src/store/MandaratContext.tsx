@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme, TodayExtra } from '../types';
-import { blankDoc, migrate, sampleThemes, scaffoldThemes } from '../data/defaults';
+import { blankDoc, migrate, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, normalizeDays, rolloverToday, sameDays, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 
 const STORAGE_KEY = 'mandarat:doc:v1';

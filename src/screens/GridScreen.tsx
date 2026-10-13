@@ -11,8 +11,6 @@ import { tap } from '../lib/haptics';
 import { MandalaWheel } from './MandalaWheel';
 import { FullGrid } from './FullGrid';
 import { gridMemory } from './gridMemory';
-import { tint } from '../theme/moods';
-import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';

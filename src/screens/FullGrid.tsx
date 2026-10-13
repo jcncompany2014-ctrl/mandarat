@@ -10,7 +10,7 @@ import { reducedMotion } from '../lib/useReducedMotion';
 import { daysLabel, isRoutine, todayItems } from '../lib/routine';
 import { DUR, EASE } from '../theme/motion';
 import { FONTS } from '../theme/fonts';
-import { fade, tint } from '../theme/moods';
+import { tint } from '../theme/moods';
 import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
@@ -412,13 +412,13 @@ export function FullGrid({ M }: { M: M }) {
             <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: M.sub }} numberOfLines={1}>
               64칸 중 <Text style={{ color: M.ink, fontWeight: '800' }}>{done}칸</Text> 달성{empty > 0 ? ` · 빈 칸 ${empty}` : ''}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessible accessibilityLabel="진한 칸은 달성, 옅은 칸은 아직">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessible accessibilityLabel="색이 칠해진 칸은 달성, 칠해지지 않은 칸은 아직">
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: M.sub }} />
+                <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: M.sub }} />
                 <Text style={{ fontSize: 11.5, fontWeight: '600', color: M.sub }}>달성</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: fade(M.sub, 22) }} />
+                <View style={{ width: 10, height: 10, borderRadius: 2, borderWidth: 1, borderColor: M.sub }} />
                 <Text style={{ fontSize: 11.5, fontWeight: '600', color: M.sub }}>아직</Text>
               </View>
             </View>
@@ -460,7 +460,8 @@ export function FullGrid({ M }: { M: M }) {
             importantForAccessibility={focus != null ? 'no-hide-descendants' : 'auto'}
           >
             {BLOCK_ORDER.map((b, i) => (
-              <View key={i} style={{ width: '31.5%' }} onLayout={(e) => { rects.current[String(b)] = e.nativeEvent.layout; }}>
+              // 30% + 늘이기: 한 줄에 셋, 틈(5)을 뺀 나머지를 똑같이 나눠 판이 좌우 가운데에 꼭 맞는다
+              <View key={i} style={{ flexBasis: '30%', flexGrow: 1 }} onLayout={(e) => { rects.current[String(b)] = e.nativeEvent.layout; }}>
                 <Pop index={BLOCK_BLOOM[i]} delay={40}>
                   <Block M={M} doc={doc} b={b} cellR={cellR} blockR={blockR} onPress={() => open(b)} />
                 </Pop>

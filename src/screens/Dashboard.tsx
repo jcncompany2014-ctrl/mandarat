@@ -24,18 +24,18 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /** 섹션 머리 — 종이 위 작은 제목 한 줄(카드 없이). 오른쪽엔 보조 정보나 '더 보기' */
 function SectionHead({ M, title, right, onPress, a11y }: { M: M; title: string; right?: string; onPress?: () => void; a11y?: string }) {
-  const body = (
-    <>
-      <Text style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">{title}</Text>
-      {!!right && <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{right}</Text>}
-      {onPress && <Icon name="chevR" size={16} color={M.faint} />}
-    </>
-  );
+  const head = <Text style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">{title}</Text>;
+  const note = !!right && <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{right}</Text>;
   const style = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4, paddingHorizontal: 20, paddingTop: 26, paddingBottom: 10 };
-  if (!onPress) return <View style={style}>{body}</View>;
+  if (!onPress) return <View style={style}>{head}{note}</View>;
+  // 줄 어디를 눌러도 되지만, 화면 읽기에서는 제목(머리말)과 오른쪽 버튼을 따로 읽는다
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y ?? title} hitSlop={4} style={style}>
-      {body}
+    <Pressable onPress={onPress} accessible={false} style={style}>
+      {head}
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y ?? title} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {note}
+        <Icon name="chevR" size={16} color={M.faint} />
+      </Pressable>
     </Pressable>
   );
 }
@@ -99,7 +99,7 @@ export function Dashboard() {
         <MiniChart doc={doc} size={128} dark={M.dark} ink={M.dark ? M.ink : '#23211C'} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>올해의 핵심 목표</Text>
-          <Text style={{ fontSize: goalSize, fontWeight: '800', color: doc.centerGoal ? M.ink : M.faint, marginTop: 4, lineHeight: Math.round(goalSize * 1.3) }} numberOfLines={3}>
+          <Text style={{ fontSize: goalSize, fontWeight: '800', color: doc.centerGoal ? M.ink : M.sub, marginTop: 4, lineHeight: Math.round(goalSize * 1.3) }} numberOfLines={3}>
             {doc.centerGoal ? noOrphan(doc.centerGoal) : '핵심 목표를\n정해 주세요'}
           </Text>
           <Text style={{ fontSize: 13, color: M.sub, marginTop: 8, fontWeight: '500' }}>

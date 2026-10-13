@@ -86,7 +86,8 @@ function TodayChecklist({ M }: { M: M }) {
 
   const tDone = list.filter((it) => it.done).length + extra.filter((x) => x.done).length;
   const tTotal = list.length + extra.length;
-  const routines = list.filter((it) => it.routine).length;
+  // 저절로 담긴 것만 — 오늘 요일이 아닌데 직접 담은 반복 실천은 세지 않는다
+  const routines = list.filter((it) => it.routine && it.scheduled).length;
   const pct = tTotal ? Math.round((tDone / tTotal) * 100) : 0;
 
   // 남은 일이 위, 끝낸 일은 '완료' 아래로 — 방금 체크한 일은 잠깐 제자리에 머문 뒤 내려간다
@@ -514,13 +515,13 @@ function TodayKanban({ M }: { M: M }) {
                     accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : '완료 취소'}
                     style={({ pressed }) => [
                       groupEdge(M, first, i === colCards.length - 1, 16),
-                      // 진행 중 묶음은 금색 테두리로 지금 하는 일을 드러낸다
-                      ci === 1 ? { borderColor: tint(M.gold, 55, M.dark) } : null,
                       { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12 },
                       pressed ? pressedRow(M) : null,
                     ]}
                   >
                     {!first && <RowDivider M={M} inset={15} />}
+                    {/* 진행 중인 일은 형광펜을 그은 듯 왼쪽에 금색 줄 */}
+                    {ci === 1 && <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 9, bottom: 9, width: 3, borderRadius: 2, backgroundColor: M.gold }} />}
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={{ fontSize: 14.5, fontWeight: '700', color: ci === 2 ? M.sub : M.ink, textDecorationLine: ci === 2 ? 'line-through' : 'none' }} numberOfLines={2}>
                         {c.text}

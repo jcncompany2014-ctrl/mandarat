@@ -137,6 +137,8 @@ export function Root() {
   return (
     <View style={{ flex: 1, backgroundColor: M.bg }}>
       <StatusBar style={M.dark ? 'light' : 'dark'} />
+      {/* 도트 종이는 스크롤 뒤에 화면 크기로 한 장만 — 내용 높이만큼 그리면 긴 화면에서 메모리를 크게 쓴다 */}
+      <PaperDots M={M} />
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
@@ -145,7 +147,6 @@ export function Root() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <PaperDots M={M} />
         <Animated.View style={{ flexGrow: 1, opacity: fade, transform: [{ translateX: slide }] }}>
           {screen}
         </Animated.View>

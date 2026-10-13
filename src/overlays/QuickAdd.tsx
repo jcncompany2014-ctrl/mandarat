@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Sheet, useSheetDismiss } from '../components/common';
 import { Icon } from '../components/Icon';

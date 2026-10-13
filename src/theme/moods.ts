@@ -34,13 +34,13 @@ export const MOODS: Record<Mood, Palette> = {
     heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
   },
   화이트: {
-    bg: '#EEEFF3', surface: '#FFFFFF', card: '#FFFFFF', ink: '#16171C', sub: '#6B6E78',
+    bg: '#EEEFF3', surface: '#FFFFFF', card: '#FFFFFF', ink: '#16171C', sub: '#686B75',
     faint: '#A2A5B0', line: 'rgba(20,22,30,0.09)', tabBg: '#F5F6FA', dark: false,
     gold: '#A8842F', center: '#1A1A26', hero: ['#262442', '#1A1930', '#141324'],
     heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
   },
   파스텔: {
-    bg: '#F0ECFA', surface: '#FFFFFF', card: '#FFFFFF', ink: '#272040', sub: '#6E6794',
+    bg: '#F0ECFA', surface: '#FFFFFF', card: '#FFFFFF', ink: '#272040', sub: '#6C6592',
     faint: '#A89FC8', line: 'rgba(50,36,90,0.10)', tabBg: '#F4F0FC', dark: false,
     gold: '#9B82C4', center: '#271F44', hero: ['#3A2F66', '#2A2150', '#221A42'],
     heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
