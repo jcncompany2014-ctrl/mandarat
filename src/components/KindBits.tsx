@@ -3,15 +3,17 @@ import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { Icon } from './Icon';
 import { tint } from '../theme/moods';
-import { SEMANTIC } from '../theme/palette';
 import type { M } from '../theme/usePalette';
 import type { KindLine } from '../lib/kinds';
 import { RATING_TEXT } from '../lib/kinds';
 import { tap } from '../lib/haptics';
 
-/** 마감이 지난 일의 글자색 — 다크에선 밝게 올려 바탕과의 대비를 지킨다 */
+/**
+ * 마감이 지난 일의 글자색 — 작은 글씨라 종이 바탕 네 가지 모두에서 4.5:1을 넘게(밝은 테마 4.66, 다크 8.1).
+ * (SEMANTIC.danger는 미색·크림 종이에서 3.9~4.3이라 글자에는 쓰지 않는다)
+ */
 export function alertInk(M: M): string {
-  return M.dark ? '#E58FA5' : SEMANTIC.danger;
+  return M.dark ? '#E58FA5' : '#A15166';
 }
 
 /** 줄 아래 작은 유형 정보 — '↻ 월·수·금 반복' · '6/12권' · '📅 마감 D-3'(아이콘은 선 아이콘) */
@@ -50,7 +52,13 @@ export function RatingBoxes({ M, value, color, onRate, size = 34, label }: {
   label: string;
 }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 6 }} accessibilityRole={onRate ? undefined : 'text'} accessible={!onRate} accessibilityLabel={onRate ? undefined : `${label} ${value ? `${value}점` : '점수 없음'}`}>
+    <View
+      style={{ flexDirection: 'row', gap: 6 }}
+      // 매길 수 있으면 다섯 칸을 한 묶음(radiogroup)으로, 보기만 하면 점수 한 마디로 읽는다
+      accessibilityRole={onRate ? 'radiogroup' : 'text'}
+      accessible={!onRate}
+      accessibilityLabel={onRate ? label : `${label} ${value ? `${value}점` : '점수 없음'}`}
+    >
       {[1, 2, 3, 4, 5].map((n) => {
         const on = n <= value;
         const box = (

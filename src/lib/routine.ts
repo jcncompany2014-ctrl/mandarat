@@ -158,7 +158,7 @@ export function doneToday(doc: Pick<MandaratDoc, 'dayLog'>, a: Action, key: stri
  * 고르지 않아도 오늘 저절로 담기는가.
  * - 요일 습관: 오늘이 반복 요일
  * - 주 N회 습관: 이번 주 횟수를 아직 못 채웠거나 오늘 이미 했다
- * - 한 번: 마감이 D-3 안쪽이거나 지났고 아직 못 했다
+ * - 한 번: 마감이 D-3 안쪽이거나 지났고 아직 못 했다(오늘 끝냈다면 그날은 '완료'로 남는다)
  */
 export function autoToday(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): boolean {
   const a = doc.themes[ti]?.actions[ai];
@@ -172,7 +172,11 @@ export function autoToday(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: numbe
     const key = `${ti}-${ai}`;
     return doneOn(doc.dayLog, key, tk) || weekDone(doc.dayLog, key, today, a.since, false) < n;
   }
-  if (kind === 'once') return !a.done && !!a.due && daysBetween(tk, a.due) <= DUE_SOON;
+  if (kind === 'once') {
+    if (!a.due || daysBetween(tk, a.due) > DUE_SOON) return false;
+    // 체크하자마자 목록에서 사라지지 않게 — 오늘 달성한 것은 그날 동안 '완료'에 남긴다
+    return !a.done || doneOn(doc.dayLog, `${ti}-${ai}`, tk);
+  }
   return false;
 }
 

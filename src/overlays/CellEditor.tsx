@@ -98,8 +98,9 @@ function Editor({ editor }: { editor: EditorTarget }) {
     setCfg((c) => (suggestion ? withSuggestion(c, suggestion) : { ...c, kind: 'once' }));
   }, [autoKind, suggestion]);
 
-  // 이미 있던 칸은 글을 고쳤을 때 다른 유형으로 읽히면 한 번 물어본다
-  const offer = !autoKind && !touched && suggestion && !sameConfig(withSuggestion(cfg, suggestion), cfg) ? suggestion : null;
+  // 이미 있던 칸은 다른 유형으로 읽히면 한 번 물어본다 — 유형을 직접 정해 둔 칸은 글을 고쳤을 때만(같은 제안을 열 때마다 하지 않게)
+  const offerable = !!action && (action.kind == null || text.trim() !== action.text.trim());
+  const offer = offerable && !autoKind && !touched && suggestion && !sameConfig(withSuggestion(cfg, suggestion), cfg) ? suggestion : null;
 
   const pickKind = (k: ActionKind) => {
     setAutoKind(false);

@@ -101,6 +101,15 @@ test('마감이 D-3 안쪽이거나 지난 한 번 실천은 저절로 담기고
     return {};
   });
   assert.deepEqual(R.todayItems(doc, WED).map((i) => i.key), ['0-0', '0-2']);
+  // 오늘 끝낸 마감 일은 그날 '완료'로 남고(체크하자마자 사라지지 않게), 다음 날엔 빠진다
+  doc.themes[0].actions[0].done = true;
+  doc.dayLog = { '2026-10-14': ['0-0'] };
+  const after = R.todayItems(doc, WED);
+  assert.deepEqual(after.map((i) => [i.key, i.done]), [['0-0', true], ['0-2', false]]);
+  // 다음 날(목): 끝낸 이력서는 빠지고, 검진(10/18)이 D-3이 되어 들어온다
+  assert.deepEqual(R.todayItems(doc, new Date(2026, 9, 15)).map((i) => i.key), ['0-1', '0-2']);
+  doc.themes[0].actions[0].done = false;
+  doc.dayLog = {};
   assert.equal(K.dueInfo(doc.themes[0].actions[0], WED).label, 'D-3');
   assert.equal(K.dueInfo(doc.themes[0].actions[2], WED).label, '13일 지남');
   assert.equal(K.dueInfo({ text: 'x', note: '', done: false, kind: 'once', due: '2026-10-14' }, WED).label, '오늘 마감');
