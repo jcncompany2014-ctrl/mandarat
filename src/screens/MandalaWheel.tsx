@@ -14,6 +14,7 @@ import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
+import { noOrphan } from '../lib/text';
 
 function ringPositions(c: number, R: number, count: number, start: number) {
   return Array.from({ length: count }, (_, i) => {
@@ -137,7 +138,7 @@ export function MandalaWheel({ M }: { M: M }) {
             <Ring pct={pct} size={112} stroke={4} color={M.gold} track={M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}>
               <View style={[{ width: 100, height: 100, borderRadius: 50, backgroundColor: M.center, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', padding: 9 }, shadow(8, '#141028', 0.32)]}>
                 <Text style={{ fontFamily: FONTS.serif, fontWeight: '700', fontSize: 13.5, color: '#fff', textAlign: 'center', lineHeight: 16 }} numberOfLines={2}>
-                  {doc.centerGoal || '핵심 목표'}
+                  {doc.centerGoal ? noOrphan(doc.centerGoal) : '핵심 목표'}
                 </Text>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: M.gold, fontFamily: FONTS.grotesk, marginTop: 3 }}>{pct}%</Text>
               </View>

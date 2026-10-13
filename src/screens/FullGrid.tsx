@@ -16,17 +16,15 @@ import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import type { Action, MandaratDoc } from '../types';
+import { gridMemory, type GridFocus } from './gridMemory';
+import { noOrphan } from '../lib/text';
 
 const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 // 가운데 블록이 먼저, 이어서 왼쪽 위부터 시계 방향으로 (배치 순번 → 등장 순번)
 const BLOCK_BLOOM = [1, 2, 3, 8, 0, 4, 7, 6, 5];
 const BLOCK_ORDER: (number | 'c')[] = [0, 1, 2, 3, 'c', 4, 5, 6, 7];
 
-/** 크게 보는 블록 — 영역 번호, 또는 가운데(핵심 목표 + 8개 영역) */
-type Focus = number | 'c';
-
-// 상세 화면에 다녀와도 보던 블록 그대로 — 화면이 다시 만들어져도 앱이 켜져 있는 동안 기억한다
-let lastFocus: Focus | null = null;
+type Focus = GridFocus;
 
 /**
  * 좁은 격자 칸에서 한글이 글자 단위로 끊기는 걸 막는다.
@@ -292,7 +290,7 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
           style={{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center', gap: 4 }}
         >
           <Text style={{ fontSize: 13.5, fontWeight: '800', color: coreInk(M), textAlign: 'center', lineHeight: 18 }} numberOfLines={4}>
-            {doc.centerGoal || '핵심 목표를 정해 주세요'}
+            {doc.centerGoal ? noOrphan(doc.centerGoal) : '핵심 목표를 정해 주세요'}
           </Text>
           <Text style={{ fontSize: 12, fontWeight: '800', color: M.dark ? M.accent : M.gold, fontFamily: FONTS.grotesk }}>{pct}%</Text>
         </Pressy>
@@ -333,8 +331,8 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
  */
 export function FullGrid({ M }: { M: M }) {
   const { doc } = useMandarat();
-  const [focus, setFocus] = useState<Focus | null>(lastFocus);
-  const t = useRef(new Animated.Value(lastFocus != null ? 1 : 0)).current;
+  const [focus, setFocus] = useState<Focus | null>(gridMemory.focus);
+  const t = useRef(new Animated.Value(gridMemory.focus != null ? 1 : 0)).current;
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const rects = useRef<Partial<Record<string, LayoutRectangle>>>({});
   const cellR = doc.settings.cellShape === '각진' ? 2 : 6;
@@ -349,7 +347,7 @@ export function FullGrid({ M }: { M: M }) {
 
   const open = (f: Focus) => {
     tap();
-    lastFocus = f;
+    gridMemory.focus = f;
     setFocus(f);
     say(f);
     if (reducedMotion()) { t.setValue(1); return; }
@@ -358,18 +356,18 @@ export function FullGrid({ M }: { M: M }) {
   };
   const close = () => {
     tap();
-    lastFocus = null;
+    gridMemory.focus = null;
     if (reducedMotion()) { t.setValue(0); setFocus(null); return; }
     Animated.timing(t, { toValue: 0, duration: DUR.base, easing: EASE.inOut, useNativeDriver: true }).start(({ finished }) => {
       // 접히는 사이 다른 블록을 골랐다면 닫지 않는다
-      if (finished && lastFocus == null) setFocus(null);
+      if (finished && gridMemory.focus == null) setFocus(null);
     });
   };
   // 크게 본 채로 다른 블록으로 — 제자리에서 내용만 바뀐다(접었다 펴지 않음).
   // 접히는 도중에 눌렀다면 다시 펼친다.
   const switchTo = (f: Focus) => {
     tap();
-    lastFocus = f;
+    gridMemory.focus = f;
     setFocus(f);
     say(f);
     if (reducedMotion()) t.setValue(1);

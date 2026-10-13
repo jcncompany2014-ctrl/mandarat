@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { PanResponder, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
-import { Header, IconBtn } from '../components/common';
+import { Header, IconBtn, RowDivider, groupEdge } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
@@ -144,19 +144,25 @@ export function Detail({ ti }: { ti: number }) {
 
       {/* checklist */}
       <Text style={{ paddingHorizontal: 20, fontSize: 17, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>체크리스트</Text>
-      <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, gap: 8 }}>
+      {/* 한 면에 8줄 — 줄마다 카드를 따로 두지 않고 가는 선으로만 나눈다 */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16 }}>
         {th.actions.map((a, ai) => {
           const has = !!a.text.trim();
+          const first = ai === 0;
           return (
-            <Reveal key={ai} index={2 + ai}>
-            <Pressy
+            <Reveal key={ai} index={2 + ai} from={0}>
+            <Pressable
               onPress={() => { tap(); if (has) openAction(ti, ai); else openEditor({ kind: 'action', ti, ai }); }}
-              scaleTo={0.985}
               accessibilityRole="button"
               accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력하기`}
               accessibilityHint={has ? '실천 항목 자세히 보기' : '실천 항목 입력하기'}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 16, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
+              style={({ pressed }) => [
+                groupEdge(M, first, ai === th.actions.length - 1),
+                { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13 },
+                pressed ? { backgroundColor: M.bg } : null,
+              ]}
             >
+              {!first && <RowDivider M={M} inset={55} />}
               <Pressable
                 onPress={() => { if (has) { tap(); if (!a.done) success(); toggleDone(ti, ai); } }}
                 hitSlop={10}
@@ -177,13 +183,13 @@ export function Detail({ ti }: { ti: number }) {
                 {has && isRoutine(a) && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
                     <Icon name="repeat" size={11} color={th.color} sw={2.2} />
-                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: th.color }}>{daysLabel(a.days)} 반복</Text>
+                    <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.sub }}>{daysLabel(a.days)} 반복</Text>
                   </View>
                 )}
               </View>
               {!!a.note && <Icon name="pencil" size={14} color={M.faint} />}
               <Icon name="chevR" size={17} color={M.faint} />
-            </Pressy>
+            </Pressable>
             </Reveal>
           );
         })}

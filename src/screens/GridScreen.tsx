@@ -10,6 +10,7 @@ import { Icon } from '../components/Icon';
 import { tap } from '../lib/haptics';
 import { MandalaWheel } from './MandalaWheel';
 import { FullGrid } from './FullGrid';
+import { gridMemory } from './gridMemory';
 import { tint } from '../theme/moods';
 import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
@@ -55,14 +56,12 @@ function NextStepCard({ M }: { M: M }) {
   );
 }
 
-// 상세 화면에 다녀와도 보던 보기(휠/81칸) 그대로 — 앱이 켜져 있는 동안 기억한다
-let lastView: 'mandala' | 'full' = 'mandala';
-
 export function GridScreen() {
   const M = usePalette();
   const { openEditor } = useUI();
-  const [view, setViewState] = useState<'mandala' | 'full'>(lastView);
-  const setView = (v: 'mandala' | 'full') => { lastView = v; setViewState(v); };
+  // 상세 화면에 다녀와도 보던 보기(휠/81칸) 그대로
+  const [view, setViewState] = useState<'mandala' | 'full'>(gridMemory.view);
+  const setView = (v: 'mandala' | 'full') => { gridMemory.view = v; setViewState(v); };
 
   return (
     // flex:1 — 휠 보기에선 남는 세로 공간에 휠을 가운데 두고, '다음 할 일'은 아래에 붙인다

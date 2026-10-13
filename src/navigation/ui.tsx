@@ -32,6 +32,11 @@ interface UICtx {
   openQuick: () => void;
   closeQuick: () => void;
 
+  /** 만다라트 실천 중 오늘 할 일을 여러 개 고르는 시트 */
+  pick: boolean;
+  openPick: () => void;
+  closePick: () => void;
+
   celebrate: CelebrateKind | null;
   fireCelebrate: (kind?: CelebrateKind) => void;
   closeCelebrate: () => void;
@@ -54,6 +59,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [sheet, setSheet] = useState<{ ti: number; ai: number } | null>(null);
   const [focus, setFocus] = useState<{ ti: number; ai: number } | null>(null);
   const [quick, setQuick] = useState(false);
+  const [pick, setPick] = useState(false);
   const [celebrate, setCelebrate] = useState<CelebrateKind | null>(null);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -82,11 +88,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       sheet, openAction, closeSheet: () => setSheet(null),
       focus, startFocus, closeFocus: () => setFocus(null),
       quick, openQuick: () => setQuick(true), closeQuick: () => setQuick(false),
+      pick, openPick: () => setPick(true), closePick: () => setPick(false),
       celebrate, fireCelebrate: (kind: CelebrateKind = 'today') => setCelebrate(kind), closeCelebrate: () => setCelebrate(null),
       editor, openEditor: setEditor, closeEditor: () => setEditor(null),
       toast, showToast, hideToast,
     }),
-    [screen, ti, go, sheet, openAction, startFocus, focus, quick, celebrate, editor, toast, showToast, hideToast],
+    [screen, ti, go, sheet, openAction, startFocus, focus, quick, pick, celebrate, editor, toast, showToast, hideToast],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

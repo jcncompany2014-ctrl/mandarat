@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
@@ -16,10 +16,13 @@ import { fade, tint } from '../theme/moods';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
-import { SEMANTIC } from '../theme/palette';
+import { SEMANTIC, readableOn } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import { DOW_KR, daysLabel, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { useSettle } from '../lib/useSettle';
+import { firstAreaWithEmpty, guideSteps, pickSections } from '../lib/pick';
+import { showGridAt } from './gridMemory';
+import { noOrphan } from '../lib/text';
 import { success, tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
 
@@ -29,7 +32,7 @@ const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 
 export function Dashboard() {
   const M = usePalette();
-  const { go } = useUI();
+  const { go, openEditor } = useUI();
   const { doc, storageError } = useMandarat();
 
   const done = totalDone(doc);
@@ -62,18 +65,19 @@ export function Dashboard() {
       <Reveal index={0}>
         <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
           <Pressy
-            onPress={() => { tap(); go('grid'); }}
+            // 목표가 아직 없으면 바로 쓰게, 있으면 만다라트로
+            onPress={() => { tap(); if (doc.centerGoal.trim()) go('grid'); else openEditor({ kind: 'center' }); }}
             scaleTo={0.985}
             accessibilityRole="button"
             accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, 64칸 중 ${done}칸 달성 ${pct}%`}
-            accessibilityHint="만다라트 펼치기"
+            accessibilityHint={doc.centerGoal.trim() ? '만다라트 펼치기' : '핵심 목표 쓰기'}
             style={{ borderRadius: 24, padding: 18, backgroundColor: M.hero[1], flexDirection: 'row', alignItems: 'center', gap: 18 }}
           >
             <MiniMandalart doc={doc} size={100} dark={!M.heroLight} centerBg={M.heroLight ? M.center : 'rgba(255,255,255,0.9)'} centerInk={M.heroLight ? '#FFFFFF' : M.center} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.heroSub }}>핵심 목표</Text>
               <Text style={{ fontSize: goalSize, fontWeight: '800', color: doc.centerGoal ? M.heroInk : M.heroSub, marginTop: 4, lineHeight: Math.round(goalSize * 1.28) }} numberOfLines={3}>
-                {doc.centerGoal || '핵심 목표를\n정해 주세요'}
+                {doc.centerGoal ? noOrphan(doc.centerGoal) : '핵심 목표를\n정해 주세요'}
               </Text>
               <Text style={{ fontSize: 13, color: M.heroSub, marginTop: 8, fontWeight: '600' }}>
                 64칸 중 <AnimatedNumber value={done} format={(n) => `${n}칸`} style={{ color: M.heroInk, fontWeight: '800' }} /> 달성
@@ -81,6 +85,11 @@ export function Dashboard() {
             </View>
           </Pressy>
         </View>
+      </Reveal>
+
+      {/* 처음 쓰는 사람의 네 단계 — 다 끝내면 사라진다 */}
+      <Reveal index={1}>
+        <StartGuide M={M} doc={doc} />
       </Reveal>
 
       {/* 오늘의 실천 — 바로 체크할 수 있게 위로 */}
@@ -176,7 +185,7 @@ function TodayCard({
   week: ReturnType<typeof weekCounts>;
   weekTotal: number;
 }) {
-  const { go, openAction, openQuick } = useUI();
+  const { go, openAction, openQuick, openPick } = useUI();
   const { toggleDone, toggleRoutineToday, toggleExtra } = useMandarat();
   const { held, hold } = useSettle();
   const now = new Date();
@@ -196,6 +205,7 @@ function TodayCard({
   ];
   // 남은 일 + 방금 체크한 일(잠깐 머물렀다 사라짐)
   const visible = rows.filter((r) => !r.done || held.has(r.key));
+  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
   const shown = visible.slice(0, 3);
   const more = visible.length - shown.length;
   const allDone = todayTotal > 0 && todayDoneCount === todayTotal && held.size === 0;
@@ -280,9 +290,15 @@ function TodayCard({
           </View>
         )}
         {todayTotal === 0 && (
-          <Pressable onPress={() => { tap(); openQuick(); }} accessibilityRole="button" accessibilityLabel="오늘 할 일 더하기" style={{ marginHorizontal: 18, marginBottom: 6, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: tint(M.accent, 40, M.dark), alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+          // 만다라트에 고를 실천이 있으면 거기서 고르고, 없으면 오늘만 할 일을 바로 적는다
+          <Pressable
+            onPress={() => { tap(); if (canPick) openPick(); else openQuick(); }}
+            accessibilityRole="button"
+            accessibilityLabel={canPick ? '실천에서 오늘 할 일 고르기' : '오늘 할 일 더하기'}
+            style={{ marginHorizontal: 18, marginBottom: 6, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: tint(M.accent, 40, M.dark), alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
+          >
             <Icon name="plus" size={15} color={M.accent} sw={2.4} />
-            <Text style={{ fontSize: 13, fontWeight: '700', color: M.accent }}>오늘 할 일 더하기</Text>
+            <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink }}>{canPick ? '실천에서 오늘 할 일 고르기' : '오늘 할 일 더하기'}</Text>
           </Pressable>
         )}
 
@@ -312,6 +328,71 @@ function TodayCard({
             ))}
           </View>
         </View>
+      </View>
+    </View>
+  );
+}
+
+const GUIDE_LABEL = ['핵심 목표 정하기', '실천 칸 채우기', '오늘 할 일 고르기', '하나 해내고 체크하기'] as const;
+const GUIDE_CTA = ['쓰기', '채우기', '고르기', '오늘 보기'] as const;
+
+/**
+ * 시작 가이드 — 핵심 목표 → 실천 칸 → 오늘 할 일 → 첫 체크.
+ * 다음 단계에만 버튼을 달아 지금 할 일 하나만 보이게 하고, 네 단계를 다 하면 사라진다.
+ */
+function StartGuide({ M, doc }: { M: M; doc: MandaratDoc }) {
+  const { openEditor, openPick, go } = useUI();
+  const g = guideSteps(doc);
+  if (g.next < 0) return null;
+  const doneCount = g.steps.filter((st) => st.done).length;
+  const run = (i: number) => {
+    tap();
+    if (i === 0) openEditor({ kind: 'center' });
+    else if (i === 1) {
+      // 81칸에서 빈 칸이 있는 첫 영역을 크게 연 채로 — 바로 '채우기'를 누를 수 있게
+      const ti = firstAreaWithEmpty(doc);
+      showGridAt(ti >= 0 ? ti : null);
+      go('grid');
+    } else if (i === 2) openPick();
+    else go('today');
+  };
+  return (
+    <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
+      <View style={[{ borderRadius: 22, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, paddingTop: 14, paddingBottom: 8 }, M.dark ? null : shadow(4)]}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 18, gap: 10 }}>
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">시작 가이드</Text>
+          <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, fontFamily: FONTS.grotesk }}>{doneCount}/4</Text>
+        </View>
+        <View style={{ marginHorizontal: 18, marginTop: 10, marginBottom: 6, height: 4, borderRadius: 2, backgroundColor: M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+          <View style={{ width: `${doneCount * 25}%`, height: '100%', backgroundColor: M.accent }} />
+        </View>
+        {g.steps.map((st, i) => {
+          const isNext = i === g.next;
+          const label = i === 1 ? `${GUIDE_LABEL[1]} · ${g.filled}/64` : GUIDE_LABEL[i];
+          return (
+            <Pressable
+              key={st.key}
+              onPress={() => run(i)}
+              accessibilityRole="button"
+              accessibilityLabel={`${i + 1}단계 ${label}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}`}
+              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 9 }, pressed ? { backgroundColor: M.bg } : null]}
+            >
+              <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: st.done ? M.accent : 'transparent', borderWidth: st.done ? 0 : 1.6, borderColor: isNext ? M.accent : M.line }}>
+                {st.done
+                  ? <Icon name="check" size={13} color={readableOn(M.accent)} sw={3} />
+                  : <Text style={{ fontSize: 11, fontWeight: '800', color: isNext ? M.ink : M.faint, fontFamily: FONTS.grotesk }}>{i + 1}</Text>}
+              </View>
+              <Text style={{ flex: 1, fontSize: 14.5, fontWeight: isNext ? '800' : '600', color: st.done ? M.sub : isNext ? M.ink : M.sub }} numberOfLines={1}>
+                {label}
+              </Text>
+              {isNext && (
+                <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 11, backgroundColor: M.accent }}>
+                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: readableOn(M.accent) }}>{GUIDE_CTA[i]}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );

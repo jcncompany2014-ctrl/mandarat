@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView, View, type ViewStyle } from 'react-native';
 import { Text } from './AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
@@ -7,6 +7,32 @@ import { Icon } from './Icon';
 import { Pressy } from './Pressy';
 import { shadow } from '../theme/shadow';
 import type { M } from '../theme/usePalette';
+
+// ── 묶음 목록 ────────────────────────────────────────────────────────────────
+
+/**
+ * 묶음 목록의 한 줄 — 같은 묶음의 줄들이 테두리 하나인 한 면처럼 이어지고, 사이엔 가는 선만 남는다.
+ * 줄을 하나씩 그리므로 항목이 묶음 사이를 옮겨 갈 때도 제자리에서 미끄러진다(LayoutAnimation).
+ */
+export function groupEdge(M: M, first: boolean, last: boolean, radius = 18): ViewStyle {
+  return {
+    backgroundColor: M.surface,
+    borderColor: M.line,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: first ? 1 : 0,
+    borderBottomWidth: last ? 1 : 0,
+    borderTopLeftRadius: first ? radius : 0,
+    borderTopRightRadius: first ? radius : 0,
+    borderBottomLeftRadius: last ? radius : 0,
+    borderBottomRightRadius: last ? radius : 0,
+  };
+}
+
+/** 묶음 목록 줄 사이의 가는 선 — 왼쪽 체크 칸 다음, 글자가 시작하는 곳부터 */
+export function RowDivider({ M, inset }: { M: M; inset: number }) {
+  return <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: inset, right: 0, height: 1, backgroundColor: M.line }} />;
+}
 
 // ── Screen header (EN eyebrow + KR title + optional back/right) ───────────────
 export function Header({

@@ -8,7 +8,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { useSettle } from '../lib/useSettle';
 import { animateLayout } from '../lib/layoutAnim';
-import { Header } from '../components/common';
+import { Header, RowDivider, groupEdge } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Check } from '../components/Check';
 import { EmptyState } from '../components/EmptyState';
@@ -23,6 +23,7 @@ import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey, lastNDates, themeStreak } from '../store/MandaratContext';
 import { tap, success } from '../lib/haptics';
 import { DOW_KR, daysLabel, doneOn, extraLogKey, routineWeek, todayItems, type TodayItem } from '../lib/routine';
+import { pickSections } from '../lib/pick';
 import { SEMANTIC } from '../theme/palette';
 import type { IconName, Mgmt, TodayExtra } from '../types';
 
@@ -77,7 +78,7 @@ export function Today() {
 // ── checklist (default) ───────────────────────────────────────────────────────
 function TodayChecklist({ M }: { M: M }) {
   const { doc, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection } = useMandarat();
-  const { openAction, openQuick, showToast } = useUI();
+  const { openAction, openQuick, openPick, showToast } = useUI();
   const list = useTodayList();
   const check = useCheck();
   const extra = doc.todayExtra;
@@ -103,6 +104,9 @@ function TodayChecklist({ M }: { M: M }) {
   const sunk = (r: Row) => r.done && !held.has(r.key);
   const pending = rows.filter((r) => !sunk(r));
   const finished = rows.filter(sunk);
+  // 아직 오늘 목록에 없는 실천이 남아 있으면 '실천에서 더 고르기'를 둔다
+  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
+  const showPick = canPick && cat == null;
 
   // 체크할 땐 잠깐 붙잡아 체크 애니메이션을 보여 준 뒤 '완료'로 내려 보내고,
   // 해제할 땐 바로 부드럽게 위로 올린다
@@ -130,25 +134,32 @@ function TodayChecklist({ M }: { M: M }) {
     showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => { animateLayout(); restoreExtra(x, index, logged, day); } });
   };
 
-  const renderRow = (r: Row, i: number) => {
+  // 묶음 목록 한 줄 — 누르면 바탕만 살짝 바뀐다(줄이 줄어들면 묶음 테두리가 벌어져 보이므로)
+  const rowStyle = (first: boolean, last: boolean) => ({ pressed }: { pressed: boolean }) => [
+    groupEdge(M, first, last),
+    { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 14, paddingHorizontal: 16, paddingVertical: 13 },
+    pressed ? { backgroundColor: M.bg } : null,
+  ];
+
+  const renderRow = (r: Row, i: number, first: boolean, last: boolean) => {
     if (r.it) {
       const it = r.it;
       const th = doc.themes[it.ti];
       const a = th.actions[it.ai];
       const area = th.title || `영역 ${it.ti + 1}`;
       return (
-        <Reveal key={r.key} index={2 + i}>
-          <Pressy
+        <Reveal key={r.key} index={2 + i} from={0}>
+          <Pressable
             onPress={() => { tap(); openAction(it.ti, it.ai); }}
-            scaleTo={0.985}
             accessibilityRole="button"
             accessibilityLabel={`${a.text}, ${area}${it.routine ? `, ${daysLabel(a.days)} 반복` : ''}${it.done ? ', 완료' : ''}`}
             accessibilityHint="실천 항목 자세히 보기"
             // VoiceOver는 행 전체를 한 요소로 읽으므로 안쪽 체크는 사용자 지정 동작으로도 제공
             accessibilityActions={[{ name: 'toggle', label: it.done ? '완료 해제' : '완료로 표시' }]}
             onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'toggle') toggleRow(r); }}
-            style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: it.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }, M.dark || it.done ? null : shadow(3)]}
+            style={rowStyle(first, last)}
           >
+            {!first && <RowDivider M={M} inset={56} />}
             <Pressable
               onPress={() => toggleRow(r)}
               hitSlop={10}
@@ -162,13 +173,13 @@ function TodayChecklist({ M }: { M: M }) {
               <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={2}>
                 {a.text}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
                 <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
                 <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{area}</Text>
                 {it.routine && (
                   <>
                     <Icon name="repeat" size={11} color={th.color} sw={2.2} />
-                    <Text style={{ fontSize: 11.5, color: th.color, fontWeight: '700' }}>{daysLabel(a.days)}</Text>
+                    <Text style={{ fontSize: 11.5, color: M.sub, fontWeight: '700' }}>{daysLabel(a.days)}</Text>
                   </>
                 )}
               </View>
@@ -179,30 +190,30 @@ function TodayChecklist({ M }: { M: M }) {
               )}
             </View>
             <Icon name="chevR" size={17} color={M.faint} />
-          </Pressy>
+          </Pressable>
         </Reveal>
       );
     }
     const x = r.x!;
     const th = doc.themes[x.ti];
     return (
-      <Reveal key={r.key} index={2 + i}>
-        <Pressy
+      <Reveal key={r.key} index={2 + i} from={0}>
+        <Pressable
           onPress={() => toggleRow(r)}
-          scaleTo={0.985}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: x.done }}
           accessibilityLabel={`${x.text} 완료`}
           accessibilityActions={[{ name: 'delete', label: '지우기' }]}
           onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') dropExtra(x.id); }}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: tint(th.color, 40, M.dark), backgroundColor: x.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
+          style={rowStyle(first, last)}
         >
+          {!first && <RowDivider M={M} inset={56} />}
           <Check on={x.done} color={th.color} dark={M.dark} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: x.done ? M.sub : M.ink, textDecorationLine: x.done ? 'line-through' : 'none' }} numberOfLines={2}>
               {x.text}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
               <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
               <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{th.title || `영역 ${x.ti + 1}`} · 직접 추가</Text>
             </View>
@@ -216,10 +227,28 @@ function TodayChecklist({ M }: { M: M }) {
           >
             <Icon name="close" size={15} color={M.faint} sw={2.2} />
           </Pressable>
-        </Pressy>
+        </Pressable>
       </Reveal>
     );
   };
+
+  // 남은 일 묶음 끝 — 만다라트 실천에서 오늘 할 일을 더 고른다(고를 게 남아 있을 때만)
+  const pickRow = (first: boolean) => (
+    <Pressable
+      key="pick"
+      onPress={() => { tap(); openPick(); }}
+      accessibilityRole="button"
+      accessibilityLabel="만다라트 실천에서 오늘 할 일 더 고르기"
+      style={rowStyle(first, true)}
+    >
+      {!first && <RowDivider M={M} inset={56} />}
+      <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.accent, M.dark ? 24 : 15, M.dark) }}>
+        <Icon name="plus" size={15} color={M.accent} sw={2.6} />
+      </View>
+      <Text style={{ flex: 1, fontSize: 14.5, fontWeight: '700', color: M.ink }}>실천에서 더 고르기</Text>
+      <Icon name="chevR" size={17} color={M.faint} />
+    </Pressable>
+  );
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
@@ -255,8 +284,10 @@ function TodayChecklist({ M }: { M: M }) {
           M={M}
           icon="checkCircle"
           title="오늘 할 일이 없어요"
-          subtitle="반복 요일을 정한 실천은 그날 자동으로 담겨요"
-          action={{ label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
+          subtitle={canPick ? '만다라트 실천 중 오늘 할 것을 골라 보세요' : '반복 요일을 정한 실천은 그날 자동으로 담겨요'}
+          action={canPick
+            ? { label: '실천에서 고르기', onPress: () => { tap(); openPick(); } }
+            : { label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
         />
       )}
 
@@ -285,22 +316,26 @@ function TodayChecklist({ M }: { M: M }) {
         </Reveal>
       )}
 
-      {/* 한 배열로 그려야 항목이 '완료' 위아래로 옮겨갈 때 다시 만들어지지 않고 그대로 미끄러진다 */}
-      <View style={{ gap: 10 }}>
-        {[
-          ...pending.map((r, i) => renderRow(r, i)),
-          ...(finished.length > 0
-            ? [
-                <View key="done-header" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 ? 6 : 0, marginBottom: 2 }} accessibilityRole="header">
-                  <Icon name="checkCircle" size={14} color={SEMANTIC.done} />
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub }}>완료 · {finished.length}</Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
-                </View>,
-              ]
-            : []),
-          ...finished.map((r, i) => renderRow(r, pending.length + i)),
-        ]}
-      </View>
+      {/* 한 배열로 그려야 항목이 '완료' 위아래로 옮겨갈 때 다시 만들어지지 않고 그대로 미끄러진다.
+          묶음(남은 일 / 완료)은 줄마다 테두리 모서리를 달리 그려 한 면처럼 보이게 한다 */}
+      {tTotal > 0 && (
+        <View>
+          {[
+            ...pending.map((r, i) => renderRow(r, i, i === 0, i === pending.length - 1 && !showPick)),
+            ...(showPick ? [pickRow(pending.length === 0)] : []),
+            ...(finished.length > 0
+              ? [
+                  <View key="done-header" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 || showPick ? 20 : 0, marginBottom: 8 }} accessibilityRole="header">
+                    <Icon name="checkCircle" size={14} color={SEMANTIC.done} />
+                    <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub }}>완료 · {finished.length}</Text>
+                    <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
+                  </View>,
+                ]
+              : []),
+            ...finished.map((r, i) => renderRow(r, pending.length + i, i === 0, i === finished.length - 1)),
+          ]}
+        </View>
+      )}
 
       {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}
       <View style={[{ borderRadius: 20, padding: 16, marginTop: tTotal > 0 ? 18 : 6, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(4)]}>
@@ -360,18 +395,23 @@ function TodayStreak({ M }: { M: M }) {
         <Text style={{ flex: 1, textAlign: 'right', fontSize: 10.5, fontWeight: '600', color: M.faint }}>최근 7일</Text>
       </View>
 
-      <View style={{ gap: 10 }}>
+      <View>
         {doc.themes.map((th, ti) => {
           const s = streaks[ti];
+          const first = ti === 0;
           return (
-            <Reveal key={ti} index={1 + ti}>
-            <Pressy
+            <Reveal key={ti} index={1 + ti} from={0}>
+            <Pressable
               onPress={() => { tap(); go('detail', ti); }}
-              scaleTo={0.985}
               accessibilityRole="button"
               accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 현재 연속 ${s.cur}일, 최고 ${s.best}일`}
-              style={[{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 18, borderWidth: 1, borderColor: M.line, backgroundColor: M.surface }, M.dark ? null : shadow(3)]}
+              style={({ pressed }) => [
+                groupEdge(M, first, ti === doc.themes.length - 1),
+                { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 12 },
+                pressed ? { backgroundColor: M.bg } : null,
+              ]}
             >
+              {!first && <RowDivider M={M} inset={67} />}
               <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(th.color, M.dark ? 24 : 15, M.dark), alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={th.icon} size={20} color={th.color} />
               </View>
@@ -388,9 +428,9 @@ function TodayStreak({ M }: { M: M }) {
                   <Icon name="flame" size={15} color={s.cur > 0 ? th.color : M.faint} />
                   <Text style={{ fontSize: 17, fontWeight: '800', color: s.cur > 0 ? th.color : M.faint, fontFamily: FONTS.grotesk }}>{s.cur}</Text>
                 </View>
-                <Text style={{ fontSize: 10.5, color: M.faint, fontWeight: '600' }}>최고 {s.best}일</Text>
+                <Text style={{ fontSize: 10.5, color: M.sub, fontWeight: '600' }}>최고 {s.best}일</Text>
               </View>
-            </Pressy>
+            </Pressable>
             </Reveal>
           );
         })}
@@ -408,8 +448,9 @@ const NO_DOING = new Map<string, string>();
 
 function TodayKanban({ M }: { M: M }) {
   const { doc, toggleExtra } = useMandarat();
-  const { openQuick } = useUI();
+  const { openQuick, openPick } = useUI();
   const list = useTodayList();
+  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
   const check = useCheck();
   const extra = doc.todayExtra;
 
@@ -462,8 +503,10 @@ function TodayKanban({ M }: { M: M }) {
           M={M}
           icon="grid"
           title="오늘 보드가 비어 있어요"
-          subtitle="반복 요일을 정한 실천은 그날 자동으로 담겨요"
-          action={{ label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
+          subtitle={canPick ? '만다라트 실천 중 오늘 할 것을 골라 보세요' : '반복 요일을 정한 실천은 그날 자동으로 담겨요'}
+          action={canPick
+            ? { label: '실천에서 고르기', onPress: () => { tap(); openPick(); } }
+            : { label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
           compact
         />
       ) : (
@@ -480,20 +523,27 @@ function TodayKanban({ M }: { M: M }) {
               <Text style={{ fontSize: 14, fontWeight: '800', color: M.ink }}>{label}</Text>
               <Text style={{ fontSize: 12, fontWeight: '700', color: M.faint, fontFamily: FONTS.grotesk }}>{colCards.length}</Text>
             </View>
-            <View style={{ gap: 8 }}>
-              {colCards.map((c) => {
+            <View>
+              {colCards.map((c, i) => {
                 const th = doc.themes[c.ti];
                 const routine = !!c.item?.routine;
+                const first = i === 0;
                 return (
-                  <Pressy
+                  <Pressable
                     key={c.key}
                     onPress={() => advance(c)}
-                    scaleTo={0.98}
                     accessibilityRole="button"
                     accessibilityLabel={`${c.text}, ${th.title || `영역 ${c.ti + 1}`}, ${label}`}
                     accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : '완료 취소'}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: ci === 2 ? tint(th.color, M.dark ? 12 : 6, M.dark) : M.surface, borderWidth: 1, borderColor: ci === 1 ? tint(M.gold, 55, M.dark) : M.line }}
+                    style={({ pressed }) => [
+                      groupEdge(M, first, i === colCards.length - 1, 16),
+                      // 진행 중 묶음은 금색 테두리로 지금 하는 일을 드러낸다
+                      ci === 1 ? { borderColor: tint(M.gold, 55, M.dark) } : null,
+                      { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12 },
+                      pressed ? { backgroundColor: M.bg } : null,
+                    ]}
                   >
+                    {!first && <RowDivider M={M} inset={15} />}
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={{ fontSize: 14.5, fontWeight: '700', color: ci === 2 ? M.sub : M.ink, textDecorationLine: ci === 2 ? 'line-through' : 'none' }} numberOfLines={2}>
                         {c.text}
@@ -508,7 +558,7 @@ function TodayKanban({ M }: { M: M }) {
                     {ci === 0 && <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.sub }}>시작</Text>}
                     {ci === 1 && <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.ink }}>완료하기</Text>}
                     {ci === 2 && <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
-                  </Pressy>
+                  </Pressable>
                 );
               })}
               {colCards.length === 0 && <Text style={{ fontSize: 12.5, color: M.faint, paddingHorizontal: 14, paddingVertical: 10 }}>비어 있음</Text>}

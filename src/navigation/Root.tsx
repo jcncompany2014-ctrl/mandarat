@@ -26,6 +26,7 @@ import { Settings } from '../screens/Settings';
 import { ActionSheet } from '../overlays/ActionSheet';
 import { FocusTimer } from '../overlays/FocusTimer';
 import { QuickAdd } from '../overlays/QuickAdd';
+import { PickToday } from '../overlays/PickToday';
 import { Celebration } from '../overlays/Celebration';
 import { CellEditor } from '../overlays/CellEditor';
 import { Snackbar } from '../overlays/Snackbar';
@@ -161,6 +162,7 @@ export function Root() {
       <ActionSheet />
       <FocusTimer />
       <QuickAdd />
+      <PickToday />
       <CellEditor />
       <Celebration count={todayTotal} />
       <Snackbar />
