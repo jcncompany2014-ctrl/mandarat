@@ -64,10 +64,12 @@ export function guideSteps(doc: Pick<MandaratDoc, 'centerGoal' | 'themes' | 'tod
   const anyRoutine = doc.themes.some((th) => th.actions.some((a) => a.text.trim() && isRoutine(a)));
   const anyDone = doc.themes.some((th) => th.actions.some((a) => a.done));
   const anyLog = Object.values(doc.dayLog).some((v) => v.length > 0);
+  // '오늘 할 일'은 날짜가 바뀌면 끝낸 것부터 정리되므로, 한 번이라도 해낸 기록이 있으면 고른 적이 있는 것으로 본다
+  // (그래야 다 끝낸 가이드가 다음 날 아침 다시 나오지 않는다)
   const steps: GuideStep[] = [
     { key: 'goal', done: !!doc.centerGoal.trim() },
     { key: 'fill', done: filled >= GUIDE_FILL_TARGET },
-    { key: 'today', done: doc.todayKeys.length > 0 || doc.todayExtra.length > 0 || anyRoutine },
+    { key: 'today', done: doc.todayKeys.length > 0 || doc.todayExtra.length > 0 || anyRoutine || anyDone || anyLog },
     { key: 'check', done: anyDone || anyLog },
   ];
   return { steps, filled, next: steps.findIndex((s) => !s.done) };

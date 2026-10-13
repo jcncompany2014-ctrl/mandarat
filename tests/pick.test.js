@@ -2,6 +2,7 @@ require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { pickSections, firstAreaWithEmpty, guideSteps } = require('../src/lib/pick');
+const { rolloverToday } = require('../src/lib/routine');
 
 const WED = new Date(2026, 9, 14); // 수요일
 
@@ -63,4 +64,16 @@ test('시작 가이드: 순서대로 다음 단계를 알려 주고, 다 하면 
 test('반복 실천이 있으면 오늘 할 일은 이미 정해진 것으로 본다', () => {
   const d = doc((t) => { t[2].actions[0] = { text: '스트레칭', note: '', done: false, days: [1, 3, 5] }; return {}; });
   assert.equal(guideSteps(d).steps[2].done, true);
+});
+
+test('다 끝낸 가이드는 날짜가 바뀌어 오늘 목록이 정리돼도 다시 나오지 않는다', () => {
+  const d = doc((t) => {
+    t[0].actions.forEach((a, i) => { a.text = `실천${i}`; });
+    t[0].actions[0].done = true; // 고른 일을 해냄
+    return { centerGoal: '나다운 한 해', todayKeys: ['0-0'], todayDate: '2026-10-14', dayLog: { '2026-10-14': ['0-0'] } };
+  });
+  assert.equal(guideSteps(d).next, -1);
+  const next = rolloverToday(d, '2026-10-15');
+  assert.deepEqual(next.todayKeys, []); // 끝낸 일은 정리됨
+  assert.equal(guideSteps(next).next, -1);
 });

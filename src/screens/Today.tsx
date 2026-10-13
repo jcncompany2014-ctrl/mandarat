@@ -8,7 +8,7 @@ import { ProgressBar } from '../components/ProgressBar';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { useSettle } from '../lib/useSettle';
 import { animateLayout } from '../lib/layoutAnim';
-import { Header, RowDivider, groupEdge } from '../components/common';
+import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Check } from '../components/Check';
 import { EmptyState } from '../components/EmptyState';
@@ -138,7 +138,7 @@ function TodayChecklist({ M }: { M: M }) {
   const rowStyle = (first: boolean, last: boolean) => ({ pressed }: { pressed: boolean }) => [
     groupEdge(M, first, last),
     { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 14, paddingHorizontal: 16, paddingVertical: 13 },
-    pressed ? { backgroundColor: M.bg } : null,
+    pressed ? pressedRow(M) : null,
   ];
 
   const renderRow = (r: Row, i: number, first: boolean, last: boolean) => {
@@ -234,8 +234,8 @@ function TodayChecklist({ M }: { M: M }) {
 
   // 남은 일 묶음 끝 — 만다라트 실천에서 오늘 할 일을 더 고른다(고를 게 남아 있을 때만)
   const pickRow = (first: boolean) => (
+    <Reveal key="pick" index={2 + pending.length} from={0}>
     <Pressable
-      key="pick"
       onPress={() => { tap(); openPick(); }}
       accessibilityRole="button"
       accessibilityLabel="만다라트 실천에서 오늘 할 일 더 고르기"
@@ -248,6 +248,7 @@ function TodayChecklist({ M }: { M: M }) {
       <Text style={{ flex: 1, fontSize: 14.5, fontWeight: '700', color: M.ink }}>실천에서 더 고르기</Text>
       <Icon name="chevR" size={17} color={M.faint} />
     </Pressable>
+    </Reveal>
   );
 
   return (
@@ -408,7 +409,7 @@ function TodayStreak({ M }: { M: M }) {
               style={({ pressed }) => [
                 groupEdge(M, first, ti === doc.themes.length - 1),
                 { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 12 },
-                pressed ? { backgroundColor: M.bg } : null,
+                pressed ? pressedRow(M) : null,
               ]}
             >
               {!first && <RowDivider M={M} inset={67} />}
@@ -540,7 +541,7 @@ function TodayKanban({ M }: { M: M }) {
                       // 진행 중 묶음은 금색 테두리로 지금 하는 일을 드러낸다
                       ci === 1 ? { borderColor: tint(M.gold, 55, M.dark) } : null,
                       { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12 },
-                      pressed ? { backgroundColor: M.bg } : null,
+                      pressed ? pressedRow(M) : null,
                     ]}
                   >
                     {!first && <RowDivider M={M} inset={15} />}

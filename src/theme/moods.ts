@@ -61,6 +61,14 @@ function parseHex(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+/** 두 색을 t(0~1)만큼 섞는다 — 묶음 목록 줄을 눌렀을 때의 바탕처럼 면 색에서 살짝만 옮길 때 */
+export function mix(a: string, b: string, t: number): string {
+  const [r1, g1, b1] = parseHex(a);
+  const [r2, g2, b2] = parseHex(b);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * t);
+  return `rgb(${c(r1, r2)}, ${c(g1, g2)}, ${c(b1, b2)})`;
+}
+
 /** Mix `color` `amt`% with a light/dark base — replacement for CSS color-mix. */
 export function tint(color: string, amt: number, dark = false): string {
   const base = dark ? '#1C1C22' : '#ffffff';

@@ -6,6 +6,7 @@ import { reducedMotion } from '../lib/useReducedMotion';
 import { Icon } from './Icon';
 import { Pressy } from './Pressy';
 import { shadow } from '../theme/shadow';
+import { mix } from '../theme/moods';
 import type { M } from '../theme/usePalette';
 
 // ── 묶음 목록 ────────────────────────────────────────────────────────────────
@@ -27,6 +28,11 @@ export function groupEdge(M: M, first: boolean, last: boolean, radius = 18): Vie
     borderBottomLeftRadius: last ? radius : 0,
     borderBottomRightRadius: last ? radius : 0,
   };
+}
+
+/** 묶음 목록 줄을 누르고 있을 때의 바탕 — 면 색에서 글자 색 쪽으로 조금(밝은 테마 6%, 다크 10%) */
+export function pressedRow(M: M): ViewStyle {
+  return { backgroundColor: mix(M.surface, M.ink, M.dark ? 0.1 : 0.06) };
 }
 
 /** 묶음 목록 줄 사이의 가는 선 — 왼쪽 체크 칸 다음, 글자가 시작하는 곳부터 */

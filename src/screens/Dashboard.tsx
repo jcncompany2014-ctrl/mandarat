@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
-import { Header, IconBtn } from '../components/common';
+import { Header, IconBtn, pressedRow } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
@@ -20,7 +20,7 @@ import { SEMANTIC, readableOn } from '../theme/palette';
 import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
 import { DOW_KR, daysLabel, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { useSettle } from '../lib/useSettle';
-import { firstAreaWithEmpty, guideSteps, pickSections } from '../lib/pick';
+import { GUIDE_FILL_TARGET, firstAreaWithEmpty, guideSteps, pickSections } from '../lib/pick';
 import { showGridAt } from './gridMemory';
 import { noOrphan } from '../lib/text';
 import { success, tap } from '../lib/haptics';
@@ -154,7 +154,7 @@ export function Dashboard() {
                   </View>
                   <Text style={{ fontSize: 10.5, fontWeight: '800', color: filled ? '#fff' : th.color, fontFamily: FONTS.grotesk }}>{p.done}/8</Text>
                 </View>
-                <Text style={{ fontSize: 12.5, fontWeight: '800', color: filled ? '#fff' : M.ink, letterSpacing: -0.3 }} numberOfLines={2}>
+                <Text style={{ fontSize: 12.5, fontWeight: '800', color: filled ? '#fff' : M.ink, letterSpacing: -0.3 }} numberOfLines={2} maxFontSizeMultiplier={1.3}>
                   {th.title || `영역 ${ti + 1}`}
                 </Text>
                 <ProgressBar
@@ -333,7 +333,7 @@ function TodayCard({
   );
 }
 
-const GUIDE_LABEL = ['핵심 목표 정하기', '실천 칸 채우기', '오늘 할 일 고르기', '하나 해내고 체크하기'] as const;
+const GUIDE_LABEL = ['핵심 목표 정하기', `실천 칸 ${GUIDE_FILL_TARGET}개 채우기`, '오늘 할 일 고르기', '하나 해내고 체크하기'] as const;
 const GUIDE_CTA = ['쓰기', '채우기', '고르기', '오늘 보기'] as const;
 
 /**
@@ -368,19 +368,19 @@ function StartGuide({ M, doc }: { M: M; doc: MandaratDoc }) {
         </View>
         {g.steps.map((st, i) => {
           const isNext = i === g.next;
-          const label = i === 1 ? `${GUIDE_LABEL[1]} · ${g.filled}/64` : GUIDE_LABEL[i];
+          const label = i === 1 ? `${GUIDE_LABEL[1]} · ${Math.min(g.filled, GUIDE_FILL_TARGET)}/${GUIDE_FILL_TARGET}` : GUIDE_LABEL[i];
           return (
             <Pressable
               key={st.key}
               onPress={() => run(i)}
               accessibilityRole="button"
               accessibilityLabel={`${i + 1}단계 ${label}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}`}
-              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 9 }, pressed ? { backgroundColor: M.bg } : null]}
+              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 9 }, pressed ? pressedRow(M) : null]}
             >
               <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: st.done ? M.accent : 'transparent', borderWidth: st.done ? 0 : 1.6, borderColor: isNext ? M.accent : M.line }}>
                 {st.done
                   ? <Icon name="check" size={13} color={readableOn(M.accent)} sw={3} />
-                  : <Text style={{ fontSize: 11, fontWeight: '800', color: isNext ? M.ink : M.faint, fontFamily: FONTS.grotesk }}>{i + 1}</Text>}
+                  : <Text style={{ fontSize: 11, fontWeight: '800', color: isNext ? M.ink : M.sub, fontFamily: FONTS.grotesk }} maxFontSizeMultiplier={1.2}>{i + 1}</Text>}
               </View>
               <Text style={{ flex: 1, fontSize: 14.5, fontWeight: isNext ? '800' : '600', color: st.done ? M.sub : isNext ? M.ink : M.sub }} numberOfLines={1}>
                 {label}

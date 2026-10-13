@@ -12,6 +12,7 @@ import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { firstAreaWithEmpty, pickSections, type PickRow } from '../lib/pick';
+import { todayProgress } from '../lib/routine';
 import { showGridAt } from '../screens/gridMemory';
 import { tap } from '../lib/haptics';
 
@@ -31,8 +32,11 @@ function PickBody({ M }: { M: M }) {
   const { doc, toggleToday } = useMandarat();
   const { go } = useUI();
   const dismiss = useSheetDismiss();
-  const sections = pickSections(doc, new Date());
-  const total = sections.reduce((s, x) => s + x.inToday, 0);
+  const now = new Date();
+  const sections = pickSections(doc, now);
+  // 오늘 화면과 같은 수(직접 추가한 할 일·이미 끝낸 일 포함)
+  const total = todayProgress(doc, now).total;
+  const filled = doc.themes.some((th) => th.actions.some((a) => a.text.trim()));
 
   const fill = () => {
     tap();
@@ -48,7 +52,7 @@ function PickBody({ M }: { M: M }) {
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 20, fontWeight: '800', color: M.ink, letterSpacing: -0.3 }}>오늘 할 일 고르기</Text>
           <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 3, lineHeight: 18 }}>
-            만다라트 실천 중 오늘 할 것을 골라요. 못 하면 내일로 이어져요.
+            만다라트 실천 중 오늘 할 것을 골라요. 고르는 대로 오늘 목록에 담겨요.
           </Text>
         </View>
         <CloseBtn M={M} onPress={dismiss} />
@@ -58,8 +62,8 @@ function PickBody({ M }: { M: M }) {
         <EmptyState
           M={M}
           icon="grid"
-          title="아직 채운 실천이 없어요"
-          subtitle="만다라트 칸을 채우면 여기서 오늘 할 일로 고를 수 있어요"
+          title={filled ? '고를 실천이 남아 있지 않아요' : '아직 채운 실천이 없어요'}
+          subtitle={filled ? '채운 실천을 모두 달성했어요. 빈 칸을 더 채우면 여기서 고를 수 있어요' : '만다라트 칸을 채우면 여기서 오늘 할 일로 고를 수 있어요'}
           action={{ label: '만다라트 채우기', onPress: fill }}
           compact
         />
@@ -69,7 +73,12 @@ function PickBody({ M }: { M: M }) {
             const th = doc.themes[sec.ti];
             return (
               <View key={sec.ti} style={{ marginTop: 18 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8, paddingHorizontal: 2 }} accessibilityRole="header">
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8, paddingHorizontal: 2 }}
+                  accessible
+                  accessibilityRole="header"
+                  accessibilityLabel={`${th.title || `영역 ${sec.ti + 1}`}${sec.inToday > 0 ? `, ${sec.inToday}개 담음` : ''}`}
+                >
                   <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: th.color }} />
                   <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '800', color: M.ink }} numberOfLines={1}>{th.title || `영역 ${sec.ti + 1}`}</Text>
                   {sec.inToday > 0 && <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>{sec.inToday}개 담음</Text>}

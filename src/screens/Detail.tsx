@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { PanResponder, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
-import { Header, IconBtn, RowDivider, groupEdge } from '../components/common';
+import { Header, IconBtn, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { Icon } from '../components/Icon';
 import { Ring } from '../components/Ring';
 import { Check } from '../components/Check';
@@ -159,7 +159,7 @@ export function Detail({ ti }: { ti: number }) {
               style={({ pressed }) => [
                 groupEdge(M, first, ai === th.actions.length - 1),
                 { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13 },
-                pressed ? { backgroundColor: M.bg } : null,
+                pressed ? pressedRow(M) : null,
               ]}
             >
               {!first && <RowDivider M={M} inset={55} />}

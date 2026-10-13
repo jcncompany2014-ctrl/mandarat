@@ -32,7 +32,7 @@ export function EmptyState({
         </Pop>
         <Text style={{ color: M.ink, fontWeight: '700', fontSize: 15, textAlign: 'center' }}>{title}</Text>
         {subtitle && (
-          <Text style={{ color: M.faint, fontSize: 12.5, marginTop: 5, textAlign: 'center', lineHeight: 18 }}>
+          <Text style={{ color: M.sub, fontSize: 12.5, marginTop: 5, textAlign: 'center', lineHeight: 18 }}>
             {subtitle}
           </Text>
         )}

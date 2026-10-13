@@ -210,7 +210,7 @@ function ActionCell({
         ) : <View />}
         {done && <Icon name="check" size={15} color="#FFFFFF" sw={2.8} />}
       </View>
-      <Text style={{ fontSize: 13.5, fontWeight: '700', lineHeight: 18, color: done ? '#FFFFFF' : M.ink }} numberOfLines={4}>
+      <Text style={{ fontSize: 13.5, fontWeight: '700', lineHeight: 18, color: done ? '#FFFFFF' : M.ink }} numberOfLines={4} maxFontSizeMultiplier={1.5}>
         {a.text}
       </Text>
       <View style={{ minHeight: 14, flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -245,7 +245,7 @@ function AreaFocus({ M, doc, ti, radius, todaySet }: { M: M; doc: MandaratDoc; t
           style={[{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', gap: 3 }, shadow(4, th.color, 0.35)]}
         >
           <Icon name={th.icon} size={22} color="#FFFFFF" />
-          <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', lineHeight: 19 }} numberOfLines={2}>
+          <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', lineHeight: 19 }} numberOfLines={2} maxFontSizeMultiplier={1.4}>
             {areaName(doc, ti)}
           </Text>
           <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#FFFFFF', fontFamily: FONTS.grotesk }}>{p.done}/8 달성</Text>
@@ -289,7 +289,7 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
           accessibilityLabel={`핵심 목표 ${doc.centerGoal || '미설정'}, 전체 ${pct}%, 고치기`}
           style={{ flex: 1, borderRadius: radius, padding: 10, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center', gap: 4 }}
         >
-          <Text style={{ fontSize: 13.5, fontWeight: '800', color: coreInk(M), textAlign: 'center', lineHeight: 18 }} numberOfLines={4}>
+          <Text style={{ fontSize: 13.5, fontWeight: '800', color: coreInk(M), textAlign: 'center', lineHeight: 18 }} numberOfLines={4} maxFontSizeMultiplier={1.4}>
             {doc.centerGoal ? noOrphan(doc.centerGoal) : '핵심 목표를 정해 주세요'}
           </Text>
           <Text style={{ fontSize: 12, fontWeight: '800', color: M.dark ? M.accent : M.gold, fontFamily: FONTS.grotesk }}>{pct}%</Text>
@@ -310,7 +310,7 @@ function CoreFocus({ M, doc, radius, onPick }: { M: M; doc: MandaratDoc; radius:
         <View style={{ width: 28, height: 28, borderRadius: 9, backgroundColor: tint(th.color, M.dark ? 32 : 22, M.dark), alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={th.icon} size={16} color={th.color} />
         </View>
-        <Text style={{ fontSize: 13.5, fontWeight: '800', color: M.ink, lineHeight: 18 }} numberOfLines={2}>{areaName(doc, r)}</Text>
+        <Text style={{ fontSize: 13.5, fontWeight: '800', color: M.ink, lineHeight: 18 }} numberOfLines={2} maxFontSizeMultiplier={1.4}>{areaName(doc, r)}</Text>
         <View>
           <Text style={{ fontSize: 11, fontWeight: '800', color: M.sub, fontFamily: FONTS.grotesk }}>{p.done}/8</Text>
           <View style={{ height: 4, borderRadius: 2, backgroundColor: track, marginTop: 4, overflow: 'hidden' }}>
