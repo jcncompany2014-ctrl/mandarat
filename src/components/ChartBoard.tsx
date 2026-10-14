@@ -45,7 +45,7 @@ function EdgeBar({ color, pct, height }: { color: string; pct: number; height: n
  */
 const WeekMarks = memo(function WeekMarks({ states, ink, faint }: { states: DayState[]; ink: string; faint: string }) {
   return (
-    <View pointerEvents="none" style={{ flexDirection: 'row', gap: 2, alignSelf: 'center', marginTop: 6, height: 6 }}>
+    <View pointerEvents="none" style={{ flexDirection: 'row', gap: 2, alignSelf: 'center', height: 6 }}>
       {states.map((s, i) => (
         s === 'done' || s === 'missed' ? (
           <View
@@ -102,6 +102,8 @@ type BoardCellProps = BoardRow & Fit & {
 /**
  * 좁은 칸(작은 폰)에서 글이 한 줄로 눌리지 않게 — 글에 필요한 줄(두 줄까지)이 안 나오면
  * 덜 중요한 표시부터 접는다: '오늘' 글자(왼쪽 금색 줄이 남는다) → 유형 한 줄 → 이번 주 네모 줄.
+ * '오늘'(위)과 이번 주 네모(아래)는 칸 가장자리에 따로 놓고 글 자리는 위아래로 같은 만큼 비운다 —
+ * 한 줄의 칸 글이 표시가 있든 없든 같은 높이에 온다.
  */
 function layoutCell(
   text: string, fit: Fit,
@@ -112,12 +114,17 @@ function layoutCell(
   const need = Math.min(2, Math.max(1, estimateLines(text, fit.cellW - PAD * 2, 14.5 * fit.scale)));
   const show = { ...want };
   // 유형 한 줄은 1.3배까지만 커진다(KindMeta maxFontSizeMultiplier) — 자리도 그만큼만 잡는다
-  const used = () => (show.todayWord ? TODAY_ROW : 0) + (show.meta ? META_ROW * fit.metaScale : 0) + (show.week ? WEEK_ROW : 0);
+  const used = () => 2 * edgeRow(show) + (show.meta ? META_ROW * fit.metaScale : 0);
   // 칠한 칸은 금색 줄이 없어 '오늘' 글자가 유일한 표시 — 그때는 접지 않는다(keepTodayWord)
   if (linesFor(used()) < need && show.todayWord && !want.keepTodayWord) show.todayWord = false;
   if (linesFor(used()) < need && show.meta) show.meta = false;
   if (linesFor(used()) < need && show.week) show.week = false;
   return { show, lines: linesFor(used()) };
+}
+
+/** 칸 위아래 가장자리에 비워 둘 높이 — '오늘' 줄과 이번 주 네모 줄 중 큰 쪽(위아래 같게) */
+function edgeRow(show: { todayWord: boolean; week: boolean }): number {
+  return Math.max(show.todayWord ? TODAY_ROW : 0, show.week ? WEEK_ROW : 0);
 }
 
 const LONG_ACTION_CELL = [{ name: 'longpress', label: '글자 고치기' }];
@@ -174,15 +181,15 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
           {isToday && !done && (
             <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 2, backgroundColor: gold }} />
           )}
-          <View style={{ flex: 1, padding: PAD }}>
-            {show.todayWord && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, height: TODAY_ROW - 3, marginBottom: 3 }}>
-                <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', color: done ? DONE_INK : didIt ? M.sub : M.ink }} maxFontSizeMultiplier={1.2}>
-                  오늘
-                </Text>
-                {didIt && !done && <Icon name="check" size={10} color={M.sub} sw={2.6} />}
-              </View>
-            )}
+          {show.todayWord && (
+            <View pointerEvents="none" style={{ position: 'absolute', top: PAD, left: PAD, right: PAD, height: TODAY_ROW - 3, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', color: done ? DONE_INK : didIt ? M.sub : M.ink }} maxFontSizeMultiplier={1.2}>
+                오늘
+              </Text>
+              {didIt && !done && <Icon name="check" size={10} color={M.sub} sw={2.6} />}
+            </View>
+          )}
+          <View style={{ flex: 1, paddingHorizontal: PAD, paddingVertical: PAD + edgeRow(show) }}>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               {/* 마감이 사흘 안쪽인 한 번 — 글자 밑에 금색 줄 */}
               <View style={[{ maxWidth: '100%' }, dueSoon ? { borderBottomWidth: 1.5, borderBottomColor: gold, paddingBottom: 1 } : null]}>
@@ -200,8 +207,12 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
                 </View>
               )}
             </View>
-            {week && show.week && <WeekMarks states={week} ink={done ? DONE_INK : color} faint={done ? alpha(DONE_INK, 0.5) : alpha(M.ink, 0.3)} />}
           </View>
+          {week && show.week && (
+            <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: PAD, alignItems: 'center' }}>
+              <WeekMarks states={week} ink={done ? DONE_INK : color} faint={done ? alpha(DONE_INK, 0.5) : alpha(M.ink, 0.3)} />
+            </View>
+          )}
           {done && (
             <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 8 }}>
               <Icon name="check" size={13} color={DONE_INK} sw={2.4} />
@@ -216,12 +227,14 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
 }, sameProps);
 
 /** 가운데 영역 이름표 — 이름·달성 막대·말이 그대로면 다시 그리지 않는다 */
-const BoardHead = memo(function BoardHead({ M, color, name, named, pct, label, canLong, onPress, onLong, headRef }: {
+const BoardHead = memo(function BoardHead({ M, color, name, named, pct, finished, label, canLong, onPress, onLong, headRef }: {
   M: M;
   color: string;
   name: string;
   named: boolean;
   pct: number;
+  /** 8칸 모두 달성 — 81칸처럼 이름 아래 '달성' */
+  finished: boolean;
   label: string;
   canLong: boolean;
   onPress: () => void;
@@ -252,6 +265,11 @@ const BoardHead = memo(function BoardHead({ M, color, name, named, pct, label, c
             >
               {noOrphan(name)}
             </Text>
+            {finished && (
+              <Text style={{ fontSize: 12, lineHeight: 15, marginTop: 2, fontWeight: '800', color: legibleMark(M.gold, headBg(color, M), M, 4.5) }} maxFontSizeMultiplier={1.3}>
+                달성
+              </Text>
+            )}
           </View>
           <EdgeBar color={color} pct={pct} height={4} />
           {pressed && <PressShade M={M} />}
@@ -273,6 +291,7 @@ const META_MAX_SCALE = 1.3;
  *   습관은 아래에 이번 주 7칸, 쌓기는 맨 아래 가는 막대, 마감이 사흘 안쪽인 한 번은 글자 밑에 금색 줄.
  * - 오늘 할 일인 칸: 왼쪽 위에 '오늘'과 왼쪽 가장자리의 금색 세로줄(오늘 했으면 '오늘' 옆에 체크).
  * - 빈 칸: '+' 하나(화면 읽기: '실천 n 채우기').
+ * - 8칸을 모두 달성한 블록: 81칸과 같이 둘레에 2pt 포인트 색 테두리, 이름 아래 '달성'.
  *
  * 누르기·길게 누르기는 부르는 쪽이 정한다(이 보드는 칸 달성을 바꾸지 않는다). 부르는 쪽이 그릴 때마다 새 함수를
  * 넘겨도 칸은 다시 그려지지 않는다 — 보드가 최신 함수를 ref로 읽어 칸에는 늘 같은 함수를 준다.
@@ -354,6 +373,8 @@ export const ChartBoard = memo(function ChartBoard({
   const named = !!th.title.trim();
   const name = named ? th.title.trim() : `영역 ${ti + 1}`;
   const p = themeProgress(th);
+  // 8칸 모두 달성 — 81칸의 complete()와 같은 규칙(쓴 칸 8개가 다 달성)
+  const finished = th.actions.every((a) => !!a?.text.trim() && !!a.done);
   const headLabel = areaLabel(name, rows.filter((r) => r.text).length, rows.filter((r) => r.text && r.done).length, todayN);
 
   const cellRule = ruleColor(M, 'cell');
@@ -400,6 +421,7 @@ export const ChartBoard = memo(function ChartBoard({
                     name={name}
                     named={named}
                     pct={p.pct}
+                    finished={finished}
                     label={headLabel}
                     canLong={!!(onHeadLong ?? onHead)}
                     onPress={onHeadPress}
@@ -423,6 +445,16 @@ export const ChartBoard = memo(function ChartBoard({
           })}
         </View>
       ))}
+      {/* 8칸 모두 달성 — 81칸(FullGrid)처럼 둘레에 2pt 포인트 색 테두리 */}
+      {finished && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
+            borderWidth: 2, borderColor: legibleMark(M.gold, M.bg, M), borderRadius: Math.max(0, frameRadius(doc.settings.cellShape) - RULE.frame),
+          }}
+        />
+      )}
     </View>
   );
 });

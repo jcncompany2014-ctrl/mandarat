@@ -1,6 +1,8 @@
 // 글자 다듬기 — 줄바꿈, 조사, 날짜·마감·횟수 표기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 날짜 표기는 앱 전체에서 이 함수들로만 만든다(같은 날짜가 화면마다 다르게 적히지 않게). 연도는 적지 않는다.
 import { DOW_KR } from './routine';
+import { textWidth } from './labelFit';
+import { estimateLines } from '../theme/chart';
 
 const NBSP = ' ';
 
@@ -15,6 +17,49 @@ export function noOrphan(s: string, maxTail = 2): string {
   const tail = Array.from(t.slice(i + 1));
   if (tail.length === 0 || tail.length > maxTail) return t;
   return `${t.slice(0, i)}${NBSP}${t.slice(i + 1)}`;
+}
+
+/**
+ * 좁은 칸(81칸·공유 이미지)의 글 — noOrphan처럼 끝 두 어절을 붙이되, 칸에서 더 어색해지면 붙이지 않는다.
+ * - 붙인 두 어절이 칸 폭(width, fs pt 글자)보다 길면 그대로 — 붙이면 어절 가운데서 끊긴다('1만보 걷 / 기').
+ * - 앞에 남는 것이 한두 글자 어절 하나뿐이면 그 어절이 첫 줄에 홀로 남는다('주 / 3회 운동').
+ *   그때는 앞 어절을 뒤 어절에 붙인다('주 3회 / 운동') — 두 어절이 칸에 들어갈 때만.
+ */
+export function cellBreak(text: string, width: number, fs: number): string {
+  const t = text.trim();
+  const joined = noOrphan(t);
+  if (joined === t) return t;
+  const words = t.split(/\s+/);
+  const head = words.slice(0, -2);
+  if (head.length === 1 && Array.from(head[0]).length <= 2) {
+    return textWidth(`${head[0]} ${words[1]}`, fs) <= width ? `${head[0]}${NBSP}${words.slice(1).join(' ')}` : t;
+  }
+  return textWidth(words.slice(-2).join(' '), fs) <= width ? joined : t;
+}
+
+/** 가장 긴 어절의 폭 — 이보다 좁은 칸에서는 어절 가운데서 글자 단위로 끊긴다 */
+export function longestWord(text: string, fs: number): number {
+  return text.split(/\s+/).filter(Boolean).reduce((w, word) => Math.max(w, textWidth(word, fs)), 0);
+}
+
+/**
+ * 정해진 상자(width × height pt)에 글이 들어가는 가장 큰 글자 크기와 줄 수 — 크기 후보는 큰 것부터.
+ * 폭과 높이를 둘 다 본다: 줄 높이(fs × lineRatio, 반올림) × 줄 수가 상자 높이를 넘지 않고, 어떤 어절도 가운데서 끊기지 않는 크기.
+ * 어느 크기도 안 맞으면 가장 작은 크기(넘치는 줄은 말줄임표).
+ */
+export function fitBox(
+  text: string, width: number, height: number, sizes: readonly number[], maxLines: number, lineRatio = 1.25,
+): { fs: number; lh: number; lines: number } {
+  const at = (fs: number) => {
+    const lh = Math.round(fs * lineRatio);
+    return { fs, lh, lines: Math.max(1, Math.min(maxLines, Math.floor(height / lh))) };
+  };
+  const t = text.trim();
+  for (const fs of sizes) {
+    const f = at(fs);
+    if (!t || (longestWord(t, fs) <= width && estimateLines(t, width, fs) <= f.lines)) return f;
+  }
+  return at(sizes[sizes.length - 1]);
 }
 
 type JosaPair = '을/를' | '이/가' | '은/는' | '와/과' | '으로/로';

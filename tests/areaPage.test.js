@@ -38,13 +38,26 @@ test('areaTitle · neighborArea: 빈 이름은 번호로, 8개를 한 바퀴로'
 test('rowStatus: 유형마다 짧은 상태 한 마디', () => {
   const d = doc();
   assert.equal(rowStatus(d, 0, 0, WED), '이번 주 1/3');
-  assert.equal(rowStatus(d, 0, 1, WED), '', '달성한 한 번은 마감을 붙이지 않는다');
-  assert.equal(rowStatus(d, 0, 2, WED), '이번 주 2/7');
+  assert.equal(rowStatus(d, 0, 1, WED), '달성', '달성한 한 번은 마감 대신 달성');
+  assert.equal(rowStatus(d, 0, 2, WED), '달성', '달성한 습관도 같은 말(D-7: 달성한 줄은 한 모습)');
   assert.equal(rowStatus(d, 0, 3, WED), '7/12권');
   assert.equal(rowStatus(d, 0, 4, WED), 'D-2');
   assert.equal(rowStatus(d, 0, 5, WED), '4점');
   assert.equal(rowStatus(d, 0, 6, WED), '—');
   assert.equal(rowStatus(d, 0, 7, WED), '', '빈 칸');
+  const und = doc();
+  und.themes[0].actions[2].done = false;
+  assert.equal(rowStatus(und, 0, 2, WED), '이번 주 2/7');
+});
+
+test('D-7: 영역 화면 — 누를 수 없는 상태 표시는 체크 칸 모양이 아니고, 바닥줄 위에 빈 괘선 띠가 없다', () => {
+  const detail = fs.readFileSync(path.join(__dirname, '..', 'src/screens/Detail.tsx'), 'utf8');
+  const row = detail.slice(detail.indexOf('const ActionRow = memo('), detail.indexOf('function FooterLink'));
+  assert.doesNotMatch(row, /borderRadius: MARK \* 0\.28/, '상태 네모가 Check와 같은 22pt 둥근 칸이면 안 된다');
+  assert.doesNotMatch(row, /line-through/, '달성한 줄은 한 모습(긋지 않는다)');
+  const footer = detail.slice(detail.indexOf('이웃 영역 — 괘선 바닥줄'), detail.indexOf('const ActionRow = memo('));
+  assert.doesNotMatch(footer, /borderTopWidth/);
+  assert.doesNotMatch(footer, /marginTop: RHYTHM\.sectionTop/);
 });
 
 test('rowLabel: 보이는 글 + 달성 + 유형 한 줄', () => {

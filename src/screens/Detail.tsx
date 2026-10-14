@@ -2,7 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { PanResponder, Pressable, View, type AccessibilityActionEvent } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
-import { Check, checkEdge } from '../components/Check';
+import { Check } from '../components/Check';
 import { ChartBoard } from '../components/ChartBoard';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { alertInk } from '../components/KindBits';
@@ -14,7 +14,7 @@ import { useActions, useDoc, dateKey, themeProgress, themeStreak } from '../stor
 import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
 import { kindLine } from '../lib/kinds';
 import { kindOf } from '../lib/routine';
-import { announce, screenReader, useIncreaseContrast } from '../lib/useReducedMotion';
+import { announce, screenReader } from '../lib/useReducedMotion';
 import { areaTitle, neighborArea, pageSpeech, rowLabelFor, rowStatus } from '../lib/areaPage';
 import type { Action } from '../types';
 
@@ -193,13 +193,8 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
         </>
       )}
 
-      {/* 이웃 영역 — 괘선 바닥줄 */}
-      <View
-        style={{
-          marginTop: RHYTHM.sectionTop, marginHorizontal: RHYTHM.gutter, height: 56,
-          borderTopWidth: 1, borderColor: M.line, flexDirection: 'row', alignItems: 'stretch',
-        }}
-      >
+      {/* 이웃 영역 — 괘선 바닥줄. 위의 목록(또는 빈 안내)이 이미 괘선으로 끝나 그 선이 바닥줄의 윗선이다(선을 한 번 더 긋지 않는다) */}
+      <View style={{ marginHorizontal: RHYTHM.gutter, height: 56, flexDirection: 'row', alignItems: 'stretch' }}>
         <FooterLink M={M} label={`‹ ${areaTitle(doc, prevTi)}`} speech={`이전 영역, ${areaTitle(doc, prevTi)}`} align="left" onPress={() => page(-1)} />
         <FooterLink M={M} label={`${areaTitle(doc, nextTi)} ›`} speech={`다음 영역, ${areaTitle(doc, nextTi)}`} align="right" onPress={() => page(1)} />
       </View>
@@ -210,7 +205,9 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
 /**
  * 실천 한 줄 — 왼쪽 표시 · 글 · 오른쪽 상태.
  * - 한 번: 누를 수 있는 체크 칸(칸 달성을 바꾼다).
- * - 습관·쌓기·마음가짐: 누를 수 없는 상태 네모(달성이면 영역 색으로 칠, 아니면 테두리만). 하루 체크는 여기서 하지 않는다.
+ * - 습관·쌓기·마음가짐: 누를 수 없으니 체크 칸을 그리지 않는다 — 달성이면 81칸의 '칠한 칸 = 달성'과 같은 작은 색 네모, 아니면 빈자리.
+ *   하루 체크는 여기서 하지 않는다.
+ * - 달성한 줄은 유형과 상관없이 한 모습: 먹 글씨 그대로, 오른쪽에 '달성'.
  * - 빈 칸: 표시 없이 '실천 n 채우기'.
  * 줄을 누르면 쓴 칸은 실천 시트, 빈 칸은 쓰기.
  */
@@ -235,8 +232,6 @@ const ActionRow = memo(function ActionRow({
   const onToggle = () => toggleAt(ai);
   const has = !!a.text.trim();
   const once = has && kindOf(a) === 'once';
-  const struck = once && a.done;
-  const edge = checkEdge(M.dark, useIncreaseContrast());
 
   const actions = once ? [{ name: 'toggle', label: a.done ? '달성 풀기' : '달성으로 표시' }] : undefined;
   const onAction = (e: AccessibilityActionEvent) => {
@@ -257,16 +252,11 @@ const ActionRow = memo(function ActionRow({
         <Check on={a.done} color={color} dark={M.dark} size={MARK} seed={seed} />
       </Pressable>
     );
-  } else if (has) {
+  } else if (has && a.done) {
     mark = (
-      <View
-        style={{
-          width: MARK, height: MARK, borderRadius: MARK * 0.28,
-          ...(a.done
-            ? { backgroundColor: legibleMark(color, M.bg, M) }
-            : { borderWidth: edge.width, borderColor: edge.color }),
-        }}
-      />
+      <View style={{ width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: legibleMark(color, M.bg, M) }} />
+      </View>
     );
   }
 
@@ -289,9 +279,8 @@ const ActionRow = memo(function ActionRow({
       <Text
         style={{
           ...TYPE.rowTitle, flex: 1, minWidth: 0,
-          color: has && !struck ? M.ink : M.sub,
+          color: has ? M.ink : M.sub,
           fontWeight: has ? TYPE.rowTitle.fontWeight : '500',
-          textDecorationLine: struck ? 'line-through' : 'none',
         }}
         numberOfLines={2}
       >

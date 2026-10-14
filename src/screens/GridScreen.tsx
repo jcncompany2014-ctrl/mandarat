@@ -34,7 +34,7 @@ function NextStepRow({ M }: { M: M }) {
       accessibilityRole="button"
       accessibilityLabel={empty ? `다음 할 일, ${title}` : `다음 할 일, ${title}, ${area}`}
       style={({ pressed }) => ({
-        flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginHorizontal: 4, paddingVertical: 14,
+        flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginHorizontal: 9, paddingVertical: 14,
         borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, opacity: pressed ? 0.6 : 1,
       })}
     >
@@ -72,6 +72,7 @@ export function GridScreen() {
           </View>
         }
       />
+      {/* 표만 쪽 가장자리(20pt) 밖으로 9pt 내민다(인쇄된 표의 여백) — 글·괘선은 FullGrid·다음 할 일이 9pt 들여 20pt에 맞춘다 */}
       <View style={{ paddingHorizontal: 11, paddingBottom: 8 }}>
         <FullGrid M={M} onFocusChange={setZoomed} />
         {!zoomed && <NextStepRow M={M} />}

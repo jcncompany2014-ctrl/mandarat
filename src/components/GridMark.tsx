@@ -128,7 +128,7 @@ const Rules = memo(function Rules({ c, inner, cellRule, blockRule }: { c: number
  * 표의 약속(src/theme/chart.ts): 칠한 칸 = 달성 · 아주 옅게 깔리고 아래에 가는 진행 막대가 붙은 칸 = 영역 이름표
  * (영역 보드의 머리 칸을 줄인 모양) · 옅게 깔린 칸 = 적어 둔 실천 · 빈 칸 = 종이 · 가운데 = 핵심 목표.
  * 처음 쓰는 사람의 표에는 칠한 칸이 하나도 없다. 이름표는 칸을 통째로 쓴다 — 칸 안의 작은 네모 테두리는 빈 체크 칸처럼 보인다.
- * 오늘 할 일인 칸 가운데에는 작은 점 — 아직이면 먹색, 오늘 했으면 포인트 색(칠한 칸 위에선 흰색).
+ * 오늘 할 일인 칸 가운데에는 작은 점 — 81칸·크게 보기처럼 포인트 색(칠한 칸 위에선 흰색). 오늘 했는지는 점으로 가르지 않는다.
  *
  * - themes · cellShape: 그릴 영역들과 칸 모서리 설정. 문서(doc) 통째를 넘기면 체크마다 표 전체가 다시 그려지므로
  *   홈처럼 자주 바뀌는 곳은 이 둘을 넘긴다(doc은 예전 모양 — 축하 쪽처럼 한 번 그리는 곳).
@@ -211,9 +211,10 @@ export const MiniChart = memo(function MiniChart({
           const did = !!doneToday?.has(key);
           n++;
           if (did) didN++;
-          // 종이·쓴 칸 위에선 아직이면 먹색 · 했으면 포인트 색(바탕 위 3:1 이상으로 맞춘 색). 칠한 칸 위에선 흰 점
+          // 오늘 할 일 — 81칸·크게 보기와 같은 포인트 색 점(바탕 위 3:1 이상으로 맞춘 색). 칠한 칸 위에선 흰 점.
+          // 오늘 했는지는 점 색으로 가르지 않는다(표 아래 오늘 목록 줄이 체크로 보여 준다) — 했는지 수는 화면 읽기 말에만.
           // (점은 늘 채운 네모 — 빈 네모 테두리는 체크 칸으로 읽힌다)
-          base.dot = a?.done ? DONE_INK : did ? legibleMark(M.gold, base.bg ?? M.bg, M) : M.ink;
+          base.dot = a?.done ? DONE_INK : legibleMark(M.gold, base.bg ?? M.bg, M);
         }
         out.push(base);
       }
