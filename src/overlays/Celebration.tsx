@@ -72,7 +72,7 @@ function FinalePage() {
             )}
 
             <View style={{ marginTop: 28 }}>
-              <MiniChart doc={doc} size={240} animate="bloom" />
+              <MiniChart themes={doc.themes} cellShape={doc.settings.cellShape} size={240} animate="bloom" />
             </View>
 
             {streak > 0 && (

@@ -1,7 +1,9 @@
 # FX-B — shell, overlay queue, owned overlays and screens
 
 Base: `5fc3a3e`. Branch: `mp/fx-b`.
-Checks: `npm ci` ok · `npm run typecheck` clean · `npm test` 374 tests, 373 pass, 0 fail, 1 skipped (the existing lucide parity skip).
+Checks (after merging the base branch with FX-C): `npm ci` ok · `npm run typecheck` clean · `npm test` 385 tests, 384 pass, 0 fail, 1 skipped (the existing lucide parity skip).
+
+FX-C handoff applied: Celebration passes `themes`/`cellShape` to `MiniChart` instead of `doc`, so its per-cell memo holds.
 
 ## Implemented
 
