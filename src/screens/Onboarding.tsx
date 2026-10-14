@@ -1,156 +1,182 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { Text, TextInput } from '../components/AppText';
-import { Pressy } from '../components/Pressy';
-import { Reveal } from '../components/Reveal';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GridMark } from '../components/GridMark';
-import { Icon } from '../components/Icon';
-import { readableOn } from '../theme/palette';
-import { tint } from '../theme/moods';
+import { Text, TextInput } from '../components/AppText';
+import { ChartSketch } from '../components/ChartSketch';
+import { PrimaryButton, RuledNotice } from '../components/common';
 import { PaperDots } from '../components/PaperDots';
+import { TemplateSheet } from '../components/TemplateSheet';
 import { usePalette } from '../theme/usePalette';
+import { TYPE } from '../theme/type';
 import { useMandarat } from '../store/MandaratContext';
-import { TEMPLATES, templateThemes } from '../data/templates';
+import { templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
+import { announce } from '../lib/useReducedMotion';
 
-// 목표 문장 예시 — 아래 템플릿 이름과 겹치지 않게(누르면 입력칸만 채운다)
-const SUGGESTIONS = ['2026 최고의 나', '매일 조금씩 성장하기', '단단하고 다정한 나', '나를 아끼는 한 해'];
+/** 목표 예시 — 숫자가 들어간 구체적인 목표(연도는 넣지 않는다). 누르면 입력칸만 채운다 */
+const EXAMPLES = ['몸무게 5kg 줄이기', '토익 900점 넘기', '첫 마라톤 완주하기', '이직 성공하기'];
 
+const GUTTER = 20;
+
+/**
+ * 처음 화면 — 인쇄된 목표 달성표의 첫 장.
+ * 위에서부터: 질문 하나 · 공책 줄 입력 · 예시 한 줄 · 작은 3×3 표(가운데 칸이 적는 대로 채워지고, 둘레 8칸은 시작할 영역).
+ * 맨 아래 막대에 버튼 하나 — 비어 있으면 '목표는 나중에 쓸게요', 적으면 '시작하기', 템플릿을 고르면 '이 표로 시작하기'.
+ */
 export function Onboarding() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding, applyTemplate } = useMandarat();
+  const { doc, completeOnboarding, applyTemplate, recoveredCopy, dismissRecovered } = useMandarat();
   const [goal, setGoal] = useState('');
+  const [focused, setFocused] = useState(false);
+  // 고른 템플릿 — 바로 시작하지 않고 표에 영역을 먼저 보여 준다
+  const [picked, setPicked] = useState<Template | null>(null);
+  const [sheet, setSheet] = useState(false);
+
+  const typed = goal.trim();
 
   const start = () => {
     tap();
-    completeOnboarding(goal);
+    Keyboard.dismiss();
+    if (picked) applyTemplate(typed || picked.centerGoal, templateThemes(picked));
+    else completeOnboarding(goal);
   };
 
-  const startWithTemplate = (id: string) => {
-    const t = TEMPLATES.find((x) => x.id === id);
-    if (!t) return;
+  const pickTemplate = (t: Template, close: () => void) => {
     tap();
-    applyTemplate(goal.trim() || t.centerGoal, templateThemes(t));
+    // 목표를 아직 안 적었으면(또는 앞서 고른 템플릿의 목표 그대로면) 이 템플릿의 목표를 넣어 둔다 — 고쳐 쓸 수 있다
+    if (!typed || typed === picked?.centerGoal) setGoal(t.centerGoal);
+    setPicked(t);
+    announce(`‘${t.name}’ 영역 8개로 시작해요`);
+    close();
   };
 
-  // 평평한 바탕 위 또렷한 글자 — 장식 없이 질문 하나에 집중
-  const fieldBg = M.surface;
-  const fieldBorder = M.line;
-  const chipBg = M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)';
-  const placeholderColor = M.faint;
+  const unpick = () => {
+    tap();
+    if (picked && typed === picked.centerGoal) setGoal('');
+    setPicked(null);
+    announce('기본 영역 8개로 시작해요');
+  };
+
+  const areas = picked ? picked.areas.map((a) => a.title) : doc.themes.map((t) => t.title);
+
+  let cta: { label: string; a11y: string; tone: 'accent' | 'quiet' };
+  if (picked) cta = { label: '이 표로 시작하기', a11y: `‘${picked.name}’ 표로 시작하기`, tone: 'accent' };
+  else if (typed) cta = { label: '시작하기', a11y: '이 목표로 시작하기', tone: 'accent' };
+  else cta = { label: '목표는 나중에 쓸게요', a11y: '목표는 나중에 정하고 시작하기', tone: 'quiet' };
 
   return (
     <View style={{ flex: 1, backgroundColor: M.bg }}>
       <PaperDots M={M} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        // 키보드 회피(padding)가 아래 여백을 덮어쓰므로, 홈 바 여백은 스크롤 안쪽에 둔다
         style={{ flex: 1, paddingTop: insets.top }}
       >
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 28, paddingTop: 20, paddingBottom: 20 + insets.bottom, justifyContent: 'center' }}
+          contentContainerStyle={{ paddingHorizontal: GUTTER, paddingTop: 40, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
-          {/* 수첩 첫 장처럼 — 가운데 정렬 대신 왼쪽부터 또박또박 */}
-          <View style={{ marginBottom: 30 }}>
-            <BloomIn>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-                <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center' }}>
-                  <GridMark size={20} color="#FFFFFF" />
-                </View>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: M.ink }}>만다라트</Text>
-              </View>
-            </BloomIn>
-            <Text style={{ fontSize: 30, fontWeight: '800', color: M.ink, lineHeight: 40, letterSpacing: -0.8 }}>
-              올해 꼭 이루고 싶은{'\n'}목표 하나를 적어 주세요
-            </Text>
-            <Text style={{ fontSize: 15, color: M.sub, marginTop: 12, lineHeight: 23 }}>
-              그 목표를 8개 영역, 64개 실천으로 나눠{'\n'}하루에 하나씩 해 나가요
-            </Text>
-          </View>
+          {recoveredCopy != null && (
+            <View style={{ marginBottom: 28 }}>
+              <RuledNotice
+                M={M}
+                title="저장된 기록을 읽지 못했어요"
+                body="읽지 못한 기록은 지우지 않고 따로 보관해 두었어요."
+                action={{ label: '닫기', onPress: dismissRecovered }}
+              />
+            </View>
+          )}
 
-          <Reveal delay={680} from={12}>
+          <Text accessibilityRole="header" style={{ ...TYPE.title, fontSize: 28, lineHeight: 36, color: M.ink }}>
+            올해 꼭 이루고 싶은{'\n'}목표 하나를 적어 주세요
+          </Text>
 
+          {/* 공책 줄 — 상자 없이 밑줄 하나 */}
           <TextInput
             value={goal}
             onChangeText={setGoal}
-            accessibilityLabel="핵심 목표 입력"
-            placeholder="예) 2026 최고의 나"
-            placeholderTextColor={placeholderColor}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            accessibilityLabel="핵심 목표"
+            placeholder="예) 첫 마라톤 완주하기"
+            placeholderTextColor={M.sub}
             maxLength={40}
-            style={{
-              backgroundColor: fieldBg,
-              borderWidth: 1, borderColor: fieldBorder,
-              borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16,
-              color: M.ink, fontSize: 17, fontWeight: '600',
-            }}
             returnKeyType="done"
-            onSubmitEditing={start}
+            submitBehavior="blurAndSubmit"
+            onSubmitEditing={() => { if (typed) start(); else Keyboard.dismiss(); }}
+            style={{
+              marginTop: 28,
+              paddingHorizontal: 0, paddingVertical: 10,
+              borderBottomWidth: 1.5, borderColor: focused ? M.ink : M.line,
+              color: M.ink, fontSize: 22, fontWeight: '600',
+            }}
           />
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-            {SUGGESTIONS.map((s) => (
-              <Pressy
-                key={s}
-                scaleTo={0.94}
-                onPress={() => { tap(); setGoal(s); }}
-                accessibilityRole="button"
-                accessibilityLabel={`핵심 목표 예시: ${s}`}
-                accessibilityHint="입력칸에 넣기"
-                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg }}
-              >
-                <Text style={{ color: M.sub, fontSize: 13, fontWeight: '600' }}>{s}</Text>
-              </Pressy>
+          {/* 예시 한 줄 — 글자마다 누를 수 있다(칩 없이) */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+            <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginRight: 6 }}>예:</Text>
+            {EXAMPLES.map((s, i) => (
+              <React.Fragment key={s}>
+                {i > 0 && (
+                  <Text accessible={false} importantForAccessibility="no" style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginHorizontal: 6 }}>
+                    ·
+                  </Text>
+                )}
+                <Pressable
+                  onPress={() => { tap(); setGoal(s); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`예시: ${s}`}
+                  accessibilityHint="입력칸에 넣어요"
+                  style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+                >
+                  <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{s}</Text>
+                </Pressable>
+              </React.Fragment>
             ))}
           </View>
-          </Reveal>
 
-          <Reveal delay={820} from={12}>
-          <Pressy
-            onPress={start}
-            scaleTo={0.97}
-            accessibilityRole="button"
-            accessibilityLabel="빈 만다라트로 시작하기"
-            style={{ marginTop: 26, backgroundColor: M.accent, borderRadius: 16, paddingVertical: 17, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
-          >
-            <Text style={{ color: readableOn(M.accent), fontSize: 16.5, fontWeight: '800' }}>시작하기</Text>
-            <Icon name="chevR" size={18} color={readableOn(M.accent)} sw={2.6} />
-          </Pressy>
-
-          <Text style={{ color: M.sub, fontSize: 12.5, fontWeight: '600', marginTop: 24, marginBottom: 10 }}>
-            또는 영역 8개가 채워진 템플릿으로 시작
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {TEMPLATES.map((t) => (
-              <Pressy
-                key={t.id}
-                scaleTo={0.94}
-                onPress={() => startWithTemplate(t.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`${t.name} 템플릿으로 시작`}
-                accessibilityHint={t.desc}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: tint(M.accent, 45, M.dark), backgroundColor: tint(M.accent, M.dark ? 8 : 4, M.dark) }}
-              >
-                <Icon name="grid" size={13} color={M.accent} sw={2.2} />
-                <Text style={{ color: M.ink, fontSize: 13, fontWeight: '700' }}>{t.name}</Text>
-              </Pressy>
-            ))}
+          {/* 인쇄된 작은 표 — 가운데 칸은 적는 대로, 둘레 8칸은 시작할 영역 */}
+          <View style={{ marginTop: 24, alignItems: 'flex-start' }}>
+            <ChartSketch M={M} size={180} center={goal} areas={areas} revealKey={picked?.id ?? 'scaffold'} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+              <Text style={{ ...TYPE.caption, color: M.sub }}>
+                {picked ? `‘${picked.name}’ 영역 8개로 시작해요` : '기본 영역 8개로 시작해요 · 내 목표에 맞게 바꿀 수 있어요'}
+              </Text>
+              {picked && (
+                <Pressable
+                  onPress={unpick}
+                  hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="기본 영역으로 되돌리기"
+                  style={({ pressed }) => ({ marginLeft: 10, opacity: pressed ? 0.5 : 1 })}
+                >
+                  <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>되돌리기</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-          <Text style={{ color: M.sub, fontSize: 12.5, marginTop: 14 }}>
-            나중에 언제든 바꿀 수 있어요
-          </Text>
-          </Reveal>
         </ScrollView>
+
+        {/* 아래 막대 — 스크롤 밖, 키보드 위에 붙는다 */}
+        <View style={{ marginHorizontal: GUTTER, paddingTop: 8, paddingBottom: Math.max(12, insets.bottom) }}>
+          <PrimaryButton M={M} height={54} label={cta.label} accessibilityLabel={cta.a11y} tone={cta.tone} onPress={start} />
+          <Pressable
+            onPress={() => { tap(); Keyboard.dismiss(); setSheet(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={picked ? '다른 템플릿 고르기' : '템플릿으로 시작하기'}
+            style={({ pressed }) => ({ alignSelf: 'center', minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', marginTop: 4, opacity: pressed ? 0.5 : 1 })}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: M.sub }}>
+              {picked ? '다른 템플릿 고르기' : '템플릿으로 시작하기'}
+            </Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
+
+      {sheet && <TemplateSheet M={M} onClose={() => setSheet(false)} onPick={pickTemplate} />}
     </View>
   );
-}
-
-/** 로고 자리 — 처음 화면은 움직이는 연출 없이 바로 보인다 */
-function BloomIn({ children }: { children: React.ReactNode }) {
-  return <View>{children}</View>;
 }
