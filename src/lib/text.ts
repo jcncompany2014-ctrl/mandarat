@@ -66,6 +66,15 @@ export function fmtDateLong(d: string | Date): string {
   return `${t.getMonth() + 1}월 ${t.getDate()}일 ${DOW_KR[t.getDay()]}요일`;
 }
 
+/**
+ * 화면 읽기가 말할 날짜 — fmtDateLong에 해가 다르면 해까지: '2027년 1월 14일 목요일'.
+ * '10.14 (수)'처럼 점 찍은 짧은 표기는 소수로 읽히므로 화면 읽기 이름에는 이것을 쓴다.
+ */
+export function fmtDateSpeech(d: string | Date, today = new Date()): string {
+  const t = toDate(d);
+  return `${t.getFullYear() !== today.getFullYear() ? `${t.getFullYear()}년 ` : ''}${fmtDateLong(t)}`;
+}
+
 /** '10.14 (수)' — 표·기록처럼 좁은 자리 */
 export function fmtDateShort(d: string | Date): string {
   const t = toDate(d);

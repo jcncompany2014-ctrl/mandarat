@@ -1,4 +1,5 @@
-// FX-A: 습관 일정 내력(M2) · 유형 바꾸기와 기록(M1·L3) · 달성 풀기(L10) · 연속 기록 상한(L5) · 계산 캐시(P-1·P-3·P-6·P-7)
+// FX-A: 습관 일정 내력(M2) · 유형 바꾸기와 기록(M1·L3) · 달성 풀기(L10) · 연속 기록 상한(L5) · 계산 캐시(P-1·P-3·P-6)
+// (P-7 rowFacts는 앱이 쓰지 않아 지웠다 — 오늘 줄은 TodayRow가 rowInfo를 memo로 센다, FX-VERIFY HANDOFF-A2)
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,7 +7,6 @@ const R = require('../src/lib/routine');
 const K = require('../src/lib/kinds');
 const H = require('../src/lib/history');
 const RV = require('../src/lib/review');
-const { rowFacts } = require('../src/lib/rowFacts');
 const { migrate } = require('../src/data/defaults');
 const B = require('../src/lib/backup');
 
@@ -129,6 +129,47 @@ test('M1: 오늘 체크한 습관을 쌓기로 바꿨다 되돌려도 오늘 체
   assert.equal(R.todayItems(back, WED)[0].done, true);
 });
 
+test('M1: 같은 날 습관 → 쌓기 → 습관으로 되돌리면 since·일정 내력이 이어져 연속 기록(최고 포함)이 처음부터 시작하지 않는다', () => {
+  const days = lastDays(new Date(2026, 9, 14), EVERY, 44); // 09-01 … 10-14
+  assert.equal(days[0], '2026-09-01');
+  const doc = docWith((t) => {
+    t[0].actions[0] = { text: '물', note: '', done: false, kind: 'habit', days: EVERY, since: '2026-09-01' };
+    return { dayLog: logOn(days) };
+  });
+  assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 44, best: 44, unit: 'day' });
+  const count = H.configCell(doc, 0, 0, { kind: 'count', goal: 10 }, '2026-10-14', 1);
+  assert.equal(count.themes[0].actions[0].habitUntil, '2026-10-14', '습관에서 쌓기로 바꾼 날을 남긴다');
+  const back = H.configCell(count, 0, 0, { kind: 'habit', days: EVERY }, '2026-10-14', 2);
+  const a = back.themes[0].actions[0];
+  assert.equal(a.since, '2026-09-01', 'since 그대로');
+  assert.ok(!('habitUntil' in a), '습관이 되면 지운다');
+  assert.deepEqual(R.habitStreak(back, 0, 0, WED), { cur: 44, best: 44, unit: 'day' });
+  assert.deepEqual(R.routineWeek(back, 0, 0, WED), ['done', 'done', 'done', 'planned', 'planned', 'planned', 'planned']);
+  // 일정을 바꿔 되돌리면 지난 일정이 내력으로 남는다
+  const mwf = H.configCell(count, 0, 0, { kind: 'habit', days: MWF }, '2026-10-14', 2).themes[0].actions[0];
+  assert.deepEqual(mwf.schedule, [{ from: '2026-09-01', days: EVERY }, { from: '2026-10-14', days: MWF }]);
+  // 다음 날 되돌리면 그날부터 새 습관(쌓기였던 날을 놓친 날로 세지 않게)
+  const later = H.configCell(count, 0, 0, { kind: 'habit', days: EVERY }, '2026-10-15', 2).themes[0].actions[0];
+  assert.equal(later.since, '2026-10-15');
+  assert.equal(later.schedule, undefined);
+  // 한 번에서 습관이 되는 칸은 예전처럼 오늘부터
+  const fromOnce = K.applyConfig({ ...count.themes[0].actions[0], kind: 'once' }, { kind: 'habit', days: EVERY }, '2026-10-14');
+  assert.equal(fromOnce.since, '2026-10-14');
+  assert.ok(!('habitUntil' in fromOnce));
+  // 쌓기 → 쌓기(목표만 고침)는 바꾼 날을 그대로 둔다
+  assert.equal(K.applyConfig(count.themes[0].actions[0], { kind: 'count', goal: 20 }, '2026-10-14').habitUntil, '2026-10-14');
+  // migrate·백업이 쌓기 칸의 habitUntil을 남기고, 습관 칸·깨진 값은 버린다
+  const m = migrate(count);
+  assert.equal(m.themes[0].actions[0].habitUntil, '2026-10-14');
+  assert.deepEqual(migrate(JSON.parse(JSON.stringify(m))), m);
+  const r = B.parseBackup(B.makeBackup(m));
+  assert.ok(r.ok);
+  assert.equal(r.doc.themes[0].actions[0].habitUntil, '2026-10-14');
+  assert.ok(!('habitUntil' in migrate(back).themes[0].actions[0]));
+  const bad = docWith((t) => { t[0].actions[0] = { text: 'a', note: '', done: false, kind: 'count', goal: 3, days: EVERY, since: '2026-09-01', habitUntil: '10/14' }; return {}; });
+  assert.ok(!('habitUntil' in migrate(bad).themes[0].actions[0]));
+});
+
 test('L3: 오늘 끝낸 한 번을 습관으로 바꾸면 그 기록은 칸에서 떼어 둔다(오늘 습관 했어요로 보이지 않게)', () => {
   const doc = docWith((t) => {
     t[0].actions[0] = { text: '정리', note: '', done: true };
@@ -170,6 +211,56 @@ test('L10: 어제 끝낸 한 번을 오늘 풀면 어제 기록을 뺀다', () =
   // 습관의 칸 달성은 기록을 건드리지 않는다
   const h = docWith((t) => { t[0].actions[0] = { text: 'h', note: '', done: false, days: EVERY }; return { dayLog: { '2026-10-14': ['0-0'] } }; });
   assert.equal(H.toggleCellDone(h, 0, 0, '2026-10-14').dayLog, h.dayLog);
+});
+
+test('NEW-1: 습관이던 칸을 한 번·마음가짐으로 바꾸고 달성을 풀어도 습관 때의 마지막 체크는 지워지지 않는다', () => {
+  const days = lastDays(new Date(2026, 9, 13), EVERY, 13); // 10-01 … 10-13
+  const doc = docWith((t) => {
+    t[0].actions[0] = { text: '물', note: '', done: true, kind: 'habit', days: EVERY, since: '2026-10-01' };
+    return { dayLog: logOn(days) };
+  });
+  for (const kind of ['once', 'mind']) {
+    const changed = H.configCell(doc, 0, 0, { kind }, '2026-10-14', 36);
+    assert.ok(days.every((d) => changed.dayLog[d].length === 1 && H.isArchivedKey(changed.dayLog[d][0])), `${kind}: 습관 체크는 떼어 둔다`);
+    const undone = H.toggleCellDone(changed, 0, 0, '2026-10-14');
+    assert.equal(undone.themes[0].actions[0].done, false);
+    assert.equal(undone.dayLog['2026-10-13'].length, 1, `${kind}: 10-13 기록이 남는다`);
+    assert.ok(H.isArchivedKey(undone.dayLog['2026-10-13'][0]));
+    assert.equal(Object.keys(undone.dayLog).length, 13, `${kind}: 실천한 날 13일 그대로`);
+  }
+  // 습관 → 쌓기 → 한 번도 같다(쌓기 → 한 번은 쌓은 날만이 아니라 모든 날을 떼어 둔다)
+  const count = H.configCell(doc, 0, 0, { kind: 'count', goal: 5 }, '2026-10-14', 36);
+  assert.deepEqual(count.dayLog, doc.dayLog, '습관 → 쌓기는 그대로');
+  const once = H.configCell(count, 0, 0, { kind: 'once' }, '2026-10-14', 37);
+  assert.ok(days.every((d) => H.isArchivedKey(once.dayLog[d][0])));
+  const twice = H.toggleCellDone(H.toggleCellDone(once, 0, 0, '2026-10-14'), 0, 0, '2026-10-14');
+  assert.equal(twice.dayLog['2026-10-13'].length, 1);
+  assert.equal(twice.dayLog['2026-10-14'], undefined, '오늘 달성했다 푼 것만 빠진다');
+});
+
+test('NEW-2: 요일 → 주 N회(아무것도 안 함) → 요일로 돌아와도 예전 연속이 이어지지 않는다', () => {
+  const june = lastDays(new Date(2026, 5, 30), MWF, 13); // 6월 월·수·금 13번
+  assert.equal(june[0], '2026-06-01');
+  const schedule = [{ from: '2026-06-01', days: MWF }, { from: '2026-07-01', perWeek: 3 }, { from: '2026-10-12', days: MWF }];
+  const make = (log) => docWith((t) => {
+    t[0].actions[0] = { text: '운동', note: '', done: false, kind: 'habit', days: MWF, since: '2026-06-01', schedule };
+    return { dayLog: logOn(log) };
+  });
+  // 7월부터 주 3회 동안 한 번도 안 했다 → 10-12에 다시 시작
+  assert.deepEqual(R.habitStreak(make([...june, '2026-10-12']), 0, 0, WED), { cur: 1, best: 13, unit: 'day' });
+  // 같은 공백을 월·수·금으로 내내 두었을 때와 같다
+  const plain = docWith((t) => {
+    t[0].actions[0] = { text: '운동', note: '', done: false, kind: 'habit', days: MWF, since: '2026-06-01' };
+    return { dayLog: logOn([...june, '2026-10-12']) };
+  });
+  assert.deepEqual(R.habitStreak(plain, 0, 0, WED), { cur: 1, best: 13, unit: 'day' });
+  // 주 3회를 매주 채웠다면(화·목·토) 끊기지 않는다 — 주는 연속 수를 늘리지 않고 잇기만
+  const tts = [];
+  for (let d = new Date(2026, 6, 1); R.ymd(d) <= '2026-10-11'; d.setDate(d.getDate() + 1)) if ([2, 4, 6].includes(d.getDay())) tts.push(R.ymd(d));
+  assert.deepEqual(R.habitStreak(make([...june, ...tts, '2026-10-12']), 0, 0, WED), { cur: 14, best: 14, unit: 'day' });
+  // 한 주(8월 10~16일)를 빠뜨리면 거기서 끊긴다
+  const gap = tts.filter((k) => k < '2026-08-10' || k > '2026-08-16');
+  assert.deepEqual(R.habitStreak(make([...june, ...gap, '2026-10-12']), 0, 0, WED), { cur: 1, best: 13, unit: 'day' });
 });
 
 test('L5: 지금 이어 가는 날은 400일에서 멈추지 않는다', () => {
@@ -276,7 +367,7 @@ test('P-1: 2년치 무작위 문서에서 habitStreak이 예전 계산과 같다
   assert.equal(R.habitStreak(d, 0, 0, today), R.habitStreak(d, 0, 0, today));
 });
 
-// ── P-3 · P-6 · P-7 캐시 ─────────────────────────────────────────────────────
+// ── P-3 · P-6 캐시 ─────────────────────────────────────────────────────
 test('P-3: todayItems는 같은 문서·같은 날이면 같은 얼린 배열, 바뀌면 새로 센다', () => {
   const doc = docWith((t) => {
     t[0].actions[0] = { text: '물', note: '', done: false, days: EVERY };
@@ -295,19 +386,4 @@ test('P-6: normalizeDays는 같은 배열에 같은 결과', () => {
   const days = [5, 1, 3, 3];
   assert.equal(R.normalizeDays(days), R.normalizeDays(days));
   assert.deepEqual(R.normalizeDays(days), MWF);
-});
-
-test('P-7: rowFacts는 문서 한 판마다 줄 계산을 한 번만', () => {
-  const doc = docWith((t) => {
-    t[0].actions[0] = { text: '운동', note: '', done: false, kind: 'habit', perWeek: 3 };
-    t[0].actions[1] = { text: '책', note: '', done: false, kind: 'count', goal: 12, unit: '권', count: 7 };
-    return { dayLog: { '2026-10-12': ['0-0'] } };
-  });
-  const f = rowFacts(doc, 0, 0, WED);
-  assert.equal(rowFacts(doc, 0, 0, WED), f);
-  assert.deepEqual(f.weekCount, { done: 1, planned: 3 });
-  assert.equal(f.week.length, 7);
-  assert.equal(rowFacts(doc, 0, 1, WED).line.speech, '12권 중 7권');
-  assert.equal(rowFacts(doc, 0, 1, WED).week, null);
-  assert.notEqual(rowFacts({ ...doc, dayLog: {} }, 0, 0, WED), f);
 });

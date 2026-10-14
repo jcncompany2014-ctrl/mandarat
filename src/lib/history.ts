@@ -168,8 +168,9 @@ function withAction<T extends CellDoc>(doc: T, ti: number, ai: number, next: Man
  * 칸에 유형 설정을 입힌 새 문서(저장소 setActionConfig) — day: 오늘 'YYYY-MM-DD', time: 떼어 둔 기록 키의 시각.
  * - 습관이 아니던 칸의 유형을 바꾸면 그 칸의 지난 기록(한 번 달성한 날·쌓은 날)을 칸에서 떼어 둔다 —
  *   새 유형이 이전 기록을 이어받아 '오늘 습관 했어요'처럼 보이지 않게(지우지 않아 히트맵·영역 기록에는 남는다).
- *   쌓기였던 칸은 쌓은 날(log에 더한 수가 있는 날)만 떼어 낸다 — 그 전에 습관이던 때의 체크는 남는다.
- *   습관이던 칸은 그대로 — 쌓기로 바꿨다 되돌려도 습관 체크가 사라지지 않는다.
+ *   쌓기 → 습관은 쌓은 날(log에 더한 수가 있는 날)만 떼어 낸다 — 그 전에 습관이던 때의 체크는 남는다.
+ *   습관 → 쌓기는 그대로 — 쌓기로 바꿨다 되돌려도 습관 체크가 사라지지 않는다.
+ *   한 번·마음가짐이 되면(습관·쌓기에서도) 모든 날을 떼어 둔다 — 남은 습관 체크를 '달성 풀기'가 지우지 않게.
  * - 쌓기는 그날 더한 수가 곧 그날 기록 — 이미 쌓기였던 칸은 지금까지를 줄여 그날 것이 사라졌다면 빼고,
  *   기록을 떼어 내고 쌓기가 된 칸은 그날 더한 수(log)만 다시 기록으로.
  * - since·일정 내력은 applyConfig가 맡는다(이미 습관이면 since 그대로, 일정을 고치면 지난 일정을 남긴다).
@@ -181,9 +182,11 @@ export function configCell<T extends CellDoc>(doc: T, ti: number, ai: number, cf
   const key = `${ti}-${ai}`;
   const was = kindOf(prev);
   const kind = kindOf(next);
-  const archived = was !== kind && was !== 'habit';
+  // 습관 ↔ 쌓기는 습관 체크를 칸에 남긴다(되돌리면 이어지게). 한 번·마음가짐이 되면 습관 체크도 떼어 둔다 —
+  // 남겨 두면 '달성 풀기'가 마지막 기록 날(lastLogDay)의 습관 체크를 지운다
+  const archived = was !== kind && (was !== 'habit' || kind === 'once' || kind === 'mind');
   const counted = (d: string) => (prev.log?.[d] ?? 0) > 0;
-  let dayLog = archived ? archiveCellLog(doc.dayLog, key, time, was === 'count' ? counted : undefined) : doc.dayLog;
+  let dayLog = archived ? archiveCellLog(doc.dayLog, key, time, was === 'count' && kind === 'habit' ? counted : undefined) : doc.dayLog;
   if (kind === 'count' && (was === 'count' || archived)) dayLog = setDayLog(dayLog, key, day, (next.log?.[day] ?? 0) > 0);
   return withAction(doc, ti, ai, next, dayLog);
 }

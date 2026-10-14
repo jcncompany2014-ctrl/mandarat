@@ -59,8 +59,19 @@ test('막대 줄 읽기 — 오늘 표시, 아직 안 온 날은 한 번만', ()
 test('습관 줄 — 남은 횟수 · 다 함 · 오늘부터 셉니다 · 습관 없음', () => {
   assert.equal(sv.habitRow({ habitCount: 0, routineDone: 0, routineDue: 0, routineRemaining: 0 }), null);
   assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routineDue: 0, routineRemaining: 6 }), { value: '—', sub: '오늘부터 세요' });
-  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 5, routineDue: 7, routineRemaining: 3 }), { value: '5/7번', sub: '이번 주 3번 남음' });
+  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 5, routineDue: 7, routineRemaining: 3 }), { value: '5/7번', sub: '이번 주 3번 남음', say: '7번 중 5번' });
   assert.equal(sv.habitRow({ habitCount: 1, routineDone: 3, routineDue: 3, routineRemaining: 0 }).sub, '이번 주 다 했어요');
+  // 장부 한 줄의 화면 읽기 이름 — '5/7번'·'+2권 · +500,000원'을 날짜·기호로 읽지 않는다 (FX-VERIFY A-1 · HANDOFF-E3)
+  const { addedSpeech, addedLine } = require('../src/lib/ritualView');
+  const habit = { label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 5, routineDue: 7, routineRemaining: 2 }) };
+  assert.equal(sv.ledgerLabel(habit), '습관 7번 중 5번, 이번 주 2번 남음');
+  const added = [{ ti: 0, ai: 0, amount: 2, unit: '권' }, { ti: 0, ai: 1, amount: 500000, unit: '원' }];
+  const stack = { label: '쌓은 것', value: addedLine(added), say: addedSpeech(added) };
+  assert.equal(stack.value, '+2권 · +500,000원');
+  assert.equal(sv.ledgerLabel(stack), '쌓은 것 2권 더함, 500,000원 더함');
+  assert.equal(sv.ledgerLabel({ label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 0, routineDue: 0, routineRemaining: 6 }) }), '습관 없음, 오늘부터 세요');
+  assert.equal(sv.ledgerLabel({ label: '집중', value: '25분', sub: '지금까지' }), '집중 25분, 지금까지');
+  for (const s of [sv.ledgerLabel(habit), sv.ledgerLabel(stack)]) assert.doesNotMatch(s, /\d\s*\/\s*\d|\+\d| · /, s);
 });
 
 test('집중 시간', () => {
@@ -86,7 +97,8 @@ test('히트맵 — 첫 기록 전과 아직 안 온 날은 그리지 않고, �
   assert.equal(map.since, '2026-10-05');
   assert.equal(map.active, 2);
   assert.equal(sv.bestLine(map.best), '가장 많이 한 날 10.13 (화) · 2번 · 이번 주');
-  assert.equal(sv.heatSpeech(map), '최근 10주 중 2일 실천, 가장 많이 한 날 10.13 (화) 2번');
+  // 소리로는 날짜를 또박또박 — '10.13 (화)'는 소수로 읽힌다 (FX-VERIFY NEW-1)
+  assert.equal(sv.heatSpeech(map), '최근 10주 중 2일 실천, 가장 많이 한 날 10월 13일 화요일 2번');
 });
 
 test('히트맵 — 기록이 없으면 지난 날은 빈 양식(테두리)으로', () => {
@@ -115,6 +127,9 @@ test('그날 한 것의 이름 — 앞 셋 + 외 n개, 떼어 둔 기록은 지�
   d.dayLog = { '2026-10-13': ['0-0'] };
   assert.equal(sv.pickedLine(d, '2026-10-13'), '10.13 (화) · 1번 — 걷기');
   assert.equal(sv.pickedLine(d, '2026-10-12'), '10.12 (월) · 0번');
+  // 슬라이더 값(소리)은 pickedSpeech — 보이는 줄과 같은 내용을 점 날짜·'·'·'—' 없이 (FX-VERIFY NEW-1)
+  assert.equal(sv.pickedSpeech(d, '2026-10-13'), '10월 13일 화요일, 1번, 걷기');
+  assert.equal(sv.pickedSpeech(d, '2026-10-12'), '10월 12일 월요일, 0번');
 });
 
 test('숫자 목표 정렬 — 진행 중 먼저, 그 안에서 많이 찬 순', () => {
@@ -143,6 +158,11 @@ test('기분 줄 · 한 줄 회고 — 최근 14일, 회고는 글이 있는 날
   assert.equal(notes[0].text, '좋았다');
   assert.equal(notes[1].head, '10.8 (목)');
   assert.match(sv.moodSpeech(strip), /^최근 14일 중 기분을 남긴 날 2일, /);
+  // 소리로는 날짜를 또박또박 (FX-VERIFY NEW-1)
+  assert.equal(notes[0].say, '10월 14일 수요일, 좋음');
+  assert.equal(notes[1].say, '10월 8일 목요일');
+  assert.equal(sv.moodSpeech(strip), '최근 14일 중 기분을 남긴 날 2일, 10월 10일 토요일 힘듦, 10월 14일 수요일 좋음');
+  for (const s of [sv.moodSpeech(strip), ...notes.map((n) => n.say)]) assert.doesNotMatch(s, /\d\.\d+ \(/, s);
 });
 
 test('돌아본 주 한 줄 — 그 주를 닫힌 주로 센다', () => {

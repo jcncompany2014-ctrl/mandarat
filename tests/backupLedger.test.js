@@ -19,6 +19,27 @@ test('장부: 지금과 백업을 다섯 줄로 나란히 적는다', () => {
   assert.equal(rows[4].backup, '10.2 (금)');
 });
 
+test('장부: 화면 읽기 말 — 채운 칸은 64칸 중, 마지막 기록은 또박또박(해가 다르면 해까지) (FX-VERIFY A-1 · NEW-1)', () => {
+  const today = new Date(2026, 9, 14);
+  const now = { ...base, filled: 23, lastLog: '2026-10-03' };
+  const backup = { ...base, filled: 41, lastLog: '2025-09-30' };
+  const rows = ledgerRows(now, backup, today);
+  assert.equal(rows[1].nowSay, '64칸 중 23칸');
+  assert.equal(rows[1].backupSay, '64칸 중 41칸');
+  assert.equal(rows[4].nowSay, '10월 3일 토요일');
+  assert.equal(rows[4].backupSay, '2025년 9월 30일 화요일');
+  // 보이는 값은 그대로
+  assert.equal(rows[1].now, '23/64');
+  assert.equal(rows[4].now, '10.3 (토)');
+  // 기록이 없으면 없음
+  assert.equal(ledgerRows(base, base, today)[4].nowSay, LEDGER_NONE);
+  // BackupImport가 읽는 이름 — '/' · 점 날짜 없이
+  const said = rows.map((r) => `${r.label}, 지금 ${r.nowSay ?? r.now}, 백업 ${r.backupSay ?? r.backup}`);
+  for (const s of said) assert.doesNotMatch(s, /\d\s*\/\s*\d|\d\.\d+ \(/, s);
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src/overlays/BackupImport.tsx'), 'utf8');
+  assert.match(src, /accessibilityLabel=\{`\$\{r\.label\}, 지금 \$\{r\.nowSay \?\? r\.now\}, 백업 \$\{r\.backupSay \?\? r\.backup\}`\}/);
+});
+
 test('장부: 기록이 없으면 마지막 기록은 없음', () => {
   const rows = ledgerRows(base, base);
   assert.equal(rows[4].now, LEDGER_NONE);

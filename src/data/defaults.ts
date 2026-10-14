@@ -250,6 +250,8 @@ function cleanAction(a: Record<string, unknown>): Action {
   const since = (days.length > 0 || perWeek > 0) && typeof a.since === 'string' && DATE_RE.test(a.since) ? a.since : undefined;
   const schedule = days.length > 0 || perWeek > 0 ? cleanSchedule(a.schedule) : undefined;
   const kind = (KINDS as readonly unknown[]).includes(a.kind) ? (a.kind as ActionKind) : undefined;
+  // 습관에서 쌓기로 바꾼 날 — 쌓기이고 이어 갈 since가 있을 때만 뜻이 있다
+  const habitUntil = kind === 'count' && since && typeof a.habitUntil === 'string' && DATE_RE.test(a.habitUntil) ? a.habitUntil : undefined;
   const goal = cleanNum(a.goal, 0.01);
   const unit = cleanUnit(a.unit);
   const step = cleanNum(a.step, 0.01);
@@ -266,6 +268,7 @@ function cleanAction(a: Record<string, unknown>): Action {
     ...(perWeek > 0 ? { perWeek } : {}),
     ...(since ? { since } : {}),
     ...(schedule ? { schedule } : {}),
+    ...(habitUntil ? { habitUntil } : {}),
     ...(goal !== undefined ? { goal } : {}),
     ...(unit ? { unit } : {}),
     ...(step !== undefined && step !== 1 ? { step } : {}),

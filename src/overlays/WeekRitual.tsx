@@ -10,18 +10,17 @@ import { Snackbar } from './Snackbar';
 import { DUR, EASE } from '../theme/motion';
 import { NUM, RHYTHM, TYPE } from '../theme/type';
 import { usePalette, type M as Palette } from '../theme/usePalette';
-import { useUI, type RitualTarget } from '../navigation/ui';
+import { useUIActions, useUIState, type RitualTarget } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { weekReview, weekSentence } from '../lib/review';
 import { sundayOf } from '../lib/ritual';
 import { ymd } from '../lib/routine';
-import { fmtNum } from '../lib/kinds';
 import { fmtRange } from '../lib/text';
 import { ledgerHabitSpeech, pageSpeech } from '../lib/sheetSpeech';
 import { tap, warn } from '../lib/haptics';
 import { announce, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import {
-  MAX_PICKS, NOTE_MAX, addedLine, deltaLine, finishToast, focusGroups, habitLine, mindItems, mindLine,
+  MAX_PICKS, NOTE_MAX, addedLine, addedSpeech, deltaLine, finishToast, focusGroups, habitLine, mindItems, mindLine,
   ritualPages, togglePick, type RitualPage,
 } from '../lib/ritualView';
 import type { MandaratDoc } from '../types';
@@ -37,7 +36,7 @@ const PAGE_TITLE: Record<RitualPage, string> = { week: '한 주', mind: '마음�
  * 축하는 없다. 종이 한 장 위에서 한 쪽에 한 가지만 정한다. ('중점'만 쓴다 — '집중'은 타이머의 말)
  */
 export function WeekRitual() {
-  const { ritual } = useUI();
+  const { ritual } = useUIState();
   if (!ritual) return null;
   // 주가 바뀌면 처음 쪽·고른 칸부터 다시
   return <RitualPages key={`${ritual.week}|${ritual.readOnly ? 1 : 0}`} target={ritual} />;
@@ -47,7 +46,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
   const M = usePalette();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
-  const { closeRitual, showToast } = useUI();
+  const { closeRitual, showToast } = useUIActions();
   const { doc, rateMind, saveReview } = useMandarat();
   const { week, readOnly = false } = target;
   const saved = doc.reviews?.[week];
@@ -256,7 +255,7 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
           M={M}
           label="쌓은 것"
           value={addedLine(r.added)}
-          speech={r.added.slice(0, 2).map((x) => `${fmtNum(x.amount)}${x.unit} 더함`).join(', ')}
+          speech={addedSpeech(r.added)}
         />
         <LedgerRow M={M} label="마음가짐" value={mindLine(r)} />
       </View>

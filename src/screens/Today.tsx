@@ -19,11 +19,12 @@ import { usePalette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useActions, useDoc, dateKey } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
-import { reducedMotion } from '../lib/useReducedMotion';
+import { reducedMotion, useIncreaseContrast } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { orderedTodayItems, type TodayItem } from '../lib/routine';
 import { canPickAny, firstAreaWithEmpty } from '../lib/pick';
-import { checkBorder, weekdayIndex } from '../lib/marks';
+import { weekdayIndex } from '../lib/marks';
+import { checkEdge } from '../components/Check';
 import { todaySummary } from '../lib/a11y';
 import { MGMT_LABEL } from '../lib/copy';
 import { fmtDateLong } from '../lib/text';
@@ -96,6 +97,8 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
   const now = new Date();
   const extra = doc.todayExtra;
   const { held, hold } = useSettle();
+  // '+ 고르기' 점선 네모 — 빈 체크 칸과 같은 테두리(대비 증가에서는 더 진하게)
+  const edge = checkEdge(M.dark, useIncreaseContrast());
 
   const done = list.filter((it) => it.done).length + extra.filter((x) => x.done).length;
   const total = list.length + extra.length;
@@ -197,7 +200,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
                   {pending.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
                   <View
                     style={{
-                      width: 26, height: 26, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: checkBorder(M.dark),
+                      width: 26, height: 26, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color,
                       alignItems: 'center', justifyContent: 'center',
                     }}
                   >

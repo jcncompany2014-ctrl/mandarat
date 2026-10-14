@@ -1,7 +1,7 @@
 // '오늘 할 일 고르기'와 첫 사용 '시작 가이드' 판단 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 import type { MandaratDoc } from '../types';
 import { autoToday, daysBetween, isRoutine, kindOf, perWeekOf, routineWeekCount, ymd } from './routine';
-import { kindLine } from './kinds';
+import { countInfo, countSpeech, kindLine } from './kinds';
 
 /** auto = 오늘 저절로 담김(반복 요일·주 N회·다가온 마감 — 고를 필요 없음), on/off = 오늘 목록에 담겼는지 */
 export type PickState = 'auto' | 'on' | 'off';
@@ -13,6 +13,11 @@ export interface PickRow {
   state: PickState;
   /** 정한 것 한 줄(월·수·금 반복 · 주 3회 · 6/12권 · 마감 D-3), 붙일 게 없으면 '' */
   hint: string;
+  /**
+   * hint를 소리로 — 습관은 hint 그대로('주 3회' · '월·수·금 반복'), 쌓기 '12권 중 6권', 한 번 '마감 3일 남음'.
+   * '6/12권'은 날짜로, 'D-3'은 '디 마이너스 삼'으로 읽히므로 화면 읽기 이름에는 hint 대신 이것을 쓴다
+   */
+  say: string;
   /** 저절로 담긴 까닭(whyAuto), 저절로가 아니면 '' */
   why: string;
 }
@@ -68,7 +73,9 @@ export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'da
       const auto = autoToday(doc, ti, ai, today);
       const state: PickState = auto ? 'auto' : picked.has(`${ti}-${ai}`) ? 'on' : 'off';
       const line = kindLine(doc, ti, ai, today);
-      rows.push({ ti, ai, text: a.text, state, hint: line?.plan ?? '', why: auto ? whyAuto(doc, ti, ai, today) : '' });
+      // 쌓기는 보이는 hint('6/12권')와 같은 내용만 — line.speech에 붙는 '오늘 1권 더함'은 화면에 없다
+      const say = kind === 'habit' ? line?.plan ?? '' : kind === 'count' ? countSpeech(countInfo(a, ymd(today))) : line?.speech ?? '';
+      rows.push({ ti, ai, text: a.text, state, hint: line?.plan ?? '', say, why: auto ? whyAuto(doc, ti, ai, today) : '' });
     });
     if (!rows.length) return;
     const autoNames = rows.filter((r) => r.state === 'auto').map((r) => r.text.trim());

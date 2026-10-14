@@ -1,15 +1,13 @@
-// VoiceOver가 읽을 한 문장 — 홈 머리말 · 오늘 카운터 · 만다라트 블록 · 칸 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
+// VoiceOver가 읽을 한 문장 — 홈 머리말 · 오늘 카운터 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 화면에 보이는 낱말 그대로, 상태까지 한 번에 읽히게 만든다. 숫자는 여기서 바로 센다(.tsx를 가져오지 않는다).
 // 'D-2'·'6/12'처럼 눈으로 읽는 표기는 소리로 읽기 좋은 말('마감 2일 남음'·'12권 중 6권')로 바꾼다.
+// 표(81칸 · 영역 보드)의 칸·블록 말과 고유어 서수(ORDINAL)는 chartSpeech.ts 한 곳에 둔다.
 import type { Action, MandaratDoc } from '../types';
-import { daysBetween, daysLabel, habitDays, kindOf, perWeekOf, todayItems, todayProgress, ymd } from './routine';
-import { countInfo, countSpeech, dueSpeech, ratingOf } from './kinds';
+import { todayProgress } from './routine';
 import { fmtDateLong } from './text';
 
 type SummaryDoc = Pick<MandaratDoc, 'centerGoal' | 'themes' | 'dayLog' | 'todayKeys' | 'todayExtra'>;
-type ChartDoc = Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>;
 
-const areaName = (doc: Pick<MandaratDoc, 'themes'>, ti: number) => doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
 const written = (a: Action | undefined): a is Action => !!a && a.text.trim() !== '';
 
 /** 64칸 중 달성한 칸 수(글이 있는 칸만) */
@@ -45,54 +43,4 @@ export function todaySummary(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'today
   if (p.total === 0) return '오늘 할 일이 아직 없어요';
   if (p.done >= p.total) return `오늘 할 일 ${p.total}개를 다 했어요`;
   return `오늘 할 일 ${p.total}개 중 ${p.done}개 했어요`;
-}
-
-/** 만다라트 블록 — '건강, 8칸 중 3칸 달성, 오늘 2칸' (오늘 담긴 칸이 없으면 뒤 말은 뺀다) */
-export function blockSummary(doc: ChartDoc, ti: number, now: Date): string {
-  const th = doc.themes[ti];
-  if (!th) return '';
-  const name = areaName(doc, ti);
-  if (!th.actions.some(written)) return `${name}, 실천을 아직 적지 않았어요`;
-  const done = th.actions.filter((a) => written(a) && a.done).length;
-  const today = todayItems(doc, now).filter((i) => i.ti === ti).length;
-  return `${name}, 8칸 중 ${done}칸 달성${today > 0 ? `, 오늘 ${today}칸` : ''}`;
-}
-
-/**
- * 칸의 유형을 소리로 — '습관 매일' · '습관 주 3회' · '쌓기 12권 중 6권' · '한 번, 마감 2일 남음' · '마음가짐, 이번 주 4점'.
- * 쌓기·마감·마음가짐은 KindLine.speech와 같은 말(kinds.countSpeech · dueSpeech)을 쓴다. 습관은 진행 대신 정한 일정을 말한다.
- */
-function kindSpeech(a: Action, now: Date): string {
-  const kind = kindOf(a);
-  if (kind === 'habit') {
-    const n = perWeekOf(a);
-    return `습관 ${n > 0 ? `주 ${n}회` : daysLabel(habitDays(a))}`;
-  }
-  if (kind === 'count') {
-    return `쌓기 ${countSpeech(countInfo(a))}`;
-  }
-  if (kind === 'mind') {
-    const r = ratingOf(a, now);
-    return r ? `마음가짐, 이번 주 ${r}점` : '마음가짐';
-  }
-  if (!a.due || a.done) return '한 번';
-  return `한 번, ${dueSpeech(daysBetween(ymd(now), a.due))}`;
-}
-
-/** 블록 안 자리 — '3번째'는 '삼번째'로 읽혀서 고유어 서수로 쓴다 */
-export const ORDINAL = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟'];
-
-/**
- * 칸 하나 — '세 번째 칸, 하루 물 2L, 습관 매일, 오늘 할 일, 달성'.
- * 오늘 목록에 있으면 '오늘 할 일'(그날 했으면 '오늘 했어요'), 칸이 달성이면 '달성'. 빈 칸은 '세 번째 칸, 비어 있음'.
- */
-export function cellSpeech(doc: ChartDoc, ti: number, ai: number, now: Date): string {
-  const a = doc.themes[ti]?.actions[ai];
-  const pos = `${ORDINAL[ai] ?? `${ai + 1}`} 번째 칸`;
-  if (!written(a)) return `${pos}, 비어 있음`;
-  const parts = [pos, a.text.trim(), kindSpeech(a, now)];
-  const item = todayItems(doc, now).find((i) => i.ti === ti && i.ai === ai);
-  if (item) parts.push(item.done ? '오늘 했어요' : '오늘 할 일');
-  if (a.done) parts.push('달성');
-  return parts.join(', ');
 }

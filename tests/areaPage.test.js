@@ -1,7 +1,10 @@
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { areaTitle, neighborArea, rowStatus, rowLabel, pageSpeech } = require('../src/lib/areaPage');
+const { areaTitle, neighborArea, rowStatus, rowLabel, rowLabelFor, pageSpeech } = require('../src/lib/areaPage');
+const { kindLine } = require('../src/lib/kinds');
+const fs = require('fs');
+const path = require('path');
 
 // 2026-10-14 수요일 — 이번 주 10/12(월)~10/18(일)
 const WED = new Date(2026, 9, 14, 9);
@@ -51,6 +54,17 @@ test('rowLabel: 보이는 글 + 달성 + 유형 한 줄', () => {
   assert.equal(rowLabel(d, 0, 1, WED), '정기 건강검진, 달성');
   assert.equal(rowLabel(d, 0, 4, WED), '이력서 고치기, 마감 2일 남음');
   assert.equal(rowLabel(d, 0, 7, WED), '실천 8 채우기');
+});
+
+test('rowLabelFor: 이미 센 유형 줄로 rowLabel과 같은 말 — 영역 화면이 쓴다 (FX-VERIFY HANDOFF-C3)', () => {
+  const d = doc();
+  for (let ai = 0; ai < 8; ai++) {
+    const a = d.themes[0].actions[ai];
+    assert.equal(rowLabelFor(a, ai, a.text.trim() ? kindLine(d, 0, ai, WED) : null), rowLabel(d, 0, ai, WED), `칸 ${ai}`);
+  }
+  const detail = fs.readFileSync(path.join(__dirname, '..', 'src/screens/Detail.tsx'), 'utf8');
+  assert.match(detail, /label=\{rowLabelFor\(a, ai, line\)\}/);
+  assert.doesNotMatch(detail, /function rowSpeech/);
 });
 
 test('pageSpeech: 넘긴 뒤 읽는 말', () => {

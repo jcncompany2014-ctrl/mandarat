@@ -55,6 +55,24 @@ test('화면·줄은 예전 한꺼번에 읽기(useMandarat · useUI) 대신 나
   }
 });
 
+// 시트·편집 창은 아직 문서 전체(useMandarat)를 읽지만, 화면 상태는 나눠 읽는다 — 토스트가 뜨고 질 때마다
+// 열린 시트가 다시 그려지지 않게(Root의 memo가 useUI의 토스트 구독으로 뚫리던 것, FX-VERIFY L9 · HANDOFF-B6)
+const UI_SPLIT = ['src/overlays/ActionSheet.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/WeekRitual.tsx'];
+
+test('시트·편집 창도 화면 상태를 나눠 읽는다(useUI 대신 useUIState · useUIActions)', () => {
+  for (const f of UI_SPLIT) {
+    const s = src(f);
+    assert.doesNotMatch(s, /\buseUI\(\)/, `${f} reads the whole UI context`);
+    assert.match(s, /\buseUIActions\(\)/, f);
+  }
+  // 앱에서 useUI()를 부르는 곳이 더 없다(ui.tsx의 정의만)
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  const callers = walk(path.join(__dirname, '..', 'src'))
+    .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(path.join('navigation', 'ui.tsx')))
+    .filter((f) => /\buseUI\(\)/.test(fs.readFileSync(f, 'utf8')));
+  assert.deepEqual(callers, []);
+});
+
 test('저장소는 문서 · 함수 · 팔레트를 따로 내보내고, 예전 모양(useMandarat)도 남긴다', () => {
   const s = src('src/store/MandaratContext.tsx');
   for (const name of ['useDoc', 'useActions', 'useMandarat', 'usePaletteValue']) {

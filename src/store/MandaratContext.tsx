@@ -9,12 +9,21 @@ import { activeStreak, archiveAllCells, archiveCellLog, areaStreak, configCell, 
 import { summarize, type BackupSummary } from '../lib/backup';
 import { MOODS, withAccent, type Palette } from '../theme/moods';
 import { GOLD } from '../theme/palette';
+import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 /** 하루 한 번 남기는 저장본 'mandarat:snap:YYYY-MM-DD' */
 const SNAP_PREFIX = 'mandarat:snap:';
 /** 저장본은 최근 7일치만 */
 const SNAP_KEEP = 7;
+
+/**
+ * 편집 창이 적어 둔 쓰던 글을 지운다 — 문서를 통째로 바꾸면(예시·초기화·템플릿·되돌리기·백업) 그 글은 지난 칸의 것이다.
+ * 적어 둔 글은 칸 자리('a0-7')로만 찾으므로, 남겨 두면 바뀐 칸에 지난 글을 '이어서 쓰기'로 권한다
+ */
+function dropEditorDraft() {
+  AsyncStorage.removeItem(EDITOR_DRAFT_KEY).catch(() => {});
+}
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 export function dateKey(d = new Date()): string {
@@ -168,6 +177,8 @@ export interface Ctx extends DocState, Actions {
 
 const DocCtx = createContext<DocState | null>(null);
 const ActionsCtx = createContext<Actions | null>(null);
+/** 저장본을 다 읽었는지만 — 문서가 바뀔 때는 다시 그리지 않는다(첫 화면 문지기용) */
+const ReadyCtx = createContext(false);
 
 // ── palette ───────────────────────────────────────────────────────────────────
 /** 지금 고른 종이(무드) 팔레트 + 포인트 컬러 */
@@ -300,26 +311,22 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   // 내려갈 때 바로 쓴다(300ms 안의 마지막 변경을 잃지 않게). 같은 순간 다른 듣는 곳(오늘의 한 줄 글 등)이
-  // 먼저 문서에 넣을 수 있게 한 박자 미룬 뒤, 그때의 가장 최근 문서(latest)를 쓴다
+  // 먼저 문서에 넣을 수 있게 마이크로태스크로 미룬 뒤, 그때의 가장 최근 문서(latest)를 쓴다.
+  // AppState는 듣는 곳을 한 번에(같은 동기 흐름에서) 모두 부르므로 마이크로태스크는 그 뒤에 돈다.
+  // setTimeout(0)은 쓰지 않는다 — 웹에서 다른 주소로 떠날 때(visibilitychange 직후) 버려진다
   useEffect(() => {
     if (!ready || blockSave.current) return;
-    let flush: ReturnType<typeof setTimeout> | null = null;
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'background' || state === 'inactive') {
-        if (flush) clearTimeout(flush);
-        flush = setTimeout(() => {
-          flush = null;
+        queueMicrotask(() => {
           if (saveTimer.current) clearTimeout(saveTimer.current);
           saveTimer.current = null;
           pendingSave.current = false;
           void persist(latest.current);
-        }, 0);
+        });
       }
     });
-    return () => {
-      if (flush) clearTimeout(flush);
-      sub.remove();
-    };
+    return () => sub.remove();
   }, [ready, persist]);
 
   // 날짜가 바뀌면 '오늘' 목록 정리 — 처음 읽었을 때와 앱으로 돌아올 때. 켜 둔 채 자정을 넘기는 것은 아래 시계 눈금이 맡는다
@@ -352,6 +359,15 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       }, Math.max(1000, next - now.getTime()));
     };
     arm();
+    // 긴 타이머는 기기가 잠든 동안 멈추고 시간대 변경도 모른다 — 화면을 켜 둔 채 날짜가 바뀐 것을 1분마다 확인한다.
+    // 날짜가 그대로면 아무것도 하지 않는다(저장·다시 그리기 없음). 시계를 되돌린 날도 rolloverToday가 오늘로 맞춰 다시 돌지 않는다
+    const guard = setInterval(() => {
+      const k = dateKey();
+      if (k === latest.current.todayDate) return;
+      commit(rolloverToday(latest.current, k));
+      setClock((c) => c + 1);
+      arm();
+    }, 60_000);
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         setClock((c) => c + 1);
@@ -360,6 +376,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     });
     return () => {
       if (timer) clearTimeout(timer);
+      clearInterval(guard);
       sub.remove();
     };
   }, [ready, commit]);
@@ -597,7 +614,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   // 예시로 채우기 — 예시의 달성 칸을 오늘 한 것처럼 기록하지 않는다(오늘·이번 주 숫자가 거짓이 되지 않게).
   // 지난 칸 기록은 지우지 않고 떼어 두고, 오늘 담아 둔 실천은 비운다(직접 추가한 할 일은 남긴다)
   const loadSample = useCallback(
-    () =>
+    () => {
+      dropEditorDraft();
       update((d) => {
         const tk = dateKey();
         return {
@@ -614,22 +632,26 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
           areasSet: true,
           onboarded: true,
         };
-      }),
+      });
+    },
     [update],
   );
 
   const resetAll = useCallback(
-    () =>
+    () => {
+      dropEditorDraft();
       update((d) => ({
         ...blankDoc(),
         settings: d.settings, // keep look-and-feel
-      })),
+      }));
+    },
     [update],
   );
 
   // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로
   const applyTemplate = useCallback(
-    (centerGoal: string, themes: Theme[]) =>
+    (centerGoal: string, themes: Theme[]) => {
+      dropEditorDraft();
       update((d) => ({
         ...d,
         centerGoal: centerGoal || d.centerGoal,
@@ -640,12 +662,14 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         ...withPicksDetached(d),
         areasSet: true,
         onboarded: true,
-      })),
+      }));
+    },
     [update],
   );
 
   // 통째로 바꿀 때(되돌리기·백업 불러오기)도 오늘 날짜 기준으로 정리해 둔다
   const replaceDoc = useCallback((d: MandaratDoc) => {
+    dropEditorDraft();
     revRef.current += 1;
     commit(rolloverToday(d, dateKey()));
   }, [commit]);
@@ -709,7 +733,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   return (
     <ActionsCtx.Provider value={actions}>
       <DocCtx.Provider value={state}>
-        <PaletteCtx.Provider value={palette}>{children}</PaletteCtx.Provider>
+        <ReadyCtx.Provider value={ready}>
+          <PaletteCtx.Provider value={palette}>{children}</PaletteCtx.Provider>
+        </ReadyCtx.Provider>
       </DocCtx.Provider>
     </ActionsCtx.Provider>
   );
@@ -722,6 +748,11 @@ export function useDoc(): DocState {
   const ctx = useContext(DocCtx);
   if (!ctx) throw new Error(MISSING);
   return ctx;
+}
+
+/** 저장본을 다 읽었는지 — 처음 한 번만 바뀐다. 문서가 바뀌어도 다시 그려지지 않는다 */
+export function useReady(): boolean {
+  return useContext(ReadyCtx);
 }
 
 /** 문서를 바꾸는 함수들 — 늘 같은 객체라 이것만 쓰면 문서가 바뀌어도 다시 그려지지 않는다 */

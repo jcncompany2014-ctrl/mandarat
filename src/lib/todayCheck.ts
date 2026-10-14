@@ -3,6 +3,7 @@
 import type { ActionKind } from '../types';
 import type { CountInfo } from './kinds';
 import { fmtNum } from './kinds';
+import { todayProgress } from './routine';
 import { josa } from './text';
 
 /** 이번 한 번(step) 더하면 쌓기 목표에 처음 닿는가 — 이미 닿아 있던 칸은 다시 알리지 않는다 */
@@ -33,6 +34,15 @@ export function checkLabelText(text: string, kind: ActionKind, c?: Pick<CountInf
 export function checkHintText(done: boolean, kind: ActionKind): string {
   if (!done) return '했어요로 남겨요';
   return kind === 'count' ? '오늘 더한 것을 빼요' : '했어요를 지워요';
+}
+
+/**
+ * 오늘 아직 남은 수 — 체크를 문서에 넣은 '뒤'의 문서로 센다(그 문서에 이번 체크가 이미 들어 있으니 1을 빼지 않는다).
+ * 체크가 아무것도 바꾸지 못한 때(이미 지워진 칸 등)에도 지금 문서 그대로라 맞다.
+ */
+export function leftToday(doc: Parameters<typeof todayProgress>[0], today: Date): number {
+  const p = todayProgress(doc, today);
+  return Math.max(0, p.total - p.done);
 }
 
 /**

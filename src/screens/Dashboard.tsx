@@ -3,7 +3,7 @@ import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from '../components/AppText';
 import { IconBtn, LineRow, RowDivider, RuledNotice, groupEdge, pressedRow } from '../components/common';
 import { Icon } from '../components/Icon';
-import { Check } from '../components/Check';
+import { Check, checkEdge } from '../components/Check';
 import { MiniChart } from '../components/GridMark';
 import { TodayRow, TODAY_ROW_INSET, type TodayRowItem } from '../components/TodayRow';
 import { Tally } from '../components/Tally';
@@ -20,10 +20,9 @@ import { ritualTarget, weekPriority } from '../lib/ritual';
 import { homeSummary } from '../lib/a11y';
 import { areaLine, headerMeta, homeGate } from '../lib/home';
 import { fmtDateLong, fmtRange, noOrphan } from '../lib/text';
-import { useReducedMotion } from '../lib/useReducedMotion';
+import { useIncreaseContrast, useReducedMotion } from '../lib/useReducedMotion';
 import { showGridAt } from './gridMemory';
 import { tap } from '../lib/haptics';
-import { checkBorder } from '../lib/marks';
 import { legibleMark } from '../theme/chart';
 import type { MandaratDoc, Theme } from '../types';
 
@@ -118,8 +117,8 @@ export const Dashboard = memo(function Dashboard() {
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
             <View>
               <Text style={{ ...TYPE.display, ...NUM, color: M.ink }} maxFontSizeMultiplier={1.2}>{now.getDate()}</Text>
-              {/* 오늘을 다 한 날 — 숫자 밑에 금색 밑줄 하나 */}
-              {dayComplete && <View style={{ height: 3, backgroundColor: M.accent, marginTop: 1 }} />}
+              {/* 오늘을 다 한 날 — 숫자 밑에 금색 밑줄 하나(종이 위 3:1 이상으로 — 그대로의 골드는 2.8:1) */}
+              {dayComplete && <View style={{ height: 3, backgroundColor: legibleMark(M.accent, M.bg, M), marginTop: 1 }} />}
             </View>
             <View style={{ paddingBottom: dayComplete ? 12 : 8 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{now.getMonth() + 1}월</Text>
@@ -336,6 +335,8 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
   const { go, openAction, openQuick, openPick } = useUIActions();
   const { dayCloseTick, closedDay } = useUIState();
   const { clock } = useDoc();
+  // '+ 담기' 점선 네모 — 빈 체크 칸과 같은 테두리(대비 증가에서는 더 진하게)
+  const edge = checkEdge(M.dark, useIncreaseContrast());
   // 이 화면에 있는 동안 체크한 줄 — 사라지지 않고 제자리에서 먹선이 그어진다
   const [kept, setKept] = useState<ReadonlySet<string>>(() => new Set());
   const keep = (key: string) => setKept((s) => (s.has(key) ? s : new Set(s).add(key)));
@@ -398,7 +399,7 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
         style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54, paddingVertical: 8, paddingLeft: 1 }, pressed ? pressedRow(M) : null]}
       >
         {lines.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-        <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: checkBorder(M.dark), alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="plus" size={13} color={M.sub} sw={2.2} />
         </View>
         <Text style={{ fontSize: 15, fontWeight: '600', color: M.sub }}>{label}</Text>
@@ -507,21 +508,17 @@ function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeo
           const speech = st.key === 'fill' ? `${st.label}, ${GUIDE_FILL_TARGET}칸 중 ${filled}칸` : st.label;
           const cta = isNext ? GUIDE_CTA[st.key] : null;
           const first = i === 0;
-          // 버튼이 달린 단계만 누를 수 있다 — 끝낸 단계·아직 먼 단계는 글
+          // 버튼이 달린 단계만 누를 수 있다 — 끝낸 단계·아직 먼 단계는 누르는 것이 아닌 글 줄(View).
+          // Pressable에 onPress만 빼면 눌림 색이 비치고(RN) 웹에서는 Tab으로 멈춘다. disabled는 화면 읽기가
+          // '흐리게 표시됨'이라 읽으므로 쓰지 않는다
           const pressable = !!cta;
-          return (
-            <Pressable
-              key={st.key}
-              // 끝낸 단계를 disabled로 두면 화면 읽기가 '흐리게 표시됨'이라 읽는다 — 누를 일만 없앤다
-              onPress={pressable ? () => run(st.key) : undefined}
-              accessibilityRole={pressable ? 'button' : 'text'}
-              accessibilityLabel={`${i + 1}단계 ${speech}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}${cta ? `, ${cta}` : ''}`}
-              style={({ pressed }) => [
-                groupEdge(M, first, i === g.steps.length - 1),
-                { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8 },
-                pressed ? pressedRow(M) : null,
-              ]}
-            >
+          const a11yLabel = `${i + 1}단계 ${speech}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}${cta ? `, ${cta}` : ''}`;
+          const rowStyle = [
+            groupEdge(M, first, i === g.steps.length - 1),
+            { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, minHeight: 54, paddingVertical: 8 },
+          ];
+          const body = (
+            <>
               {!first && <RowDivider M={M} inset={TODAY_ROW_INSET - 2} />}
               {st.done ? (
                 <Check on color={legibleMark(M.accent, M.bg, M)} dark={M.dark} size={24} seed={st.key} />
@@ -541,6 +538,24 @@ function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeo
                   <Text style={{ fontSize: 13, fontWeight: '800', color: readableOn(M.accent) }} maxFontSizeMultiplier={1.3}>{cta}</Text>
                 </View>
               )}
+            </>
+          );
+          if (!pressable) {
+            return (
+              <View key={st.key} accessible accessibilityRole="text" accessibilityLabel={a11yLabel} style={rowStyle}>
+                {body}
+              </View>
+            );
+          }
+          return (
+            <Pressable
+              key={st.key}
+              onPress={() => run(st.key)}
+              accessibilityRole="button"
+              accessibilityLabel={a11yLabel}
+              style={({ pressed }) => [...rowStyle, pressed ? pressedRow(M) : null]}
+            >
+              {body}
             </Pressable>
           );
         })}

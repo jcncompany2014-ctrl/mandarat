@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import * as SystemUI from 'expo-system-ui';
 
-import { MandaratProvider, useDoc, usePaletteValue } from './src/store/MandaratContext';
+import { MandaratProvider, usePaletteValue, useReady } from './src/store/MandaratContext';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -25,8 +25,8 @@ const FONT_FILES = {
 };
 
 function Gate() {
-  // ready만 쓰지만 좁은 훅이 없어 문서 상태를 읽는다 — 그래서 아래 Shell은 memo(문서가 바뀌어도 뼈대는 다시 그리지 않는다)
-  const { ready } = useDoc();
+  // 준비됐는지만 읽는다 — 문서가 바뀌어도 문지기는 다시 그려지지 않는다
+  const ready = useReady();
   // 종이 색은 무드가 바뀔 때만 바뀌는 팔레트에서
   const paper = usePaletteValue().bg ?? PAPER;
   // 루트 뷰 바탕을 지금 종이 색으로 — 키보드·시트가 오르내릴 때 드러나는 가장자리가 흰색/검은색으로 튀지 않게

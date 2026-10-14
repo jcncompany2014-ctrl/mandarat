@@ -35,8 +35,9 @@ const BAR_FULL = 72;
  */
 export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
   const max = Math.max(1, ...days.map((d) => (d.future ? 0 : d.count)));
-  // 막대는 불투명한 포인트 색 — 면(card) 위 3:1 이상으로(옅게 비친 색은 모든 포인트 색에서 3:1에 못 미친다)
-  const fill = legibleMark(M.accent, M.card, M);
+  // 막대는 불투명한 포인트 색 — 막대가 놓인 종이(bg) 위 3:1 이상으로(옅게 비친 색은 모든 포인트 색에서 3:1에 못 미친다).
+  // 통계는 카드 없이 종이 위에 바로 그리므로 면(card)으로 재면 골드가 2.8:1에 머문다
+  const fill = legibleMark(M.accent, M.bg, M);
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={weekBarsSpeech(days)}>
       <View style={{ flexDirection: 'row', gap: 9, height: BAR_FULL + 20, alignItems: 'flex-end' }}>
@@ -125,7 +126,8 @@ export function TenWeeks({
   const cell = heatCellSize(width, map.cols.length);
   const legendCell = 11;
   const days = useMemo(() => pickableDays(map), [map]);
-  const inkEdge = legibleMark(M.accent, M.card, M);
+  // 기록한 날 테두리 — 칸도 종이(bg) 위에 바로 놓인다(재는 바탕이 card면 골드가 3:1에 못 미친다)
+  const inkEdge = legibleMark(M.accent, M.bg, M);
   const step = (dir: 1 | -1) => {
     if (days.length === 0) return;
     const i = picked ? days.indexOf(picked) : -1;

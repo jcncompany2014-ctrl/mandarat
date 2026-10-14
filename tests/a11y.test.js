@@ -1,7 +1,9 @@
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { homeSummary, todaySummary, blockSummary, cellSpeech } = require('../src/lib/a11y');
+const { homeSummary, todaySummary } = require('../src/lib/a11y');
+const fs = require('fs');
+const path = require('path');
 
 // 2026-10-14 수요일 — 이번 주 10/12(월)~10/18(일)
 const WED = new Date(2026, 9, 14, 9);
@@ -52,26 +54,16 @@ test('todaySummary: 오늘 할 일 N개 중 M개 했어요', () => {
   assert.equal(homeSummary(d, WED).endsWith('오늘 할 일을 다 했어요.'), true);
 });
 
-test('blockSummary: 영역, 8칸 중 달성, 오늘 담긴 칸', () => {
-  assert.equal(blockSummary(sample(), 0, WED), '건강, 8칸 중 2칸 달성, 오늘 3칸');
-  assert.equal(blockSummary(sample(), 1, WED), '커리어, 8칸 중 1칸 달성');
-  assert.equal(blockSummary(sample(), 2, WED), '영역 3, 실천을 아직 적지 않았어요');
-  assert.equal(blockSummary(sample(), 9, WED), '');
-});
-
-test('cellSpeech: 자리(고유어 서수), 글, 유형, 오늘 할 일, 달성', () => {
-  const d = sample();
-  assert.equal(cellSpeech(d, 0, 2, WED), '세 번째 칸, 하루 물 2L, 습관 매일, 오늘 할 일, 달성');
-  assert.equal(cellSpeech(d, 0, 0, WED), '첫 번째 칸, 주 3회 운동, 습관 주 3회, 오늘 했어요');
-  assert.equal(cellSpeech(d, 0, 1, WED), '두 번째 칸, 정기 건강검진, 한 번, 달성');
-  assert.equal(cellSpeech(d, 0, 3, WED), '네 번째 칸, 책 12권, 쌓기 12권 중 5권');
-  assert.equal(cellSpeech(d, 0, 4, WED), '다섯 번째 칸, 비어 있음');
-  assert.equal(cellSpeech(d, 0, 5, WED), '여섯 번째 칸, 이력서 고치기, 한 번, 마감 2일 남음, 오늘 할 일');
-  assert.equal(cellSpeech(d, 0, 6, WED), '일곱 번째 칸, 감사 표현, 마음가짐, 이번 주 4점');
-  d.themes = d.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 5 ? { ...a, due: '2026-10-14' } : a)) } : t));
-  assert.match(cellSpeech(d, 0, 5, WED), /한 번, 오늘 마감/);
-  d.themes = d.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 5 ? { ...a, due: '2026-10-11' } : a)) } : t));
-  assert.match(cellSpeech(d, 0, 5, WED), /한 번, 마감 3일 지남/);
-  d.themes[0].actions[0] = { text: '수영', note: '', done: false, kind: 'habit', days: [1, 3, 5] };
-  assert.match(cellSpeech(d, 0, 0, WED), /^첫 번째 칸, 수영, 습관 월·수·금/);
+test('칸·블록 말과 고유어 서수는 chartSpeech 한 곳에 — a11y.ts에 앱이 쓰지 않는 사본을 두지 않는다 (FX-VERIFY HANDOFF-C3)', () => {
+  const a11y = require('../src/lib/a11y');
+  for (const name of ['blockSummary', 'cellSpeech', 'ORDINAL']) assert.equal(a11y[name], undefined, name);
+  const { ORDINAL } = require('../src/lib/chartSpeech');
+  assert.deepEqual([...ORDINAL], ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟']);
+  const src = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  assert.match(src('src/lib/areaPage.ts'), /import \{ ORDINAL \} from '\.\/chartSpeech';/);
+  assert.match(src('src/lib/sheetSpeech.ts'), /import \{ ORDINAL \} from '\.\/chartSpeech';/);
+  // ORDINAL을 정의하는 곳은 하나
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  const owners = walk(path.join(__dirname, '..', 'src')).filter((f) => /export const ORDINAL\b/.test(fs.readFileSync(f, 'utf8')));
+  assert.deepEqual(owners.map((f) => path.basename(f)), ['chartSpeech.ts']);
 });

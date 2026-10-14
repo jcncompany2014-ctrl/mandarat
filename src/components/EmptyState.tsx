@@ -2,7 +2,8 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { RowDivider, groupEdge, pressedRow } from './common';
-import { checkBorder } from '../lib/marks';
+import { checkEdge } from './Check';
+import { useIncreaseContrast } from '../lib/useReducedMotion';
 import type { M } from '../theme/usePalette';
 
 type EmptyAction = { label: string; onPress: () => void };
@@ -32,6 +33,7 @@ const GAP = 12;
 function PaperEmpty({ M, lines, action }: PaperProps) {
   const shown = lines.slice(0, 3);
   const text = BOX + GAP; // 글이 시작하는 자리 — 줄 사이 선과 버튼 글자를 여기에 맞춘다
+  const edge = checkEdge(M.dark, useIncreaseContrast());
   return (
     <View>
       {shown.length > 0 && (
@@ -45,8 +47,9 @@ function PaperEmpty({ M, lines, action }: PaperProps) {
               }}
             >
               {i > 0 && <RowDivider M={M} inset={text} />}
-              {/* 빈 칸 네모는 보이라고 그린 표시 — 종이 위 3:1 이상(M.faint는 2.1~2.5:1) */}
-              <View style={{ width: BOX, height: BOX, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: checkBorder(M.dark) }} />
+              {/* 빈 칸 네모는 보이라고 그린 표시 — 빈 체크 칸과 같은 테두리: 종이 위 3:1 이상(M.faint는 2.1~2.5:1),
+                  대비 증가에서는 체크 칸처럼 더 진하고 굵게 */}
+              <View style={{ width: BOX, height: BOX, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color }} />
               <Text style={{ flex: 1, fontSize: 15, lineHeight: 21, fontWeight: '600', color: M.sub }}>{line}</Text>
             </View>
           ))}

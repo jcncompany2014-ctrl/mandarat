@@ -12,13 +12,14 @@ import { tint } from '../theme/moods';
 import { NUM, TYPE } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
+import { useUIActions, useUIState } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
 import { autoToday, doneOn, kindOf, routineWeek, routineWeekCount } from '../lib/routine';
 import { RATING_TEXT, configOf, countInfo, countWeekAdded, dueInfo, fmtNum, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { whyAuto } from '../lib/pick';
 import { fmtDateLong, fmtDue } from '../lib/text';
 import { countNowSpeech, dueSpeech, weekCountSpeech } from '../lib/sheetSpeech';
+import { ORDINAL } from '../lib/chartSpeech';
 import { announce } from '../lib/useReducedMotion';
 import {
   POSTPONE, backfillToast, canBackfill, canPostpone, goalToast, historyStartLabel, memoRules, noteChanged, postponedDue,
@@ -35,7 +36,8 @@ const MEMO_MIN_H = 84;
 const MEMO_IDLE = 600;
 
 export function ActionSheet() {
-  const { sheet, closeSheet } = useUI();
+  const { sheet } = useUIState();
+  const { closeSheet } = useUIActions();
   const M = usePalette();
   if (!sheet) return null;
   return (
@@ -48,7 +50,7 @@ export function ActionSheet() {
 
 function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
-  const { openEditor, afterOverlays, go } = useUI();
+  const { openEditor, afterOverlays, go } = useUIActions();
   const dismiss = useSheetDismiss();
   const { doc } = useMandarat();
   const th = doc.themes[ti];
@@ -69,7 +71,8 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
         <Pressable
           onPress={toArea}
           accessibilityRole="button"
-          accessibilityLabel={`${area} 영역, ${ai + 1}번째 칸, 영역 보기`}
+          // 차트 칸·편집 창과 같은 고유어 서수 — '세 번째 칸'
+          accessibilityLabel={`${area} 영역, ${ORDINAL[ai] ?? `${ai + 1}`} 번째 칸, 영역 보기`}
           style={({ pressed }) => ({ flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10, opacity: pressed ? 0.6 : 1 })}
         >
           <Locator M={M} th={th} ai={ai} />
@@ -192,7 +195,7 @@ type BlockProps = { M: M; th: Theme; ti: number; ai: number };
 /** 습관 — 오늘 했어요 한 줄 + 이번 주 일곱 칸(지난 날은 눌러서 남기기) + 어제도 했어요 */
 function HabitBlock({ M, th, ti, ai }: BlockProps) {
   const { doc, toggleRoutineToday, toggleHabitOn } = useMandarat();
-  const { showToast } = useUI();
+  const { showToast } = useUIActions();
   const now = new Date();
   const a = th.actions[ai];
   const key = `${ti}-${ai}`;
@@ -241,7 +244,7 @@ function HabitBlock({ M, th, ti, ai }: BlockProps) {
 /** 쌓기 — 큰 숫자 · 진행 줄 · 이번 주 더한 만큼, 그리고 빼기 · 더하기 */
 function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   const { doc, addCount } = useMandarat();
-  const { showToast } = useUI();
+  const { showToast } = useUIActions();
   const now = new Date();
   const c = countInfo(a, dateKey(now));
   const said = kindLine(doc, ti, ai, now)?.speech ?? countNowSpeech(fmtNum(c.goal), fmtNum(c.count), c.unit);
@@ -300,7 +303,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
 /** 한 번 — 다 했어요 한 줄 + 마감(지났거나 오늘이면 내일로 · 다음 주로) */
 function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdit: () => void }) {
   const { toggleDone, setActionConfig } = useMandarat();
-  const { showToast } = useUI();
+  const { showToast } = useUIActions();
   const now = new Date();
   const due = dueInfo(a, now);
   const late = canPostpone(a, now);
@@ -387,7 +390,7 @@ function MindBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
 /** 오늘 할 일에 담기 · 25분 집중하기 · 이 칸 달성하기 — 괘선 줄, 아이콘·바탕 없이 */
 function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   const { doc, toggleToday, inToday, toggleDone } = useMandarat();
-  const { showToast, startFocus } = useUI();
+  const { showToast, startFocus } = useUIActions();
   const now = new Date();
   const kind = kindOf(a);
   const key = `${ti}-${ai}`;

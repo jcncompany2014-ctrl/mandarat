@@ -15,7 +15,8 @@ import { useTodayCheck } from '../lib/useTodayCheck';
 import { checkHintText } from '../lib/todayCheck';
 import { kindLine, ratingOf, type KindLine } from '../lib/kinds';
 import { kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
-import { STRIP, weekdayIndex } from '../lib/marks';
+import { STRIP, weekStripSummary, weekdayIndex } from '../lib/marks';
+import { textWidth } from '../lib/labelFit';
 import { canPickAny } from '../lib/pick';
 import { announce } from '../lib/useReducedMotion';
 import { legibleMark } from '../theme/chart';
@@ -38,8 +39,14 @@ const EDGE = 20;
 /** 체크 칸 · 체크 칸과 글 사이(TodayRow와 같은 값) */
 const CHECK = 26;
 const GAP = 12;
-/** 연속 기록 줄 오른쪽 기록 칸 — 이만큼은 늘 두고, 글자를 키우면 더 넓어진다('12일'이 '1…'로 잘리지 않게) */
+/**
+ * 연속 기록 줄 오른쪽 기록 칸의 가장 좁은 폭. 모든 줄과 머리글이 같은 폭(가장 긴 기록 글에 맞춘 runW)을 써서
+ * 이번 주 칸이 줄마다 같은 자리에 선다 — 줄마다 제 글만큼 넓어지면 '136일' 줄의 칸이 요일 머리글에서 비껴난다
+ */
 const RUN_W = 40;
+/** 기록 글 크기와, 글자 키우기를 따라가는 최대 배율(Text의 maxFontSizeMultiplier와 같다) */
+const RUN_FS = 17;
+const RUN_SCALE_MAX = 1.3;
 /** 글자 크기가 이 배율 이상이면 점수 칸을 글 아래 줄로 내린다 */
 const STACK_SCALE = 1.35;
 
@@ -203,6 +210,12 @@ export function TodayStreak({ M }: { M: M }) {
   const week = useMemo(() => weekDates(new Date()).map(ymd), [day]); // eslint-disable-line react-hooks/exhaustive-deps
   const summary = streakSummary(rows);
   const lead = summary.lead;
+  // 기록 칸 폭 — 가장 긴 기록 글('136일')이 지금 글자 크기로 들어가는 폭(textWidth는 고정폭 숫자보다 조금 넉넉히 잰다)
+  const { fontScale } = useWindowDimensions();
+  const runW = useMemo(
+    () => Math.ceil(Math.max(RUN_W, ...rows.map((r) => textWidth(streakCell(r.streak).text, RUN_FS * Math.min(fontScale, RUN_SCALE_MAX)) + 2))),
+    [rows, fontScale],
+  );
 
   if (rows.length === 0) {
     return (
@@ -248,7 +261,14 @@ export function TodayStreak({ M }: { M: M }) {
       >
         <View style={{ flex: 1 }} />
         <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} width={STRIP.width} />
-        <Text style={{ minWidth: RUN_W, flexShrink: 0, textAlign: 'right', fontSize: 10, lineHeight: 13, fontWeight: '600', color: M.sub }}>연속</Text>
+        {/* 기록 칸과 같은 폭 — 아주 큰 글자에서도 두 줄로 꺾여 칸을 밀지 않게 2배까지만 */}
+        <Text
+          style={{ width: runW, flexShrink: 0, textAlign: 'right', fontSize: 10, lineHeight: 13, fontWeight: '600', color: M.sub }}
+          numberOfLines={1}
+          maxFontSizeMultiplier={2}
+        >
+          연속
+        </Text>
       </View>
 
       <View>
@@ -263,6 +283,7 @@ export function TodayStreak({ M }: { M: M }) {
               item={r.item}
               text={r.text}
               run={streakCell(r.streak)}
+              runW={runW}
               first={i === 0}
               last={i === rows.length - 1}
               color={th?.color ?? M.sub}
@@ -306,12 +327,14 @@ function streakLineInfo(
 
 /** 습관 한 줄 — 문서에서 고른 값만 받아 그린다(item · run은 값으로 비교). onOpen · onToggle은 고정된 함수 */
 const StreakLine = memo(function StreakLine({
-  M, item, text, run, first, last, color, area, plan, states, summary, onOpen: openItem, onToggle: toggleItem, checkLabel,
+  M, item, text, run, runW, first, last, color, area, plan, states, summary, onOpen: openItem, onToggle: toggleItem, checkLabel,
 }: {
   M: M;
   item: TodayItem;
   text: string;
   run: { text: string; a11y: string };
+  /** 기록 칸 폭 — 모든 줄이 같은 값(머리글과 이번 주 칸을 맞춘다) */
+  runW: number;
   first: boolean;
   last: boolean;
   color: string;
@@ -326,7 +349,11 @@ const StreakLine = memo(function StreakLine({
   const onOpen = () => openItem(item);
   const onToggle = () => toggleItem(item);
   const done = item.done;
-  const bodyLabel = [text, area, plan, run.a11y, done ? '오늘 했어요' : ''].filter(Boolean).join(', ');
+  // 이번 주 칸은 따로 멈추지 않고 몸통 이름에 넣는다(TodayRow와 같이) — 줄 하나에 체크 · 몸통 두 번만 멈춘다.
+  // 주 N회는 '이번 주 3회 중 2회', 요일 습관은 '월 함, 화 놓침, 수 오늘 …'
+  const today = states.indexOf('today');
+  const week = summary ?? weekStripSummary(states, today >= 0 ? today : weekdayIndex(new Date()));
+  const bodyLabel = [text, area, plan, week, run.a11y, done ? '오늘 했어요' : ''].filter(Boolean).join(', ');
 
   return (
     <Pressable
@@ -371,12 +398,14 @@ const StreakLine = memo(function StreakLine({
         </View>
       </View>
 
-      <WeekStrip M={M} states={states} color={color} summary={summary} />
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <WeekStrip M={M} states={states} color={color} summary={summary} />
+      </View>
 
       <Text
-        style={[{ minWidth: RUN_W, flexShrink: 0, textAlign: 'right', fontSize: 17, fontWeight: '800', color: run.text === '—' ? M.sub : M.ink }, TABULAR]}
+        style={[{ width: runW, flexShrink: 0, textAlign: 'right', fontSize: RUN_FS, fontWeight: '800', color: run.text === '—' ? M.sub : M.ink }, TABULAR]}
         numberOfLines={1}
-        maxFontSizeMultiplier={1.3}
+        maxFontSizeMultiplier={RUN_SCALE_MAX}
         accessible={false}
       >
         {run.text}

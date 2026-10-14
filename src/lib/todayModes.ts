@@ -71,11 +71,11 @@ export function streakSummary(rows: readonly StreakRow[]): StreakSummary {
   return { lead: { text: lead.text, cur: lead.streak.cur, unit: lead.streak.unit, best: lead.streak.best } };
 }
 
-/** 큰 숫자 묶음의 화면 읽기 한 마디 */
+/** 큰 숫자 묶음의 화면 읽기 한 마디 — 보이는 머리 글('지금 연속')과 같은 말로 시작한다 */
 export function streakSummaryLabel(s: StreakSummary): string {
   if (!s.lead) return '아직 이어 가는 기록이 없어요. 오늘 하나 하면 시작돼요';
   const { text, cur, unit, best } = s.lead;
-  return `지금 이어 가는 기록 ${runText(cur, unit)}, ${text}. 최고 ${runText(best, unit)}`;
+  return `지금 연속 ${runText(cur, unit)}, ${text}. 최고 ${runText(best, unit)}`;
 }
 
 /** 보드 칸 머리 — '진행 중 2개' */

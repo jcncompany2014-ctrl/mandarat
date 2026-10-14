@@ -222,7 +222,8 @@ function Ledger({ M, now, backup }: { M: M; now: BackupSummary; backup: BackupSu
           <View
             key={r.label}
             accessible
-            accessibilityLabel={`${r.label}, 지금 ${r.now}, 백업 ${r.backup}`}
+            // 소리로는 '채운 칸, 지금 64칸 중 23칸, 백업 64칸 중 41칸' — '23/64'·'10.3 (토)'를 날짜·소수로 읽지 않게
+            accessibilityLabel={`${r.label}, 지금 ${r.nowSay ?? r.now}, 백업 ${r.backupSay ?? r.backup}`}
             style={{
               flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10,
               borderTopWidth: i === 0 ? 0 : 1, borderColor: M.line,

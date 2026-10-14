@@ -161,7 +161,8 @@ function PickRowView({
   onToggle: () => void;
 }) {
   const on = r.state === 'on';
-  const label = [r.text, r.focus ? '이번 주 중점' : '', r.hint].filter(Boolean).join(', ');
+  // 유형 한 줄은 소리 말(r.say) — '6/12권'·'마감 D-3'을 날짜·글자로 읽지 않게
+  const label = [r.text, r.focus ? '이번 주 중점' : '', r.say].filter(Boolean).join(', ');
   return (
     <Pressable
       onPress={onToggle}

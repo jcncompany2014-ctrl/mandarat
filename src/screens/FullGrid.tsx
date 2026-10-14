@@ -9,7 +9,7 @@ import { IconBtn } from '../components/common';
 import { ChartBoard } from '../components/ChartBoard';
 import { tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useScreenReader } from '../lib/useReducedMotion';
-import { areaLabel, areaTodayCounts, cellLabel } from '../lib/chartSpeech';
+import { ORDINAL, areaLabel, areaTodayCounts, cellLabel } from '../lib/chartSpeech';
 import { DUE_SOON, daysBetween, doneToday as didToday, kindOf, routineWeekCount, todayItems, ymd } from '../lib/routine';
 import { countInfo, kindLine } from '../lib/kinds';
 import { noOrphan } from '../lib/text';
@@ -693,7 +693,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
             <Text
               style={[{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: '600', color: M.sub }, tabular]}
               numberOfLines={1}
-              accessibilityLabel={focus === 'c' ? '가운데 블록' : `8개 영역 중 ${focus + 1}번째`}
+              accessibilityLabel={focus === 'c' ? '가운데 블록' : `8개 영역 중 ${ORDINAL[focus] ?? `${focus + 1}`} 번째`}
             >
               {focus === 'c' ? '가운데 블록' : `${focus + 1} / 8`}
             </Text>

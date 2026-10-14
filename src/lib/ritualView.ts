@@ -26,6 +26,11 @@ export function addedLine(added: WeekReview['added']): string {
   return added.slice(0, 2).map((x) => `+${fmtNum(x.amount)}${x.unit}`).join(' · ');
 }
 
+/** addedLine을 소리로 — '2권 더함, 50만 원 더함' ('+2권 · +50만 원'의 기호를 읽지 않게), 없으면 '' */
+export function addedSpeech(added: WeekReview['added']): string {
+  return added.slice(0, 2).map((x) => `${fmtNum(x.amount)}${x.unit} 더함`).join(', ');
+}
+
 /** 습관 '5/7번', 그 주에 습관이 없으면 '—' */
 export function habitLine(r: Pick<WeekReview, 'habitCount' | 'routineDone' | 'routineDue'>): string {
   return r.habitCount > 0 ? `${r.routineDone}/${r.routineDue}번` : '—';

@@ -14,13 +14,13 @@ import { tap } from '../lib/haptics';
 import { sameProps } from '../lib/sameProps';
 import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
-import { fmtDateShort } from '../lib/text';
-import { addedLine, mindLine } from '../lib/ritualView';
+import { fmtDateLong, fmtDateShort, fmtDateSpeech } from '../lib/text';
+import { addedLine, addedSpeech, mindLine } from '../lib/ritualView';
 import { reviewWeeks, ritualTarget } from '../lib/ritual';
 import type { HeatMap } from '../lib/statsView';
 import { calendarWeeks, cellActivity, doneThisMonth, longestStreak, weekReview, weekSentence } from '../lib/review';
 import {
-  EMPTY_LINE, bestLine, compareCounts, fmtMinutes, habitRow, heatMap, heatSpeech, moodSpeech, moodStrip, pickedLine,
+  EMPTY_LINE, bestLine, compareCounts, fmtMinutes, habitRow, heatMap, heatSpeech, ledgerLabel, moodSpeech, moodStrip, pickedLine, pickedSpeech,
   recordParts, reflections, reviewRow, streakCaption, streakSpeech, weekAddedText, weekDelta, weekLead,
 } from '../lib/statsView';
 
@@ -104,7 +104,13 @@ export const Stats = memo(function Stats() {
       )}
 
       {/* 최근 10주 */}
-      <SectionHead M={M} title="최근 10주" right={map.since ? `${fmtDateShort(map.since)}부터` : undefined} />
+      <SectionHead
+        M={M}
+        title="최근 10주"
+        right={map.since ? `${fmtDateShort(map.since)}부터` : undefined}
+        // 소리로는 '10월 3일 토요일부터' — '10.3 (토)'는 소수로 읽힌다
+        rightLabel={map.since ? `${fmtDateLong(map.since)}부터` : undefined}
+      />
       <HeatSection M={M} doc={doc} map={map} width={contentW} hasData={hasData} />
 
       {/* 숫자 목표 · 마음가짐 */}
@@ -162,7 +168,7 @@ const SectionHead = memo(function SectionHead({ M, title, right, onRight, rightL
           <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{right}</Text>
         </Pressable>
       ) : (
-        <Text style={[{ fontSize: 12.5, fontWeight: '600', color: M.sub }, NUM]}>{right}</Text>
+        <Text style={[{ fontSize: 12.5, fontWeight: '600', color: M.sub }, NUM]} accessibilityLabel={rightLabel ?? right}>{right}</Text>
       ))}
     </View>
   );
@@ -244,10 +250,11 @@ const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnT
 
 /** 습관 · 쌓은 것 · 마음가짐 · 집중 — 있는 것만 한 줄씩 */
 function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: ReturnType<typeof weekReview> }) {
-  const rows: { label: string; value: string; sub?: string }[] = [];
+  // say: 화면 읽기가 말할 값 — '5/7번'·'+2권 · +50만 원'을 날짜·기호로 읽지 않게(한 주 돌아보기 장부와 같은 말)
+  const rows: { label: string; value: string; sub?: string; say?: string }[] = [];
   const habit = habitRow(review);
   if (habit) rows.push({ label: '습관', ...habit });
-  if (review.added.length > 0) rows.push({ label: '쌓은 것', value: addedLine(review.added) });
+  if (review.added.length > 0) rows.push({ label: '쌓은 것', value: addedLine(review.added), say: addedSpeech(review.added) });
   if (review.mindTotal > 0) {
     rows.push({
       label: '마음가짐',
@@ -263,7 +270,7 @@ function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: Return
         <View
           key={r.label}
           accessible
-          accessibilityLabel={`${r.label} ${r.value === '—' ? '없음' : r.value}${r.sub ? `, ${r.sub}` : ''}`}
+          accessibilityLabel={ledgerLabel(r)}
           style={[groupEdge(M, i === 0, i === rows.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 2, minHeight: 48 }]}
         >
           {i > 0 && <RowDivider M={M} inset={0} />}
@@ -362,7 +369,8 @@ const HeatSection = memo(function HeatSection({ M, doc, map, width, hasData }: {
         picked={picked}
         onPick={setPicked}
         speech={heatSpeech(map)}
-        pickedText={picked ? pickedLine(doc, picked) : '고른 날 없음'}
+        // 고른 날 값(소리) — 보이는 줄(pickedLine)과 같은 내용을 '10월 3일 토요일, 4번, …'으로
+        pickedText={picked ? pickedSpeech(doc, picked) : '고른 날 없음'}
       />
     </View>
   );
@@ -404,6 +412,8 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
           : pace.eta
             ? `이 속도면 ${dateText(pace.eta, now)}`
             : monthAdded(a.log, now) > 0 ? '' : `이번 달 아직 0${c.unit}`;
+        // 소리로는 날짜를 또박또박(해가 다르면 해까지) — '10.20 (화)'·'2028년 3.4 (토)'가 섞여 읽히지 않게
+        const paceSay = c.reached ? '' : pace.eta ? `이 속도면 ${fmtDateSpeech(pace.eta, now)}` : paceText;
         const right = c.reached ? '목표 달성' : weekAddedText(week, c.unit);
         const area = th.title.trim() || `영역 ${ti + 1}`;
         // '6/12권'은 날짜처럼 읽힌다 — 소리로 읽을 말('12권 중 6권')로
@@ -413,7 +423,7 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
             key={`${ti}-${ai}`}
             onPress={() => onOpen(ti, ai)}
             accessibilityRole="button"
-            accessibilityLabel={`${area}, ${a.text.trim()}, ${said}, ${c.pct}%, ${right}${paceText ? `, ${paceText}` : ''}`}
+            accessibilityLabel={`${area}, ${a.text.trim()}, ${said}, ${c.pct}%, ${right}${paceSay ? `, ${paceSay}` : ''}`}
             style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
@@ -524,7 +534,7 @@ function Reflections({ M, doc, now }: { M: M; doc: MandaratDoc; now: Date }) {
             <View
               key={e.date}
               accessible
-              accessibilityLabel={`${e.head}, ${e.text}`}
+              accessibilityLabel={`${e.say}, ${e.text}`}
               style={[groupEdge(M, i === 0, i === shown.length - 1 && !more), { paddingVertical: 12, paddingHorizontal: 2 }]}
             >
               {i > 0 && <RowDivider M={M} inset={0} />}

@@ -5,8 +5,8 @@ import { check as checkHaptic, tap, uncheck as uncheckHaptic } from './haptics';
 import { animateLayout } from './layoutAnim';
 import { announce, screenReader } from './useReducedMotion';
 import { MAX_NUM, countInfo, round2 } from './kinds';
-import { doneOn, doneToday, extraLogKey, kindOf, todayProgress, type TodayItem } from './routine';
-import { EXTRA_REMOVED, addedSpeech, checkLabelText, checkedSpeech, goalText, reachesGoal, undoAddText } from './todayCheck';
+import { doneOn, doneToday, extraLogKey, kindOf, type TodayItem } from './routine';
+import { EXTRA_REMOVED, addedSpeech, checkLabelText, checkedSpeech, goalText, leftToday, reachesGoal, undoAddText } from './todayCheck';
 import type { TodayExtra } from '../types';
 
 /**
@@ -40,13 +40,9 @@ export function useTodayCheck(): TodayCheck {
   return useMemo<TodayCheck>(() => {
     const textOf = (it: TodayItem) => getDoc().themes[it.ti]?.actions[it.ai]?.text ?? '';
 
-    // 지금 하나를 '했어요'로 바꾼 뒤 남는 수(바꾸기 전 문서로 센다)
-    const leftAfterOne = () => {
-      const p = todayProgress(getDoc(), new Date());
-      return Math.max(0, p.total - p.done - 1);
-    };
+    // 바꾼 뒤에 부른다 — getDoc()은 이미 바뀐 문서(latest)라 이번 체크가 들어 있다(1을 더 빼지 않는다)
     const speakChecked = (text: string) => {
-      if (screenReader()) announce(checkedSpeech(text, leftAfterOne()));
+      if (screenReader()) announce(checkedSpeech(text, leftToday(getDoc(), new Date())));
     };
 
     const toggle = (it: TodayItem) => {

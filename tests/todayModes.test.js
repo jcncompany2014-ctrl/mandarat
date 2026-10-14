@@ -61,7 +61,8 @@ test('맨 위 숫자는 지금 가장 길게 이어 가는 습관 하나 (copy-1
   const s = T.streakSummary([row('물', 3, 9), row('운동', 2, 2, 'week'), row('독서', 5, 5)]);
   // 주 N회 2주(14일)가 5일보다 길다
   assert.deepEqual(s.lead, { text: '운동', cur: 2, unit: 'week', best: 2 });
-  assert.equal(T.streakSummaryLabel(s), '지금 이어 가는 기록 2주, 운동. 최고 2주');
+  // 보이는 머리 글 '지금 연속'과 같은 말로 (FX-VERIFY C-5)
+  assert.equal(T.streakSummaryLabel(s), '지금 연속 2주, 운동. 최고 2주');
   const tie = T.streakSummary([row('물', 4, 4), row('독서', 4, 7)]);
   assert.equal(tie.lead.text, '물', '같으면 앞 줄');
   const none = T.streakSummary([row('물', 0, 9)]);

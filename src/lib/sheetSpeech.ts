@@ -1,3 +1,4 @@
+import { ORDINAL } from './chartSpeech';
 import { josa } from './text';
 
 /**
@@ -10,14 +11,17 @@ export function ieyo(word: string): string {
   return josa(word, '은/는').endsWith('은') ? `${word}이에요` : `${word}예요`;
 }
 
-/** 편집 창 제목을 읽는 말 — '건강 영역, 8칸 중 3번째 칸' */
+/**
+ * 편집 창 제목을 읽는 말 — '건강 영역, 8칸 중 세 번째 칸'.
+ * 차트 칸(chartSpeech.cellLabel)과 같은 고유어 서수 — '3번째'는 '삼번째'로 읽혀서 같은 칸이 두 가지로 들리지 않게
+ */
 export function cellTitleSpeech(area: string, ai: number): string {
-  return `${area} 영역, 8칸 중 ${ai + 1}번째 칸`;
+  return `${area} 영역, 8칸 중 ${ORDINAL[ai] ?? `${ai + 1}`} 번째 칸`;
 }
 
-/** '저장하고 다음 칸' 뒤에 알려 줄 말 — '건강 영역 4번째 칸을 적어요' */
+/** '저장하고 다음 칸' 뒤에 알려 줄 말 — '건강 영역 네 번째 칸을 적어요' (고유어 서수) */
 export function nextCellSpeech(area: string, ai: number): string {
-  return `${area} 영역 ${ai + 1}번째 칸을 적어요`;
+  return `${area} 영역 ${ORDINAL[ai] ?? `${ai + 1}`} 번째 칸을 적어요`;
 }
 
 /** 마감까지 남은 날을 읽는 말 — '마감 3일 남음' · '오늘 마감' · '마감 2일 지남' */

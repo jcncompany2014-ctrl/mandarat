@@ -81,7 +81,8 @@ export function DayPicker({ M, days, color, onChange, hideClear = false }: {
           />
         ))}
         {cur.length > 0 && !hideClear && (
-          <PaperChip M={M} label="반복 안 함" onPress={() => pick([])} accessibilityLabel="반복 해제" />
+          // 이름은 보이는 글 그대로('반복 안 함') — 음성 제어로 보이는 말을 불러 누를 수 있게
+          <PaperChip M={M} label="반복 안 함" onPress={() => pick([])} />
         )}
       </View>
     </View>

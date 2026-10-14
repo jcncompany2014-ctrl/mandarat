@@ -350,7 +350,7 @@ export const ChartBoard = memo(function ChartBoard({
     return { ...r, label: sr ? cellLabel(r) : text };
   });
 
-  // 가운데 이름표의 말 — '건강, 8칸 중 3칸 달성, 오늘 2칸' (a11y.ts blockSummary와 같은 말, 오늘 칸 수는 위에서 센 것)
+  // 가운데 이름표의 말 — '건강, 8칸 중 3칸 달성, 오늘 2칸' (chartSpeech.areaLabel, 오늘 칸 수는 위에서 센 것)
   const named = !!th.title.trim();
   const name = named ? th.title.trim() : `영역 ${ti + 1}`;
   const p = themeProgress(th);

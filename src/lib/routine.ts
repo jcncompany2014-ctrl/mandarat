@@ -464,7 +464,20 @@ function countStreak(a: Action, days: Set<number> | undefined, tk: string): Habi
   if (unit === 'day') {
     // 하루씩 앞으로 — 예정일에 했으면 잇고, 못 했으면 끊는다(오늘은 끊지 않는다)
     for (let n = start; n <= T; n++) {
-      if (!((segAt(n).mask >> dowOf(n)) & 1)) continue;
+      const seg = segAt(n);
+      if (seg.perWeek > 0) {
+        // 그때 주 N회였던 주는 일요일에 한 주로 본다(주 단위와 같은 규칙) — 횟수를 못 채운 주는 끊는다.
+        // 요일 비트가 없다고 건너뛰기만 하면 아무것도 안 한 주 N회 구간이 연속을 이어 준다
+        if (dowOf(n) === 0 && n < T) {
+          const mon = n - 6;
+          let done = 0;
+          for (let k = Math.max(mon, since); k <= n; k++) if (days.has(k)) done++;
+          const target = since > mon ? Math.max(1, Math.min(seg.perWeek, n - since + 1)) : seg.perWeek;
+          if (done < target) run = 0;
+        }
+        continue;
+      }
+      if (!((seg.mask >> dowOf(n)) & 1)) continue;
       if (days.has(n)) best = Math.max(best, ++run);
       else if (n !== T) run = 0;
     }

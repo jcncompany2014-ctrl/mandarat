@@ -1,10 +1,10 @@
 // 영역 화면(Detail)의 글 — 실천 8개 줄의 오른쪽 상태, 화면 읽기 이름, 이웃 영역 이름, 넘길 때 읽어 줄 말.
 // RN에 의존하지 않는 순수 모듈(단위 테스트 대상). 영역 화면은 달성을 보여 주기만 하고 하루 체크는 하지 않는다.
-import type { MandaratDoc } from '../types';
-import { countInfo, countText, kindLine, ratingOf } from './kinds';
+import type { Action, MandaratDoc } from '../types';
+import { countInfo, countText, kindLine, ratingOf, type KindLine } from './kinds';
 import { daysBetween, kindOf, routineWeekCount, ymd } from './routine';
 import { fmtDue } from './text';
-import { ORDINAL } from './a11y';
+import { ORDINAL } from './chartSpeech';
 
 type AreaDoc = Pick<MandaratDoc, 'themes' | 'dayLog'>;
 
@@ -43,7 +43,15 @@ export function rowStatus(doc: AreaDoc, ti: number, ai: number, now: Date): stri
 export function rowLabel(doc: AreaDoc, ti: number, ai: number, now: Date): string {
   const a = doc.themes[ti]?.actions[ai];
   if (!a || !a.text.trim()) return `실천 ${ai + 1} 채우기`;
-  const line = kindLine(doc, ti, ai, now);
+  return rowLabelFor(a, ai, kindLine(doc, ti, ai, now));
+}
+
+/**
+ * rowLabel과 같은 말 — 유형 줄(kindLine)을 이미 센 쪽(영역 화면은 줄마다 한 번 센다)이 다시 세지 않게 받는다.
+ * '6/12권'·'D-3'을 날짜·글자로 읽지 않게 유형 줄은 소리 말(KindLine.speech)
+ */
+export function rowLabelFor(a: Action, ai: number, line: KindLine | null): string {
+  if (!a.text.trim()) return `실천 ${ai + 1} 채우기`;
   return `${a.text.trim()}${a.done ? ', 달성' : ''}${line ? `, ${line.speech}` : ''}`;
 }
 

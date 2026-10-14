@@ -9,23 +9,23 @@ import {
 import { alertInk } from '../components/KindBits';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
-import { useUI, type EditorTarget } from '../navigation/ui';
+import { useUIActions, useUIState, type EditorTarget } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import type { ActionKind, MandaratDoc } from '../types';
 import { tap, warn } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
 import { daysBetween, normalizeDays, ymd } from '../lib/routine';
 import {
-  KIND_HINT, KIND_LABEL, MAX_NUM, addDays, configOf, dateText, duePresets, fmtNum, parseNum, sameConfig, type KindConfig,
+  KIND_HINT, KIND_LABEL, MAX_NUM, addDays, configOf, duePresets, fmtNum, parseNum, sameConfig, type KindConfig,
 } from '../lib/kinds';
-import { fmtDateLong, fmtDue, josa } from '../lib/text';
+import { fmtDateLong, fmtDateSpeech, fmtDue, josa } from '../lib/text';
 import { fitLabel, textWidth } from '../lib/labelFit';
 import { suggestActions } from '../lib/suggest';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { suggestKind, type KindSuggestion } from '../lib/kindSuggest';
 import { announce, reducedMotion } from '../lib/useReducedMotion';
 import { cellTitleSpeech, dueSpeech, nextCellSpeech } from '../lib/sheetSpeech';
-import { EDITOR_DRAFT_KEY, draftDiffers, parseDraft, serializeDraft, type EditorDraft } from '../lib/editorDraft';
+import { EDITOR_DRAFT_KEY, draftDiffers, draftFits, parseDraft, serializeDraft, type EditorDraft } from '../lib/editorDraft';
 import { Snackbar } from './Snackbar';
 import { DayPicker } from '../components/DayPicker';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -55,7 +55,7 @@ function meta(target: EditorTarget, doc: MandaratDoc) {
   const list = suggestActions(theme.title);
   return {
     title: `${areaName(doc, target.ti)} · 실천 ${target.ai + 1}/8`,
-    // '3/8'은 날짜로 읽힌다 — 소리로는 '건강 영역, 8칸 중 3번째 칸'
+    // '3/8'은 날짜로 읽힌다 — 소리로는 '건강 영역, 8칸 중 세 번째 칸'(차트 칸과 같은 우리말 서수)
     speech: cellTitleSpeech(areaName(doc, target.ti), target.ai),
     placeholder: `예) ${list[target.ai % list.length]}`,
     initial: theme.actions[target.ai].text,
@@ -178,7 +178,7 @@ function DismissBridge({ into }: { into: React.MutableRefObject<SheetDismissFn |
 }
 
 export function CellEditor() {
-  const { editor } = useUI();
+  const { editor } = useUIState();
   if (!editor) return null;
   // 편집하는 동안 시트는 하나 — 다음 칸으로 넘어가도 다시 그리지 않아 키보드가 그대로 있다
   return <Editor editor={editor} />;
@@ -186,7 +186,7 @@ export function CellEditor() {
 
 function Editor({ editor }: { editor: EditorTarget }) {
   const M = usePalette();
-  const { closeEditor, openEditor, showToast } = useUI();
+  const { closeEditor, openEditor, showToast } = useUIActions();
   const { doc, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionConfig, clearAction } = useMandarat();
   const undoable = useSnapshotUndo();
   const kb = useKeyboardHeight();
@@ -370,9 +370,11 @@ function Editor({ editor }: { editor: EditorTarget }) {
   // 적혀 있던 칸을 비우는 저장 — '다음 칸'으로 넘어가지 않고 닫는다. 다음 칸을 저장하면 문서가 바뀌어
   // '칸을 비웠어요 · 되돌리기'가 더는 되돌리지 못하므로(useSnapshotUndo), 닫아서 되돌리기를 지켜 준다
   const clearing = !!action && !!action.text.trim() && !text.trim();
+  /** 저장하고 다음 칸으로 가는가 — 비우는 저장은 닫는다. 버튼 이름·키보드 리턴 키가 모두 이것을 따른다 */
+  const goesNext = !!next && !clearing;
 
   const saveAndNext = () => {
-    if (!next || clearing) {
+    if (!next || !goesNext) {
       saveAndClose();
       return;
     }
@@ -389,6 +391,8 @@ function Editor({ editor }: { editor: EditorTarget }) {
     const snapshot = doc;
     clearAction(editor.ti, editor.ai);
     undoable('칸을 비웠어요', snapshot);
+    // 칸 비우기도 저장 — 적어 둔 글을 지운다(비운 칸을 다시 열 때 지난 글을 권하지 않게)
+    clearDraft(key);
     close();
   };
 
@@ -410,8 +414,9 @@ function Editor({ editor }: { editor: EditorTarget }) {
   }, []);
 
   // ── 쓰던 글 — 앱이 뒤로 갈 때 적어 두고(앱이 그대로 끝나도 남게), 같은 칸을 다시 열면 이어서 쓰기를 권한다 ──
-  const live = useRef<EditorDraft>({ key, text, cfg, nums });
-  live.current = { key, text, cfg, nums };
+  // base: 적어 둘 때 저장돼 있던 글 — 그 사이 칸이 바뀌었으면(비우기·예시·템플릿·백업) 지난 글을 권하지 않는다
+  const live = useRef<EditorDraft>({ key, text, cfg, nums, base: m.initial });
+  live.current = { key, text, cfg, nums, base: m.initial };
   const stashed = useRef(false);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
@@ -437,7 +442,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
     AsyncStorage.getItem(EDITOR_DRAFT_KEY)
       .then((raw) => {
         const d = parseDraft(raw, key);
-        if (alive && d && draftDiffers(d, savedText, savedCfg, sameConfig)) setRestore(d);
+        if (alive && d && draftFits(d, savedText) && draftDiffers(d, savedText, savedCfg, sameConfig)) setRestore(d);
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -487,11 +492,11 @@ function Editor({ editor }: { editor: EditorTarget }) {
       {filledAction && (
         <TextBtn M={M} label="칸 비우기" color={alertInk(M)} onPress={clearCell} />
       )}
-      {next && !clearing && <TextBtn M={M} label="저장" color={M.ink} onPress={saveAndClose} />}
+      {goesNext && <TextBtn M={M} label="저장" color={M.ink} onPress={saveAndClose} />}
       <PrimaryButton
         M={M}
-        label={next && !clearing ? (editor.kind === 'theme' ? '저장하고 다음 영역' : '저장하고 다음 칸') : '저장'}
-        onPress={next ? saveAndNext : saveAndClose}
+        label={goesNext ? (editor.kind === 'theme' ? '저장하고 다음 영역' : '저장하고 다음 칸') : '저장'}
+        onPress={goesNext ? saveAndNext : saveAndClose}
         style={{ flex: 1 }}
       />
     </View>
@@ -542,11 +547,12 @@ function Editor({ editor }: { editor: EditorTarget }) {
               autoFocus={autoFocus}
               multiline={m.multiline}
               maxLength={m.max}
-              returnKeyType={next ? 'next' : 'done'}
-              submitBehavior={next ? 'submit' : 'blurAndSubmit'}
+              // 비우는 저장이면 리턴 키도 done(닫기) — '다음'이라고 해 놓고 창을 닫지 않게
+              returnKeyType={goesNext ? 'next' : 'done'}
+              submitBehavior={goesNext ? 'submit' : 'blurAndSubmit'}
               // 웹(react-native-web)은 submitBehavior를 모른다 — Enter로 보내려면 blurOnSubmit이 있어야 한다
               {...(IS_WEB ? { blurOnSubmit: true } : null)}
-              onSubmitEditing={next ? saveAndNext : saveAndClose}
+              onSubmitEditing={goesNext ? saveAndNext : saveAndClose}
               style={{
                 color: M.ink, fontSize: 17, fontWeight: '600', paddingVertical: 14, paddingHorizontal: 0,
                 minHeight: ROW_H, textAlignVertical: 'top',
@@ -874,7 +880,8 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
               M={M}
               label={p.label}
               on={due === p.date}
-              accessibilityLabel={`마감 ${p.label}, ${dateText(p.date, now)}`}
+              // 소리로는 '마감 3개월 뒤, 2027년 1월 14일 목요일' — 점 찍은 짧은 표기('1.14 (목)')는 소수로 읽힌다
+              accessibilityLabel={`마감 ${p.label}, ${fmtDateSpeech(p.date, now)}`}
               onPress={() => { tap(); set(p.date); onReveal(); }}
             />
           ))}
@@ -886,7 +893,7 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
             <Text
               style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink, paddingVertical: 15, fontVariant: ['tabular-nums'] }}
               accessibilityLiveRegion="polite"
-              accessibilityLabel={`${fmtDateLong(due)}, ${dueSpeech(days)}`}
+              accessibilityLabel={`${fmtDateSpeech(due, now)}, ${dueSpeech(days)}`}
             >
               {fmtDateLong(due)} · {fmtDue(days, 'long')}
             </Text>

@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
-const { MOODS, withAccent } = require('../src/theme/moods');
+const { MOODS, contrastEdition, withAccent } = require('../src/theme/moods');
 const { ACCENTS, contrast } = require('../src/theme/palette');
 const { legibleMark } = require('../src/theme/chart');
 
@@ -63,14 +63,23 @@ test('화면 읽기 라벨은 KindLine.long 대신 .speech를 쓴다', () => {
 });
 
 test('포인트 컬러 표시(막대 · 달력 테두리 · 진행 중 표시)는 모든 무드에서 3:1 이상', () => {
+  // 통계 막대·달력 칸은 카드 없이 종이(bg) 위에 바로 그린다 — 그 바탕으로 재고, 그 바탕에서 잰다 (FX-VERIFY K-2 · K-3).
+  // 대비 증가(contrastEdition)를 켠 팔레트도 같이 본다
   for (const [name, mood] of Object.entries(MOODS)) {
     for (const accent of ACCENTS) {
-      const M = withAccent(mood, accent.color);
-      for (const ground of ['card', 'bg']) {
-        const mark = legibleMark(M.accent, M[ground], M);
-        const c = contrast(mark, M[ground]);
-        assert.ok(c >= 3, `${name} ${M.accent} on ${ground}: ${c.toFixed(2)}`);
+      for (const [ic, M] of [['', withAccent(mood, accent.color)], [' +IC', contrastEdition(withAccent(mood, accent.color))]]) {
+        const mark = legibleMark(M.accent, M.bg, M);
+        const c = contrast(mark, M.bg);
+        assert.ok(c >= 3, `${name}${ic} ${M.accent} on bg: ${c.toFixed(2)}`);
       }
     }
   }
+  // 재는 바탕과 놓이는 바탕이 같아야 한다 — 면(card)으로 재고 종이 위에 그리면 골드가 2.8:1
+  const charts = fs.readFileSync(path.join(ROOT, 'src/components/StatsCharts.tsx'), 'utf8');
+  assert.doesNotMatch(charts, /legibleMark\(M\.accent,\s*M\.card/);
+  assert.equal((charts.match(/legibleMark\(M\.accent,\s*M\.bg, M\)/g) ?? []).length, 2, '막대 · 달력 테두리');
+  // 홈 날짜 숫자 아래 '하루 마감' 줄도 종이 위 3:1 (FX-VERIFY K-1)
+  const dash = fs.readFileSync(path.join(ROOT, 'src/screens/Dashboard.tsx'), 'utf8');
+  assert.doesNotMatch(dash, /backgroundColor: M\.accent, marginTop: 1/);
+  assert.match(dash, /dayComplete && <View style=\{\{ height: 3, backgroundColor: legibleMark\(M\.accent, M\.bg, M\)/);
 });

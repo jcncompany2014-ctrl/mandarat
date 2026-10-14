@@ -12,20 +12,11 @@ import { usePalette, type M as Palette } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useActions, useDoc, dateKey, themeProgress, themeStreak } from '../store/MandaratContext';
 import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
-import { kindLine, type KindLine } from '../lib/kinds';
+import { kindLine } from '../lib/kinds';
 import { kindOf } from '../lib/routine';
 import { announce, screenReader, useIncreaseContrast } from '../lib/useReducedMotion';
-import { areaTitle, neighborArea, pageSpeech, rowStatus } from '../lib/areaPage';
+import { areaTitle, neighborArea, pageSpeech, rowLabelFor, rowStatus } from '../lib/areaPage';
 import type { Action } from '../types';
-
-/**
- * 줄의 화면 읽기 이름 — '하루 물 2L, 달성, 매일 반복' · '책 읽기, 12권 중 6권'.
- * areaPage.rowLabel과 같은 말이되 유형 줄은 소리 말(KindLine.speech) — '6/12권'·'D-3'을 날짜·글자로 읽지 않게.
- */
-function rowSpeech(a: Action, ai: number, line: KindLine | null): string {
-  if (!a.text.trim()) return `실천 ${ai + 1} 채우기`;
-  return `${a.text.trim()}${a.done ? ', 달성' : ''}${line ? `, ${line.speech}` : ''}`;
-}
 
 /** 왼쪽 표시(체크 칸·상태 네모) 한 변 */
 const MARK = 22;
@@ -192,7 +183,7 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
                   seed={`${ti}-${ai}`}
                   status={rowStatus(doc, ti, ai, now)}
                   overdue={!!line?.alert}
-                  label={rowSpeech(a, ai, line)}
+                  label={rowLabelFor(a, ai, line)}
                   onOpen={onRowOpen}
                   onToggle={onRowToggle}
                 />

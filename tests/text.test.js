@@ -74,3 +74,13 @@ test('fmtCount: 단위를 숫자에 붙이고 세 자리마다 쉼표', () => {
   assert.equal(fmtCount(2.5, 'km'), '2.5km');
   assert.equal(fmtCount(0), '0번');
 });
+
+test('fmtDateSpeech: 해가 다를 때만 해를 붙여 말한다(HANDOFF-A6)', () => {
+  const { fmtDateSpeech } = require('../src/lib/text');
+  const now = new Date(2026, 9, 14);
+  assert.equal(fmtDateSpeech('2027-01-14', now), '2027년 1월 14일 목요일');
+  assert.equal(fmtDateSpeech('2026-10-18', now), '10월 18일 일요일');
+  assert.equal(fmtDateSpeech(new Date(2025, 11, 31), now), '2025년 12월 31일 수요일');
+  // 점 찍은 짧은 표기('10.18 (일)')가 섞이지 않는다
+  assert.doesNotMatch(fmtDateSpeech('2028-03-04', now), /\d\.\d|\(/);
+});

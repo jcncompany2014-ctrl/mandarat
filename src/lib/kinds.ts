@@ -317,6 +317,9 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
   if (!KINDS.includes(cfg.kind)) return a;
   const wasKind = kindOf(a);
   const out: Action = { ...a, kind: cfg.kind };
+  // 습관 → 쌓기는 바꾼 날을 남긴다 — 같은 날 습관으로 되돌리면 그 습관이 이어진다(아래 keep). 쌓기가 아니게 되면 지운다
+  if (cfg.kind === 'count' && wasKind === 'habit') out.habitUntil = todayKey;
+  else if (cfg.kind !== 'count') delete out.habitUntil;
   if (cfg.kind === 'habit') {
     const days = normalizeDays(cfg.days);
     const pw = normalizePerWeek(cfg.perWeek);
@@ -327,11 +330,14 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
       out.perWeek = pw;
       delete out.days;
     }
-    const since = wasKind === 'habit' ? a.since : todayKey;
+    // 이미 습관이던 칸, 또는 오늘 습관에서 쌓기로 바꿨다가 되돌린 칸은 습관이 이어진다(since·일정 내력 그대로).
+    // 그 밖(한 번·마음가짐에서, 또는 며칠 지나 쌓기에서)은 오늘부터 새 습관 — 지난 날을 놓친 날로 세지 않게
+    const keep = wasKind === 'habit' || (wasKind === 'count' && !!a.since && a.habitUntil === todayKey);
+    const since = keep ? a.since : todayKey;
     if (since) out.since = since;
     else delete out.since;
-    // 이미 습관이던 칸의 일정을 고치면 지난 일정을 남겨 둔다(지난 날은 그때 일정으로 센다). 새로 습관이 되면 처음부터
-    const schedule = wasKind === 'habit' ? nextSchedule(a, out, todayKey) : undefined;
+    // 이어지는 습관의 일정을 고치면 지난 일정을 남겨 둔다(지난 날은 그때 일정으로 센다). 새로 습관이 되면 처음부터
+    const schedule = keep ? nextSchedule(a, out, todayKey) : undefined;
     if (schedule) out.schedule = schedule;
     else delete out.schedule;
   } else if (cfg.kind === 'count') {
@@ -417,12 +423,12 @@ export interface KindLine {
   alert?: boolean;
 }
 
-/** 마감을 소리로 — '마감 3일 남음' · '오늘 마감' · '마감 2일 지남' ('D-3'은 '디 마이너스 삼'으로 읽힌다). a11y.kindSpeech와 함께 쓴다 */
+/** 마감을 소리로 — '마감 3일 남음' · '오늘 마감' · '마감 2일 지남' ('D-3'은 '디 마이너스 삼'으로 읽힌다). KindLine.speech가 쓴다 */
 export function dueSpeech(days: number): string {
   return days > 0 ? `마감 ${days}일 남음` : days === 0 ? '오늘 마감' : `마감 ${-days}일 지남`;
 }
 
-/** 쌓기를 소리로 — '12권 중 6권' ('6/12권'은 날짜로 읽힌다). a11y.kindSpeech와 함께 쓴다 */
+/** 쌓기를 소리로 — '12권 중 6권' ('6/12권'은 날짜로 읽힌다). KindLine.speech가 쓴다 */
 export function countSpeech(c: Pick<CountInfo, 'count' | 'goal' | 'unit'>): string {
   return `${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
 }

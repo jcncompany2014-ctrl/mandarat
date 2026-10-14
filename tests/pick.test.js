@@ -112,6 +112,9 @@ test('유형별: 마음가짐은 빼고, 다 쌓은 칸도 빼고, 주 N회·다
   assert.equal(rows[1].why, '이번 주 2회 남아 ‘오늘’에 이미 있어요');
   assert.equal(rows[2].why, '마감이 가까워 ‘오늘’에 이미 있어요');
   assert.equal(rows[2].hint, '마감 D-2');
+  // 소리로는 '/' · 'D-' 없이 (FX-VERIFY A-1)
+  assert.deepEqual(rows.map((r) => r.say), ['10가지 중 4가지', '주 3회', '마감 2일 남음']);
+  for (const r of rows) assert.doesNotMatch(r.say, /\d\s*\/\s*\d|D[-+]\d|D-day/, r.say);
   // 저절로 담긴 칸은 칸 순서대로 이름만 — 고를 수 있는 줄(쌓기 2)은 들어가지 않는다
   assert.deepEqual(pickSections(d, WED)[0].autoNames, ['운동', '이력서']);
   assert.equal(pickSections(d, WED)[0].autoCount, 2);

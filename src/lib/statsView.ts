@@ -4,9 +4,10 @@ import type { MandaratDoc } from '../types';
 import { DOW_KR, weekKey, ymd } from './routine';
 import { addDays, fmtNum } from './kinds';
 import { MOOD_WORDS } from './copy';
-import { fmtDateShort, fmtRange } from './text';
+import { fmtDateLong, fmtDateShort, fmtRange } from './text';
 import { bestDay, dayBin, firstLogDay, weekReview, type WeekDay, type WeekReview } from './review';
 import { sundayOf } from './ritual';
+import { ledgerHabitSpeech } from './sheetSpeech';
 
 /** 기록이 없을 때 화면 맨 위 한 줄 — 빈 양식 위에 이것 하나만 */
 export const EMPTY_LINE = '하나 하면 여기부터 기록돼요';
@@ -76,13 +77,26 @@ export function barHeight(count: number, max: number, full = 72): number {
 }
 
 /** 습관 줄 — 값 '5/7번'과 아래 한 줄. 이번 주 습관이 없으면 null(줄을 그리지 않는다) */
-export function habitRow(r: Pick<WeekReview, 'habitCount' | 'routineDone' | 'routineDue' | 'routineRemaining'>): { value: string; sub: string } | null {
+export function habitRow(
+  r: Pick<WeekReview, 'habitCount' | 'routineDone' | 'routineDue' | 'routineRemaining'>,
+): { value: string; sub: string; say?: string } | null {
   if (!(r.habitCount > 0)) return null;
   if (!(r.routineDue > 0) && !(r.routineDone > 0)) return { value: '—', sub: '오늘부터 세요' };
+  const due = Math.max(r.routineDue, r.routineDone);
   return {
-    value: `${r.routineDone}/${Math.max(r.routineDue, r.routineDone)}번`,
+    value: `${r.routineDone}/${due}번`,
     sub: r.routineRemaining > 0 ? `이번 주 ${r.routineRemaining}번 남음` : '이번 주 다 했어요',
+    // '5/7번'은 날짜로 읽힌다 — 소리로는 '7번 중 5번'(한 주 돌아보기 장부와 같은 말)
+    say: ledgerHabitSpeech(r.routineDone, due),
   };
+}
+
+/**
+ * 이번 주 장부 한 줄의 화면 읽기 이름 — '습관 7번 중 5번, 이번 주 2번 남음' · '쌓은 것 2권 더함, 50만 원 더함'.
+ * say(소리 말)가 있으면 그것을, 없으면 보이는 값('—'는 '없음')을 읽는다
+ */
+export function ledgerLabel(r: { label: string; value: string; sub?: string; say?: string }): string {
+  return `${r.label} ${r.say || (r.value === '—' ? '없음' : r.value)}${r.sub ? `, ${r.sub}` : ''}`;
 }
 
 /** 집중한 시간 — '25분' · '2시간' · '1시간 5분' */
@@ -176,9 +190,9 @@ export function bestLine(best: HeatMap['best']): string {
   return `가장 많이 한 날 ${fmtDateShort(best.date)} · ${best.count}번${best.thisWeek ? ' · 이번 주' : ''}`;
 }
 
-/** 히트맵 전체를 한 번에 읽는 글 */
+/** 히트맵 전체를 한 번에 읽는 글 — 날짜는 또박또박('10.3 (토)'는 소수로 읽힌다) */
 export function heatSpeech(map: Pick<HeatMap, 'active' | 'best'>): string {
-  const best = map.best ? `, 가장 많이 한 날 ${fmtDateShort(map.best.date)} ${map.best.count}번` : '';
+  const best = map.best ? `, 가장 많이 한 날 ${fmtDateLong(map.best.date)} ${map.best.count}번` : '';
   return `최근 10주 중 ${map.active}일 실천${best}`;
 }
 
@@ -203,6 +217,12 @@ export function pickedLine(doc: Pick<MandaratDoc, 'themes' | 'todayExtra' | 'day
   const keys = doc.dayLog[date] ?? [];
   const base = `${fmtDateShort(date)} · ${keys.length}번`;
   return keys.length > 0 ? `${base} — ${dayNames(doc, keys)}` : base;
+}
+
+/** pickedLine을 소리로(고른 날 슬라이더의 값) — '10월 3일 토요일, 4번, 걷기, 독서, 물 2L 외 1개' */
+export function pickedSpeech(doc: Pick<MandaratDoc, 'themes' | 'todayExtra' | 'dayLog'>, date: string): string {
+  const keys = doc.dayLog[date] ?? [];
+  return `${fmtDateLong(date)}, ${keys.length}번${keys.length ? `, ${dayNames(doc, keys)}` : ''}`;
 }
 
 // ── 숫자 목표 ────────────────────────────────────────────────────────────────
@@ -243,17 +263,19 @@ export function moodStrip(dayMeta: MandaratDoc['dayMeta'], today: Date, days = 1
   });
 }
 
-/** 기분 줄 전체를 읽는 글 — '최근 14일 중 기분을 남긴 날 5일, 10.12 (일) 좋음, …' */
+/** 기분 줄 전체를 읽는 글 — '최근 14일 중 기분을 남긴 날 5일, 10월 12일 월요일 좋음, …' */
 export function moodSpeech(strip: readonly MoodDay[]): string {
   const rated = strip.filter((d) => d.mood !== null);
   if (rated.length === 0) return `최근 ${strip.length}일 기분 기록 없음`;
-  return [`최근 ${strip.length}일 중 기분을 남긴 날 ${rated.length}일`, ...rated.map((d) => `${fmtDateShort(d.date)} ${MOOD_WORDS[d.mood as number]}`)].join(', ');
+  return [`최근 ${strip.length}일 중 기분을 남긴 날 ${rated.length}일`, ...rated.map((d) => `${fmtDateLong(d.date)} ${MOOD_WORDS[d.mood as number]}`)].join(', ');
 }
 
 export interface ReflectionEntry {
   date: string;
   /** '10.12 (일) · 좋음' */
   head: string;
+  /** head를 소리로 — '10월 12일 월요일, 좋음' */
+  say: string;
   text: string;
 }
 
@@ -268,7 +290,12 @@ export function reflections(dayMeta: MandaratDoc['dayMeta'], today: Date, days =
     if (!text) continue;
     const m = meta?.mood;
     const word = typeof m === 'number' && m >= 0 && m <= 4 ? MOOD_WORDS[m] : '';
-    out.push({ date, head: word ? `${fmtDateShort(date)} · ${word}` : fmtDateShort(date), text });
+    out.push({
+      date,
+      head: word ? `${fmtDateShort(date)} · ${word}` : fmtDateShort(date),
+      say: word ? `${fmtDateLong(date)}, ${word}` : fmtDateLong(date),
+      text,
+    });
   }
   return out;
 }
