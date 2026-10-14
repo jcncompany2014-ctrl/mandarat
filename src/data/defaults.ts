@@ -307,11 +307,12 @@ export function cleanReviews(v: unknown): Record<string, WeekReviewEntry> {
 }
 
 /**
- * 8영역을 정했다고 볼 수 있는가 — 이미 표시돼 있거나, 실천이 하나라도 적혀 있거나,
- * 기본 이름과 다른 영역 이름이 있으면(사용자가 고친 것) 참.
+ * 8영역을 정했다고 볼 수 있는가.
+ * - 저장된 참/거짓이 있으면 그대로 — 앱을 다시 열어도 시작하기 단계가 저절로 바뀌지 않는다.
+ * - 값이 없는 이전 저장본·백업만 짐작한다: 실천이 하나라도 적혀 있거나, 기본 이름과 다른 영역 이름이 있으면(사용자가 고친 것) 참.
  */
 function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
-  if (flag === true) return true;
+  if (typeof flag === 'boolean') return flag;
   return themes.some((t, i) => {
     const title = t.title.trim();
     return (title !== '' && title !== THEME_SEEDS[i]?.title) || t.actions.some((a) => a.text.trim() !== '');
@@ -323,7 +324,7 @@ function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
  * - 필드마다 형식을 검사해, 손상·누락된 값은 blankDoc 기본값으로 채운다.
  * - themes는 항상 8영역 × 8실천. 이전 원색 팔레트는 연꽃 팔레트로 옮긴다.
  *   아이콘 키는 그대로 둔다('lotus'도 유효 — 그림만 바뀐다).
- * - areasSet은 저장된 값이 없으면 적힌 실천·고친 영역 이름으로 짐작하고, reviews는 월요일 키·날짜·칸 키를 검사한다.
+ * - areasSet은 저장된 참/거짓을 지키고, 값이 없을 때만 적힌 실천·고친 영역 이름으로 짐작한다. reviews는 월요일 키·날짜·칸 키를 검사한다.
  * - settings.lastBackupAt은 날짜 형식일 때만 남긴다.
  * - 알 수 없는 필드는 버린다. 향후 스키마 변경 시 parsed.version 으로 분기해 단계적 업그레이드.
  * - 멱등이다: migrate(migrate(x))와 JSON으로 저장했다 읽은 결과가 migrate(x)와 같다(tests/invariants.test.js).

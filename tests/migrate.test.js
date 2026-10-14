@@ -208,6 +208,16 @@ test('areasSet: 저장된 값이 없으면 적힌 실천·고친 영역 이름�
   assert.equal(migrate({ themes: sampleThemes() }).areasSet, true);
 });
 
+test('areasSet: 저장된 거짓은 그대로 — 실천을 적은 문서도 다시 열 때 시작하기 단계가 저절로 끝나지 않는다', () => {
+  const written = { themes: [{ title: '운동', actions: [{ text: '걷기' }] }] };
+  assert.equal(migrate({ ...written, areasSet: false }).areasSet, false);
+  assert.equal(migrate({ ...written, areasSet: true }).areasSet, true);
+  // 저장했다 다시 읽어도(JSON) 같은 값 — 짐작은 값이 없을 때만
+  const once = migrate({ ...written, areasSet: false });
+  assert.equal(migrate(JSON.parse(JSON.stringify(once))).areasSet, false);
+  assert.equal(migrate(written).areasSet, true);
+});
+
 test('reviews: 월요일 키·날짜·칸 키를 검사하고 중점은 3칸, 메모는 다듬는다', () => {
   const d = migrate({
     reviews: {

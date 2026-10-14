@@ -81,7 +81,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
   const { closeEditor, sheet, closeSheet } = useUI();
   const { height: winH } = useWindowDimensions();
   const kb = useKeyboardHeight();
-  const { doc, setCenterGoal, setThemeTitle, setActionText, setActionConfig, clearAction } = useMandarat();
+  const { doc, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionConfig, clearAction } = useMandarat();
   const undoable = useSnapshotUndo();
   const m = meta(editor, doc);
   const [text, setText] = useState(m.initial);
@@ -130,7 +130,9 @@ function Editor({ editor }: { editor: EditorTarget }) {
       const next = v || '나의 핵심 목표';
       if (next !== doc.centerGoal) setCenterGoal(next);
     } else if (editor.kind === 'theme') {
+      // 기본 이름 그대로 저장해도 '이 영역으로 정했다'는 뜻 — 시작하기의 '영역 8개 정하기'가 끝난다
       if (v !== doc.themes[editor.ti].title) setThemeTitle(editor.ti, v);
+      else markAreasSet();
     } else if (action) {
       if (!v) {
         // 칸을 비우면 유형별 값·기록·달성까지 지운다(다음 실천이 이어받지 않게) — 잠시 되돌릴 수 있다

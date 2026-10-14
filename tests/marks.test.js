@@ -3,7 +3,7 @@ require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  TICK_PATH, TICK_DASH, MUTED_FILL, CHECK_BORDER, checkBorder, tickInk, seedTilt,
+  TICK_PATH, TICK_DASH, MUTED_OPACITY, CHECK_BORDER, checkBorder, tickInk, seedTilt,
   WEEKDAY_KR, weekdayIndex, STRIP, stripCenters, dayWord, weekStripSummary, weekDayActionLabel, weekDayLabel,
   ellipseLength, ellipsePath,
 } = require('../src/lib/marks');
@@ -44,15 +44,25 @@ test('빈 체크 칸 테두리: 밝은 종이는 먹 55%, 다크는 흰색 40% �
   }
 });
 
-test('체크 획 색: 진한 칠 위에서도, 옅게(55%) 칠한 칸 위에서도 4.5:1 이상', () => {
+test('체크 획 색: 칠 위에서 4.5:1 이상 — 영역 색 8가지는 모두 흰 획, 종이(밝게·다크)와 상관없이 같은 색', () => {
   const colors = [...PILLAR_COLORS, ...ACCENTS.map((a) => a.color), GOLD];
+  for (const c of colors) {
+    const ink = tickInk(c);
+    assert.ok(contrast(ink, toHex(c)) >= 4.5, `${c} → ${ink}: ${contrast(ink, toHex(c)).toFixed(2)}`);
+  }
+  for (const c of PILLAR_COLORS) assert.equal(tickInk(c), '#FFFFFF', c);
+});
+
+test('조용한 체크(muted): 칸 전체를 한 농도로 옅게 — 칠한 칸이 종이와 구별될 만큼은 남는다', () => {
+  assert.ok(MUTED_OPACITY > 0.4 && MUTED_OPACITY < 1, `${MUTED_OPACITY}`);
   for (const [name, M] of Object.entries(MOODS)) {
-    for (const c of colors) {
-      const full = tickInk(c, M.bg, false);
-      assert.ok(contrast(full, toHex(c)) >= 4.5, `${name} ${c} full`);
-      const ground = toHex(mix(M.bg, c, MUTED_FILL));
-      const muted = tickInk(c, M.bg, true);
-      assert.ok(contrast(muted, ground) >= 4.5, `${name} ${c} muted → ${muted} on ${ground}: ${contrast(muted, ground).toFixed(2)}`);
+    for (const c of PILLAR_COLORS) {
+      // 칸 전체가 옅어지므로 칠과 획이 같은 비율로 종이 쪽으로 간다 — 칠한 칸은 여전히 종이보다 뚜렷이 짙다(밝게) / 밝다(다크)
+      const fill = toHex(mix(M.bg, c, MUTED_OPACITY));
+      assert.ok(contrast(fill, M.bg) >= 1.8, `${name} ${c}: ${contrast(fill, M.bg).toFixed(2)}`);
+      // 획은 옅어진 칠과 구별된다(획 색 그대로, 같은 농도)
+      const tick = toHex(mix(M.bg, tickInk(c), MUTED_OPACITY));
+      assert.ok(contrast(tick, fill) >= 2, `${name} ${c}: 획 ${contrast(tick, fill).toFixed(2)}`);
     }
   }
 });

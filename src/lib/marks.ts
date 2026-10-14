@@ -1,7 +1,7 @@
 // 손으로 긋는 표시(체크 칸 · 주간 칸 · 동그라미)의 값과 말 — RN 의존 없는 순수 모듈(단위 테스트에서 그대로 쓴다).
 // 그리는 컴포넌트: Check.tsx · WeekStrip.tsx · MoodRow.tsx · GuideChips.tsx · KindBits.tsx(RatingBoxes).
 import type { DayState } from './routine';
-import { mix, toHex } from '../theme/moods';
+import { toHex } from '../theme/moods';
 import { readableOn } from '../theme/palette';
 
 // ── 체크 칸 ──────────────────────────────────────────────────────────────────
@@ -12,16 +12,19 @@ export const TICK_PATH = 'M5 13.5 L10 18 L19.5 7';
 /** 체크 획 길이(≈21.3)보다 조금 긴 대시 — strokeDashoffset을 이 값에서 0으로 줄이면 한 획으로 그려진다 */
 export const TICK_DASH = 25;
 
-/** 조용한 체크(muted) — 다 한 줄처럼 한발 물러선 칸의 칠 농도 */
-export const MUTED_FILL = 0.55;
+/**
+ * 조용한 체크(muted) — '완료' 묶음처럼 한발 물러선 줄의 체크 칸 전체(칠과 획을 함께) 농도.
+ * 칠만 옅게 하고 획 색을 따로 고르면(옅은 칠 위 먹색 획) 흔한 체크박스 그림처럼 보여서, 같은 표시를 통째로 옅게 한다.
+ * 그 줄이 끝났다는 것은 '완료' 머리글과 취소선 글자(보조 글자색, 4.5:1 이상)가 함께 말해 준다.
+ */
+export const MUTED_OPACITY = 0.55;
 
 /**
- * 체크 획의 색 — 실제로 보이는 칠 위에서 읽히는 색.
- * 옅게 칠한 칸(muted)은 종이와 겹친 색이 훨씬 밝아서, 영역 색 기준의 흰 획은 2:1 남짓으로 묻힌다 → 겹친 색 기준으로 고른다.
+ * 체크 획의 색 — 칠한 영역 색 위에서 읽히는 색(영역 색 8가지는 모두 흰색).
+ * 밝은 종이·다크 종이, 조용한 체크(muted) 모두 같은 획 색이다 — 어디서나 같은 '칠한 칸 + 흰 획'.
  */
-export function tickInk(color: string, paper: string, muted = false): string {
-  const ground = muted ? toHex(mix(toHex(paper), toHex(color), MUTED_FILL)) : toHex(color);
-  return readableOn(ground);
+export function tickInk(color: string): string {
+  return readableOn(toHex(color));
 }
 
 /**

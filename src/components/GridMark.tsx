@@ -3,7 +3,7 @@ import { Animated, Pressable, View, type AccessibilityActionEvent, type GestureR
 import { DUR, EASE } from '../theme/motion';
 import { alpha } from '../theme/moods';
 import {
-  CHART_POS, DONE_INK, RULE, blockAt, chartCell, coreBg, frameRadius, legibleMark, ruleColor, spiralRank, writtenBg,
+  CHART_POS, DONE_INK, RULE, blockAt, chartCell, coreBg, frameRadius, headBg, headTrack, legibleMark, ruleColor, spiralRank, writtenBg,
 } from '../theme/chart';
 import { usePalette } from '../theme/usePalette';
 import { useReducedMotion } from '../lib/useReducedMotion';
@@ -48,8 +48,8 @@ type MiniCell = {
   col: number;
   /** 마지막 모습의 바탕 (없으면 종이 그대로) */
   bg?: string;
-  /** 영역 이름표 — 칸 안쪽에 영역 색 테두리만 */
-  outline?: string;
+  /** 영역 이름표 — 칸 맨 아래 진행 막대(영역 색, 달성 비율 0~1). 바탕은 bg(이름표 색) */
+  bar?: { color: string; ratio: number };
   /** 오늘 할 일 점의 색 */
   dot?: string;
   /** 칠해지는 움직임 동안 밑에 깔리는 바탕(쓰기만 한 칸의 색, 가운데는 종이) */
@@ -63,8 +63,9 @@ type Run = { key: string; delay: number; duration: number };
 /**
  * 내 만다라트 81칸 전체를 작게 — 인쇄된 표 한 장. 홈 머리, 64칸 축하 쪽에 쓴다.
  *
- * 표의 약속(src/theme/chart.ts): 칠한 칸 = 달성 · 테두리만 있는 칸 = 영역 이름표 · 옅게 깔린 칸 = 적어 둔 실천 ·
- * 빈 칸 = 종이 · 가운데 = 핵심 목표. 처음 쓰는 사람의 표에는 칠한 칸이 하나도 없다.
+ * 표의 약속(src/theme/chart.ts): 칠한 칸 = 달성 · 아주 옅게 깔리고 아래에 가는 진행 막대가 붙은 칸 = 영역 이름표
+ * (영역 보드의 머리 칸을 줄인 모양) · 옅게 깔린 칸 = 적어 둔 실천 · 빈 칸 = 종이 · 가운데 = 핵심 목표.
+ * 처음 쓰는 사람의 표에는 칠한 칸이 하나도 없다. 이름표는 칸을 통째로 쓴다 — 칸 안의 작은 네모 테두리는 빈 체크 칸처럼 보인다.
  * 오늘 할 일인 칸 가운데에는 작은 점 — 아직이면 먹색, 오늘 했으면 금색(칠한 칸 위에선 흰색).
  *
  * - onPressBlock: 누른 자리의 블록 — 바깥 블록이면 영역 번호, 가운데 블록이면 'c'.
@@ -119,7 +120,8 @@ export function MiniChart({
         const th = doc.themes[cell.ti];
         if (!th) { out.push({ row, col }); continue; }
         if (cell.kind === 'head') {
-          out.push({ row, col, outline: th.color });
+          const done = th.actions.filter((a) => a.done).length;
+          out.push({ row, col, bg: headBg(th.color, M), bar: { color: th.color, ratio: Math.min(1, done / 8) } });
           continue;
         }
         const a = th.actions[cell.ai];
@@ -138,7 +140,7 @@ export function MiniChart({
           n++;
           if (did) didN++;
           // 종이·쓴 칸 위에선 아직이면 먹색 · 했으면 금색(바탕 위 3:1 이상으로 맞춘 금색). 칠한 칸 위에선 흰 점
-          // (빈 네모는 영역 이름표의 모양이라 점은 늘 채운 네모)
+          // (점은 늘 채운 네모 — 빈 네모 테두리는 체크 칸으로 읽힌다)
           base.dot = a?.done ? DONE_INK : did ? legibleMark(M.gold, base.bg ?? M.bg, M) : M.ink;
         }
         out.push(base);
@@ -200,7 +202,8 @@ export function MiniChart({
 
   const cellRule = ruleColor(M, 'cell');
   const blockRule = ruleColor(M, 'block');
-  const inset = Math.max(1.5, c * 0.12);
+  // 이름표 진행 막대 — 영역 보드 머리 칸(4pt)을 작은 칸 크기에 맞춰 줄인 굵기
+  const barH = Math.max(2, Math.round(c * 0.16 * 2) / 2);
   const dotSize = Math.max(3, Math.round(c / 5));
 
   const drawing = (
@@ -220,13 +223,10 @@ export function MiniChart({
             ) : x.bg ? (
               <View style={[box, { backgroundColor: x.bg }]} />
             ) : null}
-            {x.outline && (
-              <View
-                style={{
-                  position: 'absolute', left: left + inset, top: top + inset, width: c - inset * 2, height: c - inset * 2,
-                  borderWidth: 1.2, borderColor: x.outline, borderRadius: radius ? 1 : 0,
-                }}
-              />
+            {x.bar && (
+              <View style={{ position: 'absolute', left, top: top + c - barH, width: c, height: barH, backgroundColor: headTrack(x.bar.color) }}>
+                <View style={{ width: c * x.bar.ratio, height: barH, backgroundColor: x.bar.color }} />
+              </View>
             )}
           </React.Fragment>
         );

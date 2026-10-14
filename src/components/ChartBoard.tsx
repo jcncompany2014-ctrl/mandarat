@@ -4,7 +4,7 @@ import { Text } from './AppText';
 import { Icon } from './Icon';
 import { KindMeta } from './KindBits';
 import { alpha } from '../theme/moods';
-import { DONE_INK, RULE, SLOT_INDEX, estimateLines, frameRadius, headBg, legibleMark, ruleColor } from '../theme/chart';
+import { DONE_INK, RULE, SLOT_INDEX, estimateLines, frameRadius, headBg, headTrack, legibleMark, ruleColor } from '../theme/chart';
 import type { M } from '../theme/usePalette';
 import { themeProgress } from '../store/MandaratContext';
 import { blockSummary, cellSpeech } from '../lib/a11y';
@@ -31,7 +31,7 @@ function PressShade({ M }: { M: M }) {
 /** 진행 막대 — 칸 맨 아래 가장자리에 붙은 가는 줄(바탕은 영역 색 25%) */
 function EdgeBar({ color, pct, height }: { color: string; pct: number; height: number }) {
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height, backgroundColor: alpha(color, 0.25) }}>
+    <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height, backgroundColor: headTrack(color) }}>
       <View style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%', backgroundColor: color }} />
     </View>
   );

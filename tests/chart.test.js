@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   CHART_POS, CELL_POS, CENTER_SLOT, SLOT_INDEX, CLOCKWISE, chartCell, blockAt, spiralRank,
-  DONE_INK, coreBg, coreInk, headBg, writtenBg, RULE, ruleColor, frameRadius, legibleMark,
+  DONE_INK, coreBg, coreInk, headBg, headTrack, writtenBg, RULE, ruleColor, frameRadius, legibleMark,
   estimateLines, fitFontSize,
 } = require('../src/theme/chart');
 const { MOODS, toHex } = require('../src/theme/moods');
@@ -130,6 +130,24 @@ test('이름표 바탕은 쓰기만 한 칸보다 옅고, 둘 다 달성(영역 
       assert.ok(contrast(written, solid) >= 1.8, `${name} ${c}: 쓴 칸 vs 달성`);
       assert.ok(contrast(M.ink, head) >= 4.5, `${name} ${c}: 이름표 위 글씨`);
       if (!M.dark) assert.ok(contrast(head, M.bg) < contrast(written, M.bg), `${name} ${c}: 이름표가 더 옅다`);
+    }
+  }
+});
+
+test('이름표 진행 막대: 바탕은 영역 색 25% — 이름표 위에서 보이고, 채운 부분(영역 색)은 더 또렷하다', () => {
+  const over = (rgba, bg) => {
+    const [r, g, b, a] = rgba.match(/[\d.]+/g).map(Number);
+    const base = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
+    return toHex(`rgb(${[r, g, b].map((c, i) => Math.round(c * a + base[i] * (1 - a))).join(', ')})`);
+  };
+  for (const c of PILLAR_COLORS) assert.equal(headTrack(c), `rgba(${[1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)).join(', ')}, 0.25)`);
+  for (const [name, M] of moods) {
+    for (const c of PILLAR_COLORS) {
+      const head = toHex(headBg(c, M));
+      const track = over(headTrack(c), head);
+      assert.ok(contrast(track, head) >= 1.2, `${name} ${c}: 막대 바탕 ${contrast(track, head).toFixed(2)}`);
+      assert.ok(contrast(c, head) >= 2.4, `${name} ${c}: 채운 막대 ${contrast(c, head).toFixed(2)}`);
+      assert.ok(contrast(c, head) > contrast(track, head), `${name} ${c}`);
     }
   }
 });

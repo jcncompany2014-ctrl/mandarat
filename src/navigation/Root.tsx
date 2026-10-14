@@ -293,13 +293,15 @@ export function Root() {
     <View style={{ flex: 1, backgroundColor: M.bg }}>
       <StatusBar style={M.dark ? 'light' : 'dark'} />
       {/* 도트 종이는 스크롤 뒤에 화면 크기로 한 장만 — 내용 높이만큼 그리면 긴 화면에서 메모리를 크게 쓴다.
-          한 칸(18)만큼 더 길게 두고 스크롤을 따라 올린다 */}
-      <Animated.View
-        pointerEvents="none"
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: dotsY }] }}
-      >
-        <PaperDots M={M} gap={DOT} offsetY={insets.top % DOT} />
-      </Animated.View>
+          한 칸(18)만큼 더 길게 두고 스크롤을 따라 올린다. 더 긴 그 한 칸은 화면 틀에서 잘라 낸다 —
+          안 자르면 웹에서는 문서가 18만큼 길어져 창이 스크롤되고, 탭바가 따라 올라가며 아래에 흰 띠가 남는다 */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}>
+        <Animated.View
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: dotsY }] }}
+        >
+          <PaperDots M={M} gap={DOT} offsetY={insets.top % DOT} />
+        </Animated.View>
+      </View>
       <Animated.ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
