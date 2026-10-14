@@ -225,12 +225,15 @@ export const Dashboard = memo(function Dashboard() {
                   accessibilityHint="실천 자세히 보기"
                   style={({ pressed }) => [
                     groupEdge(M, i === 0, i === priority.length - 1),
-                    { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8, paddingHorizontal: 2 },
+                    { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8, paddingHorizontal: 0 },
                     pressed ? pressedRow(M) : null,
                   ]}
                 >
-                  {i > 0 && <RowDivider M={M} inset={0} />}
-                  <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: th?.color ?? M.sub }} />
+                  {i > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
+                  {/* 오늘 할 일과 같은 글 줄 — 체크 칸 폭(26)에 영역 네모를 놓는다 */}
+                  <View style={{ width: 26, alignItems: 'center' }}>
+                    <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: th?.color ?? M.sub }} />
+                  </View>
                   <Text style={{ ...TYPE.rowTitle, flex: 1, color: M.ink }} numberOfLines={2}>{text}</Text>
                 </Pressable>
               );
@@ -312,12 +315,15 @@ const AreaRow = memo(function AreaRow({ M, th, ti, last, onPress }: {
       accessibilityLabel={`${name}, ${line}, 8칸 중 ${p.done}칸 달성`}
       style={({ pressed }) => [
         groupEdge(M, first, last),
-        { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 9, paddingHorizontal: 2 },
+        { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 9, paddingHorizontal: 0 },
         pressed ? pressedRow(M) : null,
       ]}
     >
-      {!first && <RowDivider M={M} inset={0} />}
-      <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: th.color }} />
+      {!first && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
+      {/* 오늘 할 일과 같은 글 줄 — 체크 칸 폭(26)에 영역 네모를 놓는다 */}
+      <View style={{ width: 26, alignItems: 'center' }}>
+        <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: th.color }} />
+      </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '700', color: M.ink }} numberOfLines={1}>{name}</Text>
         <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '500', color: M.sub, marginTop: 1 }} numberOfLines={1}>{line}</Text>
@@ -387,7 +393,8 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
       </Pressable>,
     );
   }
-  if (canPick || todayTotal === 0) {
+  // 다 한 날엔 이 줄을 숫자와 마감 두 줄 사이에 두지 않는다 — 마감 아래 조용한 '더 고르기'로
+  if (!complete && (canPick || todayTotal === 0)) {
     // 만다라트에 고를 실천이 있으면 거기서 고르고, 없으면 오늘만 할 일을 바로 적는다
     const label = canPick ? '실천에서 더 고르기' : '오늘 할 일 담기';
     lines.push(
@@ -396,10 +403,10 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
         onPress={() => { tap(); if (canPick) openPick(); else openQuick(); }}
         accessibilityRole="button"
         accessibilityLabel={label}
-        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54, paddingVertical: 8, paddingLeft: 1 }, pressed ? pressedRow(M) : null]}
+        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8 }, pressed ? pressedRow(M) : null]}
       >
         {lines.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-        <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 26, height: 26, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color, alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="plus" size={13} color={M.sub} sw={2.2} />
         </View>
         <Text style={{ fontSize: 15, fontWeight: '600', color: M.sub }}>{label}</Text>
@@ -422,6 +429,16 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
         )}
         {complete && (
           <LedgerClose M={M} total={todayTotal} draw={dayCloseTick !== mountTick.current} fresh={kept.size > 0 || closing} />
+        )}
+        {complete && canPick && (
+          <Pressable
+            onPress={() => { tap(); openPick(); }}
+            accessibilityRole="button"
+            accessibilityLabel="실천에서 더 고르기"
+            style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center', paddingTop: 8, alignSelf: 'flex-start' }, pressed ? { opacity: 0.5 } : null]}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>실천에서 더 고르기 ›</Text>
+          </Pressable>
         )}
       </View>
     </>
