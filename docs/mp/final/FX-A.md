@@ -22,7 +22,7 @@ Checks: `npm ci` ok · `npm run typecheck` clean · `npm test` 378 tests, 376 pa
 | **A-1 (lib)** | `addedSpeech` → `${text}, ${goal}${unit} 중 ${count}${unit}`. `areaPage.rowLabel` uses `KindLine.speech`. `pageSpeech` → `${area}, 8개 영역 중 첫 번째` — **call made:** native ordinal (`a11y.ORDINAL`, now exported) instead of `${n}번째`, because `a11y.ts` notes VoiceOver reads '3번째' as '삼번째'. `kinds.countSpeech`/`dueSpeech` shared by `KindLine.speech` and `a11y.kindSpeech`, so the two say the same words. |
 | **C-1** | Hints '했어요로 남겨요' / '했어요를 지워요' / '오늘 더한 것을 빼요'; speech `${text}, 했어요. 오늘 ${left}개 남았어요` / `${text}, 했어요`. |
 | **C-2 (lib)** | focusClock: '달성으로 표시', '끝내고 달성', '끝내고 했어요'. marks.ts already says '기록 지우기 / 했어요로 남기기' — unchanged. |
-| **C-3 (lib)** | statsView `이번 달 달성 ${n}칸`, '오늘부터 세요'; home '8칸 모두 달성했어요'; pick `이번 주 ${n}회를 오늘 다 했어요`; KIND_HINT habit → '… 주 N회로 정하면 횟수를 다 할 때까지 매일 담겨요.' Also `goalText` / `actionSheet.goalToast` '…목표를 이뤘어요' → '…목표를 달성했어요' (reaching the count goal achieves the cell, and '이뤘' is now banned). |
+| **C-3 (lib)** | statsView `이번 달 달성 ${n}칸`, '오늘부터 세요'; home '8칸 모두 달성했어요'; pick `이번 주 ${n}회를 오늘 다 했어요`; KIND_HINT habit → '… 주 N회로 정하면 횟수를 다 할 때까지 매일 담겨요.' Also `goalText` / `actionSheet.goalToast` '…목표를 이뤘어요' → '…목표에 닿았어요' ('이뤘' is now banned; wording matches CellEditor, per the FX-E handoff). |
 | **C-5 (lib)** | todayModes '아직 이어 가는 기록이 없어요. 오늘 하나 하면 시작돼요'; guide step '하나 해 보기' (key still `check`); statsView '하나 하면 여기부터 기록돼요' / '하나 하면 시작돼요'. |
 | **C-8** | `dueInfo.label` = `fmtDue(days,'short')` ('D-3' · 'D-day' · 'D+2'), new `dueInfo.long` = `fmtDue(days,'long')`; `KindLine.short` = label (compact), `long`/`plan` = long. `dateText` = `fmtDateShort` ('10.20 (화)'), with a `YYYY년 ` prefix only for another year. `fmtNum` moved into `text.ts` (re-exported from `kinds.ts`) to avoid a kinds↔text import cycle. templates '사이드 프로젝트' → '부업'. |
 | **C-9** | Comment on `backupFileName` explaining the ASCII name. |
@@ -31,6 +31,7 @@ Checks: `npm ci` ok · `npm run typecheck` clean · `npm test` 378 tests, 376 pa
 Tests that mutated `doc.dayLog` / actions in place were rewritten to replace objects the way the store does (the new caches key on identity; the store never mutates).
 
 ## Not done + why
+- Cross-session handoffs (FX-C/FX-E): `pageSpeech` keeps the native ordinal ('8개 영역 중 두 번째') instead of `${n}번째` — see A-1 row. `a11y.kindSpeech` shares `countSpeech`/`dueSpeech`/mind wording with `KindLine.speech` but keeps '습관 매일 · 습관 주 3회' (the plan) for habits instead of the week progress, since cell speech describes the cell, not this week; its existing tests pin that.
 - **BACKUP_SCHEMA stays 3.** `schedule` is optional history; an older app importing a new backup drops it and falls back to today's behaviour (counting the past with the current schedule). Refusing the whole backup for that seemed worse. Bump to 4 if you'd rather old apps refuse.
 - **habit → count → habit with a count added on a day that also had a habit check** archives that day's entry (the two can't be told apart in `dayLog`). Rare; noted.
 - `weekTarget` in the week a schedule changes from days to perWeek isn't capped by days left since the change (only by `since`, as before).

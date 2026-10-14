@@ -10,9 +10,9 @@ export function reachesGoal(c: Pick<CountInfo, 'count' | 'goal' | 'step' | 'reac
   return !c.reached && c.count + c.step >= c.goal;
 }
 
-/** 쌓기 목표에 닿았을 때 — '12권 목표를 달성했어요' (목표에 닿으면 칸이 달성된다) */
+/** 쌓기 목표에 닿았을 때 — '12권 목표에 닿았어요' (목표에 닿으면 칸이 달성된다) */
 export function goalText(c: Pick<CountInfo, 'goal' | 'unit'>): string {
-  return `${fmtNum(c.goal)}${c.unit} 목표를 달성했어요`;
+  return `${fmtNum(c.goal)}${c.unit} 목표에 닿았어요`;
 }
 
 /** 쌓기 체크를 풀어 그날 더한 것을 한꺼번에 뺐을 때 — '오늘 더한 3권을 뺐어요' (되돌리기와 함께) */
