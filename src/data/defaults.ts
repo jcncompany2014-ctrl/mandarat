@@ -1,6 +1,6 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
 import {
-  ICON_NAMES, type Action, type ActionKind, type CellShape, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra,
+  ICON_NAMES, type Action, type ActionKind, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra,
   type WeekReviewEntry,
 } from '../types';
 import { MOODS } from '../theme/moods';
@@ -215,11 +215,40 @@ function cleanDateNums(v: unknown, ok: (n: unknown) => number | undefined): Reco
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+/** 남겨 두는 일정 내력 — 최근 60번 고친 것까지(그보다 오래된 날은 남은 것 중 첫 일정으로 센다) */
+export const SCHEDULE_KEEP = 60;
+
+/**
+ * 습관 일정 내력 — from이 날짜이고 요일(0~6) 또는 주 N회(1~6)가 맞는 토막만, from 순서로 겹치지 않게(같은 날은 나중 것).
+ * 바로 앞 토막과 같은 일정은 합친다. 토막이 둘 이상일 때만 남긴다(하나면 지금 값과 같아 내력이 필요 없다).
+ */
+function cleanSchedule(v: unknown): HabitSchedule[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const byDay = new Map<string, HabitSchedule>();
+  for (const e of v) {
+    if (!isRecord(e) || typeof e.from !== 'string' || !DATE_RE.test(e.from)) continue;
+    const days = normalizeDays(e.days);
+    const perWeek = normalizePerWeek(e.perWeek);
+    if (days.length > 0) byDay.set(e.from, { from: e.from, days });
+    else if (perWeek > 0) byDay.set(e.from, { from: e.from, perWeek });
+  }
+  const out: HabitSchedule[] = [];
+  for (const from of [...byDay.keys()].sort()) {
+    const e = byDay.get(from) as HabitSchedule;
+    const last = out[out.length - 1];
+    if (last && (last.perWeek ?? 0) === (e.perWeek ?? 0) && (last.days ?? []).join() === (e.days ?? []).join()) continue;
+    out.push(e);
+  }
+  const kept = out.slice(-SCHEDULE_KEEP);
+  return kept.length > 1 ? kept : undefined;
+}
+
 /** 실천 칸 하나 — 모르는 값·깨진 값은 버리고, 유형별 값은 형식이 맞을 때만 남긴다 */
 function cleanAction(a: Record<string, unknown>): Action {
   const days = normalizeDays(a.days);
   const perWeek = normalizePerWeek(a.perWeek);
   const since = (days.length > 0 || perWeek > 0) && typeof a.since === 'string' && DATE_RE.test(a.since) ? a.since : undefined;
+  const schedule = days.length > 0 || perWeek > 0 ? cleanSchedule(a.schedule) : undefined;
   const kind = (KINDS as readonly unknown[]).includes(a.kind) ? (a.kind as ActionKind) : undefined;
   const goal = cleanNum(a.goal, 0.01);
   const unit = cleanUnit(a.unit);
@@ -236,6 +265,7 @@ function cleanAction(a: Record<string, unknown>): Action {
     ...(days.length > 0 ? { days } : {}),
     ...(perWeek > 0 ? { perWeek } : {}),
     ...(since ? { since } : {}),
+    ...(schedule ? { schedule } : {}),
     ...(goal !== undefined ? { goal } : {}),
     ...(unit ? { unit } : {}),
     ...(step !== undefined && step !== 1 ? { step } : {}),

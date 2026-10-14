@@ -87,8 +87,8 @@ test('routineWeek: 완료·오늘·놓침·예정·쉬는 날을 구분하고, �
     return { dayLog: { '2026-10-13': ['0-0'] } };
   });
   assert.deepEqual(R.routineWeek(doc, 0, 0, WED), ['missed', 'done', 'today', 'off', 'planned', 'off', 'off']);
-  doc.dayLog['2026-10-12'] = ['0-0'];
-  doc.dayLog['2026-10-14'] = ['0-0'];
+  doc.dayLog = { ...doc.dayLog, ['2026-10-12']: ['0-0'] };
+  doc.dayLog = { ...doc.dayLog, ['2026-10-14']: ['0-0'] };
   assert.deepEqual(R.routineWeek(doc, 0, 0, WED), ['done', 'done', 'done', 'off', 'planned', 'off', 'off']);
   // 쉬는 날(화) 실천은 점으로만 보이고 n/m 비율은 예정일만 센다 → 4/3회 같은 표시가 없다
   assert.deepEqual(R.routineWeekCount(doc, 0, 0, WED), { done: 2, planned: 3 });
@@ -218,7 +218,7 @@ test('routineWeek: 주 N회도 습관을 정한 날 전은 쉬는 날이고, 그
   });
   assert.deepEqual(R.routineWeek(doc, 0, 0, WED), ['off', 'off', 'today', 'off', 'off', 'off', 'off']);
   assert.equal(R.routineWeekCount(doc, 0, 0, WED).done, 0, '주간 칸과 n/m회가 같은 날만 센다');
-  doc.dayLog['2026-10-14'] = ['0-0'];
+  doc.dayLog = { ...doc.dayLog, ['2026-10-14']: ['0-0'] };
   assert.deepEqual(R.routineWeek(doc, 0, 0, WED), ['off', 'off', 'done', 'off', 'off', 'off', 'off']);
   assert.equal(R.routineWeekCount(doc, 0, 0, WED).done, 1);
 });
@@ -247,10 +247,10 @@ test('habitStreak: 월·수·금 습관은 화·목에 쉬어도 끊기지 않�
     return { dayLog: logOn(['2026-09-28', '2026-09-30', '2026-10-02', '2026-10-05', '2026-10-07', '2026-10-09', '2026-10-12', '2026-10-14']) };
   });
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 8, best: 8, unit: 'day' });
-  doc.dayLog['2026-10-13'] = ['0-0']; // 쉬는 날(화)에도 함
+  doc.dayLog = { ...doc.dayLog, ['2026-10-13']: ['0-0'] }; // 쉬는 날(화)에도 함
   assert.equal(R.habitStreak(doc, 0, 0, WED).cur, 8);
   // 금요일(10/09)을 놓치면 거기서 끊긴다
-  delete doc.dayLog['2026-10-09'];
+  doc.dayLog = Object.fromEntries(Object.entries(doc.dayLog).filter(([k]) => k !== '2026-10-09'));
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 2, best: 5, unit: 'day' });
 });
 
@@ -262,7 +262,7 @@ test('habitStreak: 아직 체크하지 않은 오늘은 끊지 않고, 하루가
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 3, best: 3, unit: 'day' });
   const THU = new Date(2026, 9, 15);
   assert.deepEqual(R.habitStreak(doc, 0, 0, THU), { cur: 0, best: 3, unit: 'day' }, '수요일을 놓쳤다');
-  doc.dayLog[ago(0)] = ['0-0'];
+  doc.dayLog = { ...doc.dayLog, [ago(0)]: ['0-0'] };
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 4, best: 4, unit: 'day' });
 });
 
@@ -274,8 +274,8 @@ test('habitStreak: 습관을 정한 날(since) 전 기록은 세지 않는다', 
   });
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 3, best: 3, unit: 'day' });
   // since 당일부터 빠지면 그날 끊긴다(그 전 날은 놓친 날이 아니다)
-  doc.themes[0].actions[0].since = '2026-10-13';
-  delete doc.dayLog[ago(1)];
+  doc.themes = doc.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 0 ? { ...a, since: '2026-10-13' } : a)) } : t));
+  doc.dayLog = Object.fromEntries(Object.entries(doc.dayLog).filter(([k]) => k !== ago(1)));
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 1, best: 1, unit: 'day' });
 });
 
@@ -296,11 +296,11 @@ test('habitStreak: 주 3회를 세 주 채우고 이번 주도 아직 채울 수
   const SUN18 = new Date(2026, 9, 18);
   assert.deepEqual(R.habitStreak(doc, 0, 0, SUN18), { cur: 0, best: 3, unit: 'week' });
   // 이번 주를 채우면 4주
-  doc.dayLog['2026-10-13'] = ['0-0'];
-  doc.dayLog['2026-10-14'] = ['0-0'];
+  doc.dayLog = { ...doc.dayLog, ['2026-10-13']: ['0-0'] };
+  doc.dayLog = { ...doc.dayLog, ['2026-10-14']: ['0-0'] };
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 4, best: 4, unit: 'week' });
   // 가운데 주를 못 채웠으면 그 뒤부터 다시
-  delete doc.dayLog['2026-10-01'];
+  doc.dayLog = Object.fromEntries(Object.entries(doc.dayLog).filter(([k]) => k !== '2026-10-01'));
   assert.deepEqual(R.habitStreak(doc, 0, 0, WED), { cur: 2, best: 2, unit: 'week' });
 });
 

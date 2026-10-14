@@ -9,13 +9,13 @@ import { bestDay, dayBin, firstLogDay, weekReview, type WeekDay, type WeekReview
 import { sundayOf } from './ritual';
 
 /** 기록이 없을 때 화면 맨 위 한 줄 — 빈 양식 위에 이것 하나만 */
-export const EMPTY_LINE = '하나 체크하면 여기부터 기록돼요';
+export const EMPTY_LINE = '하나 하면 여기부터 기록돼요';
 
 // ── 큰 숫자 ──────────────────────────────────────────────────────────────────
 
 /** '이어 온 날' 아래 한 줄 — 0일 · 오늘까지 이어 옴 · 오늘 하면 n+1일째 */
 export function streakCaption(streak: number, todayHas: boolean): string {
-  if (!(streak > 0)) return '하나 체크하면 시작돼요';
+  if (!(streak > 0)) return '하나 하면 시작돼요';
   return todayHas ? '오늘까지 이어 왔어요' : `오늘 하나 하면 ${streak + 1}일째`;
 }
 
@@ -25,11 +25,11 @@ export function streakSpeech(streak: number, todayHas: boolean): string {
 }
 
 /**
- * 기록 줄 — '최고 기록 12일 · 이번 달 이룬 칸 +3'. 지금 이어 가는 날이 최고 기록이면 앞부분이 '지금이 최고 기록'(best: true).
+ * 기록 줄 — '최고 기록 12일 · 이번 달 달성 3칸'. 지금 이어 가는 날이 최고 기록이면 앞부분이 '지금이 최고 기록'(best: true).
  * 아직 이어 온 날이 한 번도 없으면 앞부분 없이 이번 달만.
  */
 export function recordParts(longest: number, streak: number, month: number): { lead: string; best: boolean; month: string } {
-  const monthText = `이번 달 이룬 칸 +${Math.max(0, month)}`;
+  const monthText = `이번 달 달성 ${Math.max(0, month)}칸`;
   if (!(longest > 0)) return { lead: '', best: false, month: monthText };
   if (streak > 0 && streak >= longest) return { lead: '지금이 최고 기록', best: true, month: monthText };
   return { lead: `최고 기록 ${longest}일`, best: false, month: monthText };
@@ -78,7 +78,7 @@ export function barHeight(count: number, max: number, full = 72): number {
 /** 습관 줄 — 값 '5/7번'과 아래 한 줄. 이번 주 습관이 없으면 null(줄을 그리지 않는다) */
 export function habitRow(r: Pick<WeekReview, 'habitCount' | 'routineDone' | 'routineDue' | 'routineRemaining'>): { value: string; sub: string } | null {
   if (!(r.habitCount > 0)) return null;
-  if (!(r.routineDue > 0) && !(r.routineDone > 0)) return { value: '—', sub: '오늘부터 셉니다' };
+  if (!(r.routineDue > 0) && !(r.routineDone > 0)) return { value: '—', sub: '오늘부터 세요' };
   return {
     value: `${r.routineDone}/${Math.max(r.routineDue, r.routineDone)}번`,
     sub: r.routineRemaining > 0 ? `이번 주 ${r.routineRemaining}번 남음` : '이번 주 다 했어요',

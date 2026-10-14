@@ -88,9 +88,9 @@ export function postponedDue(today: Date, which: Postpone): string {
   return addDays(ymd(today), POSTPONE[which].days);
 }
 
-/** 쌓기 목표에 닿은 순간의 알림 — '12권 목표를 이뤘어요' */
+/** 쌓기 목표에 닿은 순간의 알림 — '12권 목표를 달성했어요' */
 export function goalToast(goal: number, unit: string): string {
-  return `${fmtNum(goal)}${unit} 목표를 이뤘어요`;
+  return `${fmtNum(goal)}${unit} 목표를 달성했어요`;
 }
 
 /** 메모를 저장해야 하나 — 쓰던 글이 저장된 글과 다를 때만(같으면 문서를 건드리지 않는다) */

@@ -7,8 +7,8 @@
 // - 칸 자리 키가 아니므로 습관 체크·오늘 했는지·칸별 기록에는 더 이상 잡히지 않는다.
 // - 직접 추가한 할 일 키 "ti-x<id>"와 같은 꼴이라 저장본 검증(defaults.ts LOG_KEY_RE)을 그대로 통과한다.
 import type { MandaratDoc, WeekReviewEntry } from '../types';
-import { daysBetween, weekDates, ymd } from './routine';
-import { addDays } from './kinds';
+import { daysBetween, kindOf, setDayLog, weekDates, ymd } from './routine';
+import { addDays, applyConfig, type KindConfig } from './kinds';
 
 type DayLog = MandaratDoc['dayLog'];
 
@@ -33,11 +33,11 @@ export function isArchivedKey(key: string): boolean {
  * 키 이름 바꾸기 — rename이 새 이름을 주면 바꾸고(null이면 그대로) 날마다 개수·순서를 지킨다.
  * 바뀐 날만 새 배열로, 바뀐 게 없으면 같은 객체를 돌려준다(불필요한 저장·렌더를 막는다).
  */
-function renameKeys(dayLog: DayLog, rename: (key: string) => string | null): DayLog {
+function renameKeys(dayLog: DayLog, rename: (key: string) => string | null, onDay?: (day: string) => boolean): DayLog {
   let changed = false;
   const out: DayLog = {};
   for (const [day, list] of Object.entries(dayLog)) {
-    if (!list.some((k) => rename(k) !== null)) {
+    if ((onDay && !onDay(day)) || !list.some((k) => rename(k) !== null)) {
       out[day] = list;
       continue;
     }
@@ -56,12 +56,12 @@ function renameKeys(dayLog: DayLog, rename: (key: string) => string | null): Day
   return changed ? out : dayLog;
 }
 
-/** 칸 하나("ti-ai")의 지난 기록을 칸에서 떼어 둔다 — 지우지 않는다 */
-export function archiveCellLog(dayLog: DayLog, key: string, time: number): DayLog {
+/** 칸 하나("ti-ai")의 지난 기록을 칸에서 떼어 둔다 — 지우지 않는다. onDay를 주면 그 날들만 */
+export function archiveCellLog(dayLog: DayLog, key: string, time: number, onDay?: (day: string) => boolean): DayLog {
   const m = CELL_KEY_RE.exec(key);
   if (!m) return dayLog;
   const renamed = archivedKey(Number(m[1]), Number(m[2]), time);
-  return renameKeys(dayLog, (k) => (k === key ? renamed : null));
+  return renameKeys(dayLog, (k) => (k === key ? renamed : null), onDay);
 }
 
 /** 64칸 모두의 지난 기록을 떼어 둔다(템플릿·예시로 차트를 통째로 바꿀 때). 직접 추가한 할 일 기록은 그대로 */
@@ -131,4 +131,75 @@ export function areaStreak(dayLog: DayLog, ti: number, now: Date): { cur: number
 
   const week = weekDates(now).map((d) => (has.has(ymd(d)) ? 1 : 0));
   return { cur, best: Math.max(best, cur), week };
+}
+
+/**
+ * 하나라도 한 날이 이어진 날 수(오늘 또는 어제까지) — 아직 비어 있는 오늘은 끊지 않는다.
+ * 기록한 날 모음을 거슬러 걸어 길이에 상한이 없다(최고 기록 review.longestStreak과 같은 기준).
+ */
+export function activeStreak(dayLog: DayLog, now: Date): number {
+  const active = new Set<string>();
+  for (const [day, list] of Object.entries(dayLog)) if (list.length > 0) active.add(day);
+  let day = ymd(now);
+  if (!active.has(day)) day = addDays(day, -1);
+  let streak = 0;
+  for (; active.has(day); day = addDays(day, -1)) streak++;
+  return streak;
+}
+
+/** 이 키가 기록된 가장 늦은 날 — 없으면 null */
+export function lastLogDay(dayLog: DayLog, key: string): string | null {
+  let last: string | null = null;
+  for (const [day, list] of Object.entries(dayLog)) if ((last === null || day > last) && list.includes(key)) last = day;
+  return last;
+}
+
+type CellDoc = Pick<MandaratDoc, 'themes' | 'dayLog'>;
+
+function withAction<T extends CellDoc>(doc: T, ti: number, ai: number, next: MandaratDoc['themes'][number]['actions'][number], dayLog: DayLog): T {
+  return {
+    ...doc,
+    dayLog,
+    themes: doc.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((x, j) => (j === ai ? next : x)) } : t)),
+  };
+}
+
+/**
+ * 칸에 유형 설정을 입힌 새 문서(저장소 setActionConfig) — day: 오늘 'YYYY-MM-DD', time: 떼어 둔 기록 키의 시각.
+ * - 습관이 아니던 칸의 유형을 바꾸면 그 칸의 지난 기록(한 번 달성한 날·쌓은 날)을 칸에서 떼어 둔다 —
+ *   새 유형이 이전 기록을 이어받아 '오늘 습관 했어요'처럼 보이지 않게(지우지 않아 히트맵·영역 기록에는 남는다).
+ *   쌓기였던 칸은 쌓은 날(log에 더한 수가 있는 날)만 떼어 낸다 — 그 전에 습관이던 때의 체크는 남는다.
+ *   습관이던 칸은 그대로 — 쌓기로 바꿨다 되돌려도 습관 체크가 사라지지 않는다.
+ * - 쌓기는 그날 더한 수가 곧 그날 기록 — 이미 쌓기였던 칸은 지금까지를 줄여 그날 것이 사라졌다면 빼고,
+ *   기록을 떼어 내고 쌓기가 된 칸은 그날 더한 수(log)만 다시 기록으로.
+ * - since·일정 내력은 applyConfig가 맡는다(이미 습관이면 since 그대로, 일정을 고치면 지난 일정을 남긴다).
+ */
+export function configCell<T extends CellDoc>(doc: T, ti: number, ai: number, cfg: KindConfig, day: string, time: number): T {
+  const prev = doc.themes[ti]?.actions[ai];
+  if (!prev) return doc;
+  const next = applyConfig(prev, cfg, day);
+  const key = `${ti}-${ai}`;
+  const was = kindOf(prev);
+  const kind = kindOf(next);
+  const archived = was !== kind && was !== 'habit';
+  const counted = (d: string) => (prev.log?.[d] ?? 0) > 0;
+  let dayLog = archived ? archiveCellLog(doc.dayLog, key, time, was === 'count' ? counted : undefined) : doc.dayLog;
+  if (kind === 'count' && (was === 'count' || archived)) dayLog = setDayLog(dayLog, key, day, (next.log?.[day] ?? 0) > 0);
+  return withAction(doc, ti, ai, next, dayLog);
+}
+
+/**
+ * 칸 달성을 뒤집은 새 문서(저장소 toggleDone) — 습관의 칸 달성은 하루 체크와 별개, 쌓기의 그날 기록은 더한 수로만.
+ * 그 밖(한 번·마음가짐)만 기록에 남긴다: 달성은 오늘(day)에, 풀면 달성을 남겼던 날(오늘이 아닐 수 있다)의 기록을 뺀다.
+ */
+export function toggleCellDone<T extends CellDoc>(doc: T, ti: number, ai: number, day: string): T {
+  const a = doc.themes[ti]?.actions[ai];
+  if (!a) return doc;
+  const nowDone = !a.done;
+  const kind = kindOf(a);
+  const key = `${ti}-${ai}`;
+  const dayLog = kind === 'habit' || kind === 'count'
+    ? doc.dayLog
+    : setDayLog(doc.dayLog, key, nowDone ? day : lastLogDay(doc.dayLog, key) ?? day, nowDone);
+  return withAction(doc, ti, ai, { ...a, done: nowDone }, dayLog);
 }

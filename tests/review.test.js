@@ -40,7 +40,7 @@ test('루틴: 예정일 중 해낸 비율, 오늘은 해냈을 때만, 쉬는 �
   // 물: 월(O) 화(X) 수(오늘, 아직) → 1/2, 글쓰기: 월(O) 수(오늘, 아직) → 1/1
   assert.equal(r.routineDone, 2);
   assert.equal(r.routinePlanned, 3);
-  d.dayLog['2026-10-14'] = ['1-0'];
+  d.dayLog = { ...d.dayLog, ['2026-10-14']: ['1-0'] };
   const r2 = weekReview(d, WED);
   assert.equal(r2.routineDone, 3);
   assert.equal(r2.routinePlanned, 4);

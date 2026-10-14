@@ -37,6 +37,11 @@ export interface Action {
   perWeek?: number;
   /** 습관을 정한(바꾼) 날 'YYYY-MM-DD' — 그 전 날은 놓친 날로 세지 않는다 */
   since?: string;
+  /**
+   * 습관: 요일·주 N회를 고쳐 온 내력(오래된 것부터). 지난 날은 그때의 일정으로 센다(연속 기록·이번 주·돌아보기).
+   * 마지막 것이 지금 값(days · perWeek)과 같다. 없으면(이전 저장본·고친 적 없는 습관) 모든 날을 지금 값으로 센다.
+   */
+  schedule?: HabitSchedule[];
   /** 쌓기: 목표 수 */
   goal?: number;
   /** 쌓기: 단위(권·곳·km·만 원…) */
@@ -51,6 +56,15 @@ export interface Action {
   due?: string;
   /** 마음가짐: 주(그 주 월요일 'YYYY-MM-DD')별 점수 1~5 */
   ratings?: Record<string, number>;
+}
+
+/** 습관 일정 한 토막 — from 'YYYY-MM-DD'부터(다음 토막의 from 전날까지) 쓴 요일 또는 주 N회 */
+export interface HabitSchedule {
+  from: string;
+  /** 반복 요일(0=일 … 6=토) — 주 N회였다면 없다 */
+  days?: number[];
+  /** 주 N회(1~6) — 요일 습관이었다면 없다 */
+  perWeek?: number;
 }
 
 /** One of the 8 sub-goals (each owns 8 actions). */

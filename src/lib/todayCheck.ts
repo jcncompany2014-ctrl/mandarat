@@ -10,9 +10,9 @@ export function reachesGoal(c: Pick<CountInfo, 'count' | 'goal' | 'step' | 'reac
   return !c.reached && c.count + c.step >= c.goal;
 }
 
-/** 쌓기 목표에 닿았을 때 — '12권 목표를 이뤘어요' */
+/** 쌓기 목표에 닿았을 때 — '12권 목표를 달성했어요' (목표에 닿으면 칸이 달성된다) */
 export function goalText(c: Pick<CountInfo, 'goal' | 'unit'>): string {
-  return `${fmtNum(c.goal)}${c.unit} 목표를 이뤘어요`;
+  return `${fmtNum(c.goal)}${c.unit} 목표를 달성했어요`;
 }
 
 /** 쌓기 체크를 풀어 그날 더한 것을 한꺼번에 뺐을 때 — '오늘 더한 3권을 뺐어요' (되돌리기와 함께) */
@@ -29,21 +29,21 @@ export function checkLabelText(text: string, kind: ActionKind, c?: Pick<CountInf
   return `${text}, ${fmtNum(c.step)}${c.unit} 더하기`;
 }
 
-/** 체크 칸의 힌트 — 지금 누르면 무엇이 되는지 */
+/** 체크 칸의 힌트 — 지금 누르면 무엇이 되는지(누르는 몸짓은 iOS가 덧붙여 읽으므로 말하지 않는다) */
 export function checkHintText(done: boolean, kind: ActionKind): string {
-  if (!done) return '두 번 탭해서 완료 표시';
-  return kind === 'count' ? '두 번 탭해서 오늘 더한 것 빼기' : '두 번 탭해서 완료 해제';
+  if (!done) return '했어요로 남겨요';
+  return kind === 'count' ? '오늘 더한 것을 빼요' : '했어요를 지워요';
 }
 
 /**
- * 화면 읽기가 켜져 있을 때 체크하고 읽어 주는 한 문장 — '물 2L 마시기 완료, 오늘 3개 남았어요'.
+ * 화면 읽기가 켜져 있을 때 체크하고 읽어 주는 한 문장 — '물 2L 마시기, 했어요. 오늘 3개 남았어요'.
  * 마지막 하나였다면 남은 수는 빼고 말한다('오늘 할 일을 다 했어요'는 하루 마감이 따로 읽는다).
  */
 export function checkedSpeech(text: string, left: number): string {
-  return left > 0 ? `${text} 완료, 오늘 ${left}개 남았어요` : `${text} 완료`;
+  return left > 0 ? `${text}, 했어요. 오늘 ${left}개 남았어요` : `${text}, 했어요`;
 }
 
-/** 쌓기를 한 번 더 더했을 때 읽어 주는 한 문장 — '책 읽기, 7/12권' */
+/** 쌓기를 한 번 더 더했을 때 읽어 주는 한 문장 — '책 읽기, 12권 중 7권' ('7/12'는 날짜로 읽히므로 말로) */
 export function addedSpeech(text: string, c: Pick<CountInfo, 'count' | 'goal' | 'unit'>): string {
-  return `${text}, ${fmtNum(c.count)}/${fmtNum(c.goal)}${c.unit}`;
+  return `${text}, ${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
 }

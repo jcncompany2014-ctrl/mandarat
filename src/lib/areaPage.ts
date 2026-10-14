@@ -4,6 +4,7 @@ import type { MandaratDoc } from '../types';
 import { countInfo, countText, kindLine, ratingOf } from './kinds';
 import { daysBetween, kindOf, routineWeekCount, ymd } from './routine';
 import { fmtDue } from './text';
+import { ORDINAL } from './a11y';
 
 type AreaDoc = Pick<MandaratDoc, 'themes' | 'dayLog'>;
 
@@ -38,15 +39,15 @@ export function rowStatus(doc: AreaDoc, ti: number, ai: number, now: Date): stri
   return fmtDue(daysBetween(ymd(now), a.due));
 }
 
-/** 줄의 화면 읽기 이름 — '하루 물 2L, 달성, 매일 반복' (붙일 유형 줄이 없으면 글과 상태만) */
+/** 줄의 화면 읽기 이름 — '책 12권, 12권 중 7권' · '하루 물 2L, 달성, 매일 반복' (유형 줄은 소리로 읽는 말 KindLine.speech) */
 export function rowLabel(doc: AreaDoc, ti: number, ai: number, now: Date): string {
   const a = doc.themes[ti]?.actions[ai];
   if (!a || !a.text.trim()) return `실천 ${ai + 1} 채우기`;
   const line = kindLine(doc, ti, ai, now);
-  return `${a.text.trim()}${a.done ? ', 달성' : ''}${line ? `, ${line.long}` : ''}`;
+  return `${a.text.trim()}${a.done ? ', 달성' : ''}${line ? `, ${line.speech}` : ''}`;
 }
 
-/** 이전·다음 영역으로 넘긴 뒤 읽어 줄 말 — '건강, 영역 1/8' */
+/** 이전·다음 영역으로 넘긴 뒤 읽어 줄 말 — '건강, 8개 영역 중 첫 번째' ('1/8'은 날짜로 읽히고 '1번째'는 '일번째'로 읽혀 고유어 서수로) */
 export function pageSpeech(doc: Pick<MandaratDoc, 'themes'>, ti: number): string {
-  return `${areaTitle(doc, ti)}, 영역 ${ti + 1}/8`;
+  return `${areaTitle(doc, ti)}, 8개 영역 중 ${ORDINAL[ti] ?? `${ti + 1}`} 번째`;
 }

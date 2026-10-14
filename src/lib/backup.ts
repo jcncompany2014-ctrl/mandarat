@@ -38,6 +38,11 @@ export function makeBackup(doc: MandaratDoc, now = new Date(), pretty = false): 
   return pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
 }
 
+/**
+ * 백업 파일 이름 'mandarat-backup-YYYY-MM-DD.json' — 한글 이름 대신 일부러 영문·숫자만 쓴다.
+ * 파일 앱·메일·메신저·PC로 옮길 때 한글 파일 이름이 깨지거나(NFD/NFC 차이, 첨부 이름 인코딩)
+ * 다시 찾기 어려워지는 일을 피하려는 것이다(ErrorBoundary의 비상 백업도 같은 이름).
+ */
 export function backupFileName(now = new Date()): string {
   return `mandarat-backup-${ymd(now)}.json`;
 }

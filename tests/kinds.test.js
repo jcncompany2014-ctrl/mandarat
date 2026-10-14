@@ -65,7 +65,7 @@ test('주 N회 습관은 이번 주 횟수를 채울 때까지 날마다 담기�
   doc.dayLog = { '2026-10-12': ['0-0'], '2026-10-13': ['0-0'] };
   assert.equal(R.todayItems(doc, WED).length, 0, '월·화에 두 번 했으니 수요일엔 안 담김');
   // 오늘 이미 했다면(세 번째) 완료로 남는다
-  doc.dayLog['2026-10-14'] = ['0-0'];
+  doc.dayLog = { ...doc.dayLog, ['2026-10-14']: ['0-0'] };
   const it = R.todayItems(doc, WED);
   assert.equal(it.length, 1);
   assert.equal(it[0].done, true);
@@ -102,17 +102,18 @@ test('마감이 D-3 안쪽이거나 지난 한 번 실천은 저절로 담기고
   });
   assert.deepEqual(R.todayItems(doc, WED).map((i) => i.key), ['0-0', '0-2']);
   // 오늘 끝낸 마감 일은 그날 '완료'로 남고(체크하자마자 사라지지 않게), 다음 날엔 빠진다
-  doc.themes[0].actions[0].done = true;
+  doc.themes = doc.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 0 ? { ...a, done: true } : a)) } : t));
   doc.dayLog = { '2026-10-14': ['0-0'] };
   const after = R.todayItems(doc, WED);
   assert.deepEqual(after.map((i) => [i.key, i.done]), [['0-0', true], ['0-2', false]]);
   // 다음 날(목): 끝낸 이력서는 빠지고, 검진(10/18)이 D-3이 되어 들어온다
   assert.deepEqual(R.todayItems(doc, new Date(2026, 9, 15)).map((i) => i.key), ['0-1', '0-2']);
-  doc.themes[0].actions[0].done = false;
+  doc.themes = doc.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 0 ? { ...a, done: false } : a)) } : t));
   doc.dayLog = {};
   assert.equal(K.dueInfo(doc.themes[0].actions[0], WED).label, 'D-3');
-  assert.equal(K.dueInfo(doc.themes[0].actions[2], WED).label, '13일 지남');
-  assert.equal(K.dueInfo({ text: 'x', note: '', done: false, kind: 'once', due: '2026-10-14' }, WED).label, '오늘 마감');
+  assert.equal(K.dueInfo(doc.themes[0].actions[2], WED).label, 'D+13');
+  assert.equal(K.dueInfo({ text: 'x', note: '', done: false, kind: 'once', due: '2026-10-14' }, WED).label, 'D-day');
+  assert.deepEqual([-2, 0, 3].map((n) => K.dueInfo({ text: 'x', note: '', done: false, kind: 'once', due: K.addDays('2026-10-14', n) }, WED).long), ['마감 2일 지남', '오늘 마감', '마감 D-3']);
   assert.equal(K.dueInfo({ text: 'x', note: '', done: false, kind: 'habit', due: '2026-10-14' }, WED), null);
 });
 
@@ -320,8 +321,8 @@ test('duePresets·addDays·dateText', () => {
   const p = K.duePresets(WED);
   assert.deepEqual(p.map((x) => x.date), ['2026-10-18', '2026-10-31', '2027-01-14', '2026-12-31']);
   assert.equal(K.addDays('2026-10-31', 1), '2026-11-01');
-  assert.equal(K.dateText('2026-10-20', WED), '10월 20일 (화)');
-  assert.equal(K.dateText('2027-01-04', WED), '2027년 1월 4일 (월)');
+  assert.equal(K.dateText('2026-10-20', WED), '10.20 (화)');
+  assert.equal(K.dateText('2027-01-04', WED), '2027년 1.4 (월)');
 });
 
 test('주 N회를 정한 주에는 남은 날만큼만 목표로 센다(토요일에 정한 주 3회 → 그 주 2회)', () => {
@@ -336,7 +337,7 @@ test('주 N회를 정한 주에는 남은 날만큼만 목표로 센다(토요�
   // 토·일 두 번 하면 그 주는 다 채운 것
   doc.dayLog = { '2026-10-17': ['0-0'] };
   assert.equal(R.todayItems(doc, new Date(2026, 9, 18)).length, 1, '일요일: 1/2라 아직 담김');
-  doc.dayLog['2026-10-18'] = ['0-0'];
+  doc.dayLog = { ...doc.dayLog, ['2026-10-18']: ['0-0'] };
   assert.equal(R.routineWeekCount(doc, 0, 0, new Date(2026, 9, 18)).done, 2);
   // 다음 주부터는 3회
   assert.equal(R.weekTarget(doc.themes[0].actions[0], new Date(2026, 9, 20)), 3);

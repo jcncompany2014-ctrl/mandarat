@@ -50,8 +50,8 @@ export function focusOutcome(kind: ActionKind, opts: { done?: boolean; checkedTo
   return 'time';
 }
 
-/** 끝내기 버튼 글 — 도는 중과 25분을 다 채운 뒤가 다르다(끝난 뒤에는 '완료'를 되풀이하지 않는다) */
+/** 끝내기 버튼 글 — 도는 중과 25분을 다 채운 뒤가 다르다(한 번은 칸 달성, 습관은 그날 했어요) */
 export function finishLabel(outcome: FocusOutcome, finished: boolean): string {
-  if (finished) return outcome === 'done' ? '완료로 표시' : outcome === 'check' ? '오늘 했어요' : '닫기';
-  return outcome === 'done' ? '여기서 끝내고 완료' : outcome === 'check' ? '여기서 끝내고 체크' : '여기서 끝내기';
+  if (finished) return outcome === 'done' ? '달성으로 표시' : outcome === 'check' ? '오늘 했어요' : '닫기';
+  return outcome === 'done' ? '끝내고 달성' : outcome === 'check' ? '끝내고 했어요' : '여기서 끝내기';
 }

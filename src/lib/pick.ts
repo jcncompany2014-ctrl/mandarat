@@ -45,7 +45,7 @@ export function whyAuto(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number,
     const w = routineWeekCount(doc, ti, ai, today);
     const left = w.planned - w.done;
     // 남은 횟수가 없는데도 담겨 있다면 오늘 체크로 채운 것
-    return left > 0 ? `이번 주 ${left}회 남아 ‘오늘’에 이미 있어요` : `이번 주 ${w.planned}회를 오늘 채웠어요`;
+    return left > 0 ? `이번 주 ${left}회 남아 ‘오늘’에 이미 있어요` : `이번 주 ${w.planned}회를 오늘 다 했어요`;
   }
   return '반복하는 날이라 ‘오늘’에 이미 있어요';
 }
@@ -105,7 +105,7 @@ export type GuideKey = 'goal' | 'areas' | 'fill' | 'today' | 'check';
 
 export interface GuideStep {
   key: GuideKey;
-  /** 단계 이름 — '핵심 목표 정하기' · '영역 8개 정하기' · '실천 칸 8개 채우기' · '오늘 할 일 고르기' · '하나 체크하기' */
+  /** 단계 이름 — '핵심 목표 정하기' · '영역 8개 정하기' · '실천 칸 8개 채우기' · '오늘 할 일 고르기' · '하나 해 보기' */
   label: string;
   done: boolean;
 }
@@ -136,7 +136,7 @@ export function guideSteps(
     { key: 'areas', label: '영역 8개 정하기', done: doc.areasSet === true },
     { key: 'fill', label: `실천 칸 ${GUIDE_FILL_TARGET}개 채우기`, done: filled >= GUIDE_FILL_TARGET },
     { key: 'today', label: '오늘 할 일 고르기', done: doc.todayKeys.length > 0 || doc.todayExtra.length > 0 || anyRoutine || anyDone || anyLog },
-    { key: 'check', label: '하나 체크하기', done: anyDone || anyLog },
+    { key: 'check', label: '하나 해 보기', done: anyDone || anyLog },
   ];
   return { steps, filled, next: steps.findIndex((s) => !s.done) };
 }

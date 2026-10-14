@@ -68,9 +68,9 @@ test('cellSpeech: 자리(고유어 서수), 글, 유형, 오늘 할 일, 달성'
   assert.equal(cellSpeech(d, 0, 4, WED), '다섯 번째 칸, 비어 있음');
   assert.equal(cellSpeech(d, 0, 5, WED), '여섯 번째 칸, 이력서 고치기, 한 번, 마감 2일 남음, 오늘 할 일');
   assert.equal(cellSpeech(d, 0, 6, WED), '일곱 번째 칸, 감사 표현, 마음가짐, 이번 주 4점');
-  d.themes[0].actions[5].due = '2026-10-14';
+  d.themes = d.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 5 ? { ...a, due: '2026-10-14' } : a)) } : t));
   assert.match(cellSpeech(d, 0, 5, WED), /한 번, 오늘 마감/);
-  d.themes[0].actions[5].due = '2026-10-11';
+  d.themes = d.themes.map((t, ti) => (ti === 0 ? { ...t, actions: t.actions.map((a, ai) => (ai === 5 ? { ...a, due: '2026-10-11' } : a)) } : t));
   assert.match(cellSpeech(d, 0, 5, WED), /한 번, 마감 3일 지남/);
   d.themes[0].actions[0] = { text: '수영', note: '', done: false, kind: 'habit', days: [1, 3, 5] };
   assert.match(cellSpeech(d, 0, 0, WED), /^첫 번째 칸, 수영, 습관 월·수·금/);

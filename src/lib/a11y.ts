@@ -3,7 +3,7 @@
 // 'D-2'·'6/12'처럼 눈으로 읽는 표기는 소리로 읽기 좋은 말('마감 2일 남음'·'12권 중 6권')로 바꾼다.
 import type { Action, MandaratDoc } from '../types';
 import { daysBetween, daysLabel, habitDays, kindOf, perWeekOf, todayItems, todayProgress, ymd } from './routine';
-import { countInfo, fmtNum, ratingOf } from './kinds';
+import { countInfo, countSpeech, dueSpeech, ratingOf } from './kinds';
 import { fmtDateLong } from './text';
 
 type SummaryDoc = Pick<MandaratDoc, 'centerGoal' | 'themes' | 'dayLog' | 'todayKeys' | 'todayExtra'>;
@@ -58,7 +58,10 @@ export function blockSummary(doc: ChartDoc, ti: number, now: Date): string {
   return `${name}, 8칸 중 ${done}칸 달성${today > 0 ? `, 오늘 ${today}칸` : ''}`;
 }
 
-/** 칸의 유형을 소리로 — '습관 매일' · '습관 주 3회' · '쌓기 12권 중 6권' · '한 번, 마감 2일 남음' · '마음가짐, 이번 주 4점' */
+/**
+ * 칸의 유형을 소리로 — '습관 매일' · '습관 주 3회' · '쌓기 12권 중 6권' · '한 번, 마감 2일 남음' · '마음가짐, 이번 주 4점'.
+ * 쌓기·마감·마음가짐은 KindLine.speech와 같은 말(kinds.countSpeech · dueSpeech)을 쓴다. 습관은 진행 대신 정한 일정을 말한다.
+ */
 function kindSpeech(a: Action, now: Date): string {
   const kind = kindOf(a);
   if (kind === 'habit') {
@@ -66,20 +69,18 @@ function kindSpeech(a: Action, now: Date): string {
     return `습관 ${n > 0 ? `주 ${n}회` : daysLabel(habitDays(a))}`;
   }
   if (kind === 'count') {
-    const c = countInfo(a);
-    return `쌓기 ${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
+    return `쌓기 ${countSpeech(countInfo(a))}`;
   }
   if (kind === 'mind') {
     const r = ratingOf(a, now);
     return r ? `마음가짐, 이번 주 ${r}점` : '마음가짐';
   }
   if (!a.due || a.done) return '한 번';
-  const left = daysBetween(ymd(now), a.due);
-  return `한 번, ${left > 0 ? `마감 ${left}일 남음` : left === 0 ? '오늘 마감' : `마감 ${-left}일 지남`}`;
+  return `한 번, ${dueSpeech(daysBetween(ymd(now), a.due))}`;
 }
 
 /** 블록 안 자리 — '3번째'는 '삼번째'로 읽혀서 고유어 서수로 쓴다 */
-const ORDINAL = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟'];
+export const ORDINAL = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟'];
 
 /**
  * 칸 하나 — '세 번째 칸, 하루 물 2L, 습관 매일, 오늘 할 일, 달성'.

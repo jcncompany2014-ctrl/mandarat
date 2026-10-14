@@ -73,7 +73,7 @@ export function streakSummary(rows: readonly StreakRow[]): StreakSummary {
 
 /** 큰 숫자 묶음의 화면 읽기 한 마디 */
 export function streakSummaryLabel(s: StreakSummary): string {
-  if (!s.lead) return '지금 이어 가는 기록 아직 없음. 오늘 하나 하면 시작돼요';
+  if (!s.lead) return '아직 이어 가는 기록이 없어요. 오늘 하나 하면 시작돼요';
   const { text, cur, unit, best } = s.lead;
   return `지금 이어 가는 기록 ${runText(cur, unit)}, ${text}. 최고 ${runText(best, unit)}`;
 }

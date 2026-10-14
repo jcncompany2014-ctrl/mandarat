@@ -16,7 +16,7 @@ function doc(patch = () => ({})) {
 }
 
 test('이어 온 날 한 줄 — 0 · 오늘까지 · 오늘 하면 n+1일째', () => {
-  assert.equal(sv.streakCaption(0, false), '하나 체크하면 시작돼요');
+  assert.equal(sv.streakCaption(0, false), '하나 하면 시작돼요');
   assert.equal(sv.streakCaption(4, true), '오늘까지 이어 왔어요');
   assert.equal(sv.streakCaption(4, false), '오늘 하나 하면 5일째');
   assert.equal(sv.streakSpeech(4, false), '연속 4일, 오늘은 아직');
@@ -24,7 +24,7 @@ test('이어 온 날 한 줄 — 0 · 오늘까지 · 오늘 하면 n+1일째', 
 });
 
 test('기록 줄 — 지금이 최고 기록이면 그렇게, 기록이 없으면 이번 달만', () => {
-  assert.deepEqual(sv.recordParts(12, 3, 2), { lead: '최고 기록 12일', best: false, month: '이번 달 이룬 칸 +2' });
+  assert.deepEqual(sv.recordParts(12, 3, 2), { lead: '최고 기록 12일', best: false, month: '이번 달 달성 2칸' });
   assert.equal(sv.recordParts(5, 5, 0).lead, '지금이 최고 기록');
   assert.equal(sv.recordParts(5, 5, 0).best, true);
   assert.equal(sv.recordParts(0, 0, 0).lead, '');
@@ -58,7 +58,7 @@ test('막대 줄 읽기 — 오늘 표시, 아직 안 온 날은 한 번만', ()
 
 test('습관 줄 — 남은 횟수 · 다 함 · 오늘부터 셉니다 · 습관 없음', () => {
   assert.equal(sv.habitRow({ habitCount: 0, routineDone: 0, routineDue: 0, routineRemaining: 0 }), null);
-  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routineDue: 0, routineRemaining: 6 }), { value: '—', sub: '오늘부터 셉니다' });
+  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routineDue: 0, routineRemaining: 6 }), { value: '—', sub: '오늘부터 세요' });
   assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 5, routineDue: 7, routineRemaining: 3 }), { value: '5/7번', sub: '이번 주 3번 남음' });
   assert.equal(sv.habitRow({ habitCount: 1, routineDone: 3, routineDue: 3, routineRemaining: 0 }).sub, '이번 주 다 했어요');
 });

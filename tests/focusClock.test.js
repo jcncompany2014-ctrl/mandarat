@@ -56,10 +56,10 @@ test('끝내기가 기록하는 것은 유형과 오늘 상태를 따른다', ()
 });
 
 test('버튼 글 — 도는 중과 끝난 뒤', () => {
-  assert.equal(finishLabel('done', false), '여기서 끝내고 완료');
-  assert.equal(finishLabel('check', false), '여기서 끝내고 체크');
+  assert.equal(finishLabel('done', false), '끝내고 달성');
+  assert.equal(finishLabel('check', false), '끝내고 했어요');
   assert.equal(finishLabel('time', false), '여기서 끝내기');
-  assert.equal(finishLabel('done', true), '완료로 표시');
+  assert.equal(finishLabel('done', true), '달성으로 표시');
   assert.equal(finishLabel('check', true), '오늘 했어요');
   assert.equal(finishLabel('time', true), '닫기');
 });
