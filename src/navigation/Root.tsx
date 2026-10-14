@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated, Appearance, PanResponder, Platform, Pressable, View,
   type AccessibilityRole, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView,
@@ -9,11 +9,11 @@ import { RHYTHM } from '../theme/type';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
-import { success, tap } from '../lib/haptics';
+import { select, success, tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
-import { TAB_BAR_H, useUI, type Screen } from './ui';
-import { useMandarat, totalDone, dateKey } from '../store/MandaratContext';
+import { TAB_BAR_H, useUIActions, useUIState, type Screen } from './ui';
+import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
 import { todayProgress } from '../lib/routine';
 
 import { Onboarding } from '../screens/Onboarding';
@@ -34,6 +34,22 @@ import { CellEditor } from '../overlays/CellEditor';
 import { WeekRitual } from '../overlays/WeekRitual';
 import { ShareChart } from '../overlays/ShareChart';
 import { Snackbar } from '../overlays/Snackbar';
+
+// 화면과 시트는 props가 없거나 값이 같으면 다시 그리지 않는다 — Root는 체크마다(문서가 바뀔 때마다) 다시 그려지지만,
+// 각 화면·시트는 자기가 읽는 문서·화면 상태가 바뀔 때만 다시 그려진다.
+const GridScreenPure = memo(GridScreen);
+const SettingsPure = memo(Settings);
+const OnboardingPure = memo(Onboarding);
+const ActionSheetPure = memo(ActionSheet);
+const FocusTimerPure = memo(FocusTimer);
+const QuickAddPure = memo(QuickAdd);
+const PickTodayPure = memo(PickToday);
+const CellEditorPure = memo(CellEditor);
+const WeekRitualPure = memo(WeekRitual);
+const ShareChartPure = memo(ShareChart);
+const CelebrationPure = memo(Celebration);
+const SnackbarPure = memo(Snackbar);
+const PaperDotsPure = memo(PaperDots);
 
 type TabId = 'dashboard' | 'grid' | 'today' | 'stats';
 type IconName = Parameters<typeof Icon>[0]['name'];
@@ -72,10 +88,112 @@ function milestone() {
   success();
 }
 
+/**
+ * 앱의 뼈대 — 문서에서 온보딩 여부 하나만 골라 아래(RootView)에 넘긴다.
+ * 체크·글쓰기로 문서가 바뀌면 이 함수와 Milestones(그리지 않는다)만 다시 돌고, 뼈대·탭바·화면 틀은 그대로다.
+ */
 export function Root() {
+  const { doc } = useDoc();
+  return (
+    <>
+      <Milestones />
+      <RootView onboarded={doc.onboarded} />
+    </>
+  );
+}
+
+/**
+ * 이정표 지켜보기 — 아무것도 그리지 않고, 문서가 바뀔 때 하루 마감 · 영역 8/8 · 64/64를 알아챈다.
+ * 토스트는 구독하지 않는다(뜰 때마다 다시 돌지 않게) — 필요할 땐 ui.getToast()로 읽는다.
+ */
+function Milestones() {
+  const { doc } = useDoc();
+  const { markClosedDay } = useActions();
+  const uiState = useUIState();
+  const uiActions = useUIActions();
+  const ui = useMemo(() => ({ ...uiState, ...uiActions }), [uiState, uiActions]);
+  const uiRef = useRef(ui);
+  uiRef.current = ui;
+  const anyOverlay = !!(ui.sheet || ui.focus || ui.editor || ui.pick || ui.quick || ui.celebrate || ui.ritual || ui.share);
+
+  // ── 하루 마감 — 모달 없이 그 자리에서 ───────────────────────────────────────
+  // 직접 담은 항목 + 저절로 담긴 습관·마감 + 직접 추가한 할 일을 마지막 하나까지 '체크'했을 때만.
+  // 남은 일을 지우거나 기록을 통째로 바꿔서 다 찬 경우는 마감하지 않는다(하루에 한 번).
+  // 오늘·홈 화면은 목록 아래에 마감 줄을 긋고(dayCloseTick), 다른 화면이거나 시트 위라면 토스트로 알린다.
+  const { done: todayDone, total: todayTotal } = todayProgress(doc, new Date());
+  const prevToday = useRef<{ done: number; total: number; complete: boolean } | null>(null);
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const milestoneToastAt = useRef(0);
+  useEffect(() => {
+    const complete = todayTotal > 0 && todayDone === todayTotal;
+    const p = prevToday.current;
+    prevToday.current = { done: todayDone, total: todayTotal, complete };
+    if (!p || !complete || p.complete || todayDone <= p.done || todayTotal !== p.total) return;
+    const today = dateKey();
+    if (ui.closedDay === today) return;
+    ui.markDayClosed(today);
+    // 홈의 이번 주 칸이 지난 날에도 마감한 날을 표시하도록 문서에 남긴다
+    markClosedDay(today);
+    // 체크 표시가 다 그려진 뒤(≈650ms)에 한 번 — 마감 줄이 그어지는 순간과 맞춘다
+    const onPage = (ui.screen === 'today' || ui.screen === 'dashboard') && !anyOverlay;
+    const t = setTimeout(() => {
+      timers.current.delete(t);
+      milestone();
+      const cur = uiRef.current;
+      const msg = '오늘 할 일을 다 했어요';
+      // 되돌리기가 달린 안내나 방금 띄운 영역 8칸 안내는 덮지 않는다
+      const busy = !!cur.getToast()?.action || Date.now() - milestoneToastAt.current < 1500;
+      if (!onPage && !busy) cur.showToast(msg);
+      else if (screenReader()) announce(msg);
+    }, 650);
+    timers.current.add(t);
+  }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const set = timers.current;
+    return () => { set.forEach(clearTimeout); set.clear(); };
+  }, []);
+
+  // 한 영역이 8칸을 모두 달성하면 조용히 알린다 — 칸 하나를 직접 체크해 7→8이 된 순간에만.
+  // (백업 불러오기·되돌리기처럼 통째로 바뀐 경우는 제외하고, 되돌리기가 달린 안내는 덮지 않는다)
+  const areaDone = doc.themes.map((t) => t.actions.filter((a) => a.done).length).join(',');
+  const prevAreas = useRef<number[] | null>(null);
+  useEffect(() => {
+    const now = areaDone.split(',').map(Number);
+    const prev = prevAreas.current;
+    prevAreas.current = now;
+    if (!prev) return;
+    const changed = now.map((n, i) => n - prev[i]).filter((d) => d !== 0);
+    if (changed.length !== 1 || changed[0] !== 1) return;
+    const ti = now.findIndex((n, i) => n === 8 && prev[i] === 7);
+    if (ti < 0 || totalDone(doc) >= 64 || ui.getToast()?.action) return;
+    const th = doc.themes[ti];
+    milestone();
+    milestoneToastAt.current = Date.now();
+    ui.showToast(`${th.title ? `${th.title} 영역` : `영역 ${ti + 1}`} 8칸을 모두 달성했어요`);
+  }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 64칸을 모두 달성 → 마무리 페이지(세션 중 100%에 닿을 때 1회). 시트가 열려 있으면 닫힌 뒤에 뜬다.
+  const allDone = totalDone(doc) === 64;
+  const prevAll = useRef(true);
+  useEffect(() => {
+    if (allDone && !prevAll.current) ui.fireCelebrate('bloom');
+    prevAll.current = allDone;
+  }, [allDone]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 마무리 페이지가 실제로 뜨는 순간 한 번 울린다(대기열에서 기다렸다 떠도 그때)
+  useEffect(() => {
+    if (ui.celebrate === 'bloom') milestone();
+  }, [ui.celebrate]);
+
+  return null;
+}
+
+const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   const M = usePalette();
-  const { doc } = useMandarat();
-  const ui = useUI();
+  // 토스트는 구독하지 않는다(뜰 때마다 뼈대가 다시 그려지지 않게)
+  const uiState = useUIState();
+  const uiActions = useUIActions();
+  const ui = useMemo(() => ({ ...uiState, ...uiActions }), [uiState, uiActions]);
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const reduceMotion = useReducedMotion();
@@ -86,7 +204,6 @@ export function Root() {
   // 최신 값을 PanResponder·타이머 같은 오래 사는 콜백에서 읽는다
   const uiRef = useRef(ui);
   uiRef.current = ui;
-  const anyOverlay = !!(ui.sheet || ui.focus || ui.editor || ui.pick || ui.quick || ui.celebrate || ui.ritual || ui.share);
 
   // ── 종이가 글과 함께 움직인다 ────────────────────────────────────────────
   // 스크롤 y를 네이티브에서 바로 받아 점 무늬를 (y % 18)만큼 올린다 — 무늬는 18마다 되풀이되므로 한 장으로 끝없이 이어진다
@@ -104,6 +221,11 @@ export function Root() {
     if (restoring.current) return;
     scrollMem.set(scrollOwner.current, e.nativeEvent.contentOffset.y);
   }, [scrollMem]);
+  // 움직이는 값이 든 스타일은 한 번만 만든다 — 다시 그릴 때마다 새 객체면 애니메이션 연결을 다시 맺는다
+  const dotsStyle = useMemo(
+    () => ({ position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: dotsY }] }),
+    [dotsY],
+  );
   const onScroll = useMemo(
     () => Animated.event<NativeScrollEvent>([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true, listener: rememberScroll }),
     [scrollY, rememberScroll],
@@ -127,8 +249,8 @@ export function Root() {
   }, [ui.screen, ui.ti, scrollMem]);
   // 전체 초기화로 처음 화면에 돌아가면 예전 기록의 스크롤 위치는 잊는다
   useEffect(() => {
-    if (!doc.onboarded) scrollMem.clear();
-  }, [doc.onboarded, scrollMem]);
+    if (!onboarded) scrollMem.clear();
+  }, [onboarded, scrollMem]);
 
   // 화면 전환 — 들어가는 화면(상세·설정)은 오른쪽에서, 돌아올 땐 왼쪽에서, 탭끼리는 탭 순서 방향으로 살짝.
   // 화면 안의 덩어리들은 각자 Reveal로 차례차례 떠오른다. (동작 줄이기에서는 생략)
@@ -144,6 +266,8 @@ export function Root() {
       Animated.spring(slide, { toValue: 0, useNativeDriver: true, ...SPRING.snappy }),
     ]).start();
   }, [ui.screen, ui.ti, reduceMotion, fade, slide]);
+
+  const pageStyle = useMemo(() => ({ flexGrow: 1, opacity: fade, transform: [{ translateX: slide }] }), [fade, slide]);
 
   // ── 왼쪽 가장자리에서 쓸어 뒤로(상세·설정) ─────────────────────────────────
   const edgeSwipe = useMemo(() => {
@@ -185,73 +309,6 @@ export function Root() {
     }
   }, [M.dark]);
 
-  // ── 하루 마감 — 모달 없이 그 자리에서 ───────────────────────────────────────
-  // 직접 담은 항목 + 저절로 담긴 습관·마감 + 직접 추가한 할 일을 마지막 하나까지 '체크'했을 때만.
-  // 남은 일을 지우거나 기록을 통째로 바꿔서 다 찬 경우는 마감하지 않는다(하루에 한 번).
-  // 오늘·홈 화면은 목록 아래에 마감 줄을 긋고(dayCloseTick), 다른 화면이거나 시트 위라면 토스트로 알린다.
-  const { done: todayDone, total: todayTotal } = todayProgress(doc, new Date());
-  const prevToday = useRef<{ done: number; total: number; complete: boolean } | null>(null);
-  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
-  const milestoneToastAt = useRef(0);
-  useEffect(() => {
-    const complete = todayTotal > 0 && todayDone === todayTotal;
-    const p = prevToday.current;
-    prevToday.current = { done: todayDone, total: todayTotal, complete };
-    if (!p || !complete || p.complete || todayDone <= p.done || todayTotal !== p.total) return;
-    const today = dateKey();
-    if (ui.closedDay === today) return;
-    ui.markDayClosed(today);
-    // 체크 표시가 다 그려진 뒤(≈650ms)에 한 번 — 마감 줄이 그어지는 순간과 맞춘다
-    const onPage = (ui.screen === 'today' || ui.screen === 'dashboard') && !anyOverlay;
-    const t = setTimeout(() => {
-      timers.current.delete(t);
-      milestone();
-      const cur = uiRef.current;
-      const msg = '오늘 할 일을 다 했어요';
-      // 되돌리기가 달린 안내나 방금 띄운 영역 8칸 안내는 덮지 않는다
-      const busy = !!cur.toast?.action || Date.now() - milestoneToastAt.current < 1500;
-      if (!onPage && !busy) cur.showToast(msg);
-      else if (screenReader()) announce(msg);
-    }, 650);
-    timers.current.add(t);
-  }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const set = timers.current;
-    return () => { set.forEach(clearTimeout); set.clear(); };
-  }, []);
-
-  // 한 영역이 8칸을 모두 달성하면 조용히 알린다 — 칸 하나를 직접 체크해 7→8이 된 순간에만.
-  // (백업 불러오기·되돌리기처럼 통째로 바뀐 경우는 제외하고, 되돌리기가 달린 안내는 덮지 않는다)
-  const areaDone = doc.themes.map((t) => t.actions.filter((a) => a.done).length).join(',');
-  const prevAreas = useRef<number[] | null>(null);
-  useEffect(() => {
-    const now = areaDone.split(',').map(Number);
-    const prev = prevAreas.current;
-    prevAreas.current = now;
-    if (!prev) return;
-    const changed = now.map((n, i) => n - prev[i]).filter((d) => d !== 0);
-    if (changed.length !== 1 || changed[0] !== 1) return;
-    const ti = now.findIndex((n, i) => n === 8 && prev[i] === 7);
-    if (ti < 0 || totalDone(doc) >= 64 || ui.toast?.action) return;
-    const th = doc.themes[ti];
-    milestone();
-    milestoneToastAt.current = Date.now();
-    ui.showToast(`${th.title ? `${th.title} 영역` : `영역 ${ti + 1}`} 8칸을 모두 달성했어요`);
-  }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 64칸을 모두 달성 → 마무리 페이지(세션 중 100%에 닿을 때 1회). 시트가 열려 있으면 닫힌 뒤에 뜬다.
-  const allDone = totalDone(doc) === 64;
-  const prevAll = useRef(true);
-  useEffect(() => {
-    if (allDone && !prevAll.current) ui.fireCelebrate('bloom');
-    prevAll.current = allDone;
-  }, [allDone]); // eslint-disable-line react-hooks/exhaustive-deps
-  // 마무리 페이지가 실제로 뜨는 순간 한 번 울린다(대기열에서 기다렸다 떠도 그때)
-  useEffect(() => {
-    if (ui.celebrate === 'bloom') milestone();
-  }, [ui.celebrate]);
-
   // ── 탭바 ───────────────────────────────────────────────────────────────
   const activeTab: Screen = isDeep(ui.screen) ? ui.from : ui.screen;
   const onTab = useCallback((id: Screen) => {
@@ -261,7 +318,8 @@ export function Root() {
       scrollRef.current?.scrollTo({ y: 0, animated: !reducedMotion() });
       return;
     }
-    tap();
+    // 탭 바꾸기는 고르기 — 아주 짧은 딸깍
+    select();
     cur.go(id);
   }, []);
   const onAdd = useCallback(() => {
@@ -269,24 +327,24 @@ export function Root() {
     uiRef.current.openQuick();
   }, []);
 
-  if (!doc.onboarded) {
+  if (!onboarded) {
     return (
       <>
         <StatusBar style={M.dark ? 'light' : 'dark'} />
-        <Onboarding />
+        <OnboardingPure />
         {/* 전체 초기화 직후의 되돌리기 토스트가 온보딩 위에도 보이도록 */}
-        <Snackbar tabBar={false} />
+        <SnackbarPure tabBar={false} />
       </>
     );
   }
 
   let screen: React.ReactNode = null;
   if (ui.screen === 'dashboard') screen = <Dashboard />;
-  else if (ui.screen === 'grid') screen = <GridScreen />;
+  else if (ui.screen === 'grid') screen = <GridScreenPure />;
   else if (ui.screen === 'detail') screen = <Detail key={ui.ti} ti={ui.ti} />;
   else if (ui.screen === 'today') screen = <Today />;
   else if (ui.screen === 'stats') screen = <Stats />;
-  else if (ui.screen === 'settings') screen = <Settings />;
+  else if (ui.screen === 'settings') screen = <SettingsPure />;
 
   const deep = isDeep(ui.screen);
   const showTabs = ui.screen !== 'settings';
@@ -298,10 +356,8 @@ export function Root() {
           한 칸(18)만큼 더 길게 두고 스크롤을 따라 올린다. 더 긴 그 한 칸은 화면 틀에서 잘라 낸다 —
           안 자르면 웹에서는 문서가 18만큼 길어져 창이 스크롤되고, 탭바가 따라 올라가며 아래에 흰 띠가 남는다 */}
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}>
-        <Animated.View
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: dotsY }] }}
-        >
-          <PaperDots M={M} gap={DOT} offsetY={insets.top % DOT} />
+        <Animated.View style={dotsStyle}>
+          <PaperDotsPure M={M} gap={DOT} offsetY={insets.top % DOT} />
         </Animated.View>
       </View>
       <Animated.ScrollView
@@ -324,7 +380,7 @@ export function Root() {
         <Animated.View
           {...edgeSwipe.panHandlers}
           onAccessibilityEscape={deep ? ui.back : undefined}
-          style={{ flexGrow: 1, opacity: fade, transform: [{ translateX: slide }] }}
+          style={pageStyle}
         >
           {screen}
         </Animated.View>
@@ -335,18 +391,18 @@ export function Root() {
       )}
 
       {/* overlays */}
-      <ActionSheet />
-      <FocusTimer />
-      <QuickAdd />
-      <PickToday />
-      <CellEditor />
-      <WeekRitual />
-      <ShareChart />
-      <Celebration />
-      <Snackbar />
+      <ActionSheetPure />
+      <FocusTimerPure />
+      <QuickAddPure />
+      <PickTodayPure />
+      <CellEditorPure />
+      <WeekRitualPure />
+      <ShareChartPure />
+      <CelebrationPure />
+      <SnackbarPure />
     </View>
   );
-}
+});
 
 const TAB_ORDER: Screen[] = ['dashboard', 'grid', 'today', 'stats'];
 
@@ -391,6 +447,10 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }:
     } else Animated.spring(x, { toValue: cx, useNativeDriver: true, ...SPRING.snappy }).start();
   }, [cx, x]);
   const barX = useMemo(() => Animated.add(x, new Animated.Value(-IND_W / 2)), [x]);
+  const barStyle = useMemo(
+    () => ({ position: 'absolute' as const, top: -1, left: 0, width: IND_W, height: 2, backgroundColor: M.ink, transform: [{ translateX: barX }] }),
+    [barX, M.ink],
+  );
 
   const items = TABS.map((t) => (
     <TabItem key={t.id} id={t.id} icon={t.icon} label={t.label} on={active === t.id} onTab={onTab} />
@@ -409,13 +469,7 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }:
       }}
     >
       {cx != null && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute', top: -1, left: 0, width: IND_W, height: 2, backgroundColor: M.ink,
-            transform: [{ translateX: barX }],
-          }}
-        />
+        <Animated.View pointerEvents="none" style={barStyle} />
       )}
       {items}
     </View>
@@ -423,7 +477,7 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }:
 });
 
 /** 탭 한 칸 — 아이콘 24 + 글자 11. 지금 탭은 먹색, 나머지는 보조 글자색 */
-function TabItem({ id, icon, label, on, onTab }: {
+const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
   id: Screen;
   icon: IconName;
   label: string;
@@ -453,7 +507,7 @@ function TabItem({ id, icon, label, on, onTab }: {
       </Text>
     </Pressable>
   );
-}
+});
 
 /** 가운데 '추가' 칸 — 점선 네모 안의 ＋. 손으로 그린 빈칸처럼, 탭들과 같은 줄에 앉는다 */
 function AddSlot({ onPress }: { onPress: () => void }) {

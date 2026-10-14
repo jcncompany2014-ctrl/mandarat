@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated, BackHandler, PanResponder, Pressable, View, useWindowDimensions,
   type AccessibilityActionEvent, type LayoutChangeEvent,
@@ -20,8 +20,9 @@ import {
   CENTER_SLOT, DONE_INK, RULE, SLOT_INDEX, coreBg, coreInk, frameRadius, headBg, legibleMark, ruleColor,
 } from '../theme/chart';
 import type { M } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat, themeProgress, totalDone } from '../store/MandaratContext';
+import { useUIActions } from '../navigation/ui';
+import { useDoc, themeProgress, totalDone } from '../store/MandaratContext';
+import { sameProps } from '../lib/sameProps';
 import type { MandaratDoc } from '../types';
 import { gridMemory, stepArea, swipeStep, takeFreshDone, type GridFocus } from './gridMemory';
 
@@ -102,10 +103,16 @@ type CellProps = {
   fullText: string;
   /** 칸 안 글이 쓸 수 있는 폭(pt) */
   textW: number;
-  last: { col: boolean; row: boolean };
+  /** 블록의 오른쪽 끝 칸 · 아래 끝 칸 — 괘선을 긋지 않는다 */
+  lastCol: boolean;
+  lastRow: boolean;
 };
 
-function Cell({ M, text, kind, color, done, unnamed, headPct, finished, today, dueSoon, edgePct, inkIndex, fullText, textW, last }: CellProps) {
+/** 블록이 정한 칸 값 — 칸 폭(textW)은 표가 정한다 */
+type CellData = Omit<CellProps, 'textW'>;
+
+/** 값이 같으면 다시 그리지 않는다 — 다른 칸을 체크해도 이 칸은 그대로 */
+const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, finished, today, dueSoon, edgePct, inkIndex, fullText, textW, lastCol, lastRow }: CellProps) {
   const gold = legibleMark(M.gold, M.bg, M);
   const head = kind === 'head';
   const core = kind === 'core';
@@ -119,7 +126,7 @@ function Cell({ M, text, kind, color, done, unnamed, headPct, finished, today, d
       accessibilityLargeContentTitle={fullText}
       style={{
         flex: 1, padding: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: bg,
-        borderColor: ruleColor(M, 'cell'), borderRightWidth: last.col ? 0 : RULE.cell, borderBottomWidth: last.row ? 0 : RULE.cell,
+        borderColor: ruleColor(M, 'cell'), borderRightWidth: lastCol ? 0 : RULE.cell, borderBottomWidth: lastRow ? 0 : RULE.cell,
       }}
     >
       {solid && inkIndex != null && <InkFill color={color} delay={inkIndex * INK_STAGGER} />}
@@ -146,12 +153,16 @@ function Cell({ M, text, kind, color, done, unnamed, headPct, finished, today, d
       {today && <View pointerEvents="none" style={{ position: 'absolute', top: 3, left: 3, width: 4, height: 4, backgroundColor: solid ? DONE_INK : gold }} />}
     </View>
   );
-}
+});
 
 // ── 블록 하나(3×3) ───────────────────────────────────────────────────────────
 
 type Edges = { right: number; bottom: number; rightColor: string; bottomColor: string; left: number; top: number };
 
+/**
+ * 블록 하나 — 바깥(Block)은 문서에서 칸 값 9개와 지금 읽을 칸의 말만 고르고,
+ * 안쪽(BlockView, memo)은 그 값이 바뀌었을 때만 다시 그린다. 다른 블록의 칸을 체크해도 이 블록은 그대로.
+ */
 function Block({
   M, doc, b, cellH, textW, edges, todaySet, inkOrder, onOpen,
 }: {
@@ -163,7 +174,7 @@ function Block({
   edges: Edges;
   todaySet: ReadonlySet<string>;
   inkOrder: ReadonlyMap<string, number>;
-  onOpen: () => void;
+  onOpen: (b: Focus) => void;
 }) {
   const now = new Date();
   const today = ymd(now);
@@ -171,30 +182,30 @@ function Block({
   const [cursor, setCursor] = useState(CENTER_SLOT);
   const center = b === 'c';
 
-  const cellAt = (slot: number): Omit<CellProps, 'textW'> => {
-    const last = { col: slot % 3 === 2, row: slot >= 6 };
+  const cellAt = (slot: number): CellData => {
+    const last = { lastCol: slot % 3 === 2, lastRow: slot >= 6 };
     const idx = SLOT_INDEX[slot];
     if (center) {
       if (idx == null) {
         const goal = doc.centerGoal.trim();
-        return { M, kind: 'core', text: goal || '핵심 목표', color: M.ink, fullText: goal || '핵심 목표', last };
+        return { M, kind: 'core', text: goal || '핵심 목표', color: M.ink, fullText: goal || '핵심 목표', ...last };
       }
       const th = doc.themes[idx];
       return {
         M, kind: 'head', text: areaName(doc, idx), unnamed: !th.title.trim(), color: th.color,
-        headPct: themeProgress(th).pct, fullText: areaName(doc, idx), last,
+        headPct: themeProgress(th).pct, fullText: areaName(doc, idx), ...last,
       };
     }
     const th = doc.themes[b];
     if (idx == null) {
       return {
         M, kind: 'head', text: areaName(doc, b), unnamed: !th.title.trim(), color: th.color,
-        headPct: themeProgress(th).pct, finished: complete(doc, b), fullText: areaName(doc, b), last,
+        headPct: themeProgress(th).pct, finished: complete(doc, b), fullText: areaName(doc, b), ...last,
       };
     }
     const a = th.actions[idx];
     const key = `${b}-${idx}`;
-    if (!a?.text.trim()) return { M, kind: 'empty', text: '', color: th.color, fullText: `실천 ${idx + 1} 채우기`, last };
+    if (!a?.text.trim()) return { M, kind: 'empty', text: '', color: th.color, fullText: `실천 ${idx + 1} 채우기`, ...last };
     const done = !!a.done;
     const kind = kindOf(a);
     let edgePct: number | null = null;
@@ -205,7 +216,7 @@ function Block({
     return {
       M, kind: 'action', text: a.text.trim(), color: th.color, done, today: todaySet.has(key),
       dueSoon: !done && kind === 'once' && !!a.due && daysBetween(today, a.due) <= DUE_SOON,
-      edgePct, inkIndex: done ? inkOrder.get(key) : undefined, fullText: a.text.trim(), last,
+      edgePct, inkIndex: done ? inkOrder.get(key) : undefined, fullText: a.text.trim(), ...last,
     };
   };
 
@@ -220,20 +231,51 @@ function Block({
   };
 
   const label = center ? '가운데 블록, 핵심 목표와 8개 영역' : `${areaName(doc, b)} 블록`;
-  const move = (d: 1 | -1) => {
-    const next = Math.max(0, Math.min(8, cursor + d));
-    if (next !== cursor) setCursor(next);
-  };
-  const onAction = (e: AccessibilityActionEvent) => {
+  // 누를 때 쓰는 함수는 고정 — 최신 b · onOpen을 ref로 읽는다
+  const latest = useRef({ b, onOpen });
+  latest.current = { b, onOpen };
+  const open = useCallback(() => latest.current.onOpen(latest.current.b), []);
+  const move = useCallback((d: 1 | -1) => setCursor((c) => Math.max(0, Math.min(8, c + d))), []);
+  const onAction = useCallback((e: AccessibilityActionEvent) => {
     const name = e.nativeEvent.actionName;
     if (name === 'increment') move(1);
     else if (name === 'decrement') move(-1);
-    else if (name === 'activate') onOpen();
-  };
+    else if (name === 'activate') open();
+  }, [move, open]);
 
-  const finished = !center && complete(doc, b);
+  return (
+    <BlockView
+      M={M}
+      cells={[0, 1, 2, 3, 4, 5, 6, 7, 8].map(cellAt)}
+      cellH={cellH}
+      textW={textW}
+      edges={edges}
+      label={label}
+      speech={speech(cursor)}
+      finished={!center && complete(doc, b)}
+      onOpen={open}
+      onAction={onAction}
+    />
+  );
+}
+
+interface BlockViewProps {
+  M: M;
+  cells: CellData[];
+  cellH: number;
+  textW: number;
+  edges: Edges;
+  label: string;
+  /** 지금 읽을 칸의 말(위아래로 쓸어 옮긴 칸) */
+  speech: string;
+  /** 8칸 모두 달성 — 블록 둘레가 금색으로 */
+  finished: boolean;
+  onOpen: () => void;
+  onAction: (e: AccessibilityActionEvent) => void;
+}
+
+const BlockView = memo(function BlockView({ M, cells, cellH, textW, edges, label, speech, finished, onOpen, onAction }: BlockViewProps) {
   const gold = legibleMark(M.gold, M.bg, M);
-
   return (
     <Pressable
       onPress={onOpen}
@@ -241,7 +283,7 @@ function Block({
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
-      accessibilityValue={{ text: speech(cursor) }}
+      accessibilityValue={{ text: speech }}
       accessibilityHint="위아래로 쓸어 칸을 하나씩 읽어요. 두 번 누르면 크게 봐요"
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }, { name: 'activate' }]}
       onAccessibilityAction={onAction}
@@ -254,7 +296,7 @@ function Block({
     >
       {[0, 1, 2].map((row) => (
         <View key={row} style={{ height: cellH, flexDirection: 'row' }}>
-          {[0, 1, 2].map((col) => <Cell key={col} textW={textW} {...cellAt(row * 3 + col)} />)}
+          {[0, 1, 2].map((col) => <Cell key={col} textW={textW} {...cells[row * 3 + col]} />)}
         </View>
       ))}
       {/* 8칸 모두 달성 — 블록 둘레가 2pt 금색으로 */}
@@ -269,7 +311,11 @@ function Block({
       )}
     </Pressable>
   );
-}
+}, (a, b) => {
+  const { cells: ca, ...ra } = a;
+  const { cells: cb, ...rb } = b;
+  return sameProps(ra, rb) && ca.length === cb.length && ca.every((c, i) => sameProps(c, cb[i]));
+});
 
 // ── 가운데 블록 크게 ─────────────────────────────────────────────────────────
 
@@ -357,9 +403,9 @@ function edgesFor(M: M, row: number, col: number): Edges {
  * 81칸 — 인쇄된 만다라트 표 한 장. 블록을 누르면 그 블록이 제자리에서 커져 9칸을 크게 보여 준다.
  * 크게 본 칸은 바로 눌러 실천을 열고(길게 누르면 글자 고치기), 빈 칸은 바로 채운다. 옆으로 밀면 이웃 영역으로.
  */
-export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: boolean) => void }) {
-  const { doc } = useMandarat();
-  const { go, openAction, openEditor } = useUI();
+export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: boolean) => void }) {
+  const { doc } = useDoc();
+  const { go, openAction, openEditor } = useUIActions();
   const { width: winW } = useWindowDimensions();
   const [focus, setFocus] = useState<Focus | null>(gridMemory.focus);
   const t = useRef(new Animated.Value(gridMemory.focus != null ? 1 : 0)).current;
@@ -429,6 +475,10 @@ export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: 
       Animated.timing(slide, { toValue: 0, duration: DUR.base, easing: EASE.out, useNativeDriver: true }).start();
     }
   };
+  // 블록 누르기는 고정된 함수로 — 최신 open을 ref로 부른다(블록이 체크마다 다시 그려지지 않게)
+  const openRef = useRef(open);
+  openRef.current = open;
+  const openBlock = useCallback((f: Focus) => openRef.current(f), []);
   const focusRef = useRef(focus);
   focusRef.current = focus;
   const step = (d: 1 | -1) => {
@@ -477,6 +527,17 @@ export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: 
   const tableOpacity = useMemo(() => t.interpolate({ inputRange: [0, 0.45], outputRange: [1, 0], extrapolate: 'clamp' }), [t]);
 
   const frame = frameRadius(doc.settings.cellShape);
+  // 움직이는 값이 든 스타일은 한 번만 만든다 — 다시 그릴 때마다 새 객체면 애니메이션 연결을 다시 맺는다
+  const tableStyle = useMemo(() => ({
+    opacity: tableOpacity,
+    borderWidth: RULE.frame, borderColor: ruleColor(M, 'frame'), borderRadius: frame,
+    overflow: 'hidden' as const, backgroundColor: M.bg,
+  }), [tableOpacity, M, frame]);
+  const zoomStyle = useMemo(
+    () => (box && layerStyle ? [{ position: 'absolute' as const, left: 0, top: 0, width: box.w, height: box.h }, layerStyle] : null),
+    [box, layerStyle],
+  );
+  const slideStyle = useMemo(() => ({ flex: 1, transform: [{ translateX: slide }] }), [slide]);
   const gold = legibleMark(M.gold, M.bg, M);
   // 칸 높이 — 표 안쪽 폭을 9로 나눈 칸 폭에서(블록 사이 괘선은 블록 안에 들어가 칸이 아주 조금 좁아질 뿐)
   const cellW = (tableW - RULE.frame * 2) / 9;
@@ -547,11 +608,7 @@ export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: 
           pointerEvents={focus == null ? 'auto' : 'none'}
           accessibilityElementsHidden={focus != null}
           importantForAccessibility={focus != null ? 'no-hide-descendants' : 'auto'}
-          style={{
-            opacity: tableOpacity,
-            borderWidth: RULE.frame, borderColor: ruleColor(M, 'frame'), borderRadius: frame,
-            overflow: 'hidden', backgroundColor: M.bg,
-          }}
+          style={tableStyle}
         >
           {[0, 1, 2].map((row) => (
             <View key={row} style={{ flexDirection: 'row' }}>
@@ -568,7 +625,7 @@ export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: 
                     edges={edgesFor(M, row, col)}
                     todaySet={todaySet}
                     inkOrder={inkOrder}
-                    onOpen={() => open(b)}
+                    onOpen={openBlock}
                   />
                 );
               })}
@@ -592,12 +649,9 @@ export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: 
         </Animated.View>
 
         {/* 크게 보기 — 고른 블록 자리에서 표 전체로 커진다 */}
-        {focus != null && box && layerStyle && (
-          <Animated.View
-            {...swipe.panHandlers}
-            style={[{ position: 'absolute', left: 0, top: 0, width: box.w, height: box.h }, layerStyle]}
-          >
-            <Animated.View style={{ flex: 1, transform: [{ translateX: slide }] }}>
+        {focus != null && zoomStyle && (
+          <Animated.View {...swipe.panHandlers} style={zoomStyle}>
+            <Animated.View style={slideStyle}>
               {focus === 'c' ? (
                 <CoreBoard M={M} doc={doc} onPick={(ti) => switchTo(ti)} onGoal={() => openEditor({ kind: 'center' })} />
               ) : (
@@ -649,4 +703,4 @@ export function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: 
       )}
     </View>
   );
-}
+});

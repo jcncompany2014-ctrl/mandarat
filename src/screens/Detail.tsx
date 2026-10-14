@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { PanResponder, Pressable, View, type AccessibilityActionEvent } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
@@ -9,8 +9,8 @@ import { alertInk } from '../components/KindBits';
 import { NUM, RHYTHM, TYPE } from '../theme/type';
 import { legibleMark } from '../theme/chart';
 import { usePalette, type M as Palette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat, themeProgress, themeStreak } from '../store/MandaratContext';
+import { useUIActions } from '../navigation/ui';
+import { useActions, useDoc, dateKey, themeProgress, themeStreak } from '../store/MandaratContext';
 import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
 import { checkBorder } from '../lib/marks';
 import { kindLine } from '../lib/kinds';
@@ -35,13 +35,16 @@ let pagedTo: number | null = null;
  * 보드와 목록은 습관·쌓기·마음가짐을 체크하지 않는다(하루 체크는 오늘·홈·실천 시트에서).
  * 목록에서 바로 바꿀 수 있는 건 '한 번' 실천의 완료뿐이다.
  */
-export function Detail({ ti }: { ti: number }) {
+export const Detail = memo(function Detail({ ti }: { ti: number }) {
   const M = usePalette();
-  const { doc, toggleDone } = useMandarat();
-  const { go, back, openAction, openEditor } = useUI();
+  const { doc } = useDoc();
+  const { toggleDone } = useActions();
+  const { go, back, openAction, openEditor } = useUIActions();
   const th = doc.themes[ti];
   const p = themeProgress(th);
-  const streak = themeStreak(doc, ti);
+  // 영역 연속 기록은 기록 전체를 한 번 훑는다 — 기록(dayLog)이나 날짜가 바뀔 때만 다시 센다
+  const day = dateKey();
+  const streak = useMemo(() => themeStreak(doc, ti), [doc.dayLog, ti, day]); // eslint-disable-line react-hooks/exhaustive-deps
   const now = new Date();
   const title = areaTitle(doc, ti);
   const prevTi = neighborArea(ti, -1);
@@ -74,6 +77,15 @@ export function Detail({ ti }: { ti: number }) {
     else checkHaptic();
     toggleDone(ti, ai);
   };
+
+  // 줄에 넘기는 함수는 고정 — 최신 open · toggleOnce · 칸을 ref로 읽는다(줄이 체크마다 다시 그려지지 않게)
+  const latest = useRef({ open, toggleOnce, th });
+  latest.current = { open, toggleOnce, th };
+  const onRowOpen = useCallback((ai: number) => { tap(); latest.current.open(ai); }, []);
+  const onRowToggle = useCallback((ai: number) => {
+    const a = latest.current.th.actions[ai];
+    if (a) latest.current.toggleOnce(a, ai);
+  }, []);
 
   // 좌우로 쓸어 이전·다음 영역으로 (세로 스크롤은 그대로)
   const swipe = useMemo(
@@ -167,8 +179,8 @@ export function Detail({ ti }: { ti: number }) {
                 status={rowStatus(doc, ti, ai, now)}
                 overdue={!!kindLine(doc, ti, ai, now)?.alert}
                 label={rowLabel(doc, ti, ai, now)}
-                onOpen={() => { tap(); open(ai); }}
-                onToggle={() => toggleOnce(a, ai)}
+                onOpen={onRowOpen}
+                onToggle={onRowToggle}
               />
             ))}
           </View>
@@ -187,7 +199,7 @@ export function Detail({ ti }: { ti: number }) {
       </View>
     </View>
   );
-}
+});
 
 /**
  * 실천 한 줄 — 왼쪽 표시 · 글 · 오른쪽 상태.
@@ -196,8 +208,9 @@ export function Detail({ ti }: { ti: number }) {
  * - 빈 칸: 표시 없이 '실천 n 채우기'.
  * 줄을 누르면 쓴 칸은 실천 시트, 빈 칸은 쓰기.
  */
-function ActionRow({
-  M, a, ai, first, last, color, seed, status, overdue, label, onOpen, onToggle,
+/** 실천 한 줄 — 칸(a)과 값이 그대로면 다시 그리지 않는다. onOpen · onToggle은 칸 번호를 받는 고정된 함수 */
+const ActionRow = memo(function ActionRow({
+  M, a, ai, first, last, color, seed, status, overdue, label, onOpen: openAt, onToggle: toggleAt,
 }: {
   M: Palette;
   a: Action;
@@ -209,9 +222,11 @@ function ActionRow({
   status: string;
   overdue: boolean;
   label: string;
-  onOpen: () => void;
-  onToggle: () => void;
+  onOpen: (ai: number) => void;
+  onToggle: (ai: number) => void;
 }) {
+  const onOpen = () => openAt(ai);
+  const onToggle = () => toggleAt(ai);
   const has = !!a.text.trim();
   const once = has && kindOf(a) === 'once';
   const struck = once && a.done;
@@ -282,7 +297,7 @@ function ActionRow({
       )}
     </Pressable>
   );
-}
+});
 
 /** 바닥줄의 이웃 영역 글자 버튼 — 반쪽씩 */
 function FooterLink({

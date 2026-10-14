@@ -115,4 +115,6 @@ export interface MandaratDoc {
   areasSet?: boolean;
   /** 한 주 돌아보기 — 키는 돌아본 주의 월요일 'YYYY-MM-DD' */
   reviews?: Record<string, WeekReviewEntry>;
+  /** 오늘 할 일을 다 해 마감한 날 'YYYY-MM-DD' — 오래된 날부터, 최근 400일까지 */
+  closedDays?: string[];
 }

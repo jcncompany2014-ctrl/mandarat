@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Animated, Pressable, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { ProgressBar } from '../components/ProgressBar';
@@ -16,8 +16,8 @@ import { EASE } from '../theme/motion';
 import { NUM } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat, dateKey } from '../store/MandaratContext';
+import { useUIActions, useUIState } from '../navigation/ui';
+import { useActions, useDoc, dateKey } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
@@ -29,24 +29,40 @@ import { MGMT_LABEL } from '../lib/copy';
 import { fmtDateLong } from '../lib/text';
 import { dayCloseText, effectiveArea, isOverdue, tallyShape, todayAreaTabs, todayEmptyKind } from '../lib/todayList';
 import type { Mgmt, TodayExtra } from '../types';
+import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
 import { showGridAt } from './gridMemory';
 import { MindWeek, TodayKanban, TodayStreak } from './TodayModes';
 
 /** 보기 방식 — 저장 값은 그대로, 화면에는 MGMT_LABEL(목록 · 연속 기록 · 보드) */
 const MODES: readonly Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 
+// 값이 같으면 다시 그리지 않는 머리·탭·기분 줄 — 체크할 때마다 문서가 바뀌어도 그대로
+const PureHeader = memo(Header);
+const PureTextTabs = memo(TextTabs) as typeof TextTabs;
+const PureMoodRow = memo(MoodRow);
+const PureWeekCaption = memo(WeekCaption);
+// 영역 색인 — 칸(items)은 값으로 비교하고, onChange는 같은 뜻의 새 함수여도 그대로(고른 영역만 바꾼다)
+const PureIndexTabs = memo(IndexTabs, (a, b) => {
+  const { items: ia, ...ra } = a;
+  const { items: ib, ...rb } = b;
+  return sameIgnoringHandlers(ra, rb) && ia.length === ib.length && ia.every((x, i) => sameProps(x, ib[i]));
+});
+
 /**
  * 오늘 — 인쇄된 기록표 한 쪽.
  * 머리(날짜 · 오늘) → 글자 탭(목록 · 연속 기록 · 보드) → 보기 → 모든 보기 아래 같은 마무리(마음가짐 · 오늘 기분 · 한 줄).
  * 보기 방식은 여기서만 고른다(설정에는 없다).
  */
-export function Today() {
+export const Today = memo(function Today() {
   const M = usePalette();
-  const { doc, setSetting } = useMandarat();
+  const { doc } = useDoc();
+  const { setSetting } = useActions();
   const tc = useTodayCheck();
   const mgmt = doc.settings.mgmt;
   const now = new Date();
-  const list = useMemo(() => orderedTodayItems(doc, new Date()), [doc]);
+  // 날이 바뀌면 다시 센다(문서가 그대로여도 오늘이 달라지면 목록이 바뀐다)
+  const day = dateKey(now);
+  const list = useMemo(() => orderedTodayItems(doc, new Date()), [doc, day]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 두 손가락 두 번 탭(매직 탭) — 남은 일 중 맨 위 하나를 체크한다
   const onMagicTap = () => {
@@ -55,32 +71,28 @@ export function Today() {
     const x = doc.todayExtra.find((e) => !e.done);
     if (x) tc.toggleExtra(x);
   };
+  const onMode = useCallback((v: Mgmt) => { tap(); animateLayout(); setSetting('mgmt', v); }, [setSetting]);
+  const meta = doc.dayMeta[day];
 
   return (
     <View onMagicTap={onMagicTap}>
-      <Header M={M} sub={fmtDateLong(now)} kr="오늘" />
+      <PureHeader M={M} sub={fmtDateLong(now)} kr="오늘" />
       <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
-        <TextTabs
-          M={M}
-          options={MODES}
-          value={mgmt}
-          labels={MGMT_LABEL}
-          onChange={(v) => { tap(); animateLayout(); setSetting('mgmt', v); }}
-        />
+        <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} />
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} />}
-      <DayBlock M={M} />
+      <DayBlock M={M} day={day} mood={meta?.mood} reflection={meta?.reflection ?? ''} />
     </View>
   );
-}
+});
 
 // ── 목록 ──────────────────────────────────────────────────────────────────────
 
 type Row = { key: string; done: boolean; it?: TodayItem; x?: TodayExtra };
 
 function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
-  const { doc } = useMandarat();
-  const { openAction, openPick } = useUI();
+  const { doc } = useDoc();
+  const { openAction, openPick } = useUIActions();
   const now = new Date();
   const extra = doc.todayExtra;
   const { held, hold } = useSettle();
@@ -112,6 +124,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
   const showPick = canPick && area == null;
   const hasHabit = rows.some((r) => r.it?.kind === 'habit');
 
+  const onPick = () => { tap(); openPick(); };
   const tabItems: IndexTabItem[] = [
     { key: 'all', label: '전체', count: total },
     ...tabs.map((t) => ({ key: String(t.ti), label: doc.themes[t.ti]?.title.trim() || `영역 ${t.ti + 1}`, color: doc.themes[t.ti]?.color, count: t.count })),
@@ -119,33 +132,28 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
 
   const renderRow = (r: Row, variant: 'list' | 'done', divider: boolean) => {
     const it = r.it;
-    const overdue = !!it && variant === 'list' && !r.done && isOverdue(doc, it, now);
     return (
-      <View key={r.key}>
-        {/* 마감 지남 — 여백에 붉은 세로 줄 하나 */}
-        {overdue && (
-          <View pointerEvents="none" style={{ position: 'absolute', left: -10, top: 12, bottom: 12, width: 2, backgroundColor: alertInk(M) }} />
-        )}
-        <TodayRow
-          M={M}
-          item={it ?? r.x!}
-          variant={variant}
-          divider={divider}
-          onOpen={it ? () => openAction(it.ti, it.ai) : undefined}
-          // 체크할 땐 잠깐 붙잡고, 풀 땐 바로 부드럽게 위로
-          onCheck={(wasDone) => { if (wasDone) animateLayout(); else hold(r.key); }}
-        />
-      </View>
+      <ListRow
+        key={r.key}
+        M={M}
+        rowKey={r.key}
+        item={it ?? r.x!}
+        variant={variant}
+        divider={divider}
+        overdue={!!it && variant === 'list' && !r.done && isOverdue(doc, it, now)}
+        onOpen={it ? () => openAction(it.ti, it.ai) : undefined}
+        hold={hold}
+      />
     );
   };
 
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      <Counter M={M} done={done} total={total} complete={complete} canPick={canPick} onPick={() => { tap(); openPick(); }} />
+      <Counter M={M} done={done} total={total} complete={complete} canPick={canPick} summary={todaySummary(doc, now)} onPick={onPick} />
 
       {tabs.length > 1 && (
         <View style={{ marginBottom: 12 }}>
-          <IndexTabs
+          <PureIndexTabs
             M={M}
             items={tabItems}
             value={area == null ? 'all' : String(area)}
@@ -157,7 +165,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
       {/* 습관 줄의 이번 주 칸 위에 요일 글자 — 오른쪽 81pt 칸에 맞춘다 */}
       {hasHabit && (
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingBottom: 5 }}>
-          <WeekCaption M={M} todayIndex={weekdayIndex(now)} />
+          <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} />
         </View>
       )}
 
@@ -220,20 +228,55 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
         ]}
       </View>
 
-      <DayClose M={M} complete={complete} total={total} now={now} />
+      <DayClose M={M} complete={complete} total={total} />
     </View>
   );
 }
+
+/**
+ * 목록의 한 줄 — 마감이 지난 줄은 여백에 붉은 세로 줄. 값이 같으면 다시 그리지 않는다
+ * (함수는 누를 때만 읽으므로 부모가 새로 만들어 넘겨도 그대로 — TodayRow와 같은 규칙).
+ */
+const ListRow = memo(function ListRow({ M, rowKey, item, variant, divider, overdue, onOpen, hold }: {
+  M: M;
+  rowKey: string;
+  item: TodayItem | TodayExtra;
+  variant: 'list' | 'done';
+  divider: boolean;
+  overdue: boolean;
+  onOpen?: () => void;
+  hold: (key: string) => void;
+}) {
+  return (
+    <View>
+      {/* 마감 지남 — 여백에 붉은 세로 줄 하나 */}
+      {overdue && (
+        <View pointerEvents="none" style={{ position: 'absolute', left: -10, top: 12, bottom: 12, width: 2, backgroundColor: alertInk(M) }} />
+      )}
+      <TodayRow
+        M={M}
+        item={item}
+        variant={variant}
+        divider={divider}
+        onOpen={onOpen}
+        // 체크할 땐 잠깐 붙잡고, 풀 땐 바로 부드럽게 위로
+        onCheck={(wasDone) => { if (wasDone) animateLayout(); else hold(rowKey); }}
+      />
+    </View>
+  );
+}, (a, b) => sameIgnoringHandlers(a, b) && !a.onOpen === !b.onOpen);
 
 // ── 집계 — 큰 숫자 + 할 일 수만큼의 네모 ─────────────────────────────────────
 
 const TALLY_BOX = 10;
 const TALLY_GAP = 3;
 
-function Counter({ M, done, total, complete, canPick, onPick }: {
-  M: M; done: number; total: number; complete: boolean; canPick: boolean; onPick: () => void;
+/** summary: 화면 읽기로 읽을 오늘 요약(todaySummary) — 값이 같으면 다시 그리지 않는다(onPick은 누를 때만 쓴다) */
+const Counter = memo(function Counter({ M, done, total, complete, canPick, summary, onPick }: {
+  M: M; done: number; total: number; complete: boolean; canPick: boolean; summary: string; onPick: () => void;
 }) {
-  const { doc } = useMandarat();
+  const pick = useRef(onPick);
+  pick.current = onPick;
   const shape = tallyShape(total);
   const pendingBorder = mix(M.bg, M.ink, 0.3);
   return (
@@ -241,7 +284,7 @@ function Counter({ M, done, total, complete, canPick, onPick }: {
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
         <View
           accessible
-          accessibilityLabel={todaySummary(doc, new Date())}
+          accessibilityLabel={summary}
           style={{ flex: 1, minWidth: 0 }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
@@ -255,7 +298,7 @@ function Counter({ M, done, total, complete, canPick, onPick }: {
         </View>
         {canPick && (
           <Pressable
-            onPress={onPick}
+            onPress={() => pick.current()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 8 }}
             accessibilityRole="button"
             accessibilityLabel="고르기"
@@ -289,13 +332,17 @@ function Counter({ M, done, total, complete, canPick, onPick }: {
       </View>
     </View>
   );
-}
+}, (a, b) => {
+  const { onPick: _a, ...ra } = a;
+  const { onPick: _b, ...rb } = b;
+  return sameProps(ra, rb);
+});
 
 // ── 빈 목록 ───────────────────────────────────────────────────────────────────
 
 function TodayEmpty({ M, canPick }: { M: M; canPick: boolean }) {
-  const { doc } = useMandarat();
-  const { openPick, go } = useUI();
+  const { doc } = useDoc();
+  const { openPick, go } = useUIActions();
   const kind = todayEmptyKind(doc, canPick);
   return (
     <View style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 }}>
@@ -337,8 +384,8 @@ const RETRACT_MS = 160;
 /** 다 찼는데 마감 신호(dayCloseTick)가 오지 않으면 — 지워서 다 찼거나 오늘 이미 마감한 날 — 이만큼 뒤 그냥 그려 둔다 */
 const TICK_WAIT = 150;
 
-function DayClose({ M, complete, total, now }: { M: M; complete: boolean; total: number; now: Date }) {
-  const { dayCloseTick } = useUI();
+const DayClose = memo(function DayClose({ M, complete, total }: { M: M; complete: boolean; total: number }) {
+  const { dayCloseTick } = useUIState();
   const mountTick = useRef(dayCloseTick);
   const prevTick = useRef(dayCloseTick);
   const wasComplete = useRef(complete);
@@ -385,7 +432,7 @@ function DayClose({ M, complete, total, now }: { M: M; complete: boolean; total:
   useEffect(() => () => { if (wait.current) clearTimeout(wait.current); }, []);
 
   if (!shown) return null;
-  const text = dayCloseText(now, total);
+  const text = dayCloseText(new Date(), total);
   return (
     <View style={{ marginTop: 14 }} accessible accessibilityLabel={text.speech}>
       <Animated.View style={{ transformOrigin: 'left', transform: [{ scaleX: t }] }}>
@@ -398,28 +445,28 @@ function DayClose({ M, complete, total, now }: { M: M; complete: boolean; total:
       </Animated.View>
     </View>
   );
-}
+});
 
 // ── 모든 보기 아래 — 마음가짐 · 오늘 기분 · 한 줄 ─────────────────────────────
 
-function DayBlock({ M }: { M: M }) {
-  const { doc, setDayMood } = useMandarat();
-  const day = dateKey();
-  const meta = doc.dayMeta[day] ?? {};
+/** 오늘 기분과 한 줄은 값으로 받는다 — 체크로 문서가 바뀌어도 이 묶음은 다시 그리지 않는다(마음가짐은 MindWeek가 따로 본다) */
+const DayBlock = memo(function DayBlock({ M, day, mood, reflection }: { M: M; day: string; mood?: number; reflection: string }) {
+  const { setDayMood } = useActions();
+  const onMood = useCallback((i: number) => setDayMood(i, day), [setDayMood, day]);
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
       <MindWeek M={M} />
       <View style={{ marginTop: 28 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 10 }} accessibilityRole="header">오늘 기분</Text>
-        <MoodRow M={M} value={meta.mood} onPick={(i) => setDayMood(i, day)} />
+        <PureMoodRow M={M} value={mood} onPick={onMood} />
       </View>
       <View style={{ marginTop: 24 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 2 }} accessibilityRole="header">한 줄</Text>
-        <Reflection key={day} M={M} stored={meta.reflection ?? ''} />
+        <Reflection key={day} M={M} stored={reflection} />
       </View>
     </View>
   );
-}
+});
 
 /** 저장을 미루는 시간 — 글자마다 문서 전체를 다시 저장하지 않게 */
 const IDLE_MS = 400;
@@ -430,8 +477,8 @@ const IDLE_MS = 400;
  * 저장할 날은 칸을 누른 그날 — 자정을 넘겨 써도 어제의 한 줄로 남는다.
  * 쓰고 있지 않을 때만 저장된 글(백업 불러오기 등)로 다시 맞춘다.
  */
-function Reflection({ M, stored }: { M: M; stored: string }) {
-  const { setDayReflection } = useMandarat();
+const Reflection = memo(function Reflection({ M, stored }: { M: M; stored: string }) {
+  const { setDayReflection } = useActions();
   const [draft, setDraft] = useState(stored);
   const draftRef = useRef(stored);
   const dirty = useRef(false);
@@ -479,4 +526,4 @@ function Reflection({ M, stored }: { M: M; stored: string }) {
       style={{ borderBottomWidth: 1, borderColor: M.line, paddingVertical: 10, paddingHorizontal: 0, color: M.ink, fontSize: 15 }}
     />
   );
-}
+});

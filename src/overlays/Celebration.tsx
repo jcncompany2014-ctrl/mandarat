@@ -6,8 +6,8 @@ import { PaperDots } from '../components/PaperDots';
 import { MiniChart } from '../components/GridMark';
 import { NUM } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat, overallStreak } from '../store/MandaratContext';
+import { useUIActions, useUIState } from '../navigation/ui';
+import { useDoc, overallStreak } from '../store/MandaratContext';
 import { fmtDateLong } from '../lib/text';
 import { announce } from '../lib/useReducedMotion';
 
@@ -17,15 +17,11 @@ const GUTTER = 24;
 
 /**
  * 64칸을 모두 달성한 날의 마무리 페이지 — 카드가 아니라 종이 한 장.
- * 내 만다라트 81칸이 가운데부터 차례로 잉크로 찍힌다. 하루 마감('today')은 여기서 그리지 않는다(목록 아래 마감 줄이 맡는다).
+ * 내 만다라트 81칸이 가운데부터 차례로 잉크로 찍힌다. 하루 마감은 모달이 아니다(목록 아래 마감 줄이 맡는다).
  * 성공 진동은 Root가 이 페이지가 뜰 때 한 번 울린다 — 여기서 또 울리지 않는다.
  */
-export function Celebration(_props: { count?: number } = {}) {
-  const { celebrate, closeCelebrate } = useUI();
-  // 'today'가 들어와도 그리지 않고 바로 비운다 — 열린 채로 남으면 afterOverlays 대기열이 멈춘다
-  useEffect(() => {
-    if (celebrate === 'today') closeCelebrate();
-  }, [celebrate, closeCelebrate]);
+export function Celebration() {
+  const { celebrate } = useUIState();
   if (celebrate !== 'bloom') return null;
   return <FinalePage />;
 }
@@ -33,8 +29,8 @@ export function Celebration(_props: { count?: number } = {}) {
 function FinalePage() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
-  const { closeCelebrate } = useUI();
-  const { doc } = useMandarat();
+  const { closeCelebrate } = useUIActions();
+  const { doc } = useDoc();
   const streak = overallStreak(doc);
 
   useEffect(() => {

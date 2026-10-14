@@ -46,18 +46,44 @@ export interface Toast {
   duration?: number;
 }
 
-export type CelebrateKind = 'today' | 'bloom';
+/** 마무리 페이지의 종류 — 지금은 64칸을 다 이룬 'bloom' 하나(하루 마감은 모달 없이 그 자리에서) */
+export type CelebrateKind = 'bloom';
 
 export interface RitualTarget {
   week: string;
   readOnly?: boolean;
 }
 
-interface UICtx {
+/** 화면·시트가 무엇을 보이는지 — 바뀔 때마다 새 값 */
+export interface UIState {
   screen: Screen;
   ti: number;
   /** 지금 화면(상세·설정)을 연 탭 — 뒤로 가면 여기로 돌아가고, 탭바도 이 탭을 켜 둔다 */
   from: Screen;
+  sheet: { ti: number; ai: number } | null;
+  focus: { ti: number; ai: number } | null;
+  quick: boolean;
+  /** 빠른 추가를 열 때 고를 영역(없으면 null — 마지막으로 쓴 영역) */
+  quickTi: number | null;
+  /** 만다라트 실천 중 오늘 할 일을 여러 개 고르는 시트 */
+  pick: boolean;
+  celebrate: CelebrateKind | null;
+  editor: EditorTarget | null;
+  /** 한 주 돌아보기 — week는 돌아볼 주의 월요일 'YYYY-MM-DD', readOnly면 지난 기록을 첫 쪽만 본다 */
+  ritual: RitualTarget | null;
+  /** 만다라트 표를 그림 한 장으로 공유하는 시트 */
+  share: boolean;
+  /** 오늘 할 일을 다 해서 하루를 마감한 날(YYYY-MM-DD) — 하루에 한 번만 마감한다 */
+  closedDay: string | null;
+  /** 마감할 때마다 1씩 오른다 — 화면이 이 값이 바뀌는 걸 보고 마감 줄을 긋는다 */
+  dayCloseTick: number;
+}
+
+/**
+ * 화면을 옮기고 시트를 여닫는 함수들 — 처음 한 번 만들어 앱이 도는 내내 같은 객체.
+ * 이것만 쓰는 화면은 시트가 열리거나 토스트가 떠도 다시 그려지지 않는다.
+ */
+export interface UIActions {
   go: (screen: Screen, ti?: number) => void;
   /** 상세·설정에서 연 곳으로 돌아간다(탭 화면에서는 아무 일도 하지 않는다) */
   back: () => void;
@@ -68,60 +94,53 @@ interface UICtx {
    */
   afterOverlays: (fn: () => void) => void;
 
-  sheet: { ti: number; ai: number } | null;
   openAction: (ti: number, ai: number) => void;
   closeSheet: () => void;
 
-  focus: { ti: number; ai: number } | null;
   /** 실천 시트를 닫고, 시트가 다 내려간 뒤 집중 타이머를 연다 */
   startFocus: (ti: number, ai: number) => void;
   closeFocus: () => void;
 
-  quick: boolean;
-  /** 빠른 추가를 열 때 고를 영역(없으면 null — 마지막으로 쓴 영역) */
-  quickTi: number | null;
   openQuick: (ti?: number) => void;
   closeQuick: () => void;
 
-  /** 만다라트 실천 중 오늘 할 일을 여러 개 고르는 시트 */
-  pick: boolean;
   openPick: () => void;
   closePick: () => void;
 
-  celebrate: CelebrateKind | null;
-  /** 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
+  /** 64칸을 다 이룬 마무리 페이지 — 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
   fireCelebrate: (kind?: CelebrateKind) => void;
   closeCelebrate: () => void;
 
-  editor: EditorTarget | null;
   openEditor: (e: EditorTarget) => void;
   closeEditor: () => void;
 
-  /** 한 주 돌아보기 — week는 돌아볼 주의 월요일 'YYYY-MM-DD', readOnly면 지난 기록을 첫 쪽만 본다 */
-  ritual: RitualTarget | null;
   /** 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
   openRitual: (week: string, readOnly?: boolean) => void;
   closeRitual: () => void;
 
-  /** 만다라트 표를 그림 한 장으로 공유하는 시트 */
-  share: boolean;
   /** 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
   openShare: () => void;
   closeShare: () => void;
 
-  /** 오늘 할 일을 다 해서 하루를 마감한 날(YYYY-MM-DD) — 하루에 한 번만 마감한다 */
-  closedDay: string | null;
-  /** 마감할 때마다 1씩 오른다 — 화면이 이 값이 바뀌는 걸 보고 마감 줄을 긋는다 */
-  dayCloseTick: number;
   markDayClosed: (day: string) => void;
 
-  toast: Toast | null;
   showToast: (message: string, action?: ToastAction, opts?: ToastOptions) => void;
   /** id를 주면 그 토스트일 때만 숨긴다(새 토스트를 실수로 지우지 않게) */
   hideToast: (id?: number) => void;
+  /** 지금 떠 있는 토스트 — 누를 때·효과 안에서 읽는 용도(그리는 데 쓰면 바뀌어도 다시 그려지지 않는다) */
+  getToast: () => Toast | null;
 }
 
-const Ctx = createContext<UICtx | null>(null);
+/** 예전 모양 그대로(상태 + 함수들 + 토스트) — 새 코드는 useUIState · useUIActions · useToast를 쓴다 */
+export interface UICtx extends UIState, UIActions {
+  toast: Toast | null;
+}
+
+const StateCtx = createContext<UIState | null>(null);
+const ActionsCtx = createContext<UIActions | null>(null);
+// 토스트는 따로 — 체크마다 뜨는 토스트가 화면·시트 상태를 쓰는 곳을 다시 그리지 않게
+const ToastCtx = createContext<Toast | null>(null);
+
 
 let lastToastId = 0;
 function nextToastId(): number {
@@ -230,7 +249,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const openPick = useCallback(() => setPick(true), []);
   const closePick = useCallback(() => setPick(false), []);
 
-  const fireCelebrate = useCallback((kind: CelebrateKind = 'today') => {
+  const fireCelebrate = useCallback((kind: CelebrateKind = 'bloom') => {
     if (anyOpenRef.current) afterOverlays(() => setCelebrate(kind));
     else setCelebrate(kind);
   }, [afterOverlays]);
@@ -279,40 +298,68 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   const hideToast = useCallback((id?: number) => setToast((t) => (id === undefined || t?.id === id ? null : t)), []);
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const getToast = useCallback(() => toastRef.current, []);
 
   const from = fromState ?? defaultFrom(screen);
 
-  const value = useMemo<UICtx>(
+  const state = useMemo<UIState>(
+    () => ({ screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick }),
+    [screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick],
+  );
+
+  // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
+  const actions = useMemo<UIActions>(
     () => ({
-      screen, ti, from, go, back,
-      afterOverlays,
-      sheet, openAction, closeSheet,
-      focus, startFocus, closeFocus,
-      quick, quickTi, openQuick, closeQuick,
-      pick, openPick, closePick,
-      celebrate, fireCelebrate, closeCelebrate,
-      editor, openEditor, closeEditor,
-      ritual, openRitual, closeRitual,
-      share, openShare, closeShare,
-      closedDay, dayCloseTick, markDayClosed,
-      toast, showToast, hideToast,
+      go, back, afterOverlays,
+      openAction, closeSheet, startFocus, closeFocus,
+      openQuick, closeQuick, openPick, closePick,
+      fireCelebrate, closeCelebrate, openEditor, closeEditor,
+      openRitual, closeRitual, openShare, closeShare,
+      markDayClosed, showToast, hideToast, getToast,
     }),
     [
-      screen, ti, from, go, back, afterOverlays,
-      sheet, openAction, closeSheet, focus, startFocus, closeFocus,
-      quick, quickTi, openQuick, closeQuick, pick, openPick, closePick,
-      celebrate, fireCelebrate, closeCelebrate, editor, openEditor, closeEditor,
-      ritual, openRitual, closeRitual,
-      share, openShare, closeShare,
-      closedDay, dayCloseTick, markDayClosed, toast, showToast, hideToast,
+      go, back, afterOverlays, openAction, closeSheet, startFocus, closeFocus, openQuick, closeQuick, openPick, closePick,
+      fireCelebrate, closeCelebrate, openEditor, closeEditor, openRitual, closeRitual, openShare, closeShare,
+      markDayClosed, showToast, hideToast, getToast,
     ],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <ActionsCtx.Provider value={actions}>
+      <StateCtx.Provider value={state}>
+        <ToastCtx.Provider value={toast}>{children}</ToastCtx.Provider>
+      </StateCtx.Provider>
+    </ActionsCtx.Provider>
+  );
 }
 
-export function useUI(): UICtx {
-  const c = useContext(Ctx);
-  if (!c) throw new Error('useUI must be used within UIProvider');
+const MISSING = 'useUI must be used within UIProvider';
+
+/** 화면·시트 상태 — 화면을 옮기거나 시트를 여닫을 때 다시 그려진다(토스트에는 그대로) */
+export function useUIState(): UIState {
+  const c = useContext(StateCtx);
+  if (!c) throw new Error(MISSING);
   return c;
+}
+
+/** 화면을 옮기고 시트를 여닫는 함수들 — 늘 같은 객체라 이것만 쓰면 다시 그려지지 않는다 */
+export function useUIActions(): UIActions {
+  const c = useContext(ActionsCtx);
+  if (!c) throw new Error(MISSING);
+  return c;
+}
+
+/** 지금 토스트 — 토스트가 뜨고 질 때만 다시 그려진다 */
+export function useToast(): Toast | null {
+  return useContext(ToastCtx);
+}
+
+/** 상태 + 함수들 + 토스트 한꺼번에(예전 모양) — 그중 무엇이 바뀌어도 다시 그려진다 */
+export function useUI(): UICtx {
+  const state = useUIState();
+  const actions = useUIActions();
+  const toast = useToast();
+  return useMemo<UICtx>(() => ({ ...state, ...actions, toast }), [state, actions, toast]);
 }

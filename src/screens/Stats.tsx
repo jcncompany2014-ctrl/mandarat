@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
@@ -7,10 +7,11 @@ import { alpha } from '../theme/moods';
 import { NUM, TYPE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat, totalDone, overallStreak } from '../store/MandaratContext';
+import { useUIActions } from '../navigation/ui';
+import { useDoc, dateKey, totalDone, overallStreak } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
+import { sameProps } from '../lib/sameProps';
 import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, ratingHistory, ratingOf } from '../lib/kinds';
 import { fmtDateShort } from '../lib/text';
@@ -33,10 +34,10 @@ const STACK_SCALE = 1.35;
  * 얼마나 이어 왔나(큰 숫자) → 이번 주 → 돌아본 주 → 최근 10주 → 숫자 목표·마음가짐 → 8개 영역(닳은 자리) → 회고.
  * 기록이 없으면 같은 구역을 빈 양식으로 그리고 맨 위에 한 줄만 둔다.
  */
-export function Stats() {
+export const Stats = memo(function Stats() {
   const M = usePalette();
-  const { doc } = useMandarat();
-  const { go, openAction, openRitual } = useUI();
+  const { doc } = useDoc();
+  const { go, openAction, openRitual } = useUIActions();
   const { width: winW, fontScale } = useWindowDimensions();
   const contentW = Math.max(0, winW - 40);
   const [picked, setPicked] = useState<string | null>(null);
@@ -44,14 +45,18 @@ export function Stats() {
   const now = new Date();
   const tk = ymd(now);
   const done = totalDone(doc);
-  const streak = overallStreak(doc);
   const todayHas = (doc.dayLog[tk] ?? []).length > 0;
   const hasData = done > 0 || Object.values(doc.dayLog).some((l) => l.length > 0);
 
-  const review = weekReview(doc, now);
-  const cal = calendarWeeks(now, 10);
-  const map = heatMap(doc.dayLog, cal, now);
-  const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc]);
+  // 기록을 훑는 계산은 문서·날짜가 바뀔 때만 — 고른 칸(picked)만 바뀔 때는 그대로 쓴다
+  const day = dateKey(now);
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const streak = useMemo(() => overallStreak(doc), [doc.dayLog, day]);
+  const review = useMemo(() => weekReview(doc, new Date()), [doc, day]);
+  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date()), [doc.dayLog, day]);
+  const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc, day]);
+  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, new Date())), [doc, streak, day]);
+  /* eslint-enable react-hooks/exhaustive-deps */
   const ritual = ritualTarget(doc, now);
   const weeks = reviewWeeks(doc);
 
@@ -64,7 +69,7 @@ export function Stats() {
       )}
 
       <Hero M={M} streak={streak} todayHas={todayHas} done={done} stacked={fontScale >= STACK_SCALE} />
-      <RecordLine M={M} parts={recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, now))} />
+      <RecordLine M={M} parts={records} />
 
       {/* 이번 주 */}
       <SectionHead
@@ -137,7 +142,7 @@ export function Stats() {
       <Reflections M={M} doc={doc} now={now} />
     </View>
   );
-}
+});
 
 function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
   return doc.themes.some((th) => th.actions.some((a) => a.text.trim() && kindOf(a) === kind));
@@ -146,7 +151,7 @@ function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
 // ── 구역 머리 ────────────────────────────────────────────────────────────────
 
 /** 종이 위 작은 제목 한 줄(카드 없이). 오른쪽 글은 설명이거나, onRight가 있으면 누르는 글 */
-function SectionHead({ M, title, right, onRight, rightLabel }: {
+const SectionHead = memo(function SectionHead({ M, title, right, onRight, rightLabel }: {
   M: M;
   title: string;
   right?: string;
@@ -171,7 +176,7 @@ function SectionHead({ M, title, right, onRight, rightLabel }: {
       ))}
     </View>
   );
-}
+});
 
 // ── 큰 숫자 둘 ───────────────────────────────────────────────────────────────
 
@@ -207,7 +212,7 @@ function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
 }
 
 /** 이어 온 날 · 다 이룬 칸 — 큰 글자에서는 위아래로 쌓고 사이에 가로 괘선 */
-function Hero({ M, streak, todayHas, done, stacked }: { M: M; streak: number; todayHas: boolean; done: number; stacked: boolean }) {
+const Hero = memo(function Hero({ M, streak, todayHas, done, stacked }: { M: M; streak: number; todayHas: boolean; done: number; stacked: boolean }) {
   return (
     <View style={{ flexDirection: stacked ? 'column' : 'row', paddingHorizontal: 20, paddingTop: 2 }}>
       <BigNumber
@@ -232,9 +237,9 @@ function Hero({ M, streak, todayHas, done, stacked }: { M: M; streak: number; to
       />
     </View>
   );
-}
+});
 
-function RecordLine({ M, parts }: { M: M; parts: ReturnType<typeof recordParts> }) {
+const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnType<typeof recordParts> }) {
   return (
     <Text style={[{ ...TYPE.caption, color: M.sub, paddingHorizontal: 20, marginTop: 14 }, NUM]}>
       {!!parts.lead && (
@@ -243,7 +248,7 @@ function RecordLine({ M, parts }: { M: M; parts: ReturnType<typeof recordParts> 
       {parts.lead ? ` · ${parts.month}` : parts.month}
     </Text>
   );
-}
+}, sameProps);
 
 // ── 이번 주 장부 ─────────────────────────────────────────────────────────────
 
