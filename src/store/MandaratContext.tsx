@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '../types';
-import { DATE_RE, blankDoc, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleThemes } from '../data/defaults';
+import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 import { addCount as addCountTo, applyConfig, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
 import { archiveAllCells, archiveCellLog, areaStreak, detachReviewPicks } from '../lib/history';
@@ -87,9 +87,25 @@ export interface SnapshotInfo {
   summary: BackupSummary;
 }
 
-interface Ctx {
+/** 문서와 저장 상태 — 문서가 바뀔 때마다 새 값 */
+export interface DocState {
   doc: MandaratDoc;
   ready: boolean;
+  /** 저장소를 읽거나 쓰지 못해 이번 실행의 변경을 저장하지 않는 중 */
+  storageError: boolean;
+  /** 마지막 저장이 실패했다 — 다음 변경 때 다시 저장해 보고, 성공하면 거짓으로 돌아온다 */
+  saveFailed: boolean;
+  /** 읽지 못한 저장본을 따로 보관해 둔 저장소 키 — 이번 실행에서 그런 일이 있었을 때만 */
+  recoveredCopy: string | null;
+}
+
+/**
+ * 문서를 바꾸는 함수들 — 처음 한 번 만들어 앱이 도는 내내 같은 객체.
+ * 이것만 쓰는 화면·줄은 체크·글쓰기로 문서가 바뀌어도 다시 그려지지 않는다.
+ */
+export interface Actions {
+  /** 지금 문서 — 누를 때 읽는 용도(그리는 데 쓰면 바뀌어도 다시 그려지지 않는다) */
+  getDoc: () => MandaratDoc;
   // onboarding
   /** 온보딩 마치기 — 목표를 비워 두면 빈 채로 둔다(자리표시 글을 목표로 저장하지 않는다) */
   completeOnboarding: (goal: string) => void;
@@ -120,12 +136,13 @@ interface Ctx {
   addFocusMinutes: (minutes: number) => void;
   // today
   toggleToday: (key: string) => void;
-  inToday: (key: string) => boolean;
   addExtra: (ti: number, text: string) => void;
   toggleExtra: (id: string) => void;
   removeExtra: (id: string) => void;
   /** 지운 할 일을 원래 자리로 되살린다 (되돌리기) — day: 지울 때의 날짜 */
   restoreExtra: (x: TodayExtra, index: number, logged: boolean, day: string) => void;
+  /** 오늘 할 일을 다 해 하루를 마감한 날을 남긴다(이미 있으면 그대로) — 홈의 이번 주 칸이 지난 날에도 표시한다 */
+  markClosedDay: (day: string) => void;
   // day meta — day: 'YYYY-MM-DD' (기본: 오늘). 자정을 넘겨 쓴 글이 다음 날로 가지 않게 쓰기 시작한 날을 넘긴다
   setDayMood: (mood: number, day?: string) => void;
   setDayReflection: (text: string, day?: string) => void;
@@ -142,12 +159,6 @@ interface Ctx {
   replaceDoc: (d: MandaratDoc) => void;
   /** 편집 횟수 — 통째 되돌리기 전에 그 사이 다른 변경이 있었는지 확인하는 데 쓴다 */
   revision: () => number;
-  /** 저장소를 읽거나 쓰지 못해 이번 실행의 변경을 저장하지 않는 중 */
-  storageError: boolean;
-  /** 마지막 저장이 실패했다 — 다음 변경 때 다시 저장해 보고, 성공하면 거짓으로 돌아온다 */
-  saveFailed: boolean;
-  /** 읽지 못한 저장본을 따로 보관해 둔 저장소 키 — 이번 실행에서 그런 일이 있었을 때만 */
-  recoveredCopy: string | null;
   /** 보관 안내를 닫는다(보관한 사본은 지우지 않는다) */
   dismissRecovered: () => void;
   /** 하루 한 번 남긴 저장본 목록 — 최근 날 먼저(최대 7개) */
@@ -156,7 +167,13 @@ interface Ctx {
   readSnapshot: (day: string) => Promise<MandaratDoc | null>;
 }
 
-const MandaratCtx = createContext<Ctx | null>(null);
+/** 예전 모양 그대로(문서 + 함수들 + inToday) — 새 코드는 useDoc · useActions를 쓴다 */
+export interface Ctx extends DocState, Actions {
+  inToday: (key: string) => boolean;
+}
+
+const DocCtx = createContext<DocState | null>(null);
+const ActionsCtx = createContext<Actions | null>(null);
 
 // ── palette ───────────────────────────────────────────────────────────────────
 /** 지금 고른 종이(무드) 팔레트 + 포인트 컬러 */
@@ -473,8 +490,6 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
-  const inToday = useCallback((key: string) => doc.todayKeys.includes(key), [doc.todayKeys]);
-
   const addExtra = useCallback(
     (ti: number, text: string) =>
       update((d) => ({
@@ -529,6 +544,14 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         list.splice(Math.max(0, Math.min(index, list.length)), 0, x);
         return { ...d, todayExtra: list, dayLog };
       }),
+    [update],
+  );
+
+  const markClosedDay = useCallback(
+    (day: string) => {
+      if (!DATE_RE.test(day) || docRef.current.closedDays?.includes(day)) return;
+      update((d) => (d.closedDays?.includes(day) ? d : { ...d, closedDays: cleanClosedDays([...(d.closedDays ?? []), day]) }));
+    },
     [update],
   );
 
@@ -649,19 +672,27 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const value = useMemo<Ctx>(
+  const getDoc = useCallback(() => docRef.current, []);
+
+  // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
+  const actions = useMemo<Actions>(
     () => ({
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
-      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra,
-      removeExtra, restoreExtra, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
-      storageError, saveFailed, recoveredCopy, dismissRecovered, listSnapshots, readSnapshot,
+      getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
+      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
+      removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
+      replaceDoc, revision, dismissRecovered, listSnapshots, readSnapshot,
     }),
     [
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
-      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra,
-      removeExtra, restoreExtra, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
-      storageError, saveFailed, recoveredCopy, dismissRecovered, listSnapshots, readSnapshot,
+      getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
+      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
+      removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
+      replaceDoc, revision, dismissRecovered, listSnapshots, readSnapshot,
     ],
+  );
+
+  const state = useMemo<DocState>(
+    () => ({ doc, ready, storageError, saveFailed, recoveredCopy }),
+    [doc, ready, storageError, saveFailed, recoveredCopy],
   );
 
   const { mood, accent } = doc.settings;
@@ -669,16 +700,39 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const palette = useMemo<PaletteValue>(() => withAccent(MOODS[mood], accent), [mood, accent]);
 
   return (
-    <MandaratCtx.Provider value={value}>
-      <PaletteCtx.Provider value={palette}>{children}</PaletteCtx.Provider>
-    </MandaratCtx.Provider>
+    <ActionsCtx.Provider value={actions}>
+      <DocCtx.Provider value={state}>
+        <PaletteCtx.Provider value={palette}>{children}</PaletteCtx.Provider>
+      </DocCtx.Provider>
+    </ActionsCtx.Provider>
   );
 }
 
-export function useMandarat(): Ctx {
-  const ctx = useContext(MandaratCtx);
-  if (!ctx) throw new Error('[store] the doc context is missing — render inside the store provider');
+const MISSING = '[store] the doc context is missing — render inside the store provider';
+
+/** 문서와 저장 상태 — 문서가 바뀔 때마다 다시 그려진다 */
+export function useDoc(): DocState {
+  const ctx = useContext(DocCtx);
+  if (!ctx) throw new Error(MISSING);
   return ctx;
+}
+
+/** 문서를 바꾸는 함수들 — 늘 같은 객체라 이것만 쓰면 문서가 바뀌어도 다시 그려지지 않는다 */
+export function useActions(): Actions {
+  const ctx = useContext(ActionsCtx);
+  if (!ctx) throw new Error(MISSING);
+  return ctx;
+}
+
+/** 문서 + 함수들 한꺼번에(예전 모양) — 문서가 바뀔 때마다 다시 그려진다 */
+export function useMandarat(): Ctx {
+  const state = useDoc();
+  const actions = useActions();
+  const { todayKeys } = state.doc;
+  return useMemo<Ctx>(
+    () => ({ ...state, ...actions, inToday: (key: string) => todayKeys.includes(key) }),
+    [state, actions, todayKeys],
+  );
 }
 
 /** 지금 팔레트 — 무드·포인트 컬러가 바뀔 때만 새 객체(그 밖의 문서 변경에는 같은 객체) */

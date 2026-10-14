@@ -306,6 +306,17 @@ export function cleanReviews(v: unknown): Record<string, WeekReviewEntry> {
   return out;
 }
 
+// ── 마감한 날 ────────────────────────────────────────────────────────────────
+/** 남겨 두는 마감한 날 — 최근 400일 */
+export const CLOSED_KEEP = 400;
+
+/** 오늘 할 일을 다 해 마감한 날들 — 날짜 형식인 것만, 겹치지 않게, 오래된 날 → 최근 날 순서로 최근 400일까지 */
+export function cleanClosedDays(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const days = [...new Set(v.filter((d): d is string => typeof d === 'string' && DATE_RE.test(d)))].sort();
+  return days.slice(-CLOSED_KEEP);
+}
+
 /**
  * 8영역을 정했다고 볼 수 있는가.
  * - 저장된 참/거짓이 있으면 그대로 — 앱을 다시 열어도 시작하기 단계가 저절로 바뀌지 않는다.
@@ -325,7 +336,7 @@ function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
  * - themes는 항상 8영역 × 8실천. 이전 원색 팔레트는 연꽃 팔레트로 옮긴다.
  *   아이콘 키는 그대로 둔다('lotus'도 유효 — 그림만 바뀐다).
  * - areasSet은 저장된 참/거짓을 지키고, 값이 없을 때만 적힌 실천·고친 영역 이름으로 짐작한다. reviews는 월요일 키·날짜·칸 키를 검사한다.
- * - settings.lastBackupAt은 날짜 형식일 때만 남긴다.
+ * - settings.lastBackupAt은 날짜 형식일 때만 남긴다. closedDays는 날짜 형식만, 겹치지 않게 최근 400일까지(없으면 필드를 두지 않는다).
  * - 알 수 없는 필드는 버린다. 향후 스키마 변경 시 parsed.version 으로 분기해 단계적 업그레이드.
  * - 멱등이다: migrate(migrate(x))와 JSON으로 저장했다 읽은 결과가 migrate(x)와 같다(tests/invariants.test.js).
  */
@@ -367,6 +378,7 @@ export function migrate(parsed: unknown): MandaratDoc {
   const todayKeys = Array.isArray(p.todayKeys)
     ? [...new Set(p.todayKeys.filter((k): k is string => typeof k === 'string' && ACTION_KEY_RE.test(k)))]
     : [];
+  const closedDays = cleanClosedDays(p.closedDays);
   const focus = typeof p.focusMinutes === 'number' && Number.isFinite(p.focusMinutes) && p.focusMinutes > 0 ? Math.round(p.focusMinutes) : 0;
 
   return {
@@ -384,5 +396,6 @@ export function migrate(parsed: unknown): MandaratDoc {
     ...(typeof p.todayDate === 'string' && DATE_RE.test(p.todayDate) ? { todayDate: p.todayDate } : {}),
     areasSet: deriveAreasSet(p.areasSet, themes),
     reviews: cleanReviews(p.reviews),
+    ...(closedDays.length > 0 ? { closedDays } : {}),
   };
 }

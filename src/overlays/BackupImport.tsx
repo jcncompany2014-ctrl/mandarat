@@ -7,7 +7,7 @@ import { alertInk } from '../components/KindBits';
 import { NUM, TYPE } from '../theme/type';
 import { usePalette, type M } from '../theme/usePalette';
 import { useMandarat } from '../store/MandaratContext';
-import { useUI } from '../navigation/ui';
+import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { parseBackup, summarize, type BackupSummary, type ParseResult } from '../lib/backup';
 import { ledgerRows, nowIsNewer, LEDGER_NONE } from '../lib/backupLedger';
 import { fmtDateLong } from '../lib/text';
@@ -39,8 +39,8 @@ function fmtExported(iso?: string): string {
  */
 export function BackupImport({ onClose }: { onClose: () => void }) {
   const M = usePalette();
-  const { doc, replaceDoc, revision } = useMandarat();
-  const { showToast } = useUI();
+  const { doc, replaceDoc } = useMandarat();
+  const offerUndo = useSnapshotUndo();
   const [text, setText] = useState('');
   // 입력이 멈추면 한 번만 읽는다(긴 글을 한 글자씩 고칠 때마다 다시 해석하지 않게)
   const [settled, setSettled] = useState('');
@@ -96,21 +96,10 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
     success();
     const snapshot = doc; // 되돌리기용
     replaceDoc(result.doc);
-    const rev = revision();
     dismiss();
-    // useSnapshotUndo와 같은 규칙 — 그사이 다른 기록이 생겼다면 덮어쓰지 않는다(여기서는 토스트를 10초 둔다)
-    showToast(
-      '백업을 불러왔어요',
-      {
-        label: '되돌리기',
-        onPress: () => {
-          if (revision() === rev) replaceDoc(snapshot);
-          else showToast('그사이 바뀐 게 있어 되돌릴 수 없어요');
-        },
-      },
-      { duration: UNDO_MS },
-    );
-  }, [result, doc, replaceDoc, revision, showToast]);
+    // 그사이 다른 기록이 생겼다면 덮어쓰지 않는다(여기서는 토스트를 10초 둔다)
+    offerUndo('백업을 불러왔어요', snapshot, { duration: UNDO_MS });
+  }, [result, doc, replaceDoc, offerUndo]);
 
   const now = useMemo(() => summarize(doc), [doc]);
   const backup = result?.ok ? result.summary : null;

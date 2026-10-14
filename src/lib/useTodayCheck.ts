@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useMandarat, dateKey } from '../store/MandaratContext';
-import { useUI } from '../navigation/ui';
+import { useActions, dateKey } from '../store/MandaratContext';
+import { useUIActions } from '../navigation/ui';
 import { check as checkHaptic, tap, uncheck as uncheckHaptic } from './haptics';
 import { animateLayout } from './layoutAnim';
 import { announce, screenReader } from './useReducedMotion';
@@ -20,6 +20,7 @@ import type { TodayExtra } from '../types';
  * - removeExtra(x): 직접 추가한 할 일 지우기 — '할 일을 지웠어요' + 되돌리기(지운 것만 되살린다).
  * - checkLabel(it): 체크 칸의 화면 읽기 이름 — 글 그대로, 쌓기는 '책 읽기, 1권 더하기'.
  * 체크해서 '했어요'가 되면, 화면 읽기가 켜져 있을 때 '물 마시기 완료, 오늘 3개 남았어요'를 읽어 준다.
+ * 함수들은 누르는 순간의 문서를 읽으므로 앱이 도는 내내 같은 객체다 — 줄(memo)이 체크마다 다시 그려지지 않게.
  * 줄이 내려가는 애니메이션(useSettle · animateLayout)은 화면이 맡는다 — 지우기·되살리기만 여기서 부드럽게 잇는다.
  */
 export interface TodayCheck {
@@ -31,15 +32,15 @@ export interface TodayCheck {
 }
 
 export function useTodayCheck(): TodayCheck {
-  const { doc, checkToday, addCount, toggleExtra: flipExtra, removeExtra: dropExtra, restoreExtra } = useMandarat();
-  const { showToast } = useUI();
+  const { getDoc, checkToday, addCount, toggleExtra: flipExtra, removeExtra: dropExtra, restoreExtra } = useActions();
+  const { showToast } = useUIActions();
 
   return useMemo<TodayCheck>(() => {
-    const textOf = (it: TodayItem) => doc.themes[it.ti]?.actions[it.ai]?.text ?? '';
+    const textOf = (it: TodayItem) => getDoc().themes[it.ti]?.actions[it.ai]?.text ?? '';
 
     // 지금 하나를 '했어요'로 바꾼 뒤 남는 수(바꾸기 전 문서로 센다)
     const leftAfterOne = () => {
-      const p = todayProgress(doc, new Date());
+      const p = todayProgress(getDoc(), new Date());
       return Math.max(0, p.total - p.done - 1);
     };
     const speakChecked = (text: string) => {
@@ -47,7 +48,7 @@ export function useTodayCheck(): TodayCheck {
     };
 
     const toggle = (it: TodayItem) => {
-      const a = doc.themes[it.ti]?.actions[it.ai];
+      const a = getDoc().themes[it.ti]?.actions[it.ai];
       if (!a) return;
       if (it.done) uncheckHaptic();
       else checkHaptic();
@@ -65,7 +66,7 @@ export function useTodayCheck(): TodayCheck {
     };
 
     const addStep = (it: TodayItem) => {
-      const a = doc.themes[it.ti]?.actions[it.ai];
+      const a = getDoc().themes[it.ti]?.actions[it.ai];
       if (!a || it.kind !== 'count') return;
       const c = countInfo(a, dateKey());
       checkHaptic();
@@ -84,6 +85,7 @@ export function useTodayCheck(): TodayCheck {
 
     // 되돌리기는 지운 할 일만 되살린다(그 사이 다른 체크는 그대로)
     const removeExtra = (x: TodayExtra) => {
+      const doc = getDoc();
       const index = doc.todayExtra.findIndex((e) => e.id === x.id);
       if (index < 0) return;
       const cur = doc.todayExtra[index];
@@ -96,11 +98,11 @@ export function useTodayCheck(): TodayCheck {
     };
 
     const checkLabel = (it: TodayItem) => {
-      const a = doc.themes[it.ti]?.actions[it.ai];
+      const a = getDoc().themes[it.ti]?.actions[it.ai];
       return checkLabelText(textOf(it), it.kind, a && it.kind === 'count' ? countInfo(a) : undefined);
     };
 
     return { toggle, toggleExtra, removeExtra, addStep, checkLabel };
-    // 저장소의 함수들은 고정돼 있다 — 사실상 문서가 바뀔 때만 새로 만든다
-  }, [doc, checkToday, addCount, flipExtra, dropExtra, restoreExtra, showToast]);
+    // 저장소·화면의 함수들은 고정돼 있다 — 처음 한 번만 만든다
+  }, [getDoc, checkToday, addCount, flipExtra, dropExtra, restoreExtra, showToast]);
 }
