@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { File } from 'expo-file-system';
 import { Text, TextInput } from '../components/AppText';
-import { Sheet, CloseBtn, LineRow, PrimaryButton, useSheetDismiss } from '../components/common';
+import { Sheet, LineRow, PrimaryButton, useSheetDismiss } from '../components/common';
+import { SheetHead } from '../components/TemplateSheet';
 import { alertInk } from '../components/KindBits';
 import { NUM, TYPE } from '../theme/type';
 import { usePalette, type M } from '../theme/usePalette';
@@ -50,6 +51,9 @@ export function BackupImport({ onClose, returnFocusRef }: {
   // 입력이 멈추면 한 번만 읽는다(긴 글을 한 글자씩 고칠 때마다 다시 해석하지 않게)
   const [settled, setSettled] = useState('');
   const [fileError, setFileError] = useState<string | null>(null);
+  // 파일에서 읽었으면 붙여 넣기 칸 대신 '파일에서 읽었어요' 한 줄 — 긴 JSON 글을 칸에 쏟아 놓지 않는다(글은 상태로만 둔다).
+  // name: 고른 파일 이름(웹의 파일 고르기는 이름을 알려 주지 않아 빈 글)
+  const [fromFile, setFromFile] = useState<{ name: string } | null>(null);
   useEffect(() => {
     const t = setTimeout(() => setSettled(text), 180);
     return () => clearTimeout(t);
@@ -66,14 +70,25 @@ export function BackupImport({ onClose, returnFocusRef }: {
 
   const onText = useCallback((t: string) => {
     setFileError(null);
+    setFromFile(null);
     setText(t);
   }, []);
 
   /** 파일에서 읽은 글 — 기다리지 않고 바로 읽는다 */
-  const takeFile = useCallback((t: string) => {
+  const takeFile = useCallback((t: string, name = '') => {
     setFileError(null);
+    setFromFile({ name });
     setText(t);
     setSettled(t);
+  }, []);
+
+  /** 파일 대신 붙여 넣기로 — 읽은 글을 비우고 빈 칸을 다시 연다 */
+  const toPaste = useCallback(() => {
+    tap();
+    setFileError(null);
+    setFromFile(null);
+    setText('');
+    setSettled('');
   }, []);
 
   const pickFile = useCallback(async () => {
@@ -86,7 +101,7 @@ export function BackupImport({ onClose, returnFocusRef }: {
       }
       const picked = await File.pickFileAsync({ mimeTypes: PICK_TYPES });
       if (picked.canceled) return;
-      takeFile(await picked.result.text());
+      takeFile(await picked.result.text(), picked.result.name);
     } catch {
       setFileError(FILE_FAILED);
       announce(FILE_FAILED);
@@ -121,51 +136,45 @@ export function BackupImport({ onClose, returnFocusRef }: {
       footer={<ApplyButton M={M} ready={!!backup} onApply={apply} />}
     >
       <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 20, lineHeight: 26, fontWeight: '800', color: M.ink }}>
-              백업 불러오기
-            </Text>
-            <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 4 }}>
-              지금 기록이 백업 내용으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.
-            </Text>
-          </View>
-          <SheetClose M={M} />
-        </View>
+        <SheetHead M={M} title="백업 불러오기" body="지금 기록이 백업 내용으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요." />
 
-        <View style={{ marginTop: 14 }}>
-          <LineRow
-            M={M}
-            first
-            last
-            title="백업 파일 고르기"
-            sub="저장해 둔 백업 파일(.json)"
-            right="chevron"
-            onPress={pickFile}
-            accessibilityLabel="백업 파일 고르기"
-          />
-        </View>
-
-        <Text style={{ fontSize: 12.5, lineHeight: 18, color: M.sub, marginTop: 16 }}>
-          메모나 메신저에 보관한 백업 글은 길게 눌러 전체 선택 → 복사한 뒤 여기에 붙여 넣어요
-        </Text>
-        <TextInput
-          value={text}
-          onChangeText={onText}
-          multiline
-          autoCorrect={false}
-          autoCapitalize="none"
-          spellCheck={false}
-          accessibilityLabel="백업 글 붙여 넣기"
-          accessibilityHint={error ?? undefined}
-          placeholder="백업 글 전체를 붙여 넣기"
-          placeholderTextColor={M.sub}
-          style={{
-            marginTop: 8, height: 112, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
-            borderColor: error ? alertInk(M) : M.line, backgroundColor: 'transparent',
-            color: M.ink, fontSize: 13, lineHeight: 18, textAlignVertical: 'top',
-          }}
+        <LineRow
+          M={M}
+          first
+          last
+          title={fromFile ? '다른 백업 파일 고르기' : '백업 파일 고르기'}
+          sub="저장해 둔 백업 파일(.json)"
+          right="chevron"
+          onPress={pickFile}
+          accessibilityLabel={fromFile ? '다른 백업 파일 고르기' : '백업 파일 고르기'}
         />
+
+        {fromFile ? (
+          <FileRow M={M} name={fromFile.name} onPaste={toPaste} />
+        ) : (
+          <>
+            <Text style={{ fontSize: 12.5, lineHeight: 18, color: M.sub, marginTop: 16 }}>
+              메모나 메신저에 보관한 백업 글은 길게 눌러 전체 선택 → 복사한 뒤 여기에 붙여 넣어요
+            </Text>
+            <TextInput
+              value={text}
+              onChangeText={onText}
+              multiline
+              autoCorrect={false}
+              autoCapitalize="none"
+              spellCheck={false}
+              accessibilityLabel="백업 글 붙여 넣기"
+              accessibilityHint={error ?? undefined}
+              placeholder="백업 글 전체를 붙여 넣기"
+              placeholderTextColor={M.sub}
+              style={{
+                marginTop: 8, height: 112, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
+                borderColor: error ? alertInk(M) : M.line, backgroundColor: 'transparent',
+                color: M.ink, fontSize: 13, lineHeight: 18, textAlignVertical: 'top',
+              }}
+            />
+          </>
+        )}
 
         {!!error && (
           <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: alertInk(M), marginTop: 8 }}>
@@ -179,10 +188,36 @@ export function BackupImport({ onClose, returnFocusRef }: {
   );
 }
 
-/** × — 시트가 아래로 미끄러져 닫히게 시트 안에서 부른다 */
-function SheetClose({ M }: { M: M }) {
-  const dismiss = useSheetDismiss();
-  return <CloseBtn M={M} onPress={() => dismiss()} />;
+/**
+ * 파일에서 읽었을 때 붙여 넣기 칸 자리의 괘선 한 줄 — '파일에서 읽었어요' + 파일 이름, 오른쪽에 '붙여 넣기로'(예비 길).
+ * 읽은 내용은 바로 아래 지금 | 백업 장부가 보여 준다
+ */
+function FileRow({ M, name, onPaste }: { M: M; name: string; onPaste: () => void }) {
+  return (
+    <View
+      style={{
+        marginTop: 16, minHeight: 52, paddingVertical: 8, paddingHorizontal: 2, gap: 12,
+        borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, flexDirection: 'row', alignItems: 'center',
+      }}
+    >
+      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={name ? `파일에서 읽었어요, ${name}` : '파일에서 읽었어요'}>
+        <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: M.ink }}>파일에서 읽었어요</Text>
+        {!!name && (
+          <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 2 }} numberOfLines={1} ellipsizeMode="middle">{name}</Text>
+        )}
+      </View>
+      <Pressable
+        onPress={onPaste}
+        accessibilityRole="button"
+        accessibilityLabel="붙여 넣기로 바꾸기"
+        accessibilityHint="파일 대신 백업 글을 붙여 넣어요"
+        hitSlop={12}
+        style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+      >
+        <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>붙여 넣기로</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 /** 아래에 붙은 주 버튼 — 읽을 수 있는 백업이 있을 때만 누를 수 있다 */

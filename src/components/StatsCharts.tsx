@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { GrowBar } from './GrowBar';
-import { alpha, fade } from '../theme/moods';
+import { alpha, fade, mix, toHex } from '../theme/moods';
 import { NUM } from '../theme/type';
 import {
   CENTER_SLOT, RULE, SLOT_INDEX, coreBg, coreInk, frameRadius, headBg, headTrack, legibleMark, ruleColor,
@@ -124,6 +124,8 @@ export function TenWeeks({
   pickedText: string;
 }) {
   const cell = heatCellSize(width, map.cols.length);
+  // 칸 한 변을 내림한 나머지는 요일 라벨 자리로 — 마지막 열이 범례·닳은 자리 표와 같은 오른쪽 끝(20pt)에 닿게
+  const labelW = Math.max(HEAT_LABEL_W, Math.floor(width) - cell * map.cols.length - HEAT_GAP * (map.cols.length - 1));
   const legendCell = 11;
   const days = useMemo(() => pickableDays(map), [map]);
   // 기록한 날 테두리 — 칸도 종이(bg) 위에 바로 놓인다(재는 바탕이 card면 골드가 3:1에 못 미친다)
@@ -149,7 +151,7 @@ export function TenWeeks({
     >
       {/* 달 이름 — 새 달이 시작되는 주 위에 */}
       <View style={{ flexDirection: 'row', height: 16, marginBottom: 3 }}>
-        <View style={{ width: HEAT_LABEL_W }} />
+        <View style={{ width: labelW }} />
         {map.months.map((m, w) => (
           <View key={w} style={{ width: cell, marginLeft: w ? HEAT_GAP : 0, overflow: 'visible' }}>
             {!!m && (
@@ -162,7 +164,7 @@ export function TenWeeks({
       </View>
       {HEAT_ROW_LABELS.map((label, d) => (
         <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginTop: d ? HEAT_GAP : 0 }}>
-          <Text style={{ width: HEAT_LABEL_W, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1.2}>{label}</Text>
+          <Text style={{ width: labelW, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1.2}>{label}</Text>
           {map.cols.map((col, w) => {
             const c = col[d];
             const on = picked === c.date;
@@ -248,6 +250,8 @@ export function ActivityChart({
   const cellRule = ruleColor(M, 'cell');
   const side = Math.max(0, Math.floor(width));
   const overall = Math.round((totalDone(doc) / 64) * 100);
+  // 아직 달성한 칸이 하나도 없으면 빈 양식 — '0%'를 열일곱 번 찍지 않는다(하나라도 달성하면 모든 영역이 %를 다시 적어 0%도 뜻을 갖는다)
+  const blank = totalDone(doc) === 0;
 
   const head = (ti: number) => {
     const th = doc.themes[ti];
@@ -268,7 +272,9 @@ export function ActivityChart({
           <Text style={{ fontSize: 9, lineHeight: 11, fontWeight: '800', color: M.ink, textAlign: 'center' }} numberOfLines={2} maxFontSizeMultiplier={1}>
             {name}
           </Text>
-          <Text style={[{ fontSize: 9, lineHeight: 11, fontWeight: '600', color: M.ink }, NUM]} maxFontSizeMultiplier={1}>{p.pct}%</Text>
+          {!blank && (
+            <Text style={[{ fontSize: 9, lineHeight: 11, fontWeight: '600', color: M.ink }, NUM]} maxFontSizeMultiplier={1}>{p.pct}%</Text>
+          )}
         </View>
       </Pressable>
     );
@@ -290,8 +296,9 @@ export function ActivityChart({
         accessibilityLabel={`${text}, 최근 4주 ${n > 0 ? `${n}일` : '기록 없음'}${a.done ? ', 달성' : ''}${count ? `, ${count.pct}%` : ''}`}
         style={({ pressed }) => ({ flex: 1, backgroundColor: bin ? fade(th.color, WEAR_FILL[bin]) : 'transparent', opacity: pressed ? 0.7 : 1 })}
       >
+        {/* 진행 막대는 칸 안쪽에 띄운다 — 바닥 괘선에 붙으면 100%가 아래 칸의 윗 테두리처럼 읽힌다 */}
         {count && (
-          <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, backgroundColor: headTrack(th.color) }}>
+          <View pointerEvents="none" style={{ position: 'absolute', left: 3, right: 3, bottom: 3, height: 2, backgroundColor: headTrack(th.color) }}>
             <View style={{ width: `${Math.max(0, Math.min(100, count.pct))}%`, height: '100%', backgroundColor: th.color }} />
           </View>
         )}
@@ -305,7 +312,9 @@ export function ActivityChart({
       accessibilityLabel={`핵심 목표, 64칸 중 ${totalDone(doc)}칸 달성, ${overall}%`}
       style={{ flex: 1, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center' }}
     >
-      <Text style={[{ fontSize: 11, lineHeight: 14, fontWeight: '800', color: coreInk(M) }, NUM]} maxFontSizeMultiplier={1}>{overall}%</Text>
+      {!blank && (
+        <Text style={[{ fontSize: 11, lineHeight: 14, fontWeight: '800', color: coreInk(M) }, NUM]} maxFontSizeMultiplier={1}>{overall}%</Text>
+      )}
     </View>
   );
 
@@ -347,14 +356,19 @@ export function ActivityChart({
   );
 }
 
-/** 닳은 자리 범례 — '최근 4주 · ■1 ■2 ■3 ■5+번' (색은 영역마다 다르므로 먹색 농도로 보인다) */
+/**
+ * 닳은 자리 범례 — '최근 4주 · ■1 ■2 ■3 ■5+번'. 색은 영역마다 다르므로 중간 회색 농도로 보인다:
+ * 밝은 무드는 보조 글씨색(sub), 다크는 sub를 종이 쪽으로 30% 섞은 색 — 실제 칸(영역 색 25~85%)과 밝기가 맞는다
+ * (먹색을 쓰면 밝은 무드의 5+가 가운데 칸만큼 검고, 다크의 5+는 흰 가운데 칸과 같아진다)
+ */
 export function WearLegend({ M }: { M: M }) {
+  const swatch = M.dark ? toHex(mix(M.sub, M.bg, 0.3)) : toHex(M.sub);
   return (
     <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 10 }}>
       <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub, marginRight: 2 }} maxFontSizeMultiplier={1.2}>최근 4주 ·</Text>
       {DAY_BIN_LABELS.map((l, i) => (
         <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 3 : 0 }}>
-          <View style={{ width: 11, height: 11, borderRadius: 2, backgroundColor: alpha(M.ink, WEAR_FILL[i + 1] / 100) }} />
+          <View style={{ width: 11, height: 11, borderRadius: 2, backgroundColor: alpha(swatch, WEAR_FILL[i + 1] / 100) }} />
           <Text style={[{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub }, NUM]} maxFontSizeMultiplier={1.2}>
             {i === DAY_BIN_LABELS.length - 1 ? `${l}번` : l}
           </Text>

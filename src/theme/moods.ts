@@ -134,12 +134,16 @@ export function accentInk(M: AccentGround): string {
 }
 
 /**
- * 무드 팔레트 + 포인트 컬러 → 앱이 쓰는 팔레트. goldInk를 지금 포인트 컬러의 글씨 색으로 맞춘다
- * (골드를 고르면 무드 표의 값 그대로). 무드나 포인트 컬러가 바뀔 때만 부른다.
+ * 무드 팔레트 + 포인트 컬러 → 앱이 쓰는 팔레트. 무드나 포인트 컬러가 바뀔 때만 부른다.
+ * - goldInk: 지금 포인트 컬러의 글씨 색(골드를 고르면 무드 표의 값 그대로).
+ * - gold: 표의 표시(오늘 칸·8/8 테두리·범례·통계 막대)가 쓰는 포인트 색 — 골드가 아니면 고른 색 그대로,
+ *   골드면 무드마다 맞춘 금색. 표시는 모두 legibleMark(M.gold, …)를 거쳐 바탕 위 3:1을 지킨다.
+ * P는 무드 표의 팔레트(MOODS[mood])여야 한다 — 이미 맞춘 팔레트에 골드를 다시 적용하면 gold가 되돌아가지 않는다.
  */
 export function withAccent(P: Palette, accent: string): Palette & { accent: string } {
   const M = { ...P, accent };
   M.goldInk = accentInk(M);
+  if (HEX_RE.test(accent.trim()) && toHex(accent) !== GOLD) M.gold = toHex(accent);
   return M;
 }
 

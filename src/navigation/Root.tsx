@@ -452,8 +452,9 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }:
     } else Animated.spring(x, { toValue: cx, useNativeDriver: true, ...SPRING.snappy }).start();
   }, [cx, x]);
   const barX = useMemo(() => Animated.add(x, new Animated.Value(-IND_W / 2)), [x]);
+  // 지금 탭 표시 — 탭바 안, 윗 괘선 3pt 아래(아이콘 위 paddingTop 8 안). 괘선 위에 두면 접힌 자리에 잘린 글 밑줄처럼 읽힌다
   const barStyle = useMemo(
-    () => ({ position: 'absolute' as const, top: -1, left: 0, width: IND_W, height: 2, backgroundColor: M.ink, transform: [{ translateX: barX }] }),
+    () => ({ position: 'absolute' as const, top: 3, left: 0, width: IND_W, height: 2, backgroundColor: M.ink, transform: [{ translateX: barX }] }),
     [barX, M.ink],
   );
 

@@ -57,21 +57,31 @@ test('막대 줄 읽기 — 오늘 표시, 아직 안 온 날은 한 번만', ()
 });
 
 test('습관 줄 — 남은 횟수 · 다 함 · 오늘부터 셉니다 · 습관 없음', () => {
-  assert.equal(sv.habitRow({ habitCount: 0, routineDone: 0, routineDue: 0, routineRemaining: 0 }), null);
-  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routineDue: 0, routineRemaining: 6 }), { value: '—', sub: '오늘부터 세요' });
-  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 5, routineDue: 7, routineRemaining: 3 }), { value: '5/7번', sub: '이번 주 3번 남음', say: '7번 중 5번' });
-  assert.equal(sv.habitRow({ habitCount: 1, routineDone: 3, routineDue: 3, routineRemaining: 0 }).sub, '이번 주 다 했어요');
+  // 한 바탕(이번 주 전체 계획)으로 — 한 것 + 놓침 + 남음 = 계획 (D-3)
+  assert.equal(sv.habitRow({ habitCount: 0, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }), null);
+  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }), { value: '—', sub: '오늘부터 세요' });
+  assert.deepEqual(
+    sv.habitRow({ habitCount: 2, routineDone: 5, routinePlannedWeek: 9, routineRemaining: 3 }),
+    { value: '5/9번', sub: '1번 놓침 · 3번 남음', say: '9번 중 5번', subSay: '1번 놓침, 3번 남음' },
+  );
+  // 월요일 아침 — 놓친 것 없이 남음만
+  assert.equal(sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 14, routineRemaining: 14 }).sub, '14번 남음');
+  assert.equal(sv.habitRow({ habitCount: 1, routineDone: 3, routinePlannedWeek: 3, routineRemaining: 0 }).sub, '이번 주 다 했어요');
+  // 주 N회를 넘겨 해도 계획보다 작게 보이지 않는다
+  assert.equal(sv.habitRow({ habitCount: 1, routineDone: 4, routinePlannedWeek: 3, routineRemaining: 0 }).value, '4/4번');
   // 장부 한 줄의 화면 읽기 이름 — '5/7번'·'+2권 · +500,000원'을 날짜·기호로 읽지 않는다 (FX-VERIFY A-1 · HANDOFF-E3)
   const { addedSpeech, addedLine } = require('../src/lib/ritualView');
-  const habit = { label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 5, routineDue: 7, routineRemaining: 2 }) };
-  assert.equal(sv.ledgerLabel(habit), '습관 7번 중 5번, 이번 주 2번 남음');
+  const habit = { label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 5, routinePlannedWeek: 7, routineRemaining: 2 }) };
+  assert.equal(sv.ledgerLabel(habit), '습관 7번 중 5번, 2번 남음');
+  const late = { label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 5, routinePlannedWeek: 9, routineRemaining: 2 }) };
+  assert.equal(sv.ledgerLabel(late), '습관 9번 중 5번, 2번 놓침, 2번 남음');
   const added = [{ ti: 0, ai: 0, amount: 2, unit: '권' }, { ti: 0, ai: 1, amount: 500000, unit: '원' }];
   const stack = { label: '쌓은 것', value: addedLine(added), say: addedSpeech(added) };
   assert.equal(stack.value, '+2권 · +500,000원');
   assert.equal(sv.ledgerLabel(stack), '쌓은 것 2권 더함, 500,000원 더함');
-  assert.equal(sv.ledgerLabel({ label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 0, routineDue: 0, routineRemaining: 6 }) }), '습관 없음, 오늘부터 세요');
+  assert.equal(sv.ledgerLabel({ label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }) }), '습관 없음, 오늘부터 세요');
   assert.equal(sv.ledgerLabel({ label: '집중', value: '25분', sub: '지금까지' }), '집중 25분, 지금까지');
-  for (const s of [sv.ledgerLabel(habit), sv.ledgerLabel(stack)]) assert.doesNotMatch(s, /\d\s*\/\s*\d|\+\d| · /, s);
+  for (const s of [sv.ledgerLabel(habit), sv.ledgerLabel(late), sv.ledgerLabel(stack)]) assert.doesNotMatch(s, /\d\s*\/\s*\d|\+\d| · /, s);
 });
 
 test('집중 시간', () => {
@@ -114,6 +124,50 @@ test('히트맵 달 이름 — 그 주 월요일이 새 달에 든 열 위에', 
   const map = sv.heatMap({}, weeks, WED);
   const labelled = map.months.map((m, w) => [m, weeks[w][0].date]).filter(([m]) => m);
   assert.deepEqual(labelled, [['8월', '2026-08-10'], ['9월', '2026-09-07'], ['10월', '2026-10-05']]);
+});
+
+test('히트맵 달 이름 — 그리지 않는 열(첫 기록 전) 위에는 적지 않는다 (D-20)', () => {
+  const weeks = calendarWeeks(WED, 10); // 열 월요일: 8/10 … 9/21, 9/28, 10/5, 10/12
+  // 9/23(수)에 처음 기록 — 9/21 열부터 그린다
+  const map = sv.heatMap({ '2026-09-23': ['0-0'] }, weeks, WED);
+  const labelled = map.months.map((m, w) => [m, weeks[w][0].date]).filter(([m]) => m);
+  assert.deepEqual(labelled, [['9월', '2026-09-21'], ['10월', '2026-10-05']]);
+  // 처음 그리는 열 바로 다음이 새 달이면 그 열은 비우고 다음 열에 적는다
+  const late = sv.heatMap({ '2026-10-01': ['0-0'] }, weeks, WED); // 9/28 열부터
+  assert.deepEqual(late.months.map((m, w) => [m, weeks[w][0].date]).filter(([m]) => m), [['10월', '2026-10-05']]);
+  // 이번 주에 처음 기록하면 그 열 하나에만
+  const fresh = sv.heatMap({ '2026-10-13': ['0-0'] }, weeks, WED);
+  assert.deepEqual(fresh.months.map((m, w) => [m, weeks[w][0].date]).filter(([m]) => m), [['10월', '2026-10-12']]);
+});
+
+test('습관 줄 — 일요일 저녁, 엿새를 놓치고 오늘만 다 해도 \'다 했어요\'라 하지 않는다 (D-3)', () => {
+  const SUN = new Date(2026, 9, 18, 20);
+  const EVERY = [0, 1, 2, 3, 4, 5, 6];
+  const d = doc((themes) => {
+    for (let i = 0; i < 3; i++) themes[0].actions[i] = { text: `습관${i}`, note: '', done: false, kind: 'habit', days: EVERY, since: '2026-10-01' };
+    return { dayLog: { '2026-10-18': ['0-0', '0-1', '0-2'] } };
+  });
+  const r = weekReview(d, SUN);
+  assert.equal(r.routineDone, 3);
+  assert.equal(r.routineRemaining, 0);
+  const row = sv.habitRow(r);
+  assert.equal(row.value, '3/21번');
+  assert.equal(row.sub, '18번 놓침');
+  assert.equal(sv.ledgerLabel({ label: '습관', ...row }), '습관 21번 중 3번, 18번 놓침');
+  // 수요일 아침, 아무것도 안 함 — 월·화 놓침 + 수~일 남음
+  const wed = sv.habitRow(weekReview(doc((themes) => {
+    for (let i = 0; i < 3; i++) themes[0].actions[i] = { text: `습관${i}`, note: '', done: false, kind: 'habit', days: EVERY, since: '2026-10-01' };
+    return {};
+  }), WED));
+  assert.equal(wed.value, '0/21번');
+  assert.equal(wed.sub, '6번 놓침 · 15번 남음');
+  // 주 N회는 주 중간에 놓침이 없다
+  const per = sv.habitRow(weekReview(doc((themes) => {
+    themes[0].actions[0] = { text: '운동', note: '', done: false, kind: 'habit', perWeek: 3, since: '2026-10-01' };
+    return {};
+  }), WED));
+  assert.equal(per.value, '0/3번');
+  assert.equal(per.sub, '3번 남음');
 });
 
 test('그날 한 것의 이름 — 앞 셋 + 외 n개, 떼어 둔 기록은 지난 실천', () => {

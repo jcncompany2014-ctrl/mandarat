@@ -69,7 +69,7 @@ export const Stats = memo(function Stats() {
         <Text style={{ ...TYPE.body, color: M.ink, paddingHorizontal: 20, paddingBottom: 18 }}>{EMPTY_LINE}</Text>
       )}
 
-      <Hero M={M} streak={streak} todayHas={todayHas} done={done} stacked={fontScale >= STACK_SCALE} />
+      <Hero M={M} streak={streak} todayHas={todayHas} done={done} hasData={hasData} stacked={fontScale >= STACK_SCALE} />
       <RecordLine M={M} parts={records} />
 
       {/* 이번 주 */}
@@ -186,7 +186,7 @@ function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
   speech: string;
 }) {
   return (
-    <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={`${label}, ${speech}, ${caption}`}>
+    <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={`${label}, ${speech}${caption ? `, ${caption}` : ''}`}>
       <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={STACK_SCALE}>{label}</Text>
       <Text
         style={[{ fontSize: 46, lineHeight: 52, fontWeight: '800', color: M.ink, letterSpacing: -1.5 }, NUM]}
@@ -208,7 +208,8 @@ function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
 }
 
 /** 연속 · 달성한 칸 — 큰 글자에서는 위아래로 쌓고 사이에 가로 괘선 */
-const Hero = memo(function Hero({ M, streak, todayHas, done, stacked }: { M: M; streak: number; todayHas: boolean; done: number; stacked: boolean }) {
+/** 기록이 없으면 연속 아래 줄은 비운다 — 맨 위 EMPTY_LINE과 같은 말을 두 번 하지 않게(줄 자리는 남겨 두 칸 높이를 맞춘다) */
+const Hero = memo(function Hero({ M, streak, todayHas, done, hasData, stacked }: { M: M; streak: number; todayHas: boolean; done: number; hasData: boolean; stacked: boolean }) {
   return (
     <View style={{ flexDirection: stacked ? 'column' : 'row', paddingHorizontal: 20, paddingTop: 2 }}>
       <BigNumber
@@ -216,7 +217,7 @@ const Hero = memo(function Hero({ M, streak, todayHas, done, stacked }: { M: M; 
         label="연속"
         value={`${streak}`}
         unit="일"
-        caption={streakCaption(streak, todayHas)}
+        caption={hasData ? streakCaption(streak, todayHas) : ''}
         captionStrong={streak > 0 && !todayHas}
         speech={streakSpeech(streak, todayHas)}
       />
@@ -251,7 +252,7 @@ const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnT
 /** 습관 · 쌓은 것 · 마음가짐 · 집중 — 있는 것만 한 줄씩 */
 function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: ReturnType<typeof weekReview> }) {
   // say: 화면 읽기가 말할 값 — '5/7번'·'+2권 · +50만 원'을 날짜·기호로 읽지 않게(한 주 돌아보기 장부와 같은 말)
-  const rows: { label: string; value: string; sub?: string; say?: string }[] = [];
+  const rows: { label: string; value: string; sub?: string; say?: string; subSay?: string }[] = [];
   const habit = habitRow(review);
   if (habit) rows.push({ label: '습관', ...habit });
   if (review.added.length > 0) rows.push({ label: '쌓은 것', value: addedLine(review.added), say: addedSpeech(review.added) });

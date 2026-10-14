@@ -244,6 +244,11 @@ test('weekSentence: 있었던 일만 한 문장으로(받침에 맞는 조사, 4
   const s = R.weekSentence({ total: 120, areaCounts: [120, 0, 0, 0, 0, 0, 0, 0] }, long);
   assert.equal(s, '매일 아침 운동하…는 120번 챙겼고, 영역 2는 아직이에요');
   assert.ok(Array.from(s).length <= 40, s);
+  // 자른 끝이 띄어쓰기면 말줄임 앞에 빈칸을 남기지 않는다 (D-30)
+  long.themes[0].title = '건강하고 활기찬 몸 만들기';
+  assert.equal(R.weekSentence({ total: 2, areaCounts: [2, 0, 0, 0, 0, 0, 0, 0] }, long), '건강하고 활기찬…는 2번 챙겼고, 영역 2는 아직이에요');
+  long.themes[1].title = '좋은 친구 많이 사귀기';
+  assert.doesNotMatch(R.weekSentence({ total: 2, areaCounts: [2, 0, 0, 0, 0, 0, 0, 0] }, long), / …/);
 });
 
 test('weekSentence는 weekReview의 영역별 수를 그대로 쓴다', () => {

@@ -29,21 +29,30 @@ export function TemplateSheet({
   );
 }
 
+/**
+ * 종이 시트의 머리 — 제목(17/'800') + 닫기(×) 한 줄, 그 아래 설명 한 줄을 시트 폭 그대로.
+ * 템플릿 고르기 · 설정의 저장본·라이선스 · 백업 불러오기가 같은 머리를 쓴다. 시트 안에서만 쓴다(×가 시트를 내린다).
+ */
+export function SheetHead({ M, title, body }: { M: M; title: string; body?: string }) {
+  const dismiss = useSheetDismiss();
+  return (
+    <>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>{title}</Text>
+        <CloseBtn M={M} onPress={() => dismiss()} />
+      </View>
+      {!!body && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginBottom: 16 }}>{body}</Text>}
+    </>
+  );
+}
+
 /** 시트 안쪽 — useSheetDismiss는 시트 안에서만 닿는다 */
 function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => void) => void }) {
   const dismiss = useSheetDismiss();
   const close = () => dismiss();
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
-          템플릿 고르기
-        </Text>
-        <CloseBtn M={M} onPress={close} />
-      </View>
-      <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginBottom: 16 }}>
-        영역 8개를 골라 둔 시작점이에요. 실천 칸은 비어 있어요.
-      </Text>
+      <SheetHead M={M} title="템플릿 고르기" body="영역 8개를 골라 둔 시작점이에요. 실천 칸은 비어 있어요." />
       {TEMPLATES.map((t, i) => {
         const areas = t.areas.map((a) => a.title).join(' · ');
         return (
