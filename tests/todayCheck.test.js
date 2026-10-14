@@ -15,8 +15,8 @@ test('쌓기 목표는 이번 한 번으로 처음 닿을 때만 알린다', () 
 });
 
 test('목표 · 빼기 토스트 (copy-3 · copy-17)', () => {
-  assert.equal(goalText({ goal: 12, unit: '권' }), '12권 목표를 달성했어요');
-  assert.equal(goalText({ goal: 10000, unit: '보' }), '10,000보 목표를 달성했어요');
+  assert.equal(goalText({ goal: 12, unit: '권' }), '12권 목표에 닿았어요');
+  assert.equal(goalText({ goal: 10000, unit: '보' }), '10,000보 목표에 닿았어요');
   assert.equal(undoAddText(3, '권'), '오늘 더한 3권을 뺐어요');
   assert.equal(undoAddText(2, 'L'), '오늘 더한 2L를 뺐어요');
   assert.equal(undoAddText(1, ''), '오늘 더한 1을 뺐어요');
