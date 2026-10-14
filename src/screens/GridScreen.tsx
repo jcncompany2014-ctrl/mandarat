@@ -55,13 +55,22 @@ function NextStepRow({ M }: { M: M }) {
 /** 만다라트 탭 — 인쇄된 81칸 표 한 장과, 그 아래 다음 할 일 한 줄 */
 export function GridScreen() {
   const M = usePalette();
-  const { openEditor } = useUI();
+  const { openEditor, openShare } = useUI();
   // 블록을 크게 보는 동안엔 '다음 할 일'을 접는다
   const [zoomed, setZoomed] = useState(gridMemory.focus != null);
 
   return (
     <View style={{ flex: 1 }}>
-      <Header M={M} kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 고치기" onPress={() => openEditor({ kind: 'center' })} />} />
+      <Header
+        M={M}
+        kr="만다라트"
+        right={
+          <View style={{ flexDirection: 'row' }}>
+            <IconBtn M={M} name="share" label="표 이미지로 공유" onPress={openShare} />
+            <IconBtn M={M} name="pencil" label="핵심 목표 고치기" onPress={() => openEditor({ kind: 'center' })} />
+          </View>
+        }
+      />
       <View style={{ paddingHorizontal: 11, paddingBottom: 8 }}>
         <FullGrid M={M} onFocusChange={setZoomed} />
         {!zoomed && <NextStepRow M={M} />}
