@@ -1,5 +1,6 @@
 import React, { memo, startTransition, useEffect, useMemo, useOptimistic, useRef } from 'react';
-import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import { Text } from './AppText';
 import { Check } from './Check';
 import { Icon } from './Icon';

@@ -15,6 +15,8 @@ const CENTER_LINES = 3;
 const CELL_PAD = 6;
 /** 둘레 8칸(영역 이름) — 안쪽 여백을 줄여 다섯 글자 어절('포트폴리오')이 한 줄에 들어가게, 안 들어가면 한 단계씩 줄인다 */
 const AREA_SIZES = [11, 10, 9] as const;
+/** 표가 클 때(240pt 이상) 영역 이름 크기 후보 — 칸이 넓으면 이름도 읽기 좋게 */
+const AREA_SIZES_LARGE = [13, 12, 11, 10, 9] as const;
 const AREA_LINES = 3;
 const AREA_PAD = 4;
 // 폭 어림(labelFit.textWidth)은 한글을 1em으로 잡아 실제 Pretendard(약 0.86em)보다 넉넉하다 — 따로 여유를 두지 않는다
@@ -84,8 +86,8 @@ export function ChartSketch({
   const names = Array.from({ length: 8 }, (_, ti) => areas[ti]?.trim() ?? '');
   const areaKey = names.join('\n');
   const areaFit = useMemo(
-    () => areaKey.split('\n').map((n) => fitBox(n, cell - AREA_PAD * 2, cell - AREA_PAD * 2, AREA_SIZES, AREA_LINES, 14 / 11, PRETENDARD_GLYPHS)),
-    [areaKey, cell],
+    () => areaKey.split('\n').map((n) => fitBox(n, cell - AREA_PAD * 2, cell - AREA_PAD * 2, size >= 240 ? AREA_SIZES_LARGE : AREA_SIZES, AREA_LINES, 14 / 11, PRETENDARD_GLYPHS)),
+    [areaKey, cell, size],
   );
   const label = `만다라트 표, 가운데 칸 ${goal || placeholder || '비어 있음'}, 영역 ${names.filter(Boolean).join(', ')}`;
   const goldLine = legibleMark(M.gold, M.bg, M);

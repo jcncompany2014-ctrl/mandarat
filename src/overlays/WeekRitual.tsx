@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { WebColumn } from '../components/WebColumn';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput } from '../components/AppText';
 import { Check } from '../components/Check';
@@ -124,6 +125,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
       onRequestClose={onBack}
       statusBarTranslucent
     >
+      <WebColumn bg={M.bg} edge={M.line}>
       <View
         style={{ flex: 1, backgroundColor: M.bg }}
         accessibilityViewIsModal
@@ -192,6 +194,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
         {/* 모달 위에서도 '3개까지' 같은 안내가 보이게 — 닫기가 있는 위 막대(48) 아래로 내려 닫기를 가리지 않는다 */}
         <Snackbar placement="top" offset={TOP_BAR_H} />
       </View>
+      </WebColumn>
     </Modal>
   );
 }

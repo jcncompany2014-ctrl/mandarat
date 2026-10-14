@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
 import { IconBtn, LineRow, RowDivider, RuledNotice, groupEdge, pressedRow } from '../components/common';
 import { Icon } from '../components/Icon';

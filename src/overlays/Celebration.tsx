@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { WebColumn } from '../components/WebColumn';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../components/AppText';
 import { PaperDots } from '../components/PaperDots';
@@ -40,6 +41,7 @@ function FinalePage() {
 
   return (
     <Modal visible animationType="fade" onRequestClose={closeCelebrate} statusBarTranslucent>
+      <WebColumn bg={M.bg} edge={M.line}>
       <View style={{ flex: 1, backgroundColor: M.bg }}>
         <PaperDots M={M} offsetY={insets.top} />
         {/* 어디를 눌러도 닫힌다 — 화면 읽기는 아래 '닫기' 버튼으로 */}
@@ -95,6 +97,7 @@ function FinalePage() {
           </Pressable>
         </View>
       </View>
+      </WebColumn>
     </Modal>
   );
 }

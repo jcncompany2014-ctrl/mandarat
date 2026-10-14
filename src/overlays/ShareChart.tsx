@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { PixelRatio, Platform, Share, View, useWindowDimensions } from 'react-native';
+import { PixelRatio, Platform, Share, View } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { Text } from '../components/AppText';
 import { ChartPoster } from '../components/ChartPoster';

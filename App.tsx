@@ -10,6 +10,8 @@ import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { PAPER, Splash, SplashFade, holdNativeSplash, nativeSplashUp, releaseNativeSplash } from './src/components/Splash';
 import { installWebStyles } from './src/lib/webStyle';
+import { WebColumn } from './src/components/WebColumn';
+import { mix } from './src/theme/moods';
 
 // 서체·저장소가 준비될 때까지 iOS 런치 스크린을 붙잡아 둔다 — 컴포넌트 안에서 부르면 이미 걷힌 뒤일 수 있다
 holdNativeSplash();
@@ -44,10 +46,14 @@ const Shell = memo(function Shell() {
   // 웹이거나 이미 걷혔으면 같은 모양의 JS 스플래시를 첫 화면 위에서 걷는다.
   const [jsFade, setJsFade] = useState(() => !nativeSplashUp());
   const endFade = useCallback(() => setJsFade(false), []);
+  // 웹 미리보기: 넓은 브라우저에서도 폰 한 장 폭으로 가운데에 — 바깥은 종이보다 한 톤 짙은 책상, 가장자리에 가는 괘선
+  const P = usePaletteValue();
   return (
     <UIProvider>
       <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
-        <Root />
+        <WebColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
+          <Root />
+        </WebColumn>
         {jsFade && <SplashFade onDone={endFade} />}
       </View>
     </UIProvider>

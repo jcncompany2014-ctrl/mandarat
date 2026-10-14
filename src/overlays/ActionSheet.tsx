@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import { Text, TextInput } from '../components/AppText';
 import { Sheet, CloseBtn, IconBtn, LineRow, PrimaryButton, pressedRow, sheetBg, useSheetDismiss } from '../components/common';
 import { Check } from '../components/Check';

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, Keyboard, Platform, Pressable, ScrollView, View, useWindowDimensions, type StyleProp, type TextInput as RNTextInput, type ViewStyle } from 'react-native';
+import { Alert, AppState, Keyboard, Platform, Pressable, ScrollView, View, type StyleProp, type TextInput as RNTextInput, type ViewStyle } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, TextInput } from '../components/AppText';
 import { Icon } from '../components/Icon';
