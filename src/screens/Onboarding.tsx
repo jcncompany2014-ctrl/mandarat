@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput } from '../components/AppText';
@@ -42,6 +42,9 @@ export function Onboarding() {
     else completeOnboarding(goal);
   };
 
+  // 템플릿 시트가 닫히면 스크린리더 초점을 그 시트를 연 버튼으로 돌려준다
+  const templateBtn = useRef<View>(null);
+
   const pickTemplate = (t: Template, close: () => void) => {
     tap();
     // 목표를 아직 안 적었으면(또는 앞서 고른 템플릿의 목표 그대로면) 이 템플릿의 목표를 넣어 둔다 — 고쳐 쓸 수 있다
@@ -60,10 +63,11 @@ export function Onboarding() {
 
   const areas = picked ? picked.areas.map((a) => a.title) : doc.themes.map((t) => t.title);
 
-  let cta: { label: string; a11y: string; tone: 'accent' | 'quiet' };
-  if (picked) cta = { label: '이 표로 시작하기', a11y: `‘${picked.name}’ 표로 시작하기`, tone: 'accent' };
-  else if (typed) cta = { label: '시작하기', a11y: '이 목표로 시작하기', tone: 'accent' };
-  else cta = { label: '목표는 나중에 쓸게요', a11y: '목표는 나중에 정하고 시작하기', tone: 'quiet' };
+  // 스크린리더 이름은 보이는 글 그대로(음성 제어로 부를 수 있게) — 덧붙일 말은 힌트로
+  let cta: { label: string; hint: string; tone: 'accent' | 'quiet' };
+  if (picked) cta = { label: '이 표로 시작하기', hint: `‘${picked.name}’ 표로 시작해요`, tone: 'accent' };
+  else if (typed) cta = { label: '시작하기', hint: '이 목표로 시작해요', tone: 'accent' };
+  else cta = { label: '목표는 나중에 쓸게요', hint: '목표는 나중에 정하고 시작해요', tone: 'quiet' };
 
   return (
     <View style={{ flex: 1, backgroundColor: M.bg }}>
@@ -117,7 +121,7 @@ export function Onboarding() {
 
           {/* 예시 한 줄 — 글자마다 누를 수 있다(칩 없이) */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
-            <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginRight: 6 }}>예:</Text>
+            <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginRight: 6 }}>예)</Text>
             {EXAMPLES.map((s, i) => (
               <React.Fragment key={s}>
                 {i > 0 && (
@@ -128,8 +132,8 @@ export function Onboarding() {
                 <Pressable
                   onPress={() => { tap(); setGoal(s); }}
                   accessibilityRole="button"
-                  accessibilityLabel={`예시: ${s}`}
-                  accessibilityHint="입력칸에 넣어요"
+                  accessibilityLabel={s}
+                  accessibilityHint="예시 · 입력칸에 넣어요"
                   style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
                 >
                   <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{s}</Text>
@@ -150,7 +154,8 @@ export function Onboarding() {
                   onPress={unpick}
                   hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                   accessibilityRole="button"
-                  accessibilityLabel="기본 영역으로 되돌리기"
+                  accessibilityLabel="되돌리기"
+                  accessibilityHint="기본 영역으로 되돌려요"
                   style={({ pressed }) => ({ marginLeft: 10, opacity: pressed ? 0.5 : 1 })}
                 >
                   <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>되돌리기</Text>
@@ -162,8 +167,9 @@ export function Onboarding() {
 
         {/* 아래 막대 — 스크롤 밖, 키보드 위에 붙는다 */}
         <View style={{ marginHorizontal: GUTTER, paddingTop: 8, paddingBottom: Math.max(12, insets.bottom) }}>
-          <PrimaryButton M={M} height={54} label={cta.label} accessibilityLabel={cta.a11y} tone={cta.tone} onPress={start} />
+          <PrimaryButton M={M} height={54} label={cta.label} accessibilityHint={cta.hint} tone={cta.tone} onPress={start} />
           <Pressable
+            ref={templateBtn}
             onPress={() => { tap(); Keyboard.dismiss(); setSheet(true); }}
             accessibilityRole="button"
             accessibilityLabel={picked ? '다른 템플릿 고르기' : '템플릿으로 시작하기'}
@@ -176,7 +182,7 @@ export function Onboarding() {
         </View>
       </KeyboardAvoidingView>
 
-      {sheet && <TemplateSheet M={M} onClose={() => setSheet(false)} onPick={pickTemplate} />}
+      {sheet && <TemplateSheet M={M} onClose={() => setSheet(false)} onPick={pickTemplate} returnFocusRef={templateBtn} />}
     </View>
   );
 }

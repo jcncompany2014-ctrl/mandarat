@@ -5,7 +5,7 @@ import { CloseBtn, IndexTabs, PrimaryButton, RowDivider, Sheet, groupEdge, press
 import { NUM } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
+import { useUIActions, useUIState } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { suggestKind } from '../lib/kindSuggest';
@@ -27,16 +27,17 @@ function areaName(doc: MandaratDoc, ti: number): string {
   return doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
 }
 
-/** 오늘 할 일 추가 — 글을 먼저 쓰고, 어느 영역의 일인지 고른다. 주 버튼은 시트 맨 아래에 붙어 있다. */
+/** 오늘 할 일 담기 — 글을 먼저 쓰고, 어느 영역의 일인지 고른다. 주 버튼은 시트 맨 아래에 붙어 있다. */
 export function QuickAdd() {
-  const { quick } = useUI();
+  const { quick } = useUIState();
   if (!quick) return null;
   return <QuickAddSheet />;
 }
 
 function QuickAddSheet() {
   const M = usePalette();
-  const { quickTi, closeQuick } = useUI();
+  const { quickTi } = useUIState();
+  const { closeQuick } = useUIActions();
   const [text, setText] = useState('');
   const [ti, setTiState] = useState(() => quickTi ?? lastArea.ti);
   const setTi = (i: number) => {
@@ -66,7 +67,7 @@ function QuickBody({
   setTi: (i: number) => void;
 }) {
   const { doc, addExtra, toggleToday } = useMandarat();
-  const { showToast } = useUI();
+  const { showToast } = useUIActions();
   const dismiss = useSheetDismiss();
   const [focused, setFocused] = useState(false);
   const empty = !text.trim();
@@ -92,7 +93,7 @@ function QuickBody({
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 32 }}>
         <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
-          오늘 할 일 추가
+          오늘 할 일 담기
         </Text>
         <CloseBtn M={M} onPress={dismiss} />
       </View>
@@ -202,7 +203,7 @@ function QuickFooter({ M, text, ti }: { M: M; text: string; ti: number }) {
 
   return (
     <View>
-      <PrimaryButton M={M} label="오늘 할 일 추가하기" onPress={submit} disabled={!value} />
+      <PrimaryButton M={M} label="오늘 할 일에 담기" onPress={submit} disabled={!value} />
       {ai >= 0 && (
         <Pressable
           onPress={writeCell}

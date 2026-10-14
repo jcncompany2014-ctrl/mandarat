@@ -13,6 +13,8 @@ import { alertInk } from './KindBits';
 import { shadow } from '../theme/shadow';
 import { alpha, mix } from '../theme/moods';
 import { readableOn } from '../theme/palette';
+import { legibleMark } from '../theme/chart';
+import { useOptionalUIActions } from '../navigation/ui';
 import { NUM, TYPE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import type { IconName } from '../types';
@@ -180,8 +182,8 @@ export function IconBtn({
     >
       <Icon name={name} size={22} color={M.ink} sw={1.8} />
       {badge && (
-        // 알림 점도 종이 위 표시처럼 작은 네모로
-        <View style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 1.5, backgroundColor: M.accent, borderWidth: 1.5, borderColor: M.bg }} />
+        // 알림 점도 종이 위 표시처럼 작은 네모로 — 금색은 밝은 종이 셋에서 3:1에 못 미쳐 읽히는 색으로 당긴다
+        <View style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 1.5, backgroundColor: legibleMark(M.accent, M.bg, M), borderWidth: 1.5, borderColor: M.bg }} />
       )}
     </Pressable>
   );
@@ -258,9 +260,12 @@ const APressable = Animated.createAnimatedComponent(Pressable);
  * - footer: 스크롤 밖 맨 아래에 고정되는 줄(저장 버튼 등) — 본문이 길어도 늘 보인다.
  * - guard: 닫기 전에 묻는다(고친 내용 버리기 확인 등). false면 닫지 않고 제자리로. 받은 dismiss(true)로 나중에 닫을 수 있다.
  * - 키보드가 올라와 있을 때 바깥을 누르면 키보드만 내린다(쓰던 글이 한 번의 헛손질로 사라지지 않게).
+ * - 떠 있는 동안 UI 대기열에 열린 모달로 센다(화면이 자기 상태로 연 시트도) — 그 위에 다른 모달이 뜨지 않게.
+ * - returnFocusRef: 닫힌 뒤 스크린리더 초점을 돌려줄 곳(시트를 연 버튼). iOS는 대개 스스로 돌려주고, 안드로이드는 이것이 맡는다.
  */
 export function Sheet({
   M, onClose, children, maxHeightPct = 0.9, ownClose = false, overlay, footer, guard, scrollRef, keyboardDismissMode,
+  returnFocusRef,
 }: {
   M: M;
   onClose: () => void;
@@ -277,8 +282,29 @@ export function Sheet({
   /** 본문 스크롤 — 고른 뒤 맨 아래로 내려 보여 줄 때(scrollToEnd) */
   scrollRef?: React.Ref<ScrollView>;
   keyboardDismissMode?: 'none' | 'on-drag' | 'interactive';
+  /** 닫힌 뒤 스크린리더 초점을 돌려줄 곳(시트를 연 버튼) */
+  returnFocusRef?: React.RefObject<React.ComponentRef<typeof View> | null>;
 }) {
   const insets = useSafeAreaInsets();
+  const uiActions = useOptionalUIActions();
+  const register = uiActions?.registerOverlay;
+  // 마운트된 동안(내려가는 애니메이션까지) 열린 모달 하나로 센다
+  useEffect(() => (register ? register() : undefined), [register]);
+  const focusBack = useRef(returnFocusRef);
+  focusBack.current = returnFocusRef;
+  useEffect(() => () => {
+    if (Platform.OS === 'web') return;
+    const ref = focusBack.current;
+    if (!ref) return;
+    // 모달이 다 내려간 뒤에 옮겨야 스크린리더가 놓치지 않는다
+    setTimeout(() => {
+      const node = ref.current;
+      if (!node) return;
+      AccessibilityInfo.isScreenReaderEnabled()
+        .then((on) => { if (on && ref.current) AccessibilityInfo.sendAccessibilityEvent(ref.current, 'focus'); })
+        .catch(() => {});
+    }, 400);
+  }, []);
   const kb = useKeyboardHeight();
   const kbRef = useRef(kb);
   kbRef.current = kb;
@@ -691,7 +717,7 @@ export function IndexTabs({
  */
 export function LineRow({
   M, title, sub, right, onPress, first = false, last = false, danger = false,
-  accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState, checked, titleLines = 2,
+  accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState, checked, titleLines = 2, pressRef,
 }: {
   M: M;
   title: string;
@@ -709,6 +735,8 @@ export function LineRow({
   /** 체크 상태 — accessibilityState.checked의 줄임(둘 다 주면 합친다) */
   checked?: boolean;
   titleLines?: number;
+  /** 누르는 줄의 ref — 이 줄이 연 시트가 닫힌 뒤 스크린리더 초점을 여기로 돌려준다(Sheet의 returnFocusRef) */
+  pressRef?: React.Ref<View>;
 }) {
   const a11yState =
     checked === undefined ? accessibilityState : { ...accessibilityState, checked };
@@ -751,6 +779,7 @@ export function LineRow({
   }
   return (
     <Pressable
+      ref={pressRef}
       onPress={onPress}
       accessibilityRole={accessibilityRole ?? 'button'}
       accessibilityState={a11yState}

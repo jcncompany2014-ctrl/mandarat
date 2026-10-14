@@ -7,7 +7,7 @@ import { EmptyState } from '../components/EmptyState';
 import { NUM } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
+import { useUIActions, useUIState } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import { firstAreaWithEmpty, pickSections } from '../lib/pick';
 import { autoLine, choosableRows, type PickListRow } from '../lib/quickAdd';
@@ -22,14 +22,14 @@ const GAP = 12;
 
 /** 만다라트 실천 중 오늘 할 것을 한 번에 여러 개 고른다 — 고르는 즉시 오늘 목록에 담긴다. */
 export function PickToday() {
-  const { pick } = useUI();
+  const { pick } = useUIState();
   if (!pick) return null;
   return <PickSheet />;
 }
 
 function PickSheet() {
   const M = usePalette();
-  const { closePick } = useUI();
+  const { closePick } = useUIActions();
   const { doc } = useMandarat();
   const now = new Date();
   const sections = pickSections(doc, now);
@@ -54,7 +54,7 @@ function PickFooter({ M, total }: { M: M; total: number }) {
     <PrimaryButton
       M={M}
       label={`오늘 ${total}개 · 다 골랐어요`}
-      accessibilityLabel={`다 골랐어요, 오늘 할 일 ${total}개`}
+      accessibilityLabel={`오늘 ${total}개, 다 골랐어요`}
       onPress={() => { tap(); dismiss(); }}
     />
   );
@@ -62,7 +62,7 @@ function PickFooter({ M, total }: { M: M; total: number }) {
 
 function PickBody({ M }: { M: M }) {
   const { doc, toggleToday } = useMandarat();
-  const { go, afterOverlays } = useUI();
+  const { go, afterOverlays } = useUIActions();
   const dismiss = useSheetDismiss();
   const now = new Date();
   const sections = pickSections(doc, now);

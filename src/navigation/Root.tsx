@@ -54,7 +54,7 @@ const PaperDotsPure = memo(PaperDots);
 type TabId = 'dashboard' | 'grid' | 'today' | 'stats';
 type IconName = Parameters<typeof Icon>[0]['name'];
 
-/** 탭바 다섯 칸 — 홈 · 만다라트 · 추가 · 오늘 · 통계 (가운데 칸이 추가) */
+/** 탭바 다섯 칸 — 홈 · 만다라트 · 담기 · 오늘 · 통계 (가운데 칸이 오늘 할 일 담기) */
 const TABS: { id: TabId; icon: IconName; label: string; slot: number }[] = [
   { id: 'dashboard', icon: 'home', label: '홈', slot: 0 },
   { id: 'grid', icon: 'grid', label: '만다라트', slot: 1 },
@@ -114,7 +114,7 @@ function Milestones() {
   const ui = useMemo(() => ({ ...uiState, ...uiActions }), [uiState, uiActions]);
   const uiRef = useRef(ui);
   uiRef.current = ui;
-  const anyOverlay = !!(ui.sheet || ui.focus || ui.editor || ui.pick || ui.quick || ui.celebrate || ui.ritual || ui.share);
+  const anyOverlay = ui.anyOpen;
 
   // ── 하루 마감 — 모달 없이 그 자리에서 ───────────────────────────────────────
   // 직접 담은 항목 + 저절로 담긴 습관·마감 + 직접 추가한 할 일을 마지막 하나까지 '체크'했을 때만.
@@ -154,17 +154,24 @@ function Milestones() {
     return () => { set.forEach(clearTimeout); set.clear(); };
   }, []);
 
-  // 한 영역이 8칸을 모두 달성하면 조용히 알린다 — 칸 하나를 직접 체크해 7→8이 된 순간에만.
-  // (백업 불러오기·되돌리기처럼 통째로 바뀐 경우는 제외하고, 되돌리기가 달린 안내는 덮지 않는다)
+  // 칸 하나를 직접 달성해 넘어선 순간에만 알린다 — 백업 불러오기·스냅샷 복원·통째 바꾸기의 되돌리기처럼
+  // 여러 칸이 한꺼번에 바뀐 경우는 이 앱에서 지금 해낸 일이 아니므로 조용히 넘어간다.
+  // - 한 영역 7→8: 조용한 안내(되돌리기가 달린 안내는 덮지 않는다)
+  // - 전체 63→64: 마무리 페이지 — 늘 대기열을 거쳐, 열린 시트·타이머가 다 내려간 뒤에 뜬다
   const areaDone = doc.themes.map((t) => t.actions.filter((a) => a.done).length).join(',');
   const prevAreas = useRef<number[] | null>(null);
   useEffect(() => {
     const now = areaDone.split(',').map(Number);
     const prev = prevAreas.current;
     prevAreas.current = now;
-    if (!prev) return;
+    if (!prev || prev.length !== now.length) return;
     const changed = now.map((n, i) => n - prev[i]).filter((d) => d !== 0);
     if (changed.length !== 1 || changed[0] !== 1) return;
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    if (sum(prev) === 63 && sum(now) === 64) {
+      ui.fireCelebrate('bloom');
+      return;
+    }
     const ti = now.findIndex((n, i) => n === 8 && prev[i] === 7);
     if (ti < 0 || totalDone(doc) >= 64 || ui.getToast()?.action) return;
     const th = doc.themes[ti];
@@ -172,14 +179,6 @@ function Milestones() {
     milestoneToastAt.current = Date.now();
     ui.showToast(`${th.title ? `${th.title} 영역` : `영역 ${ti + 1}`} 8칸을 모두 달성했어요`);
   }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 64칸을 모두 달성 → 마무리 페이지(세션 중 100%에 닿을 때 1회). 시트가 열려 있으면 닫힌 뒤에 뜬다.
-  const allDone = totalDone(doc) === 64;
-  const prevAll = useRef(true);
-  useEffect(() => {
-    if (allDone && !prevAll.current) ui.fireCelebrate('bloom');
-    prevAll.current = allDone;
-  }, [allDone]); // eslint-disable-line react-hooks/exhaustive-deps
   // 마무리 페이지가 실제로 뜨는 순간 한 번 울린다(대기열에서 기다렸다 떠도 그때)
   useEffect(() => {
     if (ui.celebrate === 'bloom') milestone();
@@ -251,9 +250,15 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   useEffect(() => {
     if (!onboarded) scrollMem.clear();
   }, [onboarded, scrollMem]);
+  // 다시 시작하기를 마치면 홈에서 — 초기화하던 설정 화면(탭바 없음)에 남지 않게
+  const wasOnboarded = useRef(onboarded);
+  useEffect(() => {
+    if (onboarded && !wasOnboarded.current) uiRef.current.go('dashboard');
+    wasOnboarded.current = onboarded;
+  }, [onboarded]);
 
   // 화면 전환 — 들어가는 화면(상세·설정)은 오른쪽에서, 돌아올 땐 왼쪽에서, 탭끼리는 탭 순서 방향으로 살짝.
-  // 화면 안의 덩어리들은 각자 Reveal로 차례차례 떠오른다. (동작 줄이기에서는 생략)
+  // 화면 전체가 한 번에 옮겨 온다(덩어리별 시차 없이). 동작 줄이기에서는 생략.
   useEffect(() => {
     const prev = prevNav.current;
     prevNav.current = { screen: ui.screen, ti: ui.ti };
@@ -509,16 +514,17 @@ const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
   );
 });
 
-/** 가운데 '추가' 칸 — 점선 네모 안의 ＋. 손으로 그린 빈칸처럼, 탭들과 같은 줄에 앉는다 */
+/** 가운데 '담기' 칸 — 점선 네모 안의 ＋(오늘 할 일 담기). 손으로 그린 빈칸처럼, 탭들과 같은 줄에 앉는다 */
 function AddSlot({ onPress }: { onPress: () => void }) {
   const M = usePalette();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="오늘 할 일 추가"
+      accessibilityLabel="담기"
+      accessibilityHint="오늘 할 일을 적어 담아요"
       accessibilityShowsLargeContentViewer
-      accessibilityLargeContentTitle="추가"
+      accessibilityLargeContentTitle="담기"
       style={({ pressed }) => ({ flex: 1, height: TAB_BAR_H - 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
     >
       <View
@@ -534,7 +540,7 @@ function AddSlot({ onPress }: { onPress: () => void }) {
         numberOfLines={1}
         style={{ marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }}
       >
-        추가
+        담기
       </Text>
     </Pressable>
   );

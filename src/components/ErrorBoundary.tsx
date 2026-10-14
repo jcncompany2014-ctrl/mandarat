@@ -34,6 +34,8 @@ async function exportStoredDoc(): Promise<'shared' | 'empty'> {
   if (!raw) return 'empty';
   if (Platform.OS === 'ios') {
     try {
+      // 파일 이름은 일부러 ASCII — 한글 파일 이름은 메일 첨부·일부 클라우드·윈도우 압축에서 깨지거나 %인코딩으로 보인다.
+      // 설정의 백업 내보내기(lib/backup.ts)와 같은 이름 규칙을 쓴다(둘 다 같은 불러오기로 읽힌다).
       const file = new File(Paths.cache, `mandarat-backup-${ymd(new Date())}.json`);
       file.create({ overwrite: true });
       file.write(raw);

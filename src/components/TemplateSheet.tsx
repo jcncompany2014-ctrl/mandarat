@@ -14,14 +14,16 @@ import type { M } from '../theme/usePalette';
  * 진행하기로 했으면 close()를 부르면 시트가 아래로 미끄러져 내려간 뒤 onClose가 불린다.
  */
 export function TemplateSheet({
-  M, onClose, onPick,
+  M, onClose, onPick, returnFocusRef,
 }: {
   M: M;
   onClose: () => void;
   onPick: (t: Template, close: () => void) => void;
+  /** 닫힌 뒤 스크린리더 초점을 돌려줄 곳(시트를 연 버튼) */
+  returnFocusRef?: React.RefObject<View | null>;
 }) {
   return (
-    <Sheet M={M} onClose={onClose} ownClose>
+    <Sheet M={M} onClose={onClose} ownClose returnFocusRef={returnFocusRef}>
       <TemplateList M={M} onPick={onPick} />
     </Sheet>
   );

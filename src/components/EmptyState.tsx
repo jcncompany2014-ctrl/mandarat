@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { RowDivider, groupEdge, pressedRow } from './common';
+import { checkBorder } from '../lib/marks';
 import type { M } from '../theme/usePalette';
 
 type EmptyAction = { label: string; onPress: () => void };
@@ -44,7 +45,8 @@ function PaperEmpty({ M, lines, action }: PaperProps) {
               }}
             >
               {i > 0 && <RowDivider M={M} inset={text} />}
-              <View style={{ width: BOX, height: BOX, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: M.faint }} />
+              {/* 빈 칸 네모는 보이라고 그린 표시 — 종이 위 3:1 이상(M.faint는 2.1~2.5:1) */}
+              <View style={{ width: BOX, height: BOX, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: checkBorder(M.dark) }} />
               <Text style={{ flex: 1, fontSize: 15, lineHeight: 21, fontWeight: '600', color: M.sub }}>{line}</Text>
             </View>
           ))}
