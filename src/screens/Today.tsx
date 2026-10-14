@@ -13,20 +13,22 @@ import { Check } from '../components/Check';
 import { EmptyState } from '../components/EmptyState';
 import { MoodRow } from '../components/MoodRow';
 import { WeekDots } from '../components/WeekDots';
-import { CountBar, KindMeta, RatingBoxes, WeekSlots } from '../components/KindBits';
+import { CountBar, KindMeta, WeekSlots } from '../components/KindBits';
 import { FONTS } from '../theme/fonts';
 import { tint } from '../theme/moods';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
-import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
-import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
-import { DOW_KR, doneOn, extraLogKey, kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, weekDates, ymd, type TodayItem } from '../lib/routine';
-import { countInfo, fmtNum, kindLine, ratingOf } from '../lib/kinds';
+import { useMandarat, dateKey } from '../store/MandaratContext';
+import { tap } from '../lib/haptics';
+import { useTodayCheck } from '../lib/useTodayCheck';
+import { perWeekOf, routineWeek, routineWeekCount, todayItems, type TodayItem } from '../lib/routine';
+import { kindLine } from '../lib/kinds';
 import { josa } from '../lib/text';
 import { pickSections } from '../lib/pick';
 import { SEMANTIC } from '../theme/palette';
 import type { Mgmt, TodayExtra } from '../types';
+import { MindWeek, TodayKanban, TodayStreak } from './TodayModes';
 
 const MODES: { v: Mgmt }[] = [{ v: '일일 체크' }, { v: '습관 스트릭' }, { v: '칸반' }];
 
@@ -34,36 +36,6 @@ const MODES: { v: Mgmt }[] = [{ v: '일일 체크' }, { v: '습관 스트릭' },
 function useTodayList(): TodayItem[] {
   const { doc } = useMandarat();
   return useMemo(() => todayItems(doc, new Date()), [doc]);
-}
-
-/**
- * 목록의 체크 — 유형에 맞게: 습관은 오늘 기록, 쌓기는 한 번 더하기(다시 누르면 오늘 것 되돌리기), 한 번은 칸 달성.
- * 쌓기가 이번 체크로 목표에 닿으면 알려 준다.
- */
-function useCheck() {
-  const { doc, checkToday, addCount } = useMandarat();
-  const { showToast } = useUI();
-  return (it: TodayItem) => {
-    if (it.done) uncheckHaptic();
-    else checkHaptic();
-    if (it.kind === 'count') {
-      const c = countInfo(doc.themes[it.ti].actions[it.ai], dateKey());
-      if (!it.done && !c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
-      // 체크 해제는 그날 더한 것을 한꺼번에 되돌리므로, 잘못 눌렀을 때 살릴 수 있게
-      if (it.done && c.today > 0) {
-        const amount = c.today;
-        showToast(`오늘 더한 ${josa(`${fmtNum(amount)}${c.unit}`, '을/를')} 되돌렸어요`, { label: '되돌리기', onPress: () => addCount(it.ti, it.ai, amount) });
-      }
-    }
-    checkToday(it.ti, it.ai);
-  };
-}
-
-/** 체크 칸의 화면 읽기 이름 — 쌓기는 무엇을 얼마나 더하는지까지 */
-function checkLabel(it: TodayItem, text: string, doc: ReturnType<typeof useMandarat>['doc']): string {
-  if (it.kind !== 'count') return `${text} 완료`;
-  const c = countInfo(doc.themes[it.ti].actions[it.ai]);
-  return it.done ? `${text}, 오늘 더한 것 되돌리기` : `${text}, ${fmtNum(c.step)}${c.unit} 더하기`;
 }
 
 export function Today() {
@@ -93,10 +65,10 @@ export function Today() {
 
 // ── checklist (default) ───────────────────────────────────────────────────────
 function TodayChecklist({ M }: { M: M }) {
-  const { doc, toggleExtra, removeExtra, restoreExtra, setDayMood, setDayReflection } = useMandarat();
-  const { openAction, openQuick, openPick, showToast } = useUI();
+  const { doc, setDayMood, setDayReflection } = useMandarat();
+  const { openAction, openQuick, openPick } = useUI();
   const list = useTodayList();
-  const check = useCheck();
+  const tc = useTodayCheck();
   const extra = doc.todayExtra;
   const meta = doc.dayMeta[dateKey()] ?? {};
   const now = new Date();
@@ -132,25 +104,8 @@ function TodayChecklist({ M }: { M: M }) {
   const toggleRow = (r: Row) => {
     if (r.done) animateLayout();
     else hold(r.key);
-    if (r.it) check(r.it);
-    else if (r.x) {
-      if (r.x.done) uncheckHaptic();
-      else checkHaptic();
-      toggleExtra(r.x.id);
-    }
-  };
-
-  // 되돌리기는 지운 할 일만 되살린다(그 사이 다른 체크는 그대로)
-  const dropExtra = (id: string) => {
-    const index = extra.findIndex((e) => e.id === id);
-    if (index < 0) return;
-    tap();
-    const x = extra[index];
-    const day = dateKey();
-    const logged = doneOn(doc.dayLog, extraLogKey(x.ti, x.id), day);
-    animateLayout();
-    removeExtra(id);
-    showToast('할 일을 지웠어요', { label: '되돌리기', onPress: () => { animateLayout(); restoreExtra(x, index, logged, day); } });
+    if (r.it) tc.toggle(r.it);
+    else if (r.x) tc.toggleExtra(r.x);
   };
 
   // 묶음 목록 한 줄 — 누르면 바탕만 살짝 바뀐다(줄이 줄어들면 묶음 테두리가 벌어져 보이므로)
@@ -186,7 +141,7 @@ function TodayChecklist({ M }: { M: M }) {
               hitSlop={10}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: it.done }}
-              accessibilityLabel={checkLabel(it, a.text, doc)}
+              accessibilityLabel={tc.checkLabel(it)}
             >
               <Check on={it.done} color={th.color} dark={M.dark} seed={it.key} muted={sunk(r)} />
             </Pressable>
@@ -226,9 +181,9 @@ function TodayChecklist({ M }: { M: M }) {
           onPress={() => toggleRow(r)}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: x.done }}
-          accessibilityLabel={`${x.text} 완료`}
+          accessibilityLabel={x.text}
           accessibilityActions={[{ name: 'delete', label: '지우기' }]}
-          onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') dropExtra(x.id); }}
+          onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') tc.removeExtra(x); }}
           style={rowStyle(first, last)}
         >
           {!first && <RowDivider M={M} inset={56} />}
@@ -243,13 +198,13 @@ function TodayChecklist({ M }: { M: M }) {
             </View>
           </View>
           <Pressable
-            onPress={() => dropExtra(x.id)}
-            hitSlop={10}
+            onPress={() => tc.removeExtra(x)}
+            hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={`${x.text} 지우기`}
-            style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+            style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Icon name="close" size={15} color={M.faint} sw={2.2} />
+            <Icon name="close" size={15} color={M.sub} sw={2.2} />
           </Pressable>
         </Pressable>
       </Reveal>
@@ -266,8 +221,8 @@ function TodayChecklist({ M }: { M: M }) {
       style={rowStyle(first, true)}
     >
       {!first && <RowDivider M={M} inset={56} />}
-      <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.accent, M.dark ? 24 : 15, M.dark) }}>
-        <Icon name="plus" size={15} color={M.accent} sw={2.6} />
+      <View style={{ width: 26, height: 26, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="plus" size={18} color={M.ink} sw={2.4} />
       </View>
       <Text style={{ flex: 1, fontSize: 14.5, fontWeight: '700', color: M.ink }}>실천에서 더 고르기</Text>
       <Icon name="chevR" size={17} color={M.faint} />
@@ -287,7 +242,7 @@ function TodayChecklist({ M }: { M: M }) {
             <Text style={{ fontSize: 13, fontWeight: '700', color: M.sub, fontFamily: FONTS.grotesk }}>{pct}%</Text>
           </View>
           <ProgressBar pct={pct} height={4} color={M.ink} track={M.line} style={{ marginTop: 10 }} />
-          {!!autoLine && <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 8 }}>{autoLine}가 저절로 담겼어요</Text>}
+          {!!autoLine && <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 8 }}>{josa(autoLine, '이/가')} 저절로 담겼어요</Text>}
         </View>
       )}
 
@@ -318,7 +273,7 @@ function TodayChecklist({ M }: { M: M }) {
                   accessibilityRole="button"
                   accessibilityLabel={`${label} 필터`}
                   accessibilityState={{ selected: on }}
-                  style={{ paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: on ? color : M.line, backgroundColor: on ? tint(color, M.dark ? 18 : 11, M.dark) : 'transparent' }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 6, borderWidth: 1.5, borderColor: on ? color : M.line, backgroundColor: on ? tint(color, M.dark ? 18 : 11, M.dark) : 'transparent' }}
                 >
                   <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? color : M.sub }}>{label}</Text>
                 </Pressy>
@@ -365,261 +320,6 @@ function TodayChecklist({ M }: { M: M }) {
           style={{ marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: M.line, backgroundColor: M.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', color: M.ink, fontSize: 14 }}
         />
       </View>
-    </View>
-  );
-}
-
-// ── 이번 주 마음가짐 ──────────────────────────────────────────────────────────
-/**
- * 마음가짐 칸은 날마다 체크하지 않고 한 주에 한 번 점수를 매긴다 — 오늘 화면 아래에 늘 두어 날마다 떠올리게 한다.
- * 같은 점수를 다시 누르면 지운다. 마음가짐 칸이 없으면 그리지 않는다.
- */
-function MindWeek({ M }: { M: M }) {
-  const { doc, rateMind } = useMandarat();
-  const { openAction } = useUI();
-  const now = new Date();
-  const items = doc.themes.flatMap((th, ti) =>
-    th.actions.map((a, ai) => ({ a, ti, ai })).filter(({ a }) => a.text.trim() && kindOf(a) === 'mind'),
-  );
-  if (items.length === 0) return null;
-  const rated = items.filter(({ a }) => ratingOf(a, now) > 0).length;
-  return (
-    <View style={{ marginTop: 28 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 }}>
-        <Text style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }} accessibilityRole="header">이번 주 마음가짐</Text>
-        <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub }}>{rated}/{items.length} 매김</Text>
-      </View>
-      <Text style={{ fontSize: 12.5, color: M.sub, marginBottom: 10 }}>한 주 동안 얼마나 지켰는지 1~5점으로 매겨요</Text>
-      {items.map(({ a, ti, ai }, i) => {
-        const th = doc.themes[ti];
-        return (
-          <View
-            key={`${ti}-${ai}`}
-            style={[groupEdge(M, i === 0, i === items.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 }]}
-          >
-            {i > 0 && <RowDivider M={M} inset={0} />}
-            <Pressable onPress={() => { tap(); openAction(ti, ai); }} accessibilityRole="button" accessibilityHint="실천 항목 자세히 보기" style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 14.5, fontWeight: '700', color: M.ink }} numberOfLines={2}>{a.text}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-                <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
-              </View>
-            </Pressable>
-            <RatingBoxes M={M} value={ratingOf(a, now)} color={th.color} label={`${a.text} 이번 주 점수`} size={32} gap={4} onRate={(s) => rateMind(ti, ai, s)} />
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-// ── habit streak ──────────────────────────────────────────────────────────────
-function TodayStreak({ M }: { M: M }) {
-  const { doc } = useMandarat();
-  const { go } = useUI();
-  const now = new Date();
-  const streaks = doc.themes.map((_, ti) => themeStreak(doc, ti, now));
-  const best = streaks.reduce((m, s, i) => (s.best > m.best ? { best: s.best, ti: i } : m), { best: 0, ti: 0 });
-  const bestName = doc.themes[best.ti].title || `영역 ${best.ti + 1}`;
-
-  return (
-    <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      {/* 가장 긴 기록 — 큰 숫자 하나와 한 문장(종이 위에) */}
-      <View style={{ marginBottom: 22 }} accessible accessibilityLabel={best.best > 0 ? `가장 길게 이어 온 기록 ${best.best}일, ${bestName}` : '아직 이어 온 기록이 없어요'}>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>가장 길게 이어 온 기록</Text>
-        <Text style={{ fontSize: 44, lineHeight: 50, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk, letterSpacing: -1.5 }}>
-          {best.best}<Text style={{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }}>일</Text>
-        </Text>
-        <Text style={{ fontSize: 13.5, color: M.sub }}>{best.best > 0 ? `${bestName} 영역이에요` : '하루 하나씩 체크하면 여기에 쌓여요'}</Text>
-      </View>
-
-      {/* 칸 7개 = 이번 주 월~일 — 행마다 쓰지 않고 위에 한 번만 요일을 단다 */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2, marginBottom: 7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={{ width: 24 + 13 }} />
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {weekDates(now).map((d) => {
-            const k = ymd(d);
-            const today = k === dateKey(now);
-            return (
-              <Text key={k} style={{ width: 14, textAlign: 'center', fontSize: 9.5, fontWeight: today ? '800' : '600', color: today ? M.accent : M.faint }}>
-                {DOW_KR[d.getDay()]}
-              </Text>
-            );
-          })}
-        </View>
-        <Text style={{ flex: 1, textAlign: 'right', fontSize: 10.5, fontWeight: '600', color: M.faint }}>이번 주</Text>
-      </View>
-
-      <View>
-        {doc.themes.map((th, ti) => {
-          const s = streaks[ti];
-          const first = ti === 0;
-          return (
-            <Reveal key={ti} index={1 + ti} from={0}>
-            <Pressable
-              onPress={() => { tap(); go('detail', ti); }}
-              accessibilityRole="button"
-              accessibilityLabel={`${th.title || `영역 ${ti + 1}`}, 현재 연속 ${s.cur}일, 최고 ${s.best}일`}
-              style={({ pressed }) => [
-                groupEdge(M, first, ti === doc.themes.length - 1),
-                { flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 2, paddingVertical: 12 },
-                pressed ? pressedRow(M) : null,
-              ]}
-            >
-              {!first && <RowDivider M={M} inset={39} />}
-              <View style={{ width: 24, alignItems: 'center' }}>
-                <Icon name={th.icon} size={20} color={th.color} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 14.5, fontWeight: '700', color: M.ink }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
-                <View style={{ flexDirection: 'row', gap: 4, marginTop: 6 }}>
-                  {s.week.map((d, di) => (
-                    <View key={di} style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: d ? th.color : 'transparent', borderWidth: d ? 0 : 1, borderColor: M.line }} />
-                  ))}
-                </View>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 17, fontWeight: '800', color: s.cur > 0 ? M.ink : M.faint, fontFamily: FONTS.grotesk }}>
-                  {s.cur}<Text style={{ fontSize: 12, fontWeight: '600', color: M.sub }}>일째</Text>
-                </Text>
-                <Text style={{ fontSize: 10.5, color: M.sub, fontWeight: '600' }}>최고 {s.best}일</Text>
-              </View>
-            </Pressable>
-            </Reveal>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-// ── kanban ────────────────────────────────────────────────────────────────────
-// '진행 중'은 그날 하루만 의미가 있어 저장하지 않고, 앱이 켜져 있는 동안만 기억한다.
-// 탭을 오가거나 보기 방식을 바꿔도 남고, 날짜가 바뀌거나 그 자리의 글자가 바뀌면(초기화·백업 불러오기 등) 풀린다.
-// 카드 키는 자리(영역-칸)라서, 같은 자리에 다른 실천이 들어오면 이어받지 않도록 글자까지 맞춰 본다.
-let doingMemo: { day: string; keys: Map<string, string> } = { day: '', keys: new Map() };
-const NO_DOING = new Map<string, string>();
-
-function TodayKanban({ M }: { M: M }) {
-  const { doc, toggleExtra } = useMandarat();
-  const { openQuick, openPick } = useUI();
-  const list = useTodayList();
-  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
-  const check = useCheck();
-  const extra = doc.todayExtra;
-
-  // unified card list
-  type Card = { key: string; ti: number; text: string; done: boolean; item?: TodayItem; id?: string };
-  const cards: Card[] = [
-    ...list.map((it) => ({ key: it.key, ti: it.ti, text: doc.themes[it.ti].actions[it.ai].text, done: it.done, item: it })),
-    ...extra.map((x) => ({ key: `x${x.id}`, ti: x.ti, text: x.text, done: x.done, id: x.id })),
-  ];
-
-  const day = dateKey();
-  const [memo, setMemo] = useState(doingMemo);
-  const doing = memo.day === day ? memo.keys : NO_DOING;
-  const setDoing = (c: Card, on: boolean) => setMemo((m) => {
-    const keys = new Map(m.day === day ? m.keys : NO_DOING);
-    if (on) keys.set(c.key, c.text);
-    else keys.delete(c.key);
-    doingMemo = { day, keys };
-    return doingMemo;
-  });
-
-  const stageOf = (c: Card): 0 | 1 | 2 => (c.done ? 2 : doing.get(c.key) === c.text ? 1 : 0);
-  const advance = (c: Card) => {
-    const st = stageOf(c);
-    animateLayout();
-    if (st === 0) {
-      tap();
-      setDoing(c, true);
-    } else if (st === 1) {
-      if (c.item) check(c.item);
-      else if (c.id) { checkHaptic(); toggleExtra(c.id); }
-      setDoing(c, false);
-    } else {
-      // 완료 → 다시 할 일로 (실수로 옮긴 카드 되돌리기)
-      if (c.item) check(c.item);
-      else if (c.id) { uncheckHaptic(); toggleExtra(c.id); }
-    }
-  };
-
-  const cols: [string, 0 | 1 | 2, string][] = [
-    ['할 일', 0, M.faint],
-    ['진행 중', 1, M.gold],
-    ['완료', 2, SEMANTIC.done],
-  ];
-
-  return (
-    <View style={{ paddingHorizontal: 14, paddingBottom: 16, gap: 14 }}>
-      {cards.length === 0 ? (
-        <EmptyState
-          M={M}
-          icon="grid"
-          title="오늘 보드가 비어 있어요"
-          subtitle={canPick ? '만다라트 실천 중 오늘 할 것을 골라 보세요' : '습관으로 정한 실천은 그날 저절로 담겨요'}
-          action={canPick
-            ? { label: '실천에서 고르기', onPress: () => { tap(); openPick(); } }
-            : { label: '할 일 추가하기', onPress: () => { tap(); openQuick(); } }}
-          compact
-        />
-      ) : (
-        <Text style={{ fontSize: 12, color: M.faint, fontWeight: '600', paddingHorizontal: 8, marginBottom: -4 }}>
-          카드를 누를 때마다 할 일 → 진행 중 → 완료로 옮겨져요
-        </Text>
-      )}
-      {cols.map(([label, ci, dot]) => {
-        const colCards = cards.filter((c) => stageOf(c) === ci);
-        return (
-          <View key={ci}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingBottom: 8 }}>
-              <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: dot }} />
-              <Text style={{ fontSize: 14, fontWeight: '800', color: M.ink }}>{label}</Text>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: M.faint, fontFamily: FONTS.grotesk }}>{colCards.length}</Text>
-            </View>
-            <View>
-              {colCards.map((c, i) => {
-                const th = doc.themes[c.ti];
-                const line = c.item ? kindLine(doc, c.item.ti, c.item.ai, new Date()) : null;
-                const first = i === 0;
-                return (
-                  <Pressable
-                    key={c.key}
-                    onPress={() => advance(c)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${c.text}, ${th.title || `영역 ${c.ti + 1}`}, ${label}`}
-                    accessibilityHint={ci === 0 ? '진행 중으로 옮기기' : ci === 1 ? '완료로 표시' : '완료 취소'}
-                    style={({ pressed }) => [
-                      groupEdge(M, first, i === colCards.length - 1, 16),
-                      { flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 14, paddingVertical: 12 },
-                      pressed ? pressedRow(M) : null,
-                    ]}
-                  >
-                    {!first && <RowDivider M={M} inset={15} />}
-                    {/* 진행 중인 일은 형광펜을 그은 듯 왼쪽에 금색 줄 */}
-                    {ci === 1 && <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 9, bottom: 9, width: 3, borderRadius: 2, backgroundColor: M.gold }} />}
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontSize: 14.5, fontWeight: '700', color: ci === 2 ? M.sub : M.ink, textDecorationLine: ci === 2 ? 'line-through' : 'none' }} numberOfLines={2}>
-                        {c.text}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: th.color }} />
-                        <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>
-                          {th.title || `영역 ${c.ti + 1}`}{line ? ` · ${line.long}` : ''}
-                        </Text>
-                      </View>
-                    </View>
-                    {ci === 0 && <Text style={{ fontSize: 11.5, fontWeight: '700', color: M.sub }}>시작</Text>}
-                    {ci === 1 && <Text style={{ fontSize: 11.5, fontWeight: '800', color: M.ink }}>완료하기</Text>}
-                    {ci === 2 && <Icon name="checkCircle" size={20} color={SEMANTIC.done} />}
-                  </Pressable>
-                );
-              })}
-              {colCards.length === 0 && <Text style={{ fontSize: 12.5, color: M.faint, paddingHorizontal: 14, paddingVertical: 10 }}>비어 있음</Text>}
-            </View>
-          </View>
-        );
-      })}
     </View>
   );
 }
