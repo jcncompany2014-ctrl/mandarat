@@ -97,6 +97,11 @@ export interface DocState {
   saveFailed: boolean;
   /** 읽지 못한 저장본을 따로 보관해 둔 저장소 키 — 이번 실행에서 그런 일이 있었을 때만 */
   recoveredCopy: string | null;
+  /**
+   * 시계 눈금 — 자정과 일요일 18:00(한 주 돌아보기가 열리는 때), 앱으로 돌아올 때 바뀐다.
+   * 문서가 그대로여도 '지금'에 기대는 화면(돌아보기 권하기 · 오늘 날짜)이 다시 그려지게, 시간에 기대는 useMemo의 의존성에 넣는다.
+   */
+  clock: number;
 }
 
 /**
@@ -323,6 +328,37 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     });
     return () => {
       clearInterval(timer);
+      sub.remove();
+    };
+  }, [ready]);
+
+  // 시계 눈금 — 다음 자정(+250ms)과 일요일 18:00 중 먼저 오는 때에 맞춰 다시 건다. 자정에는 '오늘' 정리도 그때 바로.
+  const [clock, setClock] = useState(0);
+  useEffect(() => {
+    if (!ready) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const arm = () => {
+      if (timer) clearTimeout(timer);
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() + 250;
+      const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((7 - now.getDay()) % 7), 18).getTime();
+      const next = sunday > now.getTime() ? Math.min(midnight, sunday) : midnight;
+      // setTimeout은 2^31-1ms를 넘기면 바로 불리므로, 길어도 하루를 넘지 않는 위 값만 쓴다
+      timer = setTimeout(() => {
+        setDoc((d) => rolloverToday(d, dateKey()));
+        setClock((c) => c + 1);
+        arm();
+      }, Math.max(1000, next - now.getTime()));
+    };
+    arm();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setClock((c) => c + 1);
+        arm();
+      }
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
       sub.remove();
     };
   }, [ready]);
@@ -691,8 +727,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   const state = useMemo<DocState>(
-    () => ({ doc, ready, storageError, saveFailed, recoveredCopy }),
-    [doc, ready, storageError, saveFailed, recoveredCopy],
+    () => ({ doc, ready, storageError, saveFailed, recoveredCopy, clock }),
+    [doc, ready, storageError, saveFailed, recoveredCopy, clock],
   );
 
   const { mood, accent } = doc.settings;

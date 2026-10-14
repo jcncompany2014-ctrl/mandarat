@@ -77,6 +77,25 @@ export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'da
   return out;
 }
 
+/**
+ * 더 고를 칸이 하나라도 있는가 — pickSections(...).some(r => r.state === 'off')와 같은 답을, 첫 칸을 찾는 즉시 낸다.
+ * (글이 있고 · 마음가짐이 아니고 · 달성하지 않았거나 습관이고 · 저절로 담기지 않았고 · 아직 고르지 않은 칸)
+ */
+export function canPickAny(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'dayLog'>, today: Date): boolean {
+  const picked = new Set(doc.todayKeys);
+  for (let ti = 0; ti < doc.themes.length; ti++) {
+    const actions = doc.themes[ti].actions;
+    for (let ai = 0; ai < actions.length; ai++) {
+      const a = actions[ai];
+      if (!a.text.trim() || picked.has(`${ti}-${ai}`)) continue;
+      const kind = kindOf(a);
+      if (kind === 'mind' || (kind !== 'habit' && a.done)) continue;
+      if (!autoToday(doc, ti, ai, today)) return true;
+    }
+  }
+  return false;
+}
+
 /** 아직 글자가 없는 칸이 있는 첫 영역(없으면 -1) — '칸 채우기'로 바로 데려갈 곳 */
 export function firstAreaWithEmpty(doc: Pick<MandaratDoc, 'themes'>): number {
   return doc.themes.findIndex((th) => th.actions.some((a) => !a.text.trim()));

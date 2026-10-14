@@ -23,7 +23,7 @@ export function alertInk(M: M): string {
  * 기본은 11.5/700. 오늘 줄처럼 글씨가 주인공인 곳은 size 13 · weight '500', 아이콘 없이(icon={false}) 쓴다.
  */
 export function KindMeta({
-  M, line, color, long = true, size = 11.5, weight = '700', icon = true,
+  M, line, color, long = true, size = 11.5, weight = '700', icon = true, maxFontSizeMultiplier,
 }: {
   M: M;
   line: KindLine;
@@ -33,13 +33,15 @@ export function KindMeta({
   weight?: TextStyle['fontWeight'];
   /** 유형 아이콘을 앞에 붙일지 */
   icon?: boolean;
+  /** 글자 확대 상한 — 높이가 정해진 칸(보드 칸) 안에서는 1.3으로 묶는다. 없으면 AppText 기본값 */
+  maxFontSizeMultiplier?: number;
 }) {
   // 마감이 지난 일만 붉은 글씨로(그 밖엔 회색 한 가지)
   const ink = line.alert ? alertInk(M) : M.sub;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
       {icon && line.icon && <Icon name={line.icon} size={Math.round(size * 0.95)} color={line.alert ? ink : color} sw={2.2} />}
-      <Text style={{ flexShrink: 1, fontSize: size, fontWeight: weight, color: ink }} numberOfLines={1}>
+      <Text style={{ flexShrink: 1, fontSize: size, fontWeight: weight, color: ink }} numberOfLines={1} maxFontSizeMultiplier={maxFontSizeMultiplier}>
         {long ? line.long : line.short}
       </Text>
     </View>

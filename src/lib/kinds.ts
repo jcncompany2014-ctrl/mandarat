@@ -377,6 +377,11 @@ export interface KindLine {
   long: string;
   /** 정한 것(계획) — '월·수·금 반복' · '주 3회' · '6/12권' · '마감 D-3' · '마음가짐' */
   plan: string;
+  /**
+   * 소리로 읽을 말(long과 같은 내용) — '이번 주 3회 중 2회' · '12권 중 6권, 오늘 1권 더함' · '마감 3일 남음' · '마음가짐, 이번 주 4점'.
+   * '6/12권'·'D-3'은 VoiceOver가 날짜·'디 마이너스'로 읽으므로 화면 읽기 라벨에는 long 대신 이것을 쓴다.
+   */
+  speech: string;
   /** 쌓기 진행(0~100) */
   pct?: number;
   /** 마감이 지났다 */
@@ -392,22 +397,33 @@ export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number
     const n = perWeekOf(a);
     if (n > 0) {
       const w = routineWeekCount(doc, ti, ai, today);
-      return { icon: 'repeat', short: `이번 주 ${w.done}/${w.planned}`, long: `이번 주 ${w.done}/${w.planned}회`, plan: `주 ${n}회` };
+      return {
+        icon: 'repeat', short: `이번 주 ${w.done}/${w.planned}`, long: `이번 주 ${w.done}/${w.planned}회`, plan: `주 ${n}회`,
+        speech: `이번 주 ${w.planned}회 중 ${w.done}회`,
+      };
     }
     const label = `${daysLabel(habitDays(a))} 반복`;
-    return { icon: 'repeat', short: daysLabel(habitDays(a)), long: label, plan: label };
+    return { icon: 'repeat', short: daysLabel(habitDays(a)), long: label, plan: label, speech: label };
   }
   if (kind === 'count') {
     const c = countInfo(a, ymd(today));
     const text = countText(c);
-    return { short: text, long: c.today > 0 ? `${text} · 오늘 +${fmtNum(c.today)}` : text, plan: text, pct: c.pct };
+    const said = `${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
+    return {
+      short: text, long: c.today > 0 ? `${text} · 오늘 +${fmtNum(c.today)}` : text, plan: text, pct: c.pct,
+      speech: c.today > 0 ? `${said}, 오늘 ${fmtNum(c.today)}${c.unit} 더함` : said,
+    };
   }
   if (kind === 'once') {
     const d = dueInfo(a, today);
     if (!d || a.done) return null;
     const label = d.days > 0 ? `마감 ${d.label}` : d.label;
-    return { icon: 'calendar', short: d.label, long: label, plan: label, alert: d.over };
+    const said = d.days > 0 ? `마감 ${d.days}일 남음` : d.days === 0 ? '오늘 마감' : `마감 ${-d.days}일 지남`;
+    return { icon: 'calendar', short: d.label, long: label, plan: label, speech: said, alert: d.over };
   }
   const r = ratingOf(a, today);
-  return { short: r ? `마음가짐 ${r}점` : '마음가짐', long: r ? `마음가짐 · 이번 주 ${r}점` : '마음가짐', plan: '마음가짐' };
+  return {
+    short: r ? `마음가짐 ${r}점` : '마음가짐', long: r ? `마음가짐 · 이번 주 ${r}점` : '마음가짐', plan: '마음가짐',
+    speech: r ? `마음가짐, 이번 주 ${r}점` : '마음가짐',
+  };
 }
