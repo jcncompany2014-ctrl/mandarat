@@ -2,7 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { PanResponder, Pressable, View, type AccessibilityActionEvent } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
-import { Check } from '../components/Check';
+import { Check, checkEdge } from '../components/Check';
 import { ChartBoard } from '../components/ChartBoard';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { alertInk } from '../components/KindBits';
@@ -12,12 +12,20 @@ import { usePalette, type M as Palette } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useActions, useDoc, dateKey, themeProgress, themeStreak } from '../store/MandaratContext';
 import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
-import { checkBorder } from '../lib/marks';
-import { kindLine } from '../lib/kinds';
+import { kindLine, type KindLine } from '../lib/kinds';
 import { kindOf } from '../lib/routine';
-import { announce, screenReader } from '../lib/useReducedMotion';
-import { areaTitle, neighborArea, pageSpeech, rowLabel, rowStatus } from '../lib/areaPage';
+import { announce, screenReader, useIncreaseContrast } from '../lib/useReducedMotion';
+import { areaTitle, neighborArea, pageSpeech, rowStatus } from '../lib/areaPage';
 import type { Action } from '../types';
+
+/**
+ * 줄의 화면 읽기 이름 — '하루 물 2L, 달성, 매일 반복' · '책 읽기, 12권 중 6권'.
+ * areaPage.rowLabel과 같은 말이되 유형 줄은 소리 말(KindLine.speech) — '6/12권'·'D-3'을 날짜·글자로 읽지 않게.
+ */
+function rowSpeech(a: Action, ai: number, line: KindLine | null): string {
+  if (!a.text.trim()) return `실천 ${ai + 1} 채우기`;
+  return `${a.text.trim()}${a.done ? ', 달성' : ''}${line ? `, ${line.speech}` : ''}`;
+}
 
 /** 왼쪽 표시(체크 칸·상태 네모) 한 변 */
 const MARK = 22;
@@ -31,9 +39,9 @@ const EDGE = 28;
 let pagedTo: number | null = null;
 
 /**
- * 영역 화면 — 이 영역에서 무엇을 얼마나 이뤘는지 보는 곳.
+ * 영역 화면 — 이 영역에서 무엇을 얼마나 달성했는지 보는 곳.
  * 보드와 목록은 습관·쌓기·마음가짐을 체크하지 않는다(하루 체크는 오늘·홈·실천 시트에서).
- * 목록에서 바로 바꿀 수 있는 건 '한 번' 실천의 완료뿐이다.
+ * 목록에서 바로 바꿀 수 있는 건 '한 번' 실천의 달성뿐이다.
  */
 export const Detail = memo(function Detail({ ti }: { ti: number }) {
   const M = usePalette();
@@ -86,6 +94,10 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
     const a = latest.current.th.actions[ai];
     if (a) latest.current.toggleOnce(a, ai);
   }, []);
+  // 보드도 같은 고정 함수로(보드는 칸마다 memo — ChartBoard가 함수도 ref로 읽지만, 보드 자체도 다시 그리지 않게)
+  const onBoardCell = onRowOpen;
+  const onBoardLong = useCallback((ai: number) => openEditor({ kind: 'action', ti, ai }), [openEditor, ti]);
+  const onBoardHead = useCallback(() => openEditor({ kind: 'theme', ti }), [openEditor, ti]);
 
   // 좌우로 쓸어 이전·다음 영역으로 (세로 스크롤은 그대로)
   const swipe = useMemo(
@@ -118,7 +130,7 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
             onPress={() => openEditor({ kind: 'theme', ti })}
             accessibilityRole="button"
             accessibilityLabel="고치기"
-            accessibilityHint="영역 이름과 색 고치기"
+            accessibilityHint="영역 이름 고치기"
             hitSlop={4}
             style={({ pressed }) => ({ minWidth: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
           >
@@ -150,9 +162,9 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
           M={M}
           doc={doc}
           ti={ti}
-          onCell={(ai) => { tap(); open(ai); }}
-          onCellLong={(ai) => openEditor({ kind: 'action', ti, ai })}
-          onHead={() => openEditor({ kind: 'theme', ti })}
+          onCell={onBoardCell}
+          onCellLong={onBoardLong}
+          onHead={onBoardHead}
         />
       </View>
 
@@ -166,23 +178,26 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
           <Text accessibilityRole="header" style={sectionHead}>실천 8개</Text>
           {/* 한 면에 8줄 — 카드 없이 가는 선으로만 나눈다 */}
           <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10 }}>
-            {th.actions.map((a, ai) => (
-              <ActionRow
-                key={ai}
-                M={M}
-                a={a}
-                ai={ai}
-                first={ai === 0}
-                last={ai === th.actions.length - 1}
-                color={th.color}
-                seed={`${ti}-${ai}`}
-                status={rowStatus(doc, ti, ai, now)}
-                overdue={!!kindLine(doc, ti, ai, now)?.alert}
-                label={rowLabel(doc, ti, ai, now)}
-                onOpen={onRowOpen}
-                onToggle={onRowToggle}
-              />
-            ))}
+            {th.actions.map((a, ai) => {
+              const line = kindLine(doc, ti, ai, now);
+              return (
+                <ActionRow
+                  key={ai}
+                  M={M}
+                  a={a}
+                  ai={ai}
+                  first={ai === 0}
+                  last={ai === th.actions.length - 1}
+                  color={th.color}
+                  seed={`${ti}-${ai}`}
+                  status={rowStatus(doc, ti, ai, now)}
+                  overdue={!!line?.alert}
+                  label={rowSpeech(a, ai, line)}
+                  onOpen={onRowOpen}
+                  onToggle={onRowToggle}
+                />
+              );
+            })}
           </View>
         </>
       )}
@@ -230,8 +245,9 @@ const ActionRow = memo(function ActionRow({
   const has = !!a.text.trim();
   const once = has && kindOf(a) === 'once';
   const struck = once && a.done;
+  const edge = checkEdge(M.dark, useIncreaseContrast());
 
-  const actions = once ? [{ name: 'toggle', label: a.done ? '완료 해제' : '완료로 표시' }] : undefined;
+  const actions = once ? [{ name: 'toggle', label: a.done ? '달성 풀기' : '달성으로 표시' }] : undefined;
   const onAction = (e: AccessibilityActionEvent) => {
     if (e.nativeEvent.actionName === 'toggle') onToggle();
     else if (e.nativeEvent.actionName === 'activate') onOpen();
@@ -243,7 +259,7 @@ const ActionRow = memo(function ActionRow({
       <Pressable
         onPress={onToggle}
         hitSlop={11}
-        // 줄 전체가 화면 읽기의 한 덩어리 — 체크는 동작 목록('완료로 표시')으로 한다
+        // 줄 전체가 화면 읽기의 한 덩어리 — 체크는 동작 목록('달성으로 표시')으로 한다
         accessible={false}
         importantForAccessibility="no"
       >
@@ -257,7 +273,7 @@ const ActionRow = memo(function ActionRow({
           width: MARK, height: MARK, borderRadius: MARK * 0.28,
           ...(a.done
             ? { backgroundColor: legibleMark(color, M.bg, M) }
-            : { borderWidth: 1.6, borderColor: checkBorder(M.dark) }),
+            : { borderWidth: edge.width, borderColor: edge.color }),
         }}
       />
     );
@@ -268,7 +284,7 @@ const ActionRow = memo(function ActionRow({
       onPress={onOpen}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint="두 번 탭해서 자세히 보기"
+      accessibilityHint="자세히 봐요"
       accessibilityActions={actions ? [{ name: 'activate' }, ...actions] : undefined}
       onAccessibilityAction={actions ? onAction : undefined}
       style={({ pressed }) => [

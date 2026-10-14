@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions, type AccessibilityActionEvent, type ViewStyle } from 'react-native';
 import { Text } from './AppText';
 import { Icon } from './Icon';
@@ -7,10 +7,12 @@ import { alpha } from '../theme/moods';
 import { DONE_INK, RULE, SLOT_INDEX, estimateLines, frameRadius, headBg, headTrack, legibleMark, ruleColor } from '../theme/chart';
 import type { M } from '../theme/usePalette';
 import { themeProgress } from '../store/MandaratContext';
-import { blockSummary, cellSpeech } from '../lib/a11y';
-import { countInfo, kindLine } from '../lib/kinds';
+import { countInfo, kindLine, type KindLine } from '../lib/kinds';
 import { DUE_SOON, daysBetween, doneToday as didToday, kindOf, routineWeek, todayItems, ymd, type DayState } from '../lib/routine';
 import { noOrphan } from '../lib/text';
+import { sameProps } from '../lib/sameProps';
+import { useScreenReader } from '../lib/useReducedMotion';
+import { areaLabel, cellLabel } from '../lib/chartSpeech';
 import { tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
 
@@ -41,7 +43,7 @@ function EdgeBar({ color, pct, height }: { color: string; pct: number; height: n
  * 습관의 이번 주 7칸(월~일) — 한 날은 칠하고, 놓친 날은 테두리만. 아직 오지 않은 날·쉬는 날은 네모 없이
  * 자리만 아주 작은 점으로 남겨, 몇 개 안 찍힌 주에도 일곱 날 줄로 읽힌다.
  */
-function WeekMarks({ states, ink, faint }: { states: DayState[]; ink: string; faint: string }) {
+const WeekMarks = memo(function WeekMarks({ states, ink, faint }: { states: DayState[]; ink: string; faint: string }) {
   return (
     <View pointerEvents="none" style={{ flexDirection: 'row', gap: 2, alignSelf: 'center', marginTop: 6, height: 6 }}>
       {states.map((s, i) => (
@@ -62,7 +64,205 @@ function WeekMarks({ states, ink, faint }: { states: DayState[]; ink: string; fa
       ))}
     </View>
   );
+}, sameProps);
+
+/** 칸 하나의 값 — 보드(부모)가 문서에서 한 번에 고른다. 값이 같으면 칸을 다시 그리지 않는다 */
+type BoardRow = {
+  ai: number;
+  /** 빈 칸이면 '' */
+  text: string;
+  done: boolean;
+  isToday: boolean;
+  /** 오늘 할 일이고 오늘 했다 */
+  didIt: boolean;
+  /** 유형 한 줄(달성한 칸은 없음) — 그릴 때는 short, 화면 읽기는 speech */
+  meta: KindLine | null;
+  /** 습관의 이번 주 7칸 */
+  week: DayState[] | null;
+  dueSoon: boolean;
+  /** 쌓기 진행(0~100) */
+  countPct: number | null;
+  /** 화면 읽기 라벨 — 스크린리더가 꺼져 있으면 글 그대로(긴 말을 만들지 않는다) */
+  label: string;
+};
+
+/** 칸 높이·폭과 글자 배율 — 칸 안 줄 수를 정하는 데 쓴다 */
+type Fit = { cellW: number; cellH: number; scale: number; metaScale: number };
+
+type BoardCellProps = BoardRow & Fit & {
+  M: M;
+  color: string;
+  /** 누르기·길게 누르기가 있는지 — 함수는 보드가 ref로 읽어 늘 같은 것을 넘긴다 */
+  canPress: boolean;
+  canLong: boolean;
+  onPressAt: (ai: number) => void;
+  onLongAt: (ai: number) => void;
+};
+
+/**
+ * 좁은 칸(작은 폰)에서 글이 한 줄로 눌리지 않게 — 글에 필요한 줄(두 줄까지)이 안 나오면
+ * 덜 중요한 표시부터 접는다: '오늘' 글자(왼쪽 금색 줄이 남는다) → 유형 한 줄 → 이번 주 네모 줄.
+ */
+function layoutCell(
+  text: string, fit: Fit,
+  want: { keepTodayWord: boolean; todayWord: boolean; meta: boolean; week: boolean },
+) {
+  const line = LINE * fit.scale;
+  const linesFor = (used: number) => Math.max(1, Math.min(4, Math.floor((fit.cellH - PAD * 2 - used) / line)));
+  const need = Math.min(2, Math.max(1, estimateLines(text, fit.cellW - PAD * 2, 14.5 * fit.scale)));
+  const show = { ...want };
+  // 유형 한 줄은 1.3배까지만 커진다(KindMeta maxFontSizeMultiplier) — 자리도 그만큼만 잡는다
+  const used = () => (show.todayWord ? TODAY_ROW : 0) + (show.meta ? META_ROW * fit.metaScale : 0) + (show.week ? WEEK_ROW : 0);
+  // 칠한 칸은 금색 줄이 없어 '오늘' 글자가 유일한 표시 — 그때는 접지 않는다(keepTodayWord)
+  if (linesFor(used()) < need && show.todayWord && !want.keepTodayWord) show.todayWord = false;
+  if (linesFor(used()) < need && show.meta) show.meta = false;
+  if (linesFor(used()) < need && show.week) show.week = false;
+  return { show, lines: linesFor(used()) };
 }
+
+const LONG_ACTION_CELL = [{ name: 'longpress', label: '글자 고치기' }];
+const LONG_ACTION_HEAD = [{ name: 'longpress', label: '영역 이름 고치기' }];
+
+/** 실천 칸 하나 — 값(BoardRow)과 칸 크기가 그대로면 다시 그리지 않는다. 다른 칸을 체크해도 이 칸은 그대로 */
+const BoardCell = memo(function BoardCell(p: BoardCellProps) {
+  const { M, ai, text, done, isToday, didIt, meta, week, dueSoon, countPct, label, color, canPress, canLong, onPressAt, onLongAt } = p;
+  const press = canPress ? () => onPressAt(ai) : undefined;
+  const long = canLong ? () => { tap(); onLongAt(ai); } : undefined;
+
+  if (!text) {
+    return (
+      <Pressable
+        disabled={!press && !long}
+        onPress={press}
+        onLongPress={long}
+        delayLongPress={LONG_PRESS_MS}
+        accessibilityRole="button"
+        accessibilityLabel={`실천 ${ai + 1} 채우기`}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+      >
+        {({ pressed }) => (
+          <>
+            <Icon name="plus" size={18} color={M.sub} sw={2} />
+            {pressed && <PressShade M={M} />}
+          </>
+        )}
+      </Pressable>
+    );
+  }
+
+  const gold = legibleMark(M.gold, M.bg, M);
+  const ink = done ? DONE_INK : M.ink;
+  const { show, lines } = layoutCell(text, p, { keepTodayWord: isToday && done, todayWord: isToday, meta: !!meta, week: !!week });
+
+  return (
+    <Pressable
+      disabled={!press && !long}
+      onPress={press}
+      onLongPress={long}
+      delayLongPress={LONG_PRESS_MS}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityActions={long ? LONG_ACTION_CELL : undefined}
+      onAccessibilityAction={(e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') long?.(); }}
+      accessibilityShowsLargeContentViewer
+      accessibilityLargeContentTitle={text}
+      style={{ flex: 1, backgroundColor: done ? color : 'transparent' }}
+    >
+      {({ pressed }) => (
+        <>
+          {/* 오늘 할 일 — 왼쪽 가장자리의 금색 세로줄(칠한 칸에선 글자만) */}
+          {isToday && !done && (
+            <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 2, backgroundColor: gold }} />
+          )}
+          <View style={{ flex: 1, padding: PAD }}>
+            {show.todayWord && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, height: TODAY_ROW - 3, marginBottom: 3 }}>
+                <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', color: done ? DONE_INK : didIt ? M.sub : M.ink }} maxFontSizeMultiplier={1.2}>
+                  오늘
+                </Text>
+                {didIt && !done && <Icon name="check" size={10} color={M.sub} sw={2.6} />}
+              </View>
+            )}
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {/* 마감이 사흘 안쪽인 한 번 — 글자 밑에 금색 줄 */}
+              <View style={[{ maxWidth: '100%' }, dueSoon ? { borderBottomWidth: 1.5, borderBottomColor: gold, paddingBottom: 1 } : null]}>
+                <Text
+                  style={{ fontSize: 14.5, lineHeight: LINE, fontWeight: done ? '700' : '600', color: ink, textAlign: 'center' }}
+                  numberOfLines={lines}
+                  maxFontSizeMultiplier={1.3}
+                >
+                  {noOrphan(text)}
+                </Text>
+              </View>
+              {meta && show.meta && (
+                <View style={{ marginTop: 4, alignSelf: 'stretch', alignItems: 'center' }}>
+                  <KindMeta M={M} line={meta} color={color} long={false} maxFontSizeMultiplier={META_MAX_SCALE} />
+                </View>
+              )}
+            </View>
+            {week && show.week && <WeekMarks states={week} ink={done ? DONE_INK : color} faint={done ? alpha(DONE_INK, 0.5) : alpha(M.ink, 0.3)} />}
+          </View>
+          {done && (
+            <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 8 }}>
+              <Icon name="check" size={13} color={DONE_INK} sw={2.4} />
+            </View>
+          )}
+          {countPct != null && <EdgeBar color={color} pct={countPct} height={3} />}
+          {pressed && <PressShade M={M} />}
+        </>
+      )}
+    </Pressable>
+  );
+}, sameProps);
+
+/** 가운데 영역 이름표 — 이름·달성 막대·말이 그대로면 다시 그리지 않는다 */
+const BoardHead = memo(function BoardHead({ M, color, name, named, pct, label, canLong, onPress, onLong, headRef }: {
+  M: M;
+  color: string;
+  name: string;
+  named: boolean;
+  pct: number;
+  label: string;
+  canLong: boolean;
+  onPress: () => void;
+  onLong: () => void;
+  headRef?: React.Ref<View>;
+}) {
+  return (
+    <Pressable
+      ref={headRef}
+      disabled={!canLong}
+      onPress={onPress}
+      onLongPress={canLong ? () => { tap(); onLong(); } : undefined}
+      delayLongPress={LONG_PRESS_MS}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityActions={canLong ? LONG_ACTION_HEAD : undefined}
+      onAccessibilityAction={(e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') onLong(); }}
+      style={{ flex: 1, backgroundColor: headBg(color, M) }}
+    >
+      {({ pressed }) => (
+        <>
+          <View style={{ flex: 1, paddingHorizontal: PAD, paddingTop: PAD, paddingBottom: PAD + 4, alignItems: 'center', justifyContent: 'center' }}>
+            {/* 이름을 아직 안 지은 '영역 n'은 가는 먹 글씨 — 옅은 보조 글씨는 이름표 바탕 위 4.5:1이 안 된다 */}
+            <Text
+              style={{ fontSize: 15.5, lineHeight: 20, fontWeight: named ? '800' : '500', color: M.ink, textAlign: 'center' }}
+              numberOfLines={3}
+              maxFontSizeMultiplier={1.3}
+            >
+              {noOrphan(name)}
+            </Text>
+          </View>
+          <EdgeBar color={color} pct={pct} height={4} />
+          {pressed && <PressShade M={M} />}
+        </>
+      )}
+    </Pressable>
+  );
+});
+
+/** 유형 한 줄이 커질 수 있는 한도 — 칸 높이가 정해진 보드라 1.3배까지만 */
+const META_MAX_SCALE = 1.3;
 
 /**
  * 영역 블록 하나를 크게 — 인쇄된 만다라트의 3×3 그대로. 81칸의 '크게 보기'와 영역 화면이 똑같이 그린다.
@@ -74,11 +274,13 @@ function WeekMarks({ states, ink, faint }: { states: DayState[]; ink: string; fa
  * - 오늘 할 일인 칸: 왼쪽 위에 '오늘'과 왼쪽 가장자리의 금색 세로줄(오늘 했으면 '오늘' 옆에 체크).
  * - 빈 칸: '+' 하나(화면 읽기: '실천 n 채우기').
  *
- * 누르기·길게 누르기는 부르는 쪽이 정한다(이 보드는 칸 달성을 바꾸지 않는다).
+ * 누르기·길게 누르기는 부르는 쪽이 정한다(이 보드는 칸 달성을 바꾸지 않는다). 부르는 쪽이 그릴 때마다 새 함수를
+ * 넘겨도 칸은 다시 그려지지 않는다 — 보드가 최신 함수를 ref로 읽어 칸에는 늘 같은 함수를 준다.
  * 길게 누르기는 화면 읽기의 동작 목록('글자 고치기' · 가운데는 '영역 이름 고치기')으로도 할 수 있다.
+ * 칸의 값은 보드가 문서에서 한 번에 고르고(칸마다 문서를 다시 훑지 않는다), 긴 화면 읽기 말은 스크린리더가 켜졌을 때만 만든다.
  */
-export function ChartBoard({
-  M, doc, ti, size, onCell, onCellLong, onHead, onHeadLong, todaySet,
+export const ChartBoard = memo(function ChartBoard({
+  M, doc, ti, size, onCell, onCellLong, onHead, onHeadLong, todaySet, headRef,
 }: {
   M: M;
   doc: MandaratDoc;
@@ -95,180 +297,75 @@ export function ChartBoard({
   onHeadLong?: () => void;
   /** 오늘 할 일인 칸 'ti-ai' — 없으면 이 보드가 오늘 목록을 직접 센다 */
   todaySet?: ReadonlySet<string>;
+  /** 가운데 이름표 — 81칸에서 크게 볼 때 화면 읽기 초점을 여기로 옮긴다 */
+  headRef?: React.Ref<View>;
 }) {
   const { fontScale } = useWindowDimensions();
+  const sr = useScreenReader();
   const fixed = typeof size === 'number' ? size : null;
   const [box, setBox] = useState<{ w: number; h: number } | null>(fixed != null ? { w: fixed, h: fixed } : null);
   const now = new Date();
+  const day = ymd(now);
   const th = doc.themes[ti];
   const color = th?.color ?? M.ink;
 
+  // 오늘 목록은 날짜가 바뀌어도 다시 센다(day)
   const today = useMemo(
     () => todaySet ?? new Set(todayItems(doc, new Date()).map((it) => it.key)),
-    [todaySet, doc],
+    [todaySet, doc, day], // eslint-disable-line react-hooks/exhaustive-deps
   );
+
+  // 누를 때 쓰는 함수는 고정 — 부르는 쪽의 최신 함수를 ref로 읽는다(칸이 부모가 그려질 때마다 다시 그려지지 않게)
+  const latest = useRef({ onCell, onCellLong, onHead, onHeadLong });
+  latest.current = { onCell, onCellLong, onHead, onHeadLong };
+  const onPressAt = useCallback((ai: number) => latest.current.onCell?.(ai), []);
+  const onLongAt = useCallback((ai: number) => latest.current.onCellLong?.(ai), []);
+  const onHeadPress = useCallback(() => latest.current.onHead?.(), []);
+  const onHeadLongPress = useCallback(() => (latest.current.onHeadLong ?? latest.current.onHead)?.(), []);
 
   if (!th) return null;
 
-  const gold = legibleMark(M.gold, M.bg, M);
+  // 칸 값 8개 — 문서에서 한 번에. 이 영역의 오늘 칸 수도 여기서 센다(이름표 말에 쓴다)
+  let todayN = 0;
+  const rows: BoardRow[] = th.actions.map((a, ai) => {
+    const key = `${ti}-${ai}`;
+    const text = a?.text.trim() ?? '';
+    if (!text) {
+      const r = { ai, text: '', done: false, isToday: false, didIt: false, meta: null, week: null, dueSoon: false, countPct: null };
+      return { ...r, label: `실천 ${ai + 1} 채우기` };
+    }
+    const kind = kindOf(a);
+    const done = !!a.done;
+    const isToday = today.has(key);
+    if (isToday) todayN++;
+    const dueIn = !done && kind === 'once' && a.due ? daysBetween(day, a.due) : null;
+    const r = {
+      ai, text, done, isToday,
+      didIt: isToday && didToday(doc, a, key, day),
+      meta: done ? null : kindLine(doc, ti, ai, now),
+      week: kind === 'habit' ? routineWeek(doc, ti, ai, now) : null,
+      dueSoon: dueIn != null && dueIn <= DUE_SOON,
+      countPct: !done && kind === 'count' ? countInfo(a).pct : null,
+    };
+    return { ...r, label: sr ? cellLabel(r) : text };
+  });
+
+  // 가운데 이름표의 말 — '건강, 8칸 중 3칸 달성, 오늘 2칸' (a11y.ts blockSummary와 같은 말, 오늘 칸 수는 위에서 센 것)
+  const named = !!th.title.trim();
+  const name = named ? th.title.trim() : `영역 ${ti + 1}`;
+  const p = themeProgress(th);
+  const headLabel = areaLabel(name, rows.filter((r) => r.text).length, rows.filter((r) => r.text && r.done).length, todayN);
+
   const cellRule = ruleColor(M, 'cell');
   // 칸 높이 — 재기 전에는 폰 폭 보드(약 116pt)로 어림한다
-  const cellH = box ? (box.h - RULE.frame * 2) / 3 : 116;
-  const cellW = box ? (box.w - RULE.frame * 2) / 3 : 116;
-  const scale = Math.min(fontScale || 1, 1.3);
-  const line = LINE * scale;
-  const linesFor = (used: number) => Math.max(1, Math.min(4, Math.floor((cellH - PAD * 2 - used) / line)));
-  /**
-   * 좁은 칸(작은 폰)에서 글이 한 줄로 눌리지 않게 — 글에 필요한 줄(두 줄까지)이 안 나오면
-   * 덜 중요한 표시부터 접는다: '오늘' 글자(왼쪽 금색 줄이 남는다) → 유형 한 줄 → 이번 주 네모 줄.
-   */
-  const layout = (text: string, want: { keepTodayWord: boolean; todayWord: boolean; meta: boolean; week: boolean }) => {
-    const need = Math.min(2, Math.max(1, estimateLines(text, cellW - PAD * 2, 14.5 * scale)));
-    const show = { ...want };
-    const used = () => (show.todayWord ? TODAY_ROW : 0) + (show.meta ? META_ROW : 0) + (show.week ? WEEK_ROW : 0);
-    // 칠한 칸은 금색 줄이 없어 '오늘' 글자가 유일한 표시 — 그때는 접지 않는다(keepTodayWord)
-    if (linesFor(used()) < need && show.todayWord && !want.keepTodayWord) show.todayWord = false;
-    if (linesFor(used()) < need && show.meta) show.meta = false;
-    if (linesFor(used()) < need && show.week) show.week = false;
-    return { show, lines: linesFor(used()) };
+  const fit: Fit = {
+    cellH: box ? (box.h - RULE.frame * 2) / 3 : 116,
+    cellW: box ? (box.w - RULE.frame * 2) / 3 : 116,
+    scale: Math.min(fontScale || 1, 1.3),
+    metaScale: Math.min(fontScale || 1, META_MAX_SCALE),
   };
-  const longAction = (label: string) => [{ name: 'longpress', label }];
-
-  const head = () => {
-    const p = themeProgress(th);
-    const named = !!th.title.trim();
-    const long = onHeadLong ?? onHead;
-    return (
-      <Pressable
-        disabled={!long}
-        onPress={onHead}
-        onLongPress={long ? () => { tap(); long(); } : undefined}
-        delayLongPress={LONG_PRESS_MS}
-        accessibilityRole="button"
-        accessibilityLabel={blockSummary(doc, ti, now)}
-        accessibilityActions={long ? longAction('영역 이름 고치기') : undefined}
-        onAccessibilityAction={(e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') long?.(); }}
-        style={{ flex: 1, backgroundColor: headBg(color, M) }}
-      >
-        {({ pressed }) => (
-          <>
-            <View style={{ flex: 1, paddingHorizontal: PAD, paddingTop: PAD, paddingBottom: PAD + 4, alignItems: 'center', justifyContent: 'center' }}>
-              <Text
-                style={{ fontSize: 15.5, lineHeight: 20, fontWeight: '800', color: named ? M.ink : M.sub, textAlign: 'center' }}
-                numberOfLines={3}
-                maxFontSizeMultiplier={1.3}
-              >
-                {noOrphan(named ? th.title.trim() : `영역 ${ti + 1}`)}
-              </Text>
-            </View>
-            <EdgeBar color={color} pct={p.pct} height={4} />
-            {pressed && <PressShade M={M} />}
-          </>
-        )}
-      </Pressable>
-    );
-  };
-
-  const cell = (ai: number) => {
-    const a = th.actions[ai];
-    const key = `${ti}-${ai}`;
-    const press = onCell ? () => onCell(ai) : undefined;
-    const long = onCellLong ? () => { tap(); onCellLong(ai); } : undefined;
-
-    if (!a || !a.text.trim()) {
-      return (
-        <Pressable
-          disabled={!press && !long}
-          onPress={press}
-          onLongPress={long}
-          delayLongPress={LONG_PRESS_MS}
-          accessibilityRole="button"
-          accessibilityLabel={`실천 ${ai + 1} 채우기`}
-          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-        >
-          {({ pressed }) => (
-            <>
-              <Icon name="plus" size={18} color={M.sub} sw={2} />
-              {pressed && <PressShade M={M} />}
-            </>
-          )}
-        </Pressable>
-      );
-    }
-
-    const text = a.text.trim();
-    const kind = kindOf(a);
-    const done = a.done;
-    const ink = done ? DONE_INK : M.ink;
-    const isToday = today.has(key);
-    const didIt = isToday && didToday(doc, a, key, ymd(now));
-    const meta = done ? null : kindLine(doc, ti, ai, now);
-    const week = kind === 'habit' ? routineWeek(doc, ti, ai, now) : null;
-    const dueIn = !done && kind === 'once' && a.due ? daysBetween(ymd(now), a.due) : null;
-    const dueSoon = dueIn != null && dueIn <= DUE_SOON;
-    const countPct = !done && kind === 'count' ? countInfo(a).pct : null;
-    const { show, lines } = layout(text, { keepTodayWord: isToday && done, todayWord: isToday, meta: !!meta, week: !!week });
-
-    return (
-      <Pressable
-        disabled={!press && !long}
-        onPress={press}
-        onLongPress={long}
-        delayLongPress={LONG_PRESS_MS}
-        accessibilityRole="button"
-        accessibilityLabel={cellSpeech(doc, ti, ai, now)}
-        accessibilityActions={long ? longAction('글자 고치기') : undefined}
-        onAccessibilityAction={(e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') onCellLong?.(ai); }}
-        accessibilityShowsLargeContentViewer
-        accessibilityLargeContentTitle={text}
-        style={{ flex: 1, backgroundColor: done ? color : 'transparent' }}
-      >
-        {({ pressed }) => (
-          <>
-            {/* 오늘 할 일 — 왼쪽 가장자리의 금색 세로줄(칠한 칸에선 글자만) */}
-            {isToday && !done && (
-              <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 2, backgroundColor: gold }} />
-            )}
-            <View style={{ flex: 1, padding: PAD }}>
-              {show.todayWord && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, height: TODAY_ROW - 3, marginBottom: 3 }}>
-                  <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', color: done ? DONE_INK : didIt ? M.sub : M.ink }} maxFontSizeMultiplier={1.2}>
-                    오늘
-                  </Text>
-                  {didIt && !done && <Icon name="check" size={10} color={M.sub} sw={2.6} />}
-                </View>
-              )}
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                {/* 마감이 사흘 안쪽인 한 번 — 글자 밑에 금색 줄 */}
-                <View style={[{ maxWidth: '100%' }, dueSoon ? { borderBottomWidth: 1.5, borderBottomColor: gold, paddingBottom: 1 } : null]}>
-                  <Text
-                    style={{ fontSize: 14.5, lineHeight: LINE, fontWeight: done ? '700' : '600', color: ink, textAlign: 'center' }}
-                    numberOfLines={lines}
-                    maxFontSizeMultiplier={1.3}
-                  >
-                    {noOrphan(text)}
-                  </Text>
-                </View>
-                {meta && show.meta && (
-                  <View style={{ marginTop: 4, alignSelf: 'stretch', alignItems: 'center' }}>
-                    <KindMeta M={M} line={meta} color={color} long={false} />
-                  </View>
-                )}
-              </View>
-              {week && show.week && <WeekMarks states={week} ink={done ? DONE_INK : color} faint={done ? alpha(DONE_INK, 0.5) : alpha(M.ink, 0.3)} />}
-            </View>
-            {done && (
-              <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 8 }}>
-                <Icon name="check" size={13} color={DONE_INK} sw={2.4} />
-              </View>
-            )}
-            {countPct != null && <EdgeBar color={color} pct={countPct} height={3} />}
-            {pressed && <PressShade M={M} />}
-          </>
-        )}
-      </Pressable>
-    );
-  };
+  const canPress = !!onCell;
+  const canLong = !!onCellLong;
 
   const dims: ViewStyle = fixed != null
     ? { width: fixed, height: fixed }
@@ -296,7 +393,31 @@ export function ChartBoard({
             const idx = SLOT_INDEX[row * 3 + col];
             return (
               <View key={col} style={{ flex: 1, borderLeftWidth: col ? RULE.cell : 0, borderColor: cellRule }}>
-                {idx == null ? head() : cell(idx)}
+                {idx == null ? (
+                  <BoardHead
+                    M={M}
+                    color={color}
+                    name={name}
+                    named={named}
+                    pct={p.pct}
+                    label={headLabel}
+                    canLong={!!(onHeadLong ?? onHead)}
+                    onPress={onHeadPress}
+                    onLong={onHeadLongPress}
+                    headRef={headRef}
+                  />
+                ) : rows[idx] ? (
+                  <BoardCell
+                    M={M}
+                    {...rows[idx]}
+                    {...fit}
+                    color={color}
+                    canPress={canPress}
+                    canLong={canLong}
+                    onPressAt={onPressAt}
+                    onLongAt={onLongAt}
+                  />
+                ) : null}
               </View>
             );
           })}
@@ -304,4 +425,4 @@ export function ChartBoard({
       ))}
     </View>
   );
-}
+});
