@@ -1,7 +1,7 @@
 # DX-1 — 오늘 · 홈 · 보기 모드 design fixes
 
 Owned files: `src/screens/Today.tsx`, `src/screens/Dashboard.tsx`, `src/components/TodayRow.tsx`, `src/screens/TodayModes.tsx`.
-New guard tests: `tests/dx-1-today.test.js` (10 tests). `npm run typecheck` is clean. `npm test` passes: 434 tests, 1 skipped as before.
+New guard tests: `tests/dx-1-today.test.js` (10 tests). `npm run typecheck` is clean. `npm test` passes: 435 tests, 434 pass and 1 skipped as before.
 
 ## Implemented
 
