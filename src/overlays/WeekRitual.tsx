@@ -15,7 +15,9 @@ import { useMandarat } from '../store/MandaratContext';
 import { weekReview, weekSentence } from '../lib/review';
 import { sundayOf } from '../lib/ritual';
 import { ymd } from '../lib/routine';
+import { fmtNum } from '../lib/kinds';
 import { fmtRange } from '../lib/text';
+import { ledgerHabitSpeech, pageSpeech } from '../lib/sheetSpeech';
 import { tap, warn } from '../lib/haptics';
 import { announce, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import {
@@ -68,7 +70,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    if (screenReader()) announce(`${PAGE_TITLE[page]}, ${index + 1}/${pages.length}쪽`);
+    if (screenReader()) announce(`${PAGE_TITLE[page]}, ${pageSpeech(index, pages.length)}`);
     if (reduce) { enter.setValue(1); return; }
     enter.setValue(0);
     const a = Animated.timing(enter, { toValue: 1, duration: DUR.base, easing: EASE.out, useNativeDriver: true });
@@ -147,7 +149,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
           {pages.length > 1 && (
             <Text
               style={{ ...TYPE.caption, ...NUM, color: M.sub, paddingHorizontal: 8 }}
-              accessibilityLabel={`${pages.length}쪽 중 ${index + 1}쪽`}
+              accessibilityLabel={pageSpeech(index, pages.length)}
             >
               {`${index + 1} / ${pages.length}`}
             </Text>
@@ -196,13 +198,13 @@ function DoubleRule({ M }: { M: Palette }) {
   );
 }
 
-/** 장부 한 줄 — 왼쪽 이름, 오른쪽 값(숫자 폭 고정) */
-function LedgerRow({ M, label, value, first = false }: { M: Palette; label: string; value: string; first?: boolean }) {
+/** 장부 한 줄 — 왼쪽 이름, 오른쪽 값(숫자 폭 고정). speech는 읽을 말('5/7번'을 날짜로 읽지 않게) */
+function LedgerRow({ M, label, value, speech, first = false }: { M: Palette; label: string; value: string; speech?: string; first?: boolean }) {
   const empty = value === '—';
   return (
     <View
       accessible
-      accessibilityLabel={`${label} ${empty ? '없음' : value}`}
+      accessibilityLabel={`${label} ${empty ? '없음' : speech ?? value}`}
       style={{
         minHeight: RHYTHM.row, flexDirection: 'row', alignItems: 'center', gap: 12,
         borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line,
@@ -239,7 +241,7 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
       <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.sub, marginTop: 4 }}>{range}</Text>
 
       <View style={{ alignSelf: 'flex-start', marginTop: 28 }} accessible accessibilityLabel={`${range} 모두 ${r.total}번`}>
-        <Text style={{ fontSize: 64, lineHeight: 70, fontWeight: '800', letterSpacing: -1.5, color: M.ink, ...NUM }}>
+        <Text maxFontSizeMultiplier={1.2} style={{ fontSize: 64, lineHeight: 70, fontWeight: '800', letterSpacing: -1.5, color: M.ink, ...NUM }}>
           {`${r.total}번`}
         </Text>
         <DoubleRule M={M} />
@@ -249,8 +251,13 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
       </Text>
 
       <View style={{ marginTop: 28 }}>
-        <LedgerRow M={M} label="습관" value={habitLine(r)} first />
-        <LedgerRow M={M} label="쌓은 것" value={addedLine(r.added)} />
+        <LedgerRow M={M} label="습관" value={habitLine(r)} speech={ledgerHabitSpeech(r.routineDone, r.routineDue)} first />
+        <LedgerRow
+          M={M}
+          label="쌓은 것"
+          value={addedLine(r.added)}
+          speech={r.added.slice(0, 2).map((x) => `${fmtNum(x.amount)}${x.unit} 더함`).join(', ')}
+        />
         <LedgerRow M={M} label="마음가짐" value={mindLine(r)} />
       </View>
 
@@ -354,7 +361,12 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
         const t = doc.themes[g.ti];
         return (
           <View key={g.ti} style={{ marginTop: 18 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 }} accessibilityRole="header">
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 }}
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={areaName(doc, g.ti)}
+            >
               <AreaSquare color={t.color} />
               <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: M.sub }}>{areaName(doc, g.ti)}</Text>
             </View>

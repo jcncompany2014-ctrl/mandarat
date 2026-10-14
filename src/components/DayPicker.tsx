@@ -50,6 +50,8 @@ export function DayPicker({ M, days, color, onChange, hideClear = false }: {
             <Pressable
               key={d}
               onPress={() => toggle(d)}
+              // 요일 칸 사이 6pt 틈을 반씩 나눠 손끝 폭을 넓힌다(좁은 화면에서도 44pt 가까이)
+              hitSlop={{ left: 3, right: 3 }}
               accessibilityRole="checkbox"
               accessibilityLabel={`${DOW_KR[d]}요일 반복`}
               accessibilityState={{ checked: on }}

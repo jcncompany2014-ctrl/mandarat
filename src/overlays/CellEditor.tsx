@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Keyboard, Platform, Pressable, ScrollView, View, type TextInput as RNTextInput } from 'react-native';
+import { Alert, AppState, Keyboard, Platform, Pressable, ScrollView, View, type TextInput as RNTextInput } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, TextInput } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import {
@@ -22,7 +23,10 @@ import { fitLabel, textWidth } from '../lib/labelFit';
 import { suggestActions } from '../lib/suggest';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { suggestKind, type KindSuggestion } from '../lib/kindSuggest';
-import { announce } from '../lib/useReducedMotion';
+import { announce, reducedMotion } from '../lib/useReducedMotion';
+import { cellTitleSpeech, dueSpeech, nextCellSpeech } from '../lib/sheetSpeech';
+import { EDITOR_DRAFT_KEY, draftDiffers, parseDraft, serializeDraft, type EditorDraft } from '../lib/editorDraft';
+import { Snackbar } from './Snackbar';
 import { DayPicker } from '../components/DayPicker';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { CLOCKWISE } from '../theme/chart';
@@ -41,15 +45,18 @@ const IS_WEB = Platform.OS === 'web';
 
 function meta(target: EditorTarget, doc: MandaratDoc) {
   if (target.kind === 'center') {
-    return { title: '핵심 목표', placeholder: '예) 첫 마라톤 완주하기', initial: doc.centerGoal, multiline: true, max: 40 };
+    return { title: '핵심 목표', speech: '핵심 목표', placeholder: '예) 첫 마라톤 완주하기', initial: doc.centerGoal, multiline: true, max: 40 };
   }
   const theme = doc.themes[target.ti];
   if (target.kind === 'theme') {
-    return { title: `영역 ${target.ti + 1} 이름`, placeholder: '예) 건강', initial: theme.title, multiline: false, max: 18 };
+    const title = `영역 ${target.ti + 1} 이름`;
+    return { title, speech: title, placeholder: '예) 건강', initial: theme.title, multiline: false, max: 18 };
   }
   const list = suggestActions(theme.title);
   return {
     title: `${areaName(doc, target.ti)} · 실천 ${target.ai + 1}/8`,
+    // '3/8'은 날짜로 읽힌다 — 소리로는 '건강 영역, 8칸 중 3번째 칸'
+    speech: cellTitleSpeech(areaName(doc, target.ti), target.ai),
     placeholder: `예) ${list[target.ai % list.length]}`,
     initial: theme.actions[target.ai].text,
     multiline: true,
@@ -148,6 +155,17 @@ function confirmDiscard(onDiscard: () => void) {
     { text: '계속 고치기', style: 'cancel' },
     { text: '버리기', style: 'destructive', onPress: onDiscard },
   ]);
+}
+
+/** 이 칸의 쓰던 글을 지운다(다른 칸의 것이면 그대로 둔다) — 저장·버리기 때 */
+function clearDraft(key: string) {
+  AsyncStorage.getItem(EDITOR_DRAFT_KEY)
+    .then((raw) => {
+      if (raw == null) return;
+      const d = parseDraft(raw);
+      if (!d || d.key === key) return AsyncStorage.removeItem(EDITOR_DRAFT_KEY);
+    })
+    .catch(() => {});
 }
 
 /** 시트 안에서만 얻을 수 있는 dismiss를 바깥(편집 창)으로 건넨다 */
@@ -259,7 +277,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
   const offerable = !!action && (action.kind == null || text.trim() !== action.text.trim());
   const offer = offerable && !autoKind && !touched && suggestion && !sameConfig(withSuggestion(cfg, suggestion), cfg) ? suggestion : null;
 
-  const toBottom = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
+  const toBottom = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: !reducedMotion() }), 60);
 
   const editCfg = (fn: (c: KindConfig) => KindConfig) => {
     setAutoKind(false);
@@ -330,6 +348,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
         setActionConfig(editor.ti, editor.ai, cfg);
       }
     }
+    clearDraft(key);
     return true;
   };
 
@@ -341,20 +360,27 @@ function Editor({ editor }: { editor: EditorTarget }) {
 
   const saveAndClose = () => {
     if (!commit()) return;
-    // 영역의 마지막 빈 칸을 채웠다면 한 번 알려 준다
+    // 영역의 마지막 빈 칸까지 적었다면 한 번 알려 준다
     if (action && editor.kind === 'action' && !action.text.trim() && text.trim() && next == null) {
-      showToast(`${areaName(doc, editor.ti)} 8칸을 다 채웠어요`);
+      showToast(`${josa(areaName(doc, editor.ti), '은/는')} 실천 8개를 다 적었어요`);
     }
     close();
   };
 
+  // 적혀 있던 칸을 비우는 저장 — '다음 칸'으로 넘어가지 않고 닫는다. 다음 칸을 저장하면 문서가 바뀌어
+  // '칸을 비웠어요 · 되돌리기'가 더는 되돌리지 못하므로(useSnapshotUndo), 닫아서 되돌리기를 지켜 준다
+  const clearing = !!action && !!action.text.trim() && !text.trim();
+
   const saveAndNext = () => {
-    if (!next) {
+    if (!next || clearing) {
       saveAndClose();
       return;
     }
     if (!commit()) return;
     openEditor(next);
+    // 초점은 입력칸에 그대로 있다 — 제목이 바뀐 것을 한 번 읽어 준다
+    if (next.kind === 'action') announce(nextCellSpeech(areaName(doc, next.ti), next.ai));
+    else if (next.kind === 'theme') announce(`영역 ${next.ti + 1} 이름을 적어요`);
   };
 
   const clearCell = () => {
@@ -370,13 +396,72 @@ function Editor({ editor }: { editor: EditorTarget }) {
   const dirty = text.trim() !== m.initial.trim() || (!!action && !sameConfig(cfg, configOf(action)));
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
+  const keyRef = useRef(key);
+  keyRef.current = key;
   const guard = useCallback((dismiss: SheetDismissFn) => {
     if (!dirtyRef.current) return true;
     // 쓰던 글이 한 번의 헛손질로 사라지지 않게 — 키보드부터 내리고 묻는다
     if (kbRef.current > 0) Keyboard.dismiss();
-    confirmDiscard(() => dismiss(true));
+    confirmDiscard(() => {
+      clearDraft(keyRef.current);
+      dismiss(true);
+    });
     return false;
   }, []);
+
+  // ── 쓰던 글 — 앱이 뒤로 갈 때 적어 두고(앱이 그대로 끝나도 남게), 같은 칸을 다시 열면 이어서 쓰기를 권한다 ──
+  const live = useRef<EditorDraft>({ key, text, cfg, nums });
+  live.current = { key, text, cfg, nums };
+  const stashed = useRef(false);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'background') {
+        if (!dirtyRef.current) return;
+        stashed.current = true;
+        AsyncStorage.setItem(EDITOR_DRAFT_KEY, serializeDraft(live.current)).catch(() => {});
+      } else if (s === 'active' && stashed.current) {
+        // 앱이 살아 돌아왔다면 창이 그대로 있다 — 적어 둔 것은 지운다(다시 뒤로 가면 다시 적는다)
+        stashed.current = false;
+        AsyncStorage.removeItem(EDITOR_DRAFT_KEY).catch(() => {});
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  const [restore, setRestore] = useState<EditorDraft | null>(null);
+  useEffect(() => {
+    setRestore(null);
+    let alive = true;
+    const savedCfg: KindConfig = action ? configOf(action) : { kind: 'once' };
+    const savedText = m.initial;
+    AsyncStorage.getItem(EDITOR_DRAFT_KEY)
+      .then((raw) => {
+        const d = parseDraft(raw, key);
+        if (alive && d && draftDiffers(d, savedText, savedCfg, sameConfig)) setRestore(d);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 적어 둔 글을 창에 다시 올린다 — 저장은 하지 않는다(고친 상태라 닫을 때 그대로 묻는다) */
+  const takeRestore = () => {
+    if (!restore) return;
+    tap();
+    setText(restore.text);
+    setCfg(restore.cfg);
+    setNums(restore.nums);
+    setAutoKind(false);
+    setTouched(true);
+    setIssue(null);
+    countTouched.current = !!restore.cfg.count;
+    setRestore(null);
+    announce('적던 내용을 다시 올렸어요');
+  };
+  const dropRestore = () => {
+    tap();
+    setRestore(null);
+    clearDraft(key);
+  };
 
   // ── 그리기 ──────────────────────────────────────────────────────────────
   const emptyAction = !!action && !action.text.trim();
@@ -402,10 +487,10 @@ function Editor({ editor }: { editor: EditorTarget }) {
       {filledAction && (
         <TextBtn M={M} label="칸 비우기" color={alertInk(M)} onPress={clearCell} />
       )}
-      {next && <TextBtn M={M} label="저장" color={M.ink} onPress={saveAndClose} />}
+      {next && !clearing && <TextBtn M={M} label="저장" color={M.ink} onPress={saveAndClose} />}
       <PrimaryButton
         M={M}
-        label={next ? (editor.kind === 'theme' ? '저장하고 다음 영역' : '저장하고 다음 칸') : '저장'}
+        label={next && !clearing ? (editor.kind === 'theme' ? '저장하고 다음 영역' : '저장하고 다음 칸') : '저장'}
         onPress={next ? saveAndNext : saveAndClose}
         style={{ flex: 1 }}
       />
@@ -419,6 +504,8 @@ function Editor({ editor }: { editor: EditorTarget }) {
       maxHeightPct={0.94}
       guard={guard}
       footer={footer}
+      // '칸을 비웠어요 · 되돌리기' 같은 알림이 편집 창에 가려지지 않게, 시트 위 어두운 띠에 띄운다
+      overlay={<Snackbar placement="top" />}
       onClose={closeEditor}
       scrollRef={scrollRef}
       keyboardDismissMode="on-drag"
@@ -426,11 +513,21 @@ function Editor({ editor }: { editor: EditorTarget }) {
       <DismissBridge into={dismissRef} />
       <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}>
-          <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
+          <Text accessibilityRole="header" accessibilityLabel={m.speech} numberOfLines={1} style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
             {m.title}
           </Text>
           <CloseBtn M={M} onPress={() => dismissRef.current?.()} />
         </View>
+
+        {restore && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, borderTopWidth: 1, borderColor: M.line }}>
+            <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '600', color: M.ink }} accessibilityLiveRegion="polite">
+              적던 내용이 있어요
+            </Text>
+            <TextBtn M={M} label="버리기" a11y="적던 내용 버리기" color={M.sub} onPress={dropRestore} size={13.5} />
+            <TextBtn M={M} label="이어서 쓰기" a11y="적던 내용 이어서 쓰기" color={M.ink} onPress={takeRestore} size={13.5} />
+          </View>
+        )}
 
         <View style={{ marginTop: 8, borderTopWidth: 1, borderColor: M.line }}>
           {/* 내용 */}
@@ -439,7 +536,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
               ref={inputRef}
               value={text}
               onChangeText={setText}
-              accessibilityLabel={m.title}
+              accessibilityLabel={m.speech}
               placeholder={m.placeholder}
               placeholderTextColor={M.sub}
               autoFocus={autoFocus}
@@ -524,11 +621,28 @@ function Editor({ editor }: { editor: EditorTarget }) {
 
 // ── 괘선 줄·글자 버튼 ────────────────────────────────────────────────────────
 
-/** 색인 카드 한 줄 — 왼쪽 64pt 이름 칸 + 내용, 아래 1px 괘선. invalid면 이름과 괘선이 경고 색 */
-function Row({ M, label, children, invalid = false, center = false }: {
-  M: M; label: string; children: React.ReactNode; invalid?: boolean; center?: boolean;
+/**
+ * 색인 카드 한 줄 — 왼쪽 64pt 이름 칸 + 내용, 아래 1px 괘선. invalid면 이름과 괘선이 경고 색.
+ * stack이면 이름을 위에 두고 내용을 한 줄 너비로(요일 일곱 칸이 손끝 44pt에 가깝게)
+ */
+function Row({ M, label, children, invalid = false, center = false, stack = false }: {
+  M: M; label: string; children: React.ReactNode; invalid?: boolean; center?: boolean; stack?: boolean;
 }) {
   const ink = invalid ? alertInk(M) : M.sub;
+  if (stack) {
+    return (
+      <View style={{ minHeight: ROW_H, borderBottomWidth: 1, borderColor: invalid ? alertInk(M) : M.line }}>
+        <Text
+          importantForAccessibility="no"
+          accessibilityElementsHidden
+          style={{ paddingTop: 14, fontSize: 12, lineHeight: 16, fontWeight: '700', color: ink }}
+        >
+          {label}
+        </Text>
+        {children}
+      </View>
+    );
+  }
   return (
     <View style={{ flexDirection: 'row', minHeight: ROW_H, borderBottomWidth: 1, borderColor: invalid ? alertInk(M) : M.line, alignItems: center ? 'center' : 'flex-start' }}>
       <Text
@@ -629,7 +743,7 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
   const step = (d: number) => setCfg((c) => ({ ...c, perWeek: Math.max(1, Math.min(6, n + d)) }));
   return (
     <>
-      <Row M={M} label="반복" center>
+      <Row M={M} label="반복" stack>
         <View style={{ flexDirection: 'row', gap: 6, paddingVertical: 8 }}>
           <PaperChip M={M} label="요일마다" on={!byWeek} onPress={() => { if (!byWeek) return; tap(); setCfg((c) => ({ ...c, days: lastDays.current })); onReveal(); }} />
           <PaperChip M={M} label="횟수로" on={byWeek} onPress={() => { if (byWeek) return; tap(); setCfg((c) => ({ ...c, days: [], perWeek: n })); onReveal(); }} />
@@ -637,7 +751,21 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
       </Row>
       {byWeek ? (
         <Row M={M} label="횟수" center>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }}>
+          {/* 화면 읽기에서는 한 줄 — 위아래로 쓸어 늘리고 줄인다 */}
+          <View
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel="주간 횟수"
+            accessibilityValue={{ text: `주 ${n}회` }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(e) => {
+              const d = e.nativeEvent.actionName === 'increment' ? 1 : e.nativeEvent.actionName === 'decrement' ? -1 : 0;
+              if (!d || (d > 0 && n >= 6) || (d < 0 && n <= 1)) return;
+              tap();
+              step(d);
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }}
+          >
             <StepBtn M={M} icon="minus" label="주 1회 줄이기" disabled={n <= 1} onPress={() => step(-1)} />
             <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, minWidth: 72, textAlign: 'center', fontVariant: ['tabular-nums'] }} accessibilityLiveRegion="polite">
               주 {n}회
@@ -646,7 +774,7 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
           </View>
         </Row>
       ) : (
-        <Row M={M} label="요일">
+        <Row M={M} label="요일" stack>
           <View style={{ paddingVertical: 10 }}>
             {/* 습관은 요일이 하나는 있어야 한다 — 마지막 요일은 끌 수 없다 */}
             <DayPicker M={M} days={days} color={color} onChange={(d) => { if (d.length > 0) setCfg((c) => ({ ...c, days: d })); }} hideClear />
@@ -755,8 +883,12 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
       {due ? (
         <Row M={M} label="날짜">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink, paddingVertical: 15, fontVariant: ['tabular-nums'] }} accessibilityLiveRegion="polite">
-              {fmtDateLong(due)} · {fmtDue(days)}
+            <Text
+              style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink, paddingVertical: 15, fontVariant: ['tabular-nums'] }}
+              accessibilityLiveRegion="polite"
+              accessibilityLabel={`${fmtDateLong(due)}, ${dueSpeech(days)}`}
+            >
+              {fmtDateLong(due)} · {fmtDue(days, 'long')}
             </Text>
             <TextBtn M={M} label="마감 없애기" color={M.sub} size={12.5} onPress={() => { tap(); set(undefined); }} />
           </View>
