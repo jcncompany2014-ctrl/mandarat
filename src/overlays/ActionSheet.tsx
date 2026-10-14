@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { Sheet, CloseBtn, IconBtn, LineRow, PrimaryButton, pressedRow, useSheetDismiss } from '../components/common';
 import { Check } from '../components/Check';
@@ -15,9 +15,11 @@ import type { M } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
 import { autoToday, doneOn, kindOf, routineWeek, routineWeekCount } from '../lib/routine';
-import { RATING_TEXT, configOf, countInfo, countWeekAdded, dueInfo, fmtNum, ratingHistory, ratingOf } from '../lib/kinds';
+import { RATING_TEXT, configOf, countInfo, countWeekAdded, dueInfo, fmtNum, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { whyAuto } from '../lib/pick';
-import { fmtDateLong } from '../lib/text';
+import { fmtDateLong, fmtDue } from '../lib/text';
+import { countNowSpeech, dueSpeech, weekCountSpeech } from '../lib/sheetSpeech';
+import { announce } from '../lib/useReducedMotion';
 import {
   POSTPONE, backfillToast, canBackfill, canPostpone, goalToast, historyStartLabel, memoRules, noteChanged, postponedDue,
   sheetSubtitle, weekDayKey, yesterdayOffer, type Postpone,
@@ -54,6 +56,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const now = new Date();
   const kind = kindOf(a);
   const area = th.title || `영역 ${ti + 1}`;
+  const subtitle = sheetSubtitle(doc, ti, ai, now);
 
   // iOS는 시트 위에 시트를 띄우지 못한다 — 이 시트가 다 내려간 뒤에 연다(한 번에 한 장)
   const edit = () => { dismiss(); afterOverlays(() => openEditor({ kind: 'action', ti, ai })); };
@@ -77,9 +80,9 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       </View>
 
       {/* 글 — 눌러도 고친다 */}
-      <Pressable onPress={edit} accessibilityRole="button" accessibilityLabel={`${a.text || '실천'}, 글과 유형 고치기`}>
+      <Pressable onPress={edit} accessibilityRole="button" accessibilityLabel={`${a.text || '실천'}, ${subtitle}, 글과 유형 고치기`}>
         <Text style={{ fontSize: 20, fontWeight: '800', color: M.ink }}>{a.text || '실천'}</Text>
-        <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginTop: 4 }}>{sheetSubtitle(doc, ti, ai, now)}</Text>
+        <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginTop: 4 }}>{subtitle}</Text>
       </Pressable>
 
       {kind === 'habit' && <HabitBlock M={M} th={th} ti={ti} ai={ai} />}
@@ -166,10 +169,16 @@ function CheckLine({ M, color, on, label, onPress, seed }: { M: M; color: string
   );
 }
 
-/** 블록 머리 — 왼쪽 이름, 오른쪽 값 */
-function BlockHead({ M, left, right }: { M: M; left: string; right?: string }) {
+/** 블록 머리 — 왼쪽 이름, 오른쪽 값. 머리 하나로 읽는다(값은 rightSpeech로 — '2/3회'를 날짜로 읽지 않게) */
+function BlockHead({ M, left, right, rightSpeech }: { M: M; left: string; right?: string; rightSpeech?: string }) {
+  const spoken = right ? (rightSpeech ?? right) : '';
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+    <View
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={spoken ? `${left}, ${spoken}` : left}
+      style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}
+    >
       <Text style={{ fontSize: 13, fontWeight: '700', color: M.ink }}>{left}</Text>
       {!!right && <Text style={{ fontSize: 13, fontWeight: '700', color: M.sub, ...NUM }}>{right}</Text>}
     </View>
@@ -215,7 +224,7 @@ function HabitBlock({ M, th, ti, ai }: BlockProps) {
         onPress={() => { if (today) uncheckHaptic(); else checkHaptic(); toggleRoutineToday(ti, ai); }}
       />
       <View style={{ marginTop: 18 }}>
-        <BlockHead M={M} left="이번 주" right={`${week.done}/${week.planned}회`} />
+        <BlockHead M={M} left="이번 주" right={`${week.done}/${week.planned}회`} rightSpeech={weekCountSpeech(week.done, week.planned)} />
         <WeekStrip M={M} states={states} color={th.color} variant="sheet" canPress={canPress} onPressDay={onPressDay} />
         {yesterday && (
           <View style={{ marginTop: 8, alignItems: 'flex-start' }}>
@@ -231,10 +240,11 @@ function HabitBlock({ M, th, ti, ai }: BlockProps) {
 
 /** 쌓기 — 큰 숫자 · 진행 줄 · 이번 주 더한 만큼, 그리고 빼기 · 더하기 */
 function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
-  const { addCount } = useMandarat();
+  const { doc, addCount } = useMandarat();
   const { showToast } = useUI();
   const now = new Date();
   const c = countInfo(a, dateKey(now));
+  const said = kindLine(doc, ti, ai, now)?.speech ?? countNowSpeech(fmtNum(c.goal), fmtNum(c.count), c.unit);
   const weekAdded = countWeekAdded(a, now);
   const add = (d: number) => {
     const before = c.count;
@@ -246,11 +256,13 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
       showToast(goalToast(c.goal, c.unit));
     } else if (d > 0) checkHaptic();
     else uncheckHaptic();
+    // 눌러도 화면 읽기 초점은 버튼에 있다 — 바뀐 수를 한 번 읽어 준다
+    announce(countNowSpeech(fmtNum(c.goal), fmtNum(next), c.unit));
   };
-  const plus = `+${fmtNum(c.step)}${c.unit} 더하기`;
+  const plus = `${fmtNum(c.step)}${c.unit} 더하기`;
   return (
     <View style={{ marginTop: 18 }}>
-      <View accessible accessibilityLabel={`지금까지 ${fmtNum(c.count)} / ${fmtNum(c.goal)}${c.unit}, ${c.pct}%`}>
+      <View accessible accessibilityLabel={`지금까지 ${said}, ${c.pct}%`}>
         <Text style={{ fontSize: 34, lineHeight: 40, fontWeight: '800', color: M.ink, ...NUM }}>
           {fmtNum(c.count)}
           <Text style={{ fontSize: 17, fontWeight: '600', color: M.sub }}> / {fmtNum(c.goal)}{c.unit}</Text>
@@ -260,7 +272,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
         </View>
         <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8, ...NUM }}>
           {`이번 주 +${fmtNum(weekAdded)}${c.unit}`}
-          {c.reached ? ' · 목표를 이뤘어요' : ` · ${fmtNum(Math.max(0, c.goal - c.count))}${c.unit} 남았어요`}
+          {c.reached ? ' · 목표에 닿았어요' : ` · ${fmtNum(Math.max(0, c.goal - c.count))}${c.unit} 남았어요`}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
@@ -312,8 +324,11 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
       />
       {due ? (
         <View style={{ marginTop: 14 }}>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: due.over && !a.done ? alertInk(M) : M.ink, ...NUM }}>
-            마감 {fmtDateLong(due.date)}{a.done ? '' : ` · ${due.label}`}
+          <Text
+            style={{ fontSize: 14, fontWeight: '700', color: due.over && !a.done ? alertInk(M) : M.ink, ...NUM }}
+            accessibilityLabel={a.done ? `마감 ${fmtDateLong(due.date)}` : `${fmtDateLong(due.date)}, ${dueSpeech(due.days)}`}
+          >
+            {a.done ? `마감 ${fmtDateLong(due.date)}` : `${fmtDateLong(due.date)} · ${fmtDue(due.days, 'long')}`}
           </Text>
           {late && (
             <View style={{ flexDirection: 'row', gap: 20, marginTop: 6 }}>
@@ -438,6 +453,9 @@ function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
  */
 function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: string }) {
   const { setActionNote } = useMandarat();
+  // 글자 크기를 키우면 줄 높이도 커진다 — 괘선도 같은 간격으로(2배까지, AppText와 같은 상한)
+  const { fontScale } = useWindowDimensions();
+  const line = MEMO_LINE * Math.min(fontScale || 1, 2);
   const [draft, setDraft] = useState(saved ?? '');
   const [rules, setRules] = useState(3);
   const draftRef = useRef(draft);
@@ -468,7 +486,7 @@ function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: strin
         {Array.from({ length: rules }, (_, i) => (
           <View
             key={i}
-            style={{ position: 'absolute', left: 0, right: 0, top: MEMO_PAD + MEMO_LINE * (i + 1) - 1, height: StyleSheet.hairlineWidth, backgroundColor: M.line }}
+            style={{ position: 'absolute', left: 0, right: 0, top: MEMO_PAD + line * (i + 1) - 1, height: StyleSheet.hairlineWidth, backgroundColor: M.line }}
           />
         ))}
       </View>
@@ -476,7 +494,7 @@ function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: strin
         value={draft}
         onChangeText={onChange}
         onBlur={commit}
-        onContentSizeChange={(e) => setRules(memoRules(e.nativeEvent.contentSize.height, MEMO_LINE, MEMO_PAD))}
+        onContentSizeChange={(e) => setRules(memoRules(e.nativeEvent.contentSize.height, line, MEMO_PAD))}
         accessibilityLabel="메모"
         placeholder="메모"
         placeholderTextColor={M.sub}
@@ -484,7 +502,7 @@ function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: strin
         maxLength={300}
         scrollEnabled={false}
         style={{
-          minHeight: MEMO_MIN_H, paddingTop: MEMO_PAD, paddingBottom: 0, paddingHorizontal: 2,
+          minHeight: Math.max(MEMO_MIN_H, line * 3), paddingTop: MEMO_PAD, paddingBottom: 0, paddingHorizontal: 2,
           fontSize: 15, lineHeight: MEMO_LINE, color: M.ink, textAlignVertical: 'top', backgroundColor: 'transparent',
         }}
       />
