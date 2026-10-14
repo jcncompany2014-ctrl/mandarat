@@ -3,14 +3,26 @@ import { Animated, Easing, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shadow } from '../theme/shadow';
+import { mix, toHex } from '../theme/moods';
+import { GOLD } from '../theme/palette';
 import { EASE } from '../theme/motion';
 import { usePalette } from '../theme/usePalette';
 import { TAB_BAR_H, useToast, useUIActions, useUIState, type Toast } from '../navigation/ui';
 import { tap } from '../lib/haptics';
 import { reducedMotion, useScreenReader } from '../lib/useReducedMotion';
 
-/** 되돌리기 글자 — 토스트 바탕(M.center, 다크 #26242F) 위 8.7:1 */
+/** 되돌리기 글자(골드일 때) — 토스트 바탕(M.center, 다크 #26242F) 위 8.7:1 */
 const ACTION_INK = '#E2C27F';
+
+/**
+ * 되돌리기 글자 색 — 포인트 컬러를 따른다. 골드면 늘 쓰던 #E2C27F, 다른 색이면 흰색 쪽으로 55% 섞은 색
+ * (어두운 토스트 바탕 위 7.8~9.4:1 — tests/dx-3-sheets).
+ */
+export function actionInkFor(accent: string): string {
+  const a = toHex(accent);
+  if (a === GOLD || !/^#[0-9A-F]{6}$/.test(a)) return ACTION_INK;
+  return toHex(mix(a, '#FFFFFF', 0.55));
+}
 /** 등장·퇴장 때 움직이는 거리 */
 const TRAVEL = 40;
 
@@ -40,11 +52,13 @@ const getTop = () => topCount > 0;
 /**
  * 잠깐 떠오르는 안내 + (선택)되돌리기.
  * - placement 'bottom'(기본): 탭바 위 12 — 탭바가 없는 화면(설정·온보딩)은 바닥 안전 영역 위
- * - placement 'top': 상태 표시줄 아래 8 — 시트 위에 띄울 때(시트가 아래를 덮으므로)
+ * - placement 'top': 상태 표시줄 아래 8(+offset) — 시트 위에 띄울 때(시트가 아래를 덮으므로)
  * 아래 금빛 실선(도화선)이 남은 시간만큼 왼쪽으로 줄어든다. 누르고 있는 동안은 멈춘다.
  */
-export function Snackbar({ placement = 'bottom', tabBar }: {
+export function Snackbar({ placement = 'bottom', tabBar, offset = 0 }: {
   placement?: 'bottom' | 'top';
+  /** placement 'top'에서 더 내려 띄울 거리 — 위 막대(닫기 버튼)를 가리지 않게 */
+  offset?: number;
   /** 탭바 위에 띄울지 — 생략하면 설정 화면만 빼고 탭바 위 */
   tabBar?: boolean;
 }) {
@@ -156,7 +170,7 @@ export function Snackbar({ placement = 'bottom', tabBar }: {
 
   const bg = M.dark ? '#26242F' : M.center;
   const edge = top
-    ? { top: insets.top + 8 }
+    ? { top: insets.top + 8 + offset }
     : { bottom: overTabs ? TAB_BAR_H + 12 + Math.max(10, insets.bottom) : Math.max(16, insets.bottom) };
   const action = toast.action;
 
@@ -191,7 +205,7 @@ export function Snackbar({ placement = 'bottom', tabBar }: {
                 hitSlop={12}
                 style={({ pressed }) => ({ paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.6 : 1 })}
               >
-                <Text style={{ color: ACTION_INK, fontSize: 14, fontWeight: '800' }}>{action.label}</Text>
+                <Text style={{ color: actionInkFor(M.accent), fontSize: 14, fontWeight: '800' }}>{action.label}</Text>
               </Pressable>
             )}
           </View>

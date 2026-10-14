@@ -50,6 +50,8 @@ function PickSheet() {
 
 function PickFooter({ M, total }: { M: M; total: number }) {
   const dismiss = useSheetDismiss();
+  // 아직 하나도 담지 않았으면 '오늘 0개 · 다 골랐어요'라고 말하지 않는다 — 조용한 닫기(첫 칸을 고르면 바로 금빛으로)
+  if (total === 0) return <PrimaryButton M={M} tone="quiet" label="닫기" onPress={() => { tap(); dismiss(); }} />;
   return (
     <PrimaryButton
       M={M}

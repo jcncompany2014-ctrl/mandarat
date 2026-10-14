@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
-import { Sheet, CloseBtn, IconBtn, LineRow, PrimaryButton, pressedRow, useSheetDismiss } from '../components/common';
+import { Sheet, CloseBtn, IconBtn, LineRow, PrimaryButton, pressedRow, sheetBg, useSheetDismiss } from '../components/common';
 import { Check } from '../components/Check';
 import { Icon } from '../components/Icon';
 import { WeekStrip } from '../components/WeekStrip';
@@ -107,9 +107,10 @@ const LOC_CELL = 11;
 function Locator({ M, th, ai }: { M: M; th: Theme; ai: number }) {
   const slots = Array.from({ length: 9 }, (_, s) => {
     const i = CELL_POS.indexOf(s);
-    if (i < 0) return { bg: M.bg, current: false };
+    // 빈 자리는 시트 바탕색 — 다크에서 M.bg를 쓰면 시트보다 어두운 검은 상자가 된다
+    if (i < 0) return { bg: sheetBg(M), current: false };
     if (i === ai) return { bg: th.color, current: true };
-    return { bg: th.actions[i]?.done ? tint(th.color, 40, M.dark) : M.bg, current: false };
+    return { bg: th.actions[i]?.done ? tint(th.color, M.dark ? 55 : 40, M.dark) : sheetBg(M), current: false };
   });
   return (
     <View
@@ -342,8 +343,9 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
           )}
         </View>
       ) : (
-        <View style={{ marginTop: 14 }}>
-          <LineRow M={M} first last title="마감 없음" right={<RightText M={M}>정하기 ›</RightText>} accessibilityLabel="마감 없음, 마감 정하기" onPress={onEdit} />
+        // 다 했어요 줄의 아랫줄을 이 줄의 윗줄로 함께 쓴다(1pt 겹쳐) — 아랫줄은 다음 묶음의 윗줄이 맡는다
+        <View style={{ marginTop: -1 }}>
+          <LineRow M={M} title="마감 없음" right={<RightText M={M}>정하기 ›</RightText>} accessibilityLabel="마감 없음, 마감 정하기" onPress={onEdit} />
         </View>
       )}
     </View>
@@ -364,7 +366,7 @@ function MindBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
     <View style={{ marginTop: 18 }}>
       <BlockHead M={M} left="이번 주 얼마나 지켰나요?" />
       <RatingBoxes M={M} value={score} color={th.color} label="이번 주 점수" onRate={(s) => rateMind(ti, ai, s)} fill />
-      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8 }}>{score ? RATING_TEXT[score] : '한 주에 한 번, 떠오르는 대로 매겨요'}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8 }}>{score ? RATING_TEXT[score] : '떠오르는 대로 매겨요'}</Text>
       {/* 지난 8주 — 점수만큼 높이를 채운 작은 막대 */}
       <View style={{ marginTop: 18 }} accessible accessibilityLabel={`최근 ${MIND_WEEKS}주 점수 ${hist.map((h) => (h.score ? `${h.score}점` : '없음')).join(', ')}`}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 40, borderBottomWidth: 1, borderBottomColor: M.line }}>

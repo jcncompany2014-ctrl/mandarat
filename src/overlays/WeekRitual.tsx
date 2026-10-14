@@ -26,6 +26,8 @@ import {
 import type { MandaratDoc } from '../types';
 
 const GUTTER = RHYTHM.gutter;
+/** 위 막대(닫기 · 쪽 번호) 높이 — 안전 영역 아래 */
+const TOP_BAR_H = 48;
 const PAGE_TITLE: Record<RitualPage, string> = { week: '한 주', mind: '마음가짐', next: '다음 주 중점' };
 
 /**
@@ -132,7 +134,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
         {/* 위 막대 — 왼쪽 '닫기', 오른쪽 쪽수 */}
         <View
           style={{
-            paddingTop: insets.top, paddingHorizontal: GUTTER - 8, height: insets.top + 48,
+            paddingTop: insets.top, paddingHorizontal: GUTTER - 8, height: insets.top + TOP_BAR_H,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
           }}
         >
@@ -175,13 +177,20 @@ function RitualPages({ target }: { target: RitualTarget }) {
         </ScrollView>
 
         {!readOnly && (
-          <View style={{ paddingHorizontal: GUTTER, paddingTop: 12, paddingBottom: Math.max(16, insets.bottom + 8) }}>
-            <PrimaryButton M={M} label={last ? '마치기' : '다음'} onPress={onNext} />
+          // 시트 바닥처럼 1px 괘선 위에 버튼 — 목록이 맨 종이 위에서 잘려 보이지 않게
+          <View style={{ paddingHorizontal: GUTTER, paddingTop: 10, paddingBottom: Math.max(16, insets.bottom + 8), borderTopWidth: 1, borderColor: M.line }}>
+            <PrimaryButton
+              M={M}
+              // 고른 수가 위 'n/3'과 함께 스크롤돼 사라지므로 버튼에도 적는다(오늘 고르기 바닥처럼)
+              label={page === 'next' && picks.length > 0 ? `중점 ${picks.length}칸 · 마치기` : last ? '마치기' : '다음'}
+              accessibilityLabel={page === 'next' && picks.length > 0 ? `중점 ${picks.length}칸 골랐어요, 마치기` : undefined}
+              onPress={onNext}
+            />
           </View>
         )}
 
-        {/* 모달 위에서도 '3개까지' 같은 안내가 보이게 */}
-        <Snackbar placement="top" />
+        {/* 모달 위에서도 '3개까지' 같은 안내가 보이게 — 닫기가 있는 위 막대(48) 아래로 내려 닫기를 가리지 않는다 */}
+        <Snackbar placement="top" offset={TOP_BAR_H} />
       </View>
     </Modal>
   );
@@ -356,18 +365,33 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
         </Text>
       </View>
 
+      {/* 메모는 칸 목록 위에 — 목록 끝(영역 여덟 묶음 아래)까지 내려가야 보이지 않게 */}
+      <TextInput
+        value={note}
+        onChangeText={onNote}
+        maxLength={NOTE_MAX}
+        placeholder="한 줄 메모"
+        placeholderTextColor={M.sub}
+        returnKeyType="done"
+        accessibilityLabel="한 줄 메모"
+        style={{
+          ...TYPE.body, color: M.ink, marginTop: 16, paddingVertical: 10, paddingHorizontal: 0,
+          borderBottomWidth: 1, borderColor: M.line,
+        }}
+      />
+
       {groups.map((g) => {
         const t = doc.themes[g.ti];
         return (
           <View key={g.ti} style={{ marginTop: 18 }}>
             <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingBottom: 6 }}
               accessible
               accessibilityRole="header"
               accessibilityLabel={areaName(doc, g.ti)}
             >
               <AreaSquare color={t.color} />
-              <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: M.sub }}>{areaName(doc, g.ti)}</Text>
+              <Text style={{ fontSize: 13.5, lineHeight: 18, fontWeight: '800', color: M.ink }}>{areaName(doc, g.ti)}</Text>
             </View>
             {g.ais.map((ai, i) => {
               const key = `${g.ti}-${ai}`;
@@ -395,24 +419,11 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
         );
       })}
 
-      <TextInput
-        value={note}
-        onChangeText={onNote}
-        maxLength={NOTE_MAX}
-        placeholder="한 줄 메모"
-        placeholderTextColor={M.sub}
-        returnKeyType="done"
-        accessibilityLabel="한 줄 메모"
-        style={{
-          ...TYPE.body, color: M.ink, marginTop: 32, paddingVertical: 10, paddingHorizontal: 0,
-          borderBottomWidth: 1, borderColor: M.line,
-        }}
-      />
     </View>
   );
 }
 
-/** 영역 색 네모 — 이름표 앞의 작은 표시 */
+/** 영역 색 네모 — 이름표 앞의 작은 표시(앱의 다른 영역 표시와 같은 7×7) */
 function AreaSquare({ color }: { color: string }) {
-  return <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color }} />;
+  return <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />;
 }

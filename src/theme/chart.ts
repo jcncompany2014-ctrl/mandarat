@@ -8,7 +8,7 @@
 // - 가운데 칸 = 핵심 목표(먹색, 다크에서는 뒤집어 밝게).
 // - 괘선은 바깥 테두리 > 블록 사이 > 칸 사이 순으로 가늘어진다.
 import type { CellShape } from '../types';
-import { textWidth } from '../lib/labelFit';
+import { PRETENDARD_GLYPHS, textWidth, type Glyphs } from '../lib/labelFit';
 import { alpha, mix, tint, toHex } from './moods';
 import { contrast } from './palette';
 
@@ -171,17 +171,17 @@ export function legibleMark(color: string, bg: string, M: Pick<Ground, 'dark' | 
 
 /**
  * 폭 width에 글자 크기 fs로 쓰면 몇 줄이 되는지 어림한다 — 한글은 어절 단위로 줄을 바꾸고(iOS hangul-word · 웹 keep-all),
- * 한 줄보다 긴 어절만 글자 단위로 끊긴다. 줄바꿈 문자는 그대로 지킨다. 빈 글은 0줄.
+ * 한 줄보다 긴 어절만 글자 단위로 끊긴다. 줄바꿈 문자는 그대로 지킨다. 빈 글은 0줄. g는 글자 폭(기본 SVG 근사치).
  */
-export function estimateLines(text: string, width: number, fs: number): number {
+export function estimateLines(text: string, width: number, fs: number, g?: Glyphs): number {
   if (!text.trim() || width <= 0) return 0;
-  const space = textWidth(' ', fs);
+  const space = textWidth(' ', fs, g);
   let lines = 0;
   for (const para of text.split('\n')) {
     let cur = 0;
     let n = 1;
     for (const word of para.split(/\s+/).filter(Boolean)) {
-      const w = textWidth(word, fs);
+      const w = textWidth(word, fs, g);
       if (w > width) {
         // 긴 어절 — 앞 줄을 닫고 글자 단위로 이어 쓴다
         if (cur > 0) n++;
@@ -197,6 +197,27 @@ export function estimateLines(text: string, width: number, fs: number): number {
     lines += n;
   }
   return lines;
+}
+
+/** 81칸 표의 칸 글자 크기 — 영역 이름·핵심 목표(FullGrid의 머리 칸·가운데 칸) */
+export const CHART_HEAD_FS = 9.5;
+
+/**
+ * 81칸에서 영역 이름(theme)·핵심 목표(center)가 몇 줄로 보이는지 — 화면 폭 winW의 실제 칸으로 어림한다.
+ * 표 폭은 winW − 22, 칸 폭은 (표 폭 − 테두리 2개) / 9, 글자 자리는 칸 안쪽 여백 2씩과 칸 사이 선을 뺀 폭.
+ * 머리 칸은 3줄, 가운데 칸은 4줄까지 보인다(그 뒤는 말줄임).
+ */
+export function chartFit(text: string, kind: 'theme' | 'center', winW: number): { lines: number; max: number } {
+  const cellW = (winW - 22 - RULE.frame * 2) / 9;
+  const max = kind === 'center' ? 4 : 3;
+  return { lines: estimateLines(text.trim(), cellW - 4 - RULE.cell, CHART_HEAD_FS, PRETENDARD_GLYPHS), max };
+}
+
+/** 고치는 칸 아래 한 줄 — 81칸에 다 들어가는지(빈 글이면 null) */
+export function chartFitHint(text: string, kind: 'theme' | 'center', winW: number): string | null {
+  if (!text.trim()) return null;
+  const { lines, max } = chartFit(text, kind, winW);
+  return lines <= max ? '81칸에 다 들어가요' : `81칸에서는 ${max}줄까지만 보여요`;
 }
 
 /**
