@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, View, type TextStyle } from 'react-native';
 import { Text } from './AppText';
 import { Icon } from './Icon';
-import { readableOn } from '../theme/palette';
 import type { M } from '../theme/usePalette';
 import type { KindLine } from '../lib/kinds';
 import { RATING_TEXT } from '../lib/kinds';
@@ -64,15 +63,17 @@ const FILL_H = 48;
 
 /**
  * 마음가짐 점수 1~5 — 네모 다섯 칸. onRate가 있으면 눌러서 매기고, 같은 점수를 다시 누르면 지운다.
+ * - 고른 점수 한 칸만 먹(M.ink)으로 채우고 숫자는 바탕색 — 쌓아 칠하지 않는다(칩처럼 보이지 않게).
  * - 빈 칸 테두리는 체크 칸과 같은 값(종이 위 3:1 이상, '대비 증가'에서는 더 진하고 굵게 — checkEdge).
  * - 누를 수 있는 칸은 36pt 이상 + 사방 4pt 여유(44pt 넘는 터치 영역). 보기만 하는 칸은 size 그대로.
  * - fill이면 다섯 칸이 줄 폭을 나눠 가진다(높이 48, 사이 6) — 시트·주간 돌아보기처럼 점수가 주인공일 때.
  * - 고를 때 짧은 딸깍(select).
  */
-export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, label, fill = false }: {
+export function RatingBoxes({ M, value, onRate, size = MIN_TAP, gap = 6, label, fill = false }: {
   M: M;
   value: number;
-  color: string;
+  /** 예전 호출과 맞추려고 받기만 한다 — 점수 칸은 영역 색이 아니라 먹으로 찍는다 */
+  color?: string;
   onRate?: (score: number) => void;
   size?: number;
   gap?: number;
@@ -86,7 +87,6 @@ export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, 
   const radius = Math.min(7, Math.round(h * 0.2));
   const numSize = fill ? 17 : Math.round(side * 0.4);
   const showNum = fill || side >= 26;
-  const onInk = readableOn(color);
   const more = useIncreaseContrast();
   const edge = checkEdge(M.dark, more);
 
@@ -99,16 +99,17 @@ export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, 
       accessibilityLabel={onRate ? label : `${label} ${value ? `${value}점` : '점수 없음'}`}
     >
       {[1, 2, 3, 4, 5].map((n) => {
-        const on = n <= value;
+        // 고른 점수 한 칸만 먹으로 찍는다(인쇄된 기록지처럼 — 오늘 기분 줄과 같은 표시, 소리의 checked와도 같다)
+        const on = n === value;
         const box = (
           <View
             style={{
               width: fill ? undefined : side, height: h, borderRadius: radius, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: on ? color : 'transparent', borderWidth: on ? 0 : more ? edge.width : 1.4, borderColor: edge.color,
+              backgroundColor: on ? M.ink : 'transparent', borderWidth: on ? 0 : more ? edge.width : 1.4, borderColor: edge.color,
             }}
           >
             {showNum && (
-              <Text style={{ fontSize: numSize, fontWeight: '800', color: on ? onInk : M.sub }} maxFontSizeMultiplier={1.3}>
+              <Text style={{ fontSize: numSize, fontWeight: '800', color: on ? M.bg : M.sub }} maxFontSizeMultiplier={1.3}>
                 {n}
               </Text>
             )}

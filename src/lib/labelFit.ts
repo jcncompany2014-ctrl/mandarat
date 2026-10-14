@@ -3,13 +3,22 @@
 
 const DEFAULT_FS = 11.5;
 
-/** SVG 글자 폭 근사치 — 한글·한자 1em, 영문·숫자 약 0.62em, 공백 약 0.32em. */
-export function textWidth(s: string, fs: number): number {
+/** 글자 폭(em) — 한글·한자(wide), 공백(space), 그 밖의 영문·숫자(narrow) */
+export type Glyphs = { wide: number; space: number; narrow: number };
+
+/** SVG 글자 폭 근사치 — 한글·한자 1em, 영문·숫자 약 0.62em, 공백 약 0.32em(넉넉하게 잡아 넘치지 않게). */
+export const SVG_GLYPHS: Glyphs = { wide: 1, space: 0.32, narrow: 0.62 };
+
+/** 앱에 넣은 Pretendard 굵은 글꼴의 실제 폭(hmtx) — 한글 0.864em, 공백 0.23em. 화면 글자(81칸)를 어림할 때. */
+export const PRETENDARD_GLYPHS: Glyphs = { wide: 0.864, space: 0.23, narrow: 0.6 };
+
+/** 글자 폭 근사치 — 기본은 SVG 글자(g를 주면 그 글꼴의 폭으로). */
+export function textWidth(s: string, fs: number, g: Glyphs = SVG_GLYPHS): number {
   let w = 0;
   for (const ch of s) {
     const c = ch.codePointAt(0) ?? 0;
     const wide = (c >= 0x1100 && c <= 0x11ff) || (c >= 0x2e80 && c <= 0xd7af) || (c >= 0xf900 && c <= 0xfaff) || (c >= 0xff00 && c <= 0xffef);
-    w += wide ? fs : ch === ' ' ? fs * 0.32 : ch === '…' ? fs * 0.9 : fs * 0.62;
+    w += wide ? fs * g.wide : ch === ' ' ? fs * g.space : ch === '…' ? fs * 0.9 : fs * g.narrow;
   }
   return w;
 }

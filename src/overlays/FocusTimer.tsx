@@ -127,7 +127,8 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   useEffect(() => {
     if (!breathing) {
       breath.stopAnimation();
-      breath.setValue(0.43); // 0.25 + 0.43 × 0.35 ≈ 0.4 — 움직이지 않을 때의 옅은 칸
+      // 도는데 움직임 줄이기면 옅은 칸(0.25 + 0.43 × 0.35 ≈ 0.4), 멈췄으면 가장 옅게 — 움직임 없이도 멈춤이 보이게
+      breath.setValue(run && !finished ? 0.43 : 0);
       return;
     }
     breath.setValue(0);
@@ -137,7 +138,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     ]));
     loop.start();
     return () => loop.stop();
-  }, [breathing, breath]);
+  }, [breathing, breath, run, finished]);
 
   const th = doc.themes[ti];
   const a = th?.actions[ai];
@@ -190,12 +191,13 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
         </View>
 
         <Text
-          style={{ marginTop: 14, fontSize: 56, lineHeight: 64, fontWeight: '700', color: '#fff', textAlign: 'center', ...NUM }}
+          // 멈추면 숫자를 반쯤 흐리게(M.center 위 4.9:1 이상) — 한눈에 도는 중과 다르게
+          style={{ marginTop: 14, fontSize: 56, lineHeight: 64, fontWeight: '700', color: run || finished ? '#fff' : 'rgba(255,255,255,0.5)', textAlign: 'center', ...NUM }}
           numberOfLines={1}
           adjustsFontSizeToFit
           maxFontSizeMultiplier={1.2}
           accessibilityRole="timer"
-          accessibilityLabel={finished ? '25분' : `남은 시간 ${Math.floor(left / 60)}분 ${left % 60}초`}
+          accessibilityLabel={finished ? '25분' : `${run ? '' : '멈춤, '}남은 시간 ${Math.floor(left / 60)}분 ${left % 60}초`}
         >
           {finished ? '25분' : fmtClock(left)}
         </Text>
@@ -211,7 +213,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
         <Text
           // 안드로이드: 멈춤·계속·끝남이 바뀔 때 읽는다(이 글은 그때만 바뀐다)
           accessibilityLiveRegion="polite"
-          style={{ marginTop: 6, fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.78)' }}
+          style={{ marginTop: 6, fontSize: 13, ...(!run && !finished ? { fontWeight: '700', color: '#fff' } : { fontWeight: '600', color: 'rgba(255,255,255,0.78)' }) }}
         >
           {cue}
         </Text>

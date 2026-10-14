@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, Keyboard, Platform, Pressable, ScrollView, View, type TextInput as RNTextInput } from 'react-native';
+import { Alert, AppState, Keyboard, Platform, Pressable, ScrollView, View, useWindowDimensions, type StyleProp, type TextInput as RNTextInput, type ViewStyle } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, TextInput } from '../components/AppText';
 import { Icon } from '../components/Icon';
@@ -19,7 +19,6 @@ import {
   KIND_HINT, KIND_LABEL, MAX_NUM, addDays, configOf, duePresets, fmtNum, parseNum, sameConfig, type KindConfig,
 } from '../lib/kinds';
 import { fmtDateLong, fmtDateSpeech, fmtDue, josa } from '../lib/text';
-import { fitLabel, textWidth } from '../lib/labelFit';
 import { suggestActions } from '../lib/suggest';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { suggestKind, type KindSuggestion } from '../lib/kindSuggest';
@@ -29,7 +28,7 @@ import { EDITOR_DRAFT_KEY, draftDiffers, draftFits, parseDraft, serializeDraft, 
 import { Snackbar } from './Snackbar';
 import { DayPicker } from '../components/DayPicker';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { CLOCKWISE } from '../theme/chart';
+import { CLOCKWISE, chartFitHint } from '../theme/chart';
 
 const KIND_ORDER: ActionKind[] = ['once', 'habit', 'count', 'mind'];
 
@@ -37,11 +36,10 @@ const KIND_ORDER: ActionKind[] = ['once', 'habit', 'count', 'mind'];
 const ROW_H = 52;
 const LABEL_W = 64;
 
-/** 81칸 표의 칸 하나에 한 줄로 들어가는 폭 — 한글 6자(6자 안쪽이면 다 보인다) */
-const CHART_FS = 10;
-const CHART_W = textWidth('가나다라마바', CHART_FS);
-
 const IS_WEB = Platform.OS === 'web';
+
+/** 바닥 줄의 첫 글자 버튼 — 안쪽 여백 8만큼 당겨 글자를 20pt 쪽 가장자리에 맞춘다 */
+const EDGE: ViewStyle = { marginLeft: -8 };
 
 function meta(target: EditorTarget, doc: MandaratDoc) {
   if (target.kind === 'center') {
@@ -135,16 +133,6 @@ function countIssueOf(cfg: KindConfig, t: NumTexts): CountIssue | null {
   return null;
 }
 
-/** 81칸에서 어떻게 보이는지 한 줄 — 영역 이름·핵심 목표 */
-function fitPreview(text: string): string | null {
-  const v = text.trim();
-  if (!v) return null;
-  const fitted = fitLabel(v, CHART_W, CHART_FS);
-  if (fitted === v) return '81칸에 다 들어가요';
-  const particle = josa(fitted, '으로/로').slice(fitted.length);
-  return `81칸에서는 ‘${fitted}’${particle} 보여요 · 6자 안쪽이면 다 보여요`;
-}
-
 /** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
 function confirmDiscard(onDiscard: () => void) {
   if (IS_WEB) {
@@ -186,6 +174,7 @@ export function CellEditor() {
 
 function Editor({ editor }: { editor: EditorTarget }) {
   const M = usePalette();
+  const { width: winW } = useWindowDimensions();
   const { closeEditor, openEditor, showToast } = useUIActions();
   const { doc, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionConfig, clearAction } = useMandarat();
   const undoable = useSnapshotUndo();
@@ -484,15 +473,16 @@ function Editor({ editor }: { editor: EditorTarget }) {
     inputRef.current?.focus();
   };
 
-  const preview = editor.kind === 'action' ? null : fitPreview(text);
+  // 81칸에 어떻게 보이는지 — 이 기기의 실제 칸 폭으로(머리 칸 3줄 · 가운데 칸 4줄까지 보인다)
+  const preview = editor.kind === 'action' ? null : chartFitHint(text, editor.kind, winW);
   const filledAction = !!action && !!action.text.trim();
 
   const footer = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
       {filledAction && (
-        <TextBtn M={M} label="칸 비우기" color={alertInk(M)} onPress={clearCell} />
+        <TextBtn M={M} label="칸 비우기" color={alertInk(M)} onPress={clearCell} style={EDGE} />
       )}
-      {goesNext && <TextBtn M={M} label="저장" color={M.ink} onPress={saveAndClose} />}
+      {goesNext && <TextBtn M={M} label="저장" color={M.ink} onPress={saveAndClose} style={filledAction ? undefined : EDGE} />}
       <PrimaryButton
         M={M}
         label={goesNext ? (editor.kind === 'theme' ? '저장하고 다음 영역' : '저장하고 다음 칸') : '저장'}
@@ -542,7 +532,8 @@ function Editor({ editor }: { editor: EditorTarget }) {
               value={text}
               onChangeText={setText}
               accessibilityLabel={m.speech}
-              placeholder={m.placeholder}
+              // 아래에 고를 실천이 나오면 그중 하나를 예로 다시 들지 않는다
+              placeholder={help.length > 0 ? '직접 적거나 아래에서 골라요' : m.placeholder}
               placeholderTextColor={M.sub}
               autoFocus={autoFocus}
               multiline={m.multiline}
@@ -559,7 +550,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
               }}
             />
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingBottom: 10 }}>
-              <Text style={{ flex: 1, fontSize: 12, lineHeight: 17, color: M.sub }} accessibilityLiveRegion="polite">
+              <Text style={{ flex: 1, fontSize: 12, lineHeight: 17, color: M.sub }} numberOfLines={1} accessibilityLiveRegion="polite">
                 {preview ?? ''}
               </Text>
               <Text
@@ -664,8 +655,8 @@ function Row({ M, label, children, invalid = false, center = false, stack = fals
 }
 
 /** 바탕 없는 글자 버튼 — 손끝 44pt */
-function TextBtn({ M, label, color, onPress, a11y, size = 14 }: {
-  M: M; label: string; color: string; onPress: () => void; a11y?: string; size?: number;
+function TextBtn({ M, label, color, onPress, a11y, size = 14, style }: {
+  M: M; label: string; color: string; onPress: () => void; a11y?: string; size?: number; style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
@@ -673,7 +664,7 @@ function TextBtn({ M, label, color, onPress, a11y, size = 14 }: {
       accessibilityRole="button"
       accessibilityLabel={a11y ?? label}
       hitSlop={{ top: 4, bottom: 4 }}
-      style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+      style={({ pressed }) => [{ minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 }, style]}
     >
       <Text style={{ fontSize: size, fontWeight: '700', color }} numberOfLines={1}>{label}</Text>
     </Pressable>
