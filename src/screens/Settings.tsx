@@ -1,219 +1,485 @@
-import React from 'react';
-import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { Header } from '../components/common';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Linking, Platform, Pressable, View, type ViewStyle } from 'react-native';
+import { Text } from '../components/AppText';
+import { Check } from '../components/Check';
+import { Header, LineRow, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
-import { MandalaArt } from '../components/MandalaArt';
-import { FONTS } from '../theme/fonts';
-import { MOODS, tint } from '../theme/moods';
-import { shadow } from '../theme/shadow';
+import { SheetHead, TemplateSheet } from '../components/TemplateSheet';
+import { TEMPLATES, templateThemes, type Template } from '../data/templates';
+import { APP_VERSION, LICENSES, PRIVACY_URL, SUPPORT_EMAIL, supportMailto } from '../lib/appInfo';
+import { summarize } from '../lib/backup';
+import { backupAgeLabel } from '../lib/backupNote';
+import { MOOD_LABEL, SHAPE_LABEL } from '../lib/copy';
+import { select, tap } from '../lib/haptics';
+import { exportBackup } from '../lib/shareFile';
+import { fmtDateLong } from '../lib/text';
+import { useUIActions } from '../navigation/ui';
+import { BackupImport } from '../overlays/BackupImport';
+import { useMandarat, type SnapshotInfo } from '../store/MandaratContext';
+import { useSnapshotUndo } from '../store/useSnapshotUndo';
+import { MOODS } from '../theme/moods';
+import { ACCENTS, GOLD, readableOn } from '../theme/palette';
+import { NUM, TYPE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat } from '../store/MandaratContext';
-import { TEMPLATES, templateThemes, type Template } from '../data/templates';
-import { tap } from '../lib/haptics';
-import type { CellShape, Mgmt, Mood } from '../types';
+import type { CellShape, Mood } from '../types';
 
-const APP_VERSION = '1.0.0'; // app.json version과 일치
-const MOOD_OPTS: Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
-const ACCENTS = ['#F4793B', '#4F6BED', '#2FA968', '#8B5CF6'];
-const MGMT_OPTS: Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
-const SHAPE_OPTS: CellShape[] = ['둥근', '각진'];
+const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
+const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
+/** 기록이 저장되는 곳 — iCloud 기기 백업은 iPhone에만 있다(안드로이드·웹에서는 이 기기에만) */
+const IOS = Platform.OS === 'ios';
+const STORAGE_NOTE = IOS
+  ? '기록은 이 iPhone과 iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.'
+  : '기록은 이 기기에 저장돼요. 기기를 바꾸기 전에 백업을 내보내 두세요.';
+const STORAGE_PLACE = IOS ? '이 iPhone과 iCloud 백업' : '이 기기';
 
+/** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
+function ask(title: string, message: string, ok: string, onOk: () => void, destructive = false) {
+  if (Platform.OS === 'web') {
+    // eslint-disable-next-line no-alert
+    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) onOk();
+    return;
+  }
+  Alert.alert(title, message, [
+    { text: '취소', style: 'cancel' },
+    { text: ok, style: destructive ? 'destructive' : 'default', onPress: onOk },
+  ]);
+}
+
+/** 구역 제목 — 종이 위 굵은 글씨 한 줄 */
 function Section({ M, label }: { M: M; label: string }) {
   return (
-    <Text style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8, fontSize: 12, fontWeight: '700', letterSpacing: 0.6, color: M.faint, textTransform: 'uppercase' }}>
+    <Text accessibilityRole="header" style={{ ...TYPE.section, color: M.ink, paddingTop: 28, paddingBottom: 8 }}>
       {label}
     </Text>
   );
 }
 
-function Card({ M, children }: { M: M; children: React.ReactNode }) {
+/** 구역 안의 작은 머리(종이 · 칸 모서리 · 포인트 컬러) */
+function SubHead({ M, label, first = false }: { M: M; label: string; first?: boolean }) {
   return (
-    <View style={[{ marginHorizontal: 20, borderRadius: 18, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line, padding: 14, gap: 12 }, M.dark ? null : shadow(3)]}>
-      {children}
+    <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, paddingTop: first ? 4 : 20, paddingBottom: 6 }}>
+      {label}
+    </Text>
+  );
+}
+
+/** 괘선 위 한 줄 — 누르면 종이가 살짝 어두워진다(크기 변화 없음) */
+function rowBase(M: M, first: boolean, last: boolean): ViewStyle {
+  return {
+    ...groupEdge(M, first, last),
+    minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 10, paddingHorizontal: 2,
+  };
+}
+
+/** 종이 견본 — 그 종이의 바탕 · 점 여섯 개 · 먹색 '가' */
+function PaperSwatch({ M, mood }: { M: M; mood: Mood }) {
+  const p = MOODS[mood];
+  return (
+    <View
+      style={{
+        width: 44, height: 30, borderRadius: 3, borderWidth: 1, borderColor: M.line,
+        backgroundColor: p.bg, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, gap: 6,
+      }}
+    >
+      {/* 3×2 점 — 점 종이 한 귀퉁이 */}
+      <View style={{ width: 14, flexDirection: 'row', flexWrap: 'wrap', rowGap: 4, columnGap: 4 }}>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <View key={i} style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: p.faint }} />
+        ))}
+      </View>
+      <Text style={{ fontSize: 15, lineHeight: 18, fontWeight: '700', color: p.ink }} maxFontSizeMultiplier={1}>가</Text>
     </View>
   );
 }
 
-function Segmented<T extends string>({ M, label, value, options, onChange }: { M: M; label: string; value: T; options: T[]; onChange: (v: T) => void }) {
+/** 하나만 고르는 괘선 목록의 한 줄 — 왼쪽 견본(있으면) · 이름 · 오른쪽 네모 체크 */
+function RadioRow({
+  M, label, on, first, last, onPress, a11yLabel, lead,
+}: {
+  M: M;
+  label: string;
+  on: boolean;
+  first: boolean;
+  last: boolean;
+  onPress: () => void;
+  a11yLabel: string;
+  lead?: React.ReactNode;
+}) {
   return (
-    <View>
-      <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>{label}</Text>
-      <View style={{ flexDirection: 'row', gap: 4, backgroundColor: M.dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.045)', padding: 4, borderRadius: 12 }}>
-        {options.map((o) => {
-          const on = o === value;
+    <Pressable
+      onPress={() => { if (!on) onPress(); }}
+      accessibilityRole="radio"
+      accessibilityLabel={a11yLabel}
+      accessibilityState={{ checked: on, selected: on }}
+      style={({ pressed }) => [rowBase(M, first, last), pressed && !on ? pressedRow(M) : null]}
+    >
+      {!first && <RowDivider M={M} inset={0} />}
+      {lead}
+      <Text style={{ flex: 1, fontSize: 16, lineHeight: 21, fontWeight: '600', color: M.ink }} numberOfLines={1}>
+        {label}
+      </Text>
+      <Check on={on} color={M.ink} dark={M.dark} size={22} />
+    </Pressable>
+  );
+}
+
+/**
+ * 포인트 컬러 — 색 견본 다섯 개를 한 줄로(알약·옅은 바탕 없이 그 색 그대로의 네모).
+ * 고른 견본은 먹색 네모 테두리로 두르고 안에 체크를 긋는다. 이름은 견본 아래에.
+ */
+function AccentRow({ M, value, onChange }: { M: M; value: string; onChange: (c: string) => void }) {
+  const cur = value.toLowerCase();
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, paddingVertical: 14 }}
+    >
+      {ACCENTS.map(({ color, name }) => {
+        const on = cur === color.toLowerCase();
+        return (
+          <Pressable
+            key={color}
+            onPress={() => { if (!on) onChange(color); }}
+            accessibilityRole="radio"
+            accessibilityLabel={`포인트 컬러 ${name}`}
+            accessibilityState={{ checked: on, selected: on }}
+            style={({ pressed }) => ({ minWidth: 52, alignItems: 'center', gap: 6, opacity: pressed && !on ? 0.6 : 1 })}
+          >
+            <View style={{ width: 44, height: 44, borderRadius: 4, borderWidth: 1.5, borderColor: on ? M.ink : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 34, height: 34, borderRadius: 2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+                {on && <Icon name="check" size={18} color={readableOn(color)} sw={2.6} />}
+              </View>
+            </View>
+            <Text style={{ fontSize: 13, lineHeight: 16, fontWeight: on ? '700' : '500', color: on ? M.ink : M.sub }} numberOfLines={1}>
+              {name}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** 정보 표의 한 줄 — 왼쪽 이름표(12.5 보조) · 오른쪽 값(13 먹색) */
+function ColophonRow({ M, label, value, first }: { M: M; label: string; value: string; first?: boolean }) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}, ${value}`}
+      style={{ flexDirection: 'row', alignItems: 'baseline', paddingVertical: 9, borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line }}
+    >
+      <Text style={{ width: 52, fontSize: 12.5, lineHeight: 18, color: M.sub }}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: M.ink, ...NUM }}>{value}</Text>
+    </View>
+  );
+}
+
+/** 밑줄 글자 링크 */
+function TextLink({ M, label, onPress, hint }: { M: M; label: string; onPress: () => void; hint?: string }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
+      style={({ pressed }) => ({ minHeight: 24, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+    >
+      <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** 저장본 목록 — 고르면 묻고, 되돌리기로 했으면 시트가 내려간 뒤 onRestore(day) */
+function SnapshotList({ M, list, onPick }: { M: M; list: SnapshotInfo[] | null; onPick: (day: string, close: () => void) => void }) {
+  const dismiss = useSheetDismiss();
+  return (
+    <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+      <SheetHead M={M} title="저장본" body="최근 7일, 하루 한 번 저절로 남겨요. 고르면 그날의 기록으로 되돌려요." />
+      {list === null ? (
+        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, paddingVertical: 14 }}>저장본을 찾는 중이에요</Text>
+      ) : list.length === 0 ? (
+        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, paddingVertical: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
+          아직 남은 저장본이 없어요. 하루 중 처음 기록할 때 한 벌씩 남겨요.
+        </Text>
+      ) : (
+        list.map((s, i) => {
+          const title = `${fmtDateLong(s.day)} 저장본`;
+          const sub = `채운 칸 ${s.summary.filled} · 기록 ${s.summary.days}일`;
           return (
-            <Pressable key={o} onPress={() => onChange(o)} style={[{ flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center', backgroundColor: on ? M.surface : 'transparent' }, on && !M.dark ? shadow(2) : null]}>
-              <Text style={{ fontSize: 12.5, fontWeight: '700', color: on ? M.ink : M.sub }}>{o}</Text>
-            </Pressable>
+            <LineRow
+              key={s.day}
+              M={M}
+              first={i === 0}
+              last={i === list.length - 1}
+              title={title}
+              sub={sub}
+              right="chevron"
+              accessibilityLabel={`${title}, ${sub}`}
+              accessibilityHint="이 저장본으로 되돌리기"
+              onPress={() => onPick(s.day, () => dismiss(true))}
+            />
           );
-        })}
-      </View>
+        })
+      )}
+    </View>
+  );
+}
+
+function LicenseList({ M }: { M: M }) {
+  return (
+    <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+      <SheetHead M={M} title="오픈소스 라이선스" body="이 앱은 아래 오픈소스를 쓰고 있어요." />
+      {LICENSES.map((l, i) => (
+        <LineRow key={l.name} M={M} first={i === 0} last={i === LICENSES.length - 1} title={l.name} right={l.license} accessibilityLabel={`${l.name}, ${l.license}`} />
+      ))}
     </View>
   );
 }
 
 export function Settings() {
   const M = usePalette();
-  const { go, openEditor, showToast } = useUI();
-  const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc } = useMandarat();
+  const { go, back, openEditor, showToast } = useUIActions();
+  const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, listSnapshots, readSnapshot } = useMandarat();
+  const offerUndo = useSnapshotUndo();
 
-  const useTemplate = (t: Template) => {
-    tap();
-    const snapshot = doc; // 되돌리기용
-    applyTemplate(t.centerGoal, templateThemes(t));
+  const [importing, setImporting] = useState(false);
+  const [picking, setPicking] = useState(false);
+  // 시트가 닫히면 스크린리더 초점을 그 시트를 연 줄로 돌려준다
+  const importRow = useRef<View>(null);
+  const templateRow = useRef<View>(null);
+  const [snapsOpen, setSnapsOpen] = useState(false);
+  const [snaps, setSnaps] = useState<SnapshotInfo[] | null>(null);
+  const [licensesOpen, setLicensesOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  // 시트에서 고른 일은 시트가 다 내려간 뒤에 한다(화면을 옮기거나 문서를 통째로 바꾸므로)
+  const pendingTemplate = useRef<Template | null>(null);
+  const pendingSnap = useRef<string | null>(null);
+  const docRef = useRef(doc);
+  docRef.current = doc;
+
+  const goal = doc.centerGoal.trim();
+
+  // ── 템플릿 ──
+  const runTemplate = useCallback((t: Template) => {
+    const d = docRef.current;
+    const snapshot = d; // 되돌리기용
+    // 템플릿은 영역·실천만 바꾸고, 적어 둔 핵심 목표는 그대로 둔다(비어 있을 때만 템플릿 목표)
+    applyTemplate(d.centerGoal.trim() ? '' : t.centerGoal, templateThemes(t));
     go('grid');
-    showToast(`‘${t.name}’ 템플릿을 적용했어요`, { label: '되돌리기', onPress: () => replaceDoc(snapshot) });
+    offerUndo(`‘${t.name}’ 템플릿으로 바꿨어요`, snapshot);
+  }, [applyTemplate, go, offerUndo]);
+
+  const pickTemplate = (t: Template, close: () => void) => {
+    tap();
+    const proceed = () => { pendingTemplate.current = t; close(); };
+    const { filled } = summarize(doc);
+    if (filled > 0 || goal) {
+      ask(
+        '템플릿으로 바꿀까요?',
+        `지금 적어 둔 실천 ${filled}개와 오늘 할 일이 지워지고, 영역 8개가 ‘${t.name}’ 영역으로 바뀌어요. 핵심 목표와 지난 기록은 그대로예요. 바꾼 직후에는 되돌릴 수 있어요.`,
+        '바꾸기', proceed, true,
+      );
+    } else proceed();
+  };
+
+  const onTemplateSheetClosed = () => {
+    setPicking(false);
+    const t = pendingTemplate.current;
+    pendingTemplate.current = null;
+    if (t) runTemplate(t);
+  };
+
+  // ── 저장본 ──
+  useEffect(() => {
+    if (!snapsOpen) return;
+    let alive = true;
+    setSnaps(null);
+    listSnapshots().then((l) => { if (alive) setSnaps(l); });
+    return () => { alive = false; };
+  }, [snapsOpen, listSnapshots]);
+
+  const pickSnapshot = (day: string, close: () => void) => {
+    tap();
+    ask(
+      '이 저장본으로 되돌릴까요?',
+      '지금 기록이 이 저장본으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.',
+      '되돌리기',
+      () => { pendingSnap.current = day; close(); },
+      true,
+    );
+  };
+
+  const restoreSnapshot = useCallback(async (day: string) => {
+    const saved = await readSnapshot(day);
+    if (!saved) {
+      showToast('저장본을 읽지 못했어요');
+      return;
+    }
+    const snapshot = docRef.current; // 되돌리기용
+    // 보기 설정(종이·포인트 컬러·마지막 백업 날)은 지금 것을 그대로 둔다 — 되돌리는 건 기록이다
+    replaceDoc({ ...saved, settings: snapshot.settings });
+    offerUndo(`${fmtDateLong(day)} 저장본으로 되돌렸어요`, snapshot);
+  }, [readSnapshot, replaceDoc, offerUndo, showToast]);
+
+  const onSnapSheetClosed = () => {
+    setSnapsOpen(false);
+    const day = pendingSnap.current;
+    pendingSnap.current = null;
+    if (day) void restoreSnapshot(day);
+  };
+
+  // ── 예시 · 초기화 ──
+  const doSample = () => {
+    const snapshot = doc;
+    loadSample();
+    offerUndo('예시로 채웠어요', snapshot);
+  };
+  const confirmSample = () => {
+    tap();
+    if (summarize(doc).filled === 0) { doSample(); return; }
+    ask('예시로 채울까요?', '지금 적어 둔 영역과 실천이 예시로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.', '채우기', doSample);
   };
 
   const doReset = () => {
     const snapshot = doc; // 되돌리기용 직전 상태
     resetAll();
-    showToast('모든 데이터를 초기화했어요', {
-      label: '되돌리기',
-      onPress: () => replaceDoc(snapshot),
-    });
+    offerUndo('모든 기록을 지웠어요', snapshot);
+  };
+  const confirmReset = () => {
+    tap();
+    ask('모든 기록을 지울까요?', '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.', '지우기', doReset, true);
   };
 
-  const confirmReset = () => {
-    if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      if (typeof window !== 'undefined' && window.confirm('모든 데이터를 초기화할까요?')) doReset();
-      return;
-    }
-    Alert.alert('전체 초기화', '모든 데이터를 초기화할까요? 초기화 후에도 잠시 되돌릴 수 있어요.', [
-      { text: '취소', style: 'cancel' },
-      { text: '초기화', style: 'destructive', onPress: doReset },
-    ]);
+  // ── 백업 ──
+  const onExport = async () => {
+    if (exporting) return;
+    tap();
+    setExporting(true);
+    const ok = await exportBackup(doc, new Date(), (day) => setSetting('lastBackupAt', day));
+    setExporting(false);
+    if (Platform.OS === 'web') showToast(ok ? '백업 파일을 저장했어요' : '이 브라우저에서는 저장할 수 없어요');
+    // 안드로이드는 공유 창을 닫아도 '공유됨'으로 알려 오므로 iOS에서만 완료를 알린다
+    else if (Platform.OS === 'ios' && ok) showToast('백업을 내보냈어요');
   };
+
+  const openLink = (url: string) => {
+    tap();
+    Linking.openURL(url).catch(() => showToast('열 수 없어요'));
+  };
+  const mailto = supportMailto();
 
   return (
-    <View>
-      <Header M={M} en="Settings" kr="설정" onBack={() => go('dashboard')} />
+    <View onAccessibilityEscape={back}>
+      {/* 제목은 뒤로 가기 아래 줄에 — 다른 화면처럼 20pt 왼쪽 끝에서 시작한다 */}
+      <Header M={M} kr="설정" onBack={back} focusTitle stacked />
 
-      <Section M={M} label="핵심 목표" />
-      <Card M={M}>
-        <Pressable onPress={() => openEditor({ kind: 'center' })} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint(M.accent, M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="target" size={20} color={M.accent} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{doc.centerGoal || '핵심 목표 입력'}</Text>
-            <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>탭하여 수정</Text>
-          </View>
-          <Icon name="pencil" size={17} color={M.faint} />
+      <View style={{ paddingHorizontal: 20 }}>
+        <Section M={M} label="핵심 목표" />
+        <Pressable
+          onPress={() => { tap(); openEditor({ kind: 'center' }); }}
+          accessibilityRole="button"
+          accessibilityLabel={goal ? `핵심 목표, ${goal}` : '핵심 목표를 정해 주세요'}
+          accessibilityHint="고치기"
+          style={({ pressed }) => [rowBase(M, true, true), pressed ? pressedRow(M) : null]}
+        >
+          <Text style={{ flex: 1, ...TYPE.rowTitle, color: goal ? M.ink : M.sub }} numberOfLines={2}>
+            {goal || '핵심 목표를 정해 주세요'}
+          </Text>
+          <Icon name="chevR" size={16} color={M.faint} />
         </Pressable>
-      </Card>
 
-      <Section M={M} label="템플릿으로 시작 / Templates" />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, gap: 11, paddingVertical: 2 }}
-      >
-        {TEMPLATES.map((t) => (
-          <Pressable
-            key={t.id}
-            onPress={() => useTemplate(t)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t.name} 템플릿 적용`}
-            accessibilityHint={t.desc}
-            style={[{ width: 168, borderRadius: 18, padding: 15, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }, M.dark ? null : shadow(3)]}
-          >
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 11 }}>
-              {t.areas.slice(0, 4).map((a, i) => (
-                <View key={i} style={{ width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.accent, M.dark ? 20 : 12, M.dark) }}>
-                  <Icon name={a.icon} size={15} color={M.accent} />
-                </View>
-              ))}
-            </View>
-            <Text style={{ fontSize: 14.5, fontWeight: '800', color: M.ink }} numberOfLines={1}>{t.name}</Text>
-            <Text style={{ fontSize: 11.5, color: M.sub, marginTop: 3, lineHeight: 16 }} numberOfLines={2}>{t.desc}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: M.accent }}>적용하기</Text>
-              <Icon name="chevR" size={14} color={M.accent} />
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <Section M={M} label="무드 / Mood" />
-      <Card M={M}>
-        <Segmented M={M} label="배경 무드" value={doc.settings.mood} options={MOOD_OPTS} onChange={(v) => setSetting('mood', v)} />
-        <View>
-          <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink, marginBottom: 8 }}>포인트 컬러</Text>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            {ACCENTS.map((c) => {
-              const on = doc.settings.accent === c;
-              return (
-                <Pressable key={c} onPress={() => setSetting('accent', c)} style={{ flex: 1, height: 42, borderRadius: 12, backgroundColor: c, alignItems: 'center', justifyContent: 'center', borderWidth: on ? 3 : 0, borderColor: M.surface, opacity: on ? 1 : 0.85 }}>
-                  {on && <Icon name="check" size={18} color="#fff" sw={3} />}
-                </Pressable>
-              );
-            })}
-          </View>
+        <Section M={M} label="보기" />
+        <SubHead M={M} label="종이" first />
+        <View accessibilityRole="radiogroup">
+          {MOOD_OPTS.map((mood, i) => (
+            <RadioRow
+              key={mood}
+              M={M}
+              label={MOOD_LABEL[mood]}
+              a11yLabel={`종이 ${MOOD_LABEL[mood]}`}
+              on={doc.settings.mood === mood}
+              first={i === 0}
+              last={i === MOOD_OPTS.length - 1}
+              onPress={() => { select(); setSetting('mood', mood); }}
+              lead={<PaperSwatch M={M} mood={mood} />}
+            />
+          ))}
         </View>
-      </Card>
 
-      <Section M={M} label="관리 방식 / Manage" />
-      <Card M={M}>
-        <Segmented M={M} label="오늘 화면" value={doc.settings.mgmt} options={MGMT_OPTS} onChange={(v) => setSetting('mgmt', v)} />
-      </Card>
+        <SubHead M={M} label="포인트 컬러" />
+        <AccentRow M={M} value={doc.settings.accent} onChange={(c) => { select(); setSetting('accent', c); }} />
 
-      <Section M={M} label="그리드 / Grid" />
-      <Card M={M}>
-        <Segmented M={M} label="셀 모양" value={doc.settings.cellShape} options={SHAPE_OPTS} onChange={(v) => setSetting('cellShape', v)} />
-      </Card>
-
-      <Section M={M} label="데이터" />
-      <Card M={M}>
-        <Pressable onPress={loadSample} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint('#E8A33D', M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="sparkle" size={20} color="#E8A33D" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>예시로 채우기</Text>
-            <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>8영역 · 64실천 샘플을 불러옵니다</Text>
-          </View>
-          <Icon name="chevR" size={17} color={M.faint} />
-        </Pressable>
-        <View style={{ height: 1, backgroundColor: M.line }} />
-        <Pressable onPress={confirmReset} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: tint('#E5547F', M.dark ? 22 : 14, M.dark), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="reset" size={20} color="#E5547F" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: '#E5547F' }}>전체 초기화</Text>
-            <Text style={{ fontSize: 12, color: M.sub, marginTop: 1 }}>모든 목표와 기록을 지웁니다</Text>
-          </View>
-          <Icon name="chevR" size={17} color={M.faint} />
-        </Pressable>
-      </Card>
-
-      <Section M={M} label="정보 / About" />
-      <Card M={M}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <View style={{ width: 48, height: 48, borderRadius: 16, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: tint(M.gold, M.dark ? 20 : 12, M.dark) }}>
-            <MandalaArt size={44} stroke={M.gold} opacity={0.9} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink }}>만다라트 · Mandarat</Text>
-            <Text style={{ fontSize: 12.5, color: M.sub, marginTop: 2, lineHeight: 18 }}>
-              하나의 큰 뜻을 8개의 길과 64개의 실천으로 곱게 펼쳐가는 연꽃 플래너
-            </Text>
-          </View>
+        <SubHead M={M} label="칸 모서리" />
+        <View accessibilityRole="radiogroup">
+          {SHAPE_OPTS.map((shape, i) => (
+            <RadioRow
+              key={shape}
+              M={M}
+              label={SHAPE_LABEL[shape]}
+              a11yLabel={`칸 모서리 ${SHAPE_LABEL[shape]}`}
+              on={doc.settings.cellShape === shape}
+              first={i === 0}
+              last={i === SHAPE_OPTS.length - 1}
+              onPress={() => { select(); setSetting('cellShape', shape); }}
+            />
+          ))}
         </View>
-        <View style={{ height: 1, backgroundColor: M.line }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>버전</Text>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: M.ink, fontFamily: FONTS.groteskMed }}>{APP_VERSION}</Text>
-        </View>
-      </Card>
 
-      <Text style={{ textAlign: 'center', color: M.faint, fontSize: 11.5, marginTop: 20, marginBottom: 4, fontFamily: FONTS.groteskMed }}>
-        🪷 made with care
-      </Text>
+        {/* 기록 — 안전한 백업 줄과 통째로 새로 쓰는 줄을 떼어 둔다. 저장 위치 안내는 백업 바로 아래에 */}
+        <Section M={M} label="기록" />
+        <SubHead M={M} label="백업" first />
+        <LineRow
+          M={M} first title="백업 내보내기"
+          sub={backupAgeLabel(doc.settings.lastBackupAt, new Date())}
+          right="chevron"
+          accessibilityLabel="백업 내보내기"
+          accessibilityHint={`${backupAgeLabel(doc.settings.lastBackupAt, new Date())}. 기록을 파일로 내보내요`}
+          onPress={onExport}
+        />
+        <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" pressRef={importRow} />
+        <LineRow M={M} last title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" />
+        <Text style={{ marginTop: 10, fontSize: 12.5, lineHeight: 18, color: M.sub }}>
+          {STORAGE_NOTE}
+        </Text>
+
+        <SubHead M={M} label="새로 시작" />
+        <LineRow M={M} first title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
+        <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
+        <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
+
+        <Section M={M} label="정보" />
+        <ColophonRow M={M} first label="이름" value="만다라트" />
+        <ColophonRow M={M} label="판" value={APP_VERSION} />
+        <ColophonRow M={M} label="서체" value="Pretendard · SIL OFL 1.1" />
+        <ColophonRow M={M} label="저장 위치" value={STORAGE_PLACE} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 8, marginTop: 14 }}>
+          {!!PRIVACY_URL && <TextLink M={M} label="개인정보 처리방침" onPress={() => openLink(PRIVACY_URL)} />}
+          {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label="문의하기" hint="메일 앱이 열려요" onPress={() => openLink(mailto)} />}
+          <TextLink M={M} label="오픈소스 라이선스" onPress={() => { tap(); setLicensesOpen(true); }} />
+        </View>
+        {/* 판권면 아래 작은 인쇄소 표 — 타일·가운데 영웅 없이 왼쪽 아래에 */}
+        <View style={{ marginTop: 24, marginBottom: 8 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <GridMark size={16} color={GOLD} />
+        </View>
+      </View>
+
+      {importing && <BackupImport onClose={() => setImporting(false)} returnFocusRef={importRow} />}
+      {picking && <TemplateSheet M={M} onClose={onTemplateSheetClosed} onPick={pickTemplate} returnFocusRef={templateRow} />}
+      {snapsOpen && (
+        <Sheet M={M} onClose={onSnapSheetClosed} ownClose>
+          <SnapshotList M={M} list={snaps} onPick={pickSnapshot} />
+        </Sheet>
+      )}
+      {licensesOpen && (
+        <Sheet M={M} onClose={() => setLicensesOpen(false)} ownClose>
+          <LicenseList M={M} />
+        </Sheet>
+      )}
     </View>
   );
 }

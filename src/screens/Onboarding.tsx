@@ -1,128 +1,183 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useRef, useState } from 'react';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MandalaArt } from '../components/MandalaArt';
-import { Icon } from '../components/Icon';
-import { FONTS } from '../theme/fonts';
+import { Text, TextInput } from '../components/AppText';
+import { ChartSketch } from '../components/ChartSketch';
+import { PrimaryButton, RuledNotice } from '../components/common';
+import { PaperDots } from '../components/PaperDots';
+import { TemplateSheet } from '../components/TemplateSheet';
 import { usePalette } from '../theme/usePalette';
+import { TYPE } from '../theme/type';
 import { useMandarat } from '../store/MandaratContext';
-import { TEMPLATES, templateThemes } from '../data/templates';
+import { templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
+import { announce } from '../lib/useReducedMotion';
 
-const SUGGESTIONS = ['2026 최고의 나', '건강하고 단단한 삶', '성장하는 한 해', '균형 잡힌 일상'];
+/** 목표 예시 — 숫자가 들어간 구체적인 목표(연도는 넣지 않는다). 누르면 입력칸만 채운다 */
+const EXAMPLES = ['몸무게 5kg 줄이기', '토익 900점 넘기', '이직 성공하기'];
 
+const GUTTER = 20;
+
+/**
+ * 처음 화면 — 인쇄된 목표 달성표의 첫 장.
+ * 위에서부터: 질문 하나 · 공책 줄 입력 · 예시 한 줄 · 작은 3×3 표(가운데 칸이 적는 대로 채워지고, 둘레 8칸은 시작할 영역).
+ * 맨 아래 막대에 버튼 하나 — 비어 있으면 '목표는 나중에 쓸게요', 적으면 '시작하기', 템플릿을 고르면 '이 표로 시작하기'.
+ */
 export function Onboarding() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding, applyTemplate } = useMandarat();
+  const { doc, completeOnboarding, applyTemplate, recoveredCopy, dismissRecovered } = useMandarat();
   const [goal, setGoal] = useState('');
+  const [focused, setFocused] = useState(false);
+  // 고른 템플릿 — 바로 시작하지 않고 표에 영역을 먼저 보여 준다
+  const [picked, setPicked] = useState<Template | null>(null);
+  const [sheet, setSheet] = useState(false);
+
+  const typed = goal.trim();
 
   const start = () => {
     tap();
-    completeOnboarding(goal);
+    Keyboard.dismiss();
+    if (picked) applyTemplate(typed || picked.centerGoal, templateThemes(picked));
+    else completeOnboarding(goal);
   };
 
-  const startWithTemplate = (id: string) => {
-    const t = TEMPLATES.find((x) => x.id === id);
-    if (!t) return;
+  // 템플릿 시트가 닫히면 스크린리더 초점을 그 시트를 연 버튼으로 돌려준다
+  const templateBtn = useRef<View>(null);
+
+  const pickTemplate = (t: Template, close: () => void) => {
     tap();
-    applyTemplate(goal.trim() || t.centerGoal, templateThemes(t));
+    // 목표를 아직 안 적었으면(또는 앞서 고른 템플릿의 목표 그대로면) 이 템플릿의 목표를 넣어 둔다 — 고쳐 쓸 수 있다
+    if (!typed || typed === picked?.centerGoal) setGoal(t.centerGoal);
+    setPicked(t);
+    announce(`‘${t.name}’ 영역 8개로 시작해요`);
+    close();
   };
 
-  // hero 그라데이션이 밝은 톤(연꽃)일 때도 읽히도록 색을 적응시킨다.
-  const onLight = M.heroLight;
-  const fieldBg = onLight ? 'rgba(60,45,15,0.05)' : 'rgba(255,255,255,0.10)';
-  const fieldBorder = onLight ? 'rgba(60,45,15,0.16)' : 'rgba(255,255,255,0.16)';
-  const chipBg = onLight ? 'rgba(60,45,15,0.05)' : 'rgba(255,255,255,0.08)';
-  const chipBorder = onLight ? 'rgba(60,45,15,0.12)' : 'rgba(255,255,255,0.12)';
-  const placeholderColor = onLight ? 'rgba(60,45,15,0.4)' : 'rgba(255,255,255,0.35)';
+  const unpick = () => {
+    tap();
+    if (picked && typed === picked.centerGoal) setGoal('');
+    setPicked(null);
+    announce('기본 영역 8개로 시작해요');
+  };
+
+  const areas = picked ? picked.areas.map((a) => a.title) : doc.themes.map((t) => t.title);
+
+  // 스크린리더 이름은 보이는 글 그대로(음성 제어로 부를 수 있게) — 덧붙일 말은 힌트로
+  let cta: { label: string; hint: string; tone: 'accent' | 'quiet' };
+  if (picked) cta = { label: '이 표로 시작하기', hint: `‘${picked.name}’ 표로 시작해요`, tone: 'accent' };
+  else if (typed) cta = { label: '시작하기', hint: '이 목표로 시작해요', tone: 'accent' };
+  else cta = { label: '목표는 나중에 쓸게요', hint: '목표는 나중에 정하고 시작해요', tone: 'quiet' };
 
   return (
-    <LinearGradient colors={M.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: M.bg }}>
+      <PaperDots M={M} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
+        style={{ flex: 1, paddingTop: insets.top }}
       >
-        <View style={{ flex: 1, paddingHorizontal: 28, justifyContent: 'center' }}>
-          <View style={{ position: 'absolute', top: '8%', alignSelf: 'center', opacity: 0.9 }}>
-            <MandalaArt size={300} stroke={M.gold} opacity={0.22} />
-          </View>
-
-          <View style={{ alignItems: 'center', marginBottom: 34 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 22, backgroundColor: M.gold, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-              <Icon name="target" size={32} color={M.center} />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: GUTTER, paddingTop: 40, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+        >
+          {recoveredCopy != null && (
+            <View style={{ marginBottom: 28 }}>
+              <RuledNotice
+                M={M}
+                title="저장된 기록을 읽지 못했어요"
+                body="읽지 못한 기록은 지우지 않고 따로 보관해 두었어요."
+                action={{ label: '닫기', onPress: dismissRecovered }}
+              />
             </View>
-            <Text style={{ fontSize: 13, fontWeight: '700', letterSpacing: 3, color: M.gold, fontFamily: FONTS.grotesk }}>
-              MANDARAT
-            </Text>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: M.heroInk, fontFamily: FONTS.serif, marginTop: 14, textAlign: 'center', lineHeight: 38 }}>
-              올해, 이루고 싶은{'\n'}하나의 큰 뜻은?
-            </Text>
-            <Text style={{ fontSize: 14, color: M.heroSub, marginTop: 12, textAlign: 'center', lineHeight: 21 }}>
-              중심에 핵심 목표를 두고{'\n'}8개의 길과 64개의 실천으로 펼쳐가요
-            </Text>
-          </View>
+          )}
 
+          <Text accessibilityRole="header" style={{ ...TYPE.title, fontSize: 28, lineHeight: 36, color: M.ink }}>
+            올해 꼭 이루고 싶은{'\n'}목표 하나를 적어 주세요
+          </Text>
+
+          {/* 공책 줄 — 상자 없이 밑줄 하나 */}
           <TextInput
             value={goal}
             onChangeText={setGoal}
-            placeholder="예) 2026 최고의 나"
-            placeholderTextColor={placeholderColor}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            accessibilityLabel="핵심 목표"
+            placeholder="예) 첫 마라톤 완주하기"
+            placeholderTextColor={M.sub}
             maxLength={40}
-            style={{
-              backgroundColor: fieldBg,
-              borderWidth: 1, borderColor: fieldBorder,
-              borderRadius: 18, paddingHorizontal: 18, paddingVertical: 16,
-              color: M.heroInk, fontSize: 17, fontWeight: '600', textAlign: 'center',
-            }}
             returnKeyType="done"
-            onSubmitEditing={start}
+            submitBehavior="blurAndSubmit"
+            onSubmitEditing={() => { if (typed) start(); else Keyboard.dismiss(); }}
+            style={{
+              marginTop: 28,
+              paddingHorizontal: 0, paddingVertical: 10,
+              borderBottomWidth: 1.5, borderColor: focused ? M.ink : M.line,
+              color: M.ink, fontSize: 22, fontWeight: '600',
+            }}
           />
 
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 14 }}>
-            {SUGGESTIONS.map((s) => (
+          {/* 예시 한 줄 — 글자마다 누를 수 있다(칩·구분점 없이 띄어 놓기만). 줄이 바뀌어도 32pt 간격, 누르는 자리는 위아래로 넓혀 44pt */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, marginTop: 4 }}>
+            <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>예)</Text>
+            {EXAMPLES.map((s) => (
               <Pressable
                 key={s}
-                onPress={() => setGoal(s)}
-                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
-              >
-                <Text style={{ color: M.heroInk, fontSize: 12.5, fontWeight: '600' }}>{s}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Pressable
-            onPress={start}
-            accessibilityRole="button"
-            accessibilityLabel="빈 만다라트로 시작하기"
-            style={{ marginTop: 28, backgroundColor: M.gold, borderRadius: 18, paddingVertical: 17, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
-          >
-            <Text style={{ color: M.center, fontSize: 16.5, fontWeight: '800' }}>시작하기</Text>
-            <Icon name="chevR" size={18} color={M.center} sw={2.6} />
-          </Pressable>
-
-          <Text style={{ color: M.heroSub, fontSize: 11.5, fontWeight: '600', textAlign: 'center', marginTop: 18, marginBottom: 9 }}>
-            또는 템플릿으로 바로 시작
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-            {TEMPLATES.map((t) => (
-              <Pressable
-                key={t.id}
-                onPress={() => startWithTemplate(t.id)}
+                onPress={() => { tap(); setGoal(s); }}
+                hitSlop={{ top: 6, bottom: 6 }}
                 accessibilityRole="button"
-                accessibilityLabel={`${t.name} 템플릿으로 시작`}
-                style={{ paddingHorizontal: 13, paddingVertical: 8, borderRadius: 16, backgroundColor: chipBg, borderWidth: 1, borderColor: chipBorder }}
+                accessibilityLabel={s}
+                accessibilityHint="예시 · 입력칸에 넣어요"
+                style={({ pressed }) => ({ minHeight: 32, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
               >
-                <Text style={{ color: M.heroInk, fontSize: 12.5, fontWeight: '700' }}>{t.name}</Text>
+                <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{s}</Text>
               </Pressable>
             ))}
           </View>
-          <Text style={{ color: M.heroSub, fontSize: 12, textAlign: 'center', marginTop: 14 }}>
-            나중에 언제든 바꿀 수 있어요
-          </Text>
+
+          {/* 인쇄된 작은 표 — 가운데 칸은 적는 대로, 둘레 8칸은 시작할 영역 */}
+          <View style={{ marginTop: 24, alignItems: 'flex-start' }}>
+            <ChartSketch M={M} size={180} center={goal} areas={areas} revealKey={picked?.id ?? 'scaffold'} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+              <Text style={{ ...TYPE.caption, color: M.sub }}>
+                {picked ? `‘${picked.name}’ 영역 8개로 시작해요` : '기본 영역 8개로 시작해요 · 내 목표에 맞게 바꿀 수 있어요'}
+              </Text>
+              {picked && (
+                <Pressable
+                  onPress={unpick}
+                  hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="되돌리기"
+                  accessibilityHint="기본 영역으로 되돌려요"
+                  style={({ pressed }) => ({ marginLeft: 10, opacity: pressed ? 0.5 : 1 })}
+                >
+                  <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>되돌리기</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* 아래 막대 — 스크롤 밖, 키보드 위에 붙는다 */}
+        <View style={{ marginHorizontal: GUTTER, paddingTop: 8, paddingBottom: Math.max(12, insets.bottom) }}>
+          <PrimaryButton M={M} height={54} label={cta.label} accessibilityHint={cta.hint} tone={cta.tone} onPress={start} />
+          <Pressable
+            ref={templateBtn}
+            onPress={() => { tap(); Keyboard.dismiss(); setSheet(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={picked ? '다른 템플릿 고르기' : '템플릿으로 시작하기'}
+            style={({ pressed }) => ({ alignSelf: 'center', minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', marginTop: 4, opacity: pressed ? 0.5 : 1 })}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: M.sub }}>
+              {picked ? '다른 템플릿 고르기' : '템플릿으로 시작하기'}
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+
+      {sheet && <TemplateSheet M={M} onClose={() => setSheet(false)} onPick={pickTemplate} returnFocusRef={templateBtn} />}
+    </View>
   );
 }

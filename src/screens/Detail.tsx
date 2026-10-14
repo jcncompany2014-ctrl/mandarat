@@ -1,160 +1,324 @@
-import React from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { Header, IconBtn } from '../components/common';
-import { Icon } from '../components/Icon';
-import { Ring } from '../components/Ring';
+import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { PanResponder, Pressable, View, type AccessibilityActionEvent } from 'react-native';
+import { Text } from '../components/AppText';
+import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { Check } from '../components/Check';
-import { FONTS } from '../theme/fonts';
-import { tint } from '../theme/moods';
-import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat, themeProgress, themeStreak } from '../store/MandaratContext';
-import { tap, success } from '../lib/haptics';
+import { ChartBoard } from '../components/ChartBoard';
+import { AnimatedNumber } from '../components/AnimatedNumber';
+import { alertInk } from '../components/KindBits';
+import { NUM, RHYTHM, TYPE } from '../theme/type';
+import { legibleMark } from '../theme/chart';
+import { usePalette, type M as Palette } from '../theme/usePalette';
+import { useUIActions } from '../navigation/ui';
+import { useActions, useDoc, dateKey, themeProgress, themeStreak } from '../store/MandaratContext';
+import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
+import { kindLine } from '../lib/kinds';
+import { kindOf } from '../lib/routine';
+import { announce, screenReader } from '../lib/useReducedMotion';
+import { areaTitle, neighborArea, pageSpeech, rowLabelFor, rowStatus } from '../lib/areaPage';
+import type { Action } from '../types';
 
-const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
+/** 왼쪽 표시(체크 칸·상태 네모) 한 변 */
+const MARK = 22;
+/** 왼쪽 가장자리 쓸기는 Root의 '뒤로'가 받는다 — 이 안에서 시작한 쓸기로는 영역을 넘기지 않는다 */
+const EDGE = 28;
 
-export function Detail({ ti }: { ti: number }) {
+/**
+ * 이전·다음 버튼(또는 쓸기)으로 넘겨 온 영역 — 다음 영역 화면이 그려질 때 한 번 읽어 준다.
+ * Root가 영역마다 이 화면을 새로 그리므로(key = ti) 화면 밖에 둔다.
+ */
+let pagedTo: number | null = null;
+
+/**
+ * 영역 화면 — 이 영역에서 무엇을 얼마나 달성했는지 보는 곳.
+ * 보드와 목록은 습관·쌓기·마음가짐을 체크하지 않는다(하루 체크는 오늘·홈·실천 시트에서).
+ * 목록에서 바로 바꿀 수 있는 건 '한 번' 실천의 달성뿐이다.
+ */
+export const Detail = memo(function Detail({ ti }: { ti: number }) {
   const M = usePalette();
-  const { doc, toggleDone } = useMandarat();
-  const { go, openAction, openEditor } = useUI();
+  const { doc } = useDoc();
+  const { toggleDone } = useActions();
+  const { go, back, openAction, openEditor } = useUIActions();
   const th = doc.themes[ti];
   const p = themeProgress(th);
-  const streak = themeStreak(doc, ti);
-  const cellR = doc.settings.cellShape === '각진' ? 4 : 14;
+  // 영역 연속 기록은 기록 전체를 한 번 훑는다 — 기록(dayLog)이나 날짜가 바뀔 때만 다시 센다
+  const day = dateKey();
+  const streak = useMemo(() => themeStreak(doc, ti), [doc.dayLog, ti, day]); // eslint-disable-line react-hooks/exhaustive-deps
+  const now = new Date();
+  const title = areaTitle(doc, ti);
+  const prevTi = neighborArea(ti, -1);
+  const nextTi = neighborArea(ti, 1);
 
-  const onCell = (ai: number) => {
-    const a = th.actions[ai];
-    if (a.text.trim()) {
-      tap();
-      if (!a.done) success();
-      toggleDone(ti, ai);
-    } else {
-      openEditor({ kind: 'action', ti, ai });
-    }
+  // 넘겨 온 영역이면 제목으로 초점이 옮겨진 뒤(Header focusTitle) 어느 영역인지 읽어 준다
+  useEffect(() => {
+    if (pagedTo !== ti) return;
+    pagedTo = null;
+    if (screenReader()) announce(pageSpeech(doc, ti));
+    // 처음 그려질 때만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const page = (dir: -1 | 1) => {
+    tap();
+    const to = neighborArea(ti, dir);
+    pagedTo = to;
+    go('detail', to);
   };
 
+  /** 칸·줄을 눌렀을 때 — 쓴 칸은 실천 시트, 빈 칸은 바로 쓰기 */
+  const open = (ai: number) => {
+    if (th.actions[ai].text.trim()) openAction(ti, ai);
+    else openEditor({ kind: 'action', ti, ai });
+  };
+
+  const toggleOnce = (a: Action, ai: number) => {
+    if (a.done) uncheckHaptic();
+    else checkHaptic();
+    toggleDone(ti, ai);
+  };
+
+  // 줄에 넘기는 함수는 고정 — 최신 open · toggleOnce · 칸을 ref로 읽는다(줄이 체크마다 다시 그려지지 않게)
+  const latest = useRef({ open, toggleOnce, th });
+  latest.current = { open, toggleOnce, th };
+  const onRowOpen = useCallback((ai: number) => { tap(); latest.current.open(ai); }, []);
+  const onRowToggle = useCallback((ai: number) => {
+    const a = latest.current.th.actions[ai];
+    if (a) latest.current.toggleOnce(a, ai);
+  }, []);
+  // 보드도 같은 고정 함수로(보드는 칸마다 memo — ChartBoard가 함수도 ref로 읽지만, 보드 자체도 다시 그리지 않게)
+  const onBoardCell = onRowOpen;
+  const onBoardLong = useCallback((ai: number) => openEditor({ kind: 'action', ti, ai }), [openEditor, ti]);
+  const onBoardHead = useCallback(() => openEditor({ kind: 'theme', ti }), [openEditor, ti]);
+
+  // 좌우로 쓸어 이전·다음 영역으로 (세로 스크롤은 그대로)
+  const swipe = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) => g.x0 >= EDGE && Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+        onPanResponderRelease: (_, g) => {
+          if (g.dx < -60 || g.vx < -0.6) page(1);
+          else if (g.dx > 60 || g.vx > 0.6) page(-1);
+        },
+      }),
+    // page는 ti·go만 쓴다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ti, go],
+  );
+
+  const sectionHead = { ...TYPE.section, color: M.ink, paddingHorizontal: RHYTHM.gutter } as const;
+
   return (
-    <View>
+    <View {...swipe.panHandlers} onAccessibilityEscape={back}>
       <Header
         M={M}
-        en={`Pillar ${ti + 1}`}
-        kr={th.title || `영역 ${ti + 1}`}
-        onBack={() => go('grid')}
+        sub={`영역 ${ti + 1} / 8`}
+        kr={title}
+        onBack={back}
+        stacked
+        focusTitle
         right={
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            <IconBtn M={M} name="pencil" label="영역 편집" onPress={() => openEditor({ kind: 'theme', ti })} />
-            <IconBtn M={M} name="chevL" label="이전 영역" onPress={() => go('detail', (ti + 7) % 8)} />
-            <IconBtn M={M} name="chevR" label="다음 영역" onPress={() => go('detail', (ti + 1) % 8)} />
-          </View>
+          <Pressable
+            onPress={() => openEditor({ kind: 'theme', ti })}
+            accessibilityRole="button"
+            accessibilityLabel="고치기"
+            accessibilityHint="영역 이름 고치기"
+            hitSlop={4}
+            style={({ pressed }) => ({ minWidth: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>고치기</Text>
+          </Pressable>
         }
       />
 
-      {/* hero */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 18 }}>
-        <View style={{ borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 18, backgroundColor: tint(th.color, M.dark ? 20 : 12, M.dark), borderWidth: 1, borderColor: tint(th.color, 30, M.dark) }}>
-          <Ring pct={p.pct} size={84} stroke={8} color={th.color} track={M.dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}>
-            <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={th.icon} size={22} color="#fff" />
-            </View>
-          </Ring>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 30, fontWeight: '800', color: M.ink, fontFamily: FONTS.grotesk }}>
-              {p.done}
-              <Text style={{ fontSize: 18, color: M.faint }}> / 8</Text>
-            </Text>
-            <Text style={{ fontSize: 13.5, color: M.sub, fontWeight: '600', marginTop: 2 }}>실천 항목 달성</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, alignSelf: 'flex-start', backgroundColor: M.surface, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20 }}>
-              <Icon name="flame" size={13} color={th.color} />
-              <Text style={{ fontSize: 12, color: th.color, fontWeight: '700' }}>
-                {streak.cur > 0 ? `${streak.cur}일 연속` : '오늘 시작해보세요'}
-              </Text>
-            </View>
-          </View>
-        </View>
+      {/* 달성 수 — 큰 숫자 하나 */}
+      <View
+        accessible
+        accessibilityLabel={`8칸 중 ${p.done}칸 달성${streak.cur > 0 ? `, ${streak.cur}일 연속` : ''}`}
+        style={{ paddingHorizontal: RHYTHM.gutter, paddingBottom: 20, flexDirection: 'row', alignItems: 'baseline', gap: 10 }}
+      >
+        <Text style={{ ...TYPE.title, ...NUM, color: M.ink }} maxFontSizeMultiplier={1.35}>
+          <AnimatedNumber value={p.done} />
+          <Text style={{ ...TYPE.rowTitle, ...NUM, color: M.sub }} maxFontSizeMultiplier={1.35}> / 8 달성</Text>
+        </Text>
+        <View style={{ flex: 1 }} />
+        {streak.cur > 0 && (
+          <Text style={{ ...TYPE.caption, ...NUM, color: M.sub }}>{`${streak.cur}일 연속`}</Text>
+        )}
       </View>
 
-      {/* mini 3×3 board */}
-      <Text style={{ paddingHorizontal: 20, fontSize: 14, fontWeight: '800', color: M.ink }}>실천 보드</Text>
-      <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
-          {RING_MAP.map((r, pos) => {
-            if (pos === 4) {
+      {/* 실천 보드 — 81칸의 크게 보기와 같은 보드 */}
+      <Text accessibilityRole="header" style={sectionHead}>실천 보드</Text>
+      <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10, paddingBottom: RHYTHM.sectionTop }}>
+        <ChartBoard
+          M={M}
+          doc={doc}
+          ti={ti}
+          onCell={onBoardCell}
+          onCellLong={onBoardLong}
+          onHead={onBoardHead}
+        />
+      </View>
+
+      {p.filled === 0 ? (
+        // 아직 쓴 칸이 없으면 빈 줄 8개 대신 한 줄만
+        <View style={{ marginHorizontal: RHYTHM.gutter, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, minHeight: RHYTHM.row, justifyContent: 'center' }}>
+          <Text style={{ ...TYPE.body, color: M.sub }}>칸을 눌러 실천 8개를 채워요</Text>
+        </View>
+      ) : (
+        <>
+          <Text accessibilityRole="header" style={sectionHead}>실천 8개</Text>
+          {/* 한 면에 8줄 — 카드 없이 가는 선으로만 나눈다 */}
+          <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10 }}>
+            {th.actions.map((a, ai) => {
+              const line = kindLine(doc, ti, ai, now);
               return (
-                <View key={pos} style={{ width: '31.5%', aspectRatio: 1, borderRadius: cellR, backgroundColor: th.color, alignItems: 'center', justifyContent: 'center', padding: 6 }}>
-                  <Icon name={th.icon} size={20} color="rgba(255,255,255,0.9)" />
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', marginTop: 4, textAlign: 'center' }} numberOfLines={1}>
-                    {th.title || `영역 ${ti + 1}`}
-                  </Text>
-                </View>
+                <ActionRow
+                  key={ai}
+                  M={M}
+                  a={a}
+                  ai={ai}
+                  first={ai === 0}
+                  last={ai === th.actions.length - 1}
+                  color={th.color}
+                  seed={`${ti}-${ai}`}
+                  status={rowStatus(doc, ti, ai, now)}
+                  overdue={!!line?.alert}
+                  label={rowLabelFor(a, ai, line)}
+                  onOpen={onRowOpen}
+                  onToggle={onRowToggle}
+                />
               );
-            }
-            const ai = r as number;
-            const a = th.actions[ai];
-            const has = !!a.text.trim();
-            return (
-              <Pressable
-                key={pos}
-                onPress={() => onCell(ai)}
-                accessibilityRole={has ? 'checkbox' : 'button'}
-                accessibilityState={has ? { checked: a.done } : undefined}
-                accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력`}
-                style={{
-                  width: '31.5%', aspectRatio: 1, borderRadius: cellR, alignItems: 'center', justifyContent: 'center', padding: 7,
-                  backgroundColor: a.done ? th.color : tint(th.color, M.dark ? 20 : 12, M.dark),
-                }}
-              >
-                <Text style={{ fontSize: 11.5, fontWeight: '700', textAlign: 'center', lineHeight: 14, color: a.done ? '#fff' : has ? (M.dark ? '#fff' : '#211F1A') : M.faint }} numberOfLines={3}>
-                  {has ? a.text : '＋ 입력'}
-                </Text>
-                {a.done && (
-                  <View style={{ position: 'absolute', top: 6, right: 6 }}>
-                    <Icon name="check" size={13} color="#fff" sw={2.8} />
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+            })}
+          </View>
+        </>
+      )}
 
-      {/* checklist */}
-      <Text style={{ paddingHorizontal: 20, fontSize: 14, fontWeight: '800', color: M.ink }}>체크리스트</Text>
-      <View style={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 16, gap: 8 }}>
-        {th.actions.map((a, ai) => {
-          const has = !!a.text.trim();
-          return (
-            <Pressable
-              key={ai}
-              onPress={() => (has ? openAction(ti, ai) : openEditor({ kind: 'action', ti, ai }))}
-              accessibilityRole="button"
-              accessibilityLabel={has ? a.text : `실천 ${ai + 1} 입력하기`}
-              accessibilityHint={has ? '실천 항목 자세히 보기' : '실천 항목 입력하기'}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingHorizontal: 15, paddingVertical: 13, borderRadius: 16, borderWidth: 1, borderColor: M.line, backgroundColor: a.done ? tint(th.color, M.dark ? 14 : 7, M.dark) : M.surface }}
-            >
-              <Pressable
-                onPress={() => { if (has) { tap(); if (!a.done) success(); toggleDone(ti, ai); } }}
-                hitSlop={10}
-                disabled={!has}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: a.done, disabled: !has }}
-                accessibilityLabel={has ? `${a.text} 완료` : '실천 항목 완료'}
-              >
-                <Check on={a.done} color={th.color} dark={M.dark} />
-              </Pressable>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  style={{ fontSize: 15, fontWeight: '600', letterSpacing: -0.2, color: has ? (a.done ? M.sub : M.ink) : M.faint, textDecorationLine: a.done ? 'line-through' : 'none' }}
-                  numberOfLines={1}
-                >
-                  {has ? a.text : `실천 ${ai + 1} 입력하기`}
-                </Text>
-              </View>
-              {!!a.note && <Icon name="pencil" size={14} color={M.faint} />}
-              <Icon name="chevR" size={17} color={M.faint} />
-            </Pressable>
-          );
-        })}
+      {/* 이웃 영역 — 괘선 바닥줄. 위의 목록(또는 빈 안내)이 이미 괘선으로 끝나 그 선이 바닥줄의 윗선이다(선을 한 번 더 긋지 않는다) */}
+      <View style={{ marginHorizontal: RHYTHM.gutter, height: 56, flexDirection: 'row', alignItems: 'stretch' }}>
+        <FooterLink M={M} label={`‹ ${areaTitle(doc, prevTi)}`} speech={`이전 영역, ${areaTitle(doc, prevTi)}`} align="left" onPress={() => page(-1)} />
+        <FooterLink M={M} label={`${areaTitle(doc, nextTi)} ›`} speech={`다음 영역, ${areaTitle(doc, nextTi)}`} align="right" onPress={() => page(1)} />
       </View>
     </View>
+  );
+});
+
+/**
+ * 실천 한 줄 — 왼쪽 표시 · 글 · 오른쪽 상태.
+ * - 한 번: 누를 수 있는 체크 칸(칸 달성을 바꾼다).
+ * - 습관·쌓기·마음가짐: 누를 수 없으니 체크 칸을 그리지 않는다 — 달성이면 81칸의 '칠한 칸 = 달성'과 같은 작은 색 네모, 아니면 빈자리.
+ *   하루 체크는 여기서 하지 않는다.
+ * - 달성한 줄은 유형과 상관없이 한 모습: 먹 글씨 그대로, 오른쪽에 '달성'.
+ * - 빈 칸: 표시 없이 '실천 n 채우기'.
+ * 줄을 누르면 쓴 칸은 실천 시트, 빈 칸은 쓰기.
+ */
+/** 실천 한 줄 — 칸(a)과 값이 그대로면 다시 그리지 않는다. onOpen · onToggle은 칸 번호를 받는 고정된 함수 */
+const ActionRow = memo(function ActionRow({
+  M, a, ai, first, last, color, seed, status, overdue, label, onOpen: openAt, onToggle: toggleAt,
+}: {
+  M: Palette;
+  a: Action;
+  ai: number;
+  first: boolean;
+  last: boolean;
+  color: string;
+  seed: string;
+  status: string;
+  overdue: boolean;
+  label: string;
+  onOpen: (ai: number) => void;
+  onToggle: (ai: number) => void;
+}) {
+  const onOpen = () => openAt(ai);
+  const onToggle = () => toggleAt(ai);
+  const has = !!a.text.trim();
+  const once = has && kindOf(a) === 'once';
+
+  const actions = once ? [{ name: 'toggle', label: a.done ? '달성 풀기' : '달성으로 표시' }] : undefined;
+  const onAction = (e: AccessibilityActionEvent) => {
+    if (e.nativeEvent.actionName === 'toggle') onToggle();
+    else if (e.nativeEvent.actionName === 'activate') onOpen();
+  };
+
+  let mark: React.ReactNode = <View style={{ width: MARK, height: MARK }} />;
+  if (once) {
+    mark = (
+      <Pressable
+        onPress={onToggle}
+        hitSlop={11}
+        // 줄 전체가 화면 읽기의 한 덩어리 — 체크는 동작 목록('달성으로 표시')으로 한다
+        accessible={false}
+        importantForAccessibility="no"
+      >
+        <Check on={a.done} color={color} dark={M.dark} size={MARK} seed={seed} />
+      </Pressable>
+    );
+  } else if (has && a.done) {
+    mark = (
+      <View style={{ width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: legibleMark(color, M.bg, M) }} />
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="자세히 봐요"
+      accessibilityActions={actions ? [{ name: 'activate' }, ...actions] : undefined}
+      onAccessibilityAction={actions ? onAction : undefined}
+      style={({ pressed }) => [
+        groupEdge(M, first, last),
+        { minHeight: RHYTHM.row, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
+        pressed ? pressedRow(M) : null,
+      ]}
+    >
+      {!first && <RowDivider M={M} inset={MARK + 14} />}
+      {mark}
+      <Text
+        style={{
+          ...TYPE.rowTitle, flex: 1, minWidth: 0,
+          color: has ? M.ink : M.sub,
+          fontWeight: has ? TYPE.rowTitle.fontWeight : '500',
+        }}
+        numberOfLines={2}
+      >
+        {has ? a.text : `실천 ${ai + 1} 채우기`}
+      </Text>
+      {!!status && (
+        <Text style={{ fontSize: 13, fontWeight: '600', color: overdue ? alertInk(M) : M.sub, ...NUM }} numberOfLines={1}>
+          {status}
+        </Text>
+      )}
+    </Pressable>
+  );
+});
+
+/** 바닥줄의 이웃 영역 글자 버튼 — 반쪽씩 */
+function FooterLink({
+  M, label, speech, align, onPress,
+}: {
+  M: Palette;
+  label: string;
+  speech: string;
+  align: 'left' | 'right';
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={speech}
+      style={({ pressed }) => ({
+        flex: 1, minWidth: 0, justifyContent: 'center',
+        alignItems: align === 'left' ? 'flex-start' : 'flex-end',
+        opacity: pressed ? 0.5 : 1,
+      })}
+    >
+      <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink }} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
