@@ -31,6 +31,7 @@ import { PickToday } from '../overlays/PickToday';
 import { PaperDots } from '../components/PaperDots';
 import { Celebration } from '../overlays/Celebration';
 import { CellEditor } from '../overlays/CellEditor';
+import { WeekRitual } from '../overlays/WeekRitual';
 import { Snackbar } from '../overlays/Snackbar';
 
 type TabId = 'dashboard' | 'grid' | 'today' | 'stats';
@@ -84,7 +85,7 @@ export function Root() {
   // 최신 값을 PanResponder·타이머 같은 오래 사는 콜백에서 읽는다
   const uiRef = useRef(ui);
   uiRef.current = ui;
-  const anyOverlay = !!(ui.sheet || ui.focus || ui.editor || ui.pick || ui.quick || ui.celebrate);
+  const anyOverlay = !!(ui.sheet || ui.focus || ui.editor || ui.pick || ui.quick || ui.celebrate || ui.ritual);
 
   // ── 종이가 글과 함께 움직인다 ────────────────────────────────────────────
   // 스크롤 y를 네이티브에서 바로 받아 점 무늬를 (y % 18)만큼 올린다 — 무늬는 18마다 되풀이되므로 한 장으로 끝없이 이어진다
@@ -336,6 +337,7 @@ export function Root() {
       <QuickAdd />
       <PickToday />
       <CellEditor />
+      <WeekRitual />
       <Celebration count={todayTotal} />
       <Snackbar />
     </View>

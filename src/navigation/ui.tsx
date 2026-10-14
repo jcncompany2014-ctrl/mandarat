@@ -48,6 +48,11 @@ export interface Toast {
 
 export type CelebrateKind = 'today' | 'bloom';
 
+export interface RitualTarget {
+  week: string;
+  readOnly?: boolean;
+}
+
 interface UICtx {
   screen: Screen;
   ti: number;
@@ -92,6 +97,12 @@ interface UICtx {
   openEditor: (e: EditorTarget) => void;
   closeEditor: () => void;
 
+  /** 한 주 돌아보기 — week는 돌아볼 주의 월요일 'YYYY-MM-DD', readOnly면 지난 기록을 첫 쪽만 본다 */
+  ritual: RitualTarget | null;
+  /** 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
+  openRitual: (week: string, readOnly?: boolean) => void;
+  closeRitual: () => void;
+
   /** 오늘 할 일을 다 해서 하루를 마감한 날(YYYY-MM-DD) — 하루에 한 번만 마감한다 */
   closedDay: string | null;
   /** 마감할 때마다 1씩 오른다 — 화면이 이 값이 바뀌는 걸 보고 마감 줄을 긋는다 */
@@ -123,6 +134,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [pick, setPick] = useState(false);
   const [celebrate, setCelebrate] = useState<CelebrateKind | null>(null);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [ritual, setRitual] = useState<RitualTarget | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [closedDay, setClosedDay] = useState<string | null>(null);
   const [dayCloseTick, setDayCloseTick] = useState(0);
@@ -152,7 +164,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
 
   // ── 겹치지 않는 시트(오버레이 대기열) ──────────────────────────────────────
   // 새 오버레이를 추가하는 패키지는 아래 anyOpen에 자기 상태를 더한다.
-  const anyOpen = !!(sheet || focus || editor || pick || quick || celebrate);
+  const anyOpen = !!(sheet || focus || editor || pick || quick || celebrate || ritual);
   const anyOpenRef = useRef(anyOpen);
   anyOpenRef.current = anyOpen;
   const queue = useRef<(() => void)[]>([]);
@@ -220,6 +232,21 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const openEditor = useCallback((e: EditorTarget) => setEditor(e), []);
   const closeEditor = useCallback(() => setEditor(null), []);
 
+  const openRitual = useCallback((week: string, readOnly?: boolean) => {
+    if (typeof week !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(week)) return;
+    const target: RitualTarget = readOnly ? { week, readOnly: true } : { week };
+    if (anyOpenRef.current) afterOverlays(() => setRitual(target));
+    else setRitual(target);
+  }, [afterOverlays]);
+  const closeRitual = useCallback(() => setRitual(null), []);
+
+  // 웹 미리보기·화면 캡처용 손잡이 — window.__ui.openRitual('YYYY-MM-DD')
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !__DEV__) return;
+    const g = globalThis as { __ui?: Record<string, unknown> };
+    g.__ui = { ...(g.__ui ?? {}), openRitual, closeRitual };
+  }, [openRitual, closeRitual]);
+
   // ── 하루 마감 ────────────────────────────────────────────────────────────
   const closedRef = useRef<string | null>(null);
   const markDayClosed = useCallback((day: string) => {
@@ -252,6 +279,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       pick, openPick, closePick,
       celebrate, fireCelebrate, closeCelebrate,
       editor, openEditor, closeEditor,
+      ritual, openRitual, closeRitual,
       closedDay, dayCloseTick, markDayClosed,
       toast, showToast, hideToast,
     }),
@@ -260,6 +288,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       sheet, openAction, closeSheet, focus, startFocus, closeFocus,
       quick, quickTi, openQuick, closeQuick, pick, openPick, closePick,
       celebrate, fireCelebrate, closeCelebrate, editor, openEditor, closeEditor,
+      ritual, openRitual, closeRitual,
       closedDay, dayCloseTick, markDayClosed, toast, showToast, hideToast,
     ],
   );
