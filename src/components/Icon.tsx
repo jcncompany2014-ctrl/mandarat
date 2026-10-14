@@ -1,8 +1,6 @@
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 import type { IconName } from '../types';
-import { MOOD_COLORS } from '../theme/palette';
-import { FaceHard, FaceLow, FaceNeutral, FaceGood, FaceBest, FaceProps } from './MoodFaces';
 import {
   IcPulse, IcCase, IcBook, IcPeople, IcCoin, IcBrush, IcBreath, IcMountain, type AreaIconProps,
 } from './AreaIcons';
@@ -23,15 +21,6 @@ const MAP: Record<IconName, React.ComponentType<AreaIconProps>> = {
   close: X, reset: RotateCcw, trash: Trash2, share: Share2, repeat: Repeat,
   download: Download, restore: ArchiveRestore, minus: Minus,
 };
-
-type FaceComp = React.ComponentType<FaceProps>;
-export const MOOD_FACES: { ic: FaceComp; kr: string; c: string }[] = [
-  { ic: FaceHard, kr: '힘듦', c: MOOD_COLORS[0] },
-  { ic: FaceLow, kr: '별로', c: MOOD_COLORS[1] },
-  { ic: FaceNeutral, kr: '보통', c: MOOD_COLORS[2] },
-  { ic: FaceGood, kr: '좋음', c: MOOD_COLORS[3] },
-  { ic: FaceBest, kr: '최고', c: MOOD_COLORS[4] },
-];
 
 // 기본으로 채워 그리는 아이콘 — 없음. 모든 아이콘은 펜 선이다(불꽃·반짝임도 선으로).
 const FILLED = new Set<IconName>();

@@ -3,7 +3,8 @@ import {
   Animated, Platform, StyleSheet, Text as RNText, TextInput as RNTextInput,
   type TextInputProps, type TextProps, type TextStyle,
 } from 'react-native';
-import { faceFor, isPretendard } from '../theme/fonts';
+import { faceFor, heavierFace, isPretendard } from '../theme/fonts';
+import { useBoldText } from '../lib/useReducedMotion';
 
 /**
  * 앱 전체 글자 — fontWeight를 그 굵기의 Pretendard 파일로 바꿔 끼운다.
@@ -15,6 +16,7 @@ import { faceFor, isPretendard } from '../theme/fonts';
  * - 시스템 글자 크기(더 큰 텍스트)는 본문을 2배까지 따른다(WCAG 200%).
  *   11pt 이하 작은 글자는 대부분 크기가 정해진 자리(탭바·링·격자 칸·배지)에 있어 1.3배까지만 — 칸이 깨지지 않게.
  *   그 밖에 정해진 칸 안의 글자는 쓰는 곳에서 maxFontSizeMultiplier를 직접 준다.
+ * - iOS '굵은 텍스트'가 켜지면 모든 글자가 한 단계 굵은 파일로(faceFor의 bold) — 앱 서체는 OS가 굵게 해 주지 않는다.
  */
 const Nested = createContext(false);
 
@@ -27,14 +29,15 @@ const scaleCap = (style: TextProps['style']) => {
   return typeof fs === 'number' && fs <= 11 ? SMALL_SCALE : MAX_SCALE;
 };
 
-function typeset(style: TextProps['style'], nested: boolean): TextStyle | null {
+function typeset(style: TextProps['style'], nested: boolean, bold: boolean): TextStyle | null {
   const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
   const fam = flat.fontFamily;
   if (fam && !isPretendard(fam)) return null;
   const weight = flat.fontWeight;
+  // 굵기를 따로 주지 않은 중첩 글자는 부모 서체를 물려받는다(부모가 이미 굵은 텍스트를 따랐다)
   if (nested && !fam && weight == null) return null;
   const out: TextStyle = {
-    fontFamily: weight != null || !fam ? faceFor(weight) : fam,
+    fontFamily: weight != null || !fam ? faceFor(weight, bold) : bold ? heavierFace(fam) : fam,
     fontWeight: 'normal',
   };
   if (!nested && flat.letterSpacing == null && typeof flat.fontSize === 'number') {
@@ -46,7 +49,8 @@ function typeset(style: TextProps['style'], nested: boolean): TextStyle | null {
 
 export const Text = forwardRef<RNText, TextProps>(function Text({ style, children, lineBreakStrategyIOS = 'hangul-word', maxFontSizeMultiplier, ...rest }, ref) {
   const nested = useContext(Nested);
-  const extra = typeset(style, nested);
+  const bold = useBoldText();
+  const extra = typeset(style, nested, bold);
   return (
     <RNText
       ref={ref}
@@ -61,7 +65,8 @@ export const Text = forwardRef<RNText, TextProps>(function Text({ style, childre
 });
 
 export const TextInput = forwardRef<RNTextInput, TextInputProps>(function TextInput({ style, maxFontSizeMultiplier = MAX_SCALE, ...rest }, ref) {
-  const extra = typeset(style as TextProps['style'], false);
+  const bold = useBoldText();
+  const extra = typeset(style as TextProps['style'], false, bold);
   return <RNTextInput ref={ref} {...rest} maxFontSizeMultiplier={maxFontSizeMultiplier} style={extra ? [style, extra] : style} />;
 });
 

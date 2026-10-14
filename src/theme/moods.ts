@@ -19,47 +19,34 @@ export interface Palette {
    */
   goldInk: string;
   center: string;
-  /** @deprecated 그라디언트 히어로는 없어졌다 — W4-B에서 지운다. */
-  hero: readonly [string, string, string]; // gradient stops
-  /** @deprecated 히어로 위 글씨 — W4-B에서 지운다. */
-  heroInk: string;    // primary text over the hero gradient
-  /** @deprecated 히어로 위 보조 글씨 — W4-B에서 지운다. */
-  heroSub: string;    // secondary text over the hero gradient
-  /** @deprecated Root의 상태 표시줄 색이 아직 읽는다(W1-H까지). W4-B에서 지운다. */
-  heroLight: boolean; // true when the hero gradient itself is a light tone
 }
 
 export const MOODS: Record<Mood, Palette> = {
-  // 연꽃 — 한지 미색 + 은은한 골드. 만다라의 명상적 뿌리를 곱고 단정하게.
+  // '연꽃'은 저장값 이름 그대로(화면에는 '미색') — 한지 미색 종이 + 은은한 골드.
   연꽃: {
     bg: '#FBF9F4', surface: '#FFFFFF', card: '#FFFFFF', ink: '#2B2620', sub: '#6F6657',
     faint: '#AAA08D', line: 'rgba(110,85,40,0.12)', tabBg: '#FBF9F4', dark: false,
-    gold: '#B0883C', goldInk: '#8B6D34', center: '#2B2620', hero: ['#F3EAD6', '#EFE3C9', '#E8D9B8'],
-    heroInk: '#322B1E', heroSub: '#8C7E5F', heroLight: true,
+    gold: '#B0883C', goldInk: '#8B6D34', center: '#2B2620',
   },
   크림: {
     bg: '#F4EEE3', surface: '#FFFFFF', card: '#FFFFFF', ink: '#211F1A', sub: '#6E695E',
     faint: '#A39C8C', line: 'rgba(40,34,20,0.10)', tabBg: '#F7F2E9', dark: false,
-    gold: '#B58A3A', goldInk: '#826631', center: '#221F2E', hero: ['#2D2747', '#211B33', '#1A1528'],
-    heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
+    gold: '#B58A3A', goldInk: '#826631', center: '#221F2E',
   },
   화이트: {
     bg: '#EEEFF3', surface: '#FFFFFF', card: '#FFFFFF', ink: '#16171C', sub: '#686B75',
     faint: '#A2A5B0', line: 'rgba(20,22,30,0.09)', tabBg: '#F5F6FA', dark: false,
-    gold: '#A8842F', goldInk: '#826632', center: '#1A1A26', hero: ['#262442', '#1A1930', '#141324'],
-    heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
+    gold: '#A8842F', goldInk: '#826632', center: '#1A1A26',
   },
   파스텔: {
     bg: '#F0ECFA', surface: '#FFFFFF', card: '#FFFFFF', ink: '#272040', sub: '#6C6592',
     faint: '#A89FC8', line: 'rgba(50,36,90,0.10)', tabBg: '#F4F0FC', dark: false,
-    gold: '#9B82C4', goldInk: '#81653D', center: '#271F44', hero: ['#3A2F66', '#2A2150', '#221A42'],
-    heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
+    gold: '#9B82C4', goldInk: '#81653D', center: '#271F44',
   },
   다크: {
     bg: '#0E0D14', surface: '#191824', card: '#1C1B28', ink: '#F1EFEA', sub: '#9C9AAA',
     faint: '#615F72', line: 'rgba(255,255,255,0.11)', tabBg: '#14131E', dark: true,
-    gold: '#CBA352', goldInk: '#CBA352', center: '#14121E', hero: ['#221F33', '#171523', '#100E1A'],
-    heroInk: '#FFFFFF', heroSub: 'rgba(255,255,255,0.55)', heroLight: false,
+    gold: '#CBA352', goldInk: '#CBA352', center: '#14121E',
   },
 };
 
@@ -154,6 +141,24 @@ export function withAccent(P: Palette, accent: string): Palette & { accent: stri
   const M = { ...P, accent };
   M.goldInk = accentInk(M);
   return M;
+}
+
+// ── 대비 증가(Increase Contrast) ────────────────────────────────────────────
+/** 'rgba(r,g,b,a)'의 알파만 k배(최대 1). 알파가 없는 색은 그대로 */
+function scaleAlpha(color: string, k: number): string {
+  const m = color.trim().match(/^rgba\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([\d.]+)\s*\)$/i);
+  if (!m) return color;
+  const a = Math.min(1, Number(m[4]) * k);
+  return `rgba(${m[1].trim()},${m[2].trim()},${m[3].trim()},${Number(a.toFixed(3))})`;
+}
+
+/**
+ * 먹을 진하게 한 판 — iOS '대비 증가'가 켜졌을 때 usePalette()가 돌려준다.
+ * 같은 종이에 더 진한 펜으로 그린 수첩처럼: 괘선(line)의 알파 2배, 흐린 글씨(faint)는 보조 글씨(sub)로.
+ * 색·포인트 컬러·종이는 그대로 두어 화면의 모양은 바뀌지 않는다.
+ */
+export function contrastEdition<T extends Palette>(P: T): T {
+  return { ...P, line: scaleAlpha(P.line, 2), faint: P.sub };
 }
 
 /** Mix `color` `amt`% with a light/dark base — replacement for CSS color-mix. */

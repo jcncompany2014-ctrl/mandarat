@@ -2,10 +2,22 @@ import React, { memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import { EASE } from '../theme/motion';
-import { reducedMotion } from '../lib/useReducedMotion';
+import { reducedMotion, useIncreaseContrast } from '../lib/useReducedMotion';
 import { MUTED_OPACITY, TICK_DASH, TICK_PATH, checkBorder, seedTilt, tickInk } from '../lib/marks';
 
 const APath = Animated.createAnimatedComponent(Path);
+
+/** '대비 증가'에서의 빈 칸 테두리 — 먹 70%(다크는 흰색 55%), 굵기 2 */
+const STRONG_BORDER = { light: 'rgba(43,38,32,0.70)', dark: 'rgba(255,255,255,0.55)' } as const;
+
+/**
+ * 빈 체크 칸·점수 칸의 테두리 — 평소에는 checkBorder(종이 위 3:1 이상), iOS '대비 증가'에서는 더 진하고 굵게.
+ * 테두리를 그리는 컴포넌트가 useIncreaseContrast()의 값을 넘긴다.
+ */
+export function checkEdge(dark: boolean, more: boolean): { color: string; width: number } {
+  if (more) return { color: dark ? STRONG_BORDER.dark : STRONG_BORDER.light, width: 2 };
+  return { color: checkBorder(dark), width: 1.6 };
+}
 
 /** 칸이 영역 색으로 칠해지는 시간 */
 const FILL_MS = 120;
@@ -22,6 +34,7 @@ const TICK_MS = 170;
  * - muted면 칸 전체(칠과 획을 함께)를 55%로 — '완료' 묶음처럼 조용히 보일 때. 표시는 다른 곳과 같은
  *   '영역 색 칠 + 흰 획'이고 농도만 낮다(획 색을 따로 고르지 않는다 — 밝은 종이·다크 모두 같은 획).
  * - 처음 그려질 때와 '동작 줄이기'에서는 움직이지 않고 마지막 모습으로.
+ * - iOS '대비 증가'에서는 빈 칸 테두리가 먹 70% · 굵기 2로 진해진다(checkEdge).
  * 촉감(check/uncheck)과 화면 읽기 이름은 이 칸을 감싼 버튼이 맡는다(여기는 그림만).
  */
 export const Check = memo(function Check({
@@ -40,6 +53,7 @@ export const Check = memo(function Check({
   const fill = useRef(new Animated.Value(on ? 1 : 0)).current;
   const draw = useRef(new Animated.Value(on ? 1 : 0)).current;
   const shown = useRef(on);
+  const edge = checkEdge(dark, useIncreaseContrast());
 
   useEffect(() => {
     // 값이 바뀐 때만 움직인다(처음 그릴 때는 이미 마지막 모습)
@@ -92,7 +106,7 @@ export const Check = memo(function Check({
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <Animated.View style={[box, { borderWidth: 1.6, borderColor: checkBorder(dark), opacity: borderOpacity }]} />
+      <Animated.View style={[box, { borderWidth: edge.width, borderColor: edge.color, opacity: borderOpacity }]} />
       <Animated.View style={[box, { backgroundColor: color, opacity: fill }]} />
       {on && (
         <Svg width={size} height={size} viewBox="0 0 24 24" style={StyleSheet.absoluteFill}>

@@ -2,7 +2,7 @@
 // `${이름}을`처럼 끝소리를 모른 채 붙인 조사를 찾아 파일별로 보여 준다(조사는 lib/text.ts의 josa()로 붙인다).
 // 주석·import 경로·타입 자리 문자열은 보지 않는다(TypeScript 구문 트리로 글자만 골라낸다).
 //
-// 지금은 할 일(todo)로 돌린다 — 남은 목록을 출력하되 실패로 치지 않는다. W4-B가 test(...)로 바꿔 강제한다.
+// 강제한다 — 한 곳이라도 걸리면 실패하고, 걸린 곳의 목록을 파일별로 출력한다.
 // 목록을 파일로 남기려면: COPY_LINT_OUT=<경로> node --test tests/copy.test.js
 require('./register');
 const test = require('node:test');
@@ -125,7 +125,7 @@ test('검사기: 금지어·조사·저장값·import 경로를 구분한다', (
   assert.match(hits[1].text, /\$\{name\}을/);
 });
 
-test.todo('화면 글에 금지어와 끝소리를 모르는 조사가 없다', () => {
+test('화면 글에 금지어와 끝소리를 모르는 조사가 없다', () => {
   const byFile = {};
   for (const f of sourceFiles()) {
     const hits = lintFile(f);
