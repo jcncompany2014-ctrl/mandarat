@@ -9,8 +9,9 @@ import { tap } from '../lib/haptics';
 import { POSTER_H, POSTER_PX, POSTER_W, posterDone } from '../lib/poster';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat } from '../store/MandaratContext';
+import { useUIActions, useUIState } from '../navigation/ui';
+import { useDoc } from '../store/MandaratContext';
+import { announce } from '../lib/useReducedMotion';
 import { Snackbar } from './Snackbar';
 
 type Mode = 'progress' | 'blank';
@@ -29,14 +30,14 @@ function captureSize(): { width: number; height: number } {
 
 /** 만다라트 표를 인쇄된 한 장의 그림으로 — 진행 표시 · 빈 표 중 골라 이미지로 저장·공유한다. */
 export function ShareChart() {
-  const { share } = useUI();
+  const { share } = useUIState();
   if (!share) return null;
   return <ShareSheet />;
 }
 
 function ShareSheet() {
   const M = usePalette();
-  const { closeShare } = useUI();
+  const { closeShare } = useUIActions();
   const [mode, setMode] = useState<Mode>('progress');
   const posterRef = useRef<View>(null);
   return (
@@ -65,7 +66,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
   setMode: (m: Mode) => void;
   posterRef: React.RefObject<View | null>;
 }) {
-  const { doc } = useMandarat();
+  const { doc } = useDoc();
   const dismiss = useSheetDismiss();
   const { width: winW, height: winH } = useWindowDimensions();
   const now = new Date();
@@ -136,7 +137,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
 }
 
 function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | null> }) {
-  const { showToast } = useUI();
+  const { showToast } = useUIActions();
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
 
@@ -145,6 +146,8 @@ function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | 
     busyRef.current = true;
     setBusy(true);
     tap();
+    // VoiceOver는 버튼이 흐려진 것만으로는 아무 말이 없다 — 무엇을 기다리는지 알린다
+    announce('이미지를 만드는 중이에요');
     let uri: string | null = null;
     try {
       uri = await captureRef(posterRef, { format: 'png', result: 'tmpfile', ...captureSize() });
@@ -159,7 +162,7 @@ function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | 
         await Share.share({ url: uri });
       } catch (e) {
         console.warn('[ShareChart] share failed', e);
-        showToast('이미지를 만들지 못했어요');
+        showToast('공유하지 못했어요');
       }
       try {
         releaseCapture(uri);
