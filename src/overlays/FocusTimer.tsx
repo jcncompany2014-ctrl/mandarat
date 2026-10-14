@@ -1,30 +1,47 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, View } from 'react-native';
-import { AnimatedText, Text } from '../components/AppText';
-import { Pressy } from '../components/Pressy';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { Text } from '../components/AppText';
 import { EASE } from '../theme/motion';
-import { useReducedMotion } from '../lib/useReducedMotion';
+import { NUM } from '../theme/type';
+import { announce, useReducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ring } from '../components/Ring';
-import { Pill, CloseBtn } from '../components/common';
-import { FONTS } from '../theme/fonts';
+import { Pill, CloseBtn, PrimaryButton } from '../components/common';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
 import { success, tap } from '../lib/haptics';
 import { doneOn, kindOf } from '../lib/routine';
+import {
+  FOCUS_TOTAL, TALLY_BOXES, elapsedOf, filledBoxes, finishLabel, fmtClock, focusOutcome, leftOfMs, minutesToRecord,
+} from '../lib/focusClock';
 
-const TOTAL = 25 * 60;
+/** 화면을 켜 두는 표시 — 다른 곳의 켜 두기와 섞이지 않게 이름을 붙인다 */
+const KEEP_AWAKE_TAG = 'focus';
+/** 칸 하나(pt) — 5 × 40 = 200 */
+const BOX = 40;
+/** 어두운 화면 위의 가는 줄 */
+const RULE = 'rgba(255,255,255,0.16)';
+/** 지금 채우는 칸이 한 번 숨 쉬는 시간(들숨·날숨 각각) */
+const BREATH = 1600;
+const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
 
 export function FocusTimer() {
   const { focus } = useUI();
   if (!focus) return null;
-  // 세션마다 새로 그려 남은 시간·호흡이 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
+  // 세션마다 새로 그려 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
   return <FocusSession ti={focus.ti} ai={focus.ai} />;
 }
 
-/** 호흡 한 박자(들숨 또는 날숨) */
-const BREATH = 4000;
+function keepAwake(on: boolean) {
+  // 화면 켜 두기는 덤 — 기기가 거절해도 타이머는 벽시계로 그대로 간다
+  try {
+    const p = on ? activateKeepAwakeAsync(KEEP_AWAKE_TAG) : deactivateKeepAwake(KEEP_AWAKE_TAG);
+    p.catch(() => {});
+  } catch {
+    // 무시
+  }
+}
 
 function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
@@ -32,127 +49,266 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const { closeFocus } = useUI();
   const { doc, toggleDone, toggleRoutineToday, addFocusMinutes } = useMandarat();
   const reduce = useReducedMotion();
-  const [left, setLeft] = useState(TOTAL);
+
+  const [left, setLeft] = useState(FOCUS_TOTAL);
   const [run, setRun] = useState(true);
-  const [inhale, setInhale] = useState(true);
-  const firedRef = useRef(false);
-  const breath = useRef(new Animated.Value(0)).current;
-  const cue = useRef(new Animated.Value(1)).current;
-  const bloom = useRef(new Animated.Value(0)).current;
   const finished = left <= 0;
 
-  useEffect(() => {
-    if (!run || left <= 0) return;
-    const id = setInterval(() => setLeft((l) => (l <= 1 ? 0 : l - 1)), 1000);
-    return () => clearInterval(id);
-  }, [run, left]);
+  // 벽시계: 도는 동안은 끝날 시각을, 멈춘 동안은 남은 ms를 들고 있는다
+  const endAtRef = useRef(0);
+  const remainingMsRef = useRef(FOCUS_TOTAL * 1000);
+  const runRef = useRef(true);
+  runRef.current = run && !finished;
+
+  /** 지금 남은 초 — 렌더를 기다리지 않고 시계에서 바로 읽는다(닫기·언마운트 때) */
+  const currentLeft = useCallback(
+    () => leftOfMs(runRef.current ? endAtRef.current - Date.now() : remainingMsRef.current),
+    [],
+  );
 
   useEffect(() => {
-    if (left <= 0 && !firedRef.current) {
-      firedRef.current = true;
-      success();
-      if (!reduce) Animated.spring(bloom, { toValue: 1, useNativeDriver: true, damping: 12, stiffness: 90 }).start();
-    }
-  }, [left, reduce, bloom]);
-
-  // 4초 들이쉬기 · 4초 내쉬기 — 빛이 커졌다 작아지고, 글귀가 박자를 알려 준다
-  useEffect(() => {
-    if (!run || finished || reduce) return;
-    let up = true;
-    const step = () => {
-      setInhale(up);
-      cue.setValue(0);
-      Animated.parallel([
-        Animated.timing(breath, { toValue: up ? 1 : 0, duration: BREATH, easing: EASE.breath, useNativeDriver: true }),
-        Animated.timing(cue, { toValue: 1, duration: 700, easing: EASE.out, useNativeDriver: true }),
-      ]).start();
-      up = !up;
+    if (!run || finished) return;
+    endAtRef.current = Date.now() + remainingMsRef.current;
+    const tick = () => {
+      remainingMsRef.current = Math.max(0, endAtRef.current - Date.now());
+      setLeft(leftOfMs(remainingMsRef.current));
     };
-    step();
-    const id = setInterval(step, BREATH);
+    tick();
+    const id = setInterval(tick, 500);
+    // 잠금을 풀고 돌아오면 다음 박자를 기다리지 않고 바로 맞춘다
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') tick();
+    });
     return () => {
       clearInterval(id);
-      breath.stopAnimation();
+      sub.remove();
+      // 멈추는 순간까지 흐른 시간을 남긴다(다음 박자 전에 멈춰도 잃지 않게)
+      remainingMsRef.current = Math.max(0, endAtRef.current - Date.now());
     };
-  }, [run, finished, reduce, breath, cue]);
+  }, [run, finished]);
 
-  // 매초 다시 그려져도 같은 애니메이션 노드를 쓰도록 한 번만 만든다
-  const glow = useMemo(() => ({
-    opacity: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.05, 0.15] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.12] })),
-    transform: [{ scale: Animated.add(breath.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.06] }), bloom.interpolate({ inputRange: [0, 1], outputRange: [0, 0.2] })) }],
-  }), [breath, bloom]);
-  const cueStyle = useMemo(() => ({ opacity: cue, transform: [{ translateY: cue.interpolate({ inputRange: [0, 1], outputRange: [4, 0] }) }] }), [cue]);
+  // 도는 동안만 화면을 켜 둔다 — 멈춤·끝·닫기·언마운트에서 끈다
+  useEffect(() => {
+    if (!run || finished) return;
+    keepAwake(true);
+    return () => keepAwake(false);
+  }, [run, finished]);
+
+  // ── 기록: 어떻게 나가든 집중한 분은 남긴다(한 번만) ──────────────────────────
+  const recordedRef = useRef(false);
+  const addRef = useRef(addFocusMinutes);
+  addRef.current = addFocusMinutes;
+  const record = useCallback(() => {
+    if (recordedRef.current) return;
+    const m = minutesToRecord(elapsedOf(currentLeft()));
+    // 0분은 기록할 것이 없다 — 표시도 하지 않아 개발 모드의 두 번 마운트가 기록을 막지 않게
+    if (m <= 0) return;
+    recordedRef.current = true;
+    addRef.current(m);
+  }, [currentLeft]);
+  useEffect(() => () => record(), [record]);
+
+  // ── 25분을 다 채웠을 때 ─────────────────────────────────────────────────────
+  const firedRef = useRef(false);
+  useEffect(() => {
+    if (!finished || firedRef.current) return;
+    firedRef.current = true;
+    success();
+    announce('25분 집중을 마쳤어요');
+  }, [finished]);
+
+  // ── 지금 채우는 칸의 숨 ─────────────────────────────────────────────────────
+  const breath = useRef(new Animated.Value(0)).current;
+  const breathing = run && !finished && !reduce;
+  useEffect(() => {
+    if (!breathing) {
+      breath.stopAnimation();
+      breath.setValue(0.43); // 0.25 + 0.43 × 0.35 ≈ 0.4 — 움직이지 않을 때의 옅은 칸
+      return;
+    }
+    breath.setValue(0);
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(breath, { toValue: 1, duration: BREATH, easing: EASE.breath, useNativeDriver: true }),
+      Animated.timing(breath, { toValue: 0, duration: BREATH, easing: EASE.breath, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [breathing, breath]);
 
   const th = doc.themes[ti];
-  const a = th.actions[ai];
-  const pct = (1 - left / TOTAL) * 100;
-  const mm = String(Math.floor(left / 60)).padStart(2, '0');
-  const ss = String(left % 60).padStart(2, '0');
+  const a = th?.actions[ai];
+  if (!th || !a) return null;
 
-  const finish = () => {
-    const elapsedMin = Math.round((TOTAL - left) / 60);
-    if (elapsedMin > 0) addFocusMinutes(elapsedMin);
-    // 습관은 오늘 체크로, 한 번은 칸의 달성으로 기록한다(쌓기는 얼마나 했는지 몰라 시간만 남긴다)
-    if (kind === 'habit') {
-      if (!doneOn(doc.dayLog, `${ti}-${ai}`, dateKey())) toggleRoutineToday(ti, ai);
-    } else if (kind === 'once' && !a.done) toggleDone(ti, ai);
+  const kind = kindOf(a);
+  const outcome = focusOutcome(kind, { done: a.done, checkedToday: doneOn(doc.dayLog, `${ti}-${ai}`, dateKey()) });
+  const label = finishLabel(outcome, finished);
+  const elapsed = elapsedOf(left);
+  const filled = finished ? TALLY_BOXES : filledBoxes(elapsed);
+
+  const close = () => {
+    record();
     closeFocus();
   };
 
-  const cueText = finished ? '25분 집중 완료' : !run ? '일시정지됨' : reduce ? '집중하는 중' : inhale ? '들이쉬기' : '내쉬기';
-  // 끝낼 때 무엇이 기록되는지 그대로 — 습관은 오늘 체크, 한 번은 완료, 쌓기는 집중 시간만(얼마나 쌓였는지는 모르므로)
-  const kind = kindOf(a);
-  const finishLabel = kind === 'habit' ? (finished ? '오늘 체크하기' : '끝내고 오늘 체크')
-    : kind === 'once' && !a.done ? (finished ? '완료 처리' : '끝내고 완료')
-    : finished ? '닫기' : '끝내기';
+  const finish = () => {
+    record();
+    // 한 번은 칸의 달성으로, 습관은 오늘 체크로(쌓기·마음가짐은 얼마나 했는지 몰라 시간만 남긴다)
+    if (outcome === 'check') toggleRoutineToday(ti, ai);
+    else if (outcome === 'done') toggleDone(ti, ai);
+    closeFocus();
+  };
+
+  const toggleRun = () => {
+    if (finished) return;
+    tap();
+    setRun((r) => !r);
+  };
+
+  const cue = finished ? '끝났어요' : run ? '집중하는 중' : '잠시 멈췄어요';
+  const areaName = th.title || `영역 ${ti + 1}`;
 
   return (
-    <Modal visible animationType="fade" onRequestClose={closeFocus} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}>
-        {/* 호흡에 맞춰 커졌다 작아지는 은은한 빛 */}
-        <Animated.View
-          pointerEvents="none"
-          style={[{ position: 'absolute', width: 290, height: 290, borderRadius: 145, backgroundColor: th.color }, glow]}
-        />
+    <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent>
+      <View
+        style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}
+        // 두 손가락 두 번 톡톡 — 멈춤·계속, 문지르기 — 닫기(기록은 남긴다)
+        onMagicTap={toggleRun}
+        onAccessibilityEscape={close}
+      >
         <View style={{ position: 'absolute', top: insets.top + 16, right: 22 }}>
-          <CloseBtn M={M} onPress={closeFocus} light />
+          <CloseBtn M={M} onPress={close} light />
         </View>
 
-        {/* Pill은 기본이 왼쪽 정렬이라, 가운데 정렬 레이아웃에 맞춰 감싼다 */}
         <View style={{ alignSelf: 'center' }}>
-          <Pill M={M} color={th.color} light>{th.title || `영역 ${ti + 1}`}</Pill>
+          <Pill M={M} color={th.color} light>{areaName}</Pill>
         </View>
-        <View style={{ marginTop: 22, marginBottom: 8 }}>
-          {/* 1초에 둘레의 1/1500씩 — 따로 애니메이션할 필요 없이 그대로 그린다 */}
-          <Ring pct={pct} size={232} stroke={6} color={th.color} track="rgba(255,255,255,0.12)" animate={false}>
-            <Text style={{ fontSize: 56, fontWeight: '700', color: '#fff', fontFamily: FONTS.grotesk, fontVariant: ['tabular-nums'] }}>
-              {finished ? '완료' : `${mm}:${ss}`}
-            </Text>
-            <Text style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginTop: 4, maxWidth: 170, textAlign: 'center' }} numberOfLines={2}>
-              {a.text || '집중'}
-            </Text>
-          </Ring>
-        </View>
-        <AnimatedText
-          // 들숨·날숨은 4초마다 바뀌므로 읽어 주지 않고, 멈춤·완료만 알린다
-          accessibilityLiveRegion={!run || finished ? 'polite' : 'none'}
-          style={[{ fontSize: 13, color: th.color, fontWeight: '700', letterSpacing: 0.3 }, cueStyle]}
-        >
-          {cueText}
-        </AnimatedText>
 
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 18 }}>
+        <Text
+          style={{ marginTop: 14, fontSize: 56, lineHeight: 64, fontWeight: '700', color: '#fff', textAlign: 'center', ...NUM }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.2}
+          accessibilityLabel={finished ? '25분' : `남은 시간 ${Math.floor(left / 60)}분 ${left % 60}초`}
+        >
+          {finished ? '25분' : fmtClock(left)}
+        </Text>
+
+        <Tally filled={filled} current={finished ? -1 : filled} color={th.color} breath={breath} reduce={reduce} />
+
+        <Text
+          style={{ marginTop: 20, fontSize: 17, lineHeight: 24, fontWeight: '700', color: '#fff', textAlign: 'center', maxWidth: 280 }}
+          numberOfLines={2}
+        >
+          {a.text || '집중'}
+        </Text>
+        <Text
+          // 멈춤·끝남만 알린다
+          accessibilityLiveRegion={!run || finished ? 'polite' : 'none'}
+          style={{ marginTop: 6, fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.78)' }}
+        >
+          {cue}
+        </Text>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', gap: 12, marginTop: 24 }}>
           {!finished && (
-            <Pressy onPress={() => { tap(); setRun((r) => !r); }} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={run ? '일시정지' : '계속'} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.14)' }}>
-              <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{run ? '일시정지' : '계속'}</Text>
-            </Pressy>
+            <Pressable
+              onPress={toggleRun}
+              accessibilityRole="button"
+              accessibilityLabel={run ? '일시정지' : '계속'}
+              style={({ pressed }) => ({
+                width: 124, minHeight: 52, borderRadius: 12, paddingHorizontal: 12,
+                borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+                alignItems: 'center', justifyContent: 'center',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }} numberOfLines={1}>{run ? '일시정지' : '계속'}</Text>
+            </Pressable>
           )}
-          <Pressy onPress={finish} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={finishLabel} style={{ paddingHorizontal: 26, paddingVertical: 13, borderRadius: 30, backgroundColor: th.color }}>
-            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>{finishLabel}</Text>
-          </Pressy>
+          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={{ width: 124 }} />
         </View>
-        <Text style={{ marginTop: 14, fontSize: 12.5, color: 'rgba(255,255,255,0.45)', fontWeight: '500' }}>25분 동안 한 가지에만</Text>
+
+        {!finished && (
+          <Text style={{ marginTop: 16, fontSize: 12.5, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>25분 동안 한 가지에만</Text>
+        )}
       </View>
     </Modal>
+  );
+}
+
+/** 25칸 집중 표 — 1분마다 한 칸씩 영역 색으로 칠한다. 칸 사이 틈 없이 가는 줄만(인쇄된 표처럼) */
+function Tally({
+  filled, current, color, breath, reduce,
+}: {
+  filled: number;
+  /** 지금 채우는 칸(-1이면 없음) */
+  current: number;
+  color: string;
+  breath: Animated.Value;
+  reduce: boolean;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={`25칸 중 ${filled}칸`}
+      style={{
+        marginTop: 18, width: BOX * 5 + StyleSheet.hairlineWidth, flexDirection: 'row', flexWrap: 'wrap',
+        borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderColor: RULE,
+      }}
+    >
+      {Array.from({ length: TALLY_BOXES }, (_, i) => (
+        <TallyBox key={i} on={i < filled} current={i === current} color={color} breath={breath} reduce={reduce} />
+      ))}
+    </View>
+  );
+}
+
+function TallyBox({
+  on, current, color, breath, reduce,
+}: {
+  on: boolean;
+  current: boolean;
+  color: string;
+  breath: Animated.Value;
+  reduce: boolean;
+}) {
+  // 처음부터 칠해진 칸은 그대로, 지켜보는 동안 칠해지는 칸만 0.6 → 1로 찍힌다
+  const ink = useRef(new Animated.Value(on ? 1 : 0)).current;
+  useEffect(() => {
+    if (!on) {
+      ink.setValue(0);
+      return;
+    }
+    if (reduce) {
+      ink.setValue(1);
+      return;
+    }
+    Animated.timing(ink, { toValue: 1, duration: 260, easing: EASE.out, useNativeDriver: true }).start();
+  }, [on, reduce, ink]);
+
+  return (
+    <View
+      style={{
+        width: BOX, height: BOX,
+        borderRightWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: RULE,
+      }}
+    >
+      {on ? (
+        <Animated.View
+          style={{
+            ...FILL, backgroundColor: color,
+            opacity: ink.interpolate({ inputRange: [0, 0.01, 1], outputRange: [0, 1, 1] }),
+            transform: [{ scale: ink.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+          }}
+        />
+      ) : current ? (
+        <Animated.View
+          style={{
+            ...FILL, backgroundColor: color,
+            opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] }),
+          }}
+        />
+      ) : null}
+    </View>
   );
 }
