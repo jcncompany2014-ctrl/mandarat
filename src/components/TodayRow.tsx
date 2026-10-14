@@ -1,5 +1,5 @@
 import React, { memo, startTransition, useEffect, useMemo, useOptimistic, useRef } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, Pressable, View, useWindowDimensions } from 'react-native';
 import { Text } from './AppText';
 import { Check } from './Check';
 import { Icon } from './Icon';
@@ -14,11 +14,12 @@ import { reducedMotion } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { checkHintText } from '../lib/todayCheck';
 import { countInfo, fmtNum, kindLine, type KindLine } from '../lib/kinds';
-import { daysBetween, perWeekOf, routineWeek, routineWeekCount, ymd, type DayState, type TodayItem } from '../lib/routine';
+import { daysBetween, perWeekOf, routineWeek, routineWeekCount, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
+import { weekStripSummary, weekdayIndex } from '../lib/marks';
 import { fmtDue } from '../lib/text';
 import { tap } from '../lib/haptics';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
-import type { TodayExtra } from '../types';
+import type { Action, MandaratDoc, TodayExtra } from '../types';
 
 /**
  * 오늘 할 일 한 줄 — 홈(W3-A) · 오늘 목록(W3-B) · 오늘 보기들(W3-C)이 그대로 쓴다.
@@ -27,7 +28,7 @@ import type { TodayExtra } from '../types';
  * - M: 팔레트
  * - item: 실천 줄(TodayItem — routine.todayItems) 또는 직접 추가한 할 일(TodayExtra — doc.todayExtra)
  * - variant: 'home' | 'list' — 남은 일 줄(두 줄 제목 + 작은 정보 줄). 지금은 같은 모양이고, 화면마다 달라질 자리로 나눠 둔다.
- *            'done' — '완료' 묶음의 줄. 한 줄, 정보 줄 없음, 체크 칸 옅게, 제목 회색 + 먹선이 왼쪽에서 오른쪽으로 그어진다.
+ *            'done' — '했어요' 묶음의 줄. 한 줄, 정보 줄 없음, 체크 칸 옅게, 제목 회색 + 먹선이 왼쪽에서 오른쪽으로 그어진다.
  * - onOpen: 실천 줄 몸통을 눌렀을 때(보통 openAction(ti, ai)). 직접 추가한 할 일은 몸통을 누르면 체크한다.
  * - showRight: 오른쪽 81pt 칸(이번 주 칸 · '+1권' · 'D-3' · ×)을 그릴지. 기본 true.
  * - onCheck(done): 체크를 바꾸기 바로 전에 — done은 바꾸기 전 상태. 화면이 줄을 잠깐 붙잡거나(useSettle.hold)
@@ -38,8 +39,10 @@ import type { TodayExtra } from '../types';
  *       | 오른쪽 81pt(오른쪽 맞춤): 습관 → 이번 주 칸, 쌓기 → '+1권' 버튼(다 한 줄에도), 마감 있는 한 번 → 'D-3', 직접 추가 → ×(남은 줄만).
  * 높이는 54 이상, 위아래 8(다 한 줄은 9).
  *
- * 화면 읽기: 체크 칸 = 글 그대로(쌓기는 '책 읽기, 1권 더하기') + 힌트 '두 번 탭해서 완료 표시'.
- * 실천 줄 몸통은 버튼 하나로(글 · 영역 · 유형 정보 · 했어요) 읽고, 사용자 지정 동작 '자세히 보기' · 체크를 함께 준다.
+ * 화면 읽기: 체크 칸 = 글 그대로(쌓기는 '책 읽기, 1권 더하기') + 체크 힌트(todayCheck.checkHintText).
+ * 실천 줄 몸통은 버튼 하나로(글 · 영역 · 유형 정보(소리로 읽을 말) · 이번 주 · 했어요) 읽고, 사용자 지정 동작
+ * '자세히 보기' · '했어요로 남기기'/'했어요 지우기'를 함께 준다. 습관 줄의 이번 주 칸은 몸통이 함께 읽으므로 따로 멈추지 않는다
+ * (체크 칸 + 몸통, 두 번이면 한 줄을 다 듣는다).
  * 직접 추가한 할 일은 체크 칸 하나로만 읽힌다(지우기는 사용자 지정 동작).
  */
 export type TodayRowItem = TodayItem | TodayExtra;
@@ -80,10 +83,9 @@ const STRIKE_DELAY = 230;
  * (item · variant · divider 같은 값이 그대로면). 줄마다 뜻이 다른 함수를 넘길 때는 item이 달라 그대로 맞는다.
  */
 export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showRight = true, onCheck, divider = false }: TodayRowProps) {
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const tc = useTodayCheck();
   const [done, showDone] = useOptimistic(item.done);
-  const now = new Date();
   const extra = isExtra(item);
   const ti = item.ti;
   const th = doc.themes[ti];
@@ -96,25 +98,25 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   const a = it ? th?.actions[it.ai] : undefined;
   const text = extra ? item.text : a?.text ?? '';
   const seed = extra ? `x${item.id}` : item.key;
-  const line = it ? kindLine(doc, it.ti, it.ai, now) : null;
-  const count = it && a && it.kind === 'count' ? countInfo(a) : null;
-  const dueDays = it && a && it.kind === 'once' && a.due && !a.done ? daysBetween(ymd(now), a.due) : null;
+
+  // 정보 줄 · 이번 주 칸 · 체크 이름은 이 줄의 실천(a)과 이번 주 일곱 날의 기록만 읽는다 —
+  // 다른 줄을 체크해 문서가 바뀌어도(그날 기록 배열만 새로 바뀐다) 이 줄은 다시 세지 않는다.
+  const day = ymd(new Date());
+  const week = useMemo(() => weekDates(new Date()).map(ymd), [day]); // eslint-disable-line react-hooks/exhaustive-deps
+  const logs = week.map((k) => doc.dayLog[k]);
+  const info = useMemo(
+    () => (it && a ? rowInfo(doc, it, a, showRight, doneRow) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [a, it?.ti, it?.ai, it?.kind, showRight, doneRow, day, clock, ...logs],
+  );
+  const line = info?.line ?? null;
+  const count = info?.count ?? null;
+  const dueDays = info?.dueDays ?? null;
+  const checkLabel = useMemo(() => (it ? tc.checkLabel(it) : text), [tc, it?.key, it?.kind, a, text]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 오른쪽 칸에 그릴 것
-  let right: RightCol = null;
-  if (showRight && it && a) {
-    if (it.kind === 'habit') {
-      // 주 N회는 정한 요일이 없어 칸만으론 몇 번 남았는지 모른다 — 이번 주에 정한 횟수(첫 주는 남은 날만큼)로 읽는다
-      const w = perWeekOf(a) > 0 ? routineWeekCount(doc, it.ti, it.ai, now) : null;
-      right = { kind: 'week', states: routineWeek(doc, it.ti, it.ai, now), summary: w ? `이번 주 ${w.planned}회 중 ${w.done}회` : undefined };
-    } else if (count) {
-      right = { kind: 'add', step: fmtNum(count.step), unit: count.unit };
-    } else if (dueDays !== null && !doneRow) {
-      right = { kind: 'due', text: fmtDue(dueDays, 'short'), overdue: dueDays < 0 };
-    }
-  } else if (showRight && extra && !done && !doneRow) {
-    right = { kind: 'remove' };
-  }
+  let right: RightCol = info?.right ?? null;
+  if (!right && showRight && extra && !done && !doneRow) right = { kind: 'remove' };
 
   // ── 누를 때 ──────────────────────────────────────────────────────────────────
   const latest = useRef({ item, onOpen, onCheck, showDone, done });
@@ -150,11 +152,11 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   }), [tc]);
 
   // ── 화면 읽기 ──────────────────────────────────────────────────────────────
-  // 오른쪽 '마감 D-3'은 화면 읽기에서 숨기고 몸통 이름에 한 번만 넣는다
-  const bodyLabel = [text, area, line?.long, done ? '했어요' : ''].filter(Boolean).join(', ');
+  // 오른쪽 '마감 D-3'과 이번 주 칸은 화면 읽기에서 숨기고 몸통 이름에 한 번만 넣는다(소리로 읽을 말로)
+  const bodyLabel = [text, area, line?.speech, info?.weekSpeech, done ? '했어요' : ''].filter(Boolean).join(', ');
   const toggleName = done
-    ? (count ? '오늘 더한 것 빼기' : '완료 해제')
-    : count ? `${fmtNum(count.step)}${count.unit} 더하기` : '완료로 표시';
+    ? (count ? '오늘 더한 것 빼기' : '했어요 지우기')
+    : count ? `${fmtNum(count.step)}${count.unit} 더하기` : '했어요로 남기기';
 
   return (
     <RowView
@@ -169,7 +171,7 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
       // 정보 줄 — 마감은 오른쪽 칸에 이미 있으면 되풀이하지 않는다
       metaLine={line && !(dueDays !== null && right) ? line : null}
       right={right}
-      checkLabel={it ? tc.checkLabel(it) : text}
+      checkLabel={checkLabel}
       hint={checkHintText(done, it ? it.kind : 'once')}
       bodyLabel={bodyLabel}
       toggleName={toggleName}
@@ -179,6 +181,32 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
     />
   );
 }, (a, b) => sameIgnoringHandlers(a, b) && !a.onOpen === !b.onOpen && !a.onCheck === !b.onCheck);
+
+/** 실천 줄 하나의 정보 줄 · 오른쪽 칸 · 이번 주 읽을 말 — TodayRow가 이 줄의 값이 바뀔 때만 다시 센다 */
+function rowInfo(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, it: TodayItem, a: Action, showRight: boolean, doneRow: boolean) {
+  const now = new Date();
+  const line = kindLine(doc, it.ti, it.ai, now);
+  const count = it.kind === 'count' ? countInfo(a) : null;
+  const dueDays = it.kind === 'once' && a.due && !a.done ? daysBetween(ymd(now), a.due) : null;
+  let right: RightCol = null;
+  let weekSpeech: string | undefined;
+  if (showRight) {
+    if (it.kind === 'habit') {
+      // 주 N회는 정한 요일이 없어 칸만으론 몇 번 남았는지 모른다 — 이번 주에 정한 횟수(첫 주는 남은 날만큼)로 읽는다
+      const w = perWeekOf(a) > 0 ? routineWeekCount(doc, it.ti, it.ai, now) : null;
+      const states = routineWeek(doc, it.ti, it.ai, now);
+      const summary = w ? `이번 주 ${w.planned}회 중 ${w.done}회` : undefined;
+      right = { kind: 'week', states, summary };
+      // 주 N회는 정보 줄(line.speech)이 같은 말을 이미 한다 — 요일 습관만 요일별 상태를 덧붙인다
+      if (!w) weekSpeech = weekStripSummary(states, states.indexOf('today') >= 0 ? states.indexOf('today') : weekdayIndex(now));
+    } else if (count) {
+      right = { kind: 'add', step: fmtNum(count.step), unit: count.unit };
+    } else if (dueDays !== null && !doneRow) {
+      right = { kind: 'due', text: fmtDue(dueDays, 'short'), overdue: dueDays < 0 };
+    }
+  }
+  return { line, count, dueDays, right, weekSpeech };
+}
 
 /** 오른쪽 81pt 칸 — 이번 주 칸 · '+1권' · 'D-3' · × */
 type RightCol =
@@ -220,7 +248,12 @@ const RowView = memo(function RowView({
 }: RowViewProps) {
   let rightEl: React.ReactNode = null;
   if (right?.kind === 'week') {
-    rightEl = <WeekStrip M={M} states={right.states} color={color} summary={right.summary} />;
+    // 이번 주 칸은 몸통 이름이 함께 읽는다 — 따로 멈추지 않게 숨긴다
+    rightEl = (
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <WeekStrip M={M} states={right.states} color={color} summary={right.summary} />
+      </View>
+    );
   } else if (right?.kind === 'add') {
     rightEl = (
       <Pressable
@@ -310,7 +343,7 @@ const RowView = memo(function RowView({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
             <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>
-              {extra ? `${area} · 직접 추가` : area}
+              {extra ? `${area} · 직접 적음` : area}
             </Text>
             {metaLine && (
               <>
@@ -350,6 +383,8 @@ function sameRight(a: RightCol, b: RightCol): boolean {
 const Title = memo(function Title({ M, text, done, oneLine }: { M: M; text: string; done: boolean; oneLine: boolean }) {
   const strike = useRef(new Animated.Value(done ? 1 : 0)).current;
   const shown = useRef(done);
+  // 글자 크기를 키우면 줄 높이도 함께 커진다(AppText는 2배까지) — 먹선 자리도 같은 비율로
+  const lh = TITLE_LH * Math.min(Math.max(useWindowDimensions().fontScale || 1, 1), 2);
   useEffect(() => {
     if (shown.current === done) return;
     shown.current = done;
@@ -376,7 +411,7 @@ const Title = memo(function Title({ M, text, done, oneLine }: { M: M; text: stri
         <Animated.View
           pointerEvents="none"
           style={{
-            position: 'absolute', left: 0, right: 0, top: Math.round(TITLE_LH * 0.55 - 0.75), height: 1.5,
+            position: 'absolute', left: 0, right: 0, top: Math.round(lh * 0.55 - 0.75), height: 1.5,
             backgroundColor: alpha(M.ink, 0.55), transformOrigin: 'left', transform: [{ scaleX: strike }],
           }}
         />

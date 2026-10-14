@@ -14,14 +14,16 @@ import { tap } from '../lib/haptics';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { checkHintText } from '../lib/todayCheck';
 import { kindLine, ratingOf, type KindLine } from '../lib/kinds';
-import { kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, type DayState, type TodayItem } from '../lib/routine';
+import { kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
 import { STRIP, weekdayIndex } from '../lib/marks';
-import { pickSections } from '../lib/pick';
+import { canPickAny } from '../lib/pick';
+import { announce } from '../lib/useReducedMotion';
+import { legibleMark } from '../theme/chart';
 import {
   columnHead, lastWeekRatingTarget, mindProgress, runText, streakCell, streakRows, streakSummary, streakSummaryLabel,
 } from '../lib/todayModes';
 import { sameProps } from '../lib/sameProps';
-import type { TodayExtra } from '../types';
+import type { Action, MandaratDoc, TodayExtra } from '../types';
 
 const PureWeekCaption = memo(WeekCaption);
 
@@ -36,8 +38,10 @@ const EDGE = 20;
 /** 체크 칸 · 체크 칸과 글 사이(TodayRow와 같은 값) */
 const CHECK = 26;
 const GAP = 12;
-/** 연속 기록 줄 오른쪽 기록 칸 폭 */
+/** 연속 기록 줄 오른쪽 기록 칸 — 이만큼은 늘 두고, 글자를 키우면 더 넓어진다('12일'이 '1…'로 잘리지 않게) */
 const RUN_W = 40;
+/** 글자 크기가 이 배율 이상이면 점수 칸을 글 아래 줄로 내린다 */
+const STACK_SCALE = 1.35;
 
 const areaName = (title: string | undefined, ti: number) => title?.trim() || `영역 ${ti + 1}`;
 
@@ -55,19 +59,26 @@ const MIN_TEXT_W = 120;
  * 월·화요일에 지난주 점수를 안 매긴 칸이 있으면 '지난주 점수 매기기 ›'로 한 주 돌아보기를 연다.
  */
 export function MindWeek({ M }: { M: M }) {
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const { rateMind } = useActions();
   const { openAction, openRitual } = useUIActions();
-  const { width } = useWindowDimensions();
-  const now = new Date();
-  const items = doc.themes.flatMap((th, ti) =>
-    th.actions.map((a, ai) => ({ a, ti, ai })).filter(({ a }) => a.text.trim() && kindOf(a) === 'mind'),
-  );
+  const { width, fontScale } = useWindowDimensions();
+  const day = dateKey();
+  // 마음가짐 칸 · 이번 주 점수 · 지난주 매기기(월·화요일만)는 날짜와 시각에 따라 바뀐다 — clock(자정 · 일요일 18시 · 앱으로 돌아올 때)도 함께 본다
+  const { items, rated, lastWeek } = useMemo(() => {
+    const now = new Date();
+    const list = doc.themes.flatMap((th, ti) =>
+      th.actions.map((a, ai) => ({ a, ti, ai })).filter(({ a }) => a.text.trim() && kindOf(a) === 'mind'),
+    ).map((x) => ({ ...x, score: ratingOf(x.a, now) }));
+    return {
+      items: list,
+      rated: list.filter((x) => x.score > 0).length,
+      lastWeek: list.length > 0 ? lastWeekRatingTarget(doc, now) : null,
+    };
+  }, [doc, day, clock]); // eslint-disable-line react-hooks/exhaustive-deps
   if (items.length === 0) return null;
-  const rated = items.filter(({ a }) => ratingOf(a, now) > 0).length;
-  const lastWeek = lastWeekRatingTarget(doc, now);
-  // 바깥 여백(좌우 20)을 뺀 줄 폭에서 점수 칸과 사이 12를 빼고 남는 글 폭
-  const stacked = width - EDGE * 2 - RATE_W - GAP < MIN_TEXT_W;
+  // 바깥 여백(좌우 20)을 뺀 줄 폭에서 점수 칸과 사이 12를 빼고 남는 글 폭 — 글자를 크게 키웠을 때도 아래 줄로
+  const stacked = width - EDGE * 2 - RATE_W - GAP < MIN_TEXT_W || fontScale >= STACK_SCALE;
 
   return (
     <View style={{ marginTop: 28 }}>
@@ -78,7 +89,7 @@ export function MindWeek({ M }: { M: M }) {
       {rated === 0 && (
         <Text style={{ fontSize: 13, color: M.sub, marginBottom: 6 }}>한 주 동안 얼마나 지켰는지 1~5점으로 매겨요</Text>
       )}
-      {items.map(({ a, ti, ai }, i) => {
+      {items.map(({ a, ti, ai, score }, i) => {
         const th = doc.themes[ti];
         return (
           <MindRow
@@ -89,7 +100,7 @@ export function MindWeek({ M }: { M: M }) {
             text={a.text}
             area={areaName(th.title, ti)}
             color={th.color}
-            score={ratingOf(a, now)}
+            score={score}
             first={i === 0}
             last={i === items.length - 1 && !lastWeek}
             stacked={stacked}
@@ -179,14 +190,17 @@ const MindRow = memo(function MindRow({
  * 오늘 할 날인 습관이 먼저. 체크는 오늘 기록(useTodayCheck), 몸통은 실천 자세히 보기.
  */
 export function TodayStreak({ M }: { M: M }) {
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const { openAction, go } = useUIActions();
   const tc = useTodayCheck();
   const onOpen = useCallback((it: TodayItem) => openAction(it.ti, it.ai), [openAction]);
   const now = new Date();
   // 날이 바뀌면 다시 센다(문서가 그대로여도 오늘이 달라지면 기록·순서가 바뀐다)
   const day = dateKey(now);
-  const rows = useMemo(() => streakRows(doc, new Date()), [doc, day]);
+  const rows = useMemo(() => streakRows(doc, new Date()), [doc, day, clock]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 줄마다의 일정 · 이번 주 칸 — 그 실천과 이번 주 일곱 날의 기록이 그대로면 지난번 값을 다시 쓴다
+  const lineCache = useRef(new Map<string, StreakCacheEntry>());
+  const week = useMemo(() => weekDates(new Date()).map(ymd), [day]); // eslint-disable-line react-hooks/exhaustive-deps
   const summary = streakSummary(rows);
   const lead = summary.lead;
 
@@ -205,9 +219,9 @@ export function TodayStreak({ M }: { M: M }) {
 
   return (
     <View style={{ paddingHorizontal: EDGE, paddingBottom: 16 }}>
-      {/* 지금 이어 가는 기록 — 큰 숫자 하나와 한 줄 */}
+      {/* 지금 연속 — 큰 숫자 하나와 한 줄 */}
       <View style={{ marginBottom: 20 }} accessible accessibilityLabel={streakSummaryLabel(summary)}>
-        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>지금 이어 가는 기록</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>지금 연속</Text>
         {lead ? (
           <>
             <Text style={{ fontSize: 44, lineHeight: 52, color: M.ink }} numberOfLines={1}>
@@ -234,15 +248,14 @@ export function TodayStreak({ M }: { M: M }) {
       >
         <View style={{ flex: 1 }} />
         <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} width={STRIP.width} />
-        <Text style={{ width: RUN_W, textAlign: 'right', fontSize: 10, lineHeight: 13, fontWeight: '600', color: M.sub }}>연속</Text>
+        <Text style={{ minWidth: RUN_W, flexShrink: 0, textAlign: 'right', fontSize: 10, lineHeight: 13, fontWeight: '600', color: M.sub }}>연속</Text>
       </View>
 
       <View>
         {rows.map((r, i) => {
           const { ti, ai } = r.item;
           const th = doc.themes[ti];
-          const a = th?.actions[ai];
-          const weekly = a && perWeekOf(a) > 0 ? routineWeekCount(doc, ti, ai, now) : null;
+          const info = streakLineInfo(lineCache.current, doc, r.item, th?.actions[ai], week, day, clock);
           return (
             <StreakLine
               key={r.item.key}
@@ -254,9 +267,9 @@ export function TodayStreak({ M }: { M: M }) {
               last={i === rows.length - 1}
               color={th?.color ?? M.sub}
               area={areaName(th?.title, ti)}
-              plan={kindLine(doc, ti, ai, now)?.plan ?? ''}
-              states={routineWeek(doc, ti, ai, now)}
-              summary={weekly ? `이번 주 ${weekly.planned}회 중 ${weekly.done}회` : undefined}
+              plan={info.plan}
+              states={info.states}
+              summary={info.summary}
               onOpen={onOpen}
               onToggle={tc.toggle}
               checkLabel={tc.checkLabel(r.item)}
@@ -266,6 +279,29 @@ export function TodayStreak({ M }: { M: M }) {
       </View>
     </View>
   );
+}
+
+/** 연속 기록 줄 하나의 일정 · 이번 주 칸 — 같은 실천(a)과 같은 이번 주 기록이면 지난번 값을 그대로 쓴다 */
+type StreakCacheEntry = { a: Action | undefined; logs: (string[] | undefined)[]; day: string; clock: number; out: StreakLineInfo };
+type StreakLineInfo = { plan: string; states: DayState[]; summary?: string };
+
+function streakLineInfo(
+  cache: Map<string, StreakCacheEntry>, doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, item: TodayItem, a: Action | undefined,
+  week: string[], day: string, clock: number,
+): StreakLineInfo {
+  const logs = week.map((k) => doc.dayLog[k]);
+  const hit = cache.get(item.key);
+  if (hit && hit.a === a && hit.day === day && hit.clock === clock && hit.logs.every((l, i) => l === logs[i])) return hit.out;
+  const now = new Date();
+  const { ti, ai } = item;
+  const weekly = a && perWeekOf(a) > 0 ? routineWeekCount(doc, ti, ai, now) : null;
+  const out: StreakLineInfo = {
+    plan: kindLine(doc, ti, ai, now)?.plan ?? '',
+    states: routineWeek(doc, ti, ai, now),
+    summary: weekly ? `이번 주 ${weekly.planned}회 중 ${weekly.done}회` : undefined,
+  };
+  cache.set(item.key, { a, logs, day, clock, out });
+  return out;
 }
 
 /** 습관 한 줄 — 문서에서 고른 값만 받아 그린다(item · run은 값으로 비교). onOpen · onToggle은 고정된 함수 */
@@ -320,7 +356,7 @@ const StreakLine = memo(function StreakLine({
         accessibilityRole="button"
         accessibilityLabel={bodyLabel}
         accessibilityHint="실천 자세히 보기"
-        accessibilityActions={[{ name: 'activate', label: '자세히 보기' }, { name: 'toggle', label: done ? '완료 해제' : '완료로 표시' }]}
+        accessibilityActions={[{ name: 'activate', label: '자세히 보기' }, { name: 'toggle', label: done ? '했어요 지우기' : '했어요로 남기기' }]}
         onAccessibilityAction={(e) => {
           if (e.nativeEvent.actionName === 'activate') onOpen();
           else if (e.nativeEvent.actionName === 'toggle') onToggle();
@@ -338,7 +374,7 @@ const StreakLine = memo(function StreakLine({
       <WeekStrip M={M} states={states} color={color} summary={summary} />
 
       <Text
-        style={[{ width: RUN_W, textAlign: 'right', fontSize: 17, fontWeight: '800', color: run.text === '—' ? M.sub : M.ink }, TABULAR]}
+        style={[{ minWidth: RUN_W, flexShrink: 0, textAlign: 'right', fontSize: 17, fontWeight: '800', color: run.text === '—' ? M.sub : M.ink }, TABULAR]}
         numberOfLines={1}
         maxFontSizeMultiplier={1.3}
         accessible={false}
@@ -363,14 +399,14 @@ type Card = { key: string; ti: number; text: string; done: boolean; item?: Today
 const FOCUS_LABEL = '25분 집중';
 
 /**
- * 오늘 보드 — 할 일 · 진행 중 · 완료 세 묶음. 카드를 누를 때마다 다음 묶음으로 옮긴다(완료 → 할 일은 되돌리기).
+ * 오늘 보드 — 할 일 · 진행 중 · 했어요 세 묶음. 카드를 누를 때마다 다음 묶음으로 옮긴다(했어요 → 할 일은 되돌리기).
  * 실천 카드는 길게 누르면 자세히 보기, 진행 중인 실천은 '25분 집중'으로 집중 타이머를 연다(저절로 시작하지 않는다).
  */
 export function TodayKanban({ M }: { M: M }) {
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const { openQuick, openPick, openAction, startFocus } = useUIActions();
-  const list = useMemo(() => todayItems(doc, new Date()), [doc]);
-  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
+  const list = useMemo(() => todayItems(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
+  const canPick = useMemo(() => canPickAny(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
   const tc = useTodayCheck();
   const extra = doc.todayExtra;
 
@@ -397,11 +433,13 @@ export function TodayKanban({ M }: { M: M }) {
     if (st === 0) {
       tap();
       setDoing(c, true);
+      announce(`${c.text}, 진행 중으로 옮겼어요`);
     } else {
-      // 진행 중 → 완료, 완료 → 다시 할 일(실수로 옮긴 카드 되돌리기)
+      // 진행 중 → 했어요(읽어 주기는 useTodayCheck가 맡는다), 했어요 → 다시 할 일(실수로 옮긴 카드 되돌리기)
       if (c.item) tc.toggle(c.item);
       else if (c.x) tc.toggleExtra(c.x);
       if (st === 1) setDoing(c, false);
+      else announce(`${c.text}, 할 일로 되돌렸어요`);
     }
   };
 
@@ -432,16 +470,17 @@ export function TodayKanban({ M }: { M: M }) {
     );
   }
 
-  // 머리 표시 — 할 일은 회색, 진행 중은 포인트 컬러, 완료는 먹
+  // 머리 표시 — 할 일은 회색, 진행 중은 포인트 컬러(종이 위 3:1 이상으로), 했어요는 먹.
+  // 묶음은 숫자(stage)로만 구분하고 저장하지 않는다 — 이름은 화면 글일 뿐이다
   const cols: { label: string; stage: Stage; mark: string }[] = [
     { label: '할 일', stage: 0, mark: M.sub },
-    { label: '진행 중', stage: 1, mark: M.accent },
-    { label: '완료', stage: 2, mark: M.ink },
+    { label: '진행 중', stage: 1, mark: legibleMark(M.accent, M.bg, M) },
+    { label: '했어요', stage: 2, mark: M.ink },
   ];
 
   return (
     <View style={{ paddingHorizontal: EDGE, paddingBottom: 16, gap: 18 }}>
-      <Text style={{ fontSize: 13, color: M.sub, fontWeight: '500', marginBottom: -6 }}>누를 때마다 다음 칸으로 옮겨요</Text>
+      <Text style={{ fontSize: 13, color: M.sub, fontWeight: '500', marginBottom: -6 }}>누를 때마다 다음 단계로 옮겨요</Text>
       {cols.map(({ label, stage, mark }) => {
         const colCards = cards.filter((c) => stageOf(c) === stage);
         return (
@@ -515,7 +554,7 @@ const KanbanCard = memo(function KanbanCard({
   const onOpen = canOpen ? () => press.open(cardKey) : undefined;
   const onFocus = canFocus ? () => press.focus(cardKey) : undefined;
   const done = stage === 2;
-  const hint = stage === 0 ? '진행 중으로 옮기기' : stage === 1 ? '완료로 표시' : '할 일로 되돌리기';
+  const hint = stage === 0 ? '진행 중으로 옮기기' : stage === 1 ? '했어요로 옮기기' : '할 일로 되돌리기';
   const actions = [
     ...(onOpen ? [{ name: 'open', label: '자세히 보기' }] : []),
     ...(onFocus ? [{ name: 'focus', label: FOCUS_LABEL }] : []),
@@ -527,7 +566,7 @@ const KanbanCard = memo(function KanbanCard({
       onLongPress={onOpen}
       delayLongPress={350}
       accessibilityRole="button"
-      accessibilityLabel={[text, area, line?.long, label].filter(Boolean).join(', ')}
+      accessibilityLabel={[text, area, line?.speech, label].filter(Boolean).join(', ')}
       accessibilityHint={hint}
       accessibilityActions={actions.length > 0 ? actions : undefined}
       onAccessibilityAction={(e) => {
@@ -541,9 +580,12 @@ const KanbanCard = memo(function KanbanCard({
       ]}
     >
       {!first && <RowDivider M={M} inset={0} />}
-      {/* 진행 중 — 여백에 포인트 컬러 세로줄(공책 여백에 그은 표시) */}
+      {/* 진행 중 — 여백에 포인트 컬러 세로줄(공책 여백에 그은 표시, 종이 위 3:1 이상) */}
       {stage === 1 && (
-        <View pointerEvents="none" style={{ position: 'absolute', left: -12, top: 12, bottom: 12, width: 3, borderRadius: 1, backgroundColor: M.accent }} />
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', left: -12, top: 12, bottom: 12, width: 3, borderRadius: 1, backgroundColor: legibleMark(M.accent, M.bg, M) }}
+        />
       )}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
@@ -556,7 +598,7 @@ const KanbanCard = memo(function KanbanCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
             <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>
-              {extra ? `${area} · 직접 추가` : area}
+              {extra ? `${area} · 직접 적음` : area}
             </Text>
             {line && (
               <>
@@ -581,7 +623,7 @@ const KanbanCard = memo(function KanbanCard({
               <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub }}>{FOCUS_LABEL}</Text>
             </Pressable>
           )}
-          <Text style={{ fontSize: 13, fontWeight: '800', color: M.ink }} accessible={false}>완료하기</Text>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: M.ink }} accessible={false}>다 했어요</Text>
         </View>
       )}
       {done && <Check on color={color} dark={M.dark} size={20} seed={cardKey} />}
