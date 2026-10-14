@@ -22,8 +22,8 @@ import { tap } from '../lib/haptics';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { orderedTodayItems, type TodayItem } from '../lib/routine';
-import { firstAreaWithEmpty, pickSections } from '../lib/pick';
-import { weekdayIndex } from '../lib/marks';
+import { canPickAny, firstAreaWithEmpty } from '../lib/pick';
+import { checkBorder, weekdayIndex } from '../lib/marks';
 import { todaySummary } from '../lib/a11y';
 import { MGMT_LABEL } from '../lib/copy';
 import { fmtDateLong } from '../lib/text';
@@ -55,14 +55,14 @@ const PureIndexTabs = memo(IndexTabs, (a, b) => {
  */
 export const Today = memo(function Today() {
   const M = usePalette();
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const { setSetting } = useActions();
   const tc = useTodayCheck();
   const mgmt = doc.settings.mgmt;
   const now = new Date();
   // 날이 바뀌면 다시 센다(문서가 그대로여도 오늘이 달라지면 목록이 바뀐다)
   const day = dateKey(now);
-  const list = useMemo(() => orderedTodayItems(doc, new Date()), [doc, day]); // eslint-disable-line react-hooks/exhaustive-deps
+  const list = useMemo(() => orderedTodayItems(doc, new Date()), [doc, day, clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 두 손가락 두 번 탭(매직 탭) — 남은 일 중 맨 위 하나를 체크한다
   const onMagicTap = () => {
@@ -91,7 +91,7 @@ export const Today = memo(function Today() {
 type Row = { key: string; done: boolean; it?: TodayItem; x?: TodayExtra };
 
 function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const { openAction, openPick } = useUIActions();
   const now = new Date();
   const extra = doc.todayExtra;
@@ -101,7 +101,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
   const total = list.length + extra.length;
   const complete = total > 0 && done === total;
   // 아직 오늘 목록에 없는 실천이 남아 있으면 고를 수 있다
-  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
+  const canPick = useMemo(() => canPickAny(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 색인 — 오늘 할 일이 있는 영역만. 고른 영역이 비면 '전체'로
   const tabs = useMemo(() => todayAreaTabs(list, extra), [list, extra]);
@@ -117,7 +117,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
     ...list.filter((it) => area == null || it.ti === area).map((it) => ({ key: `b${it.key}`, done: it.done, it })),
     ...extra.filter((x) => area == null || x.ti === area).map((x) => ({ key: `x${x.id}`, done: x.done, x })),
   ];
-  // 방금 체크한 줄은 잠깐 제자리에 — 체크 획과 먹선을 본 뒤 '완료'로 내려간다
+  // 방금 체크한 줄은 잠깐 제자리에 — 체크 획과 먹선을 본 뒤 '했어요' 묶음으로 내려간다
   const sunk = (r: Row) => r.done && !held.has(r.key);
   const pending = rows.filter((r) => !sunk(r));
   const finished = rows.filter(sunk);
@@ -175,7 +175,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
         </View>
       )}
 
-      {/* 한 배열로 그려야 줄이 '완료' 위아래로 옮겨 갈 때 다시 만들어지지 않고 미끄러진다 */}
+      {/* 한 배열로 그려야 줄이 '했어요' 묶음 위아래로 옮겨 갈 때 다시 만들어지지 않고 미끄러진다 */}
       <View>
         {[
           ...(pending.length > 0 || showPick
@@ -197,7 +197,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
                   {pending.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
                   <View
                     style={{
-                      width: 26, height: 26, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: M.faint,
+                      width: 26, height: 26, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: checkBorder(M.dark),
                       alignItems: 'center', justifyContent: 'center',
                     }}
                   >
@@ -216,10 +216,10 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
                   key="done-head"
                   accessible
                   accessibilityRole="header"
-                  accessibilityLabel={`완료 ${finished.length}개`}
+                  accessibilityLabel={`했어요 ${finished.length}개`}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 || showPick ? 22 : 0, marginBottom: 2 }}
                 >
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>완료 {finished.length}</Text>
+                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>했어요 {finished.length}</Text>
                   <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
                 </View>,
               ]

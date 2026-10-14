@@ -4,9 +4,11 @@ import { Text } from './AppText';
 import { alpha, mix } from '../theme/moods';
 import { readableOn } from '../theme/palette';
 import type { M } from '../theme/usePalette';
+import { useIncreaseContrast } from '../lib/useReducedMotion';
+import { checkEdge } from './Check';
 import type { DayState } from '../lib/routine';
 import {
-  STRIP, WEEKDAY_KR, checkBorder, stripCenters, weekDayActionLabel, weekDayLabel, weekStripSummary, weekdayIndex,
+  STRIP, WEEKDAY_KR, stripCenters, weekDayActionLabel, weekDayLabel, weekStripSummary, weekdayIndex,
 } from '../lib/marks';
 
 /** 시트용 큰 칸 — 높이 40, 사이 6 */
@@ -32,7 +34,7 @@ function resolveToday(states: readonly DayState[], todayIndex?: number): number 
  * - 화면 읽기는 한 마디로 — '월 함, 화 놓침, 수 오늘, 목 예정, 금 쉬는 날, …'
  *
  * sheet(시트, 줄 폭 가득): 높이 40 칸 안에 요일 글자.
- * - 함: 영역 색 + 흰 글자 · 오늘: 먹선 · 예정: 가는 테두리 + 회색 글자 · 놓침: 테두리 + 사선 · 쉬는 날: 테두리 없이 옅은 글자
+ * - 함: 영역 색 + 흰 글자 · 오늘: 먹선 · 예정: 가는 테두리 + 회색 글자 · 놓침: 테두리 + 사선 · 쉬는 날: 테두리 없이 회색 가는 글자
  * - canPress(i)인 날은 버튼 — '화요일 했어요로 남기기' / '화요일 기록 지우기'. 누르면 onPressDay(i)
  *   (기록·촉감·알림은 부르는 쪽이 맡는다).
  *
@@ -68,7 +70,10 @@ export const WeekStrip = memo(function WeekStrip({
 
 function RowStrip({ M, states, color, today, label }: { M: M; states: DayState[]; color: string; today: number; label: string }) {
   const { box, gap, width } = STRIP;
-  const edge = checkBorder(M.dark);
+  // 빈 칸 테두리 — 체크 칸과 같은 색('대비 증가'에서는 더 진하게). 9pt 칸이라 굵기는 1(대비 증가 1.5)
+  const strong = checkEdge(M.dark, useIncreaseContrast());
+  const edge = strong.color;
+  const edgeW = strong.width > 1.6 ? 1.5 : 1;
   const slash = alpha(M.sub, 0.6);
   // 사선 — 네모의 왼쪽 아래에서 오른쪽 위로(모서리에서 모서리)
   const diag = box * Math.SQRT2;
@@ -85,7 +90,7 @@ function RowStrip({ M, states, color, today, label }: { M: M; states: DayState[]
         const cell: ViewStyle = { width: box, height: box, borderRadius: 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' };
         if (s === 'done') Object.assign(cell, { backgroundColor: color });
         if (isToday) Object.assign(cell, { borderWidth: TODAY_W, borderColor: M.ink });
-        else if (s === 'planned' || s === 'missed') Object.assign(cell, { borderWidth: 1, borderColor: edge });
+        else if (s === 'planned' || s === 'missed') Object.assign(cell, { borderWidth: edgeW, borderColor: edge });
         return (
           <View key={i} style={cell}>
             {s === 'missed' && (
@@ -142,13 +147,14 @@ function SheetStrip({
           height: SHEET_H, borderRadius: 4, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
         };
         let ink = M.sub;
-        let weight: '700' | '800' = '700';
+        let weight: '500' | '700' | '800' = '700';
         if (s === 'done') {
           cell.backgroundColor = color;
           ink = onFill;
         } else if (s === 'off') {
-          // 쉬는 날 — 누를 수 없으면 비활성 글자(옅게), 누를 수 있으면 회색 글자
-          ink = can ? M.sub : M.faint;
+          // 쉬는 날 — 회색 글자(4.5:1)에 가는 굵기, 테두리 없이. 옅은 글자는 '못 누름'처럼 보여 쓰지 않는다
+          ink = M.sub;
+          if (!can) weight = '500';
         }
         if (isToday) {
           Object.assign(cell, { borderWidth: TODAY_W, borderColor: M.ink });

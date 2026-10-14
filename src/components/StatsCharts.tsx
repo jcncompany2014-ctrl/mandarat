@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { GrowBar } from './GrowBar';
 import { alpha, fade } from '../theme/moods';
 import { NUM } from '../theme/type';
 import {
-  CENTER_SLOT, RULE, SLOT_INDEX, coreBg, coreInk, frameRadius, headBg, headTrack, ruleColor,
+  CENTER_SLOT, RULE, SLOT_INDEX, coreBg, coreInk, frameRadius, headBg, headTrack, legibleMark, ruleColor,
 } from '../theme/chart';
 import type { M } from '../theme/usePalette';
 import { DOW_KR, kindOf } from '../lib/routine';
@@ -35,7 +35,8 @@ const BAR_FULL = 72;
  */
 export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
   const max = Math.max(1, ...days.map((d) => (d.future ? 0 : d.count)));
-  const fill = fade(M.accent, M.dark ? 78 : 70);
+  // 막대는 불투명한 포인트 색 — 면(card) 위 3:1 이상으로(옅게 비친 색은 모든 포인트 색에서 3:1에 못 미친다)
+  const fill = legibleMark(M.accent, M.card, M);
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={weekBarsSpeech(days)}>
       <View style={{ flexDirection: 'row', gap: 9, height: BAR_FULL + 20, alignItems: 'flex-end' }}>
@@ -88,13 +89,27 @@ export function heatCellSize(width: number, weeks = 10): number {
   return Math.max(8, Math.floor((width - HEAT_LABEL_W - (weeks - 1) * HEAT_GAP) / weeks));
 }
 
+/** 칸 사이의 절반 — 누르는 자리를 이만큼 넓힌다(이웃 칸과 겹치지 않는 데까지, 칸 사이에 죽은 자리가 없게) */
+const HEAT_SLOP = HEAT_GAP / 2;
+
+/** 고를 수 있는 날(그린 칸)을 날짜 순서대로 — 화면 읽기의 위·아래 쓸기로 하루씩 옮길 때 */
+function pickableDays(map: HeatMap): string[] {
+  const out: string[] = [];
+  for (const col of map.cols) for (const c of col) if (c.state !== 'none') out.push(c.date);
+  return out;
+}
+
 /**
- * 최근 10주 달력 — 열 = 주(월~일), 행 = 요일. 네모 칸, 한 날은 포인트 색(횟수 구간마다 진하게),
- * 지난 빈 날은 가는 테두리, 쓰기 전 날과 아직 안 온 날은 그리지 않는다. 오늘은 먹색 테두리,
- * 가장 많이 한 날은 칸 안 아래에 먹색 밑줄. 칸을 누르면 그날을 고르고(테두리), 다시 누르면 푼다.
+ * 최근 10주 달력 — 열 = 주(월~일), 행 = 요일. 네모 칸, 한 날은 포인트 색(횟수 구간마다 진하게) +
+ * 1pt 포인트 색 테두리(가장 옅은 칸도 '한 날'로 보이게 — 색 농도는 덧붙인 정보), 지난 빈 날은 가는 회색 테두리,
+ * 쓰기 전 날과 아직 안 온 날은 그리지 않는다. 오늘은 먹색 테두리, 가장 많이 한 날은 칸 안 아래에 먹색 밑줄.
+ * 칸을 누르면 그날을 고르고(테두리), 다시 누르면 푼다.
+ *
+ * 화면 읽기: 그림 전체가 조절 가능한 요소 하나 — 이름은 요약(speech), 값은 고른 날(pickedText),
+ * 위·아래로 쓸면 하루씩 옮긴다(고른 날이 없으면 오늘부터).
  */
 export function TenWeeks({
-  M, map, width, picked, onPick, speech,
+  M, map, width, picked, onPick, speech, pickedText,
 }: {
   M: M;
   map: HeatMap;
@@ -104,11 +119,32 @@ export function TenWeeks({
   onPick: (date: string | null) => void;
   /** 그림 전체를 한 번에 읽는 글 */
   speech: string;
+  /** 고른 날을 읽는 글(고른 날이 없으면 안내) */
+  pickedText: string;
 }) {
   const cell = heatCellSize(width, map.cols.length);
   const legendCell = 11;
+  const days = useMemo(() => pickableDays(map), [map]);
+  const inkEdge = legibleMark(M.accent, M.card, M);
+  const step = (dir: 1 | -1) => {
+    if (days.length === 0) return;
+    const i = picked ? days.indexOf(picked) : -1;
+    const next = i < 0 ? days.length - 1 : Math.max(0, Math.min(days.length - 1, i + dir));
+    if (days[next] !== picked) onPick(days[next]);
+  };
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={speech}>
+    <View
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={speech}
+      accessibilityValue={{ text: pickedText }}
+      accessibilityHint="위아래로 쓸어 하루씩 옮겨요"
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'increment') step(1);
+        else if (e.nativeEvent.actionName === 'decrement') step(-1);
+      }}
+    >
       {/* 달 이름 — 새 달이 시작되는 주 위에 */}
       <View style={{ flexDirection: 'row', height: 16, marginBottom: 3 }}>
         <View style={{ width: HEAT_LABEL_W }} />
@@ -130,18 +166,19 @@ export function TenWeeks({
             const on = picked === c.date;
             const box = { width: cell, height: cell, marginLeft: w ? HEAT_GAP : 0, borderRadius: 2 };
             if (c.state === 'none') return <View key={w} style={box} />;
-            const outline = on ? 2 : c.today ? 1.5 : c.state === 'empty' ? 1 : 0;
+            const ink = c.state === 'ink';
+            const outline = on ? 2 : c.today ? 1.5 : 1;
             return (
               <Pressable
                 key={w}
                 onPress={() => { tap(); onPick(on ? null : c.date); }}
-                hitSlop={1}
+                hitSlop={HEAT_SLOP}
                 style={[
                   box,
                   {
-                    backgroundColor: c.state === 'ink' ? fade(M.accent, HEAT_FILL[c.bin]) : 'transparent',
+                    backgroundColor: ink ? fade(M.accent, HEAT_FILL[c.bin]) : 'transparent',
                     borderWidth: outline,
-                    borderColor: on || c.today ? M.ink : M.line,
+                    borderColor: on || c.today ? M.ink : ink ? inkEdge : M.line,
                   },
                 ]}
               >
@@ -157,7 +194,7 @@ export function TenWeeks({
       <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 12 }}>
         {DAY_BIN_LABELS.map((l, i) => (
           <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 4 : 0 }}>
-            <View style={{ width: legendCell, height: legendCell, borderRadius: 2, backgroundColor: fade(M.accent, HEAT_FILL[i + 1]) }} />
+            <View style={{ width: legendCell, height: legendCell, borderRadius: 2, borderWidth: 1, borderColor: inkEdge, backgroundColor: fade(M.accent, HEAT_FILL[i + 1]) }} />
             <Text style={[{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub }, NUM]} maxFontSizeMultiplier={1.2}>{l}</Text>
           </View>
         ))}
@@ -220,6 +257,9 @@ export function ActivityChart({
         disabled={!onArea}
         accessibilityRole={onArea ? 'button' : undefined}
         accessibilityLabel={`${name} ${p.pct}%${onArea ? ', 영역 보기' : ''}`}
+        // 9pt 이름은 글자 크기를 따라 커지지 않는다 — 길게 누르면 큰 글자로 보여 준다
+        accessibilityShowsLargeContentViewer
+        accessibilityLargeContentTitle={`${name} ${p.pct}%`}
         style={({ pressed }) => ({ flex: 1, backgroundColor: headBg(th.color, M), opacity: pressed ? 0.75 : 1 })}
       >
         <View style={{ flex: 1, padding: 2, alignItems: 'center', justifyContent: 'center' }}>

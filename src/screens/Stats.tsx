@@ -13,10 +13,11 @@ import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
 import { sameProps } from '../lib/sameProps';
 import { kindOf, ymd } from '../lib/routine';
-import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, ratingHistory, ratingOf } from '../lib/kinds';
+import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { fmtDateShort } from '../lib/text';
 import { addedLine, mindLine } from '../lib/ritualView';
 import { reviewWeeks, ritualTarget } from '../lib/ritual';
+import type { HeatMap } from '../lib/statsView';
 import { calendarWeeks, cellActivity, doneThisMonth, longestStreak, weekReview, weekSentence } from '../lib/review';
 import {
   EMPTY_LINE, bestLine, compareCounts, fmtMinutes, habitRow, heatMap, heatSpeech, moodSpeech, moodStrip, pickedLine,
@@ -36,11 +37,10 @@ const STACK_SCALE = 1.35;
  */
 export const Stats = memo(function Stats() {
   const M = usePalette();
-  const { doc } = useDoc();
+  const { doc, clock } = useDoc();
   const { go, openAction, openRitual } = useUIActions();
   const { width: winW, fontScale } = useWindowDimensions();
   const contentW = Math.max(0, winW - 40);
-  const [picked, setPicked] = useState<string | null>(null);
 
   const now = new Date();
   const tk = ymd(now);
@@ -48,16 +48,17 @@ export const Stats = memo(function Stats() {
   const todayHas = (doc.dayLog[tk] ?? []).length > 0;
   const hasData = done > 0 || Object.values(doc.dayLog).some((l) => l.length > 0);
 
-  // 기록을 훑는 계산은 문서·날짜가 바뀔 때만 — 고른 칸(picked)만 바뀔 때는 그대로 쓴다
+  // 기록을 훑는 계산은 문서·날짜·시계(자정 · 일요일 18시 · 앱으로 돌아올 때)가 바뀔 때만.
+  // 최근 10주에서 고른 날은 그 구역(HeatSection)이 따로 들고 있어 고를 때 이 화면 전체를 다시 그리지 않는다.
   const day = dateKey(now);
   /* eslint-disable react-hooks/exhaustive-deps */
-  const streak = useMemo(() => overallStreak(doc), [doc.dayLog, day]);
-  const review = useMemo(() => weekReview(doc, new Date()), [doc, day]);
-  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date()), [doc.dayLog, day]);
-  const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc, day]);
-  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, new Date())), [doc, streak, day]);
+  const streak = useMemo(() => overallStreak(doc), [doc.dayLog, day, clock]);
+  const review = useMemo(() => weekReview(doc, new Date()), [doc, day, clock]);
+  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date()), [doc.dayLog, day, clock]);
+  const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc, day, clock]);
+  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, new Date())), [doc, streak, day, clock]);
+  const ritual = useMemo(() => ritualTarget(doc, new Date()), [doc, day, clock]);
   /* eslint-enable react-hooks/exhaustive-deps */
-  const ritual = ritualTarget(doc, now);
   const weeks = reviewWeeks(doc);
 
   return (
@@ -104,18 +105,7 @@ export const Stats = memo(function Stats() {
 
       {/* 최근 10주 */}
       <SectionHead M={M} title="최근 10주" right={map.since ? `${fmtDateShort(map.since)}부터` : undefined} />
-      <View style={{ paddingHorizontal: 20 }}>
-        {hasData && (
-          <Text
-            style={[{ ...TYPE.caption, color: picked ? M.ink : M.sub, fontWeight: picked ? '700' : '500', marginBottom: 12 }, NUM]}
-            numberOfLines={2}
-            accessibilityLiveRegion="polite"
-          >
-            {picked ? pickedLine(doc, picked) : bestLine(map.best)}
-          </Text>
-        )}
-        <TenWeeks M={M} map={map} width={contentW} picked={picked} onPick={setPicked} speech={heatSpeech(map)} />
-      </View>
+      <HeatSection M={M} doc={doc} map={map} width={contentW} hasData={hasData} />
 
       {/* 숫자 목표 · 마음가짐 */}
       {hasKind(doc, 'count') && <SectionHead M={M} title="숫자 목표" right="지금까지 / 목표" />}
@@ -211,13 +201,13 @@ function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
   );
 }
 
-/** 이어 온 날 · 다 이룬 칸 — 큰 글자에서는 위아래로 쌓고 사이에 가로 괘선 */
+/** 연속 · 달성한 칸 — 큰 글자에서는 위아래로 쌓고 사이에 가로 괘선 */
 const Hero = memo(function Hero({ M, streak, todayHas, done, stacked }: { M: M; streak: number; todayHas: boolean; done: number; stacked: boolean }) {
   return (
     <View style={{ flexDirection: stacked ? 'column' : 'row', paddingHorizontal: 20, paddingTop: 2 }}>
       <BigNumber
         M={M}
-        label="이어 온 날"
+        label="연속"
         value={`${streak}`}
         unit="일"
         caption={streakCaption(streak, todayHas)}
@@ -229,7 +219,7 @@ const Hero = memo(function Hero({ M, streak, todayHas, done, stacked }: { M: M; 
         : <View style={{ width: 1, backgroundColor: M.line, marginHorizontal: 18 }} />}
       <BigNumber
         M={M}
-        label="다 이룬 칸"
+        label="달성한 칸"
         value={`${done}`}
         unit="/64"
         caption="64칸 중"
@@ -262,7 +252,7 @@ function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: Return
     rows.push({
       label: '마음가짐',
       value: mindLine(review),
-      sub: review.mindRated > 0 ? `${review.mindTotal}개 중 ${review.mindRated}개 매김` : '이번 주는 아직 매기지 않았어요',
+      sub: review.mindRated > 0 ? `${review.mindTotal}개 중 ${review.mindRated}개 매겼어요` : '이번 주는 아직 매기지 않았어요',
     });
   }
   if ((doc.focusMinutes ?? 0) > 0) rows.push({ label: '집중', value: fmtMinutes(doc.focusMinutes), sub: '지금까지' });
@@ -337,6 +327,47 @@ function MoreRow({ M, onPress, label }: { M: M; onPress: () => void; label: stri
   );
 }
 
+// ── 최근 10주 ────────────────────────────────────────────────────────────────
+
+/**
+ * 최근 10주 — 위 한 줄(가장 많이 한 날, 또는 고른 날) + 달력. 고른 날은 여기서만 들고 있다
+ * (날을 고를 때 통계 전체가 아니라 이 구역만 다시 그린다).
+ */
+const HeatSection = memo(function HeatSection({ M, doc, map, width, hasData }: {
+  M: M;
+  doc: MandaratDoc;
+  map: HeatMap;
+  width: number;
+  hasData: boolean;
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const line = picked ? pickedLine(doc, picked) : bestLine(map.best);
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      {hasData && (
+        <Text
+          style={[{ ...TYPE.caption, color: picked ? M.ink : M.sub, fontWeight: picked ? '700' : '500', marginBottom: 12 }, NUM]}
+          numberOfLines={2}
+          // 달력이 화면 읽기에서 고른 날을 값으로 읽으므로, 이 줄은 화면 읽기에서 겹쳐 읽지 않는다
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {line}
+        </Text>
+      )}
+      <TenWeeks
+        M={M}
+        map={map}
+        width={width}
+        picked={picked}
+        onPick={setPicked}
+        speech={heatSpeech(map)}
+        pickedText={picked ? pickedLine(doc, picked) : '고른 날 없음'}
+      />
+    </View>
+  );
+});
+
 // ── 숫자 목표 · 마음가짐 ─────────────────────────────────────────────────────
 
 /** 영역 색 네모 — 줄 앞에서 어느 영역의 칸인지(색만으로 뜻을 전하지 않도록 이름은 글로 읽힌다) */
@@ -375,12 +406,14 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
             : monthAdded(a.log, now) > 0 ? '' : `이번 달 아직 0${c.unit}`;
         const right = c.reached ? '목표 달성' : weekAddedText(week, c.unit);
         const area = th.title.trim() || `영역 ${ti + 1}`;
+        // '6/12권'은 날짜처럼 읽힌다 — 소리로 읽을 말('12권 중 6권')로
+        const said = kindLine(doc, ti, ai, now)?.speech ?? countText(c);
         return (
           <Pressable
             key={`${ti}-${ai}`}
             onPress={() => onOpen(ti, ai)}
             accessibilityRole="button"
-            accessibilityLabel={`${area}, ${a.text.trim()}, ${countText(c)}, ${c.pct}%, ${right}${paceText ? `, ${paceText}` : ''}`}
+            accessibilityLabel={`${area}, ${a.text.trim()}, ${said}, ${c.pct}%, ${right}${paceText ? `, ${paceText}` : ''}`}
             style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
