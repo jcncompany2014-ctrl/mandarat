@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, View, type ViewStyle } from 'react-native';
 import { Text } from '../components/AppText';
 import { Check } from '../components/Check';
-import { CloseBtn, Header, LineRow, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { Header, LineRow, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
 import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
-import { TemplateSheet } from '../components/TemplateSheet';
+import { SheetHead, TemplateSheet } from '../components/TemplateSheet';
 import { TEMPLATES, templateThemes, type Template } from '../data/templates';
 import { APP_VERSION, LICENSES, PRIVACY_URL, SUPPORT_EMAIL, supportMailto } from '../lib/appInfo';
 import { summarize } from '../lib/backup';
@@ -193,20 +193,6 @@ function TextLink({ M, label, onPress, hint }: { M: M; label: string; onPress: (
   );
 }
 
-/** 시트 머리 — 제목 + 닫기(×) */
-function SheetHead({ M, title, body }: { M: M; title: string; body?: string }) {
-  const dismiss = useSheetDismiss();
-  return (
-    <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>{title}</Text>
-        <CloseBtn M={M} onPress={() => dismiss()} />
-      </View>
-      {!!body && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginBottom: 16 }}>{body}</Text>}
-    </>
-  );
-}
-
 /** 저장본 목록 — 고르면 묻고, 되돌리기로 했으면 시트가 내려간 뒤 onRestore(day) */
 function SnapshotList({ M, list, onPick }: { M: M; list: SnapshotInfo[] | null; onPick: (day: string, close: () => void) => void }) {
   const dismiss = useSheetDismiss();
@@ -389,7 +375,8 @@ export function Settings() {
 
   return (
     <View onAccessibilityEscape={back}>
-      <Header M={M} kr="설정" onBack={back} focusTitle />
+      {/* 제목은 뒤로 가기 아래 줄에 — 다른 화면처럼 20pt 왼쪽 끝에서 시작한다 */}
+      <Header M={M} kr="설정" onBack={back} focusTitle stacked />
 
       <View style={{ paddingHorizontal: 20 }}>
         <Section M={M} label="핵심 목표" />
@@ -443,7 +430,9 @@ export function Settings() {
           ))}
         </View>
 
+        {/* 기록 — 안전한 백업 줄과 통째로 새로 쓰는 줄을 떼어 둔다. 저장 위치 안내는 백업 바로 아래에 */}
         <Section M={M} label="기록" />
+        <SubHead M={M} label="백업" first />
         <LineRow
           M={M} first title="백업 내보내기"
           sub={backupAgeLabel(doc.settings.lastBackupAt, new Date())}
@@ -453,13 +442,15 @@ export function Settings() {
           onPress={onExport}
         />
         <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" pressRef={importRow} />
-        <LineRow M={M} title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" />
-        <LineRow M={M} title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
-        <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
-        <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
+        <LineRow M={M} last title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" />
         <Text style={{ marginTop: 10, fontSize: 12.5, lineHeight: 18, color: M.sub }}>
           {STORAGE_NOTE}
         </Text>
+
+        <SubHead M={M} label="새로 시작" />
+        <LineRow M={M} first title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
+        <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
+        <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
 
         <Section M={M} label="정보" />
         <ColophonRow M={M} first label="이름" value="만다라트" />
