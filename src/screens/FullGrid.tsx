@@ -1,8 +1,9 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, Animated, BackHandler, PanResponder, Pressable, View, useWindowDimensions,
+  AccessibilityInfo, Animated, BackHandler, PanResponder, Pressable, View,
   type AccessibilityActionEvent, type LayoutChangeEvent,
 } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import { IconBtn } from '../components/common';

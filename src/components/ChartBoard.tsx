@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions, type AccessibilityActionEvent, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type AccessibilityActionEvent, type ViewStyle } from 'react-native';
+import { useWindowDimensions } from '../lib/screen';
 import { Text } from './AppText';
 import { Icon } from './Icon';
 import { KindMeta } from './KindBits';

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWindowDimensions } from '../lib/screen';
 import { Text, TextInput } from '../components/AppText';
 import { ChartSketch } from '../components/ChartSketch';
 import { PrimaryButton, RuledNotice } from '../components/common';
@@ -26,6 +27,8 @@ const GUTTER = 20;
 export function Onboarding() {
   const M = usePalette();
   const insets = useSafeAreaInsets();
+  const { width: winW, height: winH } = useWindowDimensions();
+  const sketchSize = Math.round(Math.min(winW - GUTTER * 2, winH < 700 ? 228 : 300));
   const { doc, completeOnboarding, applyTemplate, recoveredCopy, dismissRecovered } = useMandarat();
   const [goal, setGoal] = useState('');
   const [focused, setFocused] = useState(false);
@@ -137,11 +140,11 @@ export function Onboarding() {
             ))}
           </View>
 
-          {/* 인쇄된 작은 표 — 가운데 칸은 적는 대로, 둘레 8칸은 시작할 영역 */}
-          <View style={{ marginTop: 24, alignItems: 'flex-start' }}>
-            <ChartSketch M={M} size={180} center={goal} areas={areas} revealKey={picked?.id ?? 'scaffold'} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
-              <Text style={{ ...TYPE.caption, color: M.sub }}>
+          {/* 인쇄된 표 — 가운데 칸은 적는 대로, 둘레 8칸은 시작할 영역. 화면 가운데에, 폭에 맞춰 크게(작은 화면 228 · 그 밖 300) */}
+          <View style={{ marginTop: 24, alignItems: 'center' }}>
+            <ChartSketch M={M} size={sketchSize} center={goal} areas={areas} revealKey={picked?.id ?? 'scaffold'} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
+              <Text style={{ ...TYPE.caption, color: M.sub, textAlign: 'center' }}>
                 {picked ? `‘${picked.name}’ 영역 8개로 시작해요` : '기본 영역 8개로 시작해요 · 내 목표에 맞게 바꿀 수 있어요'}
               </Text>
               {picked && (

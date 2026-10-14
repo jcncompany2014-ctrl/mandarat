@@ -3,6 +3,7 @@ import {
   AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView,
   StyleSheet, View, type AccessibilityRole, type AccessibilityState, type StyleProp, type Text as RNText, type ViewStyle,
 } from 'react-native';
+import { WEB_PANEL } from '../lib/screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
@@ -422,6 +423,7 @@ export function Sheet({
               maxHeight: `${maxHeightPct * 100}%`,
               transform: [{ translateY }],
             },
+            WEB_PANEL,
             shadow(8, '#000', 0.12),
           ]}
         >

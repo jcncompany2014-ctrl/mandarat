@@ -1,5 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, AppState, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, AppState, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { WebColumn } from '../components/WebColumn';
+import { useWindowDimensions } from '../lib/screen';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '../components/AppText';
 import { EASE } from '../theme/motion';
@@ -176,6 +178,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
 
   return (
     <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent>
+      <WebColumn bg={M.center}>
       <View
         style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}
         // 두 손가락 두 번 톡톡 — 멈춤·계속, 문지르기 — 닫기(기록은 남긴다)
@@ -247,6 +250,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           <Text style={{ marginTop: 16, fontSize: 12.5, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>25분 동안 한 가지에만</Text>
         )}
       </View>
+      </WebColumn>
     </Modal>
   );
 }
