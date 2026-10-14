@@ -41,11 +41,11 @@ export function tallyMarks(n: number): { strokes: number; extra: number } {
 
 /**
  * 영역 줄의 한 줄 — 무엇이 다음인지.
- * 8칸 다 이룸 → '모두 이뤘어요' · 적어 두고 아직 못 이룬 첫 칸 → '다음 · {글}' · 그 밖 → '빈 칸 n개'
+ * 8칸 다 달성 → '8칸 모두 달성했어요' · 적어 두고 아직 달성하지 않은 첫 칸 → '다음 · {글}' · 그 밖 → '빈 칸 n개'
  */
 export function areaLine(th: Pick<Theme, 'actions'>): string {
   const done = th.actions.filter((a) => a.done).length;
-  if (done >= 8) return '모두 이뤘어요';
+  if (done >= 8) return '8칸 모두 달성했어요';
   const next = th.actions.find((a) => a.text.trim() && !a.done);
   if (next) return `다음 · ${next.text.trim()}`;
   const blank = th.actions.filter((a) => !a.text.trim()).length;

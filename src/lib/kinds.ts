@@ -1,16 +1,17 @@
 // 실천 유형별 값 다루기 — 쌓기 숫자, 한 번의 마감, 마음가짐 점수, 유형 설정 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
-import type { Action, ActionKind, IconName, MandaratDoc } from '../types';
+import type { Action, ActionKind, HabitSchedule, IconName, MandaratDoc } from '../types';
 import {
   KINDS, daysBetween, daysLabel, habitDays, kindOf, normalizeDays, normalizePerWeek, perWeekOf, routineWeekCount,
   setDayLog, weekDates, weekKey, ymd,
 } from './routine';
+import { fmtDateShort, fmtDue, fmtNum } from './text';
 
 export const KIND_LABEL: Record<ActionKind, string> = { once: '한 번', habit: '습관', count: '쌓기', mind: '마음가짐' };
 
 /** 유형 고르기 아래 한 줄 설명 — 짧게, 그 유형이 '오늘'과 칸에 어떻게 이어지는지만 */
 export const KIND_HINT: Record<ActionKind, string> = {
   once: '마감 사흘 전부터 ‘오늘’에 담겨요',
-  habit: '정한 요일마다 ‘오늘’에 담겨요. 횟수로 정하면 다 채울 때까지 매일 담겨요.',
+  habit: '정한 요일마다 ‘오늘’에 담겨요. 주 N회로 정하면 횟수를 다 할 때까지 매일 담겨요.',
   count: '숫자를 쌓아 가는 실천이에요. 목표 수에 닿으면 칸이 달성돼요.',
   mind: '한 주에 한 번 1~5점으로 돌아봐요',
 };
@@ -40,13 +41,8 @@ export function parseNum(text: string): number | undefined {
   return round2(Number(t));
 }
 
-/** 1234.5 → '1,234.5' (소수는 있을 때만) */
-export function fmtNum(n: number): string {
-  const r = round2(n);
-  const [i, f] = String(Math.abs(r)).split('.');
-  const int = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `${r < 0 ? '-' : ''}${int}${f ? `.${f}` : ''}`;
-}
+// 1234.5 → '1,234.5' — 표기 함수는 text.ts에 두고(kinds ↔ text가 서로 불러오지 않게) 예전 자리에서도 쓸 수 있게 내보낸다
+export { fmtNum };
 
 /** 단위 정리 — 앞뒤 공백, 8글자까지. '만원'은 읽기 쉽게 '만 원'으로 */
 export function cleanUnit(v: unknown): string {
@@ -178,24 +174,23 @@ export interface DueInfo {
   date: string;
   /** 오늘부터 마감까지 남은 날(지났으면 음수) */
   days: number;
-  /** 'D-3' · '오늘 마감' · '2일 지남' */
+  /** 좁은 자리 — 'D-3' · 'D-day' · 'D+2' (text.fmtDue 짧게) */
   label: string;
+  /** 글 속 — '마감 D-3' · '오늘 마감' · '마감 2일 지남' (text.fmtDue 길게) */
+  long: string;
   over: boolean;
 }
 
 export function dueInfo(a: Action, today: Date): DueInfo | null {
   if (kindOf(a) !== 'once' || !a.due) return null;
   const days = daysBetween(ymd(today), a.due);
-  return { date: a.due, days, label: days > 0 ? `D-${days}` : days === 0 ? '오늘 마감' : `${-days}일 지남`, over: days < 0 };
+  return { date: a.due, days, label: fmtDue(days, 'short'), long: fmtDue(days, 'long'), over: days < 0 };
 }
 
-const DOW = ['일', '월', '화', '수', '목', '금', '토'];
-
-/** '10월 20일 (월)' — 올해가 아니면 연도도 */
+/** '10.20 (월)' (text.fmtDateShort) — 올해가 아니면 앞에 연도('2027년 1.4 (월)') */
 export function dateText(key: string, today = new Date()): string {
-  const [y, m, d] = key.split('-').map(Number);
-  const dow = DOW[new Date(y, m - 1, d).getDay()];
-  return `${y !== today.getFullYear() ? `${y}년 ` : ''}${m}월 ${d}일 (${dow})`;
+  const y = Number(key.slice(0, 4));
+  return `${y !== today.getFullYear() ? `${y}년 ` : ''}${fmtDateShort(key)}`;
 }
 
 /** 'YYYY-MM-DD'에 n일 더하기 */
@@ -335,6 +330,10 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
     const since = wasKind === 'habit' ? a.since : todayKey;
     if (since) out.since = since;
     else delete out.since;
+    // 이미 습관이던 칸의 일정을 고치면 지난 일정을 남겨 둔다(지난 날은 그때 일정으로 센다). 새로 습관이 되면 처음부터
+    const schedule = wasKind === 'habit' ? nextSchedule(a, out, todayKey) : undefined;
+    if (schedule) out.schedule = schedule;
+    else delete out.schedule;
   } else if (cfg.kind === 'count') {
     const before = wasKind === 'count' ? countInfo(a) : null;
     const goal = cleanNum(cfg.goal, 0.01) ?? cleanNum(a.goal, 0.01) ?? 1;
@@ -363,6 +362,36 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
   return out;
 }
 
+/** 일정 한 토막의 값(요일 또는 주 N회) — 요일 습관이면 요일, 주 N회면 횟수 */
+function scheduleValue(a: Pick<Action, 'days' | 'perWeek'>): Omit<HabitSchedule, 'from'> {
+  const days = normalizeDays(a.days);
+  const pw = normalizePerWeek(a.perWeek);
+  if (days.length > 0 || pw === 0) return { days: days.length > 0 ? days : [0, 1, 2, 3, 4, 5, 6] };
+  return { perWeek: pw };
+}
+
+function sameSchedule(x: Omit<HabitSchedule, 'from'>, y: Omit<HabitSchedule, 'from'>): boolean {
+  return (x.perWeek ?? 0) === (y.perWeek ?? 0) && normalizeDays(x.days).join() === normalizeDays(y.days).join();
+}
+
+/**
+ * 습관 일정을 고친 뒤의 내력 — 오늘부터 새 일정. 오늘 이미 고친 것은 덮어쓰고, 앞 토막과 같아지면 합친다.
+ * 토막이 하나뿐이면(지난 일정이 지금과 같으면) 내력을 두지 않는다(undefined) — 이전 저장본과 같은 모양.
+ */
+function nextSchedule(prev: Action, next: Action, todayKey: string): HabitSchedule[] | undefined {
+  const before = scheduleValue(prev);
+  const after = scheduleValue(next);
+  const had = prev.schedule && prev.schedule.length > 0 ? prev.schedule : undefined;
+  if (sameSchedule(before, after)) return had;
+  const list: HabitSchedule[] = had ? [...had] : [{ from: prev.since ?? EPOCH, ...before }];
+  while (list.length > 0 && list[list.length - 1].from >= todayKey) list.pop();
+  if (list.length === 0 || !sameSchedule(list[list.length - 1], after)) list.push({ from: todayKey, ...after });
+  return list.length > 1 ? list : undefined;
+}
+
+/** 첫 일정의 시작 — 습관을 정한 날(since)을 모르는 이전 칸 */
+const EPOCH = '1970-01-01';
+
 /** 칸을 비울 때 — 글과 유형별 값·달성을 모두 지우고 메모만 남긴다(다음에 쓰는 실천이 이전 숫자·기록을 이어받지 않게) */
 export function clearedAction(a: Action): Action {
   return { text: '', note: a.note, done: false };
@@ -388,6 +417,16 @@ export interface KindLine {
   alert?: boolean;
 }
 
+/** 마감을 소리로 — '마감 3일 남음' · '오늘 마감' · '마감 2일 지남' ('D-3'은 '디 마이너스 삼'으로 읽힌다). a11y.kindSpeech와 함께 쓴다 */
+export function dueSpeech(days: number): string {
+  return days > 0 ? `마감 ${days}일 남음` : days === 0 ? '오늘 마감' : `마감 ${-days}일 지남`;
+}
+
+/** 쌓기를 소리로 — '12권 중 6권' ('6/12권'은 날짜로 읽힌다). a11y.kindSpeech와 함께 쓴다 */
+export function countSpeech(c: Pick<CountInfo, 'count' | 'goal' | 'unit'>): string {
+  return `${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
+}
+
 /** 유형별 보조 정보 — 붙일 게 없으면(마감 없는 한 번) null */
 export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): KindLine | null {
   const a = doc.themes[ti]?.actions[ai];
@@ -408,7 +447,7 @@ export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number
   if (kind === 'count') {
     const c = countInfo(a, ymd(today));
     const text = countText(c);
-    const said = `${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
+    const said = countSpeech(c);
     return {
       short: text, long: c.today > 0 ? `${text} · 오늘 +${fmtNum(c.today)}` : text, plan: text, pct: c.pct,
       speech: c.today > 0 ? `${said}, 오늘 ${fmtNum(c.today)}${c.unit} 더함` : said,
@@ -417,8 +456,8 @@ export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number
   if (kind === 'once') {
     const d = dueInfo(a, today);
     if (!d || a.done) return null;
-    const label = d.days > 0 ? `마감 ${d.label}` : d.label;
-    const said = d.days > 0 ? `마감 ${d.days}일 남음` : d.days === 0 ? '오늘 마감' : `마감 ${-d.days}일 지남`;
+    const label = d.long;
+    const said = dueSpeech(d.days);
     return { icon: 'calendar', short: d.label, long: label, plan: label, speech: said, alert: d.over };
   }
   const r = ratingOf(a, today);

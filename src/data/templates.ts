@@ -34,7 +34,7 @@ export const TEMPLATES: Template[] = [
     id: 'career', name: '커리어 성장', desc: '전문성·네트워크·성과 중심', centerGoal: '연봉 한 단계 올리기',
     areas: [
       { title: '전문성', icon: 'book' }, { title: '네트워크', icon: 'people' }, { title: '성과', icon: 'target' },
-      { title: '사이드 프로젝트', icon: 'briefcase' }, { title: '학습', icon: 'pencil' }, { title: '포트폴리오', icon: 'palette' },
+      { title: '부업', icon: 'briefcase' }, { title: '학습', icon: 'pencil' }, { title: '포트폴리오', icon: 'palette' },
       { title: '건강', icon: 'heart' }, { title: '재정', icon: 'coin' },
     ],
   },

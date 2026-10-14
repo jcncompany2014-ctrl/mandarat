@@ -8,7 +8,7 @@
 // - 쌓기는 더한 수를 action.log[날짜]에 남기고, 그날 더한 게 있으면 그날 한 것으로 본다.
 // - 한 번은 done(영구 달성)이 곧 오늘 완료 여부다. 마감이 다가오면 '오늘'에 저절로 담긴다.
 // - 마음가짐은 날마다 체크하지 않아 '오늘' 목록에 넣지 않는다(한 주에 한 번 점수).
-import type { Action, ActionKind, MandaratDoc } from '../types';
+import type { Action, ActionKind, HabitSchedule, MandaratDoc } from '../types';
 
 export const KINDS: readonly ActionKind[] = ['once', 'habit', 'count', 'mind'];
 /** 마감 D-3부터(지난 것 포함) '오늘'에 저절로 담긴다 */
@@ -25,11 +25,19 @@ export function ymd(d: Date): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-/** 0~6 정수만 남기고 중복 제거·정렬. 저장본 검증에도 쓴다. */
+// 같은 배열을 다시 다듬지 않게 — 입력 배열(그대로 저장돼 있는 요일 배열)마다 결과를 한 번만 만든다.
+// 입력 배열을 고치면 결과가 어긋나지만, 앱의 요일 배열은 늘 새로 만들어 넣고 고쳐 쓰지 않는다.
+const daysCache = new WeakMap<readonly unknown[], number[]>();
+
+/** 0~6 정수만 남기고 중복 제거·정렬. 저장본 검증에도 쓴다. 같은 배열에는 같은 결과 배열을 주므로 고쳐 쓰지 않는다. */
 export function normalizeDays(days: unknown): number[] {
   if (!Array.isArray(days)) return [];
+  const hit = daysCache.get(days);
+  if (hit) return hit;
   const ok = days.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6);
-  return [...new Set(ok)].sort((a, b) => a - b);
+  const out = [...new Set(ok)].sort((a, b) => a - b);
+  daysCache.set(days, out);
+  return out;
 }
 
 /** 주 N회 값 검증: 1~6 정수만(7회는 '매일' 요일 반복과 같다) */
@@ -37,7 +45,7 @@ export function normalizePerWeek(v: unknown): number {
   return Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 6 ? (v as number) : 0;
 }
 
-type KindFields = Pick<Action, 'kind' | 'days' | 'perWeek'>;
+export type KindFields = Pick<Action, 'kind' | 'days' | 'perWeek'>;
 
 /** 실천 유형 — 저장된 값이 없으면(이전 저장본) 반복 요일이 있으면 습관, 아니면 한 번 */
 export function kindOf(a: KindFields | undefined): ActionKind {
@@ -71,11 +79,40 @@ export function sameDays(a: unknown, b: unknown): boolean {
   return normalizeDays(a).join() === normalizeDays(b).join();
 }
 
-/** 이 요일 습관이 그날 예정돼 있었나 — 반복 요일이고, 습관을 정한 날(since) 이후 (주 N회는 요일이 없어 늘 거짓) */
-export function scheduledOn(a: Pick<Action, 'kind' | 'days' | 'perWeek' | 'since'> | undefined, date: Date): boolean {
+// ── 일정의 지난 모습 ─────────────────────────────────────────────────────────
+// 습관의 요일·주 N회를 고쳐도 지난 날은 그때의 일정으로 센다(action.schedule).
+// schedule은 오래된 것부터 { from, days | perWeek } — 각 일정은 from부터 다음 일정의 from 전날까지 쓰였다.
+// 마지막 일정은 지금 값(days · perWeek)과 같고, 첫 일정보다 이른 날은 첫 일정으로 본다.
+// schedule이 없는 칸(이전 저장본, 일정을 고친 적 없는 습관)은 모든 날을 지금 값으로 센다 — 예전과 같다.
+
+type SchedFields = Pick<Action, 'kind' | 'days' | 'perWeek' | 'schedule'>;
+
+const entryCache = new WeakMap<HabitSchedule, KindFields>();
+
+function entryFields(kind: Action['kind'], e: HabitSchedule): KindFields {
+  let f = entryCache.get(e);
+  if (!f || f.kind !== kind) {
+    f = { kind, ...(e.days ? { days: e.days } : {}), ...(e.perWeek ? { perWeek: e.perWeek } : {}) };
+    entryCache.set(e, f);
+  }
+  return f;
+}
+
+/** 그날(day 'YYYY-MM-DD') 쓰던 일정 — 일정을 고친 적이 없거나 마지막 일정 이후면 칸 그대로 */
+export function scheduleAt<T extends SchedFields>(a: T, day: string): T | KindFields {
+  const list = a.schedule;
+  if (!list || list.length === 0 || day >= list[list.length - 1].from) return a;
+  let e = list[0];
+  for (let i = 1; i < list.length - 1 && list[i].from <= day; i++) e = list[i];
+  return entryFields(a.kind, e);
+}
+
+/** 이 요일 습관이 그날 예정돼 있었나 — 그날의 반복 요일이고, 습관을 정한 날(since) 이후 (주 N회는 요일이 없어 늘 거짓) */
+export function scheduledOn(a: Pick<Action, 'kind' | 'days' | 'perWeek' | 'since' | 'schedule'> | undefined, date: Date): boolean {
   if (!a) return false;
-  if (!habitDays(a).includes(date.getDay())) return false;
-  return !a.since || ymd(date) >= a.since;
+  const k = ymd(date);
+  if (a.since && k < a.since) return false;
+  return habitDays(scheduleAt(a, k)).includes(date.getDay());
 }
 
 /** 반복 요일 라벨: 매일 · 평일 · 주말 · 월·수·금 · 일요일(하루면 '요일'까지) (없으면 빈 문자열) */
@@ -149,8 +186,9 @@ export function weekDone(dayLog: MandaratDoc['dayLog'], key: string, today: Date
  * 주 N회 습관의 이번 주 목표 횟수 — 습관을 정한 주에는 남은 날 수까지만(토요일에 정한 주 3회는 그 주 2회).
  * 주 N회가 아니면 0.
  */
-export function weekTarget(a: Pick<Action, 'kind' | 'days' | 'perWeek' | 'since'> | undefined, today: Date): number {
-  const n = perWeekOf(a);
+export function weekTarget(a: Pick<Action, 'kind' | 'days' | 'perWeek' | 'since' | 'schedule'> | undefined, today: Date): number {
+  // 그 주의 횟수는 today에 쓰던 일정으로(나중에 횟수를 고쳐도 지난 주 목표는 그대로)
+  const n = a ? perWeekOf(scheduleAt(a, ymd(today))) : 0;
   if (n === 0 || !a?.since) return n;
   const week = weekDates(today);
   const mon = ymd(week[0]);
@@ -180,7 +218,7 @@ export function autoToday(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: numbe
   const kind = kindOf(a);
   const tk = ymd(today);
   if (kind === 'habit') {
-    if (perWeekOf(a) === 0) return scheduledOn(a, today);
+    if (perWeekOf(scheduleAt(a, tk)) === 0) return scheduledOn(a, today);
     if (a.since && tk < a.since) return false;
     const key = `${ti}-${ai}`;
     return doneOn(doc.dayLog, key, tk) || weekDone(doc.dayLog, key, today, a.since, false) < weekTarget(a, today);
@@ -230,7 +268,7 @@ export function routineWeek(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: num
   const a = doc.themes[ti]?.actions[ai];
   const key = `${ti}-${ai}`;
   const todayKey = ymd(today);
-  const weekly = perWeekOf(a) > 0;
+  const weekly = !!a && perWeekOf(scheduleAt(a, todayKey)) > 0;
   return weekDates(today).map((d) => {
     const k = ymd(d);
     if (a?.since && k < a.since) return 'off';
@@ -250,7 +288,7 @@ export function routineWeek(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: num
 export function routineWeekCount(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): { done: number; planned: number } {
   const a = doc.themes[ti]?.actions[ai];
   const key = `${ti}-${ai}`;
-  if (perWeekOf(a) > 0) return { done: weekDone(doc.dayLog, key, today, a?.since), planned: weekTarget(a, today) };
+  if (a && perWeekOf(scheduleAt(a, ymd(today))) > 0) return { done: weekDone(doc.dayLog, key, today, a.since), planned: weekTarget(a, today) };
   const planned = weekDates(today).filter((d) => scheduledOn(a, d));
   return { done: planned.filter((d) => doneOn(doc.dayLog, key, ymd(d))).length, planned: planned.length };
 }
@@ -268,62 +306,198 @@ export interface HabitStreak {
 }
 
 /**
- * 습관 하나의 연속 기록 — 정한 일정대로 센다.
+ * 습관 하나의 연속 기록 — 정한 일정대로 센다(일정을 고쳤다면 지난 날은 그때의 일정으로).
  * - 요일 습관: 예정일만 센다. 쉬는 날(월·수·금 습관의 화·목)은 건너뛰어 끊기지 않고, 쉬는 날에 한 것은 더하지도 않는다.
  *   아직 체크하지 않은 오늘은 끊지 않는다(하루가 끝나지 않았다).
  * - 주 N회 습관: 월~일 한 주에 목표 횟수를 채운 주를 이어서 센다(습관을 정한 주는 남은 날만큼이 목표).
  *   이번 주는 채웠으면 1을 더하고, 아직 못 채웠어도 남은 날로 채울 수 있으면 더하지도 끊지도 않는다.
  * - 습관을 정한 날(since) 전과 STREAK_SPAN일보다 오래된 기록은 보지 않는다.
  * 습관이 아니면 { cur: 0, best: 0, unit: 'day' }.
+ *
+ * 빠르게: dayLog마다 칸별 기록한 날 모음(logIndex)을 한 번만 만들고, 날짜는 정수로 걷는다.
+ * 결과는 칸(실천 객체)마다 기억해 두고, 그 칸의 기록한 날 모음·오늘이 그대로면 다시 세지 않는다 —
+ * 체크 하나에는 그 칸 하나만 다시 센다. 돌려주는 객체는 고쳐 쓰지 않는다.
  */
 export function habitStreak(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): HabitStreak {
   const a = doc.themes[ti]?.actions[ai];
   if (!a || kindOf(a) !== 'habit') return { cur: 0, best: 0, unit: 'day' };
   const key = `${ti}-${ai}`;
   const tk = ymd(today);
-  const unit = perWeekOf(a) > 0 ? 'week' : 'day';
+  const days = logIndex(doc.dayLog).get(key);
+  const memo = streakMemo.get(a);
+  if (memo && memo.key === key && memo.tk === tk && memo.days === days) return memo.res;
+  const res = countStreak(a, days, tk);
+  streakMemo.set(a, { key, tk, days, res });
+  return res;
+}
 
-  // 셀 첫날 = 이 칸 기록이 처음 남은 날 — 단, 습관을 정한 날 전이나 STREAK_SPAN일보다 앞이면 거기서부터
-  let start: string | null = null;
-  for (const [day, list] of Object.entries(doc.dayLog)) {
-    if (day <= tk && (start === null || day < start) && list.includes(key)) start = day;
+// ── 연속 기록 계산 도구 ──────────────────────────────────────────────────────
+const DAY_MS = 86_400_000;
+
+/** 'YYYY-MM-DD' → 1970-01-01부터 센 날 수(달력 날짜라 서머타임과 무관) */
+export function dayNum(key: string): number {
+  return Math.round(Date.UTC(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10))) / DAY_MS);
+}
+
+/** 날 수 → 요일(0=일) — 1970-01-01은 목요일 */
+function dowOf(n: number): number {
+  return (((n + 4) % 7) + 7) % 7;
+}
+
+type DayLog = MandaratDoc['dayLog'];
+/** 칸 키 → 기록한 날(날 수) 모음 */
+type LogIndex = Map<string, Set<number>>;
+
+const indexCache = new WeakMap<DayLog, LogIndex>();
+// 바로 앞 dayLog와 그 모음 — 다음 dayLog는 바뀐 날만 고쳐 만든다(체크 하나는 날 하나만 바꾼다)
+let prevLog: DayLog | null = null;
+let prevIndex: LogIndex | null = null;
+
+function buildIndex(dayLog: DayLog): LogIndex {
+  const idx: LogIndex = new Map();
+  for (const [day, list] of Object.entries(dayLog)) {
+    const n = dayNum(day);
+    for (const k of list) {
+      let set = idx.get(k);
+      if (!set) idx.set(k, (set = new Set()));
+      set.add(n);
+    }
   }
-  if (start === null) return { cur: 0, best: 0, unit };
-  if (a.since && a.since > start) start = a.since;
-  const floor = ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() - (STREAK_SPAN - 1)));
+  return idx;
+}
+
+/** prev에서 next로 바뀐 날(배열이 바뀐 날)만 살펴 새 모음을 만든다 — 바뀐 칸의 모음만 새 Set(나머지는 그대로 같은 Set) */
+function patchIndex(prev: DayLog, idx: LogIndex, next: DayLog): LogIndex {
+  const touched = new Map<string, Set<number>>();
+  const edit = (k: string) => {
+    let set = touched.get(k);
+    if (!set) touched.set(k, (set = new Set(idx.get(k))));
+    return set;
+  };
+  const diff = (day: string, before: readonly string[], after: readonly string[]) => {
+    const n = dayNum(day);
+    for (const k of before) if (!after.includes(k)) edit(k).delete(n);
+    for (const k of after) if (!before.includes(k)) edit(k).add(n);
+  };
+  for (const day of Object.keys(next)) {
+    const after = next[day];
+    const before = Object.prototype.hasOwnProperty.call(prev, day) ? prev[day] : undefined;
+    if (after !== before) diff(day, before ?? [], after);
+  }
+  for (const day of Object.keys(prev)) {
+    if (!Object.prototype.hasOwnProperty.call(next, day)) diff(day, prev[day], []);
+  }
+  if (touched.size === 0) return idx;
+  const out = new Map(idx);
+  for (const [k, set] of touched) {
+    if (set.size > 0) out.set(k, set);
+    else out.delete(k);
+  }
+  return out;
+}
+
+/** dayLog의 칸별 기록한 날 모음 — 같은 dayLog에는 같은 모음 */
+export function logIndex(dayLog: DayLog): LogIndex {
+  const hit = indexCache.get(dayLog);
+  if (hit) return hit;
+  const idx = prevLog && prevIndex ? patchIndex(prevLog, prevIndex, dayLog) : buildIndex(dayLog);
+  indexCache.set(dayLog, idx);
+  prevLog = dayLog;
+  prevIndex = idx;
+  return idx;
+}
+
+interface StreakMemo {
+  key: string;
+  tk: string;
+  days: Set<number> | undefined;
+  res: HabitStreak;
+}
+const streakMemo = new WeakMap<Action, StreakMemo>();
+
+/** 일정 한 구간 — from(날 수)부터. mask: 반복 요일 비트(요일 습관), perWeek: 주 N회 */
+interface Segment {
+  from: number;
+  mask: number;
+  perWeek: number;
+}
+
+function segmentOf(from: number, f: KindFields): Segment {
+  let mask = 0;
+  for (const d of habitDays(f)) mask |= 1 << d;
+  return { from, mask, perWeek: perWeekOf(f) };
+}
+
+/** 칸의 일정 구간들(오래된 것부터) — 고친 적이 없으면 지금 일정 하나. 첫 구간보다 이른 날은 첫 구간으로 본다 */
+function segmentsOf(a: Action): Segment[] {
+  const list = a.schedule;
+  if (!list || list.length === 0) return [segmentOf(-Infinity, a)];
+  const segs = list.slice(0, -1).map((e) => segmentOf(dayNum(e.from), entryFields(a.kind, e)));
+  segs.push(segmentOf(dayNum(list[list.length - 1].from), a));
+  return segs;
+}
+
+function countStreak(a: Action, days: Set<number> | undefined, tk: string): HabitStreak {
+  const unit = perWeekOf(a) > 0 ? 'week' : 'day';
+  const none: HabitStreak = { cur: 0, best: 0, unit };
+  if (!days || days.size === 0) return none;
+  const T = dayNum(tk);
+  // 셀 첫날 = 이 칸 기록이 처음 남은 날 — 단, 습관을 정한 날 전이나 STREAK_SPAN일보다 앞이면 거기서부터
+  let start = Infinity;
+  for (const n of days) if (n <= T && n < start) start = n;
+  if (start === Infinity) return none;
+  const since = a.since ? dayNum(a.since) : -Infinity;
+  if (since > start) start = since;
+  const floor = T - (STREAK_SPAN - 1);
   if (floor > start) start = floor;
-  if (start > tk) return { cur: 0, best: 0, unit };
-  const [sy, sm, sd] = start.split('-').map(Number);
+  if (start > T) return none;
+  const segs = segmentsOf(a);
+  // 구간은 한두 개뿐이라 뒤에서부터 찾는다
+  const segAt = (n: number) => {
+    let i = segs.length - 1;
+    while (i > 0 && segs[i].from > n) i--;
+    return segs[i];
+  };
 
   let run = 0;
   let best = 0;
   if (unit === 'day') {
     // 하루씩 앞으로 — 예정일에 했으면 잇고, 못 했으면 끊는다(오늘은 끊지 않는다)
-    for (let i = 0; ; i++) {
-      const d = new Date(sy, sm - 1, sd + i);
-      const k = ymd(d);
-      if (k > tk) break;
-      if (!scheduledOn(a, d)) continue;
-      if (doneOn(doc.dayLog, key, k)) best = Math.max(best, ++run);
-      else if (k !== tk) run = 0;
+    for (let n = start; n <= T; n++) {
+      if (!((segAt(n).mask >> dowOf(n)) & 1)) continue;
+      if (days.has(n)) best = Math.max(best, ++run);
+      else if (n !== T) run = 0;
     }
     return { cur: run, best, unit };
   }
 
   // 한 주씩 앞으로(월요일 기준)
-  const first = weekDates(new Date(sy, sm - 1, sd))[0];
-  for (let w = 0; ; w++) {
-    const week = weekDates(new Date(first.getFullYear(), first.getMonth(), first.getDate() + w * 7));
-    if (ymd(week[0]) > tk) break;
-    const sun = ymd(week[6]);
-    const current = sun >= tk;
-    const target = weekTarget(a, week[0]);
-    const done = weekDone(doc.dayLog, key, current ? today : week[6], a.since);
+  const doneToday = days.has(T);
+  for (let mon = start - ((dowOf(start) + 6) % 7); mon <= T; mon += 7) {
+    const sun = mon + 6;
+    const current = sun >= T;
+    const ref = current ? T : sun;
+    // 그 주의 목표는 그 주(이번 주는 오늘)에 쓰던 일정으로 — 그때 요일 습관이었다면 예정일 수
+    const seg = segAt(ref);
+    let done = 0;
+    let target: number;
+    if (seg.perWeek > 0) {
+      for (let n = Math.max(mon, since); n <= ref; n++) if (days.has(n)) done++;
+      target = since > mon ? Math.max(1, Math.min(seg.perWeek, sun - since + 1)) : seg.perWeek;
+    } else {
+      target = 0;
+      for (let n = Math.max(mon, since); n <= sun; n++) {
+        if (!((segAt(n).mask >> dowOf(n)) & 1)) continue;
+        target++;
+        if (n <= ref && days.has(n)) done++;
+      }
+      if (target === 0) continue;
+    }
     if (done >= target) best = Math.max(best, ++run);
     else if (!current) run = 0;
     else {
       // 이번 주: 남은 날(오늘을 아직 안 했으면 오늘 포함)로 아직 채울 수 있으면 그대로 둔다
-      const left = daysBetween(tk, sun) + (doneOn(doc.dayLog, key, tk) ? 0 : 1);
+      const left = sun - T + (doneToday ? 0 : 1);
       if (left < target - done) run = 0;
     }
   }
@@ -343,9 +517,23 @@ export interface TodayItem {
   done: boolean;
 }
 
-/** 오늘 실천 목록 = 직접 담은 항목 ∪ 저절로 담기는 항목. 글자가 없는 칸과 마음가짐은 뺀다. */
+interface TodayMemo {
+  dayLog: MandaratDoc['dayLog'];
+  todayKeys: readonly string[];
+  tk: string;
+  items: TodayItem[];
+}
+// themes마다 마지막 결과 — 홈·오늘·만다라트가 한 번 바뀔 때 여러 번 부르므로 같은 문서면 한 번만 센다
+const todayMemo = new WeakMap<MandaratDoc['themes'], TodayMemo>();
+
+/**
+ * 오늘 실천 목록 = 직접 담은 항목 ∪ 저절로 담기는 항목. 글자가 없는 칸과 마음가짐은 뺀다.
+ * themes · dayLog · todayKeys · 날짜가 그대로면 같은(얼린) 배열을 돌려준다 — 고쳐 쓰지 말고 새 배열로 만들어 쓴다.
+ */
 export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>, today: Date): TodayItem[] {
   const tk = ymd(today);
+  const memo = todayMemo.get(doc.themes);
+  if (memo && memo.dayLog === doc.dayLog && memo.todayKeys === doc.todayKeys && memo.tk === tk) return memo.items;
   const seen = new Set<string>();
   const out: TodayItem[] = [];
   const push = (ti: number, ai: number, auto?: boolean) => {
@@ -355,7 +543,9 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
     const kind = kindOf(a);
     if (kind === 'mind') return;
     seen.add(key);
-    out.push({ ti, ai, key, kind, routine: kind === 'habit', scheduled: auto ?? autoToday(doc, ti, ai, today), done: doneToday(doc, a, key, tk) });
+    out.push(Object.freeze({
+      ti, ai, key, kind, routine: kind === 'habit', scheduled: auto ?? autoToday(doc, ti, ai, today), done: doneToday(doc, a, key, tk),
+    }));
   };
   for (const k of doc.todayKeys) {
     const [ti, ai] = k.split('-').map(Number);
@@ -364,7 +554,9 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
   doc.themes.forEach((t, ti) => t.actions.forEach((_, ai) => {
     if (autoToday(doc, ti, ai, today)) push(ti, ai, true);
   }));
-  return out;
+  const items = Object.freeze(out) as TodayItem[];
+  todayMemo.set(doc.themes, { dayLog: doc.dayLog, todayKeys: doc.todayKeys, tk, items });
+  return items;
 }
 
 /**

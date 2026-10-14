@@ -47,13 +47,13 @@ test('rowStatus: 유형마다 짧은 상태 한 마디', () => {
 test('rowLabel: 보이는 글 + 달성 + 유형 한 줄', () => {
   const d = doc();
   assert.equal(rowLabel(d, 0, 2, WED), '하루 물 2L, 달성, 매일 반복');
-  assert.equal(rowLabel(d, 0, 3, WED), '책 12권, 7/12권');
+  assert.equal(rowLabel(d, 0, 3, WED), '책 12권, 12권 중 7권');
   assert.equal(rowLabel(d, 0, 1, WED), '정기 건강검진, 달성');
-  assert.equal(rowLabel(d, 0, 4, WED), '이력서 고치기, 마감 D-2');
+  assert.equal(rowLabel(d, 0, 4, WED), '이력서 고치기, 마감 2일 남음');
   assert.equal(rowLabel(d, 0, 7, WED), '실천 8 채우기');
 });
 
 test('pageSpeech: 넘긴 뒤 읽는 말', () => {
-  assert.equal(pageSpeech(doc(), 0), '건강, 영역 1/8');
-  assert.equal(pageSpeech(doc(), 1), '영역 2, 영역 2/8');
+  assert.equal(pageSpeech(doc(), 0), '건강, 8개 영역 중 첫 번째');
+  assert.equal(pageSpeech(doc(), 1), '영역 2, 8개 영역 중 두 번째');
 });

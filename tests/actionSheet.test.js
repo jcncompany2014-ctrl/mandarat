@@ -70,8 +70,8 @@ test('마감 미루기 — 다 하지 않은 칸의 마감이 오늘이거나 �
 });
 
 test('쌓기 목표 알림', () => {
-  assert.equal(goalToast(12, '권'), '12권 목표를 이뤘어요');
-  assert.equal(goalToast(1000, 'km'), '1,000km 목표를 이뤘어요');
+  assert.equal(goalToast(12, '권'), '12권 목표를 달성했어요');
+  assert.equal(goalToast(1000, 'km'), '1,000km 목표를 달성했어요');
 });
 
 test('메모 — 바뀐 때만 저장, 줄 수는 글 높이를 덮게', () => {

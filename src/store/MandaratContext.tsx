@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '../types';
 import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
-import { addCount as addCountTo, applyConfig, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
-import { archiveAllCells, archiveCellLog, areaStreak, detachReviewPicks } from '../lib/history';
+import { addCount as addCountTo, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
+import { activeStreak, archiveAllCells, archiveCellLog, areaStreak, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
 import { summarize, type BackupSummary } from '../lib/backup';
 import { MOODS, withAccent, type Palette } from '../theme/moods';
 import { GOLD } from '../theme/palette';
@@ -19,17 +19,6 @@ const SNAP_KEEP = 7;
 // ── date helpers ──────────────────────────────────────────────────────────────
 export function dateKey(d = new Date()): string {
   return ymd(d);
-}
-
-export function lastNDates(n: number): string[] {
-  const out: string[] = [];
-  const today = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    out.push(dateKey(d));
-  }
-  return out;
 }
 
 // ── 저장소 읽기 ───────────────────────────────────────────────────────────────
@@ -197,8 +186,15 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** 아직 쓰지 않은 변경이 있다(디바운스 대기 중) */
   const pendingSave = useRef(false);
-  const docRef = useRef(doc);
-  docRef.current = doc;
+  /**
+   * 가장 최근 문서 — 바꿀 때마다 바로(그리기 전에) 맞춘다. 같은 순간에 이어지는 변경과 내려갈 때의 저장이
+   * 아직 그려지지 않은 변경까지 함께 보게(그린 문서만 보면 한 박자 늦은 문서를 저장한다).
+   */
+  const latest = useRef(doc);
+  const commit = useCallback((next: MandaratDoc) => {
+    latest.current = next;
+    setDoc(next);
+  }, []);
   const revRef = useRef(0);
   // 저장본을 읽지 못했다면(저장소 오류) 빈 문서로 덮어쓰지 않도록 이번 세션은 저장하지 않는다
   const blockSave = useRef(false);
@@ -268,14 +264,14 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         }
       }
       if (!alive) return;
-      if (loaded) setDoc(loaded);
+      if (loaded) commit(loaded);
       if (blockSave.current) setStorageError(true);
       setReady(true);
     })();
     return () => {
       alive = false;
     };
-  }, []);
+  }, [commit]);
 
   // debounced persist
   useEffect(() => {
@@ -297,40 +293,45 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     () => () => {
       if (pendingSave.current && !blockSave.current) {
         pendingSave.current = false;
-        void persist(docRef.current);
+        void persist(latest.current);
       }
     },
     [persist],
   );
 
-  // flush immediately when the app goes to background (avoid losing the last <300ms of edits)
+  // 내려갈 때 바로 쓴다(300ms 안의 마지막 변경을 잃지 않게). 같은 순간 다른 듣는 곳(오늘의 한 줄 글 등)이
+  // 먼저 문서에 넣을 수 있게 한 박자 미룬 뒤, 그때의 가장 최근 문서(latest)를 쓴다
   useEffect(() => {
     if (!ready || blockSave.current) return;
+    let flush: ReturnType<typeof setTimeout> | null = null;
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'background' || state === 'inactive') {
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        saveTimer.current = null;
-        pendingSave.current = false;
-        void persist(docRef.current);
+        if (flush) clearTimeout(flush);
+        flush = setTimeout(() => {
+          flush = null;
+          if (saveTimer.current) clearTimeout(saveTimer.current);
+          saveTimer.current = null;
+          pendingSave.current = false;
+          void persist(latest.current);
+        }, 0);
       }
     });
-    return () => sub.remove();
+    return () => {
+      if (flush) clearTimeout(flush);
+      sub.remove();
+    };
   }, [ready, persist]);
 
-  // 날짜가 바뀌면 '오늘' 목록 정리 — 앱으로 돌아올 때 + 켜 둔 채 자정을 넘길 때(1분 간격 확인)
+  // 날짜가 바뀌면 '오늘' 목록 정리 — 처음 읽었을 때와 앱으로 돌아올 때. 켜 둔 채 자정을 넘기는 것은 아래 시계 눈금이 맡는다
   useEffect(() => {
     if (!ready) return;
-    const roll = () => setDoc((d) => rolloverToday(d, dateKey()));
+    const roll = () => commit(rolloverToday(latest.current, dateKey()));
     roll();
-    const timer = setInterval(roll, 60_000);
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') roll();
     });
-    return () => {
-      clearInterval(timer);
-      sub.remove();
-    };
-  }, [ready]);
+    return () => sub.remove();
+  }, [ready, commit]);
 
   // 시계 눈금 — 다음 자정(+250ms)과 일요일 18:00 중 먼저 오는 때에 맞춰 다시 건다. 자정에는 '오늘' 정리도 그때 바로.
   const [clock, setClock] = useState(0);
@@ -345,7 +346,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       const next = sunday > now.getTime() ? Math.min(midnight, sunday) : midnight;
       // setTimeout은 2^31-1ms를 넘기면 바로 불리므로, 길어도 하루를 넘지 않는 위 값만 쓴다
       timer = setTimeout(() => {
-        setDoc((d) => rolloverToday(d, dateKey()));
+        commit(rolloverToday(latest.current, dateKey()));
         setClock((c) => c + 1);
         arm();
       }, Math.max(1000, next - now.getTime()));
@@ -361,12 +362,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       if (timer) clearTimeout(timer);
       sub.remove();
     };
-  }, [ready]);
+  }, [ready, commit]);
 
   const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc) => {
     revRef.current += 1;
-    setDoc((d) => fn(d));
-  }, []);
+    commit(fn(latest.current));
+  }, [commit]);
   const revision = useCallback(() => revRef.current, []);
 
   const editThemes = useCallback(
@@ -392,7 +393,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   const markAreasSet = useCallback(() => {
-    if (docRef.current.areasSet) return;
+    if (latest.current.areasSet) return;
     update((d) => (d.areasSet ? d : { ...d, areasSet: true }));
   }, [update]);
 
@@ -409,27 +410,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   // 새로 습관이 되는 날을 since로 남긴다(그 전 날은 놓친 날이 아님).
-  // 이미 습관이면 요일을 고쳐도 since를 유지 — 요일 칩을 껐다 켜도 이번 주 기록이 흔들리지 않게
+  // 이미 습관이면 요일을 고쳐도 since를 유지하고 지난 일정을 남긴다 — 지난 날은 그때 일정으로 센다(applyConfig)
   const setActionConfig = useCallback(
     (ti: number, ai: number, cfg: KindConfig) => {
-      const a = docRef.current.themes[ti]?.actions[ai];
+      const a = latest.current.themes[ti]?.actions[ai];
       // 유형을 적어 두지 않은 이전 칸도 같은 설정이면 그대로 — 아무것도 안 바꾼 저장이 되돌리기를 막지 않게
       if (!a || (kindOf(a) === cfg.kind && sameConfig(configOf(a), cfg))) return;
-      update((d) => {
-        const tk = dateKey();
-        const prev = d.themes[ti]?.actions[ai];
-        if (!prev) return d;
-        const next = applyConfig(prev, cfg, tk);
-        // 쌓기는 그날 더한 수가 곧 그날 기록 — 지금까지를 줄여 그날 것이 사라졌다면 기록에서도 뺀다
-        const dayLog = kindOf(next) === 'count'
-          ? setDayLog(d.dayLog, `${ti}-${ai}`, tk, (next.log?.[tk] ?? 0) > 0)
-          : d.dayLog;
-        return {
-          ...d,
-          dayLog,
-          themes: d.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((x, j) => (j === ai ? next : x)) } : t)),
-        };
-      });
+      update((d) => configCell(d, ti, ai, cfg, dateKey(), Date.now()));
     },
     [update],
   );
@@ -459,7 +446,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const toggleHabitOn = useCallback(
     (ti: number, ai: number, day: string) => {
-      if (!canToggleHabitOn(docRef.current, ti, ai, day)) return;
+      if (!canToggleHabitOn(latest.current, ti, ai, day)) return;
       update((d) => (canToggleHabitOn(d, ti, ai, day) ? { ...d, dayLog: toggleDayLog(d.dayLog, `${ti}-${ai}`, day) } : d));
     },
     [update],
@@ -475,31 +462,15 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 달성은 오늘 기록에, 풀면 달성을 남겼던 날의 기록을 뺀다(한 번·마음가짐) — src/lib/history.ts toggleCellDone
   const toggleDone = useCallback(
-    (ti: number, ai: number) =>
-      update((d) => {
-        const a = d.themes[ti]?.actions[ai];
-        if (!a) return d;
-        const nowDone = !a.done;
-        // 습관의 칸 달성은 하루 체크와 별개, 쌓기의 그날 기록은 더한 수로만 — 그 밖(한 번·마음가짐)만 오늘 기록에 남긴다
-        const kind = kindOf(a);
-        const dayLog = kind === 'habit' || kind === 'count' ? d.dayLog : setDayLog(d.dayLog, `${ti}-${ai}`, dateKey(), nowDone);
-        return {
-          ...d,
-          dayLog,
-          themes: d.themes.map((t, i) =>
-            i === ti
-              ? { ...t, actions: t.actions.map((x, j) => (j === ai ? { ...x, done: nowDone } : x)) }
-              : t,
-          ),
-        };
-      }),
+    (ti: number, ai: number) => update((d) => toggleCellDone(d, ti, ai, dateKey())),
     [update],
   );
 
   const checkToday = useCallback(
     (ti: number, ai: number) => {
-      const a = docRef.current.themes[ti]?.actions[ai];
+      const a = latest.current.themes[ti]?.actions[ai];
       if (!a) return;
       const kind = kindOf(a);
       if (kind === 'habit') toggleRoutineToday(ti, ai);
@@ -585,7 +556,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const markClosedDay = useCallback(
     (day: string) => {
-      if (!DATE_RE.test(day) || docRef.current.closedDays?.includes(day)) return;
+      if (!DATE_RE.test(day) || latest.current.closedDays?.includes(day)) return;
       update((d) => (d.closedDays?.includes(day) ? d : { ...d, closedDays: cleanClosedDays([...(d.closedDays ?? []), day]) }));
     },
     [update],
@@ -676,8 +647,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   // 통째로 바꿀 때(되돌리기·백업 불러오기)도 오늘 날짜 기준으로 정리해 둔다
   const replaceDoc = useCallback((d: MandaratDoc) => {
     revRef.current += 1;
-    setDoc(rolloverToday(d, dateKey()));
-  }, []);
+    commit(rolloverToday(d, dateKey()));
+  }, [commit]);
 
   const dismissRecovered = useCallback(() => setRecoveredCopy(null), []);
 
@@ -708,7 +679,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const getDoc = useCallback(() => docRef.current, []);
+  const getDoc = useCallback(() => latest.current, []);
 
   // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
   const actions = useMemo<Actions>(
@@ -788,30 +759,9 @@ export function totalDone(doc: MandaratDoc): number {
   return doc.themes.reduce((s, t) => s + t.actions.filter((a) => a.done).length, 0);
 }
 
-/** Consecutive days (ending today or yesterday) with at least one completion. */
-export function overallStreak(doc: MandaratDoc): number {
-  let streak = 0;
-  const today = new Date();
-  // allow today to be empty without breaking a streak that ran through yesterday
-  let started = (doc.dayLog[dateKey(today)] ?? []).length > 0;
-  for (let i = 0; i < 400; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const has = (doc.dayLog[dateKey(d)] ?? []).length > 0;
-    if (i === 0 && !has) {
-      started = false;
-      continue; // skip empty today
-    }
-    if (has) {
-      streak++;
-      started = true;
-    } else if (started) {
-      break;
-    } else {
-      break;
-    }
-  }
-  return streak;
+/** 하나라도 한 날이 이어진 날 수(오늘 또는 어제까지) — 상한 없이 센다. 계산은 src/lib/history.ts activeStreak */
+export function overallStreak(doc: Pick<MandaratDoc, 'dayLog'>, now: Date = new Date()): number {
+  return activeStreak(doc.dayLog, now);
 }
 
 /**

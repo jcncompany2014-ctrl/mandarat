@@ -66,7 +66,7 @@ test('맨 위 숫자는 지금 가장 길게 이어 가는 습관 하나 (copy-1
   assert.equal(tie.lead.text, '물', '같으면 앞 줄');
   const none = T.streakSummary([row('물', 0, 9)]);
   assert.equal(none.lead, null);
-  assert.equal(T.streakSummaryLabel(none), '지금 이어 가는 기록 아직 없음. 오늘 하나 하면 시작돼요');
+  assert.equal(T.streakSummaryLabel(none), '아직 이어 가는 기록이 없어요. 오늘 하나 하면 시작돼요');
 });
 
 test('보드 머리와 마음가짐 머리 글 (today-24 · a11y-17)', () => {

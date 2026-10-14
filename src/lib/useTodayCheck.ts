@@ -5,7 +5,7 @@ import { check as checkHaptic, tap, uncheck as uncheckHaptic } from './haptics';
 import { animateLayout } from './layoutAnim';
 import { announce, screenReader } from './useReducedMotion';
 import { MAX_NUM, countInfo, round2 } from './kinds';
-import { doneOn, extraLogKey, todayProgress, type TodayItem } from './routine';
+import { doneOn, doneToday, extraLogKey, kindOf, todayProgress, type TodayItem } from './routine';
 import { EXTRA_REMOVED, addedSpeech, checkLabelText, checkedSpeech, goalText, reachesGoal, undoAddText } from './todayCheck';
 import type { TodayExtra } from '../types';
 
@@ -14,12 +14,14 @@ import type { TodayExtra } from '../types';
  *
  * - toggle(it): 실천 줄의 체크. 습관은 오늘 기록, 쌓기는 한 번(step) 더하기 / 이미 더했으면 오늘 더한 것 빼기, 한 번은 칸 달성.
  *   촉감은 check() / uncheck() 하나뿐(하루 마감의 success()는 Root가 울린다).
- *   쌓기를 풀면 '오늘 더한 3권을 뺐어요' + 되돌리기, 이번 체크로 목표에 닿으면 '12권 목표를 이뤘어요'.
+ *   쌓기를 풀면 '오늘 더한 3권을 뺐어요' + 되돌리기, 이번 체크로 목표에 닿으면 '12권 목표를 달성했어요'.
+ *   했는지는 줄(it.done)이 아니라 누르는 순간의 문서와 오늘 날짜로 다시 본다 — 자정을 넘긴 직후 어제 그린 줄을 눌러도
+ *   오늘 기준으로 체크·촉감·알림이 맞게.
  * - addStep(it): 쌓기 줄 오른쪽 '+1권' 버튼 — 다 한 줄에서도 한 번 더 더한다(오늘 더한 것을 빼지 않는다).
  * - toggleExtra(x): 직접 추가한 할 일의 체크.
  * - removeExtra(x): 직접 추가한 할 일 지우기 — '할 일을 지웠어요' + 되돌리기(지운 것만 되살린다).
  * - checkLabel(it): 체크 칸의 화면 읽기 이름 — 글 그대로, 쌓기는 '책 읽기, 1권 더하기'.
- * 체크해서 '했어요'가 되면, 화면 읽기가 켜져 있을 때 '물 마시기 완료, 오늘 3개 남았어요'를 읽어 준다.
+ * 체크해서 '했어요'가 되면, 화면 읽기가 켜져 있을 때 '물 마시기, 했어요. 오늘 3개 남았어요'를 읽어 준다.
  * 함수들은 누르는 순간의 문서를 읽으므로 앱이 도는 내내 같은 객체다 — 줄(memo)이 체크마다 다시 그려지지 않게.
  * 줄이 내려가는 애니메이션(useSettle · animateLayout)은 화면이 맡는다 — 지우기·되살리기만 여기서 부드럽게 잇는다.
  */
@@ -48,39 +50,48 @@ export function useTodayCheck(): TodayCheck {
     };
 
     const toggle = (it: TodayItem) => {
-      const a = getDoc().themes[it.ti]?.actions[it.ai];
+      const doc = getDoc();
+      const a = doc.themes[it.ti]?.actions[it.ai];
       if (!a) return;
-      if (it.done) uncheckHaptic();
+      const tk = dateKey();
+      const done = doneToday(doc, a, it.key, tk);
+      if (done) uncheckHaptic();
       else checkHaptic();
-      if (it.kind === 'count') {
-        const c = countInfo(a, dateKey());
-        if (!it.done && reachesGoal(c)) showToast(goalText(c));
+      if (kindOf(a) === 'count') {
+        const c = countInfo(a, tk);
+        if (!done && reachesGoal(c)) showToast(goalText(c));
         // 체크를 풀면 그날 더한 것을 한꺼번에 빼므로, 잘못 눌렀을 때 살릴 수 있게
-        if (it.done && c.today > 0) {
+        if (done && c.today > 0) {
           const amount = c.today;
           showToast(undoAddText(amount, c.unit), { label: '되돌리기', onPress: () => addCount(it.ti, it.ai, amount) });
         }
       }
       checkToday(it.ti, it.ai);
-      if (!it.done) speakChecked(a.text);
+      if (!done) speakChecked(a.text);
     };
 
     const addStep = (it: TodayItem) => {
-      const a = getDoc().themes[it.ti]?.actions[it.ai];
-      if (!a || it.kind !== 'count') return;
-      const c = countInfo(a, dateKey());
+      const doc = getDoc();
+      const a = doc.themes[it.ti]?.actions[it.ai];
+      if (!a || kindOf(a) !== 'count') return;
+      const tk = dateKey();
+      const done = doneToday(doc, a, it.key, tk);
+      const c = countInfo(a, tk);
       checkHaptic();
       addCount(it.ti, it.ai, c.step);
       if (reachesGoal(c)) showToast(goalText(c));
-      if (!it.done) speakChecked(a.text);
+      if (!done) speakChecked(a.text);
       else if (screenReader()) announce(addedSpeech(a.text, { ...c, count: Math.min(MAX_NUM, round2(c.count + c.step)) }));
     };
 
     const toggleExtra = (x: TodayExtra) => {
-      if (x.done) uncheckHaptic();
+      // 줄이 그려진 뒤 바뀌었을 수 있어 지금 문서의 것으로 본다
+      const cur = getDoc().todayExtra.find((e) => e.id === x.id);
+      if (!cur) return;
+      if (cur.done) uncheckHaptic();
       else checkHaptic();
-      flipExtra(x.id);
-      if (!x.done) speakChecked(x.text);
+      flipExtra(cur.id);
+      if (!cur.done) speakChecked(cur.text);
     };
 
     // 되돌리기는 지운 할 일만 되살린다(그 사이 다른 체크는 그대로)

@@ -45,7 +45,7 @@ test('areaLine — 다음 할 칸 · 빈 칸 · 모두 이룸', () => {
   doneOnly[1] = cell('이력서 갱신', true);
   assert.equal(H.areaLine({ actions: doneOnly }), '빈 칸 7개');
   const all = Array.from({ length: 8 }, (_, i) => cell(`칸 ${i}`, true));
-  assert.equal(H.areaLine({ actions: all }), '모두 이뤘어요');
+  assert.equal(H.areaLine({ actions: all }), '8칸 모두 달성했어요');
 });
 
 test('homeGate — 가이드가 남아 있으면 빈 구역을 가린다', () => {

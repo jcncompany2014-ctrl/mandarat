@@ -55,6 +55,6 @@ test('오늘 남은 일 중에서도 마감이 지난 일이 먼저 — 직접 �
   });
   assert.deepEqual(nextStep(d, WED), { kind: 'today', ti: 5, ai: 5 });
   // 지난 일을 끝내면 직접 담은 한 번(3-2)이 습관(1-3)보다 먼저
-  d.themes[5].actions[5].done = true;
+  d.themes = d.themes.map((t, ti) => (ti === 5 ? { ...t, actions: t.actions.map((a, ai) => (ai === 5 ? { ...a, done: true } : a)) } : t));
   assert.deepEqual(nextStep(d, WED), { kind: 'today', ti: 3, ai: 2 });
 });

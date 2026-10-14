@@ -2,7 +2,7 @@
 // "이번 주"는 앱 전체에서 월~일 기준으로 통일한다(홈 주간 띠와 같은 숫자).
 // 날마다 횟수는 dayLog의 그날 키 개수다 — 칸 기록·직접 추가한 할 일·칸에서 떼어 둔 지난 기록이 모두 들어간다.
 import type { MandaratDoc } from '../types';
-import { daysBetween, habitDays, kindOf, perWeekOf, weekDates, weekDone, weekTarget, ymd } from './routine';
+import { daysBetween, habitDays, kindOf, perWeekOf, scheduleAt, weekDates, weekDone, weekTarget, ymd } from './routine';
 import { addDays, cleanNum, countInfo, countWeekAdded, ratingOf, round2 } from './kinds';
 import { josa } from './text';
 
@@ -121,7 +121,8 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, end: Dat
     const on = (k: string) => (doc.dayLog[k] ?? []).includes(key);
     const inUse = (d: WeekDay) => !a.since || d.date >= a.since; // 반복을 정하기 전 날은 제외
 
-    if (perWeekOf(a) > 0) {
+    // 일정을 고쳤다면 그 주에 쓰던 일정으로 — 주 N회는 끝날(end)의 일정, 요일은 날마다 그날의 일정
+    if (perWeekOf(scheduleAt(a, tk)) > 0) {
       const n = weekTarget(a, end);
       const did = weekDone(doc.dayLog, key, end, a.since);
       const capped = Math.min(n, did);
@@ -145,9 +146,8 @@ export function weekReview(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, end: Dat
       return;
     }
 
-    const ds = habitDays(a);
     for (const d of days) {
-      if (!ds.includes(d.dow) || !inUse(d)) continue;
+      if (!habitDays(scheduleAt(a, d.date)).includes(d.dow) || !inUse(d)) continue;
       routinePlannedWeek++;
       if (d.future) { routineRemaining++; continue; }
       const done = on(d.date);

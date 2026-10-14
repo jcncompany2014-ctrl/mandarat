@@ -10,23 +10,35 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
-const { BANNED_COPY, MGMT_LABEL, MOOD_LABEL, SHAPE_LABEL } = require('../src/lib/copy');
+const { BANNED_COPY, BANNED_COPY_RE, MGMT_LABEL, MOOD_LABEL, SHAPE_LABEL } = require('../src/lib/copy');
 
 const ROOT = path.join(__dirname, '..');
 const SKIP = new Set(['src/lib/copy.ts', 'src/types.ts']);
 /** 저장값(Mood · Mgmt · CellShape) — 화면에는 copy.ts의 이름으로 보이고, 이 글자 그대로는 저장·비교에만 쓰인다 */
 const STORED = new Set([...Object.keys(MGMT_LABEL), ...Object.keys(MOOD_LABEL), ...Object.keys(SHAPE_LABEL)]);
+/**
+ * 금지어 줄기가 들어 있어도 낱말장대로인 글 — '파일|글' 그대로.
+ * - '이루다'는 핵심 목표에만 쓴다: 64칸을 다 달성한 축하의 '핵심 목표를 이뤘어요'.
+ * - '완료'를 화면에 보이지 않는 저장·비교 키(보드 칸 키 등)로만 쓰게 되면 여기에 적는다.
+ */
+const STORED_WORDS = new Set(['src/overlays/Celebration.tsx|핵심 목표를 이뤘어요']);
 /** `}` 바로 뒤에 붙은 조사(뒤가 끝·띄어쓰기·문장부호일 때만 — '${n}가지'·'${n}이에요'는 조사가 아니다) */
 const JOSA_AFTER_EXPR = /^(을|를|이|가|은|는|와|과|으로|로)(?=$|[\s.,!?·:;)\]…'"’”~])/;
 
-/** 검사할 파일: src 아래 모든 .tsx + src/lib의 .ts */
+/** .ts도 검사하는 폴더 — 글을 만드는 lib · 예시와 템플릿 data · 저장소 store */
+const TS_DIRS = new Set(['lib', 'data', 'store'].map((d) => path.join(ROOT, 'src', d)));
+/** 그 밖에 따로 검사하는 .ts */
+const TS_FILES = new Set(['src/screens/gridMemory.ts']);
+
+/** 검사할 파일: src 아래 모든 .tsx + src/lib · src/data · src/store의 .ts + TS_FILES */
 function sourceFiles() {
   const out = [];
   const walk = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
+      const rel = path.relative(ROOT, p).split(path.sep).join('/');
       if (e.isDirectory()) walk(p);
-      else if (e.name.endsWith('.tsx') || (e.name.endsWith('.ts') && !e.name.endsWith('.d.ts') && dir === path.join(ROOT, 'src', 'lib'))) out.push(p);
+      else if (e.name.endsWith('.tsx') || (e.name.endsWith('.ts') && !e.name.endsWith('.d.ts') && (TS_DIRS.has(dir) || TS_FILES.has(rel)))) out.push(p);
     }
   };
   walk(path.join(ROOT, 'src'));
@@ -62,8 +74,9 @@ function lintSource(name, src) {
     hits.push({ line: line + 1, col: character + 1, rule, text: clip(text) });
   };
   const banned = (text, node) => {
-    if (STORED.has(text)) return;
+    if (STORED.has(text) || STORED_WORDS.has(`${name}|${text}`)) return;
     for (const w of BANNED_COPY) if (text.includes(w)) add(node, `'${w}'`, text);
+    for (const re of BANNED_COPY_RE) if (re.test(text)) add(node, String(re), text);
   };
   const josa = (node, after, shown) => {
     if (JOSA_AFTER_EXPR.test(after)) add(node, 'josa()', shown);
@@ -123,6 +136,28 @@ test('검사기: 금지어·조사·저장값·import 경로를 구분한다', (
   const hits = lintSource('probe.tsx', src);
   assert.deepEqual(hits.map((h) => [h.line, h.rule]), [[3, "'탭하면'"], [4, 'josa()'], [8, "'데이터를'"], [8, 'josa()']]);
   assert.match(hits[1].text, /\$\{name\}을/);
+});
+
+test('검사기: 활용형과 새 금지어(탭해 · 완료 · 이뤘 · 이룬 · 셉니다 · 칸을 다 채웠)', () => {
+  const src = [
+    "const a = '두 번 탭해서 열기';",
+    "const b = '완료로 표시';",
+    "const c = '8칸을 다 채웠어요';",
+    "const d = `${n}칸 모두 이뤘어요`;",
+    "const e = '이번 달 이룬 칸';",
+    "const f = '오늘부터 셉니다';",
+    "const g = '핵심 목표를 이루는 길';",
+  ].join('\n');
+  const rules = lintSource('probe.ts', src).map((h) => [h.line, h.rule]);
+  assert.deepEqual(rules, [[1, "'탭해'"], [2, "'완료'"], [3, String(/칸을\s*(다\s*)?채웠/)], [4, "'이뤘'"], [5, "'이룬'"], [6, "'셉니다'"]]);
+});
+
+test('검사 범위: src/data · src/store의 .ts와 gridMemory.ts도 본다', () => {
+  const files = sourceFiles();
+  assert.ok(files.includes('src/data/templates.ts'));
+  assert.ok(files.includes('src/data/defaults.ts'));
+  assert.ok(files.includes('src/screens/gridMemory.ts'));
+  assert.ok(files.some((f) => f.startsWith('src/store/') && f.endsWith('.ts')));
 });
 
 test('화면 글에 금지어와 끝소리를 모르는 조사가 없다', () => {

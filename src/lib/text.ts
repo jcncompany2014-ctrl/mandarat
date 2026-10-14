@@ -1,6 +1,5 @@
 // 글자 다듬기 — 줄바꿈, 조사, 날짜·마감·횟수 표기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 날짜 표기는 앱 전체에서 이 함수들로만 만든다(같은 날짜가 화면마다 다르게 적히지 않게). 연도는 적지 않는다.
-import { fmtNum } from './kinds';
 import { DOW_KR } from './routine';
 
 const NBSP = ' ';
@@ -89,6 +88,14 @@ export function fmtDue(days: number, form: 'short' | 'long' = 'short'): string {
   const n = Math.round(days);
   if (form === 'short') return n > 0 ? `D-${n}` : n === 0 ? 'D-day' : `D+${-n}`;
   return n > 0 ? `마감 D-${n}` : n === 0 ? '오늘 마감' : `마감 ${-n}일 지남`;
+}
+
+/** 1234.5 → '1,234.5' (소수 둘째 자리까지, 소수는 있을 때만) */
+export function fmtNum(n: number): string {
+  const r = Math.round(n * 100) / 100;
+  const [i, f] = String(Math.abs(r)).split('.');
+  const int = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${r < 0 ? '-' : ''}${int}${f ? `.${f}` : ''}`;
 }
 
 /** 횟수·양 — '3번' · '1,200권' · '50만 원' (단위는 숫자에 붙여 쓴다) */

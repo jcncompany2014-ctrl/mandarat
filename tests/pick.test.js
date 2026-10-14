@@ -44,7 +44,7 @@ test('반복을 정한 날(since)보다 앞이면 오늘 자동이 아니다', (
 test('빈 칸이 있는 첫 영역', () => {
   const full = doc((t) => { t.forEach((th) => th.actions.forEach((a, i) => { a.text = `실천${i}`; })); return {}; });
   assert.equal(firstAreaWithEmpty(full), -1);
-  full.themes[5].actions[7].text = ' ';
+  full.themes = full.themes.map((t, ti) => (ti === 5 ? { ...t, actions: t.actions.map((a, ai) => (ai === 7 ? { ...a, text: ' ' } : a)) } : t));
   assert.equal(firstAreaWithEmpty(full), 5);
 });
 
@@ -53,7 +53,7 @@ test('시작 가이드: 다섯 단계를 순서대로 알려 주고, 다 하면 
   let g = guideSteps(d);
   assert.equal(g.steps.length, GUIDE_STEP_COUNT);
   assert.deepEqual(g.steps.map((st) => st.key), ['goal', 'areas', 'fill', 'today', 'check']);
-  assert.deepEqual(g.steps.map((st) => st.label), ['핵심 목표 정하기', '영역 8개 정하기', `실천 칸 ${GUIDE_FILL_TARGET}개 채우기`, '오늘 할 일 고르기', '하나 체크하기']);
+  assert.deepEqual(g.steps.map((st) => st.label), ['핵심 목표 정하기', '영역 8개 정하기', `실천 칸 ${GUIDE_FILL_TARGET}개 채우기`, '오늘 할 일 고르기', '하나 해 보기']);
   assert.equal(g.next, 0);
   d.centerGoal = '나다운 한 해';
   d.themes[0].actions.slice(0, 7).forEach((a, i) => { a.text = `실천${i}`; });
@@ -61,7 +61,7 @@ test('시작 가이드: 다섯 단계를 순서대로 알려 주고, 다 하면 
   assert.deepEqual([g.filled, g.next], [7, 1], '영역 8개를 아직 정하지 않았다');
   d.areasSet = true;
   assert.equal(guideSteps(d).next, 2);
-  d.themes[1].actions[0].text = '하나 더';
+  d.themes = d.themes.map((t, ti) => (ti === 1 ? { ...t, actions: t.actions.map((a, ai) => (ai === 0 ? { ...a, text: '하나 더' } : a)) } : t));
   assert.equal(guideSteps(d).next, 3);
   d.todayKeys = ['0-0'];
   assert.equal(guideSteps(d).next, 4);
@@ -158,8 +158,8 @@ test('whyAuto: 저절로 담긴 까닭 — 마감 지남 · 마감 가까움 · 
   assert.equal(whyAuto(d, 0, 6, WED), '');
   assert.equal(whyAuto(d, 0, 7, WED), '');
   // 오늘 체크로 이번 주 횟수를 채웠으면 그날은 했어요로 남는다
-  d.dayLog['2026-10-14'] = ['0-4'];
-  assert.equal(whyAuto(d, 0, 4, WED), '이번 주 2회를 오늘 채웠어요');
+  d.dayLog = { ...d.dayLog, ['2026-10-14']: ['0-4'] };
+  assert.equal(whyAuto(d, 0, 4, WED), '이번 주 2회를 오늘 다 했어요');
   // 토요일에 정한 주 3회 → 그 주 목표는 2회
   assert.equal(whyAuto(d, 0, 5, SAT), '이번 주 2회 남아 ‘오늘’에 이미 있어요');
 });
