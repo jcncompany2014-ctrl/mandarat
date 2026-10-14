@@ -163,3 +163,34 @@ test('toHex: mix·tint 결과와 짧은·소문자 hex를 #RRGGBB로', () => {
   assert.equal(toHex('rgba(43, 38, 32, 0.55)'), '#2B2620');
   assert.equal(toHex(mix('#000000', '#FFFFFF', 0.5)), '#808080');
 });
+
+// ── D-4: 포인트 컬러가 표의 표시(M.gold)까지 바꾼다 ─────────────────────────────
+test('withAccent: 골드가 아니면 M.gold = 고른 포인트 컬러, 골드면 무드마다 맞춘 금색', () => {
+  for (const [name, P] of moods) {
+    assert.equal(withAccent(P, '#5068AB').gold, '#5068AB', `${name}: 쪽빛`);
+    assert.equal(withAccent(P, '#5068ab').gold, '#5068AB', `${name}: 소문자 hex도 #RRGGBB로`);
+    assert.equal(withAccent(P, GOLD).gold, P.gold, `${name}: 골드는 무드 표의 값`);
+    assert.equal(withAccent(P, GOLD.toLowerCase()).gold, P.gold, `${name}: 소문자 골드도`);
+    assert.equal(withAccent(P, 'blue').gold, P.gold, `${name}: hex가 아니면 그대로`);
+    for (const { color } of ACCENTS) {
+      if (color === GOLD) continue;
+      assert.equal(withAccent(P, color).gold, color, `${name} ${color}`);
+    }
+  }
+});
+
+test('포인트 컬러 표시: legibleMark(M.gold)가 5무드 × 5포인트 컬러 모두 바탕·카드 위 3:1 이상', () => {
+  const { legibleMark } = require('../src/theme/chart');
+  for (const [name, P] of moods) {
+    for (const { color, name: accentName } of ACCENTS) {
+      const M = withAccent(P, color);
+      for (const [g, bg] of [['bg', M.bg], ['card', M.card], ['surface', M.surface]]) {
+        const mark = legibleMark(M.gold, bg, M);
+        const c = contrast(toHex(mark), toHex(bg));
+        assert.ok(c >= 3, `${name} ${accentName} mark ${mark} on ${g} ${bg}: ${fmt(c)}`);
+        // 색조는 고른 색 그대로(필요한 만큼만 진하게·밝게)
+        if (color !== GOLD) assert.ok(hueGap(toHex(mark), color) <= 3, `${name} ${accentName}: hue ${fmt(hue(color))} → ${fmt(hue(toHex(mark)))}`);
+      }
+    }
+  }
+});

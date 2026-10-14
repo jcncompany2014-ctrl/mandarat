@@ -280,7 +280,8 @@ function areaWith(doc: Pick<MandaratDoc, 'themes'>, ti: number, pair: '은/는')
   const full = doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
   const chars = Array.from(full);
   const particle = josa(full, pair).slice(full.length);
-  return (chars.length > NAME_MAX ? `${chars.slice(0, NAME_MAX - 1).join('')}…` : full) + particle;
+  // 자른 끝이 띄어쓰기면 지운다 — '건강하고 활기찬 …는'이 아니라 '건강하고 활기찬…는'
+  return (chars.length > NAME_MAX ? `${chars.slice(0, NAME_MAX - 1).join('').trimEnd()}…` : full) + particle;
 }
 
 /**

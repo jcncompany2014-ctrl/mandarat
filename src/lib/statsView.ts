@@ -76,27 +76,40 @@ export function barHeight(count: number, max: number, full = 72): number {
   return Math.max(6, (count / Math.max(1, max)) * full);
 }
 
-/** 습관 줄 — 값 '5/7번'과 아래 한 줄. 이번 주 습관이 없으면 null(줄을 그리지 않는다) */
+/**
+ * 습관 줄 — 값 '5/9번'과 아래 한 줄. 이번 주 습관이 없으면 null(줄을 그리지 않는다).
+ * 값·아래 줄·소리 모두 한 바탕(이번 주 전체 계획 routinePlannedWeek)으로 센다 — 한 것 + 놓침 + 남음 = 계획.
+ * - 놓침: 지나간 예정일 중 못 한 것(주 N회는 남은 날로 더는 채울 수 없게 된 만큼만 — 주 중간엔 0)
+ * - 남음: 아직 할 수 있는 것(오늘 포함)
+ * - 계획을 다 채웠을 때만 '이번 주 다 했어요'(놓친 뒤 남은 게 없을 때 다 했다고 말하지 않는다)
+ */
 export function habitRow(
-  r: Pick<WeekReview, 'habitCount' | 'routineDone' | 'routineDue' | 'routineRemaining'>,
-): { value: string; sub: string; say?: string } | null {
+  r: Pick<WeekReview, 'habitCount' | 'routineDone' | 'routinePlannedWeek' | 'routineRemaining'>,
+): { value: string; sub: string; say?: string; subSay?: string } | null {
   if (!(r.habitCount > 0)) return null;
-  if (!(r.routineDue > 0) && !(r.routineDone > 0)) return { value: '—', sub: '오늘부터 세요' };
-  const due = Math.max(r.routineDue, r.routineDone);
+  const planned = Math.max(r.routinePlannedWeek, r.routineDone);
+  if (!(planned > 0)) return { value: '—', sub: '오늘부터 세요' };
+  const remaining = Math.max(0, r.routineRemaining);
+  const missed = Math.max(0, planned - r.routineDone - remaining);
+  const parts = r.routineDone >= planned
+    ? ['이번 주 다 했어요']
+    : [missed > 0 ? `${missed}번 놓침` : '', remaining > 0 ? `${remaining}번 남음` : ''].filter(Boolean);
   return {
-    value: `${r.routineDone}/${due}번`,
-    sub: r.routineRemaining > 0 ? `이번 주 ${r.routineRemaining}번 남음` : '이번 주 다 했어요',
-    // '5/7번'은 날짜로 읽힌다 — 소리로는 '7번 중 5번'(한 주 돌아보기 장부와 같은 말)
-    say: ledgerHabitSpeech(r.routineDone, due),
+    value: `${r.routineDone}/${planned}번`,
+    sub: parts.join(' · '),
+    // '5/9번'은 날짜로 읽힌다 — 소리로는 '9번 중 5번'(한 주 돌아보기 장부와 같은 말), 가운뎃점은 쉼표로
+    say: ledgerHabitSpeech(r.routineDone, planned),
+    subSay: parts.join(', '),
   };
 }
 
 /**
- * 이번 주 장부 한 줄의 화면 읽기 이름 — '습관 7번 중 5번, 이번 주 2번 남음' · '쌓은 것 2권 더함, 50만 원 더함'.
- * say(소리 말)가 있으면 그것을, 없으면 보이는 값('—'는 '없음')을 읽는다
+ * 이번 주 장부 한 줄의 화면 읽기 이름 — '습관 9번 중 5번, 2번 놓침, 2번 남음' · '쌓은 것 2권 더함, 50만 원 더함'.
+ * say(소리 말)가 있으면 그것을, 없으면 보이는 값('—'는 '없음')을 읽는다. 아래 줄도 subSay가 있으면 그것을
  */
-export function ledgerLabel(r: { label: string; value: string; sub?: string; say?: string }): string {
-  return `${r.label} ${r.say || (r.value === '—' ? '없음' : r.value)}${r.sub ? `, ${r.sub}` : ''}`;
+export function ledgerLabel(r: { label: string; value: string; sub?: string; say?: string; subSay?: string }): string {
+  const sub = r.subSay || r.sub;
+  return `${r.label} ${r.say || (r.value === '—' ? '없음' : r.value)}${sub ? `, ${sub}` : ''}`;
 }
 
 /** 집중한 시간 — '25분' · '2시간' · '1시간 5분' */
@@ -152,7 +165,7 @@ export interface HeatMap {
 
 /**
  * 달력형 히트맵 칸 — weeks는 calendarWeeks()의 열(주)들. 첫 기록 전 날과 아직 안 온 날은 그리지 않는다.
- * 달 이름은 그 주 월요일이 새 달에 든 열 위에(첫 열은 바로 다음 열이 새 달이 아닐 때만).
+ * 달 이름은 그 주 월요일이 새 달에 든 열 위에, 그리는 열에만(처음 그리는 열은 바로 다음 열이 새 달이 아닐 때만).
  */
 export function heatMap(dayLog: MandaratDoc['dayLog'], weeks: readonly { date: string; future: boolean }[][], today: Date): HeatMap {
   const tk = ymd(today);
@@ -168,10 +181,14 @@ export function heatMap(dayLog: MandaratDoc['dayLog'], weeks: readonly { date: s
   const top = bestDay(flat);
   if (top) top.best = true;
   const monthOf = (col: readonly { date: string }[]) => Number(col[0]?.date.slice(5, 7));
+  // 그리지 않는 열(첫 기록 전 · 아직 안 온 주) 위에는 달 이름을 적지 않는다 — 빈 종이 위에 '8월'이 뜨지 않게.
+  // 처음 그리는 열은 바로 다음 열이 새 달이 아닐 때만 그 달 이름을 적는다(첫 열과 같은 규칙)
+  const drawn = cols.map((col) => col.some((c) => c.state !== 'none'));
+  const firstDrawn = drawn.indexOf(true);
   const months = weeks.map((col, w) => {
-    if (col.length === 0) return '';
+    if (col.length === 0 || !drawn[w]) return '';
     const m = monthOf(col);
-    if (w === 0) return weeks.length > 1 && monthOf(weeks[1]) !== m ? '' : `${m}월`;
+    if (w === firstDrawn) return w + 1 < weeks.length && drawn[w + 1] && monthOf(weeks[w + 1]) !== m ? '' : `${m}월`;
     return monthOf(weeks[w - 1]) !== m ? `${m}월` : '';
   });
   const start = weeks[0]?.[0]?.date;
