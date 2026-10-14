@@ -5,7 +5,7 @@ import { animateLayout } from '../lib/layoutAnim';
 import { RowDivider, groupEdge, pressedRow } from '../components/common';
 import { Check } from '../components/Check';
 import { EmptyState } from '../components/EmptyState';
-import { KindMeta, RatingBoxes } from '../components/KindBits';
+import { KindMeta, RatingBoxes, alertInk } from '../components/KindBits';
 import { WeekCaption, WeekStrip } from '../components/WeekStrip';
 import type { M } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
@@ -14,10 +14,11 @@ import { tap } from '../lib/haptics';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { checkHintText } from '../lib/todayCheck';
 import { kindLine, ratingOf, type KindLine } from '../lib/kinds';
-import { kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
+import { kindOf, orderedTodayItems, perWeekOf, routineWeek, routineWeekCount, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
 import { STRIP, weekStripSummary, weekdayIndex } from '../lib/marks';
 import { textWidth } from '../lib/labelFit';
 import { canPickAny } from '../lib/pick';
+import { isOverdue } from '../lib/todayList';
 import { announce } from '../lib/useReducedMotion';
 import { legibleMark } from '../theme/chart';
 import {
@@ -237,10 +238,10 @@ export function TodayStreak({ M }: { M: M }) {
         <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>지금 연속</Text>
         {lead ? (
           <>
-            <Text style={{ fontSize: 44, lineHeight: 52, color: M.ink }} numberOfLines={1}>
-              <Text style={[{ fontSize: 44, fontWeight: '800', letterSpacing: -1.2, color: M.ink }, TABULAR]}>
-                {runText(lead.cur, lead.unit)}
-              </Text>
+            {/* 통계의 큰 숫자와 같은 짜임 — 숫자 46/52, 단위는 20pt 회색 */}
+            <Text style={{ fontSize: 46, lineHeight: 52, color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.35}>
+              <Text style={[{ fontSize: 46, fontWeight: '800', letterSpacing: -1.5, color: M.ink }, TABULAR]}>{lead.cur}</Text>
+              <Text style={[{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }, TABULAR]}>{lead.unit === 'week' ? '주' : '일'}</Text>
               <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{` · ${lead.text}`}</Text>
             </Text>
             <Text style={[{ fontSize: 13, color: M.sub }, TABULAR]}>{`최고 ${runText(lead.best, lead.unit)}`}</Text>
@@ -392,9 +393,14 @@ const StreakLine = memo(function StreakLine({
         <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', color: M.ink }} numberOfLines={2}>{text}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
           <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
-          <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>
-            {plan ? `${area} · ${plan}` : area}
-          </Text>
+          {/* 목록 · 보드와 같은 '·' 간격 — 따로 쓴 가운뎃점에 gap 5 */}
+          <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>{area}</Text>
+          {!!plan && (
+            <>
+              <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>·</Text>
+              <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>{plan}</Text>
+            </>
+          )}
         </View>
       </View>
 
@@ -434,10 +440,12 @@ const FOCUS_LABEL = '25분 집중';
 export function TodayKanban({ M }: { M: M }) {
   const { doc, clock } = useDoc();
   const { openQuick, openPick, openAction, startFocus } = useUIActions();
-  const list = useMemo(() => todayItems(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 목록과 같은 순서 — 마감이 지난 것부터
+  const list = useMemo(() => orderedTodayItems(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
   const canPick = useMemo(() => canPickAny(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
   const tc = useTodayCheck();
   const extra = doc.todayExtra;
+  const now = new Date();
 
   const cards: Card[] = [
     ...list.map((it) => ({ key: it.key, ti: it.ti, text: doc.themes[it.ti].actions[it.ai].text, done: it.done, item: it })),
@@ -538,6 +546,7 @@ export function TodayKanban({ M }: { M: M }) {
                     area={areaName(th?.title, c.ti)}
                     line={c.item && stage !== 2 ? kindLine(doc, c.item.ti, c.item.ai, new Date()) : null}
                     stage={stage}
+                    overdue={!!c.item && stage === 0 && isOverdue(doc, c.item, now)}
                     label={label}
                     first={i === 0}
                     last={i === colCards.length - 1}
@@ -562,7 +571,7 @@ export function TodayKanban({ M }: { M: M }) {
 
 /** 카드 한 장 — 문서에서 고른 값만 받아 그린다. press는 키로 지금 카드를 찾아 부르는 고정된 함수들 */
 const KanbanCard = memo(function KanbanCard({
-  M, cardKey, text, extra, color, area, line, stage, label, first, last, canOpen, canFocus, press,
+  M, cardKey, text, extra, color, area, line, stage, overdue, label, first, last, canOpen, canFocus, press,
 }: {
   M: M;
   cardKey: string;
@@ -572,6 +581,8 @@ const KanbanCard = memo(function KanbanCard({
   area: string;
   line: KindLine | null;
   stage: Stage;
+  /** 마감 지남 — 목록처럼 여백에 붉은 세로 줄(할 일 묶음에만) */
+  overdue: boolean;
   label: string;
   first: boolean;
   last: boolean;
@@ -616,6 +627,10 @@ const KanbanCard = memo(function KanbanCard({
           style={{ position: 'absolute', left: -12, top: 12, bottom: 12, width: 3, borderRadius: 1, backgroundColor: legibleMark(M.accent, M.bg, M) }}
         />
       )}
+      {/* 마감 지남 — 목록과 같은 붉은 세로 줄(할 일 묶음에만 있어 진행 중 줄과 겹치지 않는다) */}
+      {overdue && (
+        <View pointerEvents="none" style={{ position: 'absolute', left: -10, top: 12, bottom: 12, width: 2, backgroundColor: alertInk(M) }} />
+      )}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
           style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', color: done ? M.sub : M.ink, textDecorationLine: done ? 'line-through' : 'none' }}
@@ -655,7 +670,7 @@ const KanbanCard = memo(function KanbanCard({
           <Text style={{ fontSize: 13, fontWeight: '800', color: M.ink }} accessible={false}>다 했어요</Text>
         </View>
       )}
-      {done && <Check on color={color} dark={M.dark} size={20} seed={cardKey} />}
+      {done && <Check on color={color} dark={M.dark} size={20} seed={cardKey} muted />}
     </Pressable>
   );
 }, sameProps);

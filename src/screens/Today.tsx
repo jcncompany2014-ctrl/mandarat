@@ -78,7 +78,7 @@ export const Today = memo(function Today() {
   return (
     <View onMagicTap={onMagicTap}>
       <PureHeader M={M} sub={fmtDateLong(now)} kr="오늘" />
-      <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 6 }}>
         <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} />
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} />}
@@ -113,6 +113,9 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
   useEffect(() => {
     if (picked != null && area == null) setPicked(null);
   }, [picked, area]);
+  // 다 한 날엔 '했어요' 묶음을 접어 마감 두 줄이 첫 화면에 그어지게 — 하나라도 풀면 다시 펼친다
+  const [doneOpen, setDoneOpen] = useState(false);
+  useEffect(() => { if (!complete) setDoneOpen(false); }, [complete]);
 
   if (total === 0) return <TodayEmpty M={M} canPick={canPick} />;
 
@@ -124,8 +127,13 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
   const sunk = (r: Row) => r.done && !held.has(r.key);
   const pending = rows.filter((r) => !sunk(r));
   const finished = rows.filter(sunk);
-  const showPick = canPick && area == null;
-  const hasHabit = rows.some((r) => r.it?.kind === 'habit');
+  // 마감한 날엔 '실천에서 더 고르기' 줄을 빼고(위 '고르기'로 충분하다) 마감 두 줄을 바로 잇는다
+  const showPick = canPick && area == null && !complete;
+  // 요일 글자는 그 아래 줄에 이번 주 칸이 있을 때만 — 남은 습관 위, 또는 펼친 '했어요' 묶음 머리 아래
+  const pendingHabit = pending.some((r) => r.it?.kind === 'habit');
+  const doneHabit = finished.some((r) => r.it?.kind === 'habit');
+  const canFold = complete && finished.length > FOLD_MIN;
+  const fold = canFold && !doneOpen;
 
   const onPick = () => { tap(); openPick(); };
   const tabItems: IndexTabItem[] = [
@@ -155,7 +163,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
       <Counter M={M} done={done} total={total} complete={complete} canPick={canPick} summary={todaySummary(doc, now)} onPick={onPick} />
 
       {tabs.length > 1 && (
-        <View style={{ marginBottom: 12 }}>
+        <View style={{ marginBottom: 4 }}>
           <PureIndexTabs
             M={M}
             items={tabItems}
@@ -166,7 +174,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
       )}
 
       {/* 습관 줄의 이번 주 칸 위에 요일 글자 — 오른쪽 81pt 칸에 맞춘다 */}
-      {hasHabit && (
+      {pendingHabit && (
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingBottom: 5 }}>
           <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} />
         </View>
@@ -215,19 +223,24 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
             : []),
           ...(finished.length > 0
             ? [
-                <View
+                <DoneHead
                   key="done-head"
-                  accessible
-                  accessibilityRole="header"
-                  accessibilityLabel={`했어요 ${finished.length}개`}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: pending.length > 0 || showPick ? 22 : 0, marginBottom: 2 }}
-                >
-                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>했어요 {finished.length}</Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
+                  M={M}
+                  count={finished.length}
+                  gapAbove={pending.length > 0 || showPick}
+                  fold={canFold ? fold : undefined}
+                  onToggle={() => { tap(); animateLayout(); setDoneOpen((o) => !o); }}
+                />,
+              ]
+            : []),
+          ...(!pendingHabit && doneHabit && !fold
+            ? [
+                <View key="done-caption" style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 6, paddingBottom: 5 }}>
+                  <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} />
                 </View>,
               ]
             : []),
-          ...finished.map((r, i) => renderRow(r, 'done', i > 0)),
+          ...(fold ? [] : finished.map((r, i) => renderRow(r, 'done', i > 0))),
         ]}
       </View>
 
@@ -235,6 +248,46 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
     </View>
   );
 }
+
+/** 다 한 날 '했어요'가 이보다 많으면 접는다 — 마감 두 줄이 SE 첫 화면 안에 그어지도록 */
+const FOLD_MIN = 3;
+
+/**
+ * '했어요 n' 묶음 머리 — 글자 뒤로 괘선 하나. fold가 있으면(다 한 날, 접을 만큼 많을 때) 눌러서 접고 펼친다.
+ */
+const DoneHead = memo(function DoneHead({ M, count, gapAbove, fold, onToggle }: {
+  M: M; count: number; gapAbove: boolean; fold?: boolean; onToggle: () => void;
+}) {
+  const toggle = useRef(onToggle);
+  toggle.current = onToggle;
+  const head = (
+    <>
+      <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>했어요 {count}</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
+    </>
+  );
+  const row = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginTop: gapAbove ? 22 : 0 };
+  if (fold === undefined) {
+    return (
+      <View accessible accessibilityRole="header" accessibilityLabel={`했어요 ${count}개`} style={[row, { marginBottom: 2 }]}>
+        {head}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      onPress={() => toggle.current()}
+      accessibilityRole="button"
+      accessibilityLabel={`했어요 ${count}개`}
+      accessibilityState={{ expanded: !fold }}
+      hitSlop={{ top: 8, bottom: 8 }}
+      style={({ pressed }) => [row, { minHeight: 44 }, pressed ? { opacity: 0.5 } : null]}
+    >
+      {head}
+      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{fold ? '펼치기' : '접기'}</Text>
+    </Pressable>
+  );
+}, (a, b) => a.M === b.M && a.count === b.count && a.gapAbove === b.gapAbove && a.fold === b.fold);
 
 /**
  * 목록의 한 줄 — 마감이 지난 줄은 여백에 붉은 세로 줄. 값이 같으면 다시 그리지 않는다
@@ -283,7 +336,7 @@ const Counter = memo(function Counter({ M, done, total, complete, canPick, summa
   const shape = tallyShape(total);
   const pendingBorder = mix(M.bg, M.ink, 0.3);
   return (
-    <View style={{ marginBottom: 12 }}>
+    <View style={{ marginBottom: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
         <View
           accessible

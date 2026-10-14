@@ -65,6 +65,8 @@ const GAP = 12;
 export const TODAY_ROW_INSET = CHECK + GAP;
 /** 오른쪽 칸 폭 — 이번 주 칸(WeekStrip row)과 같은 81pt */
 const RIGHT_W = 81;
+/** 직접 적은 줄의 × 칸 — 28pt 단추 + 4pt(누르는 범위는 hitSlop 12로 52pt) */
+const REMOVE_W = 32;
 /** 제목 줄 높이 — 먹선은 이 높이의 0.55 자리에 긋는다 */
 const TITLE_LH = 21;
 /** 먹선이 그어지는 시간 · 체크 획이 끝날 때까지(Check: 칠 60ms 뒤 170ms) 기다리는 시간 */
@@ -355,7 +357,8 @@ const RowView = memo(function RowView({
         )}
       </View>
 
-      {rightEl && <View style={{ width: RIGHT_W, alignItems: 'flex-end', justifyContent: 'center' }}>{rightEl}</View>}
+      {/* 오른쪽 칸 — 이번 주 칸·집계·마감은 81pt, 직접 적은 줄의 ×는 제 폭만(글이 일찍 꺾이지 않게) */}
+      {rightEl && <View style={{ width: right?.kind === 'remove' ? REMOVE_W : RIGHT_W, alignItems: 'flex-end', justifyContent: 'center' }}>{rightEl}</View>}
     </Pressable>
   );
 }, sameRow);
