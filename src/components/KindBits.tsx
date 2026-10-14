@@ -2,12 +2,12 @@ import React from 'react';
 import { Pressable, View, type TextStyle } from 'react-native';
 import { Text } from './AppText';
 import { Icon } from './Icon';
-import { tint } from '../theme/moods';
 import { readableOn } from '../theme/palette';
 import type { M } from '../theme/usePalette';
 import type { KindLine } from '../lib/kinds';
 import { RATING_TEXT } from '../lib/kinds';
-import { checkBorder } from '../lib/marks';
+import { useIncreaseContrast } from '../lib/useReducedMotion';
+import { checkEdge } from './Check';
 import { select } from '../lib/haptics';
 
 /**
@@ -46,10 +46,10 @@ export function KindMeta({
   );
 }
 
-/** 쌓기 진행 — 가는 줄 하나 */
+/** 쌓기 진행 — 가는 줄 하나. 끝은 알약처럼 둥글리지 않고 자로 그은 막대처럼(모서리 2) */
 export function CountBar({ M, pct, color, height = 3 }: { M: M; pct: number; color: string; height?: number }) {
   return (
-    <View style={{ height, borderRadius: height / 2, backgroundColor: M.line, overflow: 'hidden' }}>
+    <View style={{ height, borderRadius: Math.min(2, height / 2), backgroundColor: M.line, overflow: 'hidden' }}>
       <View style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%', backgroundColor: color }} />
     </View>
   );
@@ -62,7 +62,7 @@ const FILL_H = 48;
 
 /**
  * 마음가짐 점수 1~5 — 네모 다섯 칸. onRate가 있으면 눌러서 매기고, 같은 점수를 다시 누르면 지운다.
- * - 빈 칸 테두리는 체크 칸과 같은 값(종이 위 3:1 이상).
+ * - 빈 칸 테두리는 체크 칸과 같은 값(종이 위 3:1 이상, '대비 증가'에서는 더 진하고 굵게 — checkEdge).
  * - 누를 수 있는 칸은 36pt 이상 + 사방 4pt 여유(44pt 넘는 터치 영역). 보기만 하는 칸은 size 그대로.
  * - fill이면 다섯 칸이 줄 폭을 나눠 가진다(높이 48, 사이 6) — 시트·주간 돌아보기처럼 점수가 주인공일 때.
  * - 고를 때 짧은 딸깍(select).
@@ -85,7 +85,8 @@ export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, 
   const numSize = fill ? 17 : Math.round(side * 0.4);
   const showNum = fill || side >= 26;
   const onInk = readableOn(color);
-  const edge = checkBorder(M.dark);
+  const more = useIncreaseContrast();
+  const edge = checkEdge(M.dark, more);
 
   return (
     <View
@@ -101,7 +102,7 @@ export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, 
           <View
             style={{
               width: fill ? undefined : side, height: h, borderRadius: radius, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: on ? color : 'transparent', borderWidth: on ? 0 : 1.4, borderColor: edge,
+              backgroundColor: on ? color : 'transparent', borderWidth: on ? 0 : more ? edge.width : 1.4, borderColor: edge.color,
             }}
           >
             {showNum && (
@@ -125,32 +126,6 @@ export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, 
           >
             {box}
           </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-/**
- * 주 N회 습관의 이번 주 칸 — N칸 중 한 만큼 채운다(N을 넘으면 넘은 만큼 덧붙인다)
- * @deprecated 오늘 줄·시트는 WeekStrip을 쓴다. 쓰는 곳이 없어지면 W4-B에서 지운다.
- */
-export function WeekSlots({ M, done, target, color, size = 12 }: { M: M; done: number; target: number; color: string; size?: number }) {
-  const n = Math.max(target, done);
-  return (
-    <View style={{ flexDirection: 'row', gap: 4 }} accessible accessibilityLabel={`이번 주 ${target}회 중 ${done}회`}>
-      {Array.from({ length: n }, (_, i) => {
-        const filled = i < done;
-        const extra = i >= target; // 정한 횟수보다 더 한 날은 옅게
-        return (
-          <View
-            key={i}
-            style={{
-              width: size, height: size, borderRadius: Math.max(2, size * 0.22),
-              backgroundColor: filled ? (extra ? tint(color, M.dark ? 50 : 45, M.dark) : color) : 'transparent',
-              borderWidth: filled ? 0 : 1.3, borderColor: tint(color, M.dark ? 60 : 55, M.dark),
-            }}
-          />
         );
       })}
     </View>

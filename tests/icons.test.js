@@ -71,9 +71,6 @@ const IconMod = load(path.join(COMP, 'Icon.tsx'), {
   'react-native': {},
   './LineIcons': Line,
   './AreaIcons': Area,
-  // W4-B가 지울 기분 얼굴 — 아직 Icon.tsx가 불러도 되게만 둔다
-  './MoodFaces': { FaceHard: 'FaceHard', FaceLow: 'FaceLow', FaceNeutral: 'FaceNeutral', FaceGood: 'FaceGood', FaceBest: 'FaceBest' },
-  '../theme/palette': { MOOD_COLORS: ['#1', '#2', '#3', '#4', '#5'] },
 });
 
 /** 옮긴 이름 → lucide 파일 이름 */

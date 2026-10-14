@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, type AccessibilityRole, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
-import { Sheet, CloseBtn, IconBtn, PrimaryButton, RowDivider, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { Sheet, CloseBtn, IconBtn, LineRow, PrimaryButton, pressedRow, useSheetDismiss } from '../components/common';
 import { Check } from '../components/Check';
 import { Icon } from '../components/Icon';
 import { WeekStrip } from '../components/WeekStrip';
@@ -25,8 +25,6 @@ import {
 import { check as checkHaptic, uncheck as uncheckHaptic, success } from '../lib/haptics';
 import type { Action, Theme } from '../types';
 
-/** 줄 하나의 높이 — 괘선 줄(LineRow)과 같다 */
-const ROW_H = 52;
 /** 메모 괘선 — 줄 간격 · 첫 줄 위 여백 · 처음 높이(세 줄) */
 const MEMO_LINE = 28;
 const MEMO_PAD = 4;
@@ -127,48 +125,6 @@ function Locator({ M, th, ai }: { M: M; th: Theme; ai: number }) {
 }
 
 // ── 줄 ───────────────────────────────────────────────────────────────────────
-
-/**
- * 시트의 괘선 한 줄(52pt) — 아이콘·바탕 없이 제목 + 설명 + 오른쪽. 묶음 처음엔 윗줄, 끝엔 아랫줄.
- * LineRow와 같은 모양에 체크 상태(accessibilityState)를 더했다.
- */
-function SheetRow({
-  M, title, sub, right, onPress, first = false, last = false, role = 'button', checked, label, hint,
-}: {
-  M: M;
-  title: string;
-  sub?: string;
-  right?: React.ReactNode;
-  onPress: () => void;
-  first?: boolean;
-  last?: boolean;
-  role?: AccessibilityRole;
-  checked?: boolean;
-  label?: string;
-  hint?: string;
-}) {
-  const base: ViewStyle = {
-    ...groupEdge(M, first, last),
-    minHeight: ROW_H, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 2,
-  };
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole={role}
-      accessibilityState={checked === undefined ? undefined : { checked }}
-      accessibilityLabel={label ?? (sub ? `${title}, ${sub}` : title)}
-      accessibilityHint={hint}
-      style={({ pressed }) => [base, pressed ? pressedRow(M) : null]}
-    >
-      {!first && <RowDivider M={M} inset={0} />}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ ...TYPE.rowTitle, color: M.ink }} numberOfLines={2}>{title}</Text>
-        {!!sub && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{sub}</Text>}
-      </View>
-      {right}
-    </Pressable>
-  );
-}
 
 /** 오른쪽 작은 글 — '시작 ›' · '저절로 담겨 있어요' */
 function RightText({ M, children }: { M: M; children: string }) {
@@ -369,7 +325,7 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
         </View>
       ) : (
         <View style={{ marginTop: 14 }}>
-          <SheetRow M={M} first last title="마감 없음" right={<RightText M={M}>정하기 ›</RightText>} label="마감 없음, 마감 정하기" onPress={onEdit} />
+          <LineRow M={M} first last title="마감 없음" right={<RightText M={M}>정하기 ›</RightText>} accessibilityLabel="마감 없음, 마감 정하기" onPress={onEdit} />
         </View>
       )}
     </View>
@@ -439,27 +395,27 @@ function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   if (daily) {
     rows.push(
       auto ? (
-        <SheetRow key="today" M={M} title="오늘 할 일에 담기" right={<RightText M={M}>저절로 담겨 있어요</RightText>} label="오늘 할 일에 담기, 저절로 담겨 있어요" hint="왜 담겼는지 알려 줘요" onPress={handleToday} />
+        <LineRow key="today" M={M} title="오늘 할 일에 담기" right={<RightText M={M}>저절로 담겨 있어요</RightText>} accessibilityLabel="오늘 할 일에 담기, 저절로 담겨 있어요" accessibilityHint="왜 담겼는지 알려 줘요" onPress={handleToday} />
       ) : (
-        <SheetRow key="today" M={M} title="오늘 할 일에 담기" role="checkbox" checked={onToday} right={<Check on={onToday} color={th.color} dark={M.dark} size={22} seed={`${key}-today`} />} onPress={handleToday} />
+        <LineRow key="today" M={M} title="오늘 할 일에 담기" accessibilityLabel="오늘 할 일에 담기" accessibilityRole="checkbox" checked={onToday} right={<Check on={onToday} color={th.color} dark={M.dark} size={22} seed={`${key}-today`} />} onPress={handleToday} />
       ),
     );
     rows.push(
-      <SheetRow key="focus" M={M} title="25분 집중하기" right={<RightText M={M}>시작 ›</RightText>} label="25분 집중하기, 시작" onPress={() => { checkHaptic(); startFocus(ti, ai); }} />,
+      <LineRow key="focus" M={M} title="25분 집중하기" right={<RightText M={M}>시작 ›</RightText>} accessibilityLabel="25분 집중하기, 시작" onPress={() => { checkHaptic(); startFocus(ti, ai); }} />,
     );
   }
   if (achievable) {
     const sub = a.done ? '다시 누르면 달성을 풀어요' : kind === 'habit' ? '몸에 뱄다면 눌러 주세요' : '자리 잡았다면 눌러 주세요';
     rows.push(
-      <SheetRow
+      <LineRow
         key="done"
         M={M}
         title={a.done ? '달성한 칸이에요' : '이 칸 달성하기'}
         sub={sub}
-        role="checkbox"
+        accessibilityRole="checkbox"
         checked={a.done}
-        label="이 칸 달성"
-        hint={sub}
+        accessibilityLabel="이 칸 달성"
+        accessibilityHint={sub}
         right={<Check on={a.done} color={th.color} dark={M.dark} size={22} seed={`${key}-done`} />}
         onPress={() => { if (a.done) uncheckHaptic(); else checkHaptic(); toggleDone(ti, ai); }}
       />,

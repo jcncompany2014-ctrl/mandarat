@@ -6,12 +6,10 @@ import { EASE } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { select } from '../lib/haptics';
 import { ellipseLength, ellipsePath } from '../lib/marks';
+import { MOOD_WORDS } from '../lib/copy';
 import type { M } from '../theme/usePalette';
 
 const APath = Animated.createAnimatedComponent(Path);
-
-/** 기분 다섯 낱말(저장값 0~4 순서) — W4-B에서 copy.ts의 MOOD_WORDS로 바꾼다 */
-const WORDS = ['힘듦', '별로', '보통', '좋음', '최고'] as const;
 
 /** 동그라미가 낱말 양옆으로 남기는 여백 */
 const PAD_X = 8;
@@ -51,7 +49,7 @@ export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i
       accessibilityLabel="오늘 기분"
       style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 2 }}
     >
-      {WORDS.map((word, i) => {
+      {MOOD_WORDS.map((word, i) => {
         const on = value === i;
         const box = boxes[i];
         return (

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView,
-  StyleSheet, View, type AccessibilityRole, type StyleProp, type Text as RNText, type ViewStyle,
+  StyleSheet, View, type AccessibilityRole, type AccessibilityState, type StyleProp, type Text as RNText, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './AppText';
@@ -687,10 +687,11 @@ export function IndexTabs({
  * 묶음 처음엔 윗줄, 끝엔 아랫줄, 사이엔 가는 줄. 누르는 동안 종이가 살짝 어두워진다(크기 변화 없음).
  * right: 글자·숫자면 오른쪽 값(13/600 고정폭), 'chevron'이면 ›, 그 밖의 요소는 그대로.
  * sub: 글자면 설명 한 줄 모양으로, 요소면 그대로(두 줄짜리 설명 등).
+ * checked: 체크 칸이 있는 줄(accessibilityRole 'checkbox')의 상태 — 화면 읽기가 '선택됨'을 함께 읽는다.
  */
 export function LineRow({
   M, title, sub, right, onPress, first = false, last = false, danger = false,
-  accessibilityLabel, accessibilityHint, accessibilityRole, titleLines = 2,
+  accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState, checked, titleLines = 2,
 }: {
   M: M;
   title: string;
@@ -704,8 +705,13 @@ export function LineRow({
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
+  /** 체크 상태 — accessibilityState.checked의 줄임(둘 다 주면 합친다) */
+  checked?: boolean;
   titleLines?: number;
 }) {
+  const a11yState =
+    checked === undefined ? accessibilityState : { ...accessibilityState, checked };
   const rightNode =
     right === 'chevron' ? <Icon name="chevR" size={16} color={M.faint} />
     : typeof right === 'string' || typeof right === 'number' ? (
@@ -738,7 +744,7 @@ export function LineRow({
 
   if (!onPress) {
     return (
-      <View style={base} accessible accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} accessibilityRole={accessibilityRole}>
+      <View style={base} accessible accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} accessibilityRole={accessibilityRole} accessibilityState={a11yState}>
         {content}
       </View>
     );
@@ -747,6 +753,7 @@ export function LineRow({
     <Pressable
       onPress={onPress}
       accessibilityRole={accessibilityRole ?? 'button'}
+      accessibilityState={a11yState}
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       style={({ pressed }) => [base, pressed ? pressedRow(M) : null]}

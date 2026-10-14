@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
 import type { M } from '../theme/usePalette';
 import { RHYTHM } from '../theme/type';
+import { useIncreaseContrast } from '../lib/useReducedMotion';
 
 /**
  * 도트 노트 종이 — 화면 바탕에 아주 옅은 점을 일정 간격으로 찍는다.
@@ -12,6 +13,7 @@ import { RHYTHM } from '../theme/type';
  *
  * - offsetX: 기본 11 — 칸 가운데(gap/2) 점과 더해 x = 20에 점 한 줄이 선다(화면 좌우 여백 20과 같은 선).
  * - offsetY: 내용이 시작하는 높이(insets.top)를 gap으로 나눈 나머지 — 점 줄이 내용과 같은 박자로 놓인다.
+ * - iOS '대비 증가'에서는 점이 진해진다(밝은 종이 0.11 → 0.2, 다크 0.08 → 0.15).
  */
 export function PaperDots({
   M, gap = RHYTHM.dot, offsetX = 11, offsetY = 0,
@@ -23,7 +25,10 @@ export function PaperDots({
 }) {
   // 같은 화면에 두 장(예: 앱 바탕 + 64칸 마무리 페이지)이 있어도 웹에서 무늬 id가 겹치지 않게
   const id = `paper-dots-${useId().replace(/[^A-Za-z0-9_-]/g, '')}`;
-  const color = M.dark ? 'rgba(255,255,255,0.08)' : 'rgba(60,45,20,0.11)';
+  const more = useIncreaseContrast();
+  const color = M.dark
+    ? `rgba(255,255,255,${more ? 0.15 : 0.08})`
+    : `rgba(60,45,20,${more ? 0.2 : 0.11})`;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width="100%" height="100%">
