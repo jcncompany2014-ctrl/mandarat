@@ -32,6 +32,7 @@ function FinalePage() {
   const { closeCelebrate } = useUIActions();
   const { doc } = useDoc();
   const streak = overallStreak(doc);
+  const goal = doc.centerGoal.trim();
 
   useEffect(() => {
     announce(TITLE);
@@ -64,7 +65,11 @@ function FinalePage() {
             <Text accessibilityRole="header" style={{ marginTop: 10, fontSize: 22, lineHeight: 30, fontWeight: '800', color: M.ink }}>
               {TITLE}
             </Text>
-            <Text style={{ marginTop: 6, fontSize: 15, lineHeight: 22, color: M.sub }}>핵심 목표를 이뤘어요</Text>
+            {!!goal && (
+              <Text style={{ marginTop: 6, fontSize: 15, lineHeight: 22, color: M.sub }} numberOfLines={3}>
+                {`핵심 목표 · ${goal}`}
+              </Text>
+            )}
 
             <View style={{ marginTop: 28 }}>
               <MiniChart doc={doc} size={240} animate="bloom" />

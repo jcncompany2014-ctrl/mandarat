@@ -11,6 +11,7 @@ import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { parseBackup, summarize, type BackupSummary, type ParseResult } from '../lib/backup';
 import { ledgerRows, nowIsNewer, LEDGER_NONE } from '../lib/backupLedger';
 import { fmtDateLong } from '../lib/text';
+import { lastBackupAfterImport } from '../lib/lastBackup';
 import { pickTextFile } from '../lib/webFile';
 import { announce } from '../lib/useReducedMotion';
 import { tap, success } from '../lib/haptics';
@@ -37,7 +38,11 @@ function fmtExported(iso?: string): string {
  * 백업 불러오기 — 파일을 고르거나(붙여넣기는 그 아래 예비 길) 읽은 뒤,
  * 지금과 백업을 두 줄 장부로 나란히 보여 주고 바꾼다. 바꾼 직후에는 되돌릴 수 있다.
  */
-export function BackupImport({ onClose }: { onClose: () => void }) {
+export function BackupImport({ onClose, returnFocusRef }: {
+  onClose: () => void;
+  /** 닫힌 뒤 스크린리더 초점을 돌려줄 곳(시트를 연 줄) */
+  returnFocusRef?: React.RefObject<View | null>;
+}) {
   const M = usePalette();
   const { doc, replaceDoc } = useMandarat();
   const offerUndo = useSnapshotUndo();
@@ -95,7 +100,8 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
     applied.current = true;
     success();
     const snapshot = doc; // 되돌리기용
-    replaceDoc(result.doc);
+    const last = lastBackupAfterImport(doc.settings.lastBackupAt, result.doc.settings.lastBackupAt, result.summary.exportedAt);
+    replaceDoc(last ? { ...result.doc, settings: { ...result.doc.settings, lastBackupAt: last } } : result.doc);
     dismiss();
     // 그사이 다른 기록이 생겼다면 덮어쓰지 않는다(여기서는 토스트를 10초 둔다)
     offerUndo('백업을 불러왔어요', snapshot, { duration: UNDO_MS });
@@ -111,6 +117,7 @@ export function BackupImport({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       maxHeightPct={0.9}
       ownClose
+      returnFocusRef={returnFocusRef}
       footer={<ApplyButton M={M} ready={!!backup} onApply={apply} />}
     >
       <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>

@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Animated, Easing, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shadow } from '../theme/shadow';
 import { EASE } from '../theme/motion';
 import { usePalette } from '../theme/usePalette';
-import { TAB_BAR_H, useUI, type Toast } from '../navigation/ui';
+import { TAB_BAR_H, useToast, useUIActions, useUIState, type Toast } from '../navigation/ui';
 import { tap } from '../lib/haptics';
 import { reducedMotion, useScreenReader } from '../lib/useReducedMotion';
 
@@ -24,6 +24,19 @@ export function toastLife(t: Pick<Toast, 'action' | 'duration'>, reader: boolean
   return t.duration ?? (t.action ? 8000 : 3000);
 }
 
+// ── 시트 위 토스트가 떠 있는 동안 바닥 토스트는 소리 내지 않는다(안드로이드 live region이 두 번 읽지 않게) ──
+let topCount = 0;
+const topListeners = new Set<() => void>();
+function setTopCount(n: number) {
+  topCount = n;
+  topListeners.forEach((f) => f());
+}
+function subscribeTop(f: () => void) {
+  topListeners.add(f);
+  return () => { topListeners.delete(f); };
+}
+const getTop = () => topCount > 0;
+
 /**
  * 잠깐 떠오르는 안내 + (선택)되돌리기.
  * - placement 'bottom'(기본): 탭바 위 12 — 탭바가 없는 화면(설정·온보딩)은 바닥 안전 영역 위
@@ -36,12 +49,24 @@ export function Snackbar({ placement = 'bottom', tabBar }: {
   tabBar?: boolean;
 }) {
   const M = usePalette();
-  const { toast, hideToast, screen } = useUI();
+  // 토스트를 그리는 곳은 여기뿐 — 토스트를 구독하는 것도 여기뿐이다
+  const toast = useToast();
+  const { hideToast } = useUIActions();
+  const { screen } = useUIState();
   const insets = useSafeAreaInsets();
   const reader = useScreenReader();
   const top = placement === 'top';
   const overTabs = tabBar ?? screen !== 'settings';
   const away = top ? -TRAVEL : TRAVEL;
+
+  // 시트 안의 토스트(top)는 떠 있는 동안 세어 두고, 바닥 토스트는 그동안 live region을 끈다 — 같은 토스트가 두 번 읽히지 않게
+  useEffect(() => {
+    if (!top) return;
+    setTopCount(topCount + 1);
+    return () => setTopCount(Math.max(0, topCount - 1));
+  }, [top]);
+  const shadowed = useSyncExternalStore(subscribeTop, getTop, getTop);
+  const live = top || !shadowed ? 'polite' : 'none';
 
   const y = useRef(new Animated.Value(away)).current;
   const op = useRef(new Animated.Value(0)).current;
@@ -149,13 +174,13 @@ export function Snackbar({ placement = 'bottom', tabBar }: {
           style={{ borderRadius: 10, overflow: 'hidden' }}
         >
           <View
-            accessibilityLiveRegion="polite"
+            accessibilityLiveRegion={live}
             style={{
               flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 50,
               paddingLeft: 16, paddingRight: action ? 6 : 16, paddingVertical: 12,
             }}
           >
-            <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 14, lineHeight: 20, fontWeight: '600' }} numberOfLines={3}>
+            <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 14, lineHeight: 20, fontWeight: '600' }} numberOfLines={4}>
               {toast.message}
             </Text>
             {action && (

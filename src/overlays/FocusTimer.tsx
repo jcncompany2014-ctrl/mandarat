@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, Modal, Pressable, StyleSheet, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, AppState, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '../components/AppText';
 import { EASE } from '../theme/motion';
@@ -8,7 +8,7 @@ import { announce, useReducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pill, CloseBtn, PrimaryButton } from '../components/common';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
+import { useUIActions, useUIState } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
 import { success, tap } from '../lib/haptics';
 import { doneOn, kindOf } from '../lib/routine';
@@ -25,9 +25,11 @@ const RULE = 'rgba(255,255,255,0.16)';
 /** 지금 채우는 칸이 한 번 숨 쉬는 시간(들숨·날숨 각각) */
 const BREATH = 1600;
 const FILL = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 } as const;
+/** 이 글자 배율부터 멈추기·끝내기 버튼을 위아래로 쌓는다(나란히 두면 글이 잘린다) */
+const STACK_SCALE = 1.35;
 
 export function FocusTimer() {
-  const { focus } = useUI();
+  const { focus } = useUIState();
   if (!focus) return null;
   // 세션마다 새로 그려 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
   return <FocusSession ti={focus.ti} ai={focus.ai} />;
@@ -46,7 +48,9 @@ function keepAwake(on: boolean) {
 function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
   const insets = useSafeAreaInsets();
-  const { closeFocus } = useUI();
+  const { closeFocus } = useUIActions();
+  const { fontScale } = useWindowDimensions();
+  const stack = fontScale >= STACK_SCALE;
   const { doc, toggleDone, toggleRoutineToday, addFocusMinutes } = useMandarat();
   const reduce = useReducedMotion();
 
@@ -161,6 +165,8 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const toggleRun = () => {
     if (finished) return;
     tap();
+    // VoiceOver에는 바뀐 결과를 읽어 준다(안드로이드는 아래 상태 글의 live region이 읽는다)
+    if (Platform.OS === 'ios') announce(run ? '잠시 멈췄어요' : '다시 집중해요');
     setRun((r) => !r);
   };
 
@@ -188,6 +194,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           numberOfLines={1}
           adjustsFontSizeToFit
           maxFontSizeMultiplier={1.2}
+          accessibilityRole="timer"
           accessibilityLabel={finished ? '25분' : `남은 시간 ${Math.floor(left / 60)}분 ${left % 60}초`}
         >
           {finished ? '25분' : fmtClock(left)}
@@ -202,30 +209,36 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           {a.text || '집중'}
         </Text>
         <Text
-          // 멈춤·끝남만 알린다
-          accessibilityLiveRegion={!run || finished ? 'polite' : 'none'}
+          // 안드로이드: 멈춤·계속·끝남이 바뀔 때 읽는다(이 글은 그때만 바뀐다)
+          accessibilityLiveRegion="polite"
           style={{ marginTop: 6, fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.78)' }}
         >
           {cue}
         </Text>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'stretch', gap: 12, marginTop: 24 }}>
+        {/* 나란히 두 버튼은 같은 폭으로 나눠 갖고(최소 124), 글자를 크게 키우면 위아래로 쌓는다 */}
+        <View
+          style={{
+            flexDirection: stack ? 'column' : 'row', justifyContent: 'center', alignItems: 'stretch', gap: 12, marginTop: 24,
+            width: '100%', maxWidth: stack ? 360 : 300,
+          }}
+        >
           {!finished && (
             <Pressable
               onPress={toggleRun}
               accessibilityRole="button"
-              accessibilityLabel={run ? '일시정지' : '계속'}
+              accessibilityLabel={run ? '멈추기' : '계속'}
               style={({ pressed }) => ({
-                width: 124, minHeight: 52, borderRadius: 12, paddingHorizontal: 12,
+                flex: stack ? undefined : 1, minWidth: 124, minHeight: 52, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
                 borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
                 alignItems: 'center', justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }} numberOfLines={1}>{run ? '일시정지' : '계속'}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' }} numberOfLines={2}>{run ? '멈추기' : '계속'}</Text>
             </Pressable>
           )}
-          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={{ width: 124 }} />
+          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={stack ? undefined : { flex: 1, minWidth: 124 }} />
         </View>
 
         {!finished && (
@@ -236,8 +249,11 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   );
 }
 
-/** 25칸 집중 표 — 1분마다 한 칸씩 영역 색으로 칠한다. 칸 사이 틈 없이 가는 줄만(인쇄된 표처럼) */
-function Tally({
+/**
+ * 25칸 집중 표 — 1분마다 한 칸씩 영역 색으로 칠한다. 칸 사이 틈 없이 가는 줄만(인쇄된 표처럼).
+ * 시계는 0.5초마다 다시 그려지지만 표는 칸이 바뀔 때(1분에 한 번)만 다시 그린다.
+ */
+const Tally = memo(function Tally({
   filled, current, color, breath, reduce,
 }: {
   filled: number;
@@ -250,7 +266,7 @@ function Tally({
   return (
     <View
       accessible
-      accessibilityLabel={`25칸 중 ${filled}칸`}
+      accessibilityLabel={`25분 중 ${filled}분`}
       style={{
         marginTop: 18, width: BOX * 5 + StyleSheet.hairlineWidth, flexDirection: 'row', flexWrap: 'wrap',
         borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderColor: RULE,
@@ -261,9 +277,9 @@ function Tally({
       ))}
     </View>
   );
-}
+});
 
-function TallyBox({
+const TallyBox = memo(function TallyBox({
   on, current, color, breath, reduce,
 }: {
   on: boolean;
@@ -286,6 +302,13 @@ function TallyBox({
     Animated.timing(ink, { toValue: 1, duration: 260, easing: EASE.out, useNativeDriver: true }).start();
   }, [on, reduce, ink]);
 
+  // 계산 노드는 한 번만 — 그릴 때마다 새로 만들면 네이티브 쪽에 다시 붙는다
+  const inkStyle = useMemo(() => ({
+    opacity: ink.interpolate({ inputRange: [0, 0.01, 1], outputRange: [0, 1, 1] }),
+    transform: [{ scale: ink.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+  }), [ink]);
+  const breathOpacity = useMemo(() => breath.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] }), [breath]);
+
   return (
     <View
       style={{
@@ -295,20 +318,13 @@ function TallyBox({
     >
       {on ? (
         <Animated.View
-          style={{
-            ...FILL, backgroundColor: color,
-            opacity: ink.interpolate({ inputRange: [0, 0.01, 1], outputRange: [0, 1, 1] }),
-            transform: [{ scale: ink.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
-          }}
+          style={[FILL, { backgroundColor: color }, inkStyle]}
         />
       ) : current ? (
         <Animated.View
-          style={{
-            ...FILL, backgroundColor: color,
-            opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] }),
-          }}
+          style={[FILL, { backgroundColor: color, opacity: breathOpacity }]}
         />
       ) : null}
     </View>
   );
-}
+});

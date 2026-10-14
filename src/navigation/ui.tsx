@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { announce, screenReader } from '../lib/useReducedMotion';
+import { createOverlayQueue, OVERLAY_GAP, type OverlayQueue } from '../lib/overlayQueue';
 
 export type Screen = 'dashboard' | 'grid' | 'detail' | 'today' | 'stats' | 'settings';
 
@@ -8,10 +9,10 @@ export type Screen = 'dashboard' | 'grid' | 'detail' | 'today' | 'stats' | 'sett
 export const TAB_BAR_H = 52;
 
 /**
- * 시트·모달이 모두 닫힌 뒤 다음 것을 띄우기까지 기다리는 시간(ms).
+ * 시트·모달이 모두 닫힌 뒤 다음 것을 띄우기까지 기다리는 시간(ms) — lib/overlayQueue.ts.
  * iOS는 내려가는 중인 모달 옆에 새 모달을 띄우지 못한다(아무 말 없이 무시된다).
  */
-const OVERLAY_GAP = 380;
+export { OVERLAY_GAP };
 
 /** 밀려 들어오는 화면(뒤로 가기가 있는 화면) */
 function isDeep(s: Screen): boolean {
@@ -46,7 +47,7 @@ export interface Toast {
   duration?: number;
 }
 
-/** 마무리 페이지의 종류 — 지금은 64칸을 다 이룬 'bloom' 하나(하루 마감은 모달 없이 그 자리에서) */
+/** 마무리 페이지의 종류 — 지금은 64칸을 다 달성한 'bloom' 하나(하루 마감은 모달 없이 그 자리에서) */
 export type CelebrateKind = 'bloom';
 
 export interface RitualTarget {
@@ -77,6 +78,11 @@ export interface UIState {
   closedDay: string | null;
   /** 마감할 때마다 1씩 오른다 — 화면이 이 값이 바뀌는 걸 보고 마감 줄을 긋는다 */
   dayCloseTick: number;
+  /**
+   * 시트·모달이 하나라도 떠 있는지 — 위 상태들 + 화면이 자기 상태로 연 Sheet(백업 불러오기·예시 고르기 등).
+   * Sheet는 내려가는 애니메이션이 끝나 사라질 때까지 열린 것으로 센다.
+   */
+  anyOpen: boolean;
 }
 
 /**
@@ -89,10 +95,16 @@ export interface UIActions {
   back: () => void;
 
   /**
-   * 열린 시트·모달이 모두 닫히고 OVERLAY_GAP이 지난 뒤 fn을 부른다(열린 게 없으면 바로).
+   * 열린 시트·모달이 모두 닫히고, 마지막으로 닫힌 때로부터 OVERLAY_GAP이 지난 뒤 fn을 부른다
+   * (열린 게 없고 한참 전에 닫혔으면 다음 틱에). 한 번에 하나씩 — fn이 무언가를 열면 나머지는 그것이 닫힐 때까지 기다린다.
    * 시트에서 다른 시트·타이머·편집 창을 열 때 — 한 번에 하나만 화면에 있게.
    */
   afterOverlays: (fn: () => void) => void;
+  /**
+   * 모달 하나가 떠 있다고 알린다(Sheet가 마운트될 때) — 돌려받은 함수로 사라졌다고 알린다.
+   * 화면이 자기 상태로 연 시트도 anyOpen에 들어가, 대기열이 그 위에 다른 모달을 띄우지 않는다.
+   */
+  registerOverlay: () => () => void;
 
   openAction: (ti: number, ai: number) => void;
   closeSheet: () => void;
@@ -107,18 +119,18 @@ export interface UIActions {
   openPick: () => void;
   closePick: () => void;
 
-  /** 64칸을 다 이룬 마무리 페이지 — 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
+  /** 64칸을 다 달성한 마무리 페이지 — 늘 대기열을 거친다(다른 시트가 닫히고 OVERLAY_GAP이 지난 뒤) */
   fireCelebrate: (kind?: CelebrateKind) => void;
   closeCelebrate: () => void;
 
   openEditor: (e: EditorTarget) => void;
   closeEditor: () => void;
 
-  /** 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
+  /** 늘 대기열을 거친다(다른 시트가 닫히고 OVERLAY_GAP이 지난 뒤) */
   openRitual: (week: string, readOnly?: boolean) => void;
   closeRitual: () => void;
 
-  /** 다른 시트가 열려 있으면 그것이 닫힌 뒤에 뜬다 */
+  /** 늘 대기열을 거친다(다른 시트가 닫히고 OVERLAY_GAP이 지난 뒤) */
   openShare: () => void;
   closeShare: () => void;
 
@@ -189,43 +201,31 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   }, [go]);
 
   // ── 겹치지 않는 시트(오버레이 대기열) ──────────────────────────────────────
-  // 새 오버레이를 추가하는 패키지는 아래 anyOpen에 자기 상태를 더한다.
-  const anyOpen = !!(sheet || focus || editor || pick || quick || celebrate || ritual || share);
-  const anyOpenRef = useRef(anyOpen);
-  anyOpenRef.current = anyOpen;
-  const queue = useRef<(() => void)[]>([]);
-  const [queued, setQueued] = useState(0);
-  const closedAt = useRef(0);
-  const wasOpen = useRef(false);
+  // 새 오버레이를 추가하는 패키지는 아래 anyOpen에 자기 상태를 더한다(Sheet로 그리면 registerOverlay가 저절로 센다).
+  const [mounted, setMounted] = useState(0);
+  const anyOpen = !!(sheet || focus || editor || pick || quick || celebrate || ritual || share) || mounted > 0;
+  // 한 차례가 끝날 때마다 1씩 — 다음 렌더 뒤 그때의 anyOpen으로 대기열을 다시 본다
+  const [pass, setPass] = useState(0);
+  const queueRef = useRef<OverlayQueue | null>(null);
+  if (!queueRef.current) queueRef.current = createOverlayQueue({ requestPass: () => setPass((n) => n + 1) });
+  const queue = queueRef.current;
 
-  const afterOverlays = useCallback((fn: () => void) => {
-    queue.current.push(fn);
-    setQueued((n) => n + 1);
-  }, []);
+  const afterOverlays = useCallback((fn: () => void) => queue.push(fn), [queue]);
 
   useEffect(() => {
-    if (anyOpen) {
-      wasOpen.current = true;
-      return;
-    }
-    if (wasOpen.current) {
-      wasOpen.current = false;
-      closedAt.current = Date.now();
-    }
-    if (queue.current.length === 0) return;
-    const wait = Math.max(0, OVERLAY_GAP - (Date.now() - closedAt.current));
-    const t = setTimeout(() => {
-      const run = queue.current.splice(0);
-      run.forEach((fn) => {
-        try {
-          fn();
-        } catch (e) {
-          console.warn('afterOverlays', e);
-        }
-      });
-    }, wait);
-    return () => clearTimeout(t);
-  }, [anyOpen, queued]);
+    queue.sync(anyOpen);
+  }, [queue, anyOpen, pass]);
+  useEffect(() => () => queue.dispose(), [queue]);
+
+  const registerOverlay = useCallback(() => {
+    setMounted((n) => n + 1);
+    let done = false;
+    return () => {
+      if (done) return;
+      done = true;
+      setMounted((n) => Math.max(0, n - 1));
+    };
+  }, []);
 
   const openAction = useCallback((t: number, a: number) => setSheet({ ti: t, ai: a }), []);
   const closeSheet = useCallback(() => setSheet(null), []);
@@ -249,9 +249,9 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const openPick = useCallback(() => setPick(true), []);
   const closePick = useCallback(() => setPick(false), []);
 
+  // 지금 열린 게 없어도 대기열로 — 방금 닫힌 모달(집중 타이머 등)이 다 내려간 뒤에 떠야 iOS가 버리지 않는다
   const fireCelebrate = useCallback((kind: CelebrateKind = 'bloom') => {
-    if (anyOpenRef.current) afterOverlays(() => setCelebrate(kind));
-    else setCelebrate(kind);
+    afterOverlays(() => setCelebrate(kind));
   }, [afterOverlays]);
   const closeCelebrate = useCallback(() => setCelebrate(null), []);
 
@@ -261,14 +261,12 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const openRitual = useCallback((week: string, readOnly?: boolean) => {
     if (typeof week !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(week)) return;
     const target: RitualTarget = readOnly ? { week, readOnly: true } : { week };
-    if (anyOpenRef.current) afterOverlays(() => setRitual(target));
-    else setRitual(target);
+    afterOverlays(() => setRitual(target));
   }, [afterOverlays]);
   const closeRitual = useCallback(() => setRitual(null), []);
 
   const openShare = useCallback(() => {
-    if (anyOpenRef.current) afterOverlays(() => setShare(true));
-    else setShare(true);
+    afterOverlays(() => setShare(true));
   }, [afterOverlays]);
   const closeShare = useCallback(() => setShare(false), []);
 
@@ -294,7 +292,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     // 스크린리더로 한 번만 읽는다 — Snackbar는 시트 안팎에 두 번 놓이므로 거기서 읽으면 두 번 들린다.
     // 안드로이드는 Snackbar의 accessibilityLiveRegion이 읽어 주므로 여기서는 iOS만.
     if (Platform.OS === 'ios' && screenReader()) {
-      announce(action ? `${message}. ${action.label} 가능` : message);
+      announce(action ? `${message}. 되돌릴 수 있어요` : message);
     }
   }, []);
   const hideToast = useCallback((id?: number) => setToast((t) => (id === undefined || t?.id === id ? null : t)), []);
@@ -305,14 +303,14 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const from = fromState ?? defaultFrom(screen);
 
   const state = useMemo<UIState>(
-    () => ({ screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick }),
-    [screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick],
+    () => ({ screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick, anyOpen }),
+    [screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick, anyOpen],
   );
 
   // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
   const actions = useMemo<UIActions>(
     () => ({
-      go, back, afterOverlays,
+      go, back, afterOverlays, registerOverlay,
       openAction, closeSheet, startFocus, closeFocus,
       openQuick, closeQuick, openPick, closePick,
       fireCelebrate, closeCelebrate, openEditor, closeEditor,
@@ -320,7 +318,7 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       markDayClosed, showToast, hideToast, getToast,
     }),
     [
-      go, back, afterOverlays, openAction, closeSheet, startFocus, closeFocus, openQuick, closeQuick, openPick, closePick,
+      go, back, afterOverlays, registerOverlay, openAction, closeSheet, startFocus, closeFocus, openQuick, closeQuick, openPick, closePick,
       fireCelebrate, closeCelebrate, openEditor, closeEditor, openRitual, closeRitual, openShare, closeShare,
       markDayClosed, showToast, hideToast, getToast,
     ],
@@ -349,6 +347,11 @@ export function useUIActions(): UIActions {
   const c = useContext(ActionsCtx);
   if (!c) throw new Error(MISSING);
   return c;
+}
+
+/** UIProvider 밖(오류 화면 등)에서도 그려지는 Sheet용 — 없으면 null */
+export function useOptionalUIActions(): UIActions | null {
+  return useContext(ActionsCtx);
 }
 
 /** 지금 토스트 — 토스트가 뜨고 질 때만 다시 그려진다 */

@@ -14,7 +14,7 @@ import { MOOD_LABEL, SHAPE_LABEL } from '../lib/copy';
 import { select, tap } from '../lib/haptics';
 import { exportBackup } from '../lib/shareFile';
 import { fmtDateLong } from '../lib/text';
-import { useUI } from '../navigation/ui';
+import { useUIActions } from '../navigation/ui';
 import { BackupImport } from '../overlays/BackupImport';
 import { useMandarat, type SnapshotInfo } from '../store/MandaratContext';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
@@ -27,6 +27,12 @@ import type { CellShape, Mood } from '../types';
 
 const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
+/** 기록이 저장되는 곳 — iCloud 기기 백업은 iPhone에만 있다(안드로이드·웹에서는 이 기기에만) */
+const IOS = Platform.OS === 'ios';
+const STORAGE_NOTE = IOS
+  ? '기록은 이 iPhone과 iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.'
+  : '기록은 이 기기에 저장돼요. 기기를 바꾸기 전에 백업을 내보내 두세요.';
+const STORAGE_PLACE = IOS ? '이 iPhone과 iCloud 백업' : '이 기기';
 
 /** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
 function ask(title: string, message: string, ok: string, onOk: () => void, destructive = false) {
@@ -250,12 +256,15 @@ function LicenseList({ M }: { M: M }) {
 
 export function Settings() {
   const M = usePalette();
-  const { go, back, openEditor, showToast } = useUI();
+  const { go, back, openEditor, showToast } = useUIActions();
   const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, listSnapshots, readSnapshot } = useMandarat();
   const offerUndo = useSnapshotUndo();
 
   const [importing, setImporting] = useState(false);
   const [picking, setPicking] = useState(false);
+  // 시트가 닫히면 스크린리더 초점을 그 시트를 연 줄로 돌려준다
+  const importRow = useRef<View>(null);
+  const templateRow = useRef<View>(null);
   const [snapsOpen, setSnapsOpen] = useState(false);
   const [snaps, setSnaps] = useState<SnapshotInfo[] | null>(null);
   const [licensesOpen, setLicensesOpen] = useState(false);
@@ -357,7 +366,7 @@ export function Settings() {
   };
   const confirmReset = () => {
     tap();
-    ask('모든 기록을 지울까요?', '핵심 목표, 실천 64칸, 체크한 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.', '지우기', doReset, true);
+    ask('모든 기록을 지울까요?', '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.', '지우기', doReset, true);
   };
 
   // ── 백업 ──
@@ -434,7 +443,7 @@ export function Settings() {
           ))}
         </View>
 
-        <Section M={M} label="데이터" />
+        <Section M={M} label="기록" />
         <LineRow
           M={M} first title="백업 내보내기"
           sub={backupAgeLabel(doc.settings.lastBackupAt, new Date())}
@@ -443,20 +452,20 @@ export function Settings() {
           accessibilityHint={`${backupAgeLabel(doc.settings.lastBackupAt, new Date())}. 기록을 파일로 내보내요`}
           onPress={onExport}
         />
-        <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" />
+        <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" pressRef={importRow} />
         <LineRow M={M} title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" />
-        <LineRow M={M} title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" />
+        <LineRow M={M} title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
         <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
         <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
         <Text style={{ marginTop: 10, fontSize: 12.5, lineHeight: 18, color: M.sub }}>
-          기록은 이 iPhone과 iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.
+          {STORAGE_NOTE}
         </Text>
 
         <Section M={M} label="정보" />
         <ColophonRow M={M} first label="이름" value="만다라트" />
         <ColophonRow M={M} label="판" value={APP_VERSION} />
         <ColophonRow M={M} label="서체" value="Pretendard · SIL OFL 1.1" />
-        <ColophonRow M={M} label="기록" value="이 iPhone과 iCloud 백업" />
+        <ColophonRow M={M} label="저장 위치" value={STORAGE_PLACE} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 8, marginTop: 14 }}>
           {!!PRIVACY_URL && <TextLink M={M} label="개인정보 처리방침" onPress={() => openLink(PRIVACY_URL)} />}
           {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label="문의하기" hint="메일 앱이 열려요" onPress={() => openLink(mailto)} />}
@@ -468,8 +477,8 @@ export function Settings() {
         </View>
       </View>
 
-      {importing && <BackupImport onClose={() => setImporting(false)} />}
-      {picking && <TemplateSheet M={M} onClose={onTemplateSheetClosed} onPick={pickTemplate} />}
+      {importing && <BackupImport onClose={() => setImporting(false)} returnFocusRef={importRow} />}
+      {picking && <TemplateSheet M={M} onClose={onTemplateSheetClosed} onPick={pickTemplate} returnFocusRef={templateRow} />}
       {snapsOpen && (
         <Sheet M={M} onClose={onSnapSheetClosed} ownClose>
           <SnapshotList M={M} list={snaps} onPick={pickSnapshot} />
