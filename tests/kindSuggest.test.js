@@ -84,8 +84,10 @@ test('제안에는 화면에 쓸 이름이 붙는다', () => {
   assert.equal(suggestKind('주 3회 운동').label, '주 3회 습관');
   assert.equal(suggestKind('월수금 수영').label, '월·수·금 습관');
   assert.equal(suggestKind('매일 글쓰기').label, '매일 습관');
-  assert.equal(suggestKind('책 12권 읽기').label, '쌓기 12권');
-  assert.equal(suggestKind('1,000만 원 모으기').label, '쌓기 1,000만 원');
+  assert.equal(suggestKind('책 12권 읽기').label, '12권 쌓기');
+  assert.equal(suggestKind('1,000만 원 모으기').label, '1,000만 원 쌓기');
+  assert.equal(suggestKind('자격증 취득').label, '한 번 하는 일');
+  assert.equal(suggestKind('발표 1회').label, '한 번 하는 일');
 });
 
 test('주 N회의 여러 말투 — 범위는 적은 쪽, "한 주에"·"일주일" 포함', () => {

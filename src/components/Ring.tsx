@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 import { SEMANTIC } from '../theme/palette';
@@ -40,7 +40,8 @@ export function Ring({
     return () => a.stop();
   }, [target, animate, anim]);
 
-  const offset = anim.interpolate({ inputRange: [0, 100], outputRange: [c, 0] });
+  // 둘레가 바뀔 때만 새로 만든다(그릴 때마다 interpolate 노드를 새로 붙이지 않게)
+  const offset = useMemo(() => anim.interpolate({ inputRange: [0, 100], outputRange: [c, 0] }), [anim, c]);
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>

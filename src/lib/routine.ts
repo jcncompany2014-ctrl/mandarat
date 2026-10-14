@@ -222,6 +222,8 @@ export type DayState = 'done' | 'today' | 'missed' | 'planned' | 'off';
 
 /**
  * 습관의 이번 주(월~일) 7칸 상태 — 습관을 정하기 전 날은 쉬는 날로 본다.
+ * 그 전 날에 남은 기록(한 번이던 칸을 달성한 날 등)은 이 습관의 기록이 아니라서 '했어요'로 보이지 않는다
+ * (이번 주 n/m회와 같은 날만 센다).
  * 주 N회 습관은 정해진 요일이 없어 한 날만 채우고 나머지는 쉬는 날(놓친 날이 없다).
  */
 export function routineWeek(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): DayState[] {
@@ -231,6 +233,7 @@ export function routineWeek(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: num
   const weekly = perWeekOf(a) > 0;
   return weekDates(today).map((d) => {
     const k = ymd(d);
+    if (a?.since && k < a.since) return 'off';
     if (doneOn(doc.dayLog, key, k)) return 'done';
     if (weekly) return k === todayKey && autoToday(doc, ti, ai, today) ? 'today' : 'off';
     if (!scheduledOn(a, d)) return 'off';
@@ -250,6 +253,81 @@ export function routineWeekCount(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti
   if (perWeekOf(a) > 0) return { done: weekDone(doc.dayLog, key, today, a?.since), planned: weekTarget(a, today) };
   const planned = weekDates(today).filter((d) => scheduledOn(a, d));
   return { done: planned.filter((d) => doneOn(doc.dayLog, key, ymd(d))).length, planned: planned.length };
+}
+
+// ── 습관 연속 기록 ─────────────────────────────────────────────────────────────
+/** 연속 기록을 거슬러 보는 최대 날 수(약 2년) — 그보다 오래된 기록은 최고 기록에도 넣지 않는다 */
+export const STREAK_SPAN = 730;
+
+export interface HabitStreak {
+  /** 지금 이어 가는 기록 — 요일 습관은 이어서 지킨 예정일 수, 주 N회는 이어서 채운 주 수 */
+  cur: number;
+  /** 가장 길게 이어 간 기록(지금 기록 포함) */
+  best: number;
+  unit: 'day' | 'week';
+}
+
+/**
+ * 습관 하나의 연속 기록 — 정한 일정대로 센다.
+ * - 요일 습관: 예정일만 센다. 쉬는 날(월·수·금 습관의 화·목)은 건너뛰어 끊기지 않고, 쉬는 날에 한 것은 더하지도 않는다.
+ *   아직 체크하지 않은 오늘은 끊지 않는다(하루가 끝나지 않았다).
+ * - 주 N회 습관: 월~일 한 주에 목표 횟수를 채운 주를 이어서 센다(습관을 정한 주는 남은 날만큼이 목표).
+ *   이번 주는 채웠으면 1을 더하고, 아직 못 채웠어도 남은 날로 채울 수 있으면 더하지도 끊지도 않는다.
+ * - 습관을 정한 날(since) 전과 STREAK_SPAN일보다 오래된 기록은 보지 않는다.
+ * 습관이 아니면 { cur: 0, best: 0, unit: 'day' }.
+ */
+export function habitStreak(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): HabitStreak {
+  const a = doc.themes[ti]?.actions[ai];
+  if (!a || kindOf(a) !== 'habit') return { cur: 0, best: 0, unit: 'day' };
+  const key = `${ti}-${ai}`;
+  const tk = ymd(today);
+  const unit = perWeekOf(a) > 0 ? 'week' : 'day';
+
+  // 셀 첫날 = 이 칸 기록이 처음 남은 날 — 단, 습관을 정한 날 전이나 STREAK_SPAN일보다 앞이면 거기서부터
+  let start: string | null = null;
+  for (const [day, list] of Object.entries(doc.dayLog)) {
+    if (day <= tk && (start === null || day < start) && list.includes(key)) start = day;
+  }
+  if (start === null) return { cur: 0, best: 0, unit };
+  if (a.since && a.since > start) start = a.since;
+  const floor = ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() - (STREAK_SPAN - 1)));
+  if (floor > start) start = floor;
+  if (start > tk) return { cur: 0, best: 0, unit };
+  const [sy, sm, sd] = start.split('-').map(Number);
+
+  let run = 0;
+  let best = 0;
+  if (unit === 'day') {
+    // 하루씩 앞으로 — 예정일에 했으면 잇고, 못 했으면 끊는다(오늘은 끊지 않는다)
+    for (let i = 0; ; i++) {
+      const d = new Date(sy, sm - 1, sd + i);
+      const k = ymd(d);
+      if (k > tk) break;
+      if (!scheduledOn(a, d)) continue;
+      if (doneOn(doc.dayLog, key, k)) best = Math.max(best, ++run);
+      else if (k !== tk) run = 0;
+    }
+    return { cur: run, best, unit };
+  }
+
+  // 한 주씩 앞으로(월요일 기준)
+  const first = weekDates(new Date(sy, sm - 1, sd))[0];
+  for (let w = 0; ; w++) {
+    const week = weekDates(new Date(first.getFullYear(), first.getMonth(), first.getDate() + w * 7));
+    if (ymd(week[0]) > tk) break;
+    const sun = ymd(week[6]);
+    const current = sun >= tk;
+    const target = weekTarget(a, week[0]);
+    const done = weekDone(doc.dayLog, key, current ? today : week[6], a.since);
+    if (done >= target) best = Math.max(best, ++run);
+    else if (!current) run = 0;
+    else {
+      // 이번 주: 남은 날(오늘을 아직 안 했으면 오늘 포함)로 아직 채울 수 있으면 그대로 둔다
+      const left = daysBetween(tk, sun) + (doneOn(doc.dayLog, key, tk) ? 0 : 1);
+      if (left < target - done) run = 0;
+    }
+  }
+  return { cur: run, best, unit };
 }
 
 export interface TodayItem {
@@ -287,6 +365,41 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
     if (autoToday(doc, ti, ai, today)) push(ti, ai, true);
   }));
   return out;
+}
+
+/**
+ * '오늘' 목록에서의 급한 정도 — 작을수록 위.
+ * 마감 지남 0 · 오늘 마감 1 · 마감 D-1~3 2 · 그 밖의 한 번(직접 담은 것) 3 · 쌓기 4 · 습관 5 · 그 밖 6
+ */
+export function todayRank(item: Pick<TodayItem, 'ti' | 'ai' | 'kind'>, doc: Pick<MandaratDoc, 'themes'>, todayKey: string): number {
+  if (item.kind === 'once') {
+    const due = doc.themes[item.ti]?.actions[item.ai]?.due;
+    const days = due ? daysBetween(todayKey, due) : NaN;
+    if (days < 0) return 0;
+    if (days === 0) return 1;
+    if (days <= DUE_SOON) return 2;
+    return 3;
+  }
+  if (item.kind === 'count') return 4;
+  if (item.kind === 'habit') return 5;
+  return 6;
+}
+
+/**
+ * 급한 것부터 다시 늘어놓은 새 배열(todayRank 순). 같은 무게끼리는 원래 순서를 지킨다.
+ * todayItems 자체의 순서(직접 담은 것 → 저절로 담긴 것)는 바꾸지 않는다.
+ */
+export function sortTodayItems<T extends Pick<TodayItem, 'ti' | 'ai' | 'kind'>>(items: readonly T[], doc: Pick<MandaratDoc, 'themes'>, today: Date): T[] {
+  const tk = ymd(today);
+  return items
+    .map((item, i) => ({ item, i, rank: todayRank(item, doc, tk) }))
+    .sort((x, y) => x.rank - y.rank || x.i - y.i)
+    .map((x) => x.item);
+}
+
+/** 화면에 늘어놓을 '오늘' 실천 목록 — 급한 것부터(마감 지남 → 오늘 마감 → 다가온 마감 → 직접 담은 한 번 → 쌓기 → 습관) */
+export function orderedTodayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>, today: Date): TodayItem[] {
+  return sortTodayItems(todayItems(doc, today), doc, today);
 }
 
 /** 오늘 진행: 실천 목록 + 직접 추가한 할 일 */

@@ -1,4 +1,7 @@
-// 글자 다듬기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
+// 글자 다듬기 — 줄바꿈, 조사, 날짜·마감·횟수 표기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
+// 날짜 표기는 앱 전체에서 이 함수들로만 만든다(같은 날짜가 화면마다 다르게 적히지 않게). 연도는 적지 않는다.
+import { fmtNum } from './kinds';
+import { DOW_KR } from './routine';
 
 const NBSP = ' ';
 
@@ -47,4 +50,48 @@ export function josa(word: string, pair: JosaPair): string {
   const [withFinal, noFinal] = pair.split('/');
   if (pair === '으로/로') return word + (f === '' || f === 'l' ? noFinal : withFinal);
   return word + (f === '' ? noFinal : withFinal);
+}
+
+// ── 날짜·마감·횟수 ───────────────────────────────────────────────────────────
+
+/** 'YYYY-MM-DD' 또는 Date → 로컬 날짜 (잘못된 키는 Invalid Date) */
+function toDate(d: string | Date): Date {
+  if (d instanceof Date) return d;
+  const [y, m, day] = d.split('-').map(Number);
+  return new Date(y, m - 1, day);
+}
+
+/** '10월 14일 수요일' — 머리말·마감·저장본처럼 날짜 하나를 또박또박 읽을 때 */
+export function fmtDateLong(d: string | Date): string {
+  const t = toDate(d);
+  return `${t.getMonth() + 1}월 ${t.getDate()}일 ${DOW_KR[t.getDay()]}요일`;
+}
+
+/** '10.14 (수)' — 표·기록처럼 좁은 자리 */
+export function fmtDateShort(d: string | Date): string {
+  const t = toDate(d);
+  return `${t.getMonth() + 1}.${t.getDate()} (${DOW_KR[t.getDay()]})`;
+}
+
+/** 한 주(월요일 키) → '10월 12일 – 18일', 달이 바뀌면 '9월 28일 – 10월 4일' */
+export function fmtRange(monday: string | Date): string {
+  const s = toDate(monday);
+  const e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
+  const end = e.getMonth() === s.getMonth() ? `${e.getDate()}일` : `${e.getMonth() + 1}월 ${e.getDate()}일`;
+  return `${s.getMonth() + 1}월 ${s.getDate()}일 – ${end}`;
+}
+
+/**
+ * 마감까지 남은 날(지났으면 음수) → 짧게 'D-2' · 'D-day' · 'D+3', 길게 '마감 D-2' · '오늘 마감' · '마감 3일 지남'.
+ * 남은 날은 routine.daysBetween(오늘, 마감)으로 센다.
+ */
+export function fmtDue(days: number, form: 'short' | 'long' = 'short'): string {
+  const n = Math.round(days);
+  if (form === 'short') return n > 0 ? `D-${n}` : n === 0 ? 'D-day' : `D+${-n}`;
+  return n > 0 ? `마감 D-${n}` : n === 0 ? '오늘 마감' : `마감 ${-n}일 지남`;
+}
+
+/** 횟수·양 — '3번' · '1,200권' · '50만 원' (단위는 숫자에 붙여 쓴다) */
+export function fmtCount(n: number, unit = '번'): string {
+  return `${fmtNum(n)}${unit}`;
 }

@@ -19,9 +19,9 @@ import { tint } from '../theme/moods';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
-import { useMandarat, dateKey, lastNDates, themeStreak } from '../store/MandaratContext';
-import { tap, success } from '../lib/haptics';
-import { DOW_KR, doneOn, extraLogKey, kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, type TodayItem } from '../lib/routine';
+import { useMandarat, dateKey, themeStreak } from '../store/MandaratContext';
+import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
+import { DOW_KR, doneOn, extraLogKey, kindOf, perWeekOf, routineWeek, routineWeekCount, todayItems, weekDates, ymd, type TodayItem } from '../lib/routine';
 import { countInfo, fmtNum, kindLine, ratingOf } from '../lib/kinds';
 import { josa } from '../lib/text';
 import { pickSections } from '../lib/pick';
@@ -44,8 +44,8 @@ function useCheck() {
   const { doc, checkToday, addCount } = useMandarat();
   const { showToast } = useUI();
   return (it: TodayItem) => {
-    tap();
-    if (!it.done) success();
+    if (it.done) uncheckHaptic();
+    else checkHaptic();
     if (it.kind === 'count') {
       const c = countInfo(doc.themes[it.ti].actions[it.ai], dateKey());
       if (!it.done && !c.reached && c.count + c.step >= c.goal) showToast(`목표 ${fmtNum(c.goal)}${c.unit}에 닿았어요 · 칸을 채웠어요`);
@@ -134,8 +134,8 @@ function TodayChecklist({ M }: { M: M }) {
     else hold(r.key);
     if (r.it) check(r.it);
     else if (r.x) {
-      tap();
-      if (!r.x.done) success();
+      if (r.x.done) uncheckHaptic();
+      else checkHaptic();
       toggleExtra(r.x.id);
     }
   };
@@ -188,7 +188,7 @@ function TodayChecklist({ M }: { M: M }) {
               accessibilityState={{ checked: it.done }}
               accessibilityLabel={checkLabel(it, a.text, doc)}
             >
-              <Check on={it.done} color={th.color} dark={M.dark} />
+              <Check on={it.done} color={th.color} dark={M.dark} seed={it.key} muted={sunk(r)} />
             </Pressable>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: it.done ? M.sub : M.ink, textDecorationLine: it.done ? 'line-through' : 'none' }} numberOfLines={2}>
@@ -232,7 +232,7 @@ function TodayChecklist({ M }: { M: M }) {
           style={rowStyle(first, last)}
         >
           {!first && <RowDivider M={M} inset={56} />}
-          <Check on={x.done} color={th.color} dark={M.dark} />
+          <Check on={x.done} color={th.color} dark={M.dark} seed={`x${x.id}`} muted={sunk(r)} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2, color: x.done ? M.sub : M.ink, textDecorationLine: x.done ? 'line-through' : 'none' }} numberOfLines={2}>
               {x.text}
@@ -354,7 +354,7 @@ function TodayChecklist({ M }: { M: M }) {
       {/* 하루 마무리 — 할 일 다음에 기분과 한 줄 회고 */}
       <View style={{ marginTop: tTotal > 0 ? 28 : 8 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 12 }} accessibilityRole="header">오늘 기분</Text>
-        <MoodRow M={M} value={meta.mood} onPick={(i) => { tap(); setDayMood(i); }} />
+        <MoodRow M={M} value={meta.mood} onPick={(i) => setDayMood(i)} />
         <TextInput
           value={meta.reflection ?? ''}
           onChangeText={setDayReflection}
@@ -405,7 +405,7 @@ function MindWeek({ M }: { M: M }) {
                 <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{th.title || `영역 ${ti + 1}`}</Text>
               </View>
             </Pressable>
-            <RatingBoxes M={M} value={ratingOf(a, now)} color={th.color} label={`${a.text} 이번 주 점수`} size={32} gap={5} onRate={(s) => rateMind(ti, ai, s)} />
+            <RatingBoxes M={M} value={ratingOf(a, now)} color={th.color} label={`${a.text} 이번 주 점수`} size={32} gap={4} onRate={(s) => rateMind(ti, ai, s)} />
           </View>
         );
       })}
@@ -417,7 +417,8 @@ function MindWeek({ M }: { M: M }) {
 function TodayStreak({ M }: { M: M }) {
   const { doc } = useMandarat();
   const { go } = useUI();
-  const streaks = doc.themes.map((_, ti) => themeStreak(doc, ti));
+  const now = new Date();
+  const streaks = doc.themes.map((_, ti) => themeStreak(doc, ti, now));
   const best = streaks.reduce((m, s, i) => (s.best > m.best ? { best: s.best, ti: i } : m), { best: 0, ti: 0 });
   const bestName = doc.themes[best.ti].title || `영역 ${best.ti + 1}`;
 
@@ -432,21 +433,21 @@ function TodayStreak({ M }: { M: M }) {
         <Text style={{ fontSize: 13.5, color: M.sub }}>{best.best > 0 ? `${bestName} 영역이에요` : '하루 하나씩 체크하면 여기에 쌓여요'}</Text>
       </View>
 
-      {/* 칸 7개 = 최근 7일(맨 오른쪽이 오늘) — 행마다 쓰지 않고 위에 한 번만 요일을 단다 */}
+      {/* 칸 7개 = 이번 주 월~일 — 행마다 쓰지 않고 위에 한 번만 요일을 단다 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2, marginBottom: 7 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <View style={{ width: 24 + 13 }} />
         <View style={{ flexDirection: 'row', gap: 4 }}>
-          {lastNDates(7).map((k, i) => {
-            const [y, m, d] = k.split('-').map(Number);
-            const today = i === 6;
+          {weekDates(now).map((d) => {
+            const k = ymd(d);
+            const today = k === dateKey(now);
             return (
               <Text key={k} style={{ width: 14, textAlign: 'center', fontSize: 9.5, fontWeight: today ? '800' : '600', color: today ? M.accent : M.faint }}>
-                {DOW_KR[new Date(y, m - 1, d).getDay()]}
+                {DOW_KR[d.getDay()]}
               </Text>
             );
           })}
         </View>
-        <Text style={{ flex: 1, textAlign: 'right', fontSize: 10.5, fontWeight: '600', color: M.faint }}>최근 7일</Text>
+        <Text style={{ flex: 1, textAlign: 'right', fontSize: 10.5, fontWeight: '600', color: M.faint }}>이번 주</Text>
       </View>
 
       <View>
@@ -534,12 +535,12 @@ function TodayKanban({ M }: { M: M }) {
       setDoing(c, true);
     } else if (st === 1) {
       if (c.item) check(c.item);
-      else if (c.id) { tap(); success(); toggleExtra(c.id); }
+      else if (c.id) { checkHaptic(); toggleExtra(c.id); }
       setDoing(c, false);
     } else {
       // 완료 → 다시 할 일로 (실수로 옮긴 카드 되돌리기)
       if (c.item) check(c.item);
-      else if (c.id) { tap(); toggleExtra(c.id); }
+      else if (c.id) { uncheckHaptic(); toggleExtra(c.id); }
     }
   };
 

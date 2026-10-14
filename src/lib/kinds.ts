@@ -7,12 +7,12 @@ import {
 
 export const KIND_LABEL: Record<ActionKind, string> = { once: '한 번', habit: '습관', count: '쌓기', mind: '마음가짐' };
 
-/** 유형 고르기 아래 한 줄 설명 */
+/** 유형 고르기 아래 한 줄 설명 — 짧게, 그 유형이 '오늘'과 칸에 어떻게 이어지는지만 */
 export const KIND_HINT: Record<ActionKind, string> = {
-  once: '한 번 해내면 끝나는 일이에요. 마감일을 정하면 사흘 전부터 ‘오늘’에 담겨요.',
-  habit: '정한 요일마다, 또는 주 N회를 채울 때까지 ‘오늘’에 담겨요.',
-  count: '숫자를 채워 가는 목표예요. 목표에 닿으면 칸이 채워져요.',
-  mind: '날마다 체크하지 않고, 한 주에 한 번 얼마나 지켰는지 1~5점으로 돌아봐요.',
+  once: '마감 사흘 전부터 ‘오늘’에 담겨요',
+  habit: '정한 요일마다 ‘오늘’에 담겨요. 횟수로 정하면 다 채울 때까지 매일 담겨요.',
+  count: '숫자를 쌓아 가는 실천이에요. 목표 수에 닿으면 칸이 달성돼요.',
+  mind: '한 주에 한 번 1~5점으로 돌아봐요',
 };
 
 // ── 숫자 ─────────────────────────────────────────────────────────────────────
@@ -26,14 +26,17 @@ export function round2(n: number): number {
 /** 저장본·입력 숫자 검증: 유한한 수를 범위 안으로(벗어나면 undefined) */
 export function cleanNum(v: unknown, min = 0, max = MAX_NUM): number | undefined {
   if (typeof v !== 'number' || !Number.isFinite(v)) return undefined;
-  const n = round2(v);
+  const n = round2(v) + 0; // -0 → 0 (JSON을 거쳐도 같은 값이 되게)
   return n >= min && n <= max ? n : undefined;
 }
 
-/** 입력 글자 → 숫자. 쉼표·공백은 무시한다('1,000' → 1000). 숫자가 아니면 undefined */
+/**
+ * 입력 글자 → 숫자. 쉼표·공백은 무시한다('1,000' → 1000).
+ * 숫자 키패드로 치다 만 꼴도 받는다('.5' → 0.5, '7.' → 7). 숫자가 아니면('1..5' · '7권' · '-3') undefined
+ */
 export function parseNum(text: string): number | undefined {
   const t = text.replace(/[,\s]/g, '');
-  if (!/^\d+(\.\d+)?$/.test(t)) return undefined;
+  if (!/^(?:\d+\.?\d*|\.\d+)$/.test(t)) return undefined;
   return round2(Number(t));
 }
 
@@ -131,6 +134,45 @@ export function countWeekAdded(a: Action, today: Date): number {
   }, 0));
 }
 
+export interface CountPace {
+  /** 최근 기간의 하루 평균 더한 수 — 0이면 아직 속도를 알 수 없다 */
+  rate: number;
+  /** 이 속도로 목표에 닿는 날 'YYYY-MM-DD' — 이미 닿았거나, 속도가 0이거나, 10년 넘게 걸리면 null */
+  eta: string | null;
+  /** 최근 기간(오늘 포함 days일)에 더한 수 */
+  added: number;
+  /** 기간이 시작되기 전까지 쌓인 수 — 막대 위 'n주 전' 눈금 자리 */
+  before: number;
+}
+
+/** 이 속도면 언제 — 최근 days일(오늘 포함)에 더한 수로 목표에 닿는 날을 어림한다 */
+export function countPace(a: Action, today: Date, days = 28): CountPace {
+  const c = countInfo(a);
+  const tk = ymd(today);
+  const n = Math.max(1, Math.floor(days));
+  const from = addDays(tk, -(n - 1));
+  let added = 0;
+  let first: string | null = null;
+  for (const [k, v] of Object.entries(a.log ?? {})) {
+    const amt = cleanNum(v) ?? 0;
+    if (amt <= 0 || k > tk) continue;
+    if (first === null || k < first) first = k;
+    if (k >= from) added += amt;
+  }
+  added = round2(added);
+  // 기간 중간에 처음 쌓기 시작했다면 그날부터 나눈다(사흘 전에 시작한 속도를 28일로 나누지 않게).
+  // 하루 이틀로 부풀지 않게 일주일보다 짧게는 나누지 않는다.
+  const span = first !== null && first > from ? Math.min(n, Math.max(Math.min(7, n), daysBetween(first, tk) + 1)) : n;
+  const rate = added / span;
+  const before = round2(Math.max(0, c.count - added));
+  let eta: string | null = null;
+  if (!c.reached && rate > 0) {
+    const need = Math.ceil((c.goal - c.count) / rate - 1e-9);
+    if (need <= 3650) eta = addDays(tk, need);
+  }
+  return { rate, eta, added, before };
+}
+
 // ── 한 번: 마감 ───────────────────────────────────────────────────────────────
 export interface DueInfo {
   date: string;
@@ -162,17 +204,24 @@ export function addDays(key: string, n: number): string {
   return ymd(new Date(y, m - 1, d + n));
 }
 
-/** 마감 빠른 선택 — 이번 주 일요일 · 이번 달 말 · 3개월 뒤 · 올해 말 */
+/**
+ * 마감 빠른 선택 — 이번 주 일요일 · 이번 달 말 · 3개월 뒤 · 올해 말.
+ * '3개월 뒤'는 그달에 없는 날이면 그달 마지막 날로(11월 30일 → 2월 28일).
+ * 날짜가 겹치면(달 끝이 일요일, 12월 31일) 앞의 것만 남긴다.
+ */
 export function duePresets(today: Date): { label: string; date: string }[] {
   const y = today.getFullYear();
   const m = today.getMonth();
+  const d = today.getDate();
   const sun = ymd(weekDates(today)[6]);
-  return [
+  const all = [
     { label: '이번 주', date: sun },
     { label: '이번 달', date: ymd(new Date(y, m + 1, 0)) },
-    { label: '3개월 뒤', date: ymd(new Date(y, m + 3, today.getDate())) },
+    { label: '3개월 뒤', date: ymd(new Date(y, m + 3, Math.min(d, new Date(y, m + 4, 0).getDate()))) },
     { label: '올해 안', date: `${y}-12-31` },
   ];
+  const seen = new Set<string>();
+  return all.filter((p) => (seen.has(p.date) ? false : (seen.add(p.date), true)));
 }
 
 // ── 마음가짐: 한 주 점수 ──────────────────────────────────────────────────────

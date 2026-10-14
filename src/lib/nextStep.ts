@@ -1,10 +1,10 @@
 // "다음 한 걸음" 제안 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 지금 가장 의미 있는 한 칸을 하나만 골라 준다.
-//  1) 오늘 목록에서 아직 안 한 일
-//  2) 가장 덜 핀 영역(달성률 최저)의 다음 실천 — 습관·마음가짐은 오늘 할 일이 아니면 건너뛴다
+//  1) 오늘 목록에서 아직 안 한 일 — 급한 것부터(마감 지남 → 오늘 마감 → 다가온 마감 → 직접 담은 한 번 → 쌓기 → 습관)
+//  2) 달성률이 가장 낮은 영역의 다음 실천 — 습관·마음가짐은 오늘 할 일이 아니면 건너뛴다
 //  3) 글자가 비어 있는 칸 — 먼저 채우기
 import type { MandaratDoc } from '../types';
-import { kindOf, todayItems } from './routine';
+import { kindOf, orderedTodayItems } from './routine';
 
 export type NextStepKind = 'today' | 'weakest' | 'empty';
 
@@ -15,7 +15,7 @@ export interface NextStep {
 }
 
 export function nextStep(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>, today: Date): NextStep | null {
-  const pending = todayItems(doc, today).find((it) => !it.done);
+  const pending = orderedTodayItems(doc, today).find((it) => !it.done);
   if (pending) return { kind: 'today', ti: pending.ti, ai: pending.ai };
 
   // 달성률이 낮은 영역부터, 같으면 앞 영역부터

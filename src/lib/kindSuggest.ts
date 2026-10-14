@@ -1,16 +1,18 @@
 // 칸 글에서 실천 유형을 알아본다 — 규칙 기반(AI 호출 없음), 단위 테스트로 고정.
-// "주 3회 운동" → 주 3회 습관, "책 12권 읽기" → 쌓기 12권, "감사 표현하기" → 마음가짐 …
+// "주 3회 운동" → 주 3회 습관, "책 12권 읽기" → 12권 쌓기, "감사 표현하기" → 마음가짐 …
 // 확실하지 않으면 아무것도 고르지 않는다(null) — 사람이 고르면 된다.
 import type { KindConfig } from './kinds';
 import { fmtNum, parseNum } from './kinds';
 import { daysLabel, normalizeDays } from './routine';
 
 export interface KindSuggestion extends KindConfig {
-  /** '주 3회 습관' · '매일 습관' · '쌓기 12권' · '한 번' · '마음가짐' */
+  /** '주 3회 습관' · '매일 습관' · '12권 쌓기' · '한 번 하는 일' · '마음가짐' — 'X 같아요'·josa(X, '으로/로') 문장에 그대로 들어간다 */
   label: string;
 }
 
 const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6];
+/** '한 번'만으로는 문장에서 뜻이 흐려서('한 번 같아요') 무엇인지까지 말한다 */
+const ONCE_LABEL = '한 번 하는 일';
 const DOW: Record<string, number> = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
 
 const habitDays = (days: number[]): KindSuggestion => {
@@ -93,10 +95,10 @@ export function suggestKind(text: string): KindSuggestion | null {
     let unit = cm[2].replace(/\s+/g, '').toLowerCase();
     unit = unit === '만원' ? '만 원' : unit === '천원' ? '천 원' : unit === '킬로미터' ? 'km' : unit === '킬로그램' ? 'kg' : unit;
     if (n !== undefined && n > 0) {
-      if (n === 1 && SINGLE_UNITS.has(unit)) return { kind: 'once', label: '한 번' };
+      if (n === 1 && SINGLE_UNITS.has(unit)) return { kind: 'once', label: ONCE_LABEL };
       // 짧은 거리는 한 번 뛰는 양인지 쌓을 양인지 알 수 없어 고르지 않는다
       if (unit === 'km' && n < 30) return null;
-      return { kind: 'count', goal: n, unit, step: 1, count: 0, label: `쌓기 ${fmtNum(n)}${unit}` };
+      return { kind: 'count', goal: n, unit, step: 1, count: 0, label: `${fmtNum(n)}${unit} 쌓기` };
     }
   }
 
@@ -104,6 +106,6 @@ export function suggestKind(text: string): KindSuggestion | null {
   if (MIND.test(t)) return { kind: 'mind', label: '마음가짐' };
 
   // 6) 끝이 있는 일
-  if (ONCE.test(t)) return { kind: 'once', label: '한 번' };
+  if (ONCE.test(t)) return { kind: 'once', label: ONCE_LABEL };
   return null;
 }

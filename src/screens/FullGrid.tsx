@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, BackHandler, Pressable, View, type LayoutRectangle } from 'react-native';
+import { Animated, BackHandler, Pressable, View, type LayoutRectangle } from 'react-native';
 import { Text } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import { IconBtn } from '../components/common';
 import { Pop, Reveal } from '../components/Reveal';
 import { Pressy } from '../components/Pressy';
 import { tap } from '../lib/haptics';
-import { reducedMotion } from '../lib/useReducedMotion';
+import { announce, reducedMotion } from '../lib/useReducedMotion';
 import { kindOf, todayItems } from '../lib/routine';
 import { KIND_LABEL, countInfo, kindLine } from '../lib/kinds';
 import { CountBar, KindMeta } from '../components/KindBits';
@@ -356,7 +356,7 @@ export function FullGrid({ M }: { M: M }) {
   const done = totalDone(doc);
   const empty = doc.themes.reduce((s, th) => s + th.actions.filter((a) => !a.text.trim()).length, 0);
 
-  const say = (f: Focus) => AccessibilityInfo.announceForAccessibility(f === 'c' ? '가운데 블록을 크게 봐요' : `${areaName(doc, f)} 블록을 크게 봐요`);
+  const say = (f: Focus) => announce(f === 'c' ? '가운데 블록을 크게 봐요' : `${areaName(doc, f)} 블록을 크게 봐요`);
 
   const open = (f: Focus) => {
     tap();

@@ -18,7 +18,7 @@ export function useSnapshotUndo() {
         label: '되돌리기',
         onPress: () => {
           if (revision() === rev) replaceDoc(snapshot);
-          else showToast('그 사이 새 기록이 있어 되돌리지 않았어요');
+          else showToast('그사이 바뀐 게 있어 되돌릴 수 없어요');
         },
       });
     },

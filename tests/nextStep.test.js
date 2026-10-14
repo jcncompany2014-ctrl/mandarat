@@ -46,3 +46,15 @@ test('모두 달성했으면 빈 칸 채우기, 그것도 없으면 null', () =>
   d.themes[6].actions[4] = { text: '채움', note: '', done: true };
   assert.equal(nextStep(d, WED), null);
 });
+
+test('오늘 남은 일 중에서도 마감이 지난 일이 먼저 — 직접 담은 순서보다 급한 것', () => {
+  const d = doc((themes) => {
+    themes[5].actions[5] = { text: '보고서', note: '', done: false, kind: 'once', due: '2026-10-10' };
+    themes[1].actions[3] = { text: '물 2L', note: '', done: false, days: [3] };
+    return { todayKeys: ['3-2', '1-1'] };
+  });
+  assert.deepEqual(nextStep(d, WED), { kind: 'today', ti: 5, ai: 5 });
+  // 지난 일을 끝내면 직접 담은 한 번(3-2)이 습관(1-3)보다 먼저
+  d.themes[5].actions[5].done = true;
+  assert.deepEqual(nextStep(d, WED), { kind: 'today', ti: 3, ai: 2 });
+});

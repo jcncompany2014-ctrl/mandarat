@@ -372,3 +372,70 @@ test('clearedAction: 글·유형 값·달성을 지우고 메모만 남긴다', 
   const a = { text: '책', note: '메모', done: true, kind: 'count', goal: 12, count: 12, log: { '2026-10-14': 1 }, ratings: { '2026-10-12': 3 }, days: [1], since: '2026-10-01' };
   assert.deepEqual(K.clearedAction(a), { text: '', note: '메모', done: false });
 });
+
+// ── W1-C: 마감 빠른 선택 · 숫자 입력 · 쌓기 속도 · 유형 설명 ─────────────────────
+test('duePresets: 3개월 뒤는 그달 마지막 날로 맞춘다(11월 30일 → 2월 28일)', () => {
+  const p = K.duePresets(new Date(2026, 10, 30));
+  assert.deepEqual(p.map((x) => [x.label, x.date]), [
+    ['이번 주', '2026-12-06'], ['이번 달', '2026-11-30'], ['3개월 뒤', '2027-02-28'], ['올해 안', '2026-12-31'],
+  ]);
+  assert.equal(K.duePresets(new Date(2026, 7, 31)).find((x) => x.label === '3개월 뒤').date, '2026-11-30', '8월 31일 → 11월 30일');
+  assert.equal(K.duePresets(new Date(2027, 10, 29)).find((x) => x.label === '3개월 뒤').date, '2028-02-29', '윤년 2월');
+});
+
+test('duePresets: 날짜가 겹치면 앞의 것만 남긴다', () => {
+  // 12월 31일(목): 이번 달 = 올해 안
+  assert.deepEqual(K.duePresets(new Date(2026, 11, 31)).map((x) => [x.label, x.date]), [
+    ['이번 주', '2027-01-03'], ['이번 달', '2026-12-31'], ['3개월 뒤', '2027-03-31'],
+  ]);
+  // 5월 31일(일): 이번 주 = 이번 달
+  assert.deepEqual(K.duePresets(new Date(2026, 4, 31)).map((x) => [x.label, x.date]), [
+    ['이번 주', '2026-05-31'], ['3개월 뒤', '2026-08-31'], ['올해 안', '2026-12-31'],
+  ]);
+  for (const day of [new Date(2026, 9, 14), new Date(2026, 11, 27), new Date(2026, 1, 28)]) {
+    const dates = K.duePresets(day).map((x) => x.date);
+    assert.equal(new Set(dates).size, dates.length);
+  }
+});
+
+test('parseNum: 치다 만 소수도 받고, 숫자가 아닌 꼴은 거른다', () => {
+  assert.equal(K.parseNum('.5'), 0.5);
+  assert.equal(K.parseNum('7.'), 7);
+  assert.equal(K.parseNum('1,000.5'), 1000.5);
+  assert.equal(K.parseNum(' 12 '), 12);
+  assert.equal(K.parseNum('0.125'), 0.13);
+  for (const bad of ['1..5', '7권', '.', '', '-3', '1.2.3', 'e5', '1e3', '0x10']) assert.equal(K.parseNum(bad), undefined, bad);
+});
+
+test('countPace: 최근 28일에 더한 수로 목표에 닿는 날을 어림한다', () => {
+  const base = { text: '책', note: '', done: false, kind: 'count', goal: 12, unit: '권', count: 6 };
+  // 28일 창(9/17~10/14)에 4권 — 하루 1/7권, 남은 6권은 42일 → 11/25
+  const a = { ...base, log: { '2026-08-01': 2, '2026-09-16': 5, '2026-09-20': 2, '2026-10-01': 1, '2026-10-10': 1, '2026-10-20': 9 } };
+  const p = K.countPace(a, WED);
+  assert.equal(p.added, 4, '창 밖(9/16 이전)과 미래 기록은 빼고');
+  assert.equal(p.before, 2);
+  assert.ok(Math.abs(p.rate - 4 / 28) < 1e-12);
+  assert.equal(p.eta, '2026-11-25');
+  // 사흘 전에 시작했다면 일주일로 나눈다(사흘로 나눠 부풀리지 않게) — 2권/7일, 남은 8권은 28일
+  const fresh = K.countPace({ ...base, goal: 10, count: 2, log: { '2026-10-12': 1, '2026-10-14': 1 } }, WED);
+  assert.equal(fresh.eta, '2026-11-11');
+  // 열흘 전에 시작 — 열흘로 나눈다: 5권/10일, 남은 5권은 10일
+  const tenDays = K.countPace({ ...base, goal: 10, count: 5, log: { '2026-10-05': 3, '2026-10-12': 2 } }, WED);
+  assert.ok(Math.abs(tenDays.rate - 0.5) < 1e-12);
+  assert.equal(tenDays.eta, '2026-10-24');
+});
+
+test('countPace: 이미 닿았거나 속도를 모르면(또는 10년 넘게 걸리면) eta는 null', () => {
+  const base = { text: '저축', note: '', done: false, kind: 'count', goal: 100, unit: '만 원', count: 100 };
+  assert.equal(K.countPace({ ...base, log: { '2026-10-10': 10 } }, WED).eta, null, '닿았다');
+  const idle = K.countPace({ ...base, count: 10, log: { '2026-01-10': 10 } }, WED);
+  assert.deepEqual([idle.rate, idle.eta, idle.added, idle.before], [0, null, 0, 10]);
+  assert.equal(K.countPace({ ...base, goal: 1_000_000, count: 1, log: { '2026-10-14': 1 } }, WED).eta, null, '10년 넘게');
+  assert.equal(K.countPace({ text: 'x', note: '', done: false, kind: 'count', goal: 3 }, WED).eta, null, '기록 없음');
+});
+
+test('KIND_HINT: 유형마다 한두 문장, 달성과 헷갈리는 "채워져요"는 쓰지 않는다', () => {
+  assert.equal(K.KIND_HINT.once, '마감 사흘 전부터 ‘오늘’에 담겨요');
+  assert.equal(K.KIND_HINT.mind, '한 주에 한 번 1~5점으로 돌아봐요');
+  for (const h of Object.values(K.KIND_HINT)) assert.equal(h.includes('채워져요'), false, h);
+});

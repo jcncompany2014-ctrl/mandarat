@@ -9,7 +9,10 @@ export const PILLAR_COLORS = [
 
 export const GOLD = '#B0883C';
 
-/** 포인트 컬러 선택지 — 기본 골드가 항상 첫 번째. */
+/**
+ * 포인트 컬러 선택지 — 기본 골드가 항상 첫 번째.
+ * 버튼 바탕으로 쓰면 readableOn() 글씨가 AA, 글씨로 쓸 때는 accentInk(M)(moods.ts)를 쓴다.
+ */
 export const ACCENTS: { color: string; name: string }[] = [
   { color: GOLD, name: '골드' },
   { color: '#B35A72', name: '연지' },
@@ -21,6 +24,8 @@ export const ACCENTS: { color: string; name: string }[] = [
 /** 상태 의미 색 */
 export const SEMANTIC = {
   done: '#478058',
+  /** 달성 초록을 글씨로 쓸 때(밝은 무드 바탕·면 위 5.1~5.6:1). 다크에서는 areaInk(SEMANTIC.done, M) */
+  doneInk: '#3D6E4B',
   danger: '#B35A72',
 } as const;
 

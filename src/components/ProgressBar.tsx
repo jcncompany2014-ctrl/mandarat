@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, View, type StyleProp, type ViewStyle } from 'react-native';
 import { DUR, EASE } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
@@ -37,6 +37,9 @@ export function ProgressBar({
     return () => a.stop();
   }, [target, anim, w]);
 
+  // 폭이 바뀔 때만 새로 만든다(그릴 때마다 interpolate 노드를 새로 붙이지 않게)
+  const translateX = useMemo(() => anim.interpolate({ inputRange: [0, 100], outputRange: [-w, 0] }), [anim, w]);
+
   const r = radius ?? height / 2;
   return (
     <View
@@ -47,7 +50,7 @@ export function ProgressBar({
         <Animated.View
           style={{
             width: w, height: '100%', borderRadius: r, backgroundColor: color,
-            transform: [{ translateX: anim.interpolate({ inputRange: [0, 100], outputRange: [-w, 0] }) }],
+            transform: [{ translateX }],
           }}
         />
       )}

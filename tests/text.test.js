@@ -40,3 +40,37 @@ test('josa: 받침에 따라 조사를 고른다(ㄹ 받침의 으로/로, 숫�
   assert.equal(josa('습관', '이/가'), '습관이');
   assert.equal(josa('쌓기', '이/가'), '쌓기가');
 });
+
+// ── W1-C: 날짜·마감·횟수 표기 ────────────────────────────────────────────────────
+test('fmtDateLong · fmtDateShort: 키와 Date 모두, 연도 없이', () => {
+  const { fmtDateLong, fmtDateShort } = require('../src/lib/text');
+  assert.equal(fmtDateLong('2026-10-14'), '10월 14일 수요일');
+  assert.equal(fmtDateLong(new Date(2026, 9, 18, 23, 59)), '10월 18일 일요일');
+  assert.equal(fmtDateShort('2026-10-14'), '10.14 (수)');
+  assert.equal(fmtDateShort(new Date(2026, 8, 3)), '9.3 (목)');
+  assert.equal(fmtDateLong('2027-01-01'), '1월 1일 금요일');
+});
+
+test('fmtRange: 한 주를 월~일로, 달이 바뀌면 끝에도 달을', () => {
+  const { fmtRange } = require('../src/lib/text');
+  assert.equal(fmtRange('2026-10-05'), '10월 5일 – 11일');
+  assert.equal(fmtRange('2026-09-28'), '9월 28일 – 10월 4일');
+  assert.equal(fmtRange('2026-12-28'), '12월 28일 – 1월 3일');
+  assert.equal(fmtRange(new Date(2026, 9, 12)), '10월 12일 – 18일');
+});
+
+test('fmtDue: 짧게 D-2 · D-day · D+3, 길게 마감 D-2 · 오늘 마감 · 마감 3일 지남', () => {
+  const { fmtDue } = require('../src/lib/text');
+  assert.deepEqual([2, 0, -3].map((d) => fmtDue(d)), ['D-2', 'D-day', 'D+3']);
+  assert.deepEqual([2, 0, -3].map((d) => fmtDue(d, 'long')), ['마감 D-2', '오늘 마감', '마감 3일 지남']);
+  assert.equal(fmtDue(-0), 'D-day');
+});
+
+test('fmtCount: 단위를 숫자에 붙이고 세 자리마다 쉼표', () => {
+  const { fmtCount } = require('../src/lib/text');
+  assert.equal(fmtCount(3), '3번');
+  assert.equal(fmtCount(1200, '권'), '1,200권');
+  assert.equal(fmtCount(50, '만 원'), '50만 원');
+  assert.equal(fmtCount(2.5, 'km'), '2.5km');
+  assert.equal(fmtCount(0), '0번');
+});

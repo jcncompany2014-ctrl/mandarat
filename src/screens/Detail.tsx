@@ -11,7 +11,7 @@ import { FONTS } from '../theme/fonts';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, themeProgress, themeStreak } from '../store/MandaratContext';
-import { tap, success } from '../lib/haptics';
+import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
 import { countInfo, kindLine } from '../lib/kinds';
 import { kindOf } from '../lib/routine';
 import { CountBar, KindMeta } from '../components/KindBits';
@@ -21,7 +21,7 @@ const RING_MAP = [0, 1, 2, 3, null, 4, 5, 6, 7] as const;
 export function Detail({ ti }: { ti: number }) {
   const M = usePalette();
   const { doc, toggleDone } = useMandarat();
-  const { go, openAction, openEditor } = useUI();
+  const { go, back, openAction, openEditor } = useUI();
   const th = doc.themes[ti];
   const p = themeProgress(th);
   const streak = themeStreak(doc, ti);
@@ -31,8 +31,8 @@ export function Detail({ ti }: { ti: number }) {
   const onCell = (ai: number) => {
     const a = th.actions[ai];
     if (a.text.trim()) {
-      tap();
-      if (!a.done) success();
+      if (a.done) uncheckHaptic();
+      else checkHaptic();
       toggleDone(ti, ai);
     } else {
       openEditor({ kind: 'action', ti, ai });
@@ -43,7 +43,8 @@ export function Detail({ ti }: { ti: number }) {
   const swipe = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+        // 왼쪽 가장자리(28pt 안)에서 시작한 쓸기는 Root의 '뒤로'가 받는다
+        onMoveShouldSetPanResponder: (_, g) => g.x0 >= 28 && Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
         onPanResponderRelease: (_, g) => {
           if (g.dx < -60 || g.vx < -0.6) { tap(); go('detail', (ti + 1) % 8); }
           else if (g.dx > 60 || g.vx > 0.6) { tap(); go('detail', (ti + 7) % 8); }
@@ -58,7 +59,7 @@ export function Detail({ ti }: { ti: number }) {
         M={M}
         sub={`영역 ${ti + 1} / 8`}
         kr={th.title || `영역 ${ti + 1}`}
-        onBack={() => go('grid')}
+        onBack={back}
         stacked
         right={
           <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -160,14 +161,14 @@ export function Detail({ ti }: { ti: number }) {
             >
               {!first && <RowDivider M={M} inset={55} />}
               <Pressable
-                onPress={() => { if (has) { tap(); if (!a.done) success(); toggleDone(ti, ai); } }}
+                onPress={() => { if (has) { if (a.done) uncheckHaptic(); else checkHaptic(); toggleDone(ti, ai); } }}
                 hitSlop={10}
                 disabled={!has}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: a.done, disabled: !has }}
                 accessibilityLabel={has ? `${a.text} 완료` : '실천 항목 완료'}
               >
-                <Check on={a.done} color={th.color} dark={M.dark} />
+                <Check on={a.done} color={th.color} dark={M.dark} seed={`${ti}-${ai}`} />
               </Pressable>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text

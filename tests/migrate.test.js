@@ -185,3 +185,78 @@ test('예시 데이터는 유형을 고루 담고, 저장·이행을 거쳐도 �
   const again = migrate({ ...blankDoc(), themes });
   assert.deepEqual(again.themes, themes);
 });
+
+test('포인트 컬러: 사용자가 고른 색은 그대로 둔다(이전 원색만 옮긴다)', () => {
+  const { ACCENTS } = require('../src/theme/palette');
+  for (const { color } of ACCENTS) assert.equal(migrate({ settings: { accent: color } }).settings.accent, color);
+  assert.equal(migrate({ settings: { accent: '#123456' } }).settings.accent, '#123456');
+  assert.equal(migrate({ settings: { accent: 'blue' } }).settings.accent, GOLD);
+});
+
+test('areasSet: 저장된 값이 없으면 적힌 실천·고친 영역 이름으로 짐작한다', () => {
+  assert.equal(blankDoc().areasSet, false);
+  assert.equal(migrate({}).areasSet, false);
+  assert.equal(migrate({ areasSet: true }).areasSet, true);
+  assert.equal(migrate({ areasSet: 'yes' }).areasSet, false);
+  // 기본 이름 그대로(앞뒤 공백 포함)이거나 비운 이름은 정한 것이 아니다
+  assert.equal(migrate({ themes: [{ title: ' 건강 ' }, { title: '' }] }).areasSet, false);
+  assert.equal(migrate({ themes: [{ title: '운동' }] }).areasSet, true);
+  assert.equal(migrate({ themes: [{}, {}, {}, {}, {}, {}, {}, { title: '여행' }] }).areasSet, true);
+  // 실천이 하나라도 적혀 있으면 영역도 정한 것으로 본다(공백만 있는 칸은 빈칸)
+  assert.equal(migrate({ themes: [{ actions: [{ text: '   ' }] }] }).areasSet, false);
+  assert.equal(migrate({ themes: [{ actions: [{ text: '걷기' }] }] }).areasSet, true);
+  assert.equal(migrate({ themes: sampleThemes() }).areasSet, true);
+});
+
+test('reviews: 월요일 키·날짜·칸 키를 검사하고 중점은 3칸, 메모는 다듬는다', () => {
+  const d = migrate({
+    reviews: {
+      '2026-10-05': { at: '2026-10-11', next: ['0-1', '0-1', '9-9', 3, '2-7', '1-1', '4-4'], note: '  아침 운동부터  ' },
+      '2026-10-06': { at: '2026-10-12', next: ['0-0'] }, // 화요일 키
+      '2026-02-30': { at: '2026-03-01', next: [] }, // 없는 날
+      '2026-09-28': { at: 'yesterday', next: ['0-0'] }, // 돌아본 날이 깨짐
+      '2026-09-21': { at: '2026-09-27', next: 'nope', note: '   ' },
+      '2026-09-14': 'x',
+      monday: { at: '2026-09-20', next: [] },
+    },
+  });
+  assert.deepEqual(d.reviews, {
+    '2026-10-05': { at: '2026-10-11', next: ['0-1', '2-7', '1-1'], note: '아침 운동부터' },
+    '2026-09-21': { at: '2026-09-27', next: [] },
+  });
+  assert.deepEqual(migrate({ reviews: [1, 2] }).reviews, {});
+  assert.deepEqual(migrate({ reviews: 'x' }).reviews, {});
+  assert.deepEqual(blankDoc().reviews, {});
+});
+
+test('reviews: 메모는 120자까지, 기록은 최근 104주까지', () => {
+  const long = '가'.repeat(130);
+  assert.equal(migrate({ reviews: { '2026-10-05': { at: '2026-10-11', next: [], note: long } } }).reviews['2026-10-05'].note.length, 120);
+  const reviews = {};
+  const mon = new Date(2026, 9, 5);
+  for (let i = 0; i < 110; i++) {
+    const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() - i * 7);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    reviews[k] = { at: k, next: [] };
+  }
+  const kept = Object.keys(migrate({ reviews }).reviews).sort();
+  assert.equal(kept.length, 104);
+  assert.equal(kept[kept.length - 1], '2026-10-05', '가장 최근 주는 남는다');
+  assert.ok(!kept.includes(Object.keys(reviews).sort()[0]), '가장 오래된 주는 빠진다');
+});
+
+test('settings.lastBackupAt은 날짜 형식일 때만 남는다', () => {
+  assert.equal(migrate({ settings: { lastBackupAt: '2026-10-12' } }).settings.lastBackupAt, '2026-10-12');
+  for (const bad of ['어제', '2026-13-01', 20261012, null]) {
+    assert.equal('lastBackupAt' in migrate({ settings: { lastBackupAt: bad } }).settings, false, String(bad));
+  }
+});
+
+test('-0 같은 값도 저장·불러오기 뒤 같은 문서가 되도록 0으로 맞춘다', () => {
+  const d = migrate({
+    themes: [{ actions: [{ text: '책', kind: 'count', goal: 3, count: -0 }] }],
+    dayMeta: { '2026-10-14': { mood: -0 } },
+    todayExtra: [{ id: 'a', ti: -0, text: '전화' }],
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(d)), d);
+});

@@ -1,6 +1,6 @@
 // 백업 내보내기/불러오기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 //
-// 형식: { app: 'mandarat', schema: 1, exportedAt, doc } 를 JSON 한 덩어리로.
+// 형식: { app: 'mandarat', schema: BACKUP_SCHEMA, exportedAt, doc } 를 JSON 한 덩어리로.
 // 불러올 때는 앞뒤에 다른 글이 붙어 있어도(메신저로 보낸 경우 등) 첫 '{' ~ 마지막 '}'만 읽고,
 // migrate()로 모든 필드를 검증해 손상된 값은 안전한 기본값으로 바꾼다.
 import type { MandaratDoc } from '../types';
@@ -9,7 +9,9 @@ import { isRoutine, ymd } from './routine';
 
 export const BACKUP_APP = 'mandarat';
 // 2: 실천 유형 값(kind·count·log·ratings·due …)이 생긴 문서 — 이전 앱은 '새 버전 백업'으로 알아보고 값을 조용히 잃지 않는다
-export const BACKUP_SCHEMA = 2;
+// 3: 한 주 돌아보기(reviews)·영역을 정했는지(areasSet)·마지막 백업 날(settings.lastBackupAt)이 생긴 문서.
+//    이전 앱은 더 새로운 백업을 거절한다(불러오면 이 값들을 조용히 잃으므로).
+export const BACKUP_SCHEMA = 3;
 
 export interface BackupSummary {
   goal: string;
@@ -23,6 +25,8 @@ export interface BackupSummary {
   routines: number;
   /** 백업을 만든 시각 (ISO) — 백업 형식으로 감싼 경우에만 */
   exportedAt?: string;
+  /** 마지막 실천 기록이 있는 날 'YYYY-MM-DD' — 기록이 없으면 없다 */
+  lastLog?: string;
 }
 
 export type ParseResult =
@@ -49,8 +53,14 @@ export function summarize(doc: MandaratDoc): BackupSummary {
       if (a.text.trim() && isRoutine(a)) routines++;
     }
   }
-  const days = Object.values(doc.dayLog).filter((l) => l.length > 0).length;
-  return { goal: doc.centerGoal.trim(), filled, done, days, routines };
+  let days = 0;
+  let lastLog: string | undefined;
+  for (const [day, list] of Object.entries(doc.dayLog)) {
+    if (list.length === 0) continue;
+    days++;
+    if (!lastLog || day > lastLog) lastLog = day;
+  }
+  return { goal: doc.centerGoal.trim(), filled, done, days, routines, ...(lastLog ? { lastLog } : {}) };
 }
 
 const MAX_STEPS = 2_000_000; // 글자 훑기 상한 — 아주 긴·이상한 입력에도 멈추지 않게

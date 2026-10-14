@@ -7,11 +7,9 @@
     "icon": "./assets/icon.png",
     "scheme": "mandarat",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FBF9F4"
+    "backgroundColor": "#FBF9F4",
+    "locales": {
+      "ko": "./locales/ko.json"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,6 +21,11 @@
       },
       "infoPlist": {
         "CFBundleDisplayName": "만다라트",
+        "CFBundleDevelopmentRegion": "ko",
+        "CFBundleLocalizations": ["ko"],
+        "RCTAsyncStorageExcludeFromBackup": false,
+        "NSPhotoLibraryAddUsageDescription": "만다라트 표 이미지를 사진 앱에 저장하려면 권한이 필요해요.",
+        "UIStatusBarStyle": "UIStatusBarStyleDarkContent",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -41,7 +44,16 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FBF9F4",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 374,
+          "resizeMode": "contain"
+        }
+      ]
     ]
   }
 }

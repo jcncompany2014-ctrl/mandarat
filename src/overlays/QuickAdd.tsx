@@ -14,27 +14,33 @@ import { suggestActions } from '../lib/suggest';
 
 export function QuickAdd() {
   const M = usePalette();
-  const { quick, closeQuick } = useUI();
-  // 마지막으로 고른 영역은 다음에 열 때도 그대로
-  const [ti, setTi] = useState(0);
+  const { quick, quickTi, closeQuick } = useUI();
+  // 영역을 정해 열면(openQuick(ti)) 그 영역, 아니면 마지막으로 고른 영역
+  const [lastTi, setLastTi] = useState(0);
   if (!quick) return null;
   return (
     <Sheet M={M} onClose={closeQuick} maxHeightPct={0.85}>
-      <QuickAddBody ti={ti} setTi={setTi} />
+      <QuickAddBody initialTi={quickTi ?? lastTi} onPickTi={setLastTi} />
     </Sheet>
   );
 }
 
-function QuickAddBody({ ti, setTi }: { ti: number; setTi: (i: number) => void }) {
+function QuickAddBody({ initialTi, onPickTi }: { initialTi: number; onPickTi: (i: number) => void }) {
   const M = usePalette();
   const { doc, addExtra } = useMandarat();
   const dismiss = useSheetDismiss();
   const [text, setText] = useState('');
+  const [ti, setTiState] = useState(initialTi);
+  const setTi = (i: number) => {
+    setTiState(i);
+    onPickTi(i);
+  };
 
   const submit = () => {
     if (!text.trim()) return;
     tap();
     addExtra(ti, text);
+    onPickTi(ti);
     dismiss(); // 내용은 그대로 둔 채 내려간다(내려가는 중에 칩이 다시 나타나 높이가 바뀌지 않게)
   };
 

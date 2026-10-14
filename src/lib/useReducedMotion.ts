@@ -47,3 +47,64 @@ export function useReducedMotion(): boolean {
   }, []);
   return reduced;
 }
+
+// ── 스크린리더(VoiceOver · TalkBack) ─────────────────────────────────────────
+/**
+ * 스크린리더가 켜져 있는지 — 동작 줄이기와 같은 방식으로 한 번 읽어 기억하고, 바뀌면 따라간다.
+ * 웹은 알 수 없어서 늘 false다(react-native-web은 isScreenReaderEnabled가 언제나 true를 돌려준다 —
+ * 그대로 믿으면 웹 미리보기에서 토스트가 사라지지 않고 체크한 줄이 그 자리에 계속 남는다).
+ */
+let reader = false;
+let readerStarted = false;
+const readerListeners = new Set<(v: boolean) => void>();
+
+function startReader() {
+  if (readerStarted) return;
+  readerStarted = true;
+  if (Platform.OS === 'web') return;
+  const set = (v: boolean) => {
+    if (v === reader) return;
+    reader = v;
+    readerListeners.forEach((f) => f(v));
+  };
+  AccessibilityInfo.isScreenReaderEnabled?.()
+    .then((v) => set(!!v))
+    .catch(() => {});
+  AccessibilityInfo.addEventListener?.('screenReaderChanged', (v) => set(!!v));
+}
+
+/** 훅 밖(토스트·체크 처리)에서 쓰는 현재 값 */
+export function screenReader(): boolean {
+  startReader();
+  return reader;
+}
+
+export function useScreenReader(): boolean {
+  startReader();
+  const [on, setOn] = useState(reader);
+  useEffect(() => {
+    readerListeners.add(setOn);
+    setOn(reader);
+    return () => {
+      readerListeners.delete(setOn);
+    };
+  }, []);
+  return on;
+}
+
+/**
+ * 스크린리더로 한 문장 읽어 준다(결과 알림 — 저장했어요, 오늘 할 일을 다 했어요 …).
+ * iOS는 읽던 말을 끊지 않고 뒤에 이어 읽는다(queue). 스크린리더가 꺼져 있으면 OS가 무시한다. 웹은 하지 않는다.
+ */
+export function announce(message: string): void {
+  if (!message || Platform.OS === 'web') return;
+  try {
+    if (Platform.OS === 'ios' && typeof AccessibilityInfo.announceForAccessibilityWithOptions === 'function') {
+      AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
+    } else {
+      AccessibilityInfo.announceForAccessibility(message);
+    }
+  } catch {
+    // 읽어 주기는 덤 — 실패해도 앱은 그대로 간다
+  }
+}

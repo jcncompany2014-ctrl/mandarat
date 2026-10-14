@@ -16,7 +16,7 @@ import { useUI } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
 import { autoToday, doneOn, habitDays, daysLabel, kindOf, perWeekOf, routineWeek, routineWeekCount } from '../lib/routine';
 import { KIND_LABEL, RATING_TEXT, countInfo, countText, dateText, dueInfo, fmtNum, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
-import { tap, success } from '../lib/haptics';
+import { tap, success, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
 import type { Action, Theme } from '../types';
 
 export function ActionSheet() {
@@ -24,8 +24,8 @@ export function ActionSheet() {
   const M = usePalette();
   if (!sheet) return null;
   return (
-    // 시트에서 띄운 안내(오늘에 담았어요 · 되돌리기 등)가 시트에 가려지지 않게 시트 안에도 토스트 자리를 둔다
-    <Sheet M={M} onClose={closeSheet} ownClose overlay={<Snackbar />}>
+    // 시트에서 띄운 안내(오늘에 담았어요 · 되돌리기 등)가 시트에 가려지지 않게 시트 안 위쪽에도 토스트 자리를 둔다
+    <Sheet M={M} onClose={closeSheet} ownClose overlay={<Snackbar placement="top" />}>
       <ActionSheetBody ti={sheet.ti} ai={sheet.ai} />
     </Sheet>
   );
@@ -55,7 +55,7 @@ function MainButton({ M, color, on, label, onLabel, a11y, onPress, role = 'check
 
 function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const M = usePalette();
-  const { startFocus, openEditor, showToast } = useUI();
+  const { startFocus, openEditor, showToast, afterOverlays } = useUI();
   const dismiss = useSheetDismiss();
   const { doc, toggleDone, toggleToday, inToday, setActionNote } = useMandarat();
   const th = doc.themes[ti];
@@ -86,7 +86,8 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       </View>
 
       {/* 글과 유형 — 눌러서 함께 고친다 */}
-      <Pressable onPress={() => openEditor({ kind: 'action', ti, ai })} accessibilityRole="button" accessibilityLabel={`${a.text || '실천 항목'}, ${KIND_LABEL[kind]}, 글과 유형 고치기`}>
+      {/* iOS는 시트 위에 시트를 띄우지 못한다 — 이 시트를 내린 뒤 편집기를 연다 */}
+      <Pressable onPress={() => { dismiss(); afterOverlays(() => openEditor({ kind: 'action', ti, ai })); }} accessibilityRole="button" accessibilityLabel={`${a.text || '실천 항목'}, ${KIND_LABEL[kind]}, 글과 유형 고치기`}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={{ fontSize: 23, fontWeight: '800', color: M.ink, letterSpacing: -0.4, flex: 1 }}>{a.text || '실천 항목'}</Text>
           <Icon name="pencil" size={18} color={M.faint} />
@@ -135,7 +136,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       {/* 습관·마음가짐의 칸 달성 — 몸에 배면 만다라트 칸을 채운다 */}
       {(kind === 'habit' || kind === 'mind') && (
         <Pressy
-          onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+          onPress={() => { if (a.done) uncheckHaptic(); else checkHaptic(); toggleDone(ti, ai); }}
           scaleTo={0.98}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: a.done }}
@@ -199,7 +200,7 @@ function HabitBlock({ M, doc, th, ti, ai }: BlockProps & { doc: ReturnType<typeo
         label="오늘 했어요"
         onLabel="오늘 했어요 · 탭하여 해제"
         a11y="오늘 실천 완료"
-        onPress={() => { tap(); if (!doneToday) success(); toggleRoutineToday(ti, ai); }}
+        onPress={() => { if (doneToday) uncheckHaptic(); else checkHaptic(); toggleRoutineToday(ti, ai); }}
       />
     </View>
   );
@@ -281,7 +282,7 @@ function OnceBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
         label="완료로 표시"
         onLabel="완료됨 · 탭하여 해제"
         a11y="실천 달성"
-        onPress={() => { tap(); if (!a.done) success(); toggleDone(ti, ai); }}
+        onPress={() => { if (a.done) uncheckHaptic(); else checkHaptic(); toggleDone(ti, ai); }}
       />
     </View>
   );

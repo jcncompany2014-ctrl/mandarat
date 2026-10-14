@@ -120,7 +120,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
 
         {/* Pill은 기본이 왼쪽 정렬이라, 가운데 정렬 레이아웃에 맞춰 감싼다 */}
         <View style={{ alignSelf: 'center' }}>
-          <Pill M={M} color={th.color}>{th.title || `영역 ${ti + 1}`}</Pill>
+          <Pill M={M} color={th.color} light>{th.title || `영역 ${ti + 1}`}</Pill>
         </View>
         <View style={{ marginTop: 22, marginBottom: 8 }}>
           {/* 1초에 둘레의 1/1500씩 — 따로 애니메이션할 필요 없이 그대로 그린다 */}

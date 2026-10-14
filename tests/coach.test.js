@@ -28,6 +28,6 @@ test('수량 단위와 장소 단서를 알아본다', () => {
 test('영역 제목에 맞는 실천 예시, 모르면 범용 예시', () => {
   assert.ok(suggestActions('건강').includes('자기 전 스트레칭 10분'));
   assert.ok(suggestActions('나의 재정 관리').some((s) => s.includes('지출')));
-  assert.deepEqual(suggestActions('알 수 없는 영역'), ['매일 10분 투자하기', '주 3회 실천하기', '작은 한 걸음 정하기']);
+  assert.deepEqual(suggestActions('알 수 없는 영역'), ['매일 10분 투자하기', '주 3회 실천하기', '10분만 해 보기']);
   assert.ok(suggestActions('').length > 0);
 });

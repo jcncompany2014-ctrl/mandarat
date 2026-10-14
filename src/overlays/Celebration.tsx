@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Modal, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Pressy } from '../components/Pressy';
@@ -8,7 +8,6 @@ import { shadow } from '../theme/shadow';
 import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat, overallStreak } from '../store/MandaratContext';
-import { success } from '../lib/haptics';
 import { MiniChart } from '../components/GridMark';
 
 export function Celebration({ count }: { count: number }) {
@@ -16,9 +15,7 @@ export function Celebration({ count }: { count: number }) {
   const { celebrate, closeCelebrate } = useUI();
   const { doc } = useMandarat();
 
-  useEffect(() => {
-    if (celebrate) success();
-  }, [celebrate]);
+  // 성공 진동은 Root가 64/64 축하가 열릴 때 한 번 울린다 — 여기서 또 울리지 않는다
 
   if (!celebrate) return null;
   const bloom = celebrate === 'bloom';
@@ -35,8 +32,8 @@ export function Celebration({ count }: { count: number }) {
         <Pressable onPress={() => {}} accessible={false}>
           <Reveal animate from={16} duration={420}>
             <View style={[{ width: 300, borderRadius: 28, paddingTop: 30, paddingBottom: 20, paddingHorizontal: 22, backgroundColor: M.surface, alignItems: 'center' }, shadow(14, '#000', 0.18)]}>
-              {/* 내 만다라트 81칸 — 지금까지 채운 만큼 색이 들어 있다 */}
-              <MiniChart doc={doc} size={132} dark={M.dark} ink={M.dark ? M.ink : '#23211C'} />
+              {/* 내 만다라트 81칸 — 64/64면 가운데부터 달성한 칸이 차례로 잉크로 찍힌다 */}
+              <MiniChart doc={doc} size={bloom ? 240 : 132} animate={bloom ? 'bloom' : undefined} />
               <Text style={{ fontSize: 21, fontWeight: '800', color: M.ink, marginTop: 18, textAlign: 'center', lineHeight: 28 }}>
                 {bloom ? '64칸을 모두 채웠어요' : '오늘 할 일을\n모두 끝냈어요'}
               </Text>

@@ -1,5 +1,8 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
-import { ICON_NAMES, type Action, type ActionKind, type CellShape, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra } from '../types';
+import {
+  ICON_NAMES, type Action, type ActionKind, type CellShape, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra,
+  type WeekReviewEntry,
+} from '../types';
 import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 import { KINDS, normalizeDays, normalizePerWeek, ymd } from '../lib/routine';
@@ -147,14 +150,19 @@ export function blankDoc(): MandaratDoc {
     dayMeta: {},
     focusMinutes: 0,
     settings: { mood: '연꽃', accent: GOLD, mgmt: '일일 체크', cellShape: '둥근' },
+    areasSet: false,
+    reviews: {},
   };
 }
 
 // ── 저장본 검증 ──────────────────────────────────────────────────────────────
-const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+export const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 /** 오늘 목록의 실천 키 "ti-ai" */
-const ACTION_KEY_RE = /^[0-7]-[0-7]$/;
-/** dayLog 키: 실천 "ti-ai" 또는 직접 추가한 할 일 "ti-x<id>" */
+export const ACTION_KEY_RE = /^[0-7]-[0-7]$/;
+/**
+ * dayLog 키: 실천 "ti-ai", 직접 추가한 할 일 "ti-x<id>",
+ * 또는 칸을 비우거나 통째로 바꿀 때 떼어 둔 지난 기록 "ti-xh<시각>_<ai>" (src/lib/history.ts)
+ */
 const LOG_KEY_RE = /^[0-7]-(?:[0-7]|x[A-Za-z0-9_-]{1,40})$/;
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
@@ -187,7 +195,8 @@ function cleanDayMeta(v: unknown): MandaratDoc['dayMeta'] {
   for (const [day, m] of Object.entries(v)) {
     if (!DATE_RE.test(day) || !isRecord(m)) continue;
     const e: { mood?: number; reflection?: string } = {};
-    if (typeof m.mood === 'number' && Number.isInteger(m.mood) && m.mood >= 0 && m.mood <= 4) e.mood = m.mood;
+    // + 0: -0은 JSON으로 저장하면 0이 되므로 이행 결과도 0으로 맞춘다(저장·불러오기 뒤에도 같은 문서)
+    if (typeof m.mood === 'number' && Number.isInteger(m.mood) && m.mood >= 0 && m.mood <= 4) e.mood = m.mood + 0;
     if (typeof m.reflection === 'string') e.reflection = m.reflection;
     if (e.mood !== undefined || e.reflection !== undefined) out[day] = e;
   }
@@ -230,7 +239,7 @@ function cleanAction(a: Record<string, unknown>): Action {
     ...(goal !== undefined ? { goal } : {}),
     ...(unit ? { unit } : {}),
     ...(step !== undefined && step !== 1 ? { step } : {}),
-    ...(count !== undefined ? { count } : {}),
+    ...(count !== undefined ? { count: count + 0 } : {}), // -0 → 0 (JSON 왕복과 같게)
     ...(log ? { log } : {}),
     ...(due ? { due } : {}),
     ...(ratings ? { ratings } : {}),
@@ -243,7 +252,7 @@ function cleanExtras(v: unknown): TodayExtra[] {
   const out: TodayExtra[] = [];
   v.forEach((x, i) => {
     if (!isRecord(x) || typeof x.text !== 'string' || !x.text.trim()) return;
-    const ti = typeof x.ti === 'number' && Number.isInteger(x.ti) && x.ti >= 0 && x.ti <= 7 ? x.ti : 0;
+    const ti = typeof x.ti === 'number' && Number.isInteger(x.ti) && x.ti >= 0 && x.ti <= 7 ? x.ti + 0 : 0;
     let id = typeof x.id === 'string' && ID_RE.test(x.id) ? x.id : `m${i}`;
     if (seen.has(id)) id = `${id.slice(0, 30)}d${i}`;
     seen.add(id);
@@ -252,11 +261,72 @@ function cleanExtras(v: unknown): TodayExtra[] {
   return out;
 }
 
+// ── 한 주 돌아보기 ────────────────────────────────────────────────────────────
+/** 다음 주 중점으로 고를 수 있는 칸 수 */
+export const REVIEW_PICKS = 3;
+/** 한 줄 메모 글자 수 상한 */
+export const REVIEW_NOTE_MAX = 120;
+/** 남겨 두는 돌아보기 — 최근 104주(2년) */
+export const REVIEW_KEEP = 104;
+
+/** 달력에 있는 날짜이면서 월요일인 'YYYY-MM-DD' (돌아보기의 키) */
+export function isMondayKey(key: string): boolean {
+  if (!DATE_RE.test(key)) return false;
+  const [y, m, d] = key.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return ymd(dt) === key && dt.getDay() === 1;
+}
+
+/** 메모: 앞뒤 공백을 걷고 120자까지(글자 단위로 잘라 이모지 반쪽이 남지 않게) */
+function clipNote(s: string): string {
+  return Array.from(s.trim()).slice(0, REVIEW_NOTE_MAX).join('').trim();
+}
+
+/** 돌아보기 한 건 — 날짜가 깨졌으면 버리고(null), 중점 칸은 겹치지 않는 "ti-ai" 3개까지, 빈 메모는 두지 않는다 */
+export function cleanReviewEntry(v: unknown): WeekReviewEntry | null {
+  if (!isRecord(v) || typeof v.at !== 'string' || !DATE_RE.test(v.at)) return null;
+  const next = Array.isArray(v.next)
+    ? [...new Set(v.next.filter((k): k is string => typeof k === 'string' && ACTION_KEY_RE.test(k)))].slice(0, REVIEW_PICKS)
+    : [];
+  const note = typeof v.note === 'string' ? clipNote(v.note) : '';
+  return { at: v.at, next, ...(note ? { note } : {}) };
+}
+
+/** 돌아보기 기록 — 키가 월요일 날짜인 것만, 최근 104주까지(오래된 주 → 최근 주 순서로 담는다) */
+export function cleanReviews(v: unknown): Record<string, WeekReviewEntry> {
+  if (!isRecord(v)) return {};
+  const kept: [string, WeekReviewEntry][] = [];
+  for (const wk of Object.keys(v).filter(isMondayKey).sort().reverse()) {
+    if (kept.length >= REVIEW_KEEP) break;
+    const e = cleanReviewEntry(v[wk]);
+    if (e) kept.push([wk, e]);
+  }
+  const out: Record<string, WeekReviewEntry> = {};
+  for (const [wk, e] of kept.reverse()) out[wk] = e;
+  return out;
+}
+
+/**
+ * 8영역을 정했다고 볼 수 있는가 — 이미 표시돼 있거나, 실천이 하나라도 적혀 있거나,
+ * 기본 이름과 다른 영역 이름이 있으면(사용자가 고친 것) 참.
+ */
+function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
+  if (flag === true) return true;
+  return themes.some((t, i) => {
+    const title = t.title.trim();
+    return (title !== '' && title !== THEME_SEEDS[i]?.title) || t.actions.some((a) => a.text.trim() !== '');
+  });
+}
+
 /**
  * 저장된(또는 백업에서 불러온) 문서를 현재 스키마로 안전하게 이행한다.
  * - 필드마다 형식을 검사해, 손상·누락된 값은 blankDoc 기본값으로 채운다.
  * - themes는 항상 8영역 × 8실천. 이전 원색 팔레트는 연꽃 팔레트로 옮긴다.
+ *   아이콘 키는 그대로 둔다('lotus'도 유효 — 그림만 바뀐다).
+ * - areasSet은 저장된 값이 없으면 적힌 실천·고친 영역 이름으로 짐작하고, reviews는 월요일 키·날짜·칸 키를 검사한다.
+ * - settings.lastBackupAt은 날짜 형식일 때만 남긴다.
  * - 알 수 없는 필드는 버린다. 향후 스키마 변경 시 parsed.version 으로 분기해 단계적 업그레이드.
+ * - 멱등이다: migrate(migrate(x))와 JSON으로 저장했다 읽은 결과가 migrate(x)와 같다(tests/invariants.test.js).
  */
 export function migrate(parsed: unknown): MandaratDoc {
   const base = blankDoc();
@@ -286,9 +356,11 @@ export function migrate(parsed: unknown): MandaratDoc {
   const rs = isRecord(p.settings) ? p.settings : {};
   const settings: Settings = {
     mood: pick(rs.mood, MOOD_OPTS, base.settings.mood),
+    // 사용자가 고른 포인트 컬러는 그대로 — 이전 원색 팔레트의 색만 대응 색으로 옮긴다
     accent: typeof rs.accent === 'string' && HEX_RE.test(rs.accent) ? migrateAccent(rs.accent) : base.settings.accent,
     mgmt: pick(rs.mgmt, MGMT_OPTS, base.settings.mgmt),
     cellShape: pick(rs.cellShape, SHAPE_OPTS, base.settings.cellShape),
+    ...(typeof rs.lastBackupAt === 'string' && DATE_RE.test(rs.lastBackupAt) ? { lastBackupAt: rs.lastBackupAt } : {}),
   };
 
   const todayKeys = Array.isArray(p.todayKeys)
@@ -309,5 +381,7 @@ export function migrate(parsed: unknown): MandaratDoc {
     focusMinutes: focus,
     settings,
     ...(typeof p.todayDate === 'string' && DATE_RE.test(p.todayDate) ? { todayDate: p.todayDate } : {}),
+    areasSet: deriveAreasSet(p.areasSet, themes),
+    reviews: cleanReviews(p.reviews),
   };
 }

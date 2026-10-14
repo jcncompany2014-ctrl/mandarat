@@ -300,7 +300,8 @@ function WeekCard({ M, doc, review }: { M: M; doc: MandaratDoc; review: WeekRevi
   const deltaColor = delta > 0 ? SEMANTIC.done : M.sub;
   const deltaText = delta === 0 ? '지난주와 같아요' : `지난주보다 ${delta > 0 ? '+' : '−'}${Math.abs(delta)}`;
   // 습관 = 요일 습관(오늘까지 예정된 날) + 주 N회 습관(이번 주 정한 횟수)
-  const hDone = review.routineDone + review.weeklyDone;
+  // routineDone은 주 N회 습관까지 센다(N회까지) — weeklyDone을 또 더하면 두 번 센다
+  const hDone = review.routineDone;
   const hPlanned = review.routinePlanned + review.weeklyTarget;
   const rPct = hPlanned > 0 ? Math.round((hDone / hPlanned) * 100) : 0;
   const top = review.topArea ? doc.themes[review.topArea.ti] : null;

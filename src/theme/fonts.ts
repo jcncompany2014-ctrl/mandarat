@@ -1,5 +1,6 @@
 // 서체 — 본문·숫자·제목 모두 Pretendard 하나로 통일한다.
-// 한글이 또렷하고 숫자 폭이 고른 현대적 산세리프(SIL OFL 1.1). App.tsx에서 굵기별 파일을 불러온다.
+// 한글이 또렷하고 숫자 폭이 고른 현대적 산세리프(SIL OFL 1.1). App.tsx에서 굵기별 파일 4개(400·500·600·700)를 불러온다.
+// ExtraBold(800)는 faceFor가 고르지 않아 싣지 않는다(약 1.5MB 절약). 글자 크기·굵기 단계는 type.ts.
 import type { TextStyle } from 'react-native';
 
 export const PRETENDARD = {
@@ -7,7 +8,6 @@ export const PRETENDARD = {
   500: 'Pretendard-Medium',
   600: 'Pretendard-SemiBold',
   700: 'Pretendard-Bold',
-  800: 'Pretendard-ExtraBold',
 } as const;
 
 export function isPretendard(family: string): boolean {
@@ -30,7 +30,7 @@ export function faceFor(weight: TextStyle['fontWeight'] | undefined): string {
 /** 예전 이름(숫자용 Grotesk·제목용 Serif) 자리도 모두 Pretendard — 굵기는 각 스타일의 fontWeight를 따른다 */
 export const FONTS = {
   grotesk: PRETENDARD[700],
-  groteskBold: PRETENDARD[800],
+  groteskBold: PRETENDARD[700],
   groteskMed: PRETENDARD[600],
   serif: PRETENDARD[700],
   serifReg: PRETENDARD[500],

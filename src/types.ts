@@ -73,6 +73,21 @@ export interface Settings {
   accent: string;
   mgmt: Mgmt;
   cellShape: CellShape;
+  /** 마지막으로 백업을 내보낸 날 'YYYY-MM-DD' — 한 번도 안 했으면 없다 */
+  lastBackupAt?: string;
+}
+
+/**
+ * 한 주 돌아보기 기록 — 그 주를 닫으며 고른 다음 주 중점 칸과 한 줄 메모.
+ * 키는 돌아본 주의 월요일 'YYYY-MM-DD'이고, next의 칸은 그다음 주에 '중점'으로 보인다.
+ */
+export interface WeekReviewEntry {
+  /** 돌아본 날 'YYYY-MM-DD' */
+  at: string;
+  /** 다음 주 중점 칸 "ti-ai" (3개까지) */
+  next: string[];
+  /** 한 줄 메모 (120자까지, 비면 없다) */
+  note?: string;
 }
 
 /** Persisted root document. */
@@ -93,4 +108,11 @@ export interface MandaratDoc {
   settings: Settings;
   /** '오늘' 목록을 마지막으로 정리한 날짜 'YYYY-MM-DD' — 날짜가 바뀌면 완료한 항목을 정리한다 */
   todayDate?: string;
+  /**
+   * 8영역을 정했는가 — 영역 이름을 고치거나 템플릿·예시를 쓰면 참이 된다.
+   * 이전 저장본은 실천이 하나라도 적혀 있거나 기본 이름과 다른 영역 이름이 있으면 참으로 본다.
+   */
+  areasSet?: boolean;
+  /** 한 주 돌아보기 — 키는 돌아본 주의 월요일 'YYYY-MM-DD' */
+  reviews?: Record<string, WeekReviewEntry>;
 }

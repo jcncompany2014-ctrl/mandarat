@@ -17,6 +17,7 @@ import { tap } from '../lib/haptics';
 import { ACCENTS, SEMANTIC } from '../theme/palette';
 import { backupFileName, makeBackup, summarize } from '../lib/backup';
 import { downloadText } from '../lib/webFile';
+import { ymd } from '../lib/routine';
 import { BackupImport } from '../overlays/BackupImport';
 import type { CellShape, IconName, Mgmt, Mood } from '../types';
 
@@ -97,14 +98,15 @@ function Segmented<T extends string>({ M, label, value, options, onChange, label
 
 export function Settings() {
   const M = usePalette();
-  const { go, openEditor, showToast } = useUI();
+  const { go, back, openEditor, showToast } = useUI();
   const { doc, setSetting, loadSample, applyTemplate, resetAll } = useMandarat();
   const offerUndo = useSnapshotUndo();
 
   const useTemplate = (t: Template) => {
     tap();
     const snapshot = doc; // 되돌리기용
-    applyTemplate(t.centerGoal, templateThemes(t));
+    // 템플릿은 영역·실천만 바꾸고, 적어 둔 핵심 목표는 그대로 둔다(비어 있을 때만 템플릿 목표)
+    applyTemplate(doc.centerGoal.trim() ? '' : t.centerGoal, templateThemes(t));
     go('grid');
     offerUndo(`‘${t.name}’ 템플릿을 적용했어요`, snapshot);
   };
@@ -135,12 +137,15 @@ export function Settings() {
     tap();
     const now = new Date();
     if (Platform.OS === 'web') {
-      if (downloadText(backupFileName(now), makeBackup(doc, now, true))) showToast('백업 파일을 저장했어요');
-      else showToast('이 브라우저에서는 저장할 수 없어요');
+      if (downloadText(backupFileName(now), makeBackup(doc, now, true))) {
+        setSetting('lastBackupAt', ymd(now));
+        showToast('백업 파일을 저장했어요');
+      } else showToast('이 브라우저에서는 저장할 수 없어요');
       return;
     }
     try {
       const r = await Share.share({ title: backupFileName(now), message: makeBackup(doc, now) });
+      if (r.action === Share.sharedAction) setSetting('lastBackupAt', ymd(now));
       // 안드로이드는 공유 창을 닫아도 '공유됨'으로 알려 오므로 iOS에서만 완료를 알린다
       if (Platform.OS === 'ios' && r.action === Share.sharedAction) showToast('백업을 보냈어요 · 안전한 곳에 보관해 주세요');
     } catch {
@@ -151,7 +156,7 @@ export function Settings() {
 
   return (
     <View>
-      <Header M={M} kr="설정" onBack={() => go('dashboard')} />
+      <Header M={M} kr="설정" onBack={back} />
 
       <Section M={M} label="핵심 목표" />
       <Card M={M}>

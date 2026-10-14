@@ -1,12 +1,14 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type TextStyle } from 'react-native';
 import { Text } from './AppText';
 import { Icon } from './Icon';
 import { tint } from '../theme/moods';
+import { readableOn } from '../theme/palette';
 import type { M } from '../theme/usePalette';
 import type { KindLine } from '../lib/kinds';
 import { RATING_TEXT } from '../lib/kinds';
-import { tap } from '../lib/haptics';
+import { checkBorder } from '../lib/marks';
+import { select } from '../lib/haptics';
 
 /**
  * 마감이 지난 일의 글자색 — 작은 글씨라 종이 바탕 네 가지 모두에서 4.5:1을 넘게(밝은 테마 4.66, 다크 8.1).
@@ -16,14 +18,28 @@ export function alertInk(M: M): string {
   return M.dark ? '#E58FA5' : '#A15166';
 }
 
-/** 줄 아래 작은 유형 정보 — '↻ 월·수·금 반복' · '6/12권' · '📅 마감 D-3'(아이콘은 선 아이콘) */
-export function KindMeta({ M, line, color, long = true }: { M: M; line: KindLine; color: string; long?: boolean }) {
+/**
+ * 줄 아래 작은 유형 정보 — '↻ 월·수·금 반복' · '6/12권' · '마감 D-3'(아이콘은 선 아이콘).
+ * 기본은 11.5/700. 오늘 줄처럼 글씨가 주인공인 곳은 size 13 · weight '500', 아이콘 없이(icon={false}) 쓴다.
+ */
+export function KindMeta({
+  M, line, color, long = true, size = 11.5, weight = '700', icon = true,
+}: {
+  M: M;
+  line: KindLine;
+  color: string;
+  long?: boolean;
+  size?: number;
+  weight?: TextStyle['fontWeight'];
+  /** 유형 아이콘을 앞에 붙일지 */
+  icon?: boolean;
+}) {
   // 마감이 지난 일만 붉은 글씨로(그 밖엔 회색 한 가지)
   const ink = line.alert ? alertInk(M) : M.sub;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
-      {line.icon && <Icon name={line.icon} size={11} color={line.alert ? ink : color} sw={2.2} />}
-      <Text style={{ flexShrink: 1, fontSize: 11.5, fontWeight: '700', color: ink }} numberOfLines={1}>
+      {icon && line.icon && <Icon name={line.icon} size={Math.round(size * 0.95)} color={line.alert ? ink : color} sw={2.2} />}
+      <Text style={{ flexShrink: 1, fontSize: size, fontWeight: weight, color: ink }} numberOfLines={1}>
         {long ? line.long : line.short}
       </Text>
     </View>
@@ -39,10 +55,19 @@ export function CountBar({ M, pct, color, height = 3 }: { M: M; pct: number; col
   );
 }
 
+/** 눌러서 매기는 점수 칸의 가장 작은 크기 — hitSlop 4와 더해 44pt를 넘게 */
+const MIN_TAP = 36;
+/** 줄을 가득 채우는 점수 칸(fill)의 높이 */
+const FILL_H = 48;
+
 /**
  * 마음가짐 점수 1~5 — 네모 다섯 칸. onRate가 있으면 눌러서 매기고, 같은 점수를 다시 누르면 지운다.
+ * - 빈 칸 테두리는 체크 칸과 같은 값(종이 위 3:1 이상).
+ * - 누를 수 있는 칸은 36pt 이상 + 사방 4pt 여유(44pt 넘는 터치 영역). 보기만 하는 칸은 size 그대로.
+ * - fill이면 다섯 칸이 줄 폭을 나눠 가진다(높이 48, 사이 6) — 시트·주간 돌아보기처럼 점수가 주인공일 때.
+ * - 고를 때 짧은 딸깍(select).
  */
-export function RatingBoxes({ M, value, color, onRate, size = 34, gap = 6, label }: {
+export function RatingBoxes({ M, value, color, onRate, size = MIN_TAP, gap = 6, label, fill = false }: {
   M: M;
   value: number;
   color: string;
@@ -51,10 +76,20 @@ export function RatingBoxes({ M, value, color, onRate, size = 34, gap = 6, label
   gap?: number;
   /** 화면 읽기용 이름(무엇의 점수인지) */
   label: string;
+  /** 줄 폭을 다섯 칸으로 나눠 채운다(높이 48) */
+  fill?: boolean;
 }) {
+  const side = onRate ? Math.max(MIN_TAP, size) : size;
+  const h = fill ? FILL_H : side;
+  const radius = Math.min(7, Math.round(h * 0.2));
+  const numSize = fill ? 17 : Math.round(side * 0.4);
+  const showNum = fill || side >= 26;
+  const onInk = readableOn(color);
+  const edge = checkBorder(M.dark);
+
   return (
     <View
-      style={{ flexDirection: 'row', gap }}
+      style={{ flexDirection: 'row', gap: fill ? 6 : gap, alignSelf: fill ? 'stretch' : undefined }}
       // 매길 수 있으면 다섯 칸을 한 묶음(radiogroup)으로, 보기만 하면 점수 한 마디로 읽는다
       accessibilityRole={onRate ? 'radiogroup' : 'text'}
       accessible={!onRate}
@@ -65,23 +100,28 @@ export function RatingBoxes({ M, value, color, onRate, size = 34, gap = 6, label
         const box = (
           <View
             style={{
-              width: size, height: size, borderRadius: Math.round(size * 0.24), alignItems: 'center', justifyContent: 'center',
-              backgroundColor: on ? color : 'transparent', borderWidth: on ? 0 : 1.4, borderColor: M.dark ? 'rgba(255,255,255,0.26)' : 'rgba(43,38,32,0.26)',
+              width: fill ? undefined : side, height: h, borderRadius: radius, alignItems: 'center', justifyContent: 'center',
+              backgroundColor: on ? color : 'transparent', borderWidth: on ? 0 : 1.4, borderColor: edge,
             }}
           >
-            {size >= 26 && <Text style={{ fontSize: Math.round(size * 0.4), fontWeight: '800', color: on ? '#FFFFFF' : M.sub }}>{n}</Text>}
+            {showNum && (
+              <Text style={{ fontSize: numSize, fontWeight: '800', color: on ? onInk : M.sub }} maxFontSizeMultiplier={1.3}>
+                {n}
+              </Text>
+            )}
           </View>
         );
-        if (!onRate) return <View key={n}>{box}</View>;
+        if (!onRate) return <View key={n} style={fill ? { flex: 1 } : null}>{box}</View>;
         return (
           <Pressable
             key={n}
-            onPress={() => { tap(); onRate(n === value ? 0 : n); }}
+            onPress={() => { select(); onRate(n === value ? 0 : n); }}
             hitSlop={4}
             accessibilityRole="radio"
             accessibilityState={{ checked: n === value }}
             accessibilityLabel={`${label} ${n}점, ${RATING_TEXT[n]}`}
             accessibilityHint={n === value ? '다시 누르면 점수를 지워요' : undefined}
+            style={({ pressed }) => ({ flex: fill ? 1 : undefined, opacity: pressed ? 0.6 : 1 })}
           >
             {box}
           </Pressable>
@@ -91,7 +131,10 @@ export function RatingBoxes({ M, value, color, onRate, size = 34, gap = 6, label
   );
 }
 
-/** 주 N회 습관의 이번 주 칸 — N칸 중 한 만큼 채운다(N을 넘으면 넘은 만큼 덧붙인다) */
+/**
+ * 주 N회 습관의 이번 주 칸 — N칸 중 한 만큼 채운다(N을 넘으면 넘은 만큼 덧붙인다)
+ * @deprecated 오늘 줄·시트는 WeekStrip을 쓴다. 쓰는 곳이 없어지면 W4-B에서 지운다.
+ */
 export function WeekSlots({ M, done, target, color, size = 12 }: { M: M; done: number; target: number; color: string; size?: number }) {
   const n = Math.max(target, done);
   return (

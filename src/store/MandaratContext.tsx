@@ -1,12 +1,20 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { MandaratDoc, Settings, Theme, TodayExtra } from '../types';
-import { blankDoc, migrate, sampleThemes } from '../data/defaults';
+import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '../types';
+import { DATE_RE, blankDoc, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 import { addCount as addCountTo, applyConfig, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
+import { archiveAllCells, archiveCellLog, areaStreak, detachReviewPicks } from '../lib/history';
+import { summarize, type BackupSummary } from '../lib/backup';
+import { MOODS, withAccent, type Palette } from '../theme/moods';
+import { GOLD } from '../theme/palette';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
+/** 하루 한 번 남기는 저장본 'mandarat:snap:YYYY-MM-DD' */
+const SNAP_PREFIX = 'mandarat:snap:';
+/** 저장본은 최근 7일치만 */
+const SNAP_KEEP = 7;
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 export function dateKey(d = new Date()): string {
@@ -24,31 +32,91 @@ export function lastNDates(n: number): string[] {
   return out;
 }
 
+// ── 저장소 읽기 ───────────────────────────────────────────────────────────────
+type StoredRead = { ok: true; raw: string | null } | { ok: false; error: unknown };
+
+function readStored(): Promise<StoredRead> {
+  return AsyncStorage.getItem(STORAGE_KEY).then(
+    (raw): StoredRead => ({ ok: true, raw }),
+    (error: unknown): StoredRead => ({ ok: false, error }),
+  );
+}
+
+// 앱이 뜨자마자(폰트를 읽는 동안) 저장본 읽기를 시작해 첫 화면을 앞당긴다.
+// 읽기 실패는 '저장본 없음'과 구분해 둔다 — 실패를 빈 문서로 오해해 덮어쓰지 않게.
+let bootRead: Promise<StoredRead> | null = readStored();
+
+/** 미리 읽어 둔 결과는 처음 한 번만 — 오류 화면에서 다시 시도하는 등 다시 마운트되면 새로 읽는다(오래된 저장본으로 덮지 않게) */
+function takeStoredRead(): Promise<StoredRead> {
+  const p = bootRead ?? readStored();
+  bootRead = null;
+  return p;
+}
+
+function snapDayOf(key: string): string | null {
+  if (!key.startsWith(SNAP_PREFIX)) return null;
+  const day = key.slice(SNAP_PREFIX.length);
+  return DATE_RE.test(day) ? day : null;
+}
+
+function parseSnapshot(raw: string | null): MandaratDoc | null {
+  if (!raw) return null;
+  try {
+    return migrate(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+/** 돌아보기 기록이 있을 때만 중점 칸을 떼어 낸다(없던 필드를 만들지 않게) */
+function withPicksDetached(d: MandaratDoc, key?: string): Partial<Pick<MandaratDoc, 'reviews'>> {
+  return d.reviews ? { reviews: detachReviewPicks(d.reviews, key) } : {};
+}
+
+/** 지난 날 습관 체크를 바꿀 수 있는가 — 글이 있는 습관이고, 습관을 정한 날(since) ~ 오늘 사이 */
+function canToggleHabitOn(d: MandaratDoc, ti: number, ai: number, day: string): boolean {
+  const a = d.themes[ti]?.actions[ai];
+  if (!a || !a.text.trim() || kindOf(a) !== 'habit' || !DATE_RE.test(day)) return false;
+  return day <= dateKey() && (!a.since || day >= a.since);
+}
+
 // ── context shape ─────────────────────────────────────────────────────────────
+export interface SnapshotInfo {
+  /** 저장본을 남긴 날 'YYYY-MM-DD' */
+  day: string;
+  summary: BackupSummary;
+}
+
 interface Ctx {
   doc: MandaratDoc;
   ready: boolean;
   // onboarding
+  /** 온보딩 마치기 — 목표를 비워 두면 빈 채로 둔다(자리표시 글을 목표로 저장하지 않는다) */
   completeOnboarding: (goal: string) => void;
   // editing
   setCenterGoal: (goal: string) => void;
+  /** 영역 이름 고치기 — 8영역을 정한 것으로 표시한다 */
   setThemeTitle: (ti: number, title: string) => void;
+  /** 이름을 고치지 않고 지금 8영역 그대로 쓰기로 했을 때 */
+  markAreasSet: () => void;
   setActionText: (ti: number, ai: number, text: string) => void;
   setActionNote: (ti: number, ai: number, note: string) => void;
   /** 실천 유형과 그 값(요일·주 N회·목표·마감) — 바뀐 게 없으면 아무것도 하지 않는다 */
   setActionConfig: (ti: number, ai: number, cfg: KindConfig) => void;
-  /** 칸 비우기 — 글·유형 값·달성을 지우고(메모는 남김) 오늘 목록에서도 뺀다 */
+  /** 칸 비우기 — 글·유형 값·달성을 지우고(메모는 남김) 오늘 목록에서도 뺀다. 지난 기록은 지우지 않고 칸에서 떼어 둔다 */
   clearAction: (ti: number, ai: number) => void;
   // progress
   toggleDone: (ti: number, ai: number) => void;
   /** 습관의 오늘 체크만 토글 (영구 달성 done은 그대로) */
   toggleRoutineToday: (ti: number, ai: number) => void;
+  /** 습관의 지난 날(습관을 정한 날 ~ 오늘) 체크를 토글 — 그 밖의 날·습관이 아닌 칸은 무시 */
+  toggleHabitOn: (ti: number, ai: number, day: string) => void;
   /** 목록의 체크 — 유형에 맞게: 습관은 오늘 체크, 쌓기는 한 번 더하기/오늘 것 되돌리기, 한 번은 달성 */
   checkToday: (ti: number, ai: number) => void;
   /** 쌓기 수를 더하거나 뺀다(오늘 기록에 남는다) */
   addCount: (ti: number, ai: number, delta: number) => void;
-  /** 마음가짐의 이번 주 점수(0이면 지움) */
-  rateMind: (ti: number, ai: number, score: number) => void;
+  /** 마음가짐 점수(0이면 지움) — on이 속한 주(기본: 이번 주) */
+  rateMind: (ti: number, ai: number, score: number, on?: Date) => void;
   addFocusMinutes: (minutes: number) => void;
   // today
   toggleToday: (key: string) => void;
@@ -58,13 +126,17 @@ interface Ctx {
   removeExtra: (id: string) => void;
   /** 지운 할 일을 원래 자리로 되살린다 (되돌리기) — day: 지울 때의 날짜 */
   restoreExtra: (x: TodayExtra, index: number, logged: boolean, day: string) => void;
-  // day meta
-  setDayMood: (mood: number) => void;
-  setDayReflection: (text: string) => void;
+  // day meta — day: 'YYYY-MM-DD' (기본: 오늘). 자정을 넘겨 쓴 글이 다음 날로 가지 않게 쓰기 시작한 날을 넘긴다
+  setDayMood: (mood: number, day?: string) => void;
+  setDayReflection: (text: string, day?: string) => void;
+  // weekly close
+  /** 한 주 돌아보기 저장 — week: 돌아본 주의 월요일 'YYYY-MM-DD' */
+  saveReview: (week: string, entry: WeekReviewEntry) => void;
   // settings
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   // data management
   loadSample: () => void;
+  /** 템플릿으로 바꾸기 — centerGoal을 ''로 넘기면 지금 목표를 그대로 둔다 */
   applyTemplate: (centerGoal: string, themes: Theme[]) => void;
   resetAll: () => void;
   replaceDoc: (d: MandaratDoc) => void;
@@ -72,62 +144,142 @@ interface Ctx {
   revision: () => number;
   /** 저장소를 읽거나 쓰지 못해 이번 실행의 변경을 저장하지 않는 중 */
   storageError: boolean;
+  /** 마지막 저장이 실패했다 — 다음 변경 때 다시 저장해 보고, 성공하면 거짓으로 돌아온다 */
+  saveFailed: boolean;
+  /** 읽지 못한 저장본을 따로 보관해 둔 저장소 키 — 이번 실행에서 그런 일이 있었을 때만 */
+  recoveredCopy: string | null;
+  /** 보관 안내를 닫는다(보관한 사본은 지우지 않는다) */
+  dismissRecovered: () => void;
+  /** 하루 한 번 남긴 저장본 목록 — 최근 날 먼저(최대 7개) */
+  listSnapshots: () => Promise<SnapshotInfo[]>;
+  /** 그날의 저장본 — 없거나 읽지 못하면 null */
+  readSnapshot: (day: string) => Promise<MandaratDoc | null>;
 }
 
 const MandaratCtx = createContext<Ctx | null>(null);
+
+// ── palette ───────────────────────────────────────────────────────────────────
+/** 지금 고른 종이(무드) 팔레트 + 포인트 컬러 */
+export type PaletteValue = Palette & { accent: string };
+
+const DEFAULT_PALETTE: PaletteValue = withAccent(MOODS['연꽃'], GOLD);
+// 팔레트는 문서와 따로 — 체크·글쓰기처럼 색과 무관한 변경에는 같은 객체를 돌려줘 화면이 다시 그려지지 않게
+const PaletteCtx = createContext<PaletteValue>(DEFAULT_PALETTE);
 
 export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const [doc, setDoc] = useState<MandaratDoc>(() => blankDoc());
   const [ready, setReady] = useState(false);
   const [storageError, setStorageError] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [recoveredCopy, setRecoveredCopy] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 아직 쓰지 않은 변경이 있다(디바운스 대기 중) */
+  const pendingSave = useRef(false);
   const docRef = useRef(doc);
   docRef.current = doc;
   const revRef = useRef(0);
   // 저장본을 읽지 못했다면(저장소 오류) 빈 문서로 덮어쓰지 않도록 이번 세션은 저장하지 않는다
   const blockSave = useRef(false);
+  /** 이번 실행에서 저장본(하루 한 번)을 챙긴 날 */
+  const snapDay = useRef<string | null>(null);
+
+  // 하루의 첫 저장 뒤에 그 내용을 'mandarat:snap:날짜'로 한 벌 더 남기고, 최근 7일치만 둔다.
+  // 실패해도 본 저장에는 영향이 없다(같은 날 다시 시도하지 않는다).
+  const snapshot = useCallback(async (d: MandaratDoc, json: string) => {
+    const day = dateKey();
+    if (!d.onboarded || snapDay.current === day) return;
+    snapDay.current = day;
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const snaps = keys.filter((k) => k.startsWith(SNAP_PREFIX));
+      const mine = `${SNAP_PREFIX}${day}`;
+      if (!snaps.includes(mine)) await AsyncStorage.setItem(mine, json);
+      const keep = new Set(
+        [...new Set([...snaps, mine])].filter((k) => snapDayOf(k) !== null).sort().reverse().slice(0, SNAP_KEEP),
+      );
+      const drop = snaps.filter((k) => !keep.has(k));
+      if (drop.length > 0) await AsyncStorage.multiRemove(drop);
+    } catch (e) {
+      console.warn('[store] daily snapshot failed', e);
+    }
+  }, []);
+
+  const persist = useCallback(
+    (d: MandaratDoc) => {
+      const json = JSON.stringify(d);
+      return AsyncStorage.setItem(STORAGE_KEY, json).then(
+        () => {
+          setSaveFailed(false);
+          void snapshot(d, json);
+        },
+        (e) => {
+          console.warn('[store] save failed', e);
+          setSaveFailed(true);
+        },
+      );
+    },
+    [snapshot],
+  );
 
   // load once
   useEffect(() => {
+    let alive = true;
     (async () => {
-      let raw: string | null = null;
-      try {
-        raw = await AsyncStorage.getItem(STORAGE_KEY);
-      } catch (e) {
-        console.warn('Mandarat load failed', e);
+      const read = await takeStoredRead();
+      let loaded: MandaratDoc | null = null;
+      if (!read.ok) {
+        console.warn('[store] load failed', read.error);
         blockSave.current = true;
-      }
-      if (raw) {
+      } else if (read.raw) {
         try {
-          setDoc(rolloverToday(migrate(JSON.parse(raw)), dateKey()));
+          loaded = rolloverToday(migrate(JSON.parse(read.raw)), dateKey());
         } catch (e) {
-          // 깨진 저장본은 따로 보관해 두고 새로 시작한다 — 보관도 못 하면 원본을 덮어쓰지 않는다
-          console.warn('Mandarat parse failed — keeping a copy', e);
+          // 깨진 저장본은 지우지 않고 따로 보관해 두고 새로 시작한다 — 보관도 못 하면 원본을 덮어쓰지 않는다
+          console.warn('[store] unreadable doc — kept a copy', e);
+          const copyKey = `${STORAGE_KEY}:corrupt:${Date.now()}`;
           try {
-            await AsyncStorage.setItem(`${STORAGE_KEY}:corrupt`, raw);
+            await AsyncStorage.setItem(copyKey, read.raw);
+            if (alive) setRecoveredCopy(copyKey);
           } catch {
             blockSave.current = true;
           }
         }
       }
+      if (!alive) return;
+      if (loaded) setDoc(loaded);
       if (blockSave.current) setStorageError(true);
       setReady(true);
     })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // debounced persist
   useEffect(() => {
     if (!ready || blockSave.current) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
+    pendingSave.current = true;
     saveTimer.current = setTimeout(() => {
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(doc)).catch((e) =>
-        console.warn('Mandarat save failed', e),
-      );
+      saveTimer.current = null;
+      pendingSave.current = false;
+      void persist(doc);
     }, 300);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [doc, ready]);
+  }, [doc, ready, persist]);
+
+  // 내려갈 때(오류 화면 등) 아직 쓰지 않은 변경이 있으면 바로 쓴다
+  useEffect(
+    () => () => {
+      if (pendingSave.current && !blockSave.current) {
+        pendingSave.current = false;
+        void persist(docRef.current);
+      }
+    },
+    [persist],
+  );
 
   // flush immediately when the app goes to background (avoid losing the last <300ms of edits)
   useEffect(() => {
@@ -135,13 +287,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'background' || state === 'inactive') {
         if (saveTimer.current) clearTimeout(saveTimer.current);
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(docRef.current)).catch((e) =>
-          console.warn('Mandarat flush failed', e),
-        );
+        saveTimer.current = null;
+        pendingSave.current = false;
+        void persist(docRef.current);
       }
     });
     return () => sub.remove();
-  }, [ready]);
+  }, [ready, persist]);
 
   // 날짜가 바뀌면 '오늘' 목록 정리 — 앱으로 돌아올 때 + 켜 둔 채 자정을 넘길 때(1분 간격 확인)
   useEffect(() => {
@@ -171,7 +323,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   const completeOnboarding = useCallback(
-    (goal: string) => update((d) => ({ ...d, centerGoal: goal.trim() || '나의 핵심 목표', onboarded: true })),
+    (goal: string) => update((d) => ({ ...d, centerGoal: goal.trim(), onboarded: true })),
     [update],
   );
 
@@ -181,9 +333,15 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setThemeTitle = useCallback(
-    (ti: number, title: string) => editThemes(ti, (t) => ({ ...t, title })),
-    [editThemes],
+    (ti: number, title: string) =>
+      update((d) => ({ ...d, areasSet: true, themes: d.themes.map((t, i) => (i === ti ? { ...t, title } : t)) })),
+    [update],
   );
+
+  const markAreasSet = useCallback(() => {
+    if (docRef.current.areasSet) return;
+    update((d) => (d.areasSet ? d : { ...d, areasSet: true }));
+  }, [update]);
 
   const setActionText = useCallback(
     (ti: number, ai: number, text: string) =>
@@ -223,13 +381,20 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 칸을 비우면 그 칸의 지난 기록은 지우지 않고 떼어 둔다 — 같은 칸에 새로 쓴 실천이 이전 체크를 이어받지 않게.
+  // 히트맵·주간 합계·영역 연속 기록에는 그대로 남는다(src/lib/history.ts)
   const clearAction = useCallback(
     (ti: number, ai: number) =>
-      update((d) => ({
-        ...d,
-        todayKeys: d.todayKeys.filter((k) => k !== `${ti}-${ai}`),
-        themes: d.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((x, j) => (j === ai ? clearedAction(x) : x)) } : t)),
-      })),
+      update((d) => {
+        const key = `${ti}-${ai}`;
+        return {
+          ...d,
+          todayKeys: d.todayKeys.filter((k) => k !== key),
+          dayLog: archiveCellLog(d.dayLog, key, Date.now()),
+          ...withPicksDetached(d, key),
+          themes: d.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((x, j) => (j === ai ? clearedAction(x) : x)) } : t)),
+        };
+      }),
     [update],
   );
 
@@ -239,13 +404,21 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  const toggleHabitOn = useCallback(
+    (ti: number, ai: number, day: string) => {
+      if (!canToggleHabitOn(docRef.current, ti, ai, day)) return;
+      update((d) => (canToggleHabitOn(d, ti, ai, day) ? { ...d, dayLog: toggleDayLog(d.dayLog, `${ti}-${ai}`, day) } : d));
+    },
+    [update],
+  );
+
   const addCount = useCallback(
     (ti: number, ai: number, delta: number) => update((d) => addCountTo(d, ti, ai, delta, dateKey())),
     [update],
   );
 
   const rateMind = useCallback(
-    (ti: number, ai: number, score: number) => update((d) => rateWeek(d, ti, ai, score, new Date())),
+    (ti: number, ai: number, score: number, on: Date = new Date()) => update((d) => rateWeek(d, ti, ai, score, on)),
     [update],
   );
 
@@ -360,20 +533,28 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setDayMood = useCallback(
-    (mood: number) =>
-      update((d) => {
-        const k = dateKey();
-        return { ...d, dayMeta: { ...d.dayMeta, [k]: { ...d.dayMeta[k], mood } } };
-      }),
+    (mood: number, day: string = dateKey()) => {
+      if (!DATE_RE.test(day)) return;
+      update((d) => ({ ...d, dayMeta: { ...d.dayMeta, [day]: { ...d.dayMeta[day], mood } } }));
+    },
     [update],
   );
 
   const setDayReflection = useCallback(
-    (text: string) =>
-      update((d) => {
-        const k = dateKey();
-        return { ...d, dayMeta: { ...d.dayMeta, [k]: { ...d.dayMeta[k], reflection: text } } };
-      }),
+    (text: string, day: string = dateKey()) => {
+      if (!DATE_RE.test(day)) return;
+      update((d) => ({ ...d, dayMeta: { ...d.dayMeta, [day]: { ...d.dayMeta[day], reflection: text } } }));
+    },
+    [update],
+  );
+
+  // 돌아보기는 저장본 검증과 같은 규칙으로 다듬어 넣고(중점 3칸·메모 120자), 최근 104주만 둔다
+  const saveReview = useCallback(
+    (week: string, entry: WeekReviewEntry) => {
+      const clean = cleanReviewEntry(entry);
+      if (!clean || !isMondayKey(week)) return;
+      update((d) => ({ ...d, reviews: cleanReviews({ ...(d.reviews ?? {}), [week]: clean }) }));
+    },
     [update],
   );
 
@@ -383,20 +564,24 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 예시로 채우기 — 예시의 달성 칸을 오늘 한 것처럼 기록하지 않는다(오늘·이번 주 숫자가 거짓이 되지 않게).
+  // 지난 칸 기록은 지우지 않고 떼어 두고, 오늘 담아 둔 실천은 비운다(직접 추가한 할 일은 남긴다)
   const loadSample = useCallback(
     () =>
       update((d) => {
         const tk = dateKey();
         return {
           ...d,
-          centerGoal: d.centerGoal || '2026 최고의 나',
+          centerGoal: d.centerGoal.trim() ? d.centerGoal : '건강·일·관계 모두 챙기기',
           // 예시 습관은 오늘부터 시작 — 이번 주 지난 날이 놓친 날로 보이지 않게
           themes: sampleThemes().map((t) => ({
             ...t,
             actions: t.actions.map((a) => (isRoutine(a) ? { ...a, since: tk } : a)),
           })),
-          // 예시의 달성 칸을 오늘 기록에 더한다(기존 기록은 지우지 않고, 습관은 체크하지 않는다)
-          dayLog: { ...d.dayLog, [tk]: [...new Set([...(d.dayLog[tk] ?? []), ...sampleDoneKeys()])] },
+          todayKeys: [],
+          dayLog: archiveAllCells(d.dayLog, Date.now()),
+          ...withPicksDetached(d),
+          areasSet: true,
           onboarded: true,
         };
       }),
@@ -412,6 +597,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로
   const applyTemplate = useCallback(
     (centerGoal: string, themes: Theme[]) =>
       update((d) => ({
@@ -420,6 +606,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         themes,
         todayKeys: [],
         todayExtra: [],
+        dayLog: archiveAllCells(d.dayLog, Date.now()),
+        ...withPicksDetached(d),
+        areasSet: true,
         onboarded: true,
       })),
     [update],
@@ -431,38 +620,70 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     setDoc(rolloverToday(d, dateKey()));
   }, []);
 
+  const dismissRecovered = useCallback(() => setRecoveredCopy(null), []);
+
+  const listSnapshots = useCallback(async (): Promise<SnapshotInfo[]> => {
+    try {
+      const keys = (await AsyncStorage.getAllKeys()).filter((k) => snapDayOf(k) !== null);
+      if (keys.length === 0) return [];
+      const out: SnapshotInfo[] = [];
+      for (const [key, raw] of await AsyncStorage.multiGet(keys)) {
+        const day = snapDayOf(key);
+        const d = parseSnapshot(raw);
+        if (day && d) out.push({ day, summary: summarize(d) });
+      }
+      return out.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+    } catch (e) {
+      console.warn('[store] snapshot list failed', e);
+      return [];
+    }
+  }, []);
+
+  const readSnapshot = useCallback(async (day: string): Promise<MandaratDoc | null> => {
+    if (!DATE_RE.test(day)) return null;
+    try {
+      return parseSnapshot(await AsyncStorage.getItem(`${SNAP_PREFIX}${day}`));
+    } catch (e) {
+      console.warn('[store] snapshot read failed', e);
+      return null;
+    }
+  }, []);
+
   const value = useMemo<Ctx>(
     () => ({
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionConfig, clearAction,
-      toggleDone, toggleRoutineToday, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra,
-      setDayMood, setDayReflection, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision, storageError,
+      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
+      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra,
+      removeExtra, restoreExtra, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
+      storageError, saveFailed, recoveredCopy, dismissRecovered, listSnapshots, readSnapshot,
     }),
     [
-      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, setActionText, setActionNote, setActionConfig, clearAction,
-      toggleDone, toggleRoutineToday, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra, removeExtra, restoreExtra,
-      setDayMood, setDayReflection, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision, storageError,
+      doc, ready, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
+      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, inToday, addExtra, toggleExtra,
+      removeExtra, restoreExtra, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, revision,
+      storageError, saveFailed, recoveredCopy, dismissRecovered, listSnapshots, readSnapshot,
     ],
   );
 
-  return <MandaratCtx.Provider value={value}>{children}</MandaratCtx.Provider>;
-}
+  const { mood, accent } = doc.settings;
+  // goldInk는 지금 고른 포인트 컬러에서 만든다 — 어떤 색을 골라도 글자 대비 4.5:1 이상
+  const palette = useMemo<PaletteValue>(() => withAccent(MOODS[mood], accent), [mood, accent]);
 
-function sampleDoneKeys(): string[] {
-  const keys: string[] = [];
-  sampleThemes().forEach((t, ti) =>
-    t.actions.forEach((a, ai) => {
-      // 습관의 그날 체크·쌓기의 그날 더한 수는 칸 달성과 따로라 오늘 기록에 넣지 않는다
-      const kind = kindOf(a);
-      if (a.done && kind !== 'habit' && kind !== 'count') keys.push(`${ti}-${ai}`);
-    }),
+  return (
+    <MandaratCtx.Provider value={value}>
+      <PaletteCtx.Provider value={palette}>{children}</PaletteCtx.Provider>
+    </MandaratCtx.Provider>
   );
-  return keys;
 }
 
 export function useMandarat(): Ctx {
   const ctx = useContext(MandaratCtx);
-  if (!ctx) throw new Error('useMandarat must be used within MandaratProvider');
+  if (!ctx) throw new Error('[store] the doc context is missing — render inside the store provider');
   return ctx;
+}
+
+/** 지금 팔레트 — 무드·포인트 컬러가 바뀔 때만 새 객체(그 밖의 문서 변경에는 같은 객체) */
+export function usePaletteValue(): PaletteValue {
+  return useContext(PaletteCtx);
 }
 
 // ── derived selectors (pure, used across screens) ────────────────────────────
@@ -503,31 +724,9 @@ export function overallStreak(doc: MandaratDoc): number {
   return streak;
 }
 
-/** Per-theme streak based on theme-tagged completions in the day log. */
-export function themeStreak(doc: MandaratDoc, ti: number): { cur: number; best: number; week: number[] } {
-  const prefix = `${ti}-`;
-  const dayHas = (k: string) => (doc.dayLog[k] ?? []).some((x) => x.startsWith(prefix));
-  // current streak
-  let cur = 0;
-  const today = new Date();
-  for (let i = 0; i < 400; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const has = dayHas(dateKey(d));
-    if (i === 0 && !has) continue;
-    if (has) cur++;
-    else break;
-  }
-  // best streak over the recorded window
-  let best = 0, run = 0;
-  const days = lastNDates(120);
-  for (const k of days) {
-    if (dayHas(k)) {
-      run++;
-      best = Math.max(best, run);
-    } else run = 0;
-  }
-  best = Math.max(best, cur);
-  const week = lastNDates(7).map((k) => (dayHas(k) ? 1 : 0));
-  return { cur, best, week };
+/**
+ * 영역별 연속 기록 — 현재·최고 연속 일수와 이번 주(월~일) 기록 여부. 계산은 src/lib/history.ts areaStreak.
+ */
+export function themeStreak(doc: Pick<MandaratDoc, 'dayLog'>, ti: number, now: Date = new Date()): { cur: number; best: number; week: number[] } {
+  return areaStreak(doc.dayLog, ti, now);
 }

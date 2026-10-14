@@ -1,8 +1,9 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
-import { Pressy } from './Pressy';
+import { PaperChip } from './common';
 import type { M } from '../theme/usePalette';
+import { readableOn } from '../theme/palette';
 import { DOW_KR, WEEK_ORDER, normalizeDays } from '../lib/routine';
 import { tap } from '../lib/haptics';
 
@@ -12,7 +13,11 @@ const PRESETS: { label: string; days: number[] }[] = [
   { label: '주말', days: [0, 6] },
 ];
 
-/** 반복 요일 선택(월~일) + 매일·평일·주말 빠른 선택 + 해제(hideClear면 해제 칩을 두지 않는다). */
+/**
+ * 반복 요일 선택(월~일) + 매일·평일·주말 빠른 선택 + 해제(hideClear면 해제 칩을 두지 않는다).
+ * 요일 칸은 인쇄된 표의 칸처럼 반듯한 네모(높이 44) — 고른 요일은 영역 색(데이터)으로 칠한다.
+ * 빠른 선택은 종이 칩(고르면 먹색).
+ */
 export function DayPicker({ M, days, color, onChange, hideClear = false }: {
   M: M;
   days: number[];
@@ -29,48 +34,53 @@ export function DayPicker({ M, days, color, onChange, hideClear = false }: {
     else n.add(d);
     onChange(normalizeDays([...n]));
   };
-  const chip = (label: string, on: boolean, onPress: () => void, a11y: string) => (
-    <Pressy
-      key={label}
-      scaleTo={0.92}
-      onPress={() => { tap(); onPress(); }}
-      accessibilityRole="button"
-      accessibilityLabel={a11y}
-      accessibilityState={{ selected: on }}
-      hitSlop={4}
-      style={{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: on ? color : M.line, backgroundColor: on ? color : 'transparent' }}
-    >
-      <Text style={{ fontSize: 12, fontWeight: '700', color: on ? '#fff' : M.sub }}>{label}</Text>
-    </Pressy>
-  );
+  const pick = (next: number[]) => {
+    tap();
+    onChange(next);
+  };
+  // 영역 색 위 글씨 — 8영역 색은 모두 흰 글씨가 AA. 사용자가 고른 밝은 색이면 먹색으로
+  const onInk = readableOn(color);
 
   return (
-    <View style={{ gap: 9 }}>
+    <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', gap: 6 }}>
         {WEEK_ORDER.map((d) => {
           const on = set.has(d);
           return (
-            <Pressy
+            <Pressable
               key={d}
-              scaleTo={0.88}
               onPress={() => toggle(d)}
               accessibilityRole="checkbox"
               accessibilityLabel={`${DOW_KR[d]}요일 반복`}
               accessibilityState={{ checked: on }}
-              style={{
-                flex: 1, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-                backgroundColor: on ? color : M.dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.035)',
+              style={({ pressed }) => ({
+                flex: 1, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center',
                 borderWidth: 1, borderColor: on ? color : M.line,
-              }}
+                backgroundColor: on ? color : 'transparent',
+                opacity: pressed ? 0.6 : 1,
+              })}
             >
-              <Text style={{ fontSize: 13, fontWeight: '800', color: on ? '#fff' : M.sub }}>{DOW_KR[d]}</Text>
-            </Pressy>
+              <Text maxFontSizeMultiplier={1.4} style={{ fontSize: 13, fontWeight: on ? '800' : '700', color: on ? onInk : M.ink }}>
+                {DOW_KR[d]}
+              </Text>
+            </Pressable>
           );
         })}
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {PRESETS.map((p) => chip(p.label, cur.join() === p.days.join(), () => onChange(p.days), `${p.label} 반복`))}
-        {cur.length > 0 && !hideClear && chip('반복 안 함', false, () => onChange([]), '반복 해제')}
+        {PRESETS.map((p) => (
+          <PaperChip
+            key={p.label}
+            M={M}
+            label={p.label}
+            on={cur.join() === p.days.join()}
+            onPress={() => pick(p.days)}
+            accessibilityLabel={`${p.label} 반복`}
+          />
+        ))}
+        {cur.length > 0 && !hideClear && (
+          <PaperChip M={M} label="반복 안 함" onPress={() => pick([])} accessibilityLabel="반복 해제" />
+        )}
       </View>
     </View>
   );

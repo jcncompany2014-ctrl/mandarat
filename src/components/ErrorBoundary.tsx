@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from './AppText';
 import { GridMark } from './GridMark';
+import { releaseNativeSplash } from './Splash';
 
 interface Props { children: React.ReactNode }
 interface State { error: Error | null }
@@ -18,6 +19,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
+    // 실행 중 오류가 나면 네이티브 시작 화면을 바로 걷어 안내 화면이 보이게 한다.
+    releaseNativeSplash();
     console.warn('Mandarat crashed', error);
   }
 
