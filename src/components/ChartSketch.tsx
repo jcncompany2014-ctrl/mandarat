@@ -4,6 +4,7 @@ import { Text } from './AppText';
 import { alpha } from '../theme/moods';
 import { CHART_POS, CLOCKWISE, legibleMark } from '../theme/chart';
 import { fitBox } from '../lib/text';
+import { PRETENDARD_GLYPHS } from '../lib/labelFit';
 import { EASE } from '../theme/motion';
 import type { M } from '../theme/usePalette';
 import { useReducedMotion } from '../lib/useReducedMotion';
@@ -46,7 +47,7 @@ export function ChartSketch({
   const cell = (size - 2) / 3; // 바깥 테두리 1pt씩
   const goal = center.trim();
   const inner = cell - CELL_PAD * 2;
-  const fit = useMemo(() => fitBox(goal, inner, inner, CENTER_SIZES, CENTER_LINES), [goal, inner]);
+  const fit = useMemo(() => fitBox(goal, inner, inner, CENTER_SIZES, CENTER_LINES, 1.25, PRETENDARD_GLYPHS), [goal, inner]);
 
   // 영역 이름 — 영역마다 0 → 1 (처음엔 보이는 채로).
   // 새 이름이 한 프레임 먼저 보였다가 사라지지 않게, 그리기 전에(layout effect) 감추고 시작한다
@@ -83,7 +84,7 @@ export function ChartSketch({
   const names = Array.from({ length: 8 }, (_, ti) => areas[ti]?.trim() ?? '');
   const areaKey = names.join('\n');
   const areaFit = useMemo(
-    () => areaKey.split('\n').map((n) => fitBox(n, cell - AREA_PAD * 2, cell - AREA_PAD * 2, AREA_SIZES, AREA_LINES, 14 / 11)),
+    () => areaKey.split('\n').map((n) => fitBox(n, cell - AREA_PAD * 2, cell - AREA_PAD * 2, AREA_SIZES, AREA_LINES, 14 / 11, PRETENDARD_GLYPHS)),
     [areaKey, cell],
   );
   const label = `만다라트 표, 가운데 칸 ${goal || placeholder || '비어 있음'}, 영역 ${names.filter(Boolean).join(', ')}`;

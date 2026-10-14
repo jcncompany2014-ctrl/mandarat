@@ -12,7 +12,8 @@ import { announce, reducedMotion, screenReader, useScreenReader } from '../lib/u
 import { ORDINAL, areaLabel, areaTodayCounts, cellLabel } from '../lib/chartSpeech';
 import { DUE_SOON, daysBetween, doneToday as didToday, kindOf, routineWeekCount, todayItems, ymd } from '../lib/routine';
 import { countInfo, kindLine } from '../lib/kinds';
-import { cellBreak, noOrphan } from '../lib/text';
+import { cellBreak, longestWord, noOrphan } from '../lib/text';
+import { PRETENDARD_GLYPHS } from '../lib/labelFit';
 import { DUR, EASE } from '../theme/motion';
 import { alpha } from '../theme/moods';
 import {
@@ -112,6 +113,10 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
   // 이름을 아직 안 지은 '영역 n'은 가는 먹 글씨 — 옅은 보조 글씨는 이름표 바탕 위 4.5:1이 안 된다
   const ink = core ? coreInk(M) : solid ? DONE_INK : M.ink;
   const weight = head && unnamed ? '500' : head || core ? '800' : solid ? '700' : '600';
+  // 칸 폭보다 긴 어절('포트폴리오')은 가운데서 끊기지 않게 0.5pt씩, 2pt까지 작게(Pretendard 글자 폭으로 잰다)
+  const base = head || core ? 9.5 : 9;
+  let fs = base;
+  while (fs > base - 2 && longestWord(text, fs, PRETENDARD_GLYPHS) > textW) fs -= 0.5;
   return (
     <View
       accessibilityShowsLargeContentViewer
@@ -127,12 +132,12 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
       ) : (
         <View style={dueSoon && !done ? { borderBottomWidth: 1.5, borderBottomColor: gold, maxWidth: '100%' } : { maxWidth: '100%' }}>
           <Text
-            style={{ fontSize: head || core ? 9.5 : 9, lineHeight: 10.5, fontWeight: weight, color: ink, textAlign: 'center' }}
+            style={{ fontSize: fs, lineHeight: 10.5, fontWeight: weight, color: ink, textAlign: 'center' }}
             numberOfLines={core ? 4 : 3}
             ellipsizeMode="tail"
             maxFontSizeMultiplier={1}
           >
-            {cellBreak(text, textW, head || core ? 9.5 : 9)}
+            {cellBreak(text, textW, fs, PRETENDARD_GLYPHS)}
           </Text>
         </View>
       )}

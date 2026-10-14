@@ -37,7 +37,7 @@ export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
   const max = Math.max(1, ...days.map((d) => (d.future ? 0 : d.count)));
   // 막대는 불투명한 포인트 색 — 막대가 놓인 종이(bg) 위 3:1 이상으로(옅게 비친 색은 모든 포인트 색에서 3:1에 못 미친다).
   // 통계는 카드 없이 종이 위에 바로 그리므로 면(card)으로 재면 골드가 2.8:1에 머문다
-  const fill = legibleMark(M.accent, M.bg, M);
+  const fill = legibleMark(M.gold, M.bg, M);
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={weekBarsSpeech(days)}>
       <View style={{ flexDirection: 'row', gap: 9, height: BAR_FULL + 20, alignItems: 'flex-end' }}>
@@ -129,7 +129,7 @@ export function TenWeeks({
   const legendCell = 11;
   const days = useMemo(() => pickableDays(map), [map]);
   // 기록한 날 테두리 — 칸도 종이(bg) 위에 바로 놓인다(재는 바탕이 card면 골드가 3:1에 못 미친다)
-  const inkEdge = legibleMark(M.accent, M.bg, M);
+  const inkEdge = legibleMark(M.gold, M.bg, M);
   const step = (dir: 1 | -1) => {
     if (days.length === 0) return;
     const i = picked ? days.indexOf(picked) : -1;
@@ -180,7 +180,7 @@ export function TenWeeks({
                 style={[
                   box,
                   {
-                    backgroundColor: ink ? fade(M.accent, HEAT_FILL[c.bin]) : 'transparent',
+                    backgroundColor: ink ? fade(M.gold, HEAT_FILL[c.bin]) : 'transparent',
                     borderWidth: outline,
                     borderColor: on || c.today ? M.ink : ink ? inkEdge : M.line,
                   },
@@ -198,7 +198,7 @@ export function TenWeeks({
       <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 12 }}>
         {DAY_BIN_LABELS.map((l, i) => (
           <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 4 : 0 }}>
-            <View style={{ width: legendCell, height: legendCell, borderRadius: 2, borderWidth: 1, borderColor: inkEdge, backgroundColor: fade(M.accent, HEAT_FILL[i + 1]) }} />
+            <View style={{ width: legendCell, height: legendCell, borderRadius: 2, borderWidth: 1, borderColor: inkEdge, backgroundColor: fade(M.gold, HEAT_FILL[i + 1]) }} />
             <Text style={[{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub }, NUM]} maxFontSizeMultiplier={1.2}>{l}</Text>
           </View>
         ))}

@@ -68,16 +68,19 @@ test('포인트 컬러 표시(막대 · 달력 테두리 · 진행 중 표시)�
   for (const [name, mood] of Object.entries(MOODS)) {
     for (const accent of ACCENTS) {
       for (const [ic, M] of [['', withAccent(mood, accent.color)], [' +IC', contrastEdition(withAccent(mood, accent.color))]]) {
-        const mark = legibleMark(M.accent, M.bg, M);
-        const c = contrast(mark, M.bg);
-        assert.ok(c >= 3, `${name}${ic} ${M.accent} on bg: ${c.toFixed(2)}`);
+        // 막대·달력은 표의 표시색(M.gold — 포인트 컬러를 따르고, 골드면 무드마다 제 금색)으로 그린다
+        for (const base of [M.accent, M.gold]) {
+          const mark = legibleMark(base, M.bg, M);
+          const c = contrast(mark, M.bg);
+          assert.ok(c >= 3, `${name}${ic} ${base} on bg: ${c.toFixed(2)}`);
+        }
       }
     }
   }
   // 재는 바탕과 놓이는 바탕이 같아야 한다 — 면(card)으로 재고 종이 위에 그리면 골드가 2.8:1
   const charts = fs.readFileSync(path.join(ROOT, 'src/components/StatsCharts.tsx'), 'utf8');
-  assert.doesNotMatch(charts, /legibleMark\(M\.accent,\s*M\.card/);
-  assert.equal((charts.match(/legibleMark\(M\.accent,\s*M\.bg, M\)/g) ?? []).length, 2, '막대 · 달력 테두리');
+  assert.doesNotMatch(charts, /legibleMark\(M\.(accent|gold),\s*M\.card/);
+  assert.equal((charts.match(/legibleMark\(M\.gold,\s*M\.bg, M\)/g) ?? []).length, 2, '막대 · 달력 테두리 — 표와 같은 표시색');
   // 홈 날짜 숫자 아래 '하루 마감' 줄도 종이 위 3:1 (FX-VERIFY K-1)
   const dash = fs.readFileSync(path.join(ROOT, 'src/screens/Dashboard.tsx'), 'utf8');
   assert.doesNotMatch(dash, /backgroundColor: M\.accent, marginTop: 1/);

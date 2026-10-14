@@ -1,7 +1,7 @@
 // 글자 다듬기 — 줄바꿈, 조사, 날짜·마감·횟수 표기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 날짜 표기는 앱 전체에서 이 함수들로만 만든다(같은 날짜가 화면마다 다르게 적히지 않게). 연도는 적지 않는다.
 import { DOW_KR } from './routine';
-import { textWidth } from './labelFit';
+import { textWidth, type Glyphs } from './labelFit';
 import { estimateLines } from '../theme/chart';
 
 const NBSP = ' ';
@@ -25,21 +25,24 @@ export function noOrphan(s: string, maxTail = 2): string {
  * - 앞에 남는 것이 한두 글자 어절 하나뿐이면 그 어절이 첫 줄에 홀로 남는다('주 / 3회 운동').
  *   그때는 앞 어절을 뒤 어절에 붙인다('주 3회 / 운동') — 두 어절이 칸에 들어갈 때만.
  */
-export function cellBreak(text: string, width: number, fs: number): string {
+export function cellBreak(text: string, width: number, fs: number, g?: Glyphs): string {
   const t = text.trim();
   const joined = noOrphan(t);
   if (joined === t) return t;
   const words = t.split(/\s+/);
   const head = words.slice(0, -2);
   if (head.length === 1 && Array.from(head[0]).length <= 2) {
-    return textWidth(`${head[0]} ${words[1]}`, fs) <= width ? `${head[0]}${NBSP}${words.slice(1).join(' ')}` : t;
+    return textWidth(`${head[0]} ${words[1]}`, fs, g) <= width ? `${head[0]}${NBSP}${words.slice(1).join(' ')}` : t;
   }
-  return textWidth(words.slice(-2).join(' '), fs) <= width ? joined : t;
+  return textWidth(words.slice(-2).join(' '), fs, g) <= width ? joined : t;
 }
 
-/** 가장 긴 어절의 폭 — 이보다 좁은 칸에서는 어절 가운데서 글자 단위로 끊긴다 */
-export function longestWord(text: string, fs: number): number {
-  return text.split(/\s+/).filter(Boolean).reduce((w, word) => Math.max(w, textWidth(word, fs)), 0);
+/**
+ * 가장 긴 어절의 폭 — 이보다 좁은 칸에서는 어절 가운데서 글자 단위로 끊긴다.
+ * g: 글자 폭 표(앱 화면의 Pretendard는 PRETENDARD_GLYPHS — 없으면 SVG 기본값)
+ */
+export function longestWord(text: string, fs: number, g?: Glyphs): number {
+  return text.split(/\s+/).filter(Boolean).reduce((w, word) => Math.max(w, textWidth(word, fs, g)), 0);
 }
 
 /**
@@ -48,7 +51,7 @@ export function longestWord(text: string, fs: number): number {
  * 어느 크기도 안 맞으면 가장 작은 크기(넘치는 줄은 말줄임표).
  */
 export function fitBox(
-  text: string, width: number, height: number, sizes: readonly number[], maxLines: number, lineRatio = 1.25,
+  text: string, width: number, height: number, sizes: readonly number[], maxLines: number, lineRatio = 1.25, g?: Glyphs,
 ): { fs: number; lh: number; lines: number } {
   const at = (fs: number) => {
     const lh = Math.round(fs * lineRatio);
@@ -57,7 +60,7 @@ export function fitBox(
   const t = text.trim();
   for (const fs of sizes) {
     const f = at(fs);
-    if (!t || (longestWord(t, fs) <= width && estimateLines(t, width, fs) <= f.lines)) return f;
+    if (!t || (longestWord(t, fs, g) <= width && estimateLines(t, width, fs, g) <= f.lines)) return f;
   }
   return at(sizes[sizes.length - 1]);
 }

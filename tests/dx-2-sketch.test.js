@@ -23,7 +23,9 @@ test('D-5: 처음 화면 스케치(180pt) — 템플릿 영역 이름은 어절 
 
 test('D-5 · D-6: 스케치는 높이까지 보고 크기를 고르고, 예시는 구분점 없이 겹치지 않는다', () => {
   const sketch = src('src/components/ChartSketch.tsx');
-  assert.match(sketch, /fitBox\(goal, inner, inner, CENTER_SIZES, CENTER_LINES\)/);
+  assert.match(sketch, /fitBox\(goal, inner, inner, CENTER_SIZES, CENTER_LINES[,)]/);
+  // 화면 글자(Pretendard) 폭으로 잰다 — SVG 기본값(한글 1em)으로 재면 실제보다 좁게 맞춘다
+  assert.match(sketch, /PRETENDARD_GLYPHS\)/);
   assert.match(sketch, /numberOfLines=\{fit\.lines\}/);
   assert.doesNotMatch(sketch, /fitFontSize/);
   const onb = src('src/screens/Onboarding.tsx');

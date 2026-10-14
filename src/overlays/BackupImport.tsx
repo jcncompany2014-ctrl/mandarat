@@ -96,7 +96,7 @@ export function BackupImport({ onClose, returnFocusRef }: {
     try {
       if (Platform.OS === 'web') {
         const t = await pickTextFile();
-        if (t != null) takeFile(t);
+        if (t != null) takeFile(t.text, t.name);
         return;
       }
       const picked = await File.pickFileAsync({ mimeTypes: PICK_TYPES });

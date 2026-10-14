@@ -22,7 +22,7 @@ export function downloadText(name: string, text: string, mime = 'application/jso
 }
 
 /** 파일 선택 창을 열어 고른 파일의 글을 읽는다. 취소·실패 시 null. */
-export function pickTextFile(accept = '.json,application/json,text/plain'): Promise<string | null> {
+export function pickTextFile(accept = '.json,application/json,text/plain'): Promise<{ text: string; name: string } | null> {
   if (!isWeb()) return Promise.resolve(null);
   return new Promise((resolve) => {
     const input = document.createElement('input');
@@ -31,7 +31,7 @@ export function pickTextFile(accept = '.json,application/json,text/plain'): Prom
     input.onchange = () => {
       const f = input.files?.[0];
       if (!f) { resolve(null); return; }
-      f.text().then(resolve, () => resolve(null));
+      f.text().then((text) => resolve({ text, name: f.name }), () => resolve(null));
     };
     input.click();
   });
