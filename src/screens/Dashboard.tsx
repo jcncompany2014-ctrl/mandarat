@@ -117,8 +117,8 @@ export const Dashboard = memo(function Dashboard() {
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
             <View>
               <Text style={{ ...TYPE.display, ...NUM, color: M.ink }} maxFontSizeMultiplier={1.2}>{now.getDate()}</Text>
-              {/* 오늘을 다 한 날 — 숫자 밑에 금색 밑줄 하나(종이 위 3:1 이상으로 — 그대로의 골드는 2.8:1) */}
-              {dayComplete && <View style={{ height: 3, backgroundColor: legibleMark(M.accent, M.bg, M), marginTop: 1 }} />}
+              {/* 오늘을 다 한 날 — 숫자 밑에 포인트 색(M.gold — 표·통계의 표시와 같은 색) 밑줄 하나, 종이 위 3:1 이상으로 */}
+              {dayComplete && <View style={{ height: 3, backgroundColor: legibleMark(M.gold, M.bg, M), marginTop: 1 }} />}
             </View>
             <View style={{ paddingBottom: dayComplete ? 12 : 8 }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{now.getMonth() + 1}월</Text>
@@ -482,7 +482,7 @@ function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boo
     <View accessible accessibilityLabel={`${fmtDateLong(dateKey())} 마감, ${total}개 중 ${total}개 했어요`}>
       <Animated.View style={rule} />
       <Animated.View style={rule2} />
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingTop: 10, paddingHorizontal: 2 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingTop: 10 }}>
         <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: M.sub }}>{fmtDateLong(dateKey())} 마감</Text>
         <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, ...NUM }}>{total} / {total}</Text>
       </View>
@@ -536,11 +536,11 @@ function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeo
           ];
           const body = (
             <>
-              {!first && <RowDivider M={M} inset={TODAY_ROW_INSET - 2} />}
+              {!first && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
               {st.done ? (
-                <Check on color={legibleMark(M.accent, M.bg, M)} dark={M.dark} size={24} seed={st.key} />
+                <Check on color={legibleMark(M.accent, M.bg, M)} dark={M.dark} seed={st.key} />
               ) : (
-                <View style={{ width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1.6, borderColor: isNext ? M.ink : M.line }}>
+                <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1.6, borderColor: isNext ? M.ink : M.line }}>
                   <Text style={{ fontSize: 11, fontWeight: '800', color: isNext ? M.ink : M.sub, ...NUM }} maxFontSizeMultiplier={1.2}>{i + 1}</Text>
                 </View>
               )}

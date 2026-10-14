@@ -507,11 +507,11 @@ export function TodayKanban({ M }: { M: M }) {
     );
   }
 
-  // 머리 표시 — 할 일은 회색, 진행 중은 포인트 컬러(종이 위 3:1 이상으로), 했어요는 먹.
+  // 머리 표시 — 할 일은 회색, 진행 중은 포인트 컬러(M.gold — 표·통계의 표시와 같은 색, 종이 위 3:1 이상으로), 했어요는 먹.
   // 묶음은 숫자(stage)로만 구분하고 저장하지 않는다 — 이름은 화면 글일 뿐이다
   const cols: { label: string; stage: Stage; mark: string }[] = [
     { label: '할 일', stage: 0, mark: M.sub },
-    { label: '진행 중', stage: 1, mark: legibleMark(M.accent, M.bg, M) },
+    { label: '진행 중', stage: 1, mark: legibleMark(M.gold, M.bg, M) },
     { label: '했어요', stage: 2, mark: M.ink },
   ];
 
@@ -620,11 +620,12 @@ const KanbanCard = memo(function KanbanCard({
       ]}
     >
       {!first && <RowDivider M={M} inset={0} />}
-      {/* 진행 중 — 여백에 포인트 컬러 세로줄(공책 여백에 그은 표시, 종이 위 3:1 이상) */}
+      {/* 진행 중 — 여백에 포인트 컬러 세로줄(공책 여백에 그은 표시, 종이 위 3:1 이상).
+          마감 지남 줄과 같은 여백 자리 · 같은 굵기 — 카드가 다음 단계로 가도 표시가 옆으로 뛰지 않는다 */}
       {stage === 1 && (
         <View
           pointerEvents="none"
-          style={{ position: 'absolute', left: -12, top: 12, bottom: 12, width: 3, borderRadius: 1, backgroundColor: legibleMark(M.accent, M.bg, M) }}
+          style={{ position: 'absolute', left: -10, top: 12, bottom: 12, width: 2, backgroundColor: legibleMark(M.gold, M.bg, M) }}
         />
       )}
       {/* 마감 지남 — 목록과 같은 붉은 세로 줄(할 일 묶음에만 있어 진행 중 줄과 겹치지 않는다) */}

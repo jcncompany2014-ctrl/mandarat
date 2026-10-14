@@ -343,8 +343,9 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
           )}
         </View>
       ) : (
-        // 다 했어요 줄의 아랫줄을 이 줄의 윗줄로 함께 쓴다(1pt 겹쳐) — 아랫줄은 다음 묶음의 윗줄이 맡는다
-        <View style={{ marginTop: -1 }}>
+        // 다 했어요 줄의 아랫줄을 이 줄의 윗줄로 함께 쓴다(1pt 겹쳐). 아랫줄은 바로 아래 묶음(SheetRows)의 윗줄을 빌린다 —
+        // 묶음 앞 간격(ROWS_GAP)만큼 당겨 그 윗줄이 이 줄 바로 밑에 오게(빈 종이 띠 없이 한 장부로 읽힌다). once면 묶음은 늘 있다
+        <View style={{ marginTop: -1, marginBottom: -ROWS_GAP }}>
           <LineRow M={M} title="마감 없음" right={<RightText M={M}>정하기 ›</RightText>} accessibilityLabel="마감 없음, 마감 정하기" onPress={onEdit} />
         </View>
       )}
@@ -388,6 +389,9 @@ function MindBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
 }
 
 // ── 아래 줄들 ─────────────────────────────────────────────────────────────────
+
+/** 위 블록과 아래 줄 묶음 사이 — '마감 없음' 줄은 이만큼 당겨 묶음의 윗줄을 제 아랫줄로 쓴다 */
+const ROWS_GAP = 22;
 
 /** 오늘 할 일에 담기 · 25분 집중하기 · 이 칸 달성하기 — 괘선 줄, 아이콘·바탕 없이 */
 function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
@@ -443,7 +447,7 @@ function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   }
   if (!rows.length) return null;
   return (
-    <View style={{ marginTop: 22 }}>
+    <View style={{ marginTop: ROWS_GAP }}>
       {rows.map((r, i) => React.cloneElement(r as React.ReactElement<{ first?: boolean; last?: boolean }>, { first: i === 0, last: i === rows.length - 1 }))}
     </View>
   );

@@ -138,10 +138,11 @@ export function BackupImport({ onClose, returnFocusRef }: {
       <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
         <SheetHead M={M} title="백업 불러오기" body="지금 기록이 백업 내용으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요." />
 
+        {/* 파일을 읽었으면 아랫줄은 바로 밑 '파일에서 읽었어요' 줄의 윗줄이 맡는다 — 두 줄을 겹쳐 긋지 않는다(줄 색이 반투명) */}
         <LineRow
           M={M}
           first
-          last
+          last={!fromFile}
           title={fromFile ? '다른 백업 파일 고르기' : '백업 파일 고르기'}
           sub="저장해 둔 백업 파일(.json)"
           right="chevron"
@@ -190,13 +191,13 @@ export function BackupImport({ onClose, returnFocusRef }: {
 
 /**
  * 파일에서 읽었을 때 붙여 넣기 칸 자리의 괘선 한 줄 — '파일에서 읽었어요' + 파일 이름, 오른쪽에 '붙여 넣기로'(예비 길).
- * 읽은 내용은 바로 아래 지금 | 백업 장부가 보여 준다
+ * 파일 고르기 줄 바로 밑에 붙어 두 줄짜리 괘선 묶음이 된다(사이 빈 띠 · 겹친 줄 없이). 읽은 내용은 바로 아래 지금 | 백업 장부가 보여 준다
  */
 function FileRow({ M, name, onPaste }: { M: M; name: string; onPaste: () => void }) {
   return (
     <View
       style={{
-        marginTop: 16, minHeight: 52, paddingVertical: 8, paddingHorizontal: 2, gap: 12,
+        minHeight: 52, paddingVertical: 8, paddingHorizontal: 2, gap: 12,
         borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, flexDirection: 'row', alignItems: 'center',
       }}
     >
@@ -242,6 +243,11 @@ function Ledger({ M, now, backup }: { M: M; now: BackupSummary; backup: BackupSu
     <View style={{ marginTop: 18 }}>
       <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: M.ink }}>{READ_OK}</Text>
       {!!exported && <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 2 }}>{exported}</Text>}
+      {/* 지금 기록이 더 새로우면 — 표 위, 머리 바로 밑에(작은 화면 · 큰 글자에서도 아래로 밀려 가려지지 않게, 화면 읽기도 먼저 읽는다).
+          아래 표가 그 근거다(마지막 기록 지금 | 백업) */}
+      {newer && (
+        <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: alertInk(M), marginTop: 6 }}>{NEWER_NOW}</Text>
+      )}
 
       <View style={{ marginTop: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
         <View
@@ -275,11 +281,6 @@ function Ledger({ M, now, backup }: { M: M; now: BackupSummary; backup: BackupSu
         ))}
       </View>
 
-      {newer && (
-        <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: alertInk(M), marginTop: 10 }}>
-          {NEWER_NOW}
-        </Text>
-      )}
     </View>
   );
 }

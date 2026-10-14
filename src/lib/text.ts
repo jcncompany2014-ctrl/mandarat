@@ -24,6 +24,7 @@ export function noOrphan(s: string, maxTail = 2): string {
  * - 붙인 두 어절이 칸 폭(width, fs pt 글자)보다 길면 그대로 — 붙이면 어절 가운데서 끊긴다('1만보 걷 / 기').
  * - 앞에 남는 것이 한두 글자 어절 하나뿐이면 그 어절이 첫 줄에 홀로 남는다('주 / 3회 운동').
  *   그때는 앞 어절을 뒤 어절에 붙인다('주 3회 / 운동') — 두 어절이 칸에 들어갈 때만.
+ * g는 실제보다 넓게 어림하는 표여야 한다 — '들어간다'고 잘못 보면 붙인 어절이 가운데서 끊긴다(기본 SVG 폭).
  */
 export function cellBreak(text: string, width: number, fs: number, g?: Glyphs): string {
   const t = text.trim();

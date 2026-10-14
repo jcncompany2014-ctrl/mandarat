@@ -45,7 +45,7 @@ Not regressed: statsView `say` / `ledgerLabel` / `pickedSpeech` / `heatSpeech`; 
 
 ## Device QA
 
-1. **설정 › 포인트 컬러 → 쪽빛.** On 홈, 만다라트 and 오늘, the today squares, the legend key, the 8/8 frame and its '달성' label are all blue. Switch back to 골드: each mood's own gold returns. Check 다크 and 파스텔 too.
+1. **설정 › 포인트 컬러 → 쪽빛.** On 홈 and 만다라트, the today squares, the legend key, the 8/8 frame and its '달성' label are all blue. 오늘 › 목록 marks today in ink by design (plan.md:284, :766). On 오늘, only 보드 '진행 중' and the primary buttons take the point colour. Switch back to 골드: each mood's own gold returns. Check 다크 and 파스텔 too (on 파스텔 + 골드 the marks are lilac everywhere, including 보드 '진행 중', the 홈 day-close underline and the 81칸 '달성' label — corrected in DX-VERIFY).
 2. **통계 습관 row:**
    - Midweek with missed days: '0/21번', '6번 놓침 · 15번 남음'.
    - Sunday evening after doing only today: '18번 놓침', never '다 했어요'.

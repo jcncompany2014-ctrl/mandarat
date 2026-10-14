@@ -89,6 +89,10 @@ test('D-11: 보드 — 마감 지난 것부터, 할 일 묶음에 목록과 같�
   assert.match(card, /<Check on color=\{color\} dark=\{M\.dark\} size=\{20\} seed=\{cardKey\} muted \/>/);
   // 목록과 같은 값
   assert.match(src('src/screens/Today.tsx'), /left: -10, top: 12, bottom: 12, width: 2, backgroundColor: alertInk\(M\)/);
+  // 진행 중 줄도 같은 여백 자리 · 같은 굵기, 표·통계와 같은 표시색(최종 점검 NEW-2 · NEW-1)
+  assert.match(card, /stage === 1 && \([\s\S]*?left: -10, top: 12, bottom: 12, width: 2, backgroundColor: legibleMark\(M\.gold, M\.bg, M\)/);
+  assert.doesNotMatch(card, /left: -12|width: 3, borderRadius/);
+  assert.match(kanban, /\{ label: '진행 중', stage: 1, mark: legibleMark\(M\.gold, M\.bg, M\) \}/);
 });
 
 test('D-11: 연속 기록 정보 줄 — 가운뎃점을 따로 써서 목록 · 보드와 같은 간격', () => {

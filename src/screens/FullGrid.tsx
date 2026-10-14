@@ -117,6 +117,7 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
   const base = head || core ? 9.5 : 9;
   let fs = base;
   while (fs > base - 2 && longestWord(text, fs, PRETENDARD_GLYPHS) > textW) fs -= 0.5;
+  // 어절을 붙일지(cellBreak)는 넉넉한 SVG 폭으로 잰다 — Pretendard 표는 숫자·'%'를 작게 잡아 '수입 20 / %'처럼 붙인 어절이 끊긴다
   return (
     <View
       accessibilityShowsLargeContentViewer
@@ -137,12 +138,12 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
             ellipsizeMode="tail"
             maxFontSizeMultiplier={1}
           >
-            {cellBreak(text, textW, fs, PRETENDARD_GLYPHS)}
+            {cellBreak(text, textW, fs)}
           </Text>
         </View>
       )}
       {finished && (
-        <Text style={{ fontSize: 8, lineHeight: 9.5, fontWeight: '800', color: M.goldInk, marginTop: 1 }} maxFontSizeMultiplier={1}>달성</Text>
+        <Text style={{ fontSize: 8, lineHeight: 9.5, fontWeight: '800', color: legibleMark(M.gold, bg, M, 4.5), marginTop: 1 }} maxFontSizeMultiplier={1}>달성</Text>
       )}
       {head && headPct != null && <Bar pct={headPct} color={color} track={alpha(color, 0.25)} height={2.5} />}
       {edgePct != null && edgePct > 0 && <Bar pct={edgePct} color={solid ? alpha(DONE_INK, 0.75) : color} height={2} />}

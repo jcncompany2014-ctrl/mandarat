@@ -19,7 +19,9 @@ test('81칸 표: 칸보다 긴 어절은 가운데서 끊기지 않게 글자를
   assert.ok(longestWord('포트폴리오', f, PRETENDARD_GLYPHS) <= textW, `${f}pt`);
   const grid = src('src/screens/FullGrid.tsx');
   assert.match(grid, /longestWord\(text, fs, PRETENDARD_GLYPHS\) > textW\) fs -= 0\.5/);
-  assert.match(grid, /cellBreak\(text, textW, fs, PRETENDARD_GLYPHS\)/);
+  // 어절 붙이기는 넉넉한 SVG 폭으로(NEW-1) — Pretendard 표는 '%'·숫자를 작게 잡아 붙인 어절이 끊긴다
+  assert.match(grid, /cellBreak\(text, textW, fs\)/);
+  assert.doesNotMatch(grid, /cellBreak\([^)]*PRETENDARD_GLYPHS/);
 });
 
 test('온보딩 스케치: 영역 이름 칸도 Pretendard 폭으로 맞춘다', () => {

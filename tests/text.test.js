@@ -87,6 +87,7 @@ test('fmtDateSpeech: 해가 다를 때만 해를 붙여 말한다(HANDOFF-A6)', 
 
 // ── D-27: 좁은 칸의 줄바꿈 (81칸 · 공유 이미지) ─────────────────────────────────
 const { cellBreak, fitBox, longestWord } = require('../src/lib/text');
+const { textWidth } = require('../src/lib/labelFit');
 const NB = ' ';
 
 test('D-27 cellBreak: 앞에 한 글자 어절 하나만 남기지 않는다(주 / 3회 운동)', () => {
@@ -104,6 +105,20 @@ test('D-27 cellBreak: 붙인 두 어절이 칸보다 길면 그대로, 길지 �
   assert.equal(cellBreak('매일 아침 물 한 잔', 60, 9), `매일 아침 물 한${NB}잔`);
   assert.equal(cellBreak('매일 조금씩 성장하기', 30, 9), '매일 조금씩 성장하기');
   assert.equal(cellBreak('  독서  ', 30, 9), '독서');
+});
+
+test('NEW-1 cellBreak: 81칸에서 실제 폭이 칸보다 넓은 어절을 붙이지 않는다(수입 20 / % 저축)', () => {
+  // 81칸 칸 안쪽 폭 — (화면 폭 − 표 바깥 26) / 9 − 안쪽 여백 4 − 블록 괘선 1.5
+  const textW = (w) => (w - 22 - 4) / 9 - 4 - 1.5;
+  // '수입 20%'의 실제 폭(Pretendard Medium 9pt) 36.7pt — 375·390pt 칸(33.3·34.9pt)보다 넓으니 붙이지 않는다
+  for (const w of [375, 390]) assert.equal(cellBreak('수입 20% 저축', textW(w), 9), '수입 20% 저축', `${w}pt`);
+  // 430pt 칸(39.4pt)에는 들어가니 붙여도 끊기지 않는다 — 붙일 때는 SVG 어림(37.6pt)이 실제 폭보다 넓다
+  assert.equal(cellBreak('수입 20% 저축', textW(430), 9), `수입${NB}20% 저축`);
+  assert.ok(textWidth('수입 20%', 9) >= 36.71);
+  // 375pt: 두 글자 + 두 글자 실천(실제 Pretendard Medium 33.3pt ≈ 칸 33.28pt)은 띄어쓰기에서만 끊기게 둔다
+  for (const t of ['친구 모임', '메모 정리', '강연 참석']) assert.equal(cellBreak(t, textW(375), 9), t, t);
+  // 넉넉히 들어가면 그대로 붙인다(공유 이미지와 같은 규칙)
+  assert.equal(cellBreak('주 3회 운동', textW(430), 9), `주${NB}3회 운동`);
 });
 
 test('D-5 fitBox: 폭과 높이를 둘 다 보고, 어절 가운데서 끊지 않는다', () => {
