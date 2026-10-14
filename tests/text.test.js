@@ -84,3 +84,37 @@ test('fmtDateSpeech: 해가 다를 때만 해를 붙여 말한다(HANDOFF-A6)', 
   // 점 찍은 짧은 표기('10.18 (일)')가 섞이지 않는다
   assert.doesNotMatch(fmtDateSpeech('2028-03-04', now), /\d\.\d|\(/);
 });
+
+// ── D-27: 좁은 칸의 줄바꿈 (81칸 · 공유 이미지) ─────────────────────────────────
+const { cellBreak, fitBox, longestWord } = require('../src/lib/text');
+const NB = ' ';
+
+test('D-27 cellBreak: 앞에 한 글자 어절 하나만 남기지 않는다(주 / 3회 운동)', () => {
+  // 공유 이미지 칸(7.5pt, 약 30.6pt 폭)
+  for (const t of ['주 3회 운동', '새 기술 1개', '새 도시 3곳']) {
+    const out = cellBreak(t, 30.6, 7.5);
+    const [w1, w2, w3] = t.split(' ');
+    assert.ok(!out.includes(`${w2}${NB}${w3}`), `${t}: 끝 두 어절을 붙이면 '${w1}'이 홀로 남는다`);
+    assert.equal(out, `${w1}${NB}${w2} ${w3}`, `${t}: 앞 어절을 뒤 어절에 붙인다`);
+  }
+});
+
+test('D-27 cellBreak: 붙인 두 어절이 칸보다 길면 그대로, 길지 않으면 noOrphan처럼', () => {
+  assert.equal(cellBreak('1만보 걷기', 20, 9), '1만보 걷기');
+  assert.equal(cellBreak('매일 아침 물 한 잔', 60, 9), `매일 아침 물 한${NB}잔`);
+  assert.equal(cellBreak('매일 조금씩 성장하기', 30, 9), '매일 조금씩 성장하기');
+  assert.equal(cellBreak('  독서  ', 30, 9), '독서');
+});
+
+test('D-5 fitBox: 폭과 높이를 둘 다 보고, 어절 가운데서 끊지 않는다', () => {
+  assert.ok(longestWord('포트폴리오 만들기', 10) >= 50);
+  // 180pt 스케치 가운데 칸 안쪽 47.3pt — 세 줄이면 줄 높이 × 3이 안쪽 높이를 넘지 않는다
+  const inner = (180 - 2) / 3 - 12;
+  for (const goal of ['토익 900점 넘기', '몸무게 5kg 줄이기', '첫 마라톤 완주하기', '이직 성공하기', '건강하고 단단한 한 해 보내기']) {
+    const f = fitBox(goal, inner, inner, [18, 17, 16, 15, 14, 13, 12, 11, 10], 3);
+    assert.ok(f.lh * f.lines <= inner + 0.01, `${goal}: ${f.fs}/${f.lh} × ${f.lines}`);
+    assert.ok(longestWord(goal, f.fs) <= inner, `${goal}: 어절이 칸보다 넓다`);
+  }
+  assert.equal(fitBox('토익 900점 넘기', inner, inner, [18, 17, 16, 15, 14, 13, 12, 11, 10], 3).fs, 12);
+  assert.equal(fitBox('', inner, inner, [18, 10], 3).fs, 18);
+});

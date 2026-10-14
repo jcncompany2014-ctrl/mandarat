@@ -14,7 +14,7 @@ import { tap } from '../lib/haptics';
 import { announce } from '../lib/useReducedMotion';
 
 /** 목표 예시 — 숫자가 들어간 구체적인 목표(연도는 넣지 않는다). 누르면 입력칸만 채운다 */
-const EXAMPLES = ['몸무게 5kg 줄이기', '토익 900점 넘기', '첫 마라톤 완주하기', '이직 성공하기'];
+const EXAMPLES = ['몸무게 5kg 줄이기', '토익 900점 넘기', '이직 성공하기'];
 
 const GUTTER = 20;
 
@@ -119,26 +119,21 @@ export function Onboarding() {
             }}
           />
 
-          {/* 예시 한 줄 — 글자마다 누를 수 있다(칩 없이) */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
-            <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginRight: 6 }}>예)</Text>
-            {EXAMPLES.map((s, i) => (
-              <React.Fragment key={s}>
-                {i > 0 && (
-                  <Text accessible={false} importantForAccessibility="no" style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginHorizontal: 6 }}>
-                    ·
-                  </Text>
-                )}
-                <Pressable
-                  onPress={() => { tap(); setGoal(s); }}
-                  accessibilityRole="button"
-                  accessibilityLabel={s}
-                  accessibilityHint="예시 · 입력칸에 넣어요"
-                  style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-                >
-                  <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{s}</Text>
-                </Pressable>
-              </React.Fragment>
+          {/* 예시 한 줄 — 글자마다 누를 수 있다(칩·구분점 없이 띄어 놓기만). 줄이 바뀌어도 32pt 간격, 누르는 자리는 위아래로 넓혀 44pt */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, marginTop: 4 }}>
+            <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>예)</Text>
+            {EXAMPLES.map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => { tap(); setGoal(s); }}
+                hitSlop={{ top: 6, bottom: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel={s}
+                accessibilityHint="예시 · 입력칸에 넣어요"
+                style={({ pressed }) => ({ minHeight: 32, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+              >
+                <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{s}</Text>
+              </Pressable>
             ))}
           </View>
 

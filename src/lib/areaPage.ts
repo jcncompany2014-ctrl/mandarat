@@ -20,11 +20,13 @@ export function neighborArea(ti: number, dir: -1 | 1): number {
 
 /**
  * 실천 줄 오른쪽 상태(짧게, 고정폭 숫자) —
- * 습관 '이번 주 2/3' · 쌓기 '7/12권' · 마음가짐 '4점'(아직이면 '—') · 마감 있는 한 번 'D-2'(달성했거나 마감이 없으면 '').
+ * 달성한 칸은 유형과 상관없이 '달성'(달성한 줄은 한 모습으로).
+ * 그 밖에는 습관 '이번 주 2/3' · 쌓기 '7/12권' · 마음가짐 '4점'(아직이면 '—') · 마감 있는 한 번 'D-2'(마감이 없으면 '').
  */
 export function rowStatus(doc: AreaDoc, ti: number, ai: number, now: Date): string {
   const a = doc.themes[ti]?.actions[ai];
   if (!a || !a.text.trim()) return '';
+  if (a.done) return '달성';
   const kind = kindOf(a);
   if (kind === 'habit') {
     const w = routineWeekCount(doc, ti, ai, now);
@@ -35,7 +37,7 @@ export function rowStatus(doc: AreaDoc, ti: number, ai: number, now: Date): stri
     const r = ratingOf(a, now);
     return r ? `${r}점` : '—';
   }
-  if (a.done || !a.due) return '';
+  if (!a.due) return '';
   return fmtDue(daysBetween(ymd(now), a.due));
 }
 

@@ -5,8 +5,7 @@ import { MOODS, alpha, type Palette } from '../theme/moods';
 import { GOLD } from '../theme/palette';
 import { CHART_POS, DONE_INK, coreBg, coreInk, frameRadius, headBg, headTrack, legibleMark } from '../theme/chart';
 import { NUM } from '../theme/type';
-import { noOrphan } from '../lib/text';
-import { textWidth } from '../lib/labelFit';
+import { cellBreak, noOrphan } from '../lib/text';
 import { POSTER_H, POSTER_W, posterCells, posterDate, posterDone, posterFinished, type PosterCell } from '../lib/poster';
 import type { MandaratDoc } from '../types';
 
@@ -30,14 +29,6 @@ const HEAD_H = 70;
 /** 화면 크기 설정과 상관없이 늘 같은 크기로 찍힌다(그림 한 장) */
 const FIXED = { maxFontSizeMultiplier: 1, allowFontScaling: false } as const;
 
-/** 좁은 칸의 글 — 끝 두 어절을 붙이되(noOrphan), 붙인 두 어절이 칸보다 길면 붙이지 않는다(어절 가운데서 끊기지 않게) */
-function fitCell(text: string, fs: number): string {
-  const joined = noOrphan(text);
-  if (joined === text.trimEnd()) return joined;
-  const words = text.trim().split(/\s+/);
-  return textWidth(words.slice(-2).join(' '), fs) <= TEXT_W ? joined : text.trim();
-}
-
 function Cell({ c, P, blank, finished, gold }: { c: PosterCell; P: Palette; blank: boolean; finished: boolean; gold: string }) {
   const core = c.kind === 'core';
   const head = c.kind === 'head';
@@ -59,7 +50,7 @@ function Cell({ c, P, blank, finished, gold }: { c: PosterCell; P: Palette; blan
           ellipsizeMode="tail"
           style={{ fontSize: fs, lineHeight: LH, fontWeight: head && c.unnamed ? '500' : core || head ? '800' : c.done ? '700' : '600', color: ink, textAlign: 'center', letterSpacing: 0 }}
         >
-          {fitCell(c.text, fs)}
+          {cellBreak(c.text, TEXT_W, fs)}
         </Text>
       )}
       {finished && head && (

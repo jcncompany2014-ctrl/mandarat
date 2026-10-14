@@ -12,8 +12,7 @@ import { announce, reducedMotion, screenReader, useScreenReader } from '../lib/u
 import { ORDINAL, areaLabel, areaTodayCounts, cellLabel } from '../lib/chartSpeech';
 import { DUE_SOON, daysBetween, doneToday as didToday, kindOf, routineWeekCount, todayItems, ymd } from '../lib/routine';
 import { countInfo, kindLine } from '../lib/kinds';
-import { noOrphan } from '../lib/text';
-import { textWidth } from '../lib/labelFit';
+import { cellBreak, noOrphan } from '../lib/text';
 import { DUR, EASE } from '../theme/motion';
 import { alpha } from '../theme/moods';
 import {
@@ -42,16 +41,8 @@ const isDone = (doc: MandaratDoc, ti: number, ai: number) => written(doc, ti, ai
 const complete = (doc: MandaratDoc, ti: number) => doc.themes[ti].actions.every((a, ai) => isDone(doc, ti, ai));
 const tabular = { fontVariant: ['tabular-nums' as const] };
 
-/**
- * 좁은 칸의 글 — 마지막 줄에 한두 글자만 남지 않게 끝 두 어절을 붙이되(noOrphan),
- * 붙인 두 어절이 칸 폭보다 길면 붙이지 않는다(붙이면 어절 가운데서 글자 단위로 끊긴다: '1만보 걷 / 기').
- */
-function cellText(text: string, width: number, fs: number): string {
-  const joined = noOrphan(text);
-  if (joined === text.trimEnd()) return joined;
-  const words = text.trim().split(/\s+/);
-  return textWidth(words.slice(-2).join(' '), fs) <= width ? joined : text.trim();
-}
+/** 표 안 글이 쪽 가장자리(20pt)에 맞도록 들이는 폭 — 표는 GridScreen이 11pt만 들여 9pt 내민다 */
+const EDGE = 9;
 
 // ── 81칸의 칸 하나 ────────────────────────────────────────────────────────────
 
@@ -141,7 +132,7 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
             ellipsizeMode="tail"
             maxFontSizeMultiplier={1}
           >
-            {cellText(text, textW, head || core ? 9.5 : 9)}
+            {cellBreak(text, textW, head || core ? 9.5 : 9)}
           </Text>
         </View>
       )}
@@ -640,6 +631,8 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
   );
   const slideStyle = useMemo(() => ({ flex: 1, transform: [{ translateX: slide }] }), [slide]);
   const gold = legibleMark(M.gold, M.bg, M);
+  // 범례 네모의 색 — 첫 영역의 색(표의 실제 칸과 같은 모습으로)
+  const keyColor = doc.themes[0]?.color ?? M.sub;
   // 칸 높이 — 표 안쪽 폭을 9로 나눈 칸 폭에서(블록 사이 괘선은 블록 안에 들어가 칸이 아주 조금 좁아질 뿐)
   const cellW = (tableW - RULE.frame * 2) / 9;
   const cellH = Math.max(28, Math.round((cellW / CELL_RATIO) * 2) / 2);
@@ -659,7 +652,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
         onPress={() => { tap(); openEditor({ kind: 'center' }); }}
         accessibilityRole="button"
         accessibilityLabel={goal ? `핵심 목표, ${goal}, 고치기` : '핵심 목표를 정해 주세요'}
-        style={({ pressed }) => ({ paddingHorizontal: 4, paddingTop: 2, opacity: pressed ? 0.6 : 1 })}
+        style={({ pressed }) => ({ paddingHorizontal: EDGE, paddingTop: 2, opacity: pressed ? 0.6 : 1 })}
       >
         <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>핵심 목표</Text>
         <View style={{ borderBottomWidth: 0.75, borderBottomColor: alpha(M.ink, 0.35), paddingTop: 4, paddingBottom: 6 }}>
@@ -670,7 +663,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
       </Pressable>
 
       {/* 둘째 줄 — 한눈에 볼 땐 해와 달성 칸 수, 크게 볼 땐 돌아가기·이전·다음 (높이를 고정해 표가 움직이지 않게) */}
-      <View style={{ height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 }}>
+      <View style={{ height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: EDGE }}>
         {focus == null ? (
           <>
             <Text style={[{ flex: 1, fontSize: 13, fontWeight: '600', color: M.sub }, tabular]}>{now.getFullYear()}</Text>
@@ -784,14 +777,19 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
         <View
           accessible
           accessibilityLabel="칠한 칸은 달성, 옅게 깔린 칸은 영역 이름, 작은 색 네모는 오늘 할 일"
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4, marginTop: 10 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: EDGE, marginTop: 10 }}
         >
+          {/* 범례 네모는 표의 칸 그대로 — 달성: 영역 색으로 칠한 칸 · 영역 이름: 옅게 깔리고 맨 아래 진행 막대(테두리 네모는 빈 체크 칸으로 읽힌다) */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <View style={{ width: 10, height: 10, backgroundColor: M.sub }} />
+            <View style={{ width: 10, height: 10, backgroundColor: keyColor }} />
             <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>달성</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <View style={{ width: 10, height: 10, borderWidth: 1, borderColor: M.sub }} />
+            <View style={{ width: 10, height: 10, backgroundColor: headBg(keyColor, M), overflow: 'hidden' }}>
+              <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, backgroundColor: alpha(keyColor, 0.25) }}>
+                <View style={{ width: '60%', height: '100%', backgroundColor: keyColor }} />
+              </View>
+            </View>
             <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>영역 이름</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
@@ -801,7 +799,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
         </View>
       )}
       {focus == null && !gridMemory.zoomedOnce && (
-        <Text style={{ fontSize: 12.5, fontWeight: '500', color: M.sub, paddingHorizontal: 4, marginTop: 8 }}>블록을 누르면 크게 볼 수 있어요</Text>
+        <Text style={{ fontSize: 12.5, fontWeight: '500', color: M.sub, paddingHorizontal: EDGE, marginTop: 8 }}>블록을 누르면 크게 볼 수 있어요</Text>
       )}
     </View>
   );
