@@ -13,7 +13,7 @@ export const gridMemory: {
   seenDone: Set<string>;
 } = { focus: null, zoomedOnce: false, seenDone: new Set() };
 
-/** seenDone을 처음 채웠는지 — 앱을 켜고 처음 본 표는 칠하는 움직임 없이 그대로 보인다 */
+/** seenDone을 처음 담았는지 — 앱을 켜고 처음 본 표는 칠하는 움직임 없이 그대로 보인다 */
 let seeded = false;
 
 /** 다른 화면에서 '81칸의 이 블록을 크게'로 바로 보낼 때 — 다음에 만다라트 탭이 열리면 그 블록부터 보인다 */

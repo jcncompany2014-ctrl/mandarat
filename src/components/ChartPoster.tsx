@@ -42,7 +42,8 @@ function Cell({ c, P, blank, finished, gold }: { c: PosterCell; P: Palette; blan
   const core = c.kind === 'core';
   const head = c.kind === 'head';
   const bg = blank ? 'transparent' : core ? coreBg(P) : head ? headBg(c.color, P) : c.done ? c.color : 'transparent';
-  const ink = !blank && core ? coreInk(P) : c.done ? DONE_INK : head && c.unnamed ? P.sub : P.ink;
+  // 이름 없는 '영역 n'도 먹 글씨(가늘게) — 보조 글씨는 이름표 바탕 위 4.5:1이 안 된다
+  const ink = !blank && core ? coreInk(P) : c.done ? DONE_INK : P.ink;
   const fs = core || head ? FS_HEAD : FS;
   return (
     <View
@@ -56,13 +57,13 @@ function Cell({ c, P, blank, finished, gold }: { c: PosterCell; P: Palette; blan
           {...FIXED}
           numberOfLines={finished && head ? 2 : 3}
           ellipsizeMode="tail"
-          style={{ fontSize: fs, lineHeight: LH, fontWeight: core || head ? '800' : c.done ? '700' : '600', color: ink, textAlign: 'center', letterSpacing: 0 }}
+          style={{ fontSize: fs, lineHeight: LH, fontWeight: head && c.unnamed ? '500' : core || head ? '800' : c.done ? '700' : '600', color: ink, textAlign: 'center', letterSpacing: 0 }}
         >
           {fitCell(c.text, fs)}
         </Text>
       )}
       {finished && head && (
-        <Text {...FIXED} style={{ fontSize: 7, lineHeight: 8.5, fontWeight: '800', color: legibleMark(gold, bg, P, 4.5), letterSpacing: 0 }}>완성</Text>
+        <Text {...FIXED} style={{ fontSize: 7, lineHeight: 8.5, fontWeight: '800', color: legibleMark(gold, bg, P, 4.5), letterSpacing: 0 }}>달성</Text>
       )}
       {c.headPct != null && (
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, backgroundColor: headTrack(c.color) }}>
@@ -94,7 +95,7 @@ function Rules({ P }: { P: Palette }) {
  * 공유용 표 이미지 한 장 — 360×450pt(1080×1350으로 찍는다). 다크 모드에서도 늘 밝은 미색 종이(기본 무드의 색).
  * 머리말 '목표 달성표'와 날짜 · 핵심 목표 · 81칸 표 · 아래 '64칸 중 n칸'과 '만다라트'.
  * blank: 글만 찍고 칠·막대를 모두 뺀 빈 표(인쇄해 손으로 채우기).
- * gold: 8칸을 다 이룬 블록의 테두리 색(지금 포인트 컬러) — 종이 위에서 3:1이 되게 맞춘다.
+ * gold: 8칸을 다 달성한 블록의 테두리 색(지금 포인트 컬러) — 종이 위에서 3:1이 되게 맞춘다.
  */
 export const ChartPoster = forwardRef<View, {
   doc: Pick<MandaratDoc, 'centerGoal' | 'themes' | 'settings'>;
@@ -145,7 +146,7 @@ export const ChartPoster = forwardRef<View, {
           }}
         />
         {finished.map((ti) => {
-          // 다 이룬 블록 — 괘선 안쪽에 금색 줄을 한 겹 더(바깥 테두리·블록 괘선에 가리지 않게 안으로 들인다)
+          // 8칸을 다 달성한 블록 — 괘선 안쪽에 금색 줄을 한 겹 더(바깥 테두리·블록 괘선에 가리지 않게 안으로 들인다)
           const slot = CHART_POS[ti];
           const col = slot % 3;
           const row = Math.floor(slot / 3);

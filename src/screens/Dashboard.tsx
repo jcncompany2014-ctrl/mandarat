@@ -15,7 +15,7 @@ import { useUIActions, useUIState } from '../navigation/ui';
 import { readableOn } from '../theme/palette';
 import { useDoc, themeProgress, totalDone, dateKey } from '../store/MandaratContext';
 import { DOW_KR, orderedTodayItems, todayItems, todayProgress, weekCounts } from '../lib/routine';
-import { GUIDE_FILL_TARGET, GUIDE_STEP_COUNT, firstAreaWithEmpty, guideSteps, pickSections, type GuideKey } from '../lib/pick';
+import { GUIDE_FILL_TARGET, GUIDE_STEP_COUNT, canPickAny, firstAreaWithEmpty, guideSteps, type GuideKey } from '../lib/pick';
 import { ritualTarget, weekPriority } from '../lib/ritual';
 import { homeSummary } from '../lib/a11y';
 import { areaLine, headerMeta, homeGate } from '../lib/home';
@@ -23,6 +23,8 @@ import { fmtDateLong, fmtRange, noOrphan } from '../lib/text';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { showGridAt } from './gridMemory';
 import { tap } from '../lib/haptics';
+import { checkBorder } from '../lib/marks';
+import { legibleMark } from '../theme/chart';
 import type { MandaratDoc, Theme } from '../types';
 
 /** 화면 좌우 여백 */
@@ -32,9 +34,14 @@ const GUTTER = 20;
  * 구역 머리 — 종이 위 작은 제목 한 줄(18pt, 위 24 · 아래 12). 오른쪽엔 보조 숫자.
  * onPress가 있으면 줄 어디를 눌러도 되고, 화면 읽기에서는 제목(머리말)과 오른쪽 버튼을 따로 읽는다.
  */
-const SectionHead = memo(function SectionHead({ M, title, right, onPress, a11y }: { M: M; title: string; right?: string; onPress?: () => void; a11y?: string }) {
+const SectionHead = memo(function SectionHead({ M, title, right, rightSpeech, onPress, a11y }: {
+  M: M; title: string; right?: string;
+  /** 오른쪽 숫자를 소리로 읽을 말 — '2/5'는 날짜로 읽혀서 '5단계 중 2단계'처럼 */
+  rightSpeech?: string;
+  onPress?: () => void; a11y?: string;
+}) {
   const head = <Text style={{ ...TYPE.section, flex: 1, color: M.ink }} accessibilityRole="header">{title}</Text>;
-  const note = !!right && <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, ...NUM }}>{right}</Text>;
+  const note = !!right && <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, ...NUM }} accessibilityLabel={rightSpeech}>{right}</Text>;
   const style = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4, paddingHorizontal: GUTTER, paddingTop: 24, paddingBottom: 12 };
   if (!onPress) return <View style={style}>{head}{note}</View>;
   return (
@@ -48,8 +55,6 @@ const SectionHead = memo(function SectionHead({ M, title, right, onPress, a11y }
   );
 });
 
-const PureMiniChart = memo(MiniChart);
-
 /**
  * 홈 — 수첩의 오늘 쪽.
  * 날짜 머리(해·주·남은 날) 아래 인쇄된 두 줄 → 핵심 목표와 내 81칸 → 시작 가이드(끝날 때까지 아래를 가린다)
@@ -58,7 +63,7 @@ const PureMiniChart = memo(MiniChart);
 export const Dashboard = memo(function Dashboard() {
   const M = usePalette();
   const { go, openEditor, openRitual, openAction } = useUIActions();
-  const { doc, storageError, saveFailed } = useDoc();
+  const { doc, storageError, saveFailed, clock } = useDoc();
   const { width, fontScale } = useWindowDimensions();
 
   const now = new Date();
@@ -73,14 +78,17 @@ export const Dashboard = memo(function Dashboard() {
   const priority = weekPriority(doc, now).slice(0, 3);
   const meta = headerMeta(now);
 
-  // 81칸 위 오늘 표시 — 오늘 할 일인 칸과 그중 오늘 한 칸
+  // 81칸 위 오늘 표시 — 오늘 할 일인 칸과 그중 오늘 한 칸.
+  // 문서는 체크마다 바뀌지만 Set은 서명(칸 키 + 했는지)이 같으면 그대로 둔다 — 81칸이 칸 값을 다시 세지 않게
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const todaySig = useMemo(() => todayItems(doc, new Date()).map((i) => i.key + (i.done ? '1' : '0')).join('|'), [doc, clock]);
   const { todayKeys, doneToday } = useMemo(() => {
-    const items = todayItems(doc, new Date());
+    const parts = todaySig ? todaySig.split('|') : [];
     return {
-      todayKeys: new Set(items.map((it) => it.key)),
-      doneToday: new Set(items.filter((it) => it.done).map((it) => it.key)),
+      todayKeys: new Set(parts.map((x) => x.slice(0, -1))),
+      doneToday: new Set(parts.filter((x) => x.endsWith('1')).map((x) => x.slice(0, -1))),
     };
-  }, [doc]);
+  }, [todaySig]);
 
   const onChartBlock = useCallback((b: number | 'c') => { tap(); if (b === 'c') go('grid'); else go('detail', b); }, [go]);
   const onArea = useCallback((ti: number) => { tap(); go('detail', ti); }, [go]);
@@ -135,14 +143,14 @@ export const Dashboard = memo(function Dashboard() {
 
       {/* 핵심 목표 + 내 81칸 */}
       <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', gap: big ? 16 : 18, paddingHorizontal: GUTTER, marginTop: 20 }}>
-        <PureMiniChart
-          doc={doc}
+        <MiniChart
+          themes={doc.themes}
+          cellShape={doc.settings.cellShape}
           size={chartSize}
-          square={doc.settings.cellShape === '각진'}
           todayKeys={todayKeys}
           doneToday={doneToday}
           onPressBlock={onChartBlock}
-          accessibilityHint="두 번 탭해서 만다라트 펼치기"
+          accessibilityHint="만다라트를 펼쳐요"
         />
         <View style={{ flex: big ? undefined : 1, minWidth: 0 }}>
           <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>핵심 목표</Text>
@@ -155,7 +163,7 @@ export const Dashboard = memo(function Dashboard() {
               onPress={() => { tap(); openEditor({ kind: 'center' }); }}
               accessibilityRole="button"
               accessibilityLabel="핵심 목표를 정해 주세요"
-              accessibilityHint="핵심 목표 쓰기"
+              accessibilityHint="핵심 목표 정하기"
               hitSlop={8}
               style={({ pressed }) => ({ marginTop: 4, opacity: pressed ? 0.6 : 1 })}
             >
@@ -164,14 +172,14 @@ export const Dashboard = memo(function Dashboard() {
           )}
           {done > 0 && (
             <Text style={{ fontSize: 13, color: M.sub, marginTop: 8, fontWeight: '500' }}>
-              64칸 중 <Text style={{ color: M.ink, fontWeight: '800', ...NUM }}>{done}칸</Text> 이뤘어요
+              64칸 중 <Text style={{ color: M.ink, fontWeight: '800', ...NUM }}>{done}칸</Text> 달성했어요
             </Text>
           )}
         </View>
       </View>
 
       {/* 처음 쓰는 사람의 다섯 단계 — 다 끝내면 사라진다 */}
-      <StartGuide M={M} doc={doc} />
+      <StartGuide M={M} doc={doc} g={guide} />
 
       {(saveFailed || storageError) && (
         <View style={{ marginHorizontal: GUTTER, marginTop: 24 }} accessibilityRole="alert">
@@ -238,7 +246,7 @@ export const Dashboard = memo(function Dashboard() {
       {/* 이번 주 — 날마다 正 한 자 */}
       {gate.week && (
         <>
-          <SectionHead M={M} title="이번 주" right={`이번 주 ${weekTotal}번`} />
+          <SectionHead M={M} title="이번 주" right={`${weekTotal}번`} />
           <WeekTally M={M} cells={weekCells} />
         </>
       )}
@@ -326,7 +334,8 @@ const AreaRow = memo(function AreaRow({ M, th, ti, last, onPress }: {
  */
 function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDoc; todayDone: number; todayTotal: number }) {
   const { go, openAction, openQuick, openPick } = useUIActions();
-  const { dayCloseTick } = useUIState();
+  const { dayCloseTick, closedDay } = useUIState();
+  const { clock } = useDoc();
   // 이 화면에 있는 동안 체크한 줄 — 사라지지 않고 제자리에서 먹선이 그어진다
   const [kept, setKept] = useState<ReadonlySet<string>>(() => new Set());
   const keep = (key: string) => setKept((s) => (s.has(key) ? s : new Set(s).add(key)));
@@ -334,7 +343,7 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
   const mountTick = useRef(dayCloseTick);
   const now = new Date();
 
-  const items = useMemo(() => orderedTodayItems(doc, new Date()), [doc]);
+  const items = useMemo(() => orderedTodayItems(doc, new Date()), [doc, clock]);
   type Row = { key: string; item: TodayRowItem; onOpen?: () => void };
   const rows: Row[] = [
     ...items.map((it) => ({ key: it.key, item: it as TodayRowItem, onOpen: () => openAction(it.ti, it.ai) })),
@@ -343,8 +352,13 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
   const visible = rows.filter((r) => !r.item.done || kept.has(r.key));
   const shown = visible.slice(0, 3);
   const more = visible.length - shown.length;
-  const canPick = useMemo(() => pickSections(doc, new Date()).some((sec) => sec.rows.some((r) => r.state === 'off')), [doc]);
+  const canPick = useMemo(() => canPickAny(doc, new Date()), [doc, clock]);
   const complete = todayTotal > 0 && todayDone === todayTotal;
+  // 이 화면에 있는 동안 다 찼고 아직 마감하지 않은 날 — 곧 마감 신호(dayCloseTick)가 온다(시트 위에서 마지막 하나를 한 때도).
+  // 마감 줄은 빈 줄에서 시작한다(그어진 채 보였다가 사라졌다 다시 그어지지 않게). 신호가 안 오면 400ms 뒤 그대로 보인다.
+  const startComplete = useRef(complete);
+  const today = dateKey(now);
+  const closing = complete && !startComplete.current && closedDay !== today && !doc.closedDays?.includes(today);
 
   // 줄: 남은 일 · (n개 더) · (고르기 / 추가하기)
   const lines: React.ReactNode[] = shown.map((r, i) => (
@@ -374,7 +388,7 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
   }
   if (canPick || todayTotal === 0) {
     // 만다라트에 고를 실천이 있으면 거기서 고르고, 없으면 오늘만 할 일을 바로 적는다
-    const label = canPick ? '실천에서 더 고르기' : '오늘 할 일 추가하기';
+    const label = canPick ? '실천에서 더 고르기' : '오늘 할 일 담기';
     lines.push(
       <Pressable
         key="pick"
@@ -384,7 +398,7 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
         style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54, paddingVertical: 8, paddingLeft: 1 }, pressed ? pressedRow(M) : null]}
       >
         {lines.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-        <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: M.faint, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: 1.4, borderStyle: 'dashed', borderColor: checkBorder(M.dark), alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="plus" size={13} color={M.sub} sw={2.2} />
         </View>
         <Text style={{ fontSize: 15, fontWeight: '600', color: M.sub }}>{label}</Text>
@@ -406,7 +420,7 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
           <View style={{ borderTopWidth: 1, borderBottomWidth: complete ? 0 : 1, borderColor: M.line }}>{lines}</View>
         )}
         {complete && (
-          <LedgerClose M={M} total={todayTotal} draw={dayCloseTick !== mountTick.current} fresh={kept.size > 0} />
+          <LedgerClose M={M} total={todayTotal} draw={dayCloseTick !== mountTick.current} fresh={kept.size > 0 || closing} />
         )}
       </View>
     </>
@@ -443,11 +457,13 @@ function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boo
     return () => clearTimeout(t);
   }, [fresh, scale]);
 
-  const rule = { height: 1, backgroundColor: M.ink, transform: [{ scaleX: scale }], transformOrigin: 'left' as const };
+  // 움직이는 값이 든 스타일은 한 번만 — 다시 그릴 때마다 새 객체면 애니메이션 연결을 다시 맺는다
+  const rule = useMemo(() => ({ height: 1, backgroundColor: M.ink, transform: [{ scaleX: scale }], transformOrigin: 'left' as const }), [M.ink, scale]);
+  const rule2 = useMemo(() => [rule, { marginTop: 2 }], [rule]);
   return (
     <View accessible accessibilityLabel={`${fmtDateLong(dateKey())} 마감, ${total}개 중 ${total}개 했어요`}>
       <Animated.View style={rule} />
-      <Animated.View style={[rule, { marginTop: 2 }]} />
+      <Animated.View style={rule2} />
       <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingTop: 10, paddingHorizontal: 2 }}>
         <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: M.sub }}>{fmtDateLong(dateKey())} 마감</Text>
         <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, ...NUM }}>{total} / {total}</Text>
@@ -457,15 +473,14 @@ function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boo
 }
 
 // 마지막 단계(하나 체크하기)는 바로 아래 오늘 할 일에서 하므로 버튼이 없다 — 가리키는 줄 위에 '오늘 보기'를 두지 않는다
-const GUIDE_CTA: Record<GuideKey, string | null> = { goal: '쓰기', areas: '정하기', fill: '채우기', today: '고르기', check: null };
+const GUIDE_CTA: Record<GuideKey, string | null> = { goal: '정하기', areas: '정하기', fill: '채우기', today: '고르기', check: null };
 
 /**
  * 시작하기 — 핵심 목표 → 영역 8개 → 실천 칸 → 오늘 할 일 → 첫 체크.
  * 다음 단계에만 버튼을 달아 지금 할 일 하나만 보이게 하고, 다섯 단계를 다 하면 사라진다.
  */
-function StartGuide({ M, doc }: { M: M; doc: MandaratDoc }) {
+function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeof guideSteps> }) {
   const { openEditor, openPick, go } = useUIActions();
-  const g = guideSteps(doc);
   if (g.next < 0) return null;
   const doneCount = g.steps.filter((st) => st.done).length;
   const run = (key: GuideKey) => {
@@ -482,11 +497,14 @@ function StartGuide({ M, doc }: { M: M; doc: MandaratDoc }) {
   };
   return (
     <>
-      <SectionHead M={M} title="시작하기" right={`${doneCount}/${GUIDE_STEP_COUNT}`} />
+      <SectionHead M={M} title="시작하기" right={`${doneCount}/${GUIDE_STEP_COUNT}`} rightSpeech={`${GUIDE_STEP_COUNT}단계 중 ${doneCount}단계`} />
       <View style={{ paddingHorizontal: GUTTER }}>
         {g.steps.map((st, i) => {
           const isNext = i === g.next;
-          const label = st.key === 'fill' ? `${st.label} · ${Math.min(g.filled, GUIDE_FILL_TARGET)}/${GUIDE_FILL_TARGET}` : st.label;
+          const filled = Math.min(g.filled, GUIDE_FILL_TARGET);
+          const label = st.key === 'fill' ? `${st.label} · ${filled}/${GUIDE_FILL_TARGET}` : st.label;
+          // 소리로는 '3/8' 대신 '8칸 중 3칸'
+          const speech = st.key === 'fill' ? `${st.label}, ${GUIDE_FILL_TARGET}칸 중 ${filled}칸` : st.label;
           const cta = isNext ? GUIDE_CTA[st.key] : null;
           const first = i === 0;
           // 버튼이 달린 단계만 누를 수 있다 — 끝낸 단계·아직 먼 단계는 글
@@ -494,10 +512,10 @@ function StartGuide({ M, doc }: { M: M; doc: MandaratDoc }) {
           return (
             <Pressable
               key={st.key}
-              onPress={() => run(st.key)}
-              disabled={!pressable}
+              // 끝낸 단계를 disabled로 두면 화면 읽기가 '흐리게 표시됨'이라 읽는다 — 누를 일만 없앤다
+              onPress={pressable ? () => run(st.key) : undefined}
               accessibilityRole={pressable ? 'button' : 'text'}
-              accessibilityLabel={`${i + 1}단계 ${label}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}${cta ? `, ${cta}` : ''}`}
+              accessibilityLabel={`${i + 1}단계 ${speech}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}${cta ? `, ${cta}` : ''}`}
               style={({ pressed }) => [
                 groupEdge(M, first, i === g.steps.length - 1),
                 { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8 },
@@ -506,7 +524,7 @@ function StartGuide({ M, doc }: { M: M; doc: MandaratDoc }) {
             >
               {!first && <RowDivider M={M} inset={TODAY_ROW_INSET - 2} />}
               {st.done ? (
-                <Check on color={M.accent} dark={M.dark} size={24} seed={st.key} />
+                <Check on color={legibleMark(M.accent, M.bg, M)} dark={M.dark} size={24} seed={st.key} />
               ) : (
                 <View style={{ width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1.6, borderColor: isNext ? M.ink : M.line }}>
                   <Text style={{ fontSize: 11, fontWeight: '800', color: isNext ? M.ink : M.sub, ...NUM }} maxFontSizeMultiplier={1.2}>{i + 1}</Text>

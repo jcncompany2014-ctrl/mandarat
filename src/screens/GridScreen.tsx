@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
@@ -9,14 +9,15 @@ import { FullGrid } from './FullGrid';
 import { gridMemory } from './gridMemory';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
-import { useUI } from '../navigation/ui';
-import { useMandarat } from '../store/MandaratContext';
+import { useUIActions } from '../navigation/ui';
+import { useDoc } from '../store/MandaratContext';
 
 /** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만, 표 아래 괘선 한 줄로 */
 function NextStepRow({ M }: { M: M }) {
-  const { doc } = useMandarat();
-  const { openAction, openEditor } = useUI();
-  const step = nextStep(doc, new Date());
+  const { doc, clock } = useDoc();
+  const { openAction, openEditor } = useUIActions();
+  // 문서·날짜(clock)가 그대로면 다시 찾지 않는다
+  const step = useMemo(() => nextStep(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!step) return null;
   const th = doc.themes[step.ti];
   const area = th.title.trim() || `영역 ${step.ti + 1}`;
@@ -55,7 +56,7 @@ function NextStepRow({ M }: { M: M }) {
 /** 만다라트 탭 — 인쇄된 81칸 표 한 장과, 그 아래 다음 할 일 한 줄 */
 export function GridScreen() {
   const M = usePalette();
-  const { openEditor, openShare } = useUI();
+  const { openEditor, openShare } = useUIActions();
   // 블록을 크게 보는 동안엔 '다음 할 일'을 접는다
   const [zoomed, setZoomed] = useState(gridMemory.focus != null);
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, View, type AccessibilityActionEvent, type GestureResponderEvent } from 'react-native';
 import { DUR, EASE } from '../theme/motion';
 import { alpha } from '../theme/moods';
@@ -7,7 +7,7 @@ import {
 } from '../theme/chart';
 import { usePalette } from '../theme/usePalette';
 import { useReducedMotion } from '../lib/useReducedMotion';
-import type { MandaratDoc } from '../types';
+import type { CellShape, MandaratDoc, Theme } from '../types';
 
 // 3×3 배치: 바깥 8칸 = 8영역(왼쪽 위부터 시계 방향이 아닌 읽는 순서), 가운데 = 핵심 목표
 const AREA_AT = [0, 1, 2, 3, -1, 4, 5, 6, 7] as const;
@@ -43,7 +43,7 @@ const CORE_MS = 420;
 const FRESH_STAGGER = 45;
 const BLOOM_SPAN = 1800;
 
-type MiniCell = {
+type CellLook = {
   row: number;
   col: number;
   /** 마지막 모습의 바탕 (없으면 종이 그대로) */
@@ -59,6 +59,68 @@ type MiniCell = {
 };
 
 type Run = { key: string; delay: number; duration: number };
+const NO_THEMES: readonly Theme[] = [];
+type CellAnim = { v: Animated.Value; opacity: Animated.AnimatedInterpolation<number>; scale: Animated.AnimatedInterpolation<number> };
+
+/**
+ * 81칸의 칸 하나(바탕 + 이름표 막대) — 값이 모두 글자·숫자라 같은 값이면 다시 그리지 않는다.
+ * 한 칸을 체크해도 바뀐 칸 한두 개만 다시 그려진다.
+ */
+const MiniCell = memo(function MiniCell({ left, top, size, bg, under, barColor, barRatio, barH, anim }: {
+  left: number;
+  top: number;
+  size: number;
+  bg?: string;
+  under?: string;
+  barColor?: string;
+  barRatio?: number;
+  barH: number;
+  /** 칠해지는 움직임(축하 쪽) — 움직임이 바뀔 때만 새 값 */
+  anim?: CellAnim;
+}) {
+  const box = { position: 'absolute' as const, left, top, width: size, height: size };
+  return (
+    <>
+      {anim ? (
+        <>
+          {under && <View style={[box, { backgroundColor: under }]} />}
+          <Animated.View style={[box, { backgroundColor: bg, opacity: anim.opacity, transform: [{ scale: anim.scale }] }]} />
+        </>
+      ) : bg ? (
+        <View style={[box, { backgroundColor: bg }]} />
+      ) : null}
+      {barColor != null && (
+        <View style={{ position: 'absolute', left, top: top + size - barH, width: size, height: barH, backgroundColor: headTrack(barColor) }}>
+          <View style={{ width: size * (barRatio ?? 0), height: barH, backgroundColor: barColor }} />
+        </View>
+      )}
+    </>
+  );
+});
+
+/** 오늘 할 일 점 — 채운 작은 네모(빈 네모 테두리는 체크 칸으로 읽힌다) */
+const MiniDot = memo(function MiniDot({ left, top, size, color }: { left: number; top: number; size: number; color: string }) {
+  return <View style={{ position: 'absolute', left, top, width: size, height: size, backgroundColor: color }} />;
+});
+
+/** 괘선 16줄 — 칠한 칸 위에 찍는다(인쇄된 표처럼). 블록 사이는 굵고 진하게. 크기·색이 같으면 다시 그리지 않는다 */
+const Rules = memo(function Rules({ c, inner, cellRule, blockRule }: { c: number; inner: number; cellRule: string; blockRule: string }) {
+  return (
+    <>
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((k) => {
+        const thick = k % 3 === 0;
+        const w = thick ? MINI_RULE.block : MINI_RULE.cell;
+        const color = thick ? blockRule : cellRule;
+        return (
+          <React.Fragment key={`r${k}`}>
+            <View style={{ position: 'absolute', left: k * c - w / 2, top: 0, width: w, height: inner, backgroundColor: color }} />
+            <View style={{ position: 'absolute', top: k * c - w / 2, left: 0, height: w, width: inner, backgroundColor: color }} />
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+});
 
 /**
  * 내 만다라트 81칸 전체를 작게 — 인쇄된 표 한 장. 홈 머리, 64칸 축하 쪽에 쓴다.
@@ -66,19 +128,25 @@ type Run = { key: string; delay: number; duration: number };
  * 표의 약속(src/theme/chart.ts): 칠한 칸 = 달성 · 아주 옅게 깔리고 아래에 가는 진행 막대가 붙은 칸 = 영역 이름표
  * (영역 보드의 머리 칸을 줄인 모양) · 옅게 깔린 칸 = 적어 둔 실천 · 빈 칸 = 종이 · 가운데 = 핵심 목표.
  * 처음 쓰는 사람의 표에는 칠한 칸이 하나도 없다. 이름표는 칸을 통째로 쓴다 — 칸 안의 작은 네모 테두리는 빈 체크 칸처럼 보인다.
- * 오늘 할 일인 칸 가운데에는 작은 점 — 아직이면 먹색, 오늘 했으면 금색(칠한 칸 위에선 흰색).
+ * 오늘 할 일인 칸 가운데에는 작은 점 — 아직이면 먹색, 오늘 했으면 포인트 색(칠한 칸 위에선 흰색).
  *
+ * - themes · cellShape: 그릴 영역들과 칸 모서리 설정. 문서(doc) 통째를 넘기면 체크마다 표 전체가 다시 그려지므로
+ *   홈처럼 자주 바뀌는 곳은 이 둘을 넘긴다(doc은 예전 모양 — 축하 쪽처럼 한 번 그리는 곳).
  * - onPressBlock: 누른 자리의 블록 — 바깥 블록이면 영역 번호, 가운데 블록이면 'c'.
  *   화면 읽기(VoiceOver)로 두 번 누르면 'c', 동작 목록에서 영역을 고르면 그 영역.
+ * - todayKeys · doneToday: 내용이 같으면 같은 Set을 넘길 것(부르는 쪽이 서명으로 고정한다) — 그래야 칸 값을 다시 세지 않는다.
  * - animate 'fresh': fresh에 든 달성 칸이 쓰기만 한 색에서 가운데부터 바깥으로 차례로 칠해진다.
  * - animate 'bloom': 달성한 칸 모두가 가운데에서 소용돌이로 칠해지고, 가운데 칸이 마지막에 찍힌다(64칸 축하).
  * - 동작 줄이기가 켜져 있으면 처음부터 마지막 모습.
  * - dark·ink는 예전 이름 — 팔레트는 usePalette()로 읽으므로 넘겨도 쓰지 않는다.
  */
-export function MiniChart({
-  doc, size = 132, square, onPressBlock, todayKeys, doneToday, fresh, animate, accessibilityHint,
+export const MiniChart = memo(function MiniChart({
+  doc, themes: themesProp, cellShape, size = 132, square, onPressBlock, todayKeys, doneToday, fresh, animate, accessibilityHint,
 }: {
-  doc: MandaratDoc;
+  /** 예전 모양 — themes · cellShape를 넘기면 쓰지 않는다 */
+  doc?: Pick<MandaratDoc, 'themes' | 'settings'>;
+  themes?: readonly Theme[];
+  cellShape?: CellShape;
   size?: number;
   /** @deprecated 팔레트는 usePalette()로 읽는다 — 넘겨도 쓰지 않는다 */
   dark?: boolean;
@@ -99,16 +167,19 @@ export function MiniChart({
 }) {
   const M = usePalette();
   const reduced = useReducedMotion();
+  const themes = themesProp ?? doc?.themes ?? NO_THEMES;
+  const shape = cellShape ?? doc?.settings.cellShape;
   const frame = MINI_RULE.frame;
   const inner = size - frame * 2;
   const c = inner / 9;
-  const radius = (square ?? doc.settings.cellShape === '각진') ? 0 : frameRadius('둥근');
+  const radius = (square ?? shape === '각진') ? 0 : frameRadius('둥근');
 
-  // 칸 81개의 마지막 모습 — 문서·팔레트·오늘 표시가 바뀔 때만 다시 센다
-  const { cells, todayN, todayDid } = useMemo(() => {
-    const out: MiniCell[] = [];
+  // 칸 81개의 마지막 모습 — 영역·팔레트·오늘 표시가 바뀔 때만 다시 센다
+  const { cells, todayN, todayDid, total } = useMemo(() => {
+    const out: CellLook[] = [];
     let n = 0;
     let didN = 0;
+    let doneN = 0;
     for (let row = 0; row < 9; row++) {
       for (let col = 0; col < 9; col++) {
         const cell = chartCell(row, col);
@@ -117,7 +188,7 @@ export function MiniChart({
           out.push({ row, col, bg: coreBg(M), under: M.bg, key: 'core' });
           continue;
         }
-        const th = doc.themes[cell.ti];
+        const th = themes[cell.ti];
         if (!th) { out.push({ row, col }); continue; }
         if (cell.kind === 'head') {
           const done = th.actions.filter((a) => a.done).length;
@@ -127,8 +198,9 @@ export function MiniChart({
         const a = th.actions[cell.ai];
         const written = !!a?.text.trim();
         const key = `${cell.ti}-${cell.ai}`;
-        const base: MiniCell = { row, col };
+        const base: CellLook = { row, col };
         if (a?.done) {
+          doneN++;
           base.bg = th.color;
           base.under = writtenBg(th.color, M);
           base.key = key;
@@ -139,15 +211,15 @@ export function MiniChart({
           const did = !!doneToday?.has(key);
           n++;
           if (did) didN++;
-          // 종이·쓴 칸 위에선 아직이면 먹색 · 했으면 금색(바탕 위 3:1 이상으로 맞춘 금색). 칠한 칸 위에선 흰 점
+          // 종이·쓴 칸 위에선 아직이면 먹색 · 했으면 포인트 색(바탕 위 3:1 이상으로 맞춘 색). 칠한 칸 위에선 흰 점
           // (점은 늘 채운 네모 — 빈 네모 테두리는 체크 칸으로 읽힌다)
           base.dot = a?.done ? DONE_INK : did ? legibleMark(M.gold, base.bg ?? M.bg, M) : M.ink;
         }
         out.push(base);
       }
     }
-    return { cells: out, todayN: n, todayDid: didN };
-  }, [doc.themes, M, todayKeys, doneToday]);
+    return { cells: out, todayN: n, todayDid: didN, total: doneN };
+  }, [themes, M, todayKeys, doneToday]);
 
   // 움직일 칸과 순서 — 가운데에서 가까운 칸부터(소용돌이 순번)
   const freshSig = fresh ? [...fresh].sort().join(',') : '';
@@ -168,7 +240,7 @@ export function MiniChart({
 
   // 칸마다 0 → 1 값 하나. 움직임이 바뀔 때만 새로 만든다(동작 줄이기면 처음부터 1)
   const values = useMemo(() => {
-    const map = new Map<string, { v: Animated.Value; opacity: Animated.AnimatedInterpolation<number>; scale: Animated.AnimatedInterpolation<number> }>();
+    const map = new Map<string, CellAnim>();
     for (const r of runs) {
       const v = new Animated.Value(reduced ? 1 : 0);
       map.set(r.key, {
@@ -196,9 +268,20 @@ export function MiniChart({
   const slotOf = (b: number | 'c' | null) => (b == null ? null : b === 'c' ? 4 : CHART_POS[b]);
   const target = (x: number | undefined, y: number | undefined) => blockAt(x == null ? x : x - frame, y == null ? y : y - frame, inner);
 
-  const total = doc.themes.reduce((s, t) => s + t.actions.filter((a) => a.done).length, 0);
-  const label = `내 만다라트 81칸, 64칸 중 ${total}칸 달성${todayN > 0 ? `, 오늘 할 일 ${todayN}칸 중 ${todayDid}칸 했어요` : ''}`;
-  const areaName = (ti: number) => doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
+  const label = `내 만다라트 81칸, 64칸 중 ${total}칸 달성${todayN > 0 ? `, 오늘 할 일 ${todayN}개 중 ${todayDid}개 했어요` : ''}`;
+  // 화면 읽기 동작 목록 — 영역 이름이 바뀔 때만 새로
+  const a11yActions = useMemo(
+    () => [{ name: 'activate' }, ...themes.map((th, ti) => ({ name: `area-${ti}`, label: `${th.title.trim() || `영역 ${ti + 1}`} 보기` }))],
+    [themes],
+  );
+  const pressRef = useRef(onPressBlock);
+  pressRef.current = onPressBlock;
+  // 화면 읽기: 두 번 누르면(activate) 가운데, 동작 목록에서 영역을 고르면 그 영역 — 위치로 찾지 않는다
+  const onAction = useCallback((e: AccessibilityActionEvent) => {
+    const name = e.nativeEvent.actionName;
+    if (name === 'activate') pressRef.current?.('c');
+    else if (name.startsWith('area-')) pressRef.current?.(Number(name.slice(5)));
+  }, []);
 
   const cellRule = ruleColor(M, 'cell');
   const blockRule = ruleColor(M, 'block');
@@ -208,48 +291,28 @@ export function MiniChart({
 
   const drawing = (
     <View pointerEvents="none" style={{ width: inner, height: inner }}>
-      {cells.map((x) => {
-        const left = x.col * c;
-        const top = x.row * c;
-        const box = { position: 'absolute' as const, left, top, width: c, height: c };
-        const anim = x.key ? values.get(x.key) : undefined;
-        return (
-          <React.Fragment key={`${x.row}-${x.col}`}>
-            {anim ? (
-              <>
-                {x.under && <View style={[box, { backgroundColor: x.under }]} />}
-                <Animated.View style={[box, { backgroundColor: x.bg, opacity: anim.opacity, transform: [{ scale: anim.scale }] }]} />
-              </>
-            ) : x.bg ? (
-              <View style={[box, { backgroundColor: x.bg }]} />
-            ) : null}
-            {x.bar && (
-              <View style={{ position: 'absolute', left, top: top + c - barH, width: c, height: barH, backgroundColor: headTrack(x.bar.color) }}>
-                <View style={{ width: c * x.bar.ratio, height: barH, backgroundColor: x.bar.color }} />
-              </View>
-            )}
-          </React.Fragment>
-        );
-      })}
-      {/* 괘선 — 칠한 칸 위에 찍는다(인쇄된 표처럼). 블록 사이는 굵고 진하게 */}
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((k) => {
-        const thick = k % 3 === 0;
-        const w = thick ? MINI_RULE.block : MINI_RULE.cell;
-        const color = thick ? blockRule : cellRule;
-        return (
-          <React.Fragment key={`r${k}`}>
-            <View style={{ position: 'absolute', left: k * c - w / 2, top: 0, width: w, height: inner, backgroundColor: color }} />
-            <View style={{ position: 'absolute', top: k * c - w / 2, left: 0, height: w, width: inner, backgroundColor: color }} />
-          </React.Fragment>
-        );
-      })}
+      {cells.map((x) => (
+        <MiniCell
+          key={`${x.row}-${x.col}`}
+          left={x.col * c}
+          top={x.row * c}
+          size={c}
+          bg={x.bg}
+          under={x.under}
+          barColor={x.bar?.color}
+          barRatio={x.bar?.ratio}
+          barH={barH}
+          anim={x.key ? values.get(x.key) : undefined}
+        />
+      ))}
+      <Rules c={c} inner={inner} cellRule={cellRule} blockRule={blockRule} />
       {cells.map((x) => x.dot && (
-        <View
+        <MiniDot
           key={`d${x.row}-${x.col}`}
-          style={{
-            position: 'absolute', left: x.col * c + (c - dotSize) / 2, top: x.row * c + (c - dotSize) / 2,
-            width: dotSize, height: dotSize, backgroundColor: x.dot,
-          }}
+          left={x.col * c + (c - dotSize) / 2}
+          top={x.row * c + (c - dotSize) / 2}
+          size={dotSize}
+          color={x.dot}
         />
       ))}
       {pressed != null && (
@@ -276,13 +339,6 @@ export function MiniChart({
     );
   }
 
-  // 화면 읽기: 두 번 누르면(activate) 가운데, 동작 목록에서 영역을 고르면 그 영역 — 위치로 찾지 않는다
-  const onAction = (e: AccessibilityActionEvent) => {
-    const name = e.nativeEvent.actionName;
-    if (name === 'activate') onPressBlock('c');
-    else if (name.startsWith('area-')) onPressBlock(Number(name.slice(5)));
-  };
-
   return (
     <Pressable
       style={frameStyle}
@@ -301,13 +357,10 @@ export function MiniChart({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityActions={[
-        { name: 'activate' },
-        ...doc.themes.map((_, ti) => ({ name: `area-${ti}`, label: `${areaName(ti)} 보기` })),
-      ]}
+      accessibilityActions={a11yActions}
       onAccessibilityAction={onAction}
     >
       {drawing}
     </Pressable>
   );
-}
+});
