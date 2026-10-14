@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Header, IconBtn } from '../components/common';
-import { SegmentedControl } from '../components/SegmentedControl';
-import { Reveal } from '../components/Reveal';
-import { Pressy } from '../components/Pressy';
-import { nextStep } from '../lib/nextStep';
 import { Icon } from '../components/Icon';
+import { nextStep } from '../lib/nextStep';
 import { tap } from '../lib/haptics';
-import { MandalaWheel } from './MandalaWheel';
 import { FullGrid } from './FullGrid';
 import { gridMemory } from './gridMemory';
 import type { M } from '../theme/usePalette';
@@ -16,78 +12,60 @@ import { usePalette } from '../theme/usePalette';
 import { useUI } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 
-const STEP_REASON = { today: '오늘 남은 일', weakest: '가장 더딘 영역의 다음 실천', empty: '아직 비어 있는 칸' } as const;
-
-/** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만 권한다 */
-function NextStepCard({ M }: { M: M }) {
+/** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만, 표 아래 괘선 한 줄로 */
+function NextStepRow({ M }: { M: M }) {
   const { doc } = useMandarat();
   const { openAction, openEditor } = useUI();
   const step = nextStep(doc, new Date());
   if (!step) return null;
   const th = doc.themes[step.ti];
-  const a = th.actions[step.ai];
-  const area = th.title || `영역 ${step.ti + 1}`;
-  const title = step.kind === 'empty' ? `${area}의 빈 칸 채우기` : a.text;
+  const area = th.title.trim() || `영역 ${step.ti + 1}`;
+  const empty = step.kind === 'empty';
+  const blanks = doc.themes.reduce((s, t) => s + t.actions.filter((a) => !a.text.trim()).length, 0);
+  const title = empty ? `빈 칸 ${blanks} · ${area}부터 채우기` : th.actions[step.ai].text.trim();
   return (
-    <Reveal delay={420} style={{ paddingHorizontal: 8, marginTop: 18 }}>
-      <Pressy
-        onPress={() => { tap(); if (step.kind === 'empty') openEditor({ kind: 'action', ti: step.ti, ai: step.ai }); else openAction(step.ti, step.ai); }}
-        scaleTo={0.98}
-        accessibilityRole="button"
-        accessibilityLabel={`다음 할 일, ${STEP_REASON[step.kind]}: ${title}, ${area}`}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 15, paddingHorizontal: 18, borderRadius: 20, backgroundColor: M.surface, borderWidth: 1, borderColor: M.line }}
-      >
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>{STEP_REASON[step.kind]}</Text>
-          <Text style={{ fontSize: 15.5, fontWeight: '800', color: M.ink, marginTop: 3, letterSpacing: -0.2 }} numberOfLines={2}>{title}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: th.color }} />
-            <Text style={{ flexShrink: 1, fontSize: 11.5, color: M.sub, fontWeight: '600' }} numberOfLines={1}>{area}</Text>
+    <Pressable
+      onPress={() => {
+        tap();
+        if (empty) openEditor({ kind: 'action', ti: step.ti, ai: step.ai, seq: true });
+        else openAction(step.ti, step.ai);
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={empty ? `다음 할 일, ${title}` : `다음 할 일, ${title}, ${area}`}
+      style={({ pressed }) => ({
+        flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginHorizontal: 4, paddingVertical: 14,
+        borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>다음 할 일</Text>
+        <Text style={{ fontSize: 16, lineHeight: 22, fontWeight: '800', color: M.ink, marginTop: 3 }} numberOfLines={2}>{title}</Text>
+        {!empty && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 1, backgroundColor: th.color }} />
+            <Text style={{ flexShrink: 1, fontSize: 12, fontWeight: '600', color: M.sub }} numberOfLines={1}>{area}</Text>
           </View>
-        </View>
-        <Icon name="chevR" size={18} color={M.faint} />
-      </Pressy>
-    </Reveal>
+        )}
+      </View>
+      <Icon name="chevR" size={16} color={M.faint} />
+    </Pressable>
   );
 }
 
+/** 만다라트 탭 — 인쇄된 81칸 표 한 장과, 그 아래 다음 할 일 한 줄 */
 export function GridScreen() {
   const M = usePalette();
   const { openEditor } = useUI();
-  // 상세 화면에 다녀와도 보던 보기(휠/81칸) 그대로
-  const [view, setViewState] = useState<'mandala' | 'full'>(gridMemory.view);
-  const setView = (v: 'mandala' | 'full') => { gridMemory.view = v; setViewState(v); };
+  // 블록을 크게 보는 동안엔 '다음 할 일'을 접는다
+  const [zoomed, setZoomed] = useState(gridMemory.focus != null);
 
   return (
-    // flex:1 — 휠 보기에선 남는 세로 공간에 휠을 가운데 두고, '다음 할 일'은 아래에 붙인다
     <View style={{ flex: 1 }}>
-      <Header M={M} kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 편집" onPress={() => openEditor({ kind: 'center' })} />} />
-
-      {/* view toggle — 받침이 미끄러지는 분절 선택기 */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
-        <SegmentedControl
-          M={M}
-          value={view}
-          onChange={setView}
-          options={[{ value: 'mandala', label: '만다라 휠' }, { value: 'full', label: '격자 81칸' }]}
-        />
+      <Header M={M} kr="만다라트" right={<IconBtn M={M} name="pencil" label="핵심 목표 고치기" onPress={() => openEditor({ kind: 'center' })} />} />
+      <View style={{ paddingHorizontal: 11, paddingBottom: 8 }}>
+        <FullGrid M={M} onFocusChange={setZoomed} />
+        {!zoomed && <NextStepRow M={M} />}
       </View>
-
-      {view === 'mandala' ? (
-        <View style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 8 }}>
-          <View style={{ flex: 1, justifyContent: 'center' }}>
-            <MandalaWheel M={M} />
-          </View>
-          <NextStepCard M={M} />
-        </View>
-      ) : (
-        // 81칸 — 판은 위에서부터, '다음 할 일'은 휠 보기와 같은 자리(아래)에
-        <View style={{ flex: 1, paddingHorizontal: 11, paddingBottom: 8 }}>
-          <FullGrid M={M} />
-          <View style={{ flex: 1 }} />
-          <NextStepCard M={M} />
-        </View>
-      )}
     </View>
   );
 }
