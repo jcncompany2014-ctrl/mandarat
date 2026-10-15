@@ -72,7 +72,7 @@ function opaqueWidth(file) {
   return { tile: x1 - x0 + 1, width: w };
 }
 
-test('런치 스크린: 미색 바탕에 JS 스플래시와 같은 84pt 타일', () => {
+test('런치 스크린: 미색 바탕에 JS 스플래시와 같은 84pt 표', () => {
   const entry = app.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-splash-screen');
   assert.ok(entry, 'expo-splash-screen 플러그인 설정이 있어야 한다');
   const opts = entry[1];
@@ -81,7 +81,7 @@ test('런치 스크린: 미색 바탕에 JS 스플래시와 같은 84pt 타일',
   assert.equal('dark' in opts, false, '바탕은 시스템이 아니라 앱 안의 종이가 정한다');
   const { tile, width } = opaqueWidth(path.join(ROOT, opts.image));
   const splashSrc = read('src/components/Splash.tsx');
-  const jsTile = Number(/width: (\d+), height: \1, borderRadius/.exec(splashSrc)?.[1]);
+  const jsTile = Number(/const MARK = (\d+);/.exec(splashSrc)?.[1]);
   assert.ok(Math.abs((opts.imageWidth * tile) / width - jsTile) < 0.75, `런치 타일 ${((opts.imageWidth * tile) / width).toFixed(2)}pt ≠ JS ${jsTile}pt`);
   assert.match(splashSrc, new RegExp(`PAPER = '${PAPER}'`));
 });
