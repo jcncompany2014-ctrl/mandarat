@@ -22,7 +22,9 @@
       "infoPlist": {
         "CFBundleDisplayName": "만다라트",
         "CFBundleDevelopmentRegion": "ko",
-        "CFBundleLocalizations": ["ko"],
+        "CFBundleLocalizations": [
+          "ko"
+        ],
         "RCTAsyncStorageExcludeFromBackup": false,
         "NSPhotoLibraryAddUsageDescription": "만다라트 표 이미지를 사진 앱에 저장하려면 권한이 필요해요.",
         "UIStatusBarStyle": "UIStatusBarStyleDarkContent",
@@ -32,7 +34,7 @@
     "android": {
       "package": "com.jcncompany.mandarat",
       "adaptiveIcon": {
-        "backgroundColor": "#B0883C",
+        "backgroundColor": "#FBF9F4",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -41,7 +43,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "만다라트",
+      "shortName": "만다라트",
+      "themeColor": "#FBF9F4",
+      "backgroundColor": "#FBF9F4"
     },
     "plugins": [
       "expo-font",

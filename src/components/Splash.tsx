@@ -2,15 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { GridMark } from './GridMark';
 import { EASE } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 
 /** 스플래시 바탕 — app.json의 backgroundColor·expo-splash-screen 배경과 같은 미색 */
 export const PAPER = '#FBF9F4';
+/** 스플래시 표의 먹 · 금색 — 앱 아이콘(assets/icon.png)과 같은 값 */
+const SPLASH_INK = '#2B2620';
+const SPLASH_GOLD = '#B0883C';
 
 // ── 네이티브 스플래시 ───────────────────────────────────────────────────────────
-// iOS 런치 스크린(미색 + 3×3 타일)을 서체·저장소가 준비될 때까지 붙잡아 두었다가,
+// iOS 런치 스크린(미색 + 인쇄된 3×3 표)을 서체·저장소가 준비될 때까지 붙잡아 두었다가,
 // 첫 화면이 레이아웃을 마치면 250ms 페이드로 걷는다. 웹에는 네이티브 스플래시가 없다.
 const NATIVE = Platform.OS !== 'web';
 /** 무슨 일이 있어도 이 시간이 지나면 걷는다 — 아래에는 같은 모양의 JS 스플래시가 깔려 있어 일찍 걷혀도 티가 나지 않는다 */
@@ -44,7 +46,7 @@ export function releaseNativeSplash(): void {
 // ── JS 스플래시 ────────────────────────────────────────────────────────────────
 
 /**
- * 폰트 로딩·스토어 하이드레이션 동안 보여주는 정적 스플래시 — 미색 바탕에 앱 아이콘과 같은 3×3.
+ * 폰트 로딩·스토어 하이드레이션 동안 보여주는 정적 스플래시 — 미색 바탕에 앱 아이콘과 같은 인쇄된 3×3 표.
  * 네이티브에서는 런치 스크린 아래에 깔려 있고, 눈에 보이는 건 웹에서뿐이다.
  * (서체를 불러오기 전이라 글자는 쓰지 않는다)
  */
@@ -57,11 +59,26 @@ export function Splash() {
   );
 }
 
-/** 런치 스크린 이미지(splash-icon.png, 1024 중 230px 타일 → imageWidth 374 = 84pt)와 같은 크기·모서리 */
+/**
+ * 런치 스크린 이미지(splash-icon.png)와 같은 표 — 1024 중 230px(imageWidth 374 → 84pt),
+ * 바깥 테두리 12px(≈4.4pt) · 안쪽 괘선 7px(≈2.6pt) · 가운데 칸만 금색. 앱 아이콘과 같은 인쇄된 3×3.
+ */
+const MARK = 84;
+const MARK_FRAME = 4.4;
+const MARK_RULE = 2.6;
 function SplashMark() {
+  const cell = (MARK - MARK_FRAME * 2 - MARK_RULE * 2) / 3;
+  const c1 = MARK_FRAME + cell;
+  const c2 = c1 + MARK_RULE + cell;
+  const line = (style: object) => <View style={[{ position: 'absolute', backgroundColor: SPLASH_INK }, style]} />;
   return (
-    <View style={{ width: 84, height: 84, borderRadius: 24, backgroundColor: '#B0883C', alignItems: 'center', justifyContent: 'center' }}>
-      <GridMark size={42} color="#FFFFFF" />
+    <View style={{ width: MARK, height: MARK }}>
+      <View style={{ position: 'absolute', left: c1 + MARK_RULE, top: c1 + MARK_RULE, width: cell, height: cell, backgroundColor: SPLASH_GOLD }} />
+      <View style={{ position: 'absolute', left: 0, top: 0, width: MARK, height: MARK, borderWidth: MARK_FRAME, borderColor: SPLASH_INK }} />
+      {line({ left: c1, top: 0, width: MARK_RULE, height: MARK })}
+      {line({ left: c2, top: 0, width: MARK_RULE, height: MARK })}
+      {line({ top: c1, left: 0, height: MARK_RULE, width: MARK })}
+      {line({ top: c2, left: 0, height: MARK_RULE, width: MARK })}
     </View>
   );
 }
