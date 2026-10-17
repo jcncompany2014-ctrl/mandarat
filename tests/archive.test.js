@@ -287,7 +287,7 @@ test('yearLabel: 한 해면 fmt.year, 해를 넘기면 fmt.yearSpan', () => {
 
 test('저장소: 저장본은 지난 표를 빼고 쓰고, 읽을 때 지금 지난 표를 다시 붙인다', () => {
   const s = src('src/store/MandaratContext.tsx');
-  assert.match(s, /AsyncStorage\.setItem\(mine, d\.archives \? JSON\.stringify\(\{ \.\.\.d, archives: undefined \}\) : json\)/);
+  assert.match(s, /AsyncStorage\.setItem\(mine, docOnlyJson\(d\)\)/);
   const read = s.slice(s.indexOf('const readSnapshot = useCallback'), s.indexOf('const getDoc = useCallback'));
   assert.match(read, /const archives = latest\.current\.archives;\s*return d && archives \? \{ \.\.\.d, archives \} : d;/);
   // 저장본 JSON 모양 — 지난 표 없이, 다시 붙이면 원래 문서
@@ -300,7 +300,7 @@ test('저장소: 저장본은 지난 표를 빼고 쓰고, 읽을 때 지금 지
 test('저장소: resetAll은 resetDoc, startNewChart는 먼저 계산해 null이면 false', () => {
   const s = src('src/store/MandaratContext.tsx');
   const reset = s.slice(s.indexOf('const resetAll = useCallback'), s.indexOf('const applyTemplate = useCallback'));
-  assert.match(reset, /dropEditorDraft\(\);\s*update\(\(d\) => resetDoc\(d\)\)/);
+  assert.match(reset, /dropEditorDraft\(\);\s*update\(\(d\) => resetDoc\(d\), 'epoch'\)/);
   assert.doesNotMatch(reset, /blankDoc\(\)/);
   const start = s.slice(s.indexOf('const startNewChart = useCallback'), s.indexOf('const dismissRecovered = useCallback'));
   assert.match(start, /const next = nextChart\(latest\.current, mode, new Date\(\), opts\);\s*if \(!next\) return false;\s*dropEditorDraft\(\);\s*update\(\(\) => next\);\s*return true;/);
