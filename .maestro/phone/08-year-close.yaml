@@ -21,7 +21,7 @@ tags:
     id: "set-year-close"
 - extendedWaitUntil:
     visible:
-      id: "year-close-.*"
+      id: "year-close-next|year-close-start"
     timeout: 10000
 - repeat:
     while:
