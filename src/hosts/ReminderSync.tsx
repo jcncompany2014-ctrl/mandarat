@@ -19,14 +19,19 @@ export function ReminderSync() {
 
   useEffect(() => {
     if (!notifier.supported || !ready || device === null) return;
-    const timer = setTimeout(() => {
+    let live = true;
+    const timer = setTimeout(async () => {
       const plan = device ? planReminders(doc, new Date(), { lang }) : [];
-      const key = planKey(plan);
-      if (key === lastKey.current) return;
+      // 허락 상태도 열쇠에 넣는다 — 기기 설정에서 알림을 다시 켜고 돌아오면(clock이 바뀐다) 같은 목록이라도 다시 건다
+      const key = `${await notifier.status()}|${planKey(plan)}`;
+      if (!live || key === lastKey.current) return;
       lastKey.current = key;
       void notifier.apply(plan);
     }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [doc, ready, clock, lang, device]);
 
   return null;
