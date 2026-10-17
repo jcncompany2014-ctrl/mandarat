@@ -64,9 +64,11 @@ test("D-10 · D-26 · D-29: 할 일 시트 — '마감 없음' 줄 한 겹 · �
 
 test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 바닥 괘선, 메모는 목록 위, 7×7 영역 표시, 토스트는 닫기 아래', () => {
   const s = src('src/overlays/WeekRitual.tsx');
-  assert.match(s, /`중점 \$\{picks\.length\}칸 · 마치기`/);
+  assert.match(s, /t\.finishWith\(\{ n: picks\.length \}\)/);
+  assert.equal(require('../src/i18n/ko/ritual').default.finishWith({ n: 2 }), '중점 2칸 · 마치기');
   assert.match(s, /borderTopWidth: 1, borderColor: M\.line \}\}>\s*<PrimaryButton/);
-  assert.ok(s.indexOf('placeholder="한 줄 메모"') < s.indexOf('{groups.map('), '메모가 영역 묶음보다 위');
+  assert.ok(s.indexOf('placeholder={rt.note}') > 0 && s.indexOf('placeholder={rt.note}') < s.indexOf('{groups.map('), '메모가 영역 묶음보다 위');
+  assert.equal(require('../src/i18n/ko/ritual').default.note, '한 줄 메모');
   assert.match(s, /width: 7, height: 7, borderRadius: 1\.5/);
   assert.match(s, /<Snackbar placement="top" offset=\{TOP_BAR_H\} \/>/);
   assert.match(src('src/overlays/Snackbar.tsx'), /top: insets\.top \+ 8 \+ offset/);
