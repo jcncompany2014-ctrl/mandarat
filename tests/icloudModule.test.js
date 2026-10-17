@@ -146,6 +146,11 @@ test('ICloudSyncModule.swift: 줄 — 파일 IO는 직렬 io 줄, 질의는 main
   assert.equal(sw.split('url(forUbiquityContainerIdentifier:').length - 1, 1);
   const resolve = /private func resolveContainer\(\) -> URL\? \{([\s\S]*?)\n {2}\}/.exec(sw)[1];
   assert.match(resolve, /dispatchPrecondition\(condition: \.onQueue\(io\)\)/);
+  // 계정은 기억한 주소보다 먼저 본다 — 로그아웃 뒤에는 E_NO_ACCOUNT(기억한 주소로 쓰다 E_IO가 되지 않게)
+  assert.ok(resolve.indexOf('ubiquityIdentityToken != nil else') < resolve.indexOf('if let url = containerURL'), '계정 먼저');
+  assert.match(resolve, /ubiquityIdentityToken != nil else \{\s*containerURL = nil\s*return nil/);
+  // 뒤로 갈 때 io 줄에 쌓인 일을 배경 작업 하나로 덮는다
+  assert.match(sw, /OnAppEntersBackground \{\s*let task = BackgroundTask\.begin\("icloud-sync drain"\)\s*self\.io\.async \{ task\.end\(\) \}/);
   // 질의는 main 줄에서 연다
   assert.match(sw, /guard self\.resolveContainer\(\) != nil else \{ return false \}\s*DispatchQueue\.main\.async \{ self\.startQuery\(\) \}/);
   assert.match(sw, /addObserver\(forName: \.NSMetadataQueryDidFinishGathering, object: q, queue: \.main/);
@@ -162,13 +167,21 @@ test('ICloudSyncModule.swift: 읽기 · 쓰기 · 열쇠의 차례', () => {
     const at = sw.indexOf(`AsyncFunction("${name}")`);
     return sw.slice(at, sw.indexOf('.runOnQueue(', at));
   };
-  // 읽기: 내려받기(10초) → 조율된 읽기 → 풀기 → 충돌본 → 풀림 표시
+  // 읽기: 내려받기(10초) → 조율된 읽기(남은 시간까지, 충돌본도 그 안에서) → 풀기 → 풀림 표시
   const read = fn('read');
-  const order = ['download(url)', 'inflate(try ICloudSyncModule.coordinatedRead(url))', 'unresolvedConflictVersionsOfItem', 'resolve(conflicts'];
+  const order = ['= try ICloudSyncModule.download(url)', 'coordinatedRead(url, limit: max(1, deadline.timeIntervalSinceNow))', 'inflate(data)', 'resolve(conflicts'];
   const at = order.map((w) => read.indexOf(w));
   assert.ok(at.every((i) => i >= 0), `${order} in read`);
   assert.deepEqual([...at].sort((a, b) => a - b), at, '차례');
   assert.match(sw, /static let downloadWait: TimeInterval = 10/);
+  // 조율된 읽기는 limit 뒤에 그만둔다(cancel) — 그러면 이 기기의 사본을, 없으면 E_TIMEOUT. 끝없이 io 줄을 막지 않는다
+  const cread = sw.slice(sw.indexOf('static func coordinatedRead('), sw.indexOf('static func coordinatedWrite('));
+  const c = ['DispatchWorkItem { coordinator.cancel() }', 'asyncAfter(deadline: .now() + limit, execute: timer)', 'coordinate(readingItemAt:', 'timer.cancel()', 'unresolvedConflictVersionsOfItem(at: target)', 'NSUserCancelledError', 'try? Data(contentsOf: url)', 'error("E_TIMEOUT"'];
+  const cat = c.map((x) => cread.indexOf(x));
+  assert.ok(cat.every((i) => i >= 0), `${c} in coordinatedRead`);
+  assert.deepEqual([...cat].sort((a, b) => a - b), cat, '차례');
+  // 너무 큰 복제본은 풀지 않는다
+  assert.match(sw, /guard data\.count < maxPacked else \{\s*throw error\("E_CORRUPT"/);
   // 쓰기: 누르기 → 배경 작업 안에서 조율된 .forReplacing 원자적 쓰기
   const write = fn('write');
   const w = ['deflate(json)', 'BackgroundTask.begin(', 'defer { task.end() }', 'coordinatedWrite(url, options: .forReplacing)', 'data.write(to: target, options: .atomic)'];

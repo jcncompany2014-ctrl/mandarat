@@ -74,6 +74,13 @@ public class ICloudSyncModule: Module {
       }
     }
 
+    // 앱이 뒤로 갈 때 io 줄에 쌓인 일(긴 읽기 뒤에 줄 선 밀어 올리기)이 다 끝날 때까지 배경 작업 하나로 덮는다
+    // — io는 직렬이라 끝내기(end)는 이미 쌓인 일 뒤에 돈다. 그 뒤에 JS가 부르는 쓰기는 저마다 배경 작업을 연다
+    OnAppEntersBackground {
+      let task = BackgroundTask.begin("icloud-sync drain")
+      self.io.async { task.end() }
+    }
+
     OnDestroy {
       if let observer = self.identityObserver {
         NotificationCenter.default.removeObserver(observer)
@@ -117,14 +124,14 @@ public class ICloudSyncModule: Module {
       }
     }.runOnQueue(.main)
 
-    /// [현재 내용, 풀리지 않은 충돌본 내용…] — 내려받기(최대 10초) → 조율된 읽기 → 풀기.
+    /// [현재 내용, 풀리지 않은 충돌본 내용…] — 내려받기(최대 10초) → 조율된 읽기(남은 시간까지) → 풀기.
     /// 충돌본은 읽은 뒤 풀린 것으로 표시하고 지운다(합치기는 JS가 한다 — 같은 기기의 복제본끼리라 합쳐도 안전하다).
     AsyncFunction("read") { (name: String) throws -> [String] in
       return try ICloudSyncModule.guarded {
         let url = try self.fileURL(name)
-        try ICloudSyncModule.download(url)
-        var out = [try ICloudSyncModule.inflate(try ICloudSyncModule.coordinatedRead(url))]
-        let conflicts = NSFileVersion.unresolvedConflictVersionsOfItem(at: url) ?? []
+        let deadline = try ICloudSyncModule.download(url)
+        let (data, conflicts) = try ICloudSyncModule.coordinatedRead(url, limit: max(1, deadline.timeIntervalSinceNow))
+        var out = [try ICloudSyncModule.inflate(data)]
         for version in conflicts {
           // 읽지 못한 충돌본은 건너뛴다 — 그 기기가 다음에 쓸 때 같은 내용(그 이상)을 다시 올린다
           if let data = try? Data(contentsOf: version.url), let json = try? ICloudSyncModule.inflate(data) {
@@ -182,12 +189,17 @@ public class ICloudSyncModule: Module {
     return (resolveContainer() != nil, ICloudSyncModule.accountHash(token))
   }
 
-  /// 컨테이너 주소 — 처음 한 번은 오래 걸릴 수 있어 io 줄에서만 부른다
+  /// 컨테이너 주소 — 처음 한 번은 오래 걸릴 수 있어 io 줄에서만 부른다.
+  /// 계정은 부를 때마다 먼저 본다 — 로그아웃 알림(NSUbiquityIdentityDidChange)은 늦게 오거나(앱이 꺼져 있었으면) 오지 않으니
+  /// 기억한 주소를 그대로 돌려주면 로그아웃 뒤의 쓰기가 E_NO_ACCOUNT 대신 E_IO로 끝난다
   private func resolveContainer() -> URL? {
     dispatchPrecondition(condition: .onQueue(io))
+    guard FileManager.default.ubiquityIdentityToken != nil else {
+      containerURL = nil
+      return nil
+    }
     if let url = containerURL { return url }
-    guard FileManager.default.ubiquityIdentityToken != nil,
-          let url = FileManager.default.url(forUbiquityContainerIdentifier: ICloudSyncModule.containerId) else {
+    guard let url = FileManager.default.url(forUbiquityContainerIdentifier: ICloudSyncModule.containerId) else {
       return nil
     }
     containerURL = url
@@ -285,11 +297,12 @@ public class ICloudSyncModule: Module {
   // MARK: - 파일 (io 줄)
 
   /// 최신본이 없으면 내려받기를 시작하고 최대 10초 기다린다. 시간이 다 돼도 예전 사본(.downloaded)이 있으면 그것을 읽는다
-  /// — 합치기는 단조라서 예전 복제본을 읽어도 잃는 것이 없다.
-  static func download(_ url: URL) throws {
-    if try downloadStatus(url) == .current { return }
-    try FileManager.default.startDownloadingUbiquitousItem(at: url)
+  /// — 합치기는 단조라서 예전 복제본을 읽어도 잃는 것이 없다. 돌려주는 값은 읽기까지 합친 마감(지금부터 10초)
+  @discardableResult
+  static func download(_ url: URL) throws -> Date {
     let deadline = Date().addingTimeInterval(downloadWait)
+    if try downloadStatus(url) == .current { return deadline }
+    try FileManager.default.startDownloadingUbiquitousItem(at: url)
     var status = try downloadStatus(url)
     while status != .current && Date() < deadline {
       Thread.sleep(forTimeInterval: 0.25)
@@ -298,6 +311,7 @@ public class ICloudSyncModule: Module {
     if status != .current && status != .downloaded {
       throw error("E_TIMEOUT", "Download did not finish in \(Int(downloadWait)) s")
     }
+    return deadline
   }
 
   /// iCloud 파일이 아니면(로컬 파일) 있으면 .current로 본다
@@ -319,13 +333,30 @@ public class ICloudSyncModule: Module {
     return values.ubiquitousItemDownloadingStatus
   }
 
-  static func coordinatedRead(_ url: URL) throws -> Data {
+  /// 조율된 읽기 — 지금 내용과 그때 풀리지 않은 충돌본을 같은 순간에 잡는다(읽은 것과 풀린 것으로 표시할 것이 같다).
+  /// 최신본을 받느라 오래 막히면(문서: "blocks, potentially for a long time") limit 뒤에 그만두고 이 기기에 있는 사본을
+  /// 그대로 읽는다 — 쓰기는 모두 .atomic(이름 바꾸기)이라 반쯤 쓴 파일은 없다. 사본도 없으면 E_TIMEOUT.
+  /// 막힌 채로 두면 직렬 io 줄 뒤의 status · write · remove가 모두 함께 멈춘다.
+  static func coordinatedRead(_ url: URL, limit: TimeInterval) throws -> (Data, [NSFileVersion]) {
     var coordinationError: NSError?
-    var result: Result<Data, Error> = .failure(error("E_IO", "Coordinated read did not run"))
-    NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &coordinationError) { target in
-      result = Result { try Data(contentsOf: target) }
+    var result: Result<(Data, [NSFileVersion]), Error> = .failure(error("E_IO", "Coordinated read did not run"))
+    let coordinator = NSFileCoordinator(filePresenter: nil)
+    // cancel()은 어느 줄에서 불러도 된다 — 읽기가 이미 시작됐으면 아무 일도 하지 않는다
+    let timer = DispatchWorkItem { coordinator.cancel() }
+    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + limit, execute: timer)
+    coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { target in
+      timer.cancel()
+      result = Result { (try Data(contentsOf: target), NSFileVersion.unresolvedConflictVersionsOfItem(at: target) ?? []) }
     }
+    timer.cancel()
     if let coordinationError {
+      if coordinationError.domain == NSCocoaErrorDomain, coordinationError.code == NSUserCancelledError {
+        // 시간이 다 됐다 — 예전 사본을 읽는다(합치기는 단조라 잃는 것이 없다). 충돌본은 다음 읽기에서 다룬다
+        guard let local = try? Data(contentsOf: url) else {
+          throw error("E_TIMEOUT", "Download did not finish in \(Int(limit)) s")
+        }
+        return (local, [])
+      }
       throw mapped(coordinationError)
     }
     return try result.get()
@@ -366,9 +397,15 @@ public class ICloudSyncModule: Module {
     return magic + packed
   }
 
+  /// 누른 파일의 상한 — 복제본은 SIZE_WARN(src/lib/syncFile.ts)보다 훨씬 작다. 망가진 큰 파일을 통째로 풀지 않게
+  static let maxPacked = 8 << 20
+
   static func inflate(_ data: Data) throws -> String {
     guard data.count > magic.count, data.prefix(magic.count) == magic else {
       throw error("E_CORRUPT", "Not a replica file")
+    }
+    guard data.count < maxPacked else {
+      throw error("E_CORRUPT", "Replica too large")
     }
     let body = Data(data.dropFirst(magic.count))
     guard let raw = try? (body as NSData).decompressed(using: .zlib) as Data,
