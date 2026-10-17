@@ -24,6 +24,7 @@ import type { M } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useDoc, themeProgress, totalDone } from '../store/MandaratContext';
 import { sameProps } from '../lib/sameProps';
+import { fitTableW } from '../lib/spread';
 import type { MandaratDoc } from '../types';
 import { gridMemory, stepArea, swipeStep, takeFreshDone, type GridFocus } from './gridMemory';
 
@@ -42,6 +43,9 @@ const written = (doc: MandaratDoc, ti: number, ai: number) => !!doc.themes[ti]?.
 const isDone = (doc: MandaratDoc, ti: number, ai: number) => written(doc, ti, ai) && !!doc.themes[ti].actions[ai].done;
 const complete = (doc: MandaratDoc, ti: number) => doc.themes[ti].actions.every((a, ai) => isDone(doc, ti, ai));
 const tabular = { fontVariant: ['tabular-nums' as const] };
+
+/** 표 위아래의 글 높이 — 핵심 목표(≈52) · 둘째 줄(44) · 범례(24) · 처음 안내(25) */
+const GRID_CHROME = 145;
 
 /** 표 안 글이 쪽 가장자리(20pt)에 맞도록 들이는 폭 — 표는 GridScreen이 11pt만 들여 9pt 내민다 */
 const EDGE = 9;
@@ -453,7 +457,14 @@ function edgesFor(M: M, row: number, col: number): Edges {
  * 81칸 — 인쇄된 만다라트 표 한 장. 블록을 누르면 그 블록이 제자리에서 커져 9칸을 크게 보여 준다.
  * 크게 본 칸은 바로 눌러 실천을 열고(길게 누르면 글자 고치기), 빈 칸은 바로 채운다. 옆으로 밀면 이웃 영역으로.
  */
-export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: boolean) => void }) {
+export const FullGrid = memo(function FullGrid({ M, onFocusChange, onFocusArea, availH }: {
+  M: M;
+  onFocusChange?: (zoomed: boolean) => void;
+  /** 크게 보는 영역 블록(가운데 블록이거나 접으면 null) — 펼침의 오른쪽 쪽이 그 영역 화면을 연다(V5-A) */
+  onFocusArea?: (ti: number | null) => void;
+  /** 이 표 묶음(머리·표·범례)이 쓸 수 있는 높이 — 주면 표가 그 안에 들어가게 폭을 줄인다(펼침). 없으면 폭 그대로 */
+  availH?: number;
+}) {
   const { doc, clock } = useDoc();
   const sr = useScreenReader();
   const { go, openAction, openEditor } = useUIActions();
@@ -462,7 +473,10 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
   const t = useRef(new Animated.Value(gridMemory.focus != null ? 1 : 0)).current;
   const slide = useRef(new Animated.Value(0)).current;
   // 표의 폭·높이 — 재기 전에는 화면 폭(좌우 여백 11씩)으로 어림한다
-  const [tableW, setTableW] = useState(Math.max(0, winW - 22));
+  // 펼침(availH)에서는 표 높이(폭 / 0.84)가 쪽 높이에 들어가게 폭을 줄여 가운데에 — 폰·한 단은 그대로
+  const fullW = Math.max(0, winW - 22);
+  const fitW = availH != null ? fitTableW(fullW, availH - GRID_CHROME) : fullW;
+  const [tableW, setTableW] = useState(fitW);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
 
   const now = new Date();
@@ -490,7 +504,10 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
     for (const k of keys) gridMemory.seenDone.add(k);
   }, [doc]);
 
-  useEffect(() => { onFocusChange?.(focus != null); }, [focus]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onFocusChange?.(focus != null);
+    onFocusArea?.(typeof focus === 'number' ? focus : null);
+  }, [focus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const say = (f: Focus) => announce(f === 'c' ? '가운데 블록을 크게 봐요' : `${areaName(doc, f)} 블록을 크게 봐요`);
 
@@ -708,7 +725,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
       </View>
 
       {/* 표 — 종이 위에 바로 인쇄된 한 장(흰 카드 없이) */}
-      <View onLayout={onTable}>
+      <View onLayout={onTable} style={fitW < fullW ? { width: fitW, alignSelf: 'center' } : null}>
         <Animated.View
           pointerEvents={focus == null ? 'auto' : 'none'}
           accessibilityElementsHidden={focus != null}

@@ -34,7 +34,11 @@ let pagedTo: number | null = null;
  * 보드와 목록은 습관·쌓기·마음가짐을 체크하지 않는다(하루 체크는 오늘·홈·실천 시트에서).
  * 목록에서 바로 바꿀 수 있는 건 '한 번' 실천의 달성뿐이다.
  */
-export const Detail = memo(function Detail({ ti }: { ti: number }) {
+/**
+ * embedded: 펼침(V5-A)의 오른쪽 쪽에 곁들인 영역 화면 — 왼쪽 만다라트 탭이 크게 보는 블록을 따라간다.
+ * 뒤로 가기·제목으로 초점 옮기기·이전/다음(바닥줄·쓸기)이 없다 — 영역은 왼쪽 표에서 넘긴다.
+ */
+export const Detail = memo(function Detail({ ti, embedded = false }: { ti: number; embedded?: boolean }) {
   const M = usePalette();
   const { doc } = useDoc();
   const { toggleDone } = useActions();
@@ -108,14 +112,14 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
   const sectionHead = { ...TYPE.section, color: M.ink, paddingHorizontal: RHYTHM.gutter } as const;
 
   return (
-    <View {...swipe.panHandlers} onAccessibilityEscape={back}>
+    <View {...(embedded ? null : swipe.panHandlers)} onAccessibilityEscape={embedded ? undefined : back}>
       <Header
         M={M}
         sub={`영역 ${ti + 1} / 8`}
         kr={title}
-        onBack={back}
+        onBack={embedded ? undefined : back}
         stacked
-        focusTitle
+        focusTitle={!embedded}
         right={
           <Pressable
             onPress={() => openEditor({ kind: 'theme', ti })}
@@ -146,18 +150,22 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
         )}
       </View>
 
-      {/* 실천 보드 — 81칸의 크게 보기와 같은 보드 */}
-      <Text accessibilityRole="header" style={sectionHead}>실천 보드</Text>
-      <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10, paddingBottom: RHYTHM.sectionTop }}>
-        <ChartBoard
-          M={M}
-          doc={doc}
-          ti={ti}
-          onCell={onBoardCell}
-          onCellLong={onBoardLong}
-          onHead={onBoardHead}
-        />
-      </View>
+      {/* 실천 보드 — 81칸의 크게 보기와 같은 보드. 펼침(embedded)에서는 왼쪽 쪽이 같은 보드를 크게 보고 있어 목록만 */}
+      {!embedded && (
+        <>
+          <Text accessibilityRole="header" style={sectionHead}>실천 보드</Text>
+          <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10, paddingBottom: RHYTHM.sectionTop }}>
+            <ChartBoard
+              M={M}
+              doc={doc}
+              ti={ti}
+              onCell={onBoardCell}
+              onCellLong={onBoardLong}
+              onHead={onBoardHead}
+            />
+          </View>
+        </>
+      )}
 
       {p.filled === 0 ? (
         // 아직 쓴 칸이 없으면 빈 줄 8개 대신 한 줄만
@@ -194,10 +202,12 @@ export const Detail = memo(function Detail({ ti }: { ti: number }) {
       )}
 
       {/* 이웃 영역 — 괘선 바닥줄. 위의 목록(또는 빈 안내)이 이미 괘선으로 끝나 그 선이 바닥줄의 윗선이다(선을 한 번 더 긋지 않는다) */}
-      <View style={{ marginHorizontal: RHYTHM.gutter, height: 56, flexDirection: 'row', alignItems: 'stretch' }}>
-        <FooterLink M={M} label={`‹ ${areaTitle(doc, prevTi)}`} speech={`이전 영역, ${areaTitle(doc, prevTi)}`} align="left" onPress={() => page(-1)} />
-        <FooterLink M={M} label={`${areaTitle(doc, nextTi)} ›`} speech={`다음 영역, ${areaTitle(doc, nextTi)}`} align="right" onPress={() => page(1)} />
-      </View>
+      {!embedded && (
+        <View style={{ marginHorizontal: RHYTHM.gutter, height: 56, flexDirection: 'row', alignItems: 'stretch' }}>
+          <FooterLink M={M} label={`‹ ${areaTitle(doc, prevTi)}`} speech={`이전 영역, ${areaTitle(doc, prevTi)}`} align="left" onPress={() => page(-1)} />
+          <FooterLink M={M} label={`${areaTitle(doc, nextTi)} ›`} speech={`다음 영역, ${areaTitle(doc, nextTi)}`} align="right" onPress={() => page(1)} />
+        </View>
+      )}
     </View>
   );
 });

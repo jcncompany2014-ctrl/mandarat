@@ -53,8 +53,15 @@ function NextStepRow({ M }: { M: M }) {
   );
 }
 
-/** 만다라트 탭 — 인쇄된 81칸 표 한 장과, 그 아래 다음 할 일 한 줄 */
-export function GridScreen() {
+/** 머리(제목 줄)의 높이 — 펼침에서 표가 쓸 높이를 셀 때 뺀다 */
+const HEADER_H = 64;
+
+/**
+ * 만다라트 탭 — 인쇄된 81칸 표 한 장과, 그 아래 다음 할 일 한 줄.
+ * availH: 펼침(V5-A)에서 이 쪽이 스크롤 없이 보여 줄 수 있는 높이 — 표가 그 안에 들어가게 줄인다. 폰·한 단은 없다.
+ * onFocusArea: 크게 보는 영역 블록 — 펼침의 오른쪽 쪽이 따라간다.
+ */
+export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusArea?: (ti: number | null) => void } = {}) {
   const M = usePalette();
   const { openEditor, openShare } = useUIActions();
   // 블록을 크게 보는 동안엔 '다음 할 일'을 접는다
@@ -74,7 +81,7 @@ export function GridScreen() {
       />
       {/* 표만 쪽 가장자리(20pt) 밖으로 9pt 내민다(인쇄된 표의 여백) — 글·괘선은 FullGrid·다음 할 일이 9pt 들여 20pt에 맞춘다 */}
       <View style={{ paddingHorizontal: 11, paddingBottom: 8 }}>
-        <FullGrid M={M} onFocusChange={setZoomed} />
+        <FullGrid M={M} onFocusChange={setZoomed} onFocusArea={onFocusArea} availH={availH != null ? availH - HEADER_H - 8 : undefined} />
         {!zoomed && <NextStepRow M={M} />}
       </View>
     </View>
