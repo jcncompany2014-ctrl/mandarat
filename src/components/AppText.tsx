@@ -24,6 +24,7 @@ import { lang, type Lang } from '../i18n';
  *   자간 0, 줄바꿈은 iOS 'standard' · 웹 word-break normal + line-break strict(금칙).
  *   영어: Pretendard 그대로, 줄바꿈만 iOS 'standard' · 웹 word-break normal.
  *   영문·숫자만 있는 글(가나·한자가 없는 글)은 어느 언어에서나 Pretendard.
+ *   가나·한자 없이 한글이 든 글(사용자가 쓴 한국어)은 어느 언어에서나 한국어처럼 어절로 줄을 바꾼다(breakLang).
  * - 앱 언어가 기기 언어와 다르면 iOS 화면 읽기에 앱 언어를 알려 준다(accessibilityLanguage).
  * - 언어를 바꾸면 LangRoot가 그 아래를 통째로 다시 그리므로, 글자마다 언어를 구독하지 않고 그릴 때 lang()을 읽는다.
  */
@@ -65,6 +66,16 @@ export function plainText(children: React.ReactNode): string {
 /** 일본어 서체가 필요한 글인가(가나·한자가 있다) — 영문·숫자·한글만 있으면 Pretendard */
 export function needsJaFace(text: string): boolean {
   return JA_SCRIPT.test(text);
+}
+
+const HANGUL = /[\u1100-\u11ff\u3130-\u318f\uac00-\ud7af]/;
+
+/**
+ * 줄바꿈을 정할 언어 — 가나·한자 없이 한글이 든 글(사용자가 쓴 한국어)은 어느 언어에서나 한국어처럼 어절로 바꾼다
+ * (일본어·영어 앱에서 '1만보 걷 / 기'가 되지 않게). labelFit의 breakUnits도 한글 어절은 끊지 않는다.
+ */
+export function breakLang(l: Lang, text: string): Lang {
+  return l !== 'ko' && !needsJaFace(text) && HANGUL.test(text) ? 'ko' : l;
 }
 
 /** 언어마다 짜는 법 — lang: 앱 언어, os: Platform.OS, latin: 가나·한자가 없는 글(Pretendard를 지킨다) */
@@ -144,15 +155,17 @@ export const Text = forwardRef<RNText, TextProps>(function Text({ style, childre
   const nested = useContext(Nested);
   const bold = useBoldText();
   const l = lang();
-  const ctx: TypesetCtx = l === 'ko' ? KO_CTX : { lang: l, os: Platform.OS, latin: !needsJaFace(plainText(children)) };
+  const text = l === 'ko' ? '' : plainText(children);
+  const ctx: TypesetCtx = l === 'ko' ? KO_CTX : { lang: l, os: Platform.OS, latin: !needsJaFace(text) };
   const extra = typeset(style, nested, bold, ctx);
-  const brk = nested ? null : WEB_BREAK[l];
+  const bl = l === 'ko' ? l : breakLang(l, text);
+  const brk = nested ? null : WEB_BREAK[bl];
   return (
     <RNText
       ref={ref}
       {...rest}
       accessibilityLanguage={accessibilityLanguage ?? (nested ? undefined : a11yLang(l))}
-      lineBreakStrategyIOS={lineBreakStrategyIOS ?? lineBreakFor(l)}
+      lineBreakStrategyIOS={lineBreakStrategyIOS ?? lineBreakFor(bl)}
       maxFontSizeMultiplier={maxFontSizeMultiplier ?? scaleCap(style)}
       style={[brk, style, extra]}
     >

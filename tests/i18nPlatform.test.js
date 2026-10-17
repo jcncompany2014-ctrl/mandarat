@@ -197,3 +197,11 @@ test('설정 › 언어: 네 줄 · 언어 이름 · 고르면 chooseLang과 새
   assert.equal(M('ja').lang.changed({ name: '日本語' }), '日本語に切り替えました。');
   assert.equal(M('en').lang.changed({ name: 'English' }), 'Switched to English');
 });
+
+test('가나·한자 없이 한글이 든 글은 어느 언어에서나 어절로 줄을 바꾼다', () => {
+  assert.equal(AT.breakLang('ja', '1만보 걷기'), 'ko');
+  assert.equal(AT.breakLang('en', '주 3회 운동'), 'ko');
+  assert.equal(AT.breakLang('ja', '毎日 걷기'), 'ja', '가나·한자가 있으면 그 언어');
+  assert.equal(AT.breakLang('en', 'Walk 10k'), 'en');
+  assert.equal(AT.breakLang('ko', 'Walk'), 'ko');
+});
