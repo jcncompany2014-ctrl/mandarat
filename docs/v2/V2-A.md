@@ -58,7 +58,7 @@ stepTime(v, 1 | -1): 'HH:MM'          // ±10 min, 23:50 → 00:00
 ## 4. Handoffs
 
 - **V5-B (testIDs):** `src/screens/settings/NotifySection.tsx:159` and `:185`, and `src/overlays/CellEditor.tsx:843`. The V2-A controls already carry their testIDs. Because `LineRow` takes no `testID`, the toggle rows and the device row are wrapped in a `<View testID=…>`. If V5-B adds `testID` to `LineRow`, move them onto it. The stepper testIDs `set-notify-morning-time` and `set-notify-evening-time` come from `TID.setNotify(\`${k}-time\`)`; a dedicated key can replace them.
-- **X-A (editor extraction):** `src/overlays/CellEditor.tsx:797-864` (`RemindRows`, `ChoiceRow`) already read `msg().notify`. Leave those lines as they are when the rest of the editor moves to the `editor` namespace.
+- **X-A (editor extraction):** `src/overlays/CellEditor.tsx:797-880` (`RemindRows`, `ChoiceRow`) already read `msg().notify`. Leave those lines as they are when the rest of the editor moves to the `editor` namespace.
 - **V5-C (Maestro):** the first-toggle permission prompt, then `set-notify-morning` → `set-notify-morning-time`.
 - **V4-D (iPad):** the section is plain rows inside the Settings column, with no fixed widths except the stepper's 104 pt time label.
 
