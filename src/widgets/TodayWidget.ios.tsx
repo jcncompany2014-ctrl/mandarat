@@ -40,6 +40,8 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   const day = p.day || '';
   const url = p.url || 'mandarat://today';
   const pat = p.pat || 'dots';
+  // 앱이 아직 읽지 않은 체크 기록의 상한 — 한 건 ≈ 80 B라 300건 ≈ 24 KB(App Group). 50건은 습관 5개면 열흘에 넘쳤다
+  const OPS_MAX = 300;
 
   /** '{n}' · '{t}' 틀 채우기 */
   function fill(tpl: string | undefined, n: number, t: string) {
@@ -142,7 +144,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       return {
         items: nextItems,
         done: Math.max(0, Math.min(total, done + (on ? 1 : -1))),
-        ops: ops.concat([op]).slice(-50),
+        ops: ops.concat([op]).slice(-OPS_MAX),
       };
     };
   }

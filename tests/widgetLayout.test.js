@@ -144,13 +144,19 @@ test('check:0-1을 누르면 done + 1, 그 줄이 했어요로, ops에 하나가
   assert.equal(p.ops.length, 0);
 });
 
-test('ops는 마지막 50개까지만', () => {
+test('ops는 마지막 300개까지만(R-1 F5 — 50개는 습관 5개면 열흘에 넘쳤다)', () => {
   const p = real();
-  const ops = Array.from({ length: 50 }, (_, i) => ({ kind: 'check', k: '0-0', on: i % 2 === 0, day: '2026-10-14', at: i, t: 'x', src: 'widget' }));
+  assert.match(fs.readFileSync(LAYOUT_FILE, 'utf8'), /const OPS_MAX = 300;[\s\S]*\.slice\(-OPS_MAX\)/);
+  // 299개 + 1 = 300 — 아직 하나도 버리지 않는다
+  const under = Array.from({ length: 299 }, (_, i) => ({ kind: 'check', k: '0-0', on: i % 2 === 0, day: '2026-10-14', at: i, t: 'x', src: 'widget' }));
+  const kept = rt.press({ ...p, ops: under }, { widgetFamily: 'systemLarge' }, 'check:0-1');
+  assert.equal(kept.ops.length, 300);
+  assert.equal(kept.ops[0].at, 0);
+  const ops = Array.from({ length: 300 }, (_, i) => ({ kind: 'check', k: '0-0', on: i % 2 === 0, day: '2026-10-14', at: i, t: 'x', src: 'widget' }));
   const out = rt.press({ ...p, ops }, { widgetFamily: 'systemLarge' }, 'check:0-1');
-  assert.equal(out.ops.length, 50);
+  assert.equal(out.ops.length, 300);
   assert.equal(out.ops[0].at, 1);
-  assert.equal(out.ops[49].k, '0-1');
+  assert.equal(out.ops[299].k, '0-1');
 });
 
 test('글은 props의 틀에서만 — 남은 수 · 다 했어요 · 비었어요', () => {
