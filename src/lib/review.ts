@@ -4,7 +4,7 @@
 import type { MandaratDoc } from '../types';
 import { daysBetween, habitDays, kindOf, perWeekOf, scheduleAt, weekDates, weekDone, weekTarget, ymd } from './routine';
 import { addDays, cleanNum, countInfo, countWeekAdded, ratingOf, round2 } from './kinds';
-import { josa } from './text';
+import { msg, type Lang } from '../i18n';
 
 /** 기록이 있는 가장 이른 날 — 그 전 날은 히트맵에 그리지 않는다(쓰기 전의 빈 주를 '놓친 주'로 보이지 않게) */
 export { firstLogDay } from './history';
@@ -275,13 +275,12 @@ export function doneThisMonth(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, today
 /** 문장에 넣는 영역 이름의 최대 글자 수(말줄임 포함) — 한 줄 문장이 40자를 넘지 않게 */
 const NAME_MAX = 10;
 
-/** 영역 이름 + 조사. 긴 이름은 줄이되 조사는 원래 이름의 끝소리로 고른다 */
-function areaWith(doc: Pick<MandaratDoc, 'themes'>, ti: number, pair: '은/는'): string {
-  const full = doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
+/** 영역 이름 — 줄인 이름(name)과 조사를 고를 원래 이름(full). 조사는 한국어 바구니가 원래 이름의 끝소리로 붙인다 */
+function areaOf(doc: Pick<MandaratDoc, 'themes'>, ti: number, l?: Lang): { name: string; full: string } {
+  const full = doc.themes[ti]?.title.trim() || msg(l).ritual.areaN({ n: ti + 1 });
   const chars = Array.from(full);
-  const particle = josa(full, pair).slice(full.length);
   // 자른 끝이 띄어쓰기면 지운다 — '건강하고 활기찬 …는'이 아니라 '건강하고 활기찬…는'
-  return (chars.length > NAME_MAX ? `${chars.slice(0, NAME_MAX - 1).join('').trimEnd()}…` : full) + particle;
+  return { name: chars.length > NAME_MAX ? `${chars.slice(0, NAME_MAX - 1).join('').trimEnd()}…` : full, full };
 }
 
 /**
@@ -291,15 +290,18 @@ function areaWith(doc: Pick<MandaratDoc, 'themes'>, ti: number, pair: '은/는')
  * - 그 밖 → '건강은 9번 챙겼고, 관계는 아직이에요'. '아직'인 영역은 실천을 적어 둔 영역 중에서만 고른다
  *   (비어 있는 영역을 탓하지 않는다). 그런 영역이 없으면 '건강은 9번 챙겼어요'.
  */
-export function weekSentence(review: Pick<WeekReview, 'total' | 'areaCounts'>, doc: Pick<MandaratDoc, 'themes'>): string {
+export function weekSentence(review: Pick<WeekReview, 'total' | 'areaCounts'>, doc: Pick<MandaratDoc, 'themes'>, l?: Lang): string {
+  const t = msg(l).ritual;
   const counts = review.areaCounts;
   if (!(review.total > 0) || !counts.some((c) => c > 0)) return '';
-  if (counts.length >= 8 && counts.every((c) => c >= 1)) return '여덟 영역을 모두 한 번 이상 챙겼어요';
+  if (counts.length >= 8 && counts.every((c) => c >= 1)) return t.sentenceAll;
   let top = 0;
   counts.forEach((c, ti) => { if (c > counts[top]) top = ti; });
   const low = counts.findIndex((c, ti) => c === 0 && !!doc.themes[ti]?.actions.some((a) => a.text.trim() !== ''));
-  const head = `${areaWith(doc, top, '은/는')} ${counts[top]}번 챙겼`;
-  return low >= 0 ? `${head}고, ${areaWith(doc, low, '은/는')} 아직이에요` : `${head}어요`;
+  const a = areaOf(doc, top, l);
+  if (low < 0) return t.sentenceTop({ area: a.name, full: a.full, n: counts[top] });
+  const b = areaOf(doc, low, l);
+  return t.sentenceTopLow({ area: a.name, full: a.full, n: counts[top], low: b.name, lowFull: b.full });
 }
 
 /**
