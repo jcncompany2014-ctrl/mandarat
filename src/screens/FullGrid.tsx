@@ -122,10 +122,12 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
   // 이름을 아직 안 지은 '영역 n'은 가는 먹 글씨 — 옅은 보조 글씨는 이름표 바탕 위 4.5:1이 안 된다
   const ink = core ? coreInk(M) : solid ? DONE_INK : M.ink;
   const weight = head && unnamed ? '500' : head || core ? '800' : solid ? '700' : '600';
-  // 칸 폭보다 긴 어절('포트폴리오')은 가운데서 끊기지 않게 0.5pt씩, 2pt까지 작게(Pretendard 글자 폭으로 잰다)
-  const base = head || core ? 9.5 : 9;
+  // 넓은 표(아이패드 펼침면 · 칸 글 폭 52pt 넘게)는 칸 폭만큼 글도 키운다(1.35배까지). 휴대폰 칸(글 폭 ≈ 35~41pt)은 k = 1 그대로
+  const k = Math.min(1.35, Math.max(1, textW / 52));
+  // 칸 폭보다 긴 어절('포트폴리오')은 가운데서 끊기지 않게 0.5pt씩, 2pt(× k)까지 작게(Pretendard 글자 폭으로 잰다)
+  const base = (head || core ? 9.5 : 9) * k;
   let fs = base;
-  while (fs > base - 2 && longestWord(text, fs, PRETENDARD_GLYPHS) > textW) fs -= 0.5;
+  while (fs > base - 2 * k && longestWord(text, fs, PRETENDARD_GLYPHS) > textW) fs -= 0.5;
   // 어절을 붙일지(cellBreak)는 넉넉한 SVG 폭으로 잰다 — Pretendard 표는 숫자·'%'를 작게 잡아 '수입 20 / %'처럼 붙인 어절이 끊긴다
   return (
     <View
@@ -142,7 +144,7 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
       ) : (
         <View style={dueSoon && !done ? { borderBottomWidth: 1.5, borderBottomColor: gold, maxWidth: '100%' } : { maxWidth: '100%' }}>
           <Text
-            style={{ fontSize: fs, lineHeight: 10.5, fontWeight: weight, color: ink, textAlign: 'center' }}
+            style={{ fontSize: fs, lineHeight: 10.5 * k, fontWeight: weight, color: ink, textAlign: 'center' }}
             numberOfLines={core ? 4 : 3}
             ellipsizeMode="tail"
             maxFontSizeMultiplier={1}
