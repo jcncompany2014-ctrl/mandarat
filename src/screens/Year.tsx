@@ -97,7 +97,7 @@ export const Year = memo(function Year() {
 
   return (
     <View testID={TID.yearPage}>
-      <Header M={M} kr={viewTitle(m, yearView)} onBack={back} focusTitle stacked />
+      <Header M={M} kr={viewTitle(m, yearView)} onBack={back} focusTitle stacked backTestID={TID.yearBack} />
       {body}
     </View>
   );

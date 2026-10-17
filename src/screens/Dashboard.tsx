@@ -229,6 +229,7 @@ export const Dashboard = memo(function Dashboard() {
             sub={`${fmtRange(ritualWeek)} · 3분이면 돼요`}
             right="chevron"
             onPress={() => { tap(); openRitual(ritualWeek); }}
+            testID={TID.homeRitual}
           />
         </View>
       )}

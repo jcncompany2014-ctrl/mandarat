@@ -86,6 +86,7 @@ export const YearShelf = memo(function YearShelf({ M, onOpen }: { M: M; onOpen: 
       {left > 0 && (
         <Pressable
           onPress={() => { tap(); setShown((n) => n + SHELF_PAGE); }}
+          testID={TID.yearShelfMore}
           accessibilityRole="button"
           accessibilityLabel={m.year.shelfMore({ n: Math.min(left, SHELF_PAGE) })}
           style={({ pressed }) => [groupEdge(M, false, true), { minHeight: 44, paddingHorizontal: 2, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { Text } from './AppText';
 import { CloseBtn, LineRow, Sheet, useSheetDismiss } from './common';
 import { TEMPLATES, type Template } from '../data/templates';
+import { TID } from '../lib/testIds';
 import type { M } from '../theme/usePalette';
 
 /**
@@ -33,13 +34,19 @@ export function TemplateSheet({
  * 종이 시트의 머리 — 제목(17/'800') + 닫기(×) 한 줄, 그 아래 설명 한 줄을 시트 폭 그대로.
  * 템플릿 고르기 · 설정의 저장본·라이선스 · 백업 불러오기가 같은 머리를 쓴다. 시트 안에서만 쓴다(×가 시트를 내린다).
  */
-export function SheetHead({ M, title, body }: { M: M; title: string; body?: string }) {
+export function SheetHead({ M, title, body, closeTestID = TID.sheetClose }: {
+  M: M;
+  title: string;
+  body?: string;
+  /** 닫기(×)의 testID — 기본은 TID.sheetClose */
+  closeTestID?: string;
+}) {
   const dismiss = useSheetDismiss();
   return (
     <>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
         <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>{title}</Text>
-        <CloseBtn M={M} onPress={() => dismiss()} />
+        <CloseBtn M={M} onPress={() => dismiss()} testID={closeTestID} />
       </View>
       {!!body && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginBottom: 16 }}>{body}</Text>}
     </>
@@ -73,6 +80,7 @@ function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => 
             accessibilityLabel={`${t.name}, ${t.desc}`}
             accessibilityHint={`영역: ${t.areas.map((a) => a.title).join(', ')}`}
             onPress={() => onPick(t, close)}
+            testID={TID.onbTemplate(t.id)}
           />
         );
       })}

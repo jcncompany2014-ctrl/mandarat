@@ -15,6 +15,8 @@ export interface SegOption<T extends string> {
   icon?: IconName;
   /** 스크린리더용 이름(없으면 label) */
   a11yLabel?: string;
+  /** 이 칸의 testID(src/lib/testIds.ts) */
+  testID?: string;
 }
 
 /** iOS는 '버튼 + 선택됨'으로 읽히는 쪽이 자연스럽고, 안드로이드·웹은 탭/탭 목록이 맞다 */
@@ -134,6 +136,7 @@ export function SegmentedControl<T extends string>({
         return (
           <Pressable
             key={o.value}
+            testID={o.testID}
             onPress={() => {
               if (on) return;
               select();

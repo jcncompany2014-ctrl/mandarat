@@ -8,6 +8,7 @@ import { Check } from '../components/Check';
 import { RatingBoxes } from '../components/KindBits';
 import { PaperDots } from '../components/PaperDots';
 import { PrimaryButton } from '../components/common';
+import { TID } from '../lib/testIds';
 import { Snackbar } from './Snackbar';
 import { DUR, EASE } from '../theme/motion';
 import { NUM, RHYTHM, TYPE } from '../theme/type';
@@ -144,6 +145,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
         >
           <Pressable
             onPress={closeRitual}
+            testID={TID.ritualClose}
             hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel="닫기"
@@ -189,6 +191,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
               label={page === 'next' && picks.length > 0 ? `중점 ${picks.length}칸 · 마치기` : last ? '마치기' : '다음'}
               accessibilityLabel={page === 'next' && picks.length > 0 ? `중점 ${picks.length}칸 골랐어요, 마치기` : undefined}
               onPress={onNext}
+              testID={last ? TID.ritualDone : TID.ritualNext}
             />
           </View>
         )}

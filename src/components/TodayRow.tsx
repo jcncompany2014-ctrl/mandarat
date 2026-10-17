@@ -19,6 +19,7 @@ import { daysBetween, perWeekOf, routineWeek, routineWeekCount, weekDates, ymd, 
 import { weekStripSummary, weekdayIndex } from '../lib/marks';
 import { fmtDue } from '../lib/text';
 import { tap } from '../lib/haptics';
+import { TID } from '../lib/testIds';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
 import type { Action, MandaratDoc, TodayExtra } from '../types';
 
@@ -304,6 +305,7 @@ const RowView = memo(function RowView({
         if (extra) press.toggle();
         else if (canOpen) { tap(); press.open(); }
       }}
+      testID={TID.todayRow(seed)}
       accessible={false}
       style={({ pressed }) => [
         {
@@ -317,6 +319,7 @@ const RowView = memo(function RowView({
       <Pressable
         onPress={press.toggle}
         hitSlop={10}
+        testID={TID.todayCheck(seed)}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: done }}
         accessibilityLabel={checkLabel}

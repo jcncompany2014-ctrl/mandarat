@@ -31,6 +31,7 @@ import { fmtDateLong } from '../lib/text';
 import { dayCloseText, effectiveArea, isOverdue, tallyShape, todayAreaTabs, todayEmptyKind } from '../lib/todayList';
 import type { Mgmt, TodayExtra } from '../types';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
+import { TID } from '../lib/testIds';
 import { showGridAt } from './gridMemory';
 import { MindWeek, TodayKanban, TodayStreak } from './TodayModes';
 
@@ -79,7 +80,7 @@ export const Today = memo(function Today() {
     <View onMagicTap={onMagicTap}>
       <PureHeader M={M} sub={fmtDateLong(now)} kr="오늘" />
       <View style={{ paddingHorizontal: 20, paddingBottom: 6 }}>
-        <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} />
+        <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} testID={TID.todayModes} />
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} />}
       <DayBlock M={M} day={day} mood={meta?.mood} reflection={meta?.reflection ?? ''} />

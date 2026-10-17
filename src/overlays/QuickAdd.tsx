@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text, TextInput } from '../components/AppText';
 import { CloseBtn, IndexTabs, PrimaryButton, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { TID } from '../lib/testIds';
 import { NUM } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
@@ -95,7 +96,7 @@ function QuickBody({
         <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
           오늘 할 일 담기
         </Text>
-        <CloseBtn M={M} onPress={dismiss} />
+        <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
 
       <TextInput

@@ -50,7 +50,7 @@ export function rowBase(M: M, first: boolean, last: boolean): ViewStyle {
 
 /** 하나만 고르는 괘선 목록의 한 줄 — 왼쪽 견본(있으면) · 이름 · 오른쪽 네모 체크 */
 export function RadioRow({
-  M, label, on, first, last, onPress, a11yLabel, lead,
+  M, label, on, first, last, onPress, a11yLabel, lead, testID,
 }: {
   M: M;
   label: string;
@@ -60,10 +60,13 @@ export function RadioRow({
   onPress: () => void;
   a11yLabel: string;
   lead?: React.ReactNode;
+  /** src/lib/testIds.ts의 이름 */
+  testID?: string;
 }) {
   return (
     <Pressable
       onPress={() => { if (!on) onPress(); }}
+      testID={testID}
       accessibilityRole="radio"
       accessibilityLabel={a11yLabel}
       accessibilityState={{ checked: on, selected: on }}

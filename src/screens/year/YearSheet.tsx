@@ -110,7 +110,7 @@ function SheetPage({ M, doc, archive: a, onOpen }: { M: M; doc: MandaratDoc; arc
       </View>
 
       <View style={{ paddingHorizontal: GUTTER, marginTop: RHYTHM.sectionTop }}>
-        <SheetLink M={M} text={m.year.sheetReview} onPress={() => onOpen({ kind: 'review', id: a.id })} />
+        <SheetLink M={M} text={m.year.sheetReview} onPress={() => onOpen({ kind: 'review', id: a.id })} testID={TID.yearSheetReview} />
         <View testID={TID.yearPrint}>
           <SheetLink M={M} text={m.year.printLink} onPress={() => openPrint({ archiveId: a.id })} />
         </View>
@@ -141,6 +141,7 @@ const AreaRow = memo(function AreaRow({ M, m, ti, title, color, done, written, o
       {!first && <RowDivider M={M} inset={0} />}
       <Pressable
         onPress={() => { tap(); onToggle(ti); }}
+        testID={TID.yearSheetArea(ti)}
         accessibilityRole="button"
         accessibilityLabel={`${name}, ${line}`}
         accessibilityHint={open ? m.year.areaCloseHint : m.year.areaOpenHint}
@@ -162,10 +163,11 @@ const AreaRow = memo(function AreaRow({ M, m, ti, title, color, done, written, o
 });
 
 /** 종이 위 글 링크 한 줄 — 돌아보기의 '인쇄용 PDF ›'와 같은 꼴 */
-function SheetLink({ M, text, onPress }: { M: M; text: string; onPress: () => void }) {
+function SheetLink({ M, text, onPress, testID }: { M: M; text: string; onPress: () => void; testID?: string }) {
   return (
     <Pressable
       onPress={() => { tap(); onPress(); }}
+      testID={testID}
       accessibilityRole="link"
       accessibilityLabel={text}
       hitSlop={6}
@@ -197,7 +199,7 @@ function LockedSheet({ M, archive: a }: { M: M; archive: ArchivedChart }) {
         <Text style={{ fontSize: 13, fontWeight: '700', color: M.ink }}>{m.common.proMark}</Text>
       </View>
       <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 12 }}>{m.year.sheetLocked}</Text>
-      <SheetLink M={M} text={m.year.lockedLink} onPress={() => openPro('archive')} />
+      <SheetLink M={M} text={m.year.lockedLink} onPress={() => openPro('archive')} testID={TID.yearLockedPro} />
     </View>
   );
 }

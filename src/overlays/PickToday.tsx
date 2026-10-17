@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Check } from '../components/Check';
 import { CloseBtn, PrimaryButton, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { TID } from '../lib/testIds';
 import { EmptyState } from '../components/EmptyState';
 import { NUM } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
@@ -90,7 +91,7 @@ function PickBody({ M }: { M: M }) {
           </Text>
           <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>고르는 대로 오늘 목록에 담겨요</Text>
         </View>
-        <CloseBtn M={M} onPress={dismiss} />
+        <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
 
       {sections.length === 0 ? (

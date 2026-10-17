@@ -31,6 +31,7 @@ import { SyncSection } from './settings/SyncSection';
 import { YearRows } from './settings/YearRows';
 import { ProSection } from './settings/ProSection';
 import { CrashRow } from './settings/CrashRow';
+import { TID } from '../lib/testIds';
 
 const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
@@ -282,12 +283,13 @@ export function Settings() {
   return (
     <View onAccessibilityEscape={back}>
       {/* 제목은 뒤로 가기 아래 줄에 — 다른 화면처럼 20pt 왼쪽 끝에서 시작한다 */}
-      <Header M={M} kr="설정" onBack={back} focusTitle stacked />
+      <Header M={M} kr="설정" onBack={back} focusTitle stacked backTestID={TID.setBack} />
 
       <View style={{ paddingHorizontal: 20 }}>
         <Section M={M} label="핵심 목표" />
         <Pressable
           onPress={() => { tap(); openEditor({ kind: 'center' }); }}
+          testID={TID.setGoal}
           accessibilityRole="button"
           accessibilityLabel={goal ? `핵심 목표, ${goal}` : '핵심 목표를 정해 주세요'}
           accessibilityHint="고치기"
@@ -313,6 +315,7 @@ export function Settings() {
               last={i === MOOD_OPTS.length - 1}
               onPress={() => { select(); setSetting('mood', mood); }}
               lead={<PaperSwatch M={M} mood={mood} />}
+              testID={TID.setMood(mood)}
             />
           ))}
         </View>
@@ -332,6 +335,7 @@ export function Settings() {
               first={i === 0}
               last={i === SHAPE_OPTS.length - 1}
               onPress={() => { select(); setSetting('cellShape', shape); }}
+              testID={TID.setShape(shape)}
             />
           ))}
         </View>
@@ -351,18 +355,19 @@ export function Settings() {
           accessibilityLabel="백업 내보내기"
           accessibilityHint={`${backupAgeLabel(doc.settings.lastBackupAt, new Date())}. 기록을 파일로 내보내요`}
           onPress={onExport}
+          testID={TID.setExport}
         />
-        <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" pressRef={importRow} />
-        <LineRow M={M} last title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" />
+        <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" pressRef={importRow} testID={TID.setImport} />
+        <LineRow M={M} last title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" testID={TID.setSnapshots} />
         <Text style={{ marginTop: 10, fontSize: 12.5, lineHeight: 18, color: M.sub }}>
           {STORAGE_NOTE}
         </Text>
         <YearRows M={M} />
 
         <SubHead M={M} label="새로 시작" />
-        <LineRow M={M} first title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
-        <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
-        <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
+        <LineRow M={M} first title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} testID={TID.setTemplate} />
+        <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" testID={TID.setSample} />
+        <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" testID={TID.setReset} />
 
         <ProSection M={M} />
 

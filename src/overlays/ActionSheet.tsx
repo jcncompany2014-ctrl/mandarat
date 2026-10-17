@@ -27,6 +27,7 @@ import {
   sheetSubtitle, weekDayKey, yesterdayOffer, type Postpone,
 } from '../lib/actionSheet';
 import { check as checkHaptic, uncheck as uncheckHaptic, success } from '../lib/haptics';
+import { TID } from '../lib/testIds';
 import type { Action, Theme } from '../types';
 
 /** 메모 괘선 — 줄 간격 · 첫 줄 위 여백 · 처음 높이(세 줄) */
@@ -79,8 +80,8 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           <Locator M={M} th={th} ai={ai} />
           <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '700', color: M.ink }} numberOfLines={1}>{area}</Text>
         </Pressable>
-        <IconBtn M={M} name="pencil" label="글과 유형 고치기" onPress={edit} />
-        <CloseBtn M={M} onPress={dismiss} />
+        <IconBtn M={M} name="pencil" label="글과 유형 고치기" onPress={edit} testID={TID.sheetEdit} />
+        <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
 
       {/* 글 — 눌러도 고친다 */}
@@ -159,6 +160,7 @@ function CheckLine({ M, color, on, label, onPress, seed }: { M: M; color: string
   return (
     <Pressable
       onPress={onPress}
+      testID={TID.sheetCheck}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
       accessibilityLabel={label}
@@ -294,7 +296,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
         >
           <Icon name="minus" size={20} color={M.ink} sw={2.2} />
         </Pressable>
-        <PrimaryButton M={M} label={plus} onPress={() => add(c.step)} style={{ flex: 1 }} />
+        <PrimaryButton M={M} label={plus} onPress={() => add(c.step)} style={{ flex: 1 }} testID={TID.sheetCheck} />
       </View>
     </View>
   );
@@ -426,7 +428,7 @@ function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
       ),
     );
     rows.push(
-      <LineRow key="focus" M={M} title="25분 집중하기" right={<RightText M={M}>시작 ›</RightText>} accessibilityLabel="25분 집중하기, 시작" onPress={() => { checkHaptic(); startFocus(ti, ai); }} />,
+      <LineRow key="focus" M={M} title="25분 집중하기" right={<RightText M={M}>시작 ›</RightText>} accessibilityLabel="25분 집중하기, 시작" onPress={() => { checkHaptic(); startFocus(ti, ai); }} testID={TID.sheetFocus} />,
     );
   }
   if (achievable) {

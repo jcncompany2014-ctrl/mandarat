@@ -498,6 +498,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
         label={goesNext ? (editor.kind === 'theme' ? '저장하고 다음 영역' : '저장하고 다음 칸') : '저장'}
         onPress={goesNext ? saveAndNext : saveAndClose}
         style={{ flex: 1 }}
+        testID={TID.editorSave}
       />
     </View>
   );
@@ -521,7 +522,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
           <Text accessibilityRole="header" accessibilityLabel={m.speech} numberOfLines={1} style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
             {m.title}
           </Text>
-          <CloseBtn M={M} onPress={() => dismissRef.current?.()} />
+          <CloseBtn M={M} onPress={() => dismissRef.current?.()} testID={TID.editorClose} />
         </View>
 
         {restore && (
@@ -539,6 +540,7 @@ function Editor({ editor }: { editor: EditorTarget }) {
           <Row M={M} label="내용">
             <TextInput
               ref={inputRef}
+              testID={TID.editorText}
               value={text}
               onChangeText={setText}
               accessibilityLabel={m.speech}
@@ -714,7 +716,7 @@ function KindRows({
             role="radio"
             value={cfg.kind}
             onChange={onKind}
-            options={KIND_ORDER.map((k) => ({ value: k, label: KIND_LABEL[k], a11yLabel: `유형 ${KIND_LABEL[k]}` }))}
+            options={KIND_ORDER.map((k) => ({ value: k, label: KIND_LABEL[k], a11yLabel: `유형 ${KIND_LABEL[k]}`, testID: TID.editorKind(k) }))}
           />
         </View>
         <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2, marginBottom: 12 }}>
