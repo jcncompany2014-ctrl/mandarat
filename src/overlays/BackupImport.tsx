@@ -13,6 +13,7 @@ import { parseBackup, summarize, type BackupSummary, type ParseResult } from '..
 import { ledgerRows, nowIsNewer, LEDGER_NONE } from '../lib/backupLedger';
 import { fmtDateLong } from '../lib/text';
 import { lastBackupAfterImport } from '../lib/lastBackup';
+import { unionArchives } from '../lib/archive';
 import { pickTextFile } from '../lib/webFile';
 import { announce } from '../lib/useReducedMotion';
 import { tap, success } from '../lib/haptics';
@@ -45,7 +46,7 @@ export function BackupImport({ onClose, returnFocusRef }: {
   returnFocusRef?: React.RefObject<View | null>;
 }) {
   const M = usePalette();
-  const { doc, replaceDoc } = useMandarat();
+  const { doc, replaceDoc, getDoc } = useMandarat();
   const offerUndo = useSnapshotUndo();
   const [text, setText] = useState('');
   // 입력이 멈추면 한 번만 읽는다(긴 글을 한 글자씩 고칠 때마다 다시 해석하지 않게)
@@ -116,11 +117,13 @@ export function BackupImport({ onClose, returnFocusRef }: {
     success();
     const snapshot = doc; // 되돌리기용
     const last = lastBackupAfterImport(doc.settings.lastBackupAt, result.doc.settings.lastBackupAt, result.summary.exportedAt);
-    replaceDoc(last ? { ...result.doc, settings: { ...result.doc.settings, lastBackupAt: last } } : result.doc);
+    const imported = last ? { ...result.doc, settings: { ...result.doc.settings, lastBackupAt: last } } : result.doc;
+    // 지난 표는 합친다 — 이전 백업(지난 표 없음 · 표를 닫기 전)을 불러와도 지금 있는 지난 표가 사라지지 않게
+    replaceDoc({ ...imported, archives: unionArchives(getDoc().archives, imported.archives) });
     dismiss();
     // 그사이 다른 기록이 생겼다면 덮어쓰지 않는다(여기서는 토스트를 10초 둔다)
     offerUndo('백업을 불러왔어요', snapshot, { duration: UNDO_MS });
-  }, [result, doc, replaceDoc, offerUndo]);
+  }, [result, doc, replaceDoc, getDoc, offerUndo]);
 
   const now = useMemo(() => summarize(doc), [doc]);
   const backup = result?.ok ? result.summary : null;
