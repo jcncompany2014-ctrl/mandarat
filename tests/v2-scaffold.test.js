@@ -105,10 +105,9 @@ test('뒤 꾸러미가 채울 빈 파일이 모두 있다', () => {
   for (const n of ['PaperRows', 'LanguageSection', 'NotifySection', 'SyncSection', 'YearRows', 'ProSection', 'CrashRow']) {
     assert.match(src(`src/screens/settings/${n}.tsx`), new RegExp(`export function ${n}\\(\\{ M \\}: \\{ M: M \\}\\)`), n);
   }
-  // 위젯 문자열 플러그인은 아직 아무것도 바꾸지 않는다
+  // 위젯 문자열 플러그인은 설정 플러그인(V2-C) — 자세한 것은 tests/widgetStrings.test.js
   const plugin = require('../plugins/withWidgetStrings');
-  const cfg = { name: 'x' };
-  assert.equal(plugin(cfg), cfg);
+  assert.equal(typeof plugin, 'function');
   assert.match(src('native/ios/AppIntents.swift'), /^import Foundation$/m);
 });
 

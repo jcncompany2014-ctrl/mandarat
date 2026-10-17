@@ -16,4 +16,8 @@ export default {
   next: '다음 할 일: {t}',
   /** 한 일 '{t}' — 체크한 줄의 읽어 주기 */
   checked: '{t} — 했어요',
+  /** 위젯 고르기 화면의 이름 — app.json expo-widgets displayName과 같아야 한다(위젯 확장 Localizable.strings의 열쇠) */
+  galleryName: '오늘',
+  /** 위젯 고르기 화면의 설명 — app.json expo-widgets description과 같아야 한다 */
+  galleryDesc: '오늘 할 일과 남은 수를 보여 줘요.',
 } satisfies Namespace;
