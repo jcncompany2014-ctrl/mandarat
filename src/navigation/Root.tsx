@@ -12,7 +12,8 @@ import { Icon } from '../components/Icon';
 import { select, success, tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
-import { TAB_BAR_H, useUIActions, useUIState, type Screen } from './ui';
+import { TAB_BAR_H, isDeep, useUIActions, useUIState, type Screen } from './ui';
+import { TID } from '../lib/testIds';
 import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
 import { todayProgress } from '../lib/routine';
 
@@ -23,6 +24,7 @@ import { Detail } from '../screens/Detail';
 import { Today } from '../screens/Today';
 import { Stats } from '../screens/Stats';
 import { Settings } from '../screens/Settings';
+import { Year } from '../screens/Year';
 
 import { ActionSheet } from '../overlays/ActionSheet';
 import { FocusTimer } from '../overlays/FocusTimer';
@@ -34,6 +36,13 @@ import { CellEditor } from '../overlays/CellEditor';
 import { WeekRitual } from '../overlays/WeekRitual';
 import { ShareChart } from '../overlays/ShareChart';
 import { Snackbar } from '../overlays/Snackbar';
+import { PrintSheet } from '../overlays/PrintSheet';
+import { ProSheet } from '../overlays/ProSheet';
+import { YearClose } from '../overlays/YearClose';
+import { ReminderSync } from '../hosts/ReminderSync';
+import { WidgetSync } from '../hosts/WidgetSync';
+import { ICloudSync } from '../hosts/ICloudSync';
+import { Inbound } from '../hosts/Inbound';
 
 // 화면과 시트는 props가 없거나 값이 같으면 다시 그리지 않는다 — Root는 체크마다(문서가 바뀔 때마다) 다시 그려지지만,
 // 각 화면·시트는 자기가 읽는 문서·화면 상태가 바뀔 때만 다시 그려진다.
@@ -47,6 +56,10 @@ const PickTodayPure = memo(PickToday);
 const CellEditorPure = memo(CellEditor);
 const WeekRitualPure = memo(WeekRitual);
 const ShareChartPure = memo(ShareChart);
+const PrintSheetPure = memo(PrintSheet);
+const ProSheetPure = memo(ProSheet);
+const YearClosePure = memo(YearClose);
+const YearPure = memo(Year);
 const CelebrationPure = memo(Celebration);
 const SnackbarPure = memo(Snackbar);
 const PaperDotsPure = memo(PaperDots);
@@ -77,7 +90,6 @@ const IND_W = 20;
 const BAR_ROLE: AccessibilityRole = Platform.OS === 'web' ? 'tablist' : 'tabbar';
 const TAB_ROLE: AccessibilityRole = Platform.OS === 'ios' ? 'button' : 'tab';
 
-const isDeep = (s: Screen) => s === 'detail' || s === 'settings';
 
 /** 이정표 촉감(성공)은 한 번에 한 번만 — 영역 8/8과 하루 마감이 한 번의 체크로 같이 와도 한 번 울린다 */
 let lastMilestone = 0;
@@ -97,6 +109,10 @@ export function Root() {
   return (
     <>
       <Milestones />
+      {/* 그리지 않는 손잡이 — 알림·위젯·iCloud를 문서에 맞춘다 */}
+      <ReminderSync />
+      <WidgetSync />
+      <ICloudSync />
       <RootView onboarded={doc.onboarded} />
     </>
   );
@@ -350,6 +366,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   else if (ui.screen === 'today') screen = <Today />;
   else if (ui.screen === 'stats') screen = <Stats />;
   else if (ui.screen === 'settings') screen = <SettingsPure />;
+  else if (ui.screen === 'year') screen = <YearPure />;
 
   const deep = isDeep(ui.screen);
   const showTabs = ui.screen !== 'settings';
@@ -403,8 +420,13 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
       <CellEditorPure />
       <WeekRitualPure />
       <ShareChartPure />
+      <PrintSheetPure />
+      <ProSheetPure />
+      <YearClosePure />
       <CelebrationPure />
       <SnackbarPure />
+      {/* 들어오는 링크 — 시작하기를 마친 뒤에만 */}
+      <Inbound />
     </View>
   );
 });
@@ -494,6 +516,7 @@ const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
   return (
     <Pressable
       onPress={() => onTab(id)}
+      testID={TID.tab(id)}
       accessibilityRole={TAB_ROLE}
       accessibilityLabel={label}
       accessibilityState={{ selected: on }}
@@ -521,6 +544,7 @@ function AddSlot({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
+      testID={TID.tabAdd}
       accessibilityRole="button"
       accessibilityLabel="담기"
       accessibilityHint="오늘 할 일을 적어 담아요"

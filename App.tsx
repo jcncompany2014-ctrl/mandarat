@@ -12,6 +12,12 @@ import { PAPER, Splash, SplashFade, holdNativeSplash, nativeSplashUp, releaseNat
 import { installWebStyles } from './src/lib/webStyle';
 import { WebColumn } from './src/components/WebColumn';
 import { mix } from './src/theme/moods';
+import { crash } from './src/lib/crash';
+import { ProProvider } from './src/store/ProContext';
+import { LangBoot, LangRoot, takeResumeHint } from './src/i18n/react';
+
+// 오류 수집은 가장 먼저 — 기기에서만 Sentry(src/lib/crash.native.ts), 웹·Node는 아무것도 하지 않는다
+crash.init();
 
 // 서체·저장소가 준비될 때까지 iOS 런치 스크린을 붙잡아 둔다 — 컴포넌트 안에서 부르면 이미 걷힌 뒤일 수 있다
 holdNativeSplash();
@@ -48,31 +54,41 @@ const Shell = memo(function Shell() {
   const endFade = useCallback(() => setJsFade(false), []);
   // 웹 미리보기: 넓은 브라우저에서도 폰 한 장 폭으로 가운데에 — 바깥은 종이보다 한 톤 짙은 책상, 가장자리에 가는 괘선
   const P = usePaletteValue();
+  // 언어를 바꾸면 LangRoot 아래를 통째로 다시 그린다 — 문서는 그대로, 화면은 설정으로 돌아온다(takeResumeHint)
   return (
-    <UIProvider>
-      <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
-        <WebColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
-          <Root />
-        </WebColumn>
-        {jsFade && <SplashFade onDone={endFade} />}
-      </View>
-    </UIProvider>
+    <LangRoot>
+      <UIProvider initialScreen={takeResumeHint()}>
+        <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
+          <WebColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
+            <Root />
+          </WebColumn>
+          {jsFade && <SplashFade onDone={endFade} />}
+        </View>
+      </UIProvider>
+    </LangRoot>
   );
 });
 
-export default function App() {
+function App() {
   const [fontsLoaded, fontError] = useFonts(FONT_FILES);
 
   // 서체를 불러오는 동안만 스플래시 — 불러오기에 실패해도(fontError) 갇히지 않고 시스템 서체로 연다
   if (!fontsLoaded && !fontError) return <Splash />;
 
+  // 언어는 문서 저장소보다 먼저 정한다 — 처음 여는 날 blankDoc()이 영역 이름을 그 언어로 적는다
   return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <MandaratProvider>
-          <Gate />
-        </MandaratProvider>
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <LangBoot fallback={<Splash />}>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <ProProvider>
+            <MandaratProvider>
+              <Gate />
+            </MandaratProvider>
+          </ProProvider>
+        </SafeAreaProvider>
+      </ErrorBoundary>
+    </LangBoot>
   );
 }
+
+export default crash.wrap(App);

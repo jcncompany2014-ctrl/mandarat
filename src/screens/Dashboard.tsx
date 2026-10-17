@@ -3,6 +3,7 @@ import { Animated, Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
 import { IconBtn, LineRow, RowDivider, RuledNotice, groupEdge, pressedRow } from '../components/common';
+import { TID } from '../lib/testIds';
 import { Icon } from '../components/Icon';
 import { Check, checkEdge } from '../components/Check';
 import { MiniChart } from '../components/GridMark';
@@ -132,7 +133,7 @@ export const Dashboard = memo(function Dashboard() {
           </View>
         </View>
         <View style={{ paddingTop: 2, marginLeft: 4 }}>
-          <IconBtn M={M} name="settings" label="설정" onPress={() => go('settings')} />
+          <IconBtn M={M} name="settings" label="설정" testID={TID.homeSettings} onPress={() => go('settings')} />
         </View>
       </View>
       {/* 인쇄된 두 줄 — 굵은 줄 1.5 · 가는 줄 0.5, 3pt 사이 */}

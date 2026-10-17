@@ -160,18 +160,21 @@ export function Header({
  * 이름표가 없고 누를 수도 없으면 스크린리더에서 숨긴다.
  */
 export function IconBtn({
-  M, name, onPress, badge, label,
+  M, name, onPress, badge, label, testID,
 }: {
   M: M;
   name: IconName;
   onPress?: () => void;
   badge?: boolean;
   label?: string;
+  /** src/lib/testIds.ts의 이름 — Maestro·스크린샷 도구가 찾는다 */
+  testID?: string;
 }) {
   const hidden = !label && !onPress;
   return (
     <Pressable
       onPress={onPress}
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityElementsHidden={hidden}
