@@ -29,9 +29,13 @@ test('D-5 · D-6: 스케치는 높이까지 보고 크기를 고르고, 예시�
   assert.match(sketch, /numberOfLines=\{fit\.lines\}/);
   assert.doesNotMatch(sketch, /fitFontSize/);
   const onb = src('src/screens/Onboarding.tsx');
-  const ex = onb.match(/const EXAMPLES = \[([^\]]*)\]/)[1];
-  const placeholder = onb.match(/placeholder="예\) ([^"]+)"/)[1];
-  assert.ok(!ex.includes(placeholder), '입력칸 안내와 같은 예시를 두 번 보이지 않는다');
+  assert.match(onb, /const examples = \[o\.ex1, o\.ex2, o\.ex3\]/);
+  assert.match(onb, /placeholder=\{o\.goalPlaceholder\}/);
+  for (const l of ['ko', 'ja', 'en']) {
+    const o = require('../src/i18n').msg(l).onboarding;
+    const placeholder = o.goalPlaceholder.replace(o.exampleMark, '').trim();
+    assert.ok(![o.ex1, o.ex2, o.ex3].some((e) => e.includes(placeholder) || placeholder.includes(e)), `${l}: 입력칸 안내와 같은 예시를 두 번 보이지 않는다`);
+  }
   assert.doesNotMatch(onb, />\s*·\s*</, '예시 사이 구분점 글자가 없다');
   assert.match(onb, /minHeight: 32/);
 });

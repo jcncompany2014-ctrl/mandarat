@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '../types';
-import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleThemes } from '../data/defaults';
+import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleGoal, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 import { addCount as addCountTo, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
 import { activeStreak, archiveAllCells, archiveCellLog, areaStreak, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
@@ -13,6 +13,9 @@ import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
 import { newSyncMeta, type SyncMeta } from '../lib/syncMeta';
 import { docOnlyJson, makeSyncPort, openStored, serializeStored, stampCommit, type CommitHow, type SyncPort } from '../lib/syncEnvelope';
+import { relocalizeDoc } from '../lib/relocalize';
+import { LANGS, lang, type Lang } from '../i18n';
+import { onLangChosen } from '../i18n/react';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 /** 하루 한 번 남기는 저장본 'mandarat:snap:YYYY-MM-DD' */
@@ -185,6 +188,11 @@ export interface Actions {
   applyTemplate: (centerGoal: string, themes: Theme[]) => void;
   /** 처음부터 다시 — 보기 설정과 지난 표는 남긴다(archive.resetDoc) */
   resetAll: () => void;
+  /**
+   * 언어를 바꿀 때 — 아직 from 언어의 기본 글 그대로인 영역 이름 · 예시 칸 · 예시 목표만 to 언어로(src/lib/relocalize.ts).
+   * 사용자가 고친 글은 그대로. 바뀐 것이 없으면 아무것도 하지 않는다. 언어를 고르면 저장소가 스스로 부른다(onLangChosen)
+   */
+  relocalizeDefaults: (from: Lang, to: Lang) => void;
   replaceDoc: (d: MandaratDoc) => void;
   /**
    * 지금 표를 지난 표로 닫고 새 표를 시작한다(archive.startNewChart) — 같은 지난 표가 이미 있거나
@@ -681,7 +689,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         const tk = dateKey();
         return {
           ...d,
-          centerGoal: d.centerGoal.trim() ? d.centerGoal : '건강·일·관계 모두 챙기기',
+          centerGoal: d.centerGoal.trim() ? d.centerGoal : sampleGoal(),
           // 예시 습관은 오늘부터 시작 — 이번 주 지난 날이 놓친 날로 보이지 않게
           themes: sampleThemes().map((t) => ({
             ...t,
@@ -705,6 +713,23 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     },
     [update],
   );
+
+  const relocalizeDefaults = useCallback(
+    (from: Lang, to: Lang) => {
+      if (relocalizeDoc(latest.current, from, to) === latest.current) return;
+      update((d) => relocalizeDoc(d, from, to));
+    },
+    [update],
+  );
+
+  // 사용자가 언어를 고르면(설정) 기본 글을 새 언어로 — 앱을 열 때 정하는 언어에는 불리지 않는다
+  useEffect(() => onLangChosen(relocalizeDefaults), [relocalizeDefaults]);
+
+  // 시작하기 전의 문서(처음 연 날 저장된 빈 표)는 다른 언어로 다시 열면 그 언어의 기본 영역으로 — 아직 아무것도 적지 않았다
+  useEffect(() => {
+    if (!ready || latest.current.onboarded) return;
+    for (const l of LANGS) if (l !== lang()) relocalizeDefaults(l, lang());
+  }, [ready, relocalizeDefaults]);
 
   // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로
   const applyTemplate = useCallback(
@@ -806,13 +831,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
-      replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      relocalizeDefaults, replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     }),
     [
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
-      replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      relocalizeDefaults, replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     ],
   );
 

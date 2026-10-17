@@ -7,123 +7,169 @@ import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 import { KINDS, normalizeDays, normalizePerWeek, ymd } from '../lib/routine';
 import { MAX_NUM, cleanNum, cleanUnit } from '../lib/kinds';
+import { LANGS, lang, msg, type Lang, type Messages } from '../i18n';
 
 export const CENTER_EN = 'My Best Self';
 
-interface ThemeSeed {
-  title: string;
+/** 비상금 칸 — 원 · 엔 · 달러로 자연스러운 목표 */
+const MONEY = { ko: 300, ja: 30, en: 2000 } as const;
+
+/** 한 영역 자리 — 색과 아이콘은 자리마다 고정, 이름과 예시 글은 언어마다(msg().seeds) */
+interface SlotSeed {
   color: string;
   icon: Theme['icon'];
   sample: SampleAction[];
 }
 
-/** 예시 칸 — 유형별 값과, 마감은 오늘부터 며칠 뒤(dueIn)로 */
+/** 언어마다 다른 수 — 비상금처럼 돈의 단위가 바뀌면 목표 수도 바뀐다 */
+type PerLang = number | Readonly<Record<Lang, number>>;
+
+/** 예시 칸 — 유형별 값과, 마감은 오늘부터 며칠 뒤(dueIn)로. 글과 단위는 seeds.s<영역><칸> · seeds.unit<영역><칸> */
 interface SampleAction {
-  kr: string;
   done?: boolean;
   kind?: ActionKind;
   days?: number[];
   perWeek?: number;
-  goal?: number;
-  unit?: string;
-  count?: number;
+  goal?: PerLang;
+  count?: PerLang;
   dueIn?: number;
   /** 마음가짐: 지난 몇 주의 점수(오래된 주 → 지난주) */
   rated?: number[];
 }
 
-// The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable.
-export const THEME_SEEDS: ThemeSeed[] = [
+const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6];
+
+// The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable (text: msg().seeds).
+const SLOTS: readonly SlotSeed[] = [
   {
-    title: '건강', color: PILLAR_COLORS[0], icon: 'heart',
+    color: PILLAR_COLORS[0], icon: 'heart',
     sample: [
-      { kr: '주 3회 운동', kind: 'habit', perWeek: 3 }, { kr: '하루 물 2L', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '11시 취침', kind: 'habit', days: [0, 1, 2, 3, 4] },
-      { kr: '1만보 걷기', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '단 음식 줄이기' }, { kr: '정기 건강검진', done: true },
-      { kr: '스트레칭 10분', done: true, days: [1, 2, 3, 4, 5] }, { kr: '야식 끊기' },
+      { kind: 'habit', perWeek: 3 }, { done: true, days: EVERY_DAY }, { kind: 'habit', days: [0, 1, 2, 3, 4] },
+      { done: true, days: EVERY_DAY }, {}, { done: true },
+      { done: true, days: [1, 2, 3, 4, 5] }, {},
     ],
   },
   {
-    title: '커리어', color: PILLAR_COLORS[1], icon: 'briefcase',
+    color: PILLAR_COLORS[1], icon: 'briefcase',
     sample: [
-      { kr: '사이드 프로젝트', done: true }, { kr: '발표 1회' }, { kr: '멘토 찾기', done: true },
-      { kr: '이력서 갱신', dueIn: 2 }, { kr: '새 기술 1개', done: true }, { kr: '업계 네트워킹' },
-      { kr: '성과 기록' }, { kr: '자격증 취득', dueIn: 45 },
+      { done: true }, {}, { done: true },
+      { dueIn: 2 }, { done: true }, {},
+      {}, { dueIn: 45 },
     ],
   },
   {
-    title: '자기계발', color: PILLAR_COLORS[2], icon: 'book',
+    color: PILLAR_COLORS[2], icon: 'book',
     sample: [
-      { kr: '책 12권 읽기', kind: 'count', goal: 12, unit: '권', count: 7 }, { kr: '온라인 강의', done: true }, { kr: '영어 회화', kind: 'habit', perWeek: 2 },
-      { kr: '아침 글쓰기', done: true, days: [1, 3, 5] }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
-      { kr: '메모 정리' }, { kr: '강연 참석' },
+      { kind: 'count', goal: 12, count: 7 }, { done: true }, { kind: 'habit', perWeek: 2 },
+      { done: true, days: [1, 3, 5] }, {}, { done: true },
+      {}, {},
     ],
   },
   {
-    title: '관계', color: PILLAR_COLORS[3], icon: 'people',
+    color: PILLAR_COLORS[3], icon: 'people',
     sample: [
-      { kr: '부모님 주 1통화', done: true, kind: 'habit', perWeek: 1 }, { kr: '친구 모임' }, { kr: '감사 표현하기', kind: 'mind', rated: [2, 3, 3, 4] },
-      { kr: '데이트 나이트' }, { kr: '새 친구 사귀기' }, { kr: '손편지 쓰기' },
-      { kr: '경청 연습', kind: 'mind', rated: [3, 2, 4] }, { kr: '봉사활동' },
+      { done: true, kind: 'habit', perWeek: 1 }, {}, { kind: 'mind', rated: [2, 3, 3, 4] },
+      {}, {}, {},
+      { kind: 'mind', rated: [3, 2, 4] }, {},
     ],
   },
   {
-    title: '재정', color: PILLAR_COLORS[4], icon: 'coin',
+    color: PILLAR_COLORS[4], icon: 'coin',
     sample: [
-      { kr: '가계부 쓰기', done: true, days: [0] }, { kr: '비상금 300만 원', done: true, kind: 'count', goal: 300, unit: '만 원', count: 300 }, { kr: '투자 공부' },
-      { kr: '구독 정리', done: true }, { kr: '수입 20% 저축' }, { kr: '부수입 만들기' },
-      { kr: '소비 점검' }, { kr: '연금 점검' },
+      { done: true, days: [0] }, { done: true, kind: 'count', goal: MONEY, count: MONEY }, {},
+      { done: true }, {}, {},
+      {}, {},
     ],
   },
   {
-    title: '취미', color: PILLAR_COLORS[5], icon: 'palette',
+    color: PILLAR_COLORS[5], icon: 'palette',
     sample: [
-      { kr: '사진 찍기', done: true }, { kr: '요리 10가지', done: true, kind: 'count', goal: 10, unit: '가지', count: 10 }, { kr: '악기 배우기' },
-      { kr: '그림 그리기', done: true }, { kr: '등산 가기' }, { kr: '식물 키우기', done: true },
-      { kr: '보드게임' }, { kr: '캠핑 가기' },
+      { done: true }, { done: true, kind: 'count', goal: 10, count: 10 }, {},
+      { done: true }, {}, { done: true },
+      {}, {},
     ],
   },
   {
-    title: '마음챙김', color: PILLAR_COLORS[6], icon: 'lotus',
+    color: PILLAR_COLORS[6], icon: 'lotus',
     sample: [
-      { kr: '명상 10분', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '감사일기', done: true }, { kr: '디지털 디톡스' },
-      { kr: '호흡 연습', done: true }, { kr: '산책하기', done: true }, { kr: '일기 쓰기' },
-      { kr: '요가', done: true }, { kr: '감정 체크', kind: 'mind' },
+      { done: true, days: EVERY_DAY }, { done: true }, {},
+      { done: true }, { done: true }, {},
+      { done: true }, { kind: 'mind' },
     ],
   },
   {
-    title: '모험', color: PILLAR_COLORS[7], icon: 'compass',
+    color: PILLAR_COLORS[7], icon: 'compass',
     sample: [
-      { kr: '새 도시 3곳', done: true, kind: 'count', goal: 3, unit: '곳', count: 3 }, { kr: '혼자 여행' }, { kr: '번지점프' },
-      { kr: '콘서트 가기' }, { kr: '새 음식 도전' }, { kr: '일출 보기' },
-      { kr: '외국어 대화' }, { kr: '별 보기 캠핑' },
+      { done: true, kind: 'count', goal: 3, count: 3 }, {}, {},
+      {}, {}, {},
+      {}, {},
     ],
   },
 ];
+
+const perLang = (v: PerLang | undefined, l: Lang): number | undefined => (typeof v === 'object' ? v[l] : v);
+const seedText = (s: Messages['seeds'], key: string): string => (s as Readonly<Record<string, string>>)[key] ?? '';
+
+/** 그 언어의 기본 영역 이름 8개 */
+export function seedTitles(l: Lang = lang()): string[] {
+  const s = msg(l).seeds;
+  return SLOTS.map((_, i) => seedText(s, `area${i}`));
+}
+
+/** 그 언어의 '예시로 채우기' 목표 */
+export function sampleGoal(l: Lang = lang()): string {
+  return msg(l).seeds.sampleGoal;
+}
+
+/** 예시 칸 하나의 그 언어 글 · 쌓기 단위 · 목표 · 지금 수 — 언어를 바꿀 때(relocalize) 견주는 값 */
+export interface SampleCell { text: string; unit?: string; goal?: number; count?: number }
+
+export function sampleCell(ti: number, ai: number, l: Lang = lang()): SampleCell | undefined {
+  const a = SLOTS[ti]?.sample[ai];
+  if (!a) return undefined;
+  const s = msg(l).seeds;
+  const text = seedText(s, `s${ti}${ai}`);
+  if (a.kind !== 'count') return { text };
+  const unit = seedText(s, `unit${ti}${ai}`);
+  return { text, ...(unit ? { unit } : {}), goal: perLang(a.goal, l), count: perLang(a.count, l) ?? 0 };
+}
+
+/** 자리별 색 · 아이콘과 지금 언어의 기본 이름 — tools/store-shots가 색과 아이콘을 읽는다 */
+export const THEME_SEEDS: readonly { readonly title: string; readonly color: string; readonly icon: Theme['icon'] }[] = SLOTS.map((s, i) => ({
+  get title() { return seedTitles()[i]; },
+  color: s.color,
+  icon: s.icon,
+}));
 
 function emptyActions(): Action[] {
   return Array.from({ length: 8 }, () => ({ text: '', note: '', done: false }));
 }
 
-/** Themes with the 8-pillar names filled in but actions left blank for the user. */
-export function scaffoldThemes(): Theme[] {
-  return THEME_SEEDS.map((s) => ({
-    title: s.title, color: s.color, icon: s.icon, actions: emptyActions(),
+/** Themes with the 8-pillar names filled in (in the app language) but actions left blank for the user. */
+export function scaffoldThemes(l: Lang = lang()): Theme[] {
+  const titles = seedTitles(l);
+  return SLOTS.map((s, i) => ({
+    title: titles[i], color: s.color, icon: s.icon, actions: emptyActions(),
   }));
 }
 
-/** Themes fully populated from the sample (for "예시로 채우기"). 마감은 today 기준으로 정한다. */
-export function sampleThemes(today = new Date()): Theme[] {
-  return THEME_SEEDS.map((s) => ({
-    title: s.title, color: s.color, icon: s.icon,
-    actions: s.sample.map((a): Action => ({
-      text: a.kr, note: '', done: !!a.done,
-      ...(a.kind ? { kind: a.kind } : {}),
-      ...(a.days ? { days: a.days } : {}),
-      ...(a.perWeek ? { perWeek: a.perWeek } : {}),
-      ...(a.kind === 'count' ? { goal: a.goal, count: a.count ?? 0, ...(a.unit ? { unit: a.unit } : {}) } : {}),
-      ...(a.dueIn !== undefined ? { due: ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + a.dueIn)) } : {}),
-      ...(a.rated ? { ratings: pastWeeks(today, a.rated) } : {}),
-    })),
+/** Themes fully populated from the sample (for "예시로 채우기") in the app language. 마감은 today 기준으로 정한다. */
+export function sampleThemes(today = new Date(), l: Lang = lang()): Theme[] {
+  const titles = seedTitles(l);
+  return SLOTS.map((s, ti) => ({
+    title: titles[ti], color: s.color, icon: s.icon,
+    actions: s.sample.map((a, ai): Action => {
+      const cell = sampleCell(ti, ai, l) as SampleCell;
+      return {
+        text: cell.text, note: '', done: !!a.done,
+        ...(a.kind ? { kind: a.kind } : {}),
+        ...(a.days ? { days: a.days } : {}),
+        ...(a.perWeek ? { perWeek: a.perWeek } : {}),
+        ...(a.kind === 'count' ? { goal: cell.goal, count: cell.count ?? 0, ...(cell.unit ? { unit: cell.unit } : {}) } : {}),
+        ...(a.dueIn !== undefined ? { due: ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + a.dueIn)) } : {}),
+        ...(a.rated ? { ratings: pastWeeks(today, a.rated) } : {}),
+      };
+    }),
   }));
 }
 
@@ -452,12 +498,13 @@ export function cleanArchives(v: unknown): ArchivedChart[] {
  * 8영역을 정했다고 볼 수 있는가.
  * - 저장된 참/거짓이 있으면 그대로 — 앱을 다시 열어도 시작하기 단계가 저절로 바뀌지 않는다.
  * - 값이 없는 이전 저장본·백업만 짐작한다: 실천이 하나라도 적혀 있거나, 기본 이름과 다른 영역 이름이 있으면(사용자가 고친 것) 참.
+ *   기본 이름은 어느 언어의 것이든(ko · ja · en) 같은 자리의 기본 이름이면 고치지 않은 것으로 본다.
  */
 function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
   if (typeof flag === 'boolean') return flag;
   return themes.some((t, i) => {
     const title = t.title.trim();
-    return (title !== '' && title !== THEME_SEEDS[i]?.title) || t.actions.some((a) => a.text.trim() !== '');
+    return (title !== '' && !LANGS.some((l) => title === seedTitles(l)[i])) || t.actions.some((a) => a.text.trim() !== '');
   });
 }
 
