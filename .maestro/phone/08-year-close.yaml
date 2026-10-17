@@ -1,0 +1,43 @@
+appId: com.jcncompany.mandarat
+name: "08 한 해 닫기"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 설정 › 한 해 닫기 → 안내를 넘긴다 → 마지막 장의 시작 버튼이 보인다.
+# 오늘 시작한 표는 닫지 않는다(안내만 보이고 아무것도 바뀌지 않는다) — 새로 깐 앱이 바로 그 경우다.
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-year-close"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-year-close"
+- extendedWaitUntil:
+    visible:
+      id: "year-close-.*"
+    timeout: 10000
+- repeat:
+    while:
+      visible:
+        id: "year-close-next"
+    times: 8
+    commands:
+      - tapOn:
+          id: "year-close-next"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- assertVisible:
+    id: "year-close-start"
+# 막혀 있으면(오늘 시작한 표) 눌러도 아무 일이 없다. 앱이 그대로 살아 있는지만 본다.
+- tapOn:
+    id: "year-close-start"
+    optional: true
+- assertVisible:
+    id: "year-close-start|tab-grid|home-settings"

@@ -1,0 +1,44 @@
+appId: com.jcncompany.mandarat
+name: "05 언어 바꾸기"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 설정 › 언어 English → 앱이 영어로 다시 그려지고 설정으로 돌아온다 → 탭이 있다 → 한국어로 되돌린다
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-lang-en"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-lang-en"
+# 언어를 바꾸면 앱이 다시 그려지고 설정 화면으로 돌아온다
+- extendedWaitUntil:
+    visible:
+      id: "set-lang-ko"
+    timeout: 15000
+- openLink: "mandarat://home"
+- extendedWaitUntil:
+    visible:
+      id: "tab-grid"
+    timeout: 10000
+- assertVisible:
+    id: "tab-today"
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-lang-ko"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-lang-ko"
+- extendedWaitUntil:
+    visible:
+      id: "set-lang-en"
+    timeout: 15000

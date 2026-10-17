@@ -1,0 +1,18 @@
+appId: com.jcncompany.mandarat
+name: "01 시작하기"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 목표 → 예시 → 시작 → 만다라트 탭이 보인다
+- runFlow: ../common/onboard.yaml
+- assertVisible:
+    id: "tab-grid"
+- assertVisible:
+    id: "tab-today"
+- assertVisible:
+    id: "tab-add"

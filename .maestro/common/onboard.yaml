@@ -1,0 +1,26 @@
+# 시작하기를 끝낸다 — 목표 한 줄 → (예시) → 시작 → 탭이 보인다.
+# launchApp(clearState) 바로 뒤에 runFlow로 부른다.
+appId: com.jcncompany.mandarat
+---
+- extendedWaitUntil:
+    visible:
+      id: "onb-goal"
+    timeout: 30000
+- tapOn:
+    id: "onb-goal"
+# 한글 입력은 시뮬레이터 키보드에 따라 흔들릴 수 있어 영문으로 적는다(목표는 아무 글이나 된다)
+- inputText: "Run a marathon"
+- hideKeyboard
+# 단계가 나뉜 시작하기(다음 → 예시)라면 누르고, 한 장짜리라면 건너뛴다
+- tapOn:
+    id: "onb-next"
+    optional: true
+- tapOn:
+    id: "onb-sample"
+    optional: true
+- tapOn:
+    id: "onb-start"
+- extendedWaitUntil:
+    visible:
+      id: "tab-grid"
+    timeout: 15000
