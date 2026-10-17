@@ -19,8 +19,6 @@ module.exports = async (page, h) => {
 
   await page.evaluate(() => window.__ui.openLink('mandarat://stats'));
   await h.settle();
-  console.log(await page.locator(`[data-testid="${h.TID.tab('stats')}"]`).first().evaluate((e) => e.outerHTML.slice(0, 300)));
-  console.log(await page.evaluate(() => Object.keys(window.__ui)));
   if (!(await selected('stats'))) throw new Error('mandarat://stats로 통계 탭이 켜지지 않았어요');
   await h.shot('link-stats');
 
