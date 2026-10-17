@@ -30,7 +30,7 @@ const DEFAULT_TIME: Record<TimedKind, string> = { morning: '08:00', evening: '21
 function hasReminders(doc: Pick<MandaratDoc, 'settings' | 'themes'>): boolean {
   const r = doc.settings.reminders;
   if (r && (r.morning || r.evening || r.review)) return true;
-  return doc.themes.some((t) => t.actions.some((a) => a.kind === 'habit' && !!a.remindAt && !!a.text.trim()));
+  return doc.themes.some((th) => th.actions.some((a) => a.kind === 'habit' && !!a.remindAt && !!a.text.trim()));
 }
 
 /** 켠 것만 남긴다 — 모두 끄면 필드가 없다(types.ts Reminders) */
