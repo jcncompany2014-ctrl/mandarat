@@ -28,7 +28,7 @@ export default {
   noteCount: ({ n, max }) => `${max}文字中${n}文字`,
   modeContinue: '行動はそのまま',
   modeContinueSub: '達成と記録は空にします',
-  modeAreas: '分野だけ残します',
+  modeAreas: '分野だけ残す',
   modeAreasSub: '行動のマスは空にします',
   modeBlank: '白紙の表',
   modeBlankSub: '分野から決め直します',

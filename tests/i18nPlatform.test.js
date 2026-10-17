@@ -154,12 +154,15 @@ test('labelLines: 일본어는 띄어쓰기가 없어도 가운데 가까운 자
 
 // ── 언어 정하기 ──────────────────────────────────────────────────────────────
 
-test('resolveLang: 직접 고른 언어(auto=true)와 기본값(I18N_READY=false, V8-A까지 모두 ko)', () => {
+test('resolveLang: 직접 고른 언어(auto=true)와 기본값(I18N_READY=true, V8-A부터 기기 언어)', () => {
   const lists = { jaFirst: ['ja-JP', 'en-US'], enFirst: ['en-US', 'ja-JP'], frOnly: ['fr-FR'] };
   assert.equal(I.resolveLang('system', lists.jaFirst, true), 'ja');
   assert.equal(I.resolveLang('system', lists.enFirst, true), 'en');
   assert.equal(I.resolveLang('system', lists.frOnly, true), 'ko');
-  for (const l of Object.values(lists)) assert.equal(I.resolveLang('system', l), 'ko', '번역이 끝나기 전에는 기기 언어를 따르지 않는다');
+  assert.equal(I.resolveLang('system', lists.jaFirst), 'ja', '번역이 끝났으니 기본값도 기기 언어를 따른다');
+  assert.equal(I.resolveLang('system', lists.enFirst), 'en');
+  assert.equal(I.resolveLang('system', lists.frOnly), 'ko', 'ko·ja·en이 없으면 한국어');
+  for (const l of Object.values(lists)) assert.equal(I.resolveLang('system', l, false), 'ko', 'auto=false면 늘 한국어');
   assert.equal(I.resolveLang('ja', lists.frOnly), 'ja');
 });
 
@@ -191,6 +194,7 @@ test('설정 › 언어: 네 줄 · 언어 이름 · 고르면 chooseLang과 새
   assert.equal(languageSectionShown(false, false, 'preview'), true);
   assert.equal(languageSectionShown(false, false, 'e2e'), true);
   assert.equal(languageSectionShown(true, false, 'production'), true);
+  assert.equal(languageSectionShown(I.I18N_READY, false, 'production'), true, 'V8-A부터 모든 빌드에 보인다');
   const M = I.msg;
   assert.equal(M('ko').lang.changed({ name: '日本語' }), '日本語로 바꿨어요');
   assert.equal(M('ko').lang.changed({ name: '한국어' }), '한국어로 바꿨어요');

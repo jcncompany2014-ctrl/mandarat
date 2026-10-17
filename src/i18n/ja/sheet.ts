@@ -10,9 +10,9 @@ const amt = ({ n, unit }: { n: number; unit: string }) => `${groupNum(n)}${unit}
 export default {
   areaFallback: ({ n }) => `分野${n}`,
   headA11y: ({ area, ordinal }) => `分野「${area}」、${ordinal}、分野を開く`,
-  edit: '文と種類を直す',
+  edit: '文と種類を編集',
   actionFallback: '行動',
-  titleA11y: ({ text, subtitle }) => `${text}、${subtitle}、文と種類を直す`,
+  titleA11y: ({ text, subtitle }) => `${text}、${subtitle}、文と種類を編集`,
   perStep: (p) => `1回に${amt(p)}`,
   onceAWeek: '週に1回',
 

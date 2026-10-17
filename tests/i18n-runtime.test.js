@@ -12,17 +12,21 @@ const { plural } = require('../src/i18n/en/plural');
 const { tsu } = require('../src/i18n/ja/counter');
 const { LANG_NAMES } = require('../src/i18n/names');
 
-test('번역이 끝나기 전(I18N_READY=false)에는 기기 언어를 따르지 않고 한국어로', () => {
-  assert.equal(I.I18N_READY, false);
+test('번역이 끝났다(I18N_READY=true, V8-A) — \'system\'은 기기 언어를 따른다', () => {
+  assert.equal(I.I18N_READY, true);
   assert.equal(I.FALLBACK, 'ko');
-  assert.equal(I.resolveLang('system', ['ja-JP']), 'ko');
-  assert.equal(I.resolveLang('system', ['ja-JP'], false), 'ko');
+  assert.equal(I.resolveLang('system', ['ja-JP']), 'ja', '기본값(auto=I18N_READY)으로 ja 기기는 일본어');
+  assert.equal(I.resolveLang('system', ['en-US', 'ja-JP']), 'en');
+  assert.equal(I.resolveLang('system', ['ko-KR', 'ja-JP']), 'ko');
+  assert.equal(I.resolveLang('system', ['ja-JP'], false), 'ko', 'auto=false면 예전처럼 한국어');
   assert.equal(I.resolveLang('system', ['ja-JP'], true), 'ja');
   assert.equal(I.resolveLang('system', ['fr-FR', 'en-US', 'ja-JP'], true), 'en', '목록에서 처음 나오는 ko·ja·en');
   assert.equal(I.resolveLang('system', ['fr-FR', 'de'], true), 'ko', '없으면 한국어');
+  assert.equal(I.resolveLang('system', ['fr-FR', 'de']), 'ko', '기본값으로도 없으면 한국어');
   assert.equal(I.resolveLang('system', ['ja'], true), 'ja', 'languageCode만 있어도');
   assert.equal(I.resolveLang('system', [null, undefined, ''], true), 'ko');
   assert.equal(I.resolveLang(undefined, ['en-US'], true), 'en');
+  assert.equal(I.resolveLang(undefined, ['en-US']), 'en', '고른 적 없으면 기기 언어');
 });
 
 test('직접 고른 언어와 ?lang=은 늘 이긴다', () => {

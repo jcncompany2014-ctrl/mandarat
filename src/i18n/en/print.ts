@@ -16,7 +16,7 @@ export default {
   colTally: 'This month',
   kindOnce: 'Once',
   kindHabit: 'Habit',
-  kindCount: 'Build-up',
+  kindCount: 'Count',
   kindMind: 'Mindset',
   appName: 'Mandalart',
   sheetHead: 'Printable PDF',

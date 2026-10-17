@@ -5,7 +5,7 @@ import type { Like } from '../types';
 
 export default {
   endAchieve: '終えて達成',
-  endCheck: 'できたで終える',
+  endCheck: '終えて「できた」にする',
   endHere: 'ここで終える',
   markAchieved: '達成にする',
   doneToday: '今日できた',

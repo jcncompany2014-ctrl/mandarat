@@ -27,7 +27,7 @@ export default {
   deltaLess: ({ n }) => `${groupNum(n)} fewer than last week`,
   deltaSame: 'Same as last week',
   rowHabit: 'Habits',
-  rowAdded: 'Counted up',
+  rowAdded: 'Added',
   rowMind: 'Mindset',
   rowSay: ({ label, value }) => `${label}, ${value}`,
   rowNone: 'none',
