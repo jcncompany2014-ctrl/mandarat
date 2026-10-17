@@ -52,12 +52,14 @@ test('D-9: 마음가짐 점수는 고른 한 칸만 먹으로 — 쌓아 칠하�
 
 test("D-10 · D-26 · D-29: 할 일 시트 — '마감 없음' 줄 한 겹 · 위치 표 빈 칸은 시트 바탕 · 힌트가 부제를 되풀이하지 않는다", () => {
   const s = src('src/overlays/ActionSheet.tsx');
-  assert.match(s, /<LineRow M=\{M\} title="마감 없음"/);
-  assert.doesNotMatch(s, /LineRow M=\{M\} first last title="마감 없음"/);
+  assert.match(s, /<LineRow M=\{M\} title=\{m\.sheet\.noDue\}/);
+  assert.equal(require('../src/i18n/ko/sheet').default.noDue, '마감 없음');
+  assert.doesNotMatch(s, /LineRow M=\{M\} first last title=/);
   assert.match(s, /bg: sheetBg\(M\), current: false/);
   assert.doesNotMatch(s, /bg: M\.bg/);
   assert.doesNotMatch(s, /한 주에 한 번, 떠오르는/);
-  assert.match(s, /'떠오르는 대로 매겨요'/);
+  assert.match(s, /m\.sheet\.mindPrompt/);
+  assert.equal(require('../src/i18n/ko/sheet').default.mindPrompt, '떠오르는 대로 매겨요');
 });
 
 test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 바닥 괘선, 메모는 목록 위, 7×7 영역 표시, 토스트는 닫기 아래', () => {

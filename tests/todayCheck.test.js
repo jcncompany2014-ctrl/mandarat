@@ -2,7 +2,7 @@ require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  reachesGoal, goalText, undoAddText, checkLabelText, checkHintText, checkedSpeech, addedSpeech, EXTRA_REMOVED, leftToday,
+  reachesGoal, goalText, undoAddText, checkLabelText, checkHintText, checkedSpeech, addedSpeech, extraRemovedText, leftToday,
 } = require('../src/lib/todayCheck');
 const R = require('../src/lib/routine');
 const fs = require('fs');
@@ -74,7 +74,7 @@ test('FX-VERIFY NEW-3: 체크한 뒤 남은 수는 바뀐 문서로 센다 — �
 
 test('쓰지 않기로 한 말이 없다', () => {
   const all = [
-    goalText({ goal: 3, unit: '권' }), undoAddText(1, '권'), EXTRA_REMOVED, checkedSpeech('a', 1),
+    goalText({ goal: 3, unit: '권' }), undoAddText(1, '권'), extraRemovedText(), checkedSpeech('a', 1),
     checkHintText(false, 'once'), checkHintText(true, 'count'), checkLabelText('a', 'count', { step: 1, unit: '권' }),
   ];
   for (const s of all) for (const w of BANNED_COPY) assert.ok(!s.includes(w), `${s} ⊃ ${w}`);

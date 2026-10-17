@@ -71,7 +71,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const lang = useLang();
   const th0 = doc.themes[ti];
   const a0 = th0?.actions[ai];
-  const areaName = th0 ? th0.title || `영역 ${ti + 1}` : '';
+  const areaName = th0 ? th0.title || m.sheet.areaFallback({ n: ti + 1 }) : '';
   // 알림·Live Activity가 읽는 지금 값 — 효과는 run·finished가 바뀔 때만 돌므로 ref로 넘긴다
   const textRef = useRef('');
   textRef.current = a0?.text.trim() ?? '';
@@ -184,7 +184,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     if (!finished || firedRef.current) return;
     firedRef.current = true;
     success();
-    announce('25분 집중을 마쳤어요');
+    announce(msgRef.current.focus.finished);
   }, [finished]);
 
   // ── 지금 채우는 칸의 숨 ─────────────────────────────────────────────────────
@@ -212,7 +212,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
 
   const kind = kindOf(a);
   const outcome = focusOutcome(kind, { done: a.done, checkedToday: doneOn(doc.dayLog, `${ti}-${ai}`, dateKey()) });
-  const label = finishLabel(outcome, finished);
+  const label = finishLabel(outcome, finished, lang);
   const elapsed = elapsedOf(left);
   const filled = finished ? TALLY_BOXES : filledBoxes(elapsed);
 
@@ -233,11 +233,14 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     if (finished) return;
     tap();
     // VoiceOver에는 바뀐 결과를 읽어 준다(안드로이드는 아래 상태 글의 live region이 읽는다)
-    if (Platform.OS === 'ios') announce(run ? '잠시 멈췄어요' : '다시 집중해요');
+    if (Platform.OS === 'ios') announce(run ? m.focus.cuePaused : m.focus.resumed);
     setRun((r) => !r);
   };
 
-  const cue = finished ? '끝났어요' : run ? '집중하는 중' : '잠시 멈췄어요';
+  const cue = finished ? m.focus.cueDone : run ? m.focus.cueRunning : m.focus.cuePaused;
+  const clockA11y = finished
+    ? m.focus.fullClockA11y
+    : (run ? m.focus.timerLeft : m.focus.timerLeftPaused)({ mins: Math.floor(left / 60), secs: left % 60 });
 
   return (
     <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent supportedOrientations={MODAL_ORIENTATIONS}>
@@ -263,18 +266,18 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           adjustsFontSizeToFit
           maxFontSizeMultiplier={1.2}
           accessibilityRole="timer"
-          accessibilityLabel={finished ? '25분' : `${run ? '' : '멈춤, '}남은 시간 ${Math.floor(left / 60)}분 ${left % 60}초`}
+          accessibilityLabel={clockA11y}
         >
-          {finished ? '25분' : fmtClock(left)}
+          {finished ? m.focus.fullClock : fmtClock(left)}
         </Text>
 
-        <Tally filled={filled} current={finished ? -1 : filled} color={th.color} breath={breath} reduce={reduce} />
+        <Tally filled={filled} current={finished ? -1 : filled} color={th.color} breath={breath} reduce={reduce} label={m.focus.tallyA11y({ n: filled })} />
 
         <Text
           style={{ marginTop: 20, fontSize: 17, lineHeight: 24, fontWeight: '700', color: '#fff', textAlign: 'center', maxWidth: 280 }}
           numberOfLines={2}
         >
-          {a.text || '집중'}
+          {a.text || m.focus.textFallback}
         </Text>
         <Text
           // 안드로이드: 멈춤·계속·끝남이 바뀔 때 읽는다(이 글은 그때만 바뀐다)
@@ -296,7 +299,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
               onPress={toggleRun}
               testID={TID.focusPause}
               accessibilityRole="button"
-              accessibilityLabel={run ? '멈추기' : '계속'}
+              accessibilityLabel={run ? m.focus.pause : m.focus.resume}
               style={({ pressed }) => ({
                 flex: stack ? undefined : 1, minWidth: 124, minHeight: 52, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
                 borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
@@ -304,14 +307,14 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' }} numberOfLines={2}>{run ? '멈추기' : '계속'}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' }} numberOfLines={2}>{run ? m.focus.pause : m.focus.resume}</Text>
             </Pressable>
           )}
           <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={stack ? undefined : { flex: 1, minWidth: 124 }} testID={TID.focusFinish} />
         </View>
 
         {!finished && (
-          <Text style={{ marginTop: 16, fontSize: 12.5, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>25분 동안 한 가지에만</Text>
+          <Text style={{ marginTop: 16, fontSize: 12.5, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>{m.focus.footnote}</Text>
         )}
       </View>
       </PaperColumn>
@@ -324,7 +327,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
  * 시계는 0.5초마다 다시 그려지지만 표는 칸이 바뀔 때(1분에 한 번)만 다시 그린다.
  */
 const Tally = memo(function Tally({
-  filled, current, color, breath, reduce,
+  filled, current, color, breath, reduce, label,
 }: {
   filled: number;
   /** 지금 채우는 칸(-1이면 없음) */
@@ -332,11 +335,13 @@ const Tally = memo(function Tally({
   color: string;
   breath: Animated.Value;
   reduce: boolean;
+  /** 화면 읽기 이름 — '25분 중 7분' */
+  label: string;
 }) {
   return (
     <View
       accessible
-      accessibilityLabel={`25분 중 ${filled}분`}
+      accessibilityLabel={label}
       style={{
         marginTop: 18, width: BOX * 5 + StyleSheet.hairlineWidth, flexDirection: 'row', flexWrap: 'wrap',
         borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderColor: RULE,

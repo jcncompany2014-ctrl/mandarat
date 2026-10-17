@@ -1,6 +1,7 @@
 // 집중 타이머의 시계·기록·버튼 글 — 화면(FocusTimer)과 떼어 Node에서 시험한다.
 // 남은 시간은 JS 박자를 세지 않고 벽시계(끝날 시각)에서 빼서 구한다 — 화면이 잠겨 JS가 멈춰도 시간은 흐른다.
 import type { ActionKind } from '../types';
+import { msg, type Lang } from '../i18n';
 
 /** 한 번의 집중(초) — 25분 */
 export const FOCUS_TOTAL = 25 * 60;
@@ -51,7 +52,8 @@ export function focusOutcome(kind: ActionKind, opts: { done?: boolean; checkedTo
 }
 
 /** 끝내기 버튼 글 — 도는 중과 25분을 다 채운 뒤가 다르다(한 번은 칸 달성, 습관은 그날 했어요) */
-export function finishLabel(outcome: FocusOutcome, finished: boolean): string {
-  if (finished) return outcome === 'done' ? '달성으로 표시' : outcome === 'check' ? '오늘 했어요' : '닫기';
-  return outcome === 'done' ? '끝내고 달성' : outcome === 'check' ? '끝내고 했어요' : '여기서 끝내기';
+export function finishLabel(outcome: FocusOutcome, finished: boolean, l?: Lang): string {
+  const { focus: f, common } = msg(l);
+  if (finished) return outcome === 'done' ? f.markAchieved : outcome === 'check' ? f.doneToday : common.close;
+  return outcome === 'done' ? f.endAchieve : outcome === 'check' ? f.endCheck : f.endHere;
 }
