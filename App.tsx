@@ -10,7 +10,7 @@ import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { PAPER, Splash, SplashFade, holdNativeSplash, nativeSplashUp, releaseNativeSplash } from './src/components/Splash';
 import { installWebStyles } from './src/lib/webStyle';
-import { WebColumn } from './src/components/WebColumn';
+import { PaperColumn } from './src/components/WebColumn';
 import { mix } from './src/theme/moods';
 import { crash } from './src/lib/crash';
 import { ProProvider } from './src/store/ProContext';
@@ -52,16 +52,17 @@ const Shell = memo(function Shell() {
   // 웹이거나 이미 걷혔으면 같은 모양의 JS 스플래시를 첫 화면 위에서 걷는다.
   const [jsFade, setJsFade] = useState(() => !nativeSplashUp());
   const endFade = useCallback(() => setJsFade(false), []);
-  // 웹 미리보기: 넓은 브라우저에서도 폰 한 장 폭으로 가운데에 — 바깥은 종이보다 한 톤 짙은 책상, 가장자리에 가는 괘선
+  // 넓은 창(웹 미리보기·아이패드): 종이 한 단을 가운데에 — 바깥은 종이보다 한 톤 짙은 책상, 가장자리에 가는 괘선.
+  // 단 폭은 PaperColumn이 창 크기로 고르고(layoutFor) PageSize로 내려 준다 — 두 쪽 펼침(spread)은 V5-A
   const P = usePaletteValue();
   // 언어를 바꾸면 LangRoot 아래를 통째로 다시 그린다 — 문서는 그대로, 화면은 설정으로 돌아온다(takeResumeHint)
   return (
     <LangRoot>
       <UIProvider initialScreen={takeResumeHint()}>
         <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
-          <WebColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
+          <PaperColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
             <Root />
-          </WebColumn>
+          </PaperColumn>
           {jsFade && <SplashFade onDone={endFade} />}
         </View>
       </UIProvider>
