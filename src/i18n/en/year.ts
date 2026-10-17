@@ -54,7 +54,7 @@ export default {
   statStreak: 'Longest streak',
   calendarTitle: 'The year by day',
   framesTitle: 'How the chart filled in',
-  frameSpeech: ({ label, n }) => `By ${label}, ${n} of 64 ${plural(n, 'square', 'squares')} achieved`,
+  frameSpeech: ({ label, n }) => `By ${label}, ${n} of 64 squares achieved`,
   wearTitle: 'Well-worn squares',
   wearRight: 'Avg per 4 weeks',
   weeksTitle: 'Reviewed weeks',

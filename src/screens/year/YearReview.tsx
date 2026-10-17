@@ -205,17 +205,18 @@ function Numbers({ M, m, digest, stacked }: { M: M; m: Messages; digest: Digest;
               accessibilityLabel={`${c.label}, ${c.speech ?? c.value}`}
               style={{ flex: 1, minWidth: 0, paddingVertical: 12, paddingLeft: ci ? 10 : 2, paddingRight: 6, borderLeftWidth: ci ? 1 : 0, borderColor: M.line }}
             >
-              <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: '600', color: M.sub }} numberOfLines={2} maxFontSizeMultiplier={STACK_SCALE}>
-                {c.label}
-              </Text>
+              {/* 숫자를 위에 — 이름이 두 줄로 접혀도 네 숫자의 높이가 맞는다. 긴 값(2시간 5분)은 두 줄까지 */}
               <Text
-                style={[{ fontSize: 20, lineHeight: 26, fontWeight: '800', color: M.ink, marginTop: 4 }, NUM]}
-                numberOfLines={1}
+                style={[{ fontSize: 20, lineHeight: 26, fontWeight: '800', color: M.ink }, NUM]}
+                numberOfLines={2}
                 adjustsFontSizeToFit
-                minimumFontScale={0.6}
+                minimumFontScale={0.7}
                 maxFontSizeMultiplier={STACK_SCALE}
               >
                 {c.value}
+              </Text>
+              <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: '600', color: M.sub, marginTop: 4 }} numberOfLines={3} maxFontSizeMultiplier={STACK_SCALE}>
+                {c.label}
               </Text>
             </View>
           ))}
