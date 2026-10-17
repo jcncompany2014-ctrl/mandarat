@@ -69,6 +69,8 @@ test('대비 증가: 도트 종이·체크 칸 테두리가 진해진다', () =>
   assert.match(pal, /WeakMap/);
   const flags = read('src/lib/useReducedMotion.ts');
   for (const s of ['isBoldTextEnabled', "'boldTextChanged'", 'isDarkerSystemColorsEnabled', "'darkerSystemColorsChanged'"]) assert.ok(flags.includes(s), s);
+  assert.match(flags, /const E2E = process\.env\.EXPO_PUBLIC_E2E === '1'/, 'e2e 빌드는 동작 줄이기가 늘 켜진다');
+  assert.match(flags, /E2E \|\| webQuery\('\(prefers-reduced-motion: reduce\)'\),\n\s+!E2E,/);
 });
 
 test('지운 코드가 돌아오지 않는다 — 히어로 색·기분 얼굴·주 N회 칸·옛 빈 상태·lucide', () => {
