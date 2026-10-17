@@ -177,7 +177,7 @@ function ProBody({ M, from }: { M: M; from: ProFeature | 'menu' }) {
         </>
       )}
 
-      {!STORE && (
+      {!STORE && !owned && (
         <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.sub, marginTop: 18 }}>{m.pro.platformNote}</Text>
       )}
 
