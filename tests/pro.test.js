@@ -254,9 +254,12 @@ test('proNoteText: 모든 말에 세 언어 글이 있다', () => {
   }
 });
 
-test('PREVIEW는 EXPO_PUBLIC_PRO_PREVIEW=1일 때만', () => {
-  assert.match(src('src/lib/pro.ts'), /export const PREVIEW = process\.env\.EXPO_PUBLIC_PRO_PREVIEW === '1';/);
-  assert.equal(require('../src/lib/pro').PREVIEW, process.env.EXPO_PUBLIC_PRO_PREVIEW === '1');
+test('PREVIEW는 EXPO_PUBLIC_PRO_PREVIEW=1이고 EAS 빌드(EXPO_PUBLIC_APP_ENV)가 아닐 때만', () => {
+  assert.match(src('src/lib/pro.ts'), /export const PREVIEW = process\.env\.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process\.env\.EXPO_PUBLIC_APP_ENV;/);
+  assert.equal(require('../src/lib/pro').PREVIEW, process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV);
+  // 모든 EAS 프로필이 EXPO_PUBLIC_APP_ENV를 둔다 — 그래야 대시보드 변수로 들어온 미리보기가 꺼진다
+  const eas = JSON.parse(src('eas.json'));
+  for (const [name, profile] of Object.entries(eas.build)) assert.ok(profile.env?.EXPO_PUBLIC_APP_ENV, name);
 });
 
 // ── 무료 기능 지키기(owner 결정 3) ──────────────────────────

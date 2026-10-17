@@ -2,7 +2,9 @@
 // - ExpoWidgetsTarget/{ko,ja,en}.lproj/Localizable.strings에 열쇠(ko 원문) 두 개가 있다.
 // - 그 파일들이 pbxproj의 Localizable.strings 변형 묶음에 있고, 그 묶음이 ExpoWidgetsTarget의 Resources 단계에 들어 있다.
 // - 위젯 확장 Info.plist가 있고, 위젯 대상의 TARGETED_DEVICE_FAMILY는 "1,2"(아이패드도).
-const { widgetStrings } = require('../../plugins/withWidgetStrings');
+// - 위젯 확장의 PrivacyInfo.xcprivacy가 있고(1C8F.1을 밝힌다), 위젯 Resources 단계에 들어 있다(R3-1).
+// - 위젯 대상의 표시 이름(INFOPLIST_KEY_CFBundleDisplayName)이 만다라트(R3-5).
+const { widgetStrings, DISPLAY_NAME } = require('../../plugins/withWidgetStrings');
 
 const TARGET = 'ExpoWidgetsTarget';
 
@@ -64,4 +66,22 @@ module.exports = (ctx, assert) => {
   const configs = [...(objectBody(pbx, confList).match(/buildConfigurations = \(([^)]*)\)/) || ['', ''])[1].matchAll(/([0-9A-F]{24})/g)].map((m) => m[1]);
   assert.ok(configs.length >= 2, '위젯 대상 빌드 설정(Debug · Release)');
   for (const c of configs) assert.match(objectBody(pbx, c), /TARGETED_DEVICE_FAMILY = "1,2";/, `TARGETED_DEVICE_FAMILY ${c}`);
+  for (const c of configs) {
+    const name = (objectBody(pbx, c).match(/INFOPLIST_KEY_CFBundleDisplayName = ("?)([^";\n]*)\1;/) || [])[2];
+    assert.equal(name, DISPLAY_NAME, `INFOPLIST_KEY_CFBundleDisplayName ${c}`);
+  }
+
+  // 개인정보 매니페스트 — 파일이 있고, 읽히고, App Group UserDefaults(1C8F.1)를 밝히고, 위젯 Resources 단계에 한 번
+  const privacyRel = `${TARGET}/PrivacyInfo.xcprivacy`;
+  assert.ok(ctx.exists(privacyRel), `${privacyRel} 있음`);
+  const pm = ctx.plist.parse(ctx.read(privacyRel));
+  assert.equal(pm.NSPrivacyTracking, false, '위젯 NSPrivacyTracking false');
+  const ud = (pm.NSPrivacyAccessedAPITypes || []).find((t) => t.NSPrivacyAccessedAPIType === 'NSPrivacyAccessedAPICategoryUserDefaults');
+  assert.ok(ud && ud.NSPrivacyAccessedAPITypeReasons.includes('1C8F.1'), '위젯 매니페스트 UserDefaults 1C8F.1');
+  const privacyBuild = [...resources.matchAll(/([0-9A-F]{24}) \/\* PrivacyInfo\.xcprivacy in Resources \*\//g)].map((m) => m[1]);
+  assert.equal(privacyBuild.length, 1, 'Resources 안의 PrivacyInfo.xcprivacy 한 번');
+  const privacyRef = (pbx.match(new RegExp(`${privacyBuild[0]} /\\* PrivacyInfo\\.xcprivacy in Resources \\*/ = \\{isa = PBXBuildFile; fileRef = ([0-9A-F]{24})`)) || [])[1];
+  assert.ok(privacyRef, 'PrivacyInfo.xcprivacy 빌드 파일');
+  assert.match(pbx, new RegExp(`${privacyRef} /\\* PrivacyInfo\\.xcprivacy \\*/ = \\{isa = PBXFileReference;[^}]*path = PrivacyInfo\\.xcprivacy;`), 'PrivacyInfo.xcprivacy 파일 참조');
+  assert.ok(objectBody(pbx, groupUuid).includes(privacyRef), 'PrivacyInfo.xcprivacy가 ExpoWidgetsTarget 묶음 안에');
 };

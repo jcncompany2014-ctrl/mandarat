@@ -2,5 +2,8 @@
   "ios": {
     "CFBundleDisplayName": "Mandalart",
     "NSPhotoLibraryAddUsageDescription": "Allow access to save your chart image to Photos."
+  },
+  "android": {
+    "app_name": "Mandalart"
   }
 }

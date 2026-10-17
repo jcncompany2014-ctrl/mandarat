@@ -84,9 +84,9 @@ The connected account is org **`farmerstail`**, US region `https://us.sentry.io`
   - Push them with `npx eas-cli metadata:push` (after v2-2), or upload by hand.
   - `supportsTablet` is now true, so the iPad set is **required**.
 - [ ] **App Privacy questionnaire** (this replaces v1's "Data Not Collected"):
-  - **Diagnostics › Crash Data**: collected; not linked to the user; not used for tracking; purpose App Functionality.
+  - **Diagnostics › Crash Data, Performance Data and Other Diagnostic Data**: each collected; not linked to the user; not used for tracking; purpose App Functionality. Sentry's native SDK (sentry-cocoa) reports app hangs and attaches breadcrumbs, the device model and the OS, and its own privacy manifest declares all three (R-8 #1).
   - Everything else: not collected. Purchases are handled by Apple.
-  - This matches the privacy manifest in `app.json` (CrashData, `NSPrivacyTracking` false) and `docs/v2/privacy.md`.
+  - This matches the privacy manifest in `app.json` (CrashData, PerformanceData and OtherDiagnosticData; `NSPrivacyTracking` false) and `docs/v2/privacy.md`.
 - [ ] **Age rating** questionnaire: no change from v1 (lowest rating).
 - [ ] **Availability**: v1 launched in 대한민국 only. With ja and en, decide whether to add Japan and other regions. Adding EU countries needs the DSA trader-status disclosure.
 - [ ] **Category**: Productivity, then Lifestyle (as in `store.config.json`).
@@ -107,6 +107,12 @@ The connected account is org **`farmerstail`**, US region `https://us.sentry.io`
 - [ ] **First iOS build is interactive**: `eas build -p ios --profile preview`. EAS syncs the App Group, the iCloud container and the widget extension. Later builds can run non-interactively.
 - [ ] The build compiles the Swift that could not be compiled in the sandbox: `native/ios` (App Intents, `AppIntents.swift` and `TodayStore.swift` in target `Mandarat`), `modules/pro-store` and `modules/icloud-sync`. If `native/ios` fails to compile, the lead adds the fallback `plugins/withShortcuts.js` (V3-B handoff 2, plan §9).
 - [ ] The build log shows the Sentry phase passing with the token set.
+- [ ] **Siri shortcuts compile (R3-3).** The inline-modules group (`../native/ios`) sits in an `objectVersion = 54` project. In the first `preview` build log, check that `AppIntents.swift` and `TodayStore.swift` compile, and on the device check that the Shortcuts app lists the 4 App Shortcuts. If either fails, a fix package adds `plugins/withObjectVersion.js` (sets `objectVersion` and `preferredProjectObjectVersion` to 77, after the inline-modules step).
+- [ ] **Widget version matches the app (R3-4).** Unzip the first `preview` IPA and compare `CFBundleVersion` and `CFBundleShortVersionString` in `Payload/Mandarat.app/Info.plist` with `Payload/Mandarat.app/PlugIns/ExpoWidgetsTarget.appex/Info.plist`. expo-widgets writes literal `1` / `1.0.0`; EAS uses the remote build number. If they differ, a fix package sets the two keys in `ios/ExpoWidgetsTarget/Info.plist` to `$(CURRENT_PROJECT_VERSION)` and `$(MARKETING_VERSION)` in `plugins/withWidgetStrings.js`.
+- [ ] **Widget privacy manifest (R3-1).** The IPA has `PlugIns/ExpoWidgetsTarget.appex/PrivacyInfo.xcprivacy`. After the first TestFlight upload, read the App Store Connect e-mail; if it still names a missing reason (ITMS-91053) for the `.appex`, add that reason to `PRIVACY_API` in `plugins/withWidgetStrings.js`.
+- [ ] **Widget display name (R3-5).** The `.appex` `Info.plist` has `CFBundleDisplayName` = 만다라트, not `ExpoWidgetsTarget`.
+- [ ] **EAS project id (R3-6).** The first `eas build` runs `eas init`, which adds `extra.eas.projectId` to `app.json`. Commit that edit so later EAS Workflows (`.eas/workflows/e2e-ios.yml`) run non-interactively.
+- [ ] **No Pro preview in the build (R-8 #7).** expo.dev › project › Environment variables has no `EXPO_PUBLIC_PRO_PREVIEW` in any environment. (`src/lib/pro.ts` ignores it in any EAS build because every profile sets `EXPO_PUBLIC_APP_ENV`, and `npm run release-check` fails when it is set in the shell.)
 - [ ] Run the device QA (v2-7) on the `preview` build, then on TestFlight.
 - [ ] `codesign -d --entitlements :- Mandarat.app` on the TestFlight build shows:
   - the App Group;
@@ -257,7 +263,8 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
   - tags `lang`, `pro` and `layout`;
   - no user, no device name and no chart text.
 - [ ] A render error carries `componentStack`. A native crash is symbolicated.
-- [ ] Breadcrumbs carry no chart text.
+- [ ] Breadcrumbs carry no chart text. Kept console crumbs (for example `Mandarat crashed …` from the ErrorBoundary) show `"…"` in place of chart text and have no `data`.
+- [ ] **Installation ID and sessions (R-8 #1).** On a preview build, force a native crash and relaunch. In Sentry the event shows `user.id` set to a UUID (the random per-install ID that the policy declares) and no name, e-mail or IP address. Open and close the app a few times: no sessions arrive in Sentry › Releases › Sessions (`enableAutoSessionTracking: false`).
 - [ ] The opt-out stops all events, including native crashes after a relaunch.
 - [ ] The release and dist match the build.
 - [ ] No row on web or Android.
@@ -312,7 +319,7 @@ While B1/B2 are empty, Settings hides 개인정보 처리방침 and 문의하기
 | Category | Primary **생산성**, secondary **라이프스타일** | set in ASC |
 | Availability | **대한민국 only** at launch. This skips the EU DSA trader-status disclosure. Widen it later if you want. | set in ASC |
 | Age rating | Answer the **new age-rating questionnaire** (2025 format). No user content sharing, no web, no ads, no mature themes → lowest rating. | set in ASC |
-| App Privacy | **v1 only — superseded by v2-4 (Crash Data).** **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics or ads. Records stay on the device and in the user's own iCloud device backup. | set in ASC |
+| App Privacy | **v1 only — superseded by v2-4 (Crash Data, Performance Data, Other Diagnostic Data).** **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics or ads. Records stay on the device and in the user's own iCloud device backup. | set in ASC |
 | Encryption | `ITSAppUsesNonExemptEncryption: false` is already in app.json | done |
 | Price | Free (owner to confirm) | **OPEN** |
 

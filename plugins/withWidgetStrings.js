@@ -8,6 +8,10 @@
 // - expo-widgets는 ExpoWidgetsTarget에 Resources 빌드 단계를 만들지 않는다(addBuildPhases: Sources · Frameworks ·
 //   본 앱의 Copy Files뿐). 그래서 여기서 PBXResourcesBuildPhase를 만들고 Localizable.strings 변형 묶음(variant group)을
 //   넣고, 프로젝트 knownRegions에 ko · ja · en을 더한다. 여러 번 돌아도 한 벌만 남는다.
+// - 위젯 확장의 개인정보 매니페스트(PrivacyInfo.xcprivacy)도 여기서 쓴다(R3-1). app.json ios.privacyManifests는 본 앱에만
+//   들어가고, RN의 pod 매니페스트 모으기도 application 대상에만 쓴다 — 확장(.appex)에 없으면 업로드가 ITMS-91053으로 막힌다.
+//   같은 Resources 단계에 넣는다.
+// - 확장의 표시 이름(INFOPLIST_KEY_CFBundleDisplayName)을 대상 이름 ExpoWidgetsTarget 대신 만다라트로(R3-5).
 const fs = require('fs');
 const path = require('path');
 const { withDangerousMod, withXcodeProject } = require('expo/config-plugins');
@@ -15,6 +19,9 @@ const { withDangerousMod, withXcodeProject } = require('expo/config-plugins');
 const TARGET = 'ExpoWidgetsTarget';
 const LANGS = ['ko', 'ja', 'en'];
 const STRINGS = 'Localizable.strings';
+const PRIVACY = 'PrivacyInfo.xcprivacy';
+/** 위젯 확장의 표시 이름 — 본 앱 CFBundleDisplayName(app.json)과 같다 */
+const DISPLAY_NAME = '만다라트';
 const ROOT = path.join(__dirname, '..');
 
 /** src/i18n/<lang>/widget.ts의 기본 내보내기 — 타입만 불러오는 파일이라 TS를 바꿔 그 자리에서 돌린다 */
@@ -52,6 +59,36 @@ function widgetStrings(catalogs = Object.fromEntries(LANGS.map((l) => [l, loadCa
     out[l] = buildStrings([[ko.galleryName, c.galleryName], [ko.galleryDesc, c.galleryDesc]]);
   }
   return out;
+}
+
+/** 확장이 쓰는 이유 있는 API(required-reason API) — 추적 없음, 모으는 자료 없음.
+ *  UserDefaults: App Group 모음(WidgetsStorage.swift의 UserDefaults(suiteName:)) 1C8F.1 · 자기 값 CA92.1.
+ *  FileTimestamp · SystemBootTime: 확장에 함께 묶이는 React · ExpoModulesCore가 쓴다(C617.1 · 35F9.1). */
+const PRIVACY_API = [
+  ['NSPrivacyAccessedAPICategoryUserDefaults', ['1C8F.1', 'CA92.1']],
+  ['NSPrivacyAccessedAPICategoryFileTimestamp', ['C617.1']],
+  ['NSPrivacyAccessedAPICategorySystemBootTime', ['35F9.1']],
+];
+
+/** 위젯 확장의 PrivacyInfo.xcprivacy 내용 */
+function privacyManifest() {
+  const api = PRIVACY_API.map(
+    ([type, reasons]) =>
+      `\t\t<dict>\n\t\t\t<key>NSPrivacyAccessedAPIType</key>\n\t\t\t<string>${type}</string>\n` +
+      `\t\t\t<key>NSPrivacyAccessedAPITypeReasons</key>\n\t\t\t<array>\n` +
+      reasons.map((r) => `\t\t\t\t<string>${r}</string>\n`).join('') +
+      `\t\t\t</array>\n\t\t</dict>\n`,
+  ).join('');
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' +
+    '<plist version="1.0">\n<dict>\n' +
+    '\t<key>NSPrivacyTracking</key>\n\t<false/>\n' +
+    '\t<key>NSPrivacyTrackingDomains</key>\n\t<array/>\n' +
+    '\t<key>NSPrivacyCollectedDataTypes</key>\n\t<array/>\n' +
+    `\t<key>NSPrivacyAccessedAPITypes</key>\n\t<array>\n${api}\t</array>\n` +
+    '</dict>\n</plist>\n'
+  );
 }
 
 /** app.json의 expo-widgets TodayWidget 설정(없으면 null) */
@@ -111,6 +148,30 @@ function addWidgetStrings(project) {
   if (!phase) phase = project.addBuildPhase([], 'PBXResourcesBuildPhase', 'Resources', targetKey).buildPhase;
   if (!phase.files.some((f) => f.value === buildKey)) phase.files.push({ value: buildKey, comment: `${STRINGS} in Resources` });
 
+  // 개인정보 매니페스트 — 파일 참조(위젯 파일 묶음 안) + 빌드 파일 → 같은 Resources 단계
+  let privacyRef = (group.children || []).map((c) => c.value).find((k) => refs[k] && unquote(refs[k].path) === PRIVACY);
+  if (!privacyRef) {
+    privacyRef = project.generateUuid();
+    refs[privacyRef] = { isa: 'PBXFileReference', lastKnownFileType: 'text.xml', path: PRIVACY, sourceTree: '"<group>"' };
+    refs[`${privacyRef}_comment`] = PRIVACY;
+    group.children.push({ value: privacyRef, comment: PRIVACY });
+  }
+  let privacyBuild = Object.keys(buildFiles).find((k) => !k.endsWith('_comment') && buildFiles[k].fileRef === privacyRef);
+  if (!privacyBuild) {
+    privacyBuild = project.generateUuid();
+    buildFiles[privacyBuild] = { isa: 'PBXBuildFile', fileRef: privacyRef, fileRef_comment: PRIVACY };
+    buildFiles[`${privacyBuild}_comment`] = `${PRIVACY} in Resources`;
+  }
+  if (!phase.files.some((f) => f.value === privacyBuild)) phase.files.push({ value: privacyBuild, comment: `${PRIVACY} in Resources` });
+
+  // 확장 표시 이름 — 위젯 대상의 빌드 설정(Debug · Release)마다
+  const lists = objects.XCConfigurationList || {};
+  const configs = objects.XCBuildConfiguration || {};
+  for (const c of (lists[target.buildConfigurationList] || {}).buildConfigurations || []) {
+    const conf = configs[c.value];
+    if (conf && conf.buildSettings) conf.buildSettings.INFOPLIST_KEY_CFBundleDisplayName = `"${DISPLAY_NAME}"`;
+  }
+
   for (const l of LANGS) project.addKnownRegion(l);
   return project;
 }
@@ -131,6 +192,7 @@ const withWidgetStrings = (config) => {
         fs.mkdirSync(path.join(dir, `${l}.lproj`), { recursive: true });
         fs.writeFileSync(path.join(dir, `${l}.lproj`, STRINGS), strings[l]);
       }
+      fs.writeFileSync(path.join(dir, PRIVACY), privacyManifest());
       return cfg;
     },
   ]);
@@ -146,3 +208,6 @@ module.exports.buildStrings = buildStrings;
 module.exports.escapeStrings = escapeStrings;
 module.exports.loadCatalog = loadCatalog;
 module.exports.addWidgetStrings = addWidgetStrings;
+module.exports.privacyManifest = privacyManifest;
+module.exports.PRIVACY_API = PRIVACY_API;
+module.exports.DISPLAY_NAME = DISPLAY_NAME;

@@ -23,9 +23,19 @@ function queryLang(): Lang | null {
   return langFromQuery(window.location?.search);
 }
 
-/** 웹: <html lang="…">을 지금 언어로 */
+/** 웹: <html lang="…">과 탭 제목(앱 이름)을 지금 언어로 */
 function markDocument(l: Lang): void {
-  if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = l;
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  document.documentElement.lang = l;
+  document.title = msg(l).settings.appName;
+}
+
+// 앱을 여는 순간 읽기 시작한다 — 서체를 불러오는 동안 같이 돈다(App.tsx가 crash.init() 옆에서 부른다)
+let prefRead: Promise<LangPref> | null = null;
+
+/** 저장된 언어 고르기 — 처음 부를 때 한 번만 읽고, 다음부터는 같은 약속을 돌려준다 */
+export function prefetchLangPref(): Promise<LangPref> {
+  return (prefRead ??= readLangPref());
 }
 
 /** 지금 언어 — 바뀌면 다시 그린다 */
@@ -46,7 +56,7 @@ export function LangBoot({ children, fallback }: { children: ReactNode; fallback
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let alive = true;
-    readLangPref().then((pref) => {
+    prefetchLangPref().then((pref) => {
       if (!alive) return;
       const l = resolveLang(pref, deviceLocales(), I18N_READY, queryLang());
       setLang(l);

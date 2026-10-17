@@ -7,8 +7,9 @@
 import { PRO_FEATURES, type ProFeature } from './contracts';
 import { msg, type Lang, type Messages } from '../i18n';
 
-/** 웹 스크린샷 전용 — 늘 프로를 가진 것으로(vercel.json · eas.json은 이 값을 두지 않는다; tests/contracts.test.js) */
-export const PREVIEW = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1';
+/** 웹 스크린샷 전용 — 늘 프로를 가진 것으로(vercel.json · eas.json은 이 값을 두지 않는다; tests/contracts.test.js).
+ *  EAS 빌드는 모든 프로필이 EXPO_PUBLIC_APP_ENV를 두므로, expo.dev 대시보드 변수로 들어와도 거기서는 꺼진다 */
+export const PREVIEW = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV;
 
 /** 앱이 앞으로 나올 때 다시 묻는 가장 짧은 간격 */
 export const RECHECK_MS = 10 * 60 * 1000;

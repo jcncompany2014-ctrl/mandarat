@@ -14,10 +14,12 @@ import { PaperColumn } from './src/components/WebColumn';
 import { mix } from './src/theme/moods';
 import { crash } from './src/lib/crash';
 import { ProProvider } from './src/store/ProContext';
-import { LangBoot, LangRoot, takeResumeHint } from './src/i18n/react';
+import { LangBoot, LangRoot, prefetchLangPref, takeResumeHint } from './src/i18n/react';
 
 // 오류 수집은 가장 먼저 — 기기에서만 Sentry(src/lib/crash.native.ts), 웹·Node는 아무것도 하지 않는다
 crash.init();
+// 저장된 언어도 지금 읽기 시작한다 — 서체를 불러오는 동안 같이 돌고, LangBoot는 같은 읽기를 기다린다
+void prefetchLangPref();
 
 // 서체·저장소가 준비될 때까지 iOS 런치 스크린을 붙잡아 둔다 — 컴포넌트 안에서 부르면 이미 걷힌 뒤일 수 있다
 holdNativeSplash();

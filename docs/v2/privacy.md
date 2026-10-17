@@ -29,8 +29,9 @@
 
 **3. 오류 기록(크래시 리포트)**
 앱이 멈추거나 오류가 나면, 원인을 고치려고 오류 기록을 Sentry(Functional Software, Inc., 미국)로 보내요.
-- 보내는 것: 기기 모델, OS 버전, 앱 버전, 오류 내용과 오류가 난 코드 위치, 직전에 연 화면 이름 같은 짧은 기록, 앱 언어, 프로 사용 여부, 화면 배치.
-- 보내지 않는 것: 이름, 이메일, 기기 이름, 사용자 식별자, 화면 캡처, 화면 구조, 그리고 **내가 적은 글**(목표·칸·메모). 오류 글 안에 따옴표로 들어간 내용은 보내기 전에 지워요.
+- 보내는 것: 기기 모델, OS 버전, 앱 버전, 오류 내용과 오류가 난 코드 위치, 앱이 멈춘 일(응답 없음)과 그 코드 위치, 직전에 연 화면 이름 같은 짧은 기록, 앱 언어, 프로 사용 여부, 화면 배치.
+- 같은 오류가 몇 번 났는지 세려고 Sentry가 이 설치마다 만드는 임의의 번호(사용자와 연결하지 않으며, 앱을 지우면 사라져요).
+- 보내지 않는 것: 이름, 이메일, 기기 이름, 화면 캡처, 화면 구조, 그리고 **내가 적은 글**(목표·칸·메모). 오류 글과 짧은 기록 안에 따옴표로 들어간 내용과 한글·일본어·한자 글은 보내기 전에 지워요.
 - 우리 Sentry 프로젝트는 IP 주소를 저장하지 않도록 설정돼 있어요.
 - 이 기록으로 사용자를 알아보거나 추적하지 않고, 광고에 쓰지 않아요.
 - **끄기:** 설정 › 정보 › '오류 기록 보내기'를 끄면 그 기기에서는 아무것도 보내지 않아요.
@@ -80,8 +81,9 @@
 
 **3. エラー記録(クラッシュレポート)**
 アプリが停止したりエラーが起きたりしたとき、原因を直すためにエラー記録をSentry(Functional Software, Inc.、米国)に送ります。
-- 送るもの: 端末の機種、OSのバージョン、アプリのバージョン、エラーの内容と発生したコードの位置、直前に開いた画面名などの短い記録、アプリの言語、プロの利用の有無、画面レイアウト。
-- 送らないもの: 氏名、メールアドレス、端末名、ユーザーID、スクリーンショット、画面構造、そして**ご自身が書いた文**(目標・マス・メモ)。エラー文の中の引用符で囲まれた部分は、送る前に消します。
+- 送るもの: 端末の機種、OSのバージョン、アプリのバージョン、エラーの内容と発生したコードの位置、アプリが固まったこと(応答なし)とそのコードの位置、直前に開いた画面名などの短い記録、アプリの言語、プロの利用の有無、画面レイアウト。
+- 同じエラーの回数を数えるためにSentryがインストールごとに作る無作為の番号(利用者とは結び付けず、アプリを削除すると消えます)。
+- 送らないもの: 氏名、メールアドレス、端末名、スクリーンショット、画面構造、そして**ご自身が書いた文**(目標・マス・メモ)。エラー文と短い記録の中の引用符で囲まれた部分と、日本語・韓国語・漢字の文は、送る前に消します。
 - 運営者のSentryプロジェクトは、IPアドレスを保存しない設定にしています。
 - この記録で利用者を特定・追跡することはなく、広告にも使いません。
 - **オフにする:** 設定 › 情報 › 「エラーの記録を送る」をオフにすると、その端末からは何も送りません。
@@ -131,8 +133,9 @@ If you turn on sync in Settings › iCloud, your iPhone and iPad on the same App
 
 **3. Error reports (crash reports)**
 When the app stops or hits an error, it sends an error report to Sentry (Functional Software, Inc., USA), so we can find and fix the cause.
-- What is sent: the device model, the OS version, the app version, the error and the place in the code where it happened, short markers such as the name of the last screen opened, the app language, whether Pro is unlocked, and the screen layout.
-- What is not sent: your name, e-mail address, device name or any user ID; screenshots or the screen structure; and **anything you write** (goals, cells, notes). Quoted text inside an error message is removed before sending.
+- What is sent: the device model, the OS version, the app version, the error and the place in the code where it happened, the app freezing (a hang) and its location in the code, short markers such as the name of the last screen opened, the app language, whether Pro is unlocked, and the screen layout.
+- A random ID that Sentry creates for this installation, so that repeated crashes can be counted. It is not linked to you and is deleted when you delete the app.
+- What is not sent: your name, e-mail address or device name; screenshots or the screen structure; and **anything you write** (goals, cells, notes). Quoted text and any Korean, Japanese or Chinese text inside an error message or a marker is removed before sending.
 - Our Sentry project is set not to store IP addresses.
 - Error reports are not used to identify or track you, and are never used for advertising.
 - **Turning it off:** in Settings › About, switch off "Send error reports". That device then sends nothing.
@@ -169,15 +172,15 @@ If this policy changes, the new version is posted on this page with a new effect
 
 | Statement | Source in the repo |
 |---|---|
-| Local storage: the doc, daily copies, and per-device preferences | AsyncStorage keys `mandarat:doc:v1`, `mandarat:snap:YYYY-MM-DD` (7 days), `mandarat:lang:v1`, `mandarat:pro:v1`, `mandarat:notify:v1`, `mandarat:crash:v1`, `mandarat:print:v1`, `mandarat.editorDraft.v1`. They are included in iCloud device backup (`RCTAsyncStorageExcludeFromBackup: false`). |
+| Local storage: the doc, daily copies, and per-device preferences | AsyncStorage keys `mandarat:doc:v1`, `mandarat:doc:v1:corrupt:<ms>` (a copy of an unreadable doc, kept for recovery), `mandarat:snap:YYYY-MM-DD` (7 days), `mandarat:lang:v1`, `mandarat:pro:v1`, `mandarat:notify:v1`, `mandarat:crash:v1`, `mandarat:print:v1`, `mandarat.editorDraft.v1`. They are included in iCloud device backup (`RCTAsyncStorageExcludeFromBackup: false`). |
 | iCloud: the user's own container, no server, off by default | `modules/icloud-sync`: container `iCloud.com.jcncompany.mandarat`, one file per device at `Sync/v1/<device>.jsonz` in the hidden Data scope, not visible in Files. Sync is opt-in in Settings › iCloud (V5-E). No iCloud call is made while sync is off, except the onboarding "가져오기" probe (V4-A). The device key is a random UUID excluded from backup; the account check uses a 16-hex hash of `ubiquityIdentityToken` that stays on the device. |
-| Sentry: what is sent and what is not | `src/lib/crash.native.ts`: `sendDefaultPii: false`, `attachScreenshot: false`, `attachViewHierarchy: false`, no tracing, auto-performance and user-interaction tracing off. `scrubEvent` deletes `user`, `extra`, `request`, `server_name` and `contexts.device.name`, replaces quoted text with "…" and cuts messages to 200 characters. `keepCrumb` drops console crumbs below warning, crumbs over 80 characters and console data. Touch crumbs carry no accessibility labels. Tags are `lang`, `pro` and `layout`. Sentry is off in dev and e2e builds. |
+| Sentry: what is sent and what is not | `src/lib/crash.native.ts`: `sendDefaultPii: false`, `attachScreenshot: false`, `attachViewHierarchy: false`, `enableAutoSessionTracking: false` (no per-launch session ping), no tracing, auto-performance and user-interaction tracing off. `scrubEvent` deletes `user`, `extra`, `request`, `server_name` and `contexts.device.name` on JS events, replaces quoted text and runs of Hangul, kana and Han with "…" and cuts messages to 200 characters. `keepCrumb` drops console crumbs below warning, crumbs over 80 characters and console data, and scrubs the message of every crumb it keeps. Native crash, app-hang and watchdog events from sentry-cocoa (`Sentry/HybridSDK 8.58.0`, pinned by `@sentry/react-native` 7.11) never pass through JS `beforeSend` and carry `user.id` = the random per-install `SentryInstallation` UUID (`SentryClient.m` `setUserIdIfNoUserSet`); the policy states this. Sentry's own `PrivacyInfo.xcprivacy` declares Crash Data, Performance Data and Other Diagnostic Data, so the app manifest declares the same three. Touch crumbs carry no accessibility labels. Tags are `lang`, `pro` and `layout`. Sentry is off in dev and e2e builds. |
 | Sentry: IP addresses not stored | **Owner step:** Sentry › project `mandarat` › Settings › Security & Privacy › "Prevent Storing of IP Addresses" (RELEASE_CHECKLIST §v2-3). Until this is on, delete that sentence from the policy. |
 | Sentry opt-out | `src/settings/CrashRow`, `src/lib/crashPrefs.ts`. When it is off at launch, `Sentry.init` never runs, so native crashes are not sent either. When it is switched off while the app runs, `beforeSend` drops every event. |
 | IAP is handled by Apple | `modules/pro-store` (StoreKit 2). Non-Consumable `com.jcncompany.mandarat.pro`. Only the entitlement cache `mandarat:pro:v1` is stored. |
 | Local notifications only | `src/lib/notifier.native.ts`: `expo-notifications` local schedule, at most 60 pending, ids `mandarat.*`. Permission is asked only from a user gesture (tests). There is no push server; `aps-environment` is present only because the plugins write it. |
 | Widget, Siri, App Group | `group.com.jcncompany.mandarat`, key `__expo_widgets_TodayWidget_timeline`: an 8-entry timeline holding today's items. `native/ios/TodayStore.swift` reads it and appends ops there. Nothing leaves the device. |
-| No tracking | No analytics or ad SDK in `package.json`. The privacy manifest has `NSPrivacyTracking: false` and declares only CrashData (AppFunctionality, not linked). |
+| No tracking | No analytics or ad SDK in `package.json`. The privacy manifest has `NSPrivacyTracking: false` and declares CrashData, PerformanceData and OtherDiagnosticData (each AppFunctionality, not linked, not tracking). The widget extension has its own manifest with no collected data (`plugins/withWidgetStrings.js`). |
 | Photos are add-only | `NSPhotoLibraryAddUsageDescription` only. |
 
-**App Store Connect › App Privacy answers that match this policy:** Data Types › **Diagnostics › Crash Data**: collected; **not** linked to the user's identity; **not** used for tracking; purpose **App Functionality**. Every other data type: not collected. Purchases are Apple's own data and are not declared. The v1 answer, "Data Not Collected", is **no longer correct** once Sentry ships.
+**App Store Connect › App Privacy answers that match this policy:** Data Types › **Diagnostics › Crash Data, Performance Data and Other Diagnostic Data**: each collected; **not** linked to the user's identity; **not** used for tracking; purpose **App Functionality**. Every other data type: not collected. Purchases are Apple's own data and are not declared. The v1 answer, "Data Not Collected", is **no longer correct** once Sentry ships.
