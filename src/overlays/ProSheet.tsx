@@ -4,7 +4,7 @@
 // 웹 · 안드로이드에는 결제가 없다 — 차례와 'iPhone·iPad 앱에서 살 수 있어요' 한 줄만, 버튼 없이.
 import React, { useEffect, useRef } from 'react';
 import { Linking, Platform, View } from 'react-native';
-import { Text } from '../components/AppText';
+import { Text, a11yLangProp } from '../components/AppText';
 import { CloseBtn, PrimaryButton, RuledNotice, Sheet, useSheetDismiss } from '../components/common';
 import { useMsg } from '../i18n/react';
 import type { Messages } from '../i18n';
@@ -142,6 +142,7 @@ function ProBody({ M, from }: { M: M; from: ProFeature | 'menu' }) {
               key={f}
               accessible
               accessibilityLabel={here ? m.pro.featureSayHere({ name, sub }) : m.pro.featureSay({ name, sub })}
+              {...a11yLangProp()}
               style={{
                 flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 52, paddingVertical: 11, paddingHorizontal: 2,
                 borderBottomWidth: here ? 2 : 1, borderColor: here ? M.ink : M.line,

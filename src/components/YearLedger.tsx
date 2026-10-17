@@ -1,6 +1,6 @@
 import React, { memo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text } from './AppText';
+import { Text, a11yLangProp } from './AppText';
 import { NUM, TYPE } from '../theme/type';
 import { fade } from '../theme/moods';
 import { legibleMark } from '../theme/chart';
@@ -8,13 +8,13 @@ import type { M } from '../theme/usePalette';
 import { msg, type Lang } from '../i18n';
 import type { YearCalendarRow } from '../lib/yearReview';
 
-/** 기록 진하기 0~4 → 포인트 색 농도(%) — 통계의 열 주 그림(TenWeeks)과 같은 단계 */
-const HEAT_FILL = [0, 30, 50, 70, 90] as const;
+/** 기록 진하기 0~4 → 포인트 색 농도(%) — 1·2단계를 30·50보다 올려 옅은 두 단계도 서로 갈린다 */
+export const HEAT_FILL = [0, 40, 60, 75, 90] as const;
 /** 달 이름 칸 폭 */
 export const LEDGER_LABEL_W = 30;
-/** 한 칸 한 변 — 폰에서 10pt 안팎, 좁아도 6pt 아래로는 줄이지 않는다 */
+/** 한 칸 한 변 — 폰에서 10pt 안팎, 아이패드 단(600pt)에서 16pt까지 넓혀 단을 채운다. 좁아도 6pt 아래로는 줄이지 않는다 */
 export function ledgerCellSize(width: number): number {
-  return Math.max(6, Math.min(12, Math.floor((width - LEDGER_LABEL_W) / 31)));
+  return Math.max(6, Math.min(16, Math.floor((width - LEDGER_LABEL_W) / 31)));
 }
 
 export interface LedgerLine {
@@ -60,7 +60,7 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
   const cell = ledgerCellSize(width || 340);
   const lines = ledgerLines(rows);
   const rule = StyleSheet.hairlineWidth;
-  // 칠한 칸의 테두리 — 종이 위 3:1(옅은 단계도 칸 자리가 보이게)
+  // 칠한 칸의 테두리 — 종이 위 3:1, 1pt(머리카락 괘선으로는 기록한 날이 보이지 않는다 — 옅은 단계도 칸 자리가 보이게)
   const inkEdge = legibleMark(M.gold, M.bg, M);
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
@@ -69,6 +69,7 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
           key={ln.month}
           accessible
           accessibilityLabel={ln.speech}
+          {...a11yLangProp()}
           style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}
         >
           <Text
@@ -87,7 +88,7 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
                   backgroundColor: c ? fade(M.gold, HEAT_FILL[c]) : 'transparent',
                 }}
               >
-                {!!c && <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderWidth: rule, borderColor: inkEdge }} />}
+                {!!c && <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: inkEdge }} />}
               </View>
             ))}
           </View>

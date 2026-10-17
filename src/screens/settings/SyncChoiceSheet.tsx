@@ -4,7 +4,7 @@
 // 닫으면(고르지 않고) 맞추기를 켜지 않는다(setChoice(null)).
 import React, { memo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLangProp } from '../../components/AppText';
 import { Check } from '../../components/Check';
 import { PrimaryButton, RowDivider, RuledNotice, Sheet, pressedRow, useSheetDismiss } from '../../components/common';
 import { SheetHead } from '../../components/TemplateSheet';
@@ -88,6 +88,7 @@ function Body({ M, remote, onConfirm }: { M: M; remote: MandaratDoc | null; onCo
               onPress={() => { if (!on) { tap(); setPick(c); } }}
               accessibilityRole="radio"
               accessibilityLabel={`${title}, ${sub}`}
+              {...a11yLangProp()}
               accessibilityState={{ checked: on, selected: on }}
               style={({ pressed }) => [rowBase(M, i === 0, i === CHOICES.length - 1), { alignItems: 'flex-start', paddingVertical: 12 }, pressed && !on ? pressedRow(M) : null]}
             >
@@ -152,6 +153,7 @@ function Ledger({ M, head, rows }: {
             key={r.label}
             accessible
             accessibilityLabel={`${head}, ${r.label}, ${r.say ?? r.value}`}
+            {...a11yLangProp()}
             style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 8, borderTopWidth: i === 0 ? 0 : 1, borderColor: M.line }}
           >
             <Text style={{ width: 84, fontSize: 13, lineHeight: 20, color: M.sub }}>{r.label}</Text>

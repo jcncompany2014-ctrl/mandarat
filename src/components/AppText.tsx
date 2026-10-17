@@ -151,6 +151,9 @@ export function a11yLang(l: Lang = lang(), os: string = Platform.OS, dev: string
   return os === 'ios' && l !== dev ? l : undefined;
 }
 
+/** 화면 읽기 말의 언어 — 이름표를 직접 단 View · Pressable에 펼쳐 넣는다(그 이름표는 안쪽 글자의 언어가 아니라 자기 언어로 읽힌다) */
+export const a11yLangProp = () => ({ accessibilityLanguage: a11yLang(lang()) });
+
 export const Text = forwardRef<RNText, TextProps>(function Text({ style, children, lineBreakStrategyIOS, maxFontSizeMultiplier, accessibilityLanguage, ...rest }, ref) {
   const nested = useContext(Nested);
   const bold = useBoldText();

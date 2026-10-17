@@ -1,7 +1,7 @@
 import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated, Appearance, PanResponder, Platform, Pressable, View, useWindowDimensions as useRNWindowDimensions,
-  type AccessibilityRole, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView,
+  type AccessibilityRole, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView, type ViewProps,
 } from 'react-native';
 import { Text } from '../components/AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
@@ -494,8 +494,11 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
     <View style={{ flex: 1 }} onLayout={onHost}>
       <StatusBar style={M.dark ? 'light' : 'dark'} />
       <View style={{ position: 'absolute', top: 0, bottom: 0, left: -out, width: winW, backgroundColor: mix(M.bg, M.ink, 0.05) }}>
-        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center' }}>
+        {/* 화면 읽기 순서 — 왼쪽 쪽을 다 읽은 뒤 오른쪽 쪽으로(같은 높이의 줄이 두 쪽을 오가며 섞이지 않게).
+            탭바·겹쳐 뜨는 것은 이 줄 밖이라 순서 목록에 매이지 않는다. 웹(react-native-web)은 이 속성을 버리고 DOM 순서 그대로 읽는다 */}
+        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center' }} {...SPREAD_A11Y}>
           <View
+            id={SPREAD_LEFT_ID}
             testID={TID.spreadLeft}
             style={{ width: pageW, backgroundColor: M.bg, borderLeftWidth: margin > 0 ? 1 : 0, borderColor: M.line }}
           >
@@ -503,6 +506,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
           </View>
           <Binding M={M} />
           <View
+            id={SPREAD_RIGHT_ID}
             testID={TID.spreadRight}
             style={{ width: pageW, backgroundColor: M.bg, borderRightWidth: margin > 0 ? 1 : 0, borderColor: M.line }}
           >
@@ -525,6 +529,12 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
     </View>
   );
 });
+
+/** 두 쪽 펼침의 화면 읽기 순서 — 쪽마다 id(네이티브의 nativeID)를 달고 그 순서대로 */
+const SPREAD_LEFT_ID = 'spread-left';
+const SPREAD_RIGHT_ID = 'spread-right';
+// 프로젝트가 읽는 RN 타입(Libraries/…/ViewPropTypes.d.ts)에는 아직 없는 속성이라 ViewProps로 맞춘다 — RN 0.85 View가 받는 이름 그대로
+const SPREAD_A11Y = { experimental_accessibilityOrder: [SPREAD_LEFT_ID, SPREAD_RIGHT_ID] } as ViewProps;
 
 /** 두 쪽 사이 제본 — 1pt 괘선 · 4pt 틈(책상 빛) · 1pt 괘선. 그림자·둥근 모서리 없이 */
 const Binding = memo(function Binding({ M }: { M: Palette }) {

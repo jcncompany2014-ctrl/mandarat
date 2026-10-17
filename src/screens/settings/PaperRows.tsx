@@ -3,22 +3,23 @@
 // 프로 없이 저장된 프로 무늬(환불 · 다른 기기에서 고름)는 고른 것으로 보이고, '프로를 열면 이 무늬로 그려져요'를 덧붙인다.
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLangProp } from '../../components/AppText';
 import { Check } from '../../components/Check';
 import { RowDivider, pressedRow } from '../../components/common';
 import { useMsg } from '../../i18n/react';
 import { select, tap } from '../../lib/haptics';
 import { PAPER_CHOICES, isProPattern, patternSetting, storedPattern, type DrawnPattern } from '../../lib/paper';
 import { TID } from '../../lib/testIds';
+import { legibleMark } from '../../theme/chart';
 import { useUIActions } from '../../navigation/ui';
 import { useActions, useDoc } from '../../store/MandaratContext';
 import { useLocked } from '../../store/ProContext';
 import type { M } from '../../theme/usePalette';
 import { SubHead, rowBase } from './rows';
 
-/** 무늬 견본 — 지금 종이 바탕 위 그 무늬의 한 귀퉁이(점 여섯 · 모눈 · 줄 셋 · 빈 종이) */
+/** 무늬 견본 — 지금 종이 바탕 위 그 무늬의 한 귀퉁이(점 여섯 · 모눈 · 줄 셋 · 빈 종이). 잉크는 종이 위 3:1로 올린다 */
 function PatternSwatch({ M, p }: { M: M; p: DrawnPattern }) {
-  const ink = M.faint;
+  const ink = legibleMark(M.faint, M.bg, M);
   return (
     <View
       style={{
@@ -80,6 +81,7 @@ export function PaperRows({ M }: { M: M }) {
               onPress={onPress}
               accessibilityRole="radio"
               accessibilityLabel={kept ? `${label}, ${m.paper.keptNote}` : label}
+              {...a11yLangProp()}
               accessibilityHint={locked ? m.paper.lockedHint : undefined}
               accessibilityState={{ checked: on, selected: on }}
               aria-checked={on}

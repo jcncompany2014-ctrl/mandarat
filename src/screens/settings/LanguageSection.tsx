@@ -4,7 +4,7 @@
 // 번역이 끝나기 전(I18N_READY 거짓)에는 개발 번들과 preview · e2e 빌드에서만 보인다(반쯤 번역된 앱을 내보이지 않게).
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLang } from '../../components/AppText';
 import { Check } from '../../components/Check';
 import { RowDivider, pressedRow } from '../../components/common';
 import { select } from '../../lib/haptics';
@@ -63,8 +63,8 @@ function LanguageRows({ M }: { M: M }) {
             onPress={() => { if (!on) choose(p); }}
             accessibilityRole="radio"
             accessibilityLabel={label}
-            // 언어 이름은 그 언어 목소리로 읽는다(iOS)
-            accessibilityLanguage={Platform.OS === 'ios' && p !== 'system' ? p : undefined}
+            // 언어 이름은 그 언어 목소리로 읽는다(iOS) — '시스템' 줄은 앱 언어로
+            accessibilityLanguage={Platform.OS === 'ios' && p !== 'system' ? p : a11yLang()}
             accessibilityState={{ checked: on, selected: on }}
             style={({ pressed }) => [rowBase(M, i === 0, i === LANG_PREFS.length - 1), pressed && !on ? pressedRow(M) : null]}
           >
@@ -76,7 +76,10 @@ function LanguageRows({ M }: { M: M }) {
           </Pressable>
         );
       })}
-      <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 8 }}>{m.lang.footnote}</Text>
+      {/* 알림 허락 창 · 홈 화면 이름은 iPhone에만 있는 이야기 — 웹 · 안드로이드에서는 적지 않는다 */}
+      {Platform.OS === 'ios' && (
+        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 8 }}>{m.lang.footnote}</Text>
+      )}
     </>
   );
 }

@@ -2,7 +2,7 @@
 // 설정 › 알림(아침 · 저녁)과 편집 창의 습관 알림이 같은 모양으로 쓴다. 화면 읽기에서는 한 줄 — 위아래로 쓸어 바꾼다.
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from './AppText';
+import { Text, a11yLangProp } from './AppText';
 import { Icon } from './Icon';
 import { useMsg } from '../i18n/react';
 import { tap } from '../lib/haptics';
@@ -55,6 +55,7 @@ export function RemindRow({ M, value, onChange, label, testID }: {
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
+      {...a11yLangProp()}
       accessibilityValue={{ text: shown }}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) => {
@@ -85,6 +86,7 @@ function StepBtn({ M, icon, label, onPress }: { M: M; icon: 'plus' | 'minus'; la
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
+      {...a11yLangProp()}
       style={({ pressed }) => ({
         width: 44, height: 44, borderRadius: 6, borderWidth: 1, borderColor: M.line,
         alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.55 : 1,

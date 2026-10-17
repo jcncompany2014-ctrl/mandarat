@@ -3,7 +3,7 @@
 // 맨 아래 '이 해 돌아보기 ›'(안쪽 쪽으로) · '인쇄용 PDF ›'. 잠겼으면 줄 하나와 '프로 알아보기'만.
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLangProp } from '../../components/AppText';
 import { RowDivider, groupEdge, pressedRow } from '../../components/common';
 import { ChartPoster } from '../../components/ChartPoster';
 import { ChartBoard } from '../../components/ChartBoard';
@@ -69,6 +69,7 @@ function SheetPage({ M, doc, archive: a, onOpen }: { M: M; doc: MandaratDoc; arc
           accessible
           accessibilityRole="image"
           accessibilityLabel={m.year.sheetSpeech({ label, goal: a.centerGoal.trim(), n: done })}
+          {...a11yLangProp()}
           style={{ borderWidth: 1, borderColor: M.line }}
         >
           <ChartPoster doc={poster} now={closed} gold={M.accent} scale={scale} />
@@ -144,6 +145,7 @@ const AreaRow = memo(function AreaRow({ M, m, ti, title, color, done, written, o
         testID={TID.yearSheetArea(ti)}
         accessibilityRole="button"
         accessibilityLabel={`${name}, ${line}`}
+        {...a11yLangProp()}
         accessibilityHint={open ? m.year.areaCloseHint : m.year.areaOpenHint}
         accessibilityState={{ expanded: open }}
         style={({ pressed }) => [
@@ -168,8 +170,9 @@ function SheetLink({ M, text, onPress, testID }: { M: M; text: string; onPress: 
     <Pressable
       onPress={() => { tap(); onPress(); }}
       testID={testID}
-      accessibilityRole="link"
+      accessibilityRole="button"
       accessibilityLabel={text}
+      {...a11yLangProp()}
       hitSlop={6}
       style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', opacity: pressed ? 0.5 : 1 })}
     >
@@ -190,13 +193,14 @@ function LockedSheet({ M, archive: a }: { M: M; archive: ArchivedChart }) {
       <View
         accessible
         accessibilityLabel={[label, range, goal, m.common.proMark].filter(Boolean).join(', ')}
+        {...a11yLangProp()}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 12, paddingHorizontal: 2, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]}>{`${label} · ${range}`}</Text>
           {!!goal && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }} numberOfLines={2}>{goal}</Text>}
         </View>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: M.ink }}>{m.common.proMark}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.common.proMark}</Text>
       </View>
       <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 12 }}>{m.year.sheetLocked}</Text>
       <SheetLink M={M} text={m.year.lockedLink} onPress={() => openPro('archive')} testID={TID.yearLockedPro} />

@@ -3,7 +3,7 @@ import { Animated, Modal, Platform, Pressable, ScrollView, View } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PaperColumn } from '../components/WebColumn';
 import { MODAL_ORIENTATIONS } from '../lib/screen';
-import { Text, TextInput } from '../components/AppText';
+import { Text, TextInput, a11yLangProp } from '../components/AppText';
 import { Check } from '../components/Check';
 import { PaperDots } from '../components/PaperDots';
 import { PrimaryButton, RuledNotice, RowDivider, groupEdge, pressedRow } from '../components/common';
@@ -138,7 +138,7 @@ function ClosePages() {
       <View style={{ flex: 1, backgroundColor: M.bg }} accessibilityViewIsModal onAccessibilityEscape={onBack}>
         <PaperDots M={M} offsetY={insets.top % RHYTHM.dot} />
 
-        {/* 위 막대 — 왼쪽 '닫기', 오른쪽 쪽수 */}
+        {/* 위 막대 — 왼쪽 '닫기', 오른쪽 쪽수. 둘째 쪽부터는 쪽수 왼쪽에 '‹ 이전'(닫기는 써 둔 것까지 버리므로 한 쪽 앞으로 갈 길을 따로 둔다) */}
         <View
           style={{
             paddingTop: insets.top, paddingHorizontal: GUTTER - 8, height: insets.top + TOP_BAR_H,
@@ -150,13 +150,28 @@ function ClosePages() {
             hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel={m.common.close}
+            {...a11yLangProp()}
             style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 8, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
           >
             <Text style={{ fontSize: 16, fontWeight: '600', color: M.ink }}>{m.common.close}</Text>
           </Pressable>
-          <Text style={{ ...TYPE.caption, ...NUM, color: M.sub, paddingHorizontal: 8 }} accessibilityLabel={pageNo}>
-            {`${index + 1} / ${PAGES.length}`}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {index > 0 && (
+              <Pressable
+                onPress={() => { tap(); onBack(); }}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel={m.common.back}
+                {...a11yLangProp()}
+                style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 8, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '600', color: M.ink }}>{`‹ ${m.common.back}`}</Text>
+              </Pressable>
+            )}
+            <Text style={{ ...TYPE.caption, ...NUM, color: M.sub, paddingHorizontal: 8 }} accessibilityLabel={pageNo}>
+              {`${index + 1} / ${PAGES.length}`}
+            </Text>
+          </View>
         </View>
 
         <ScrollView
@@ -196,6 +211,7 @@ function LedgerRow({ M, label, value, speech, first = false }: { M: Palette; lab
     <View
       accessible
       accessibilityLabel={`${label}, ${speech ?? value}`}
+      {...a11yLangProp()}
       style={{
         minHeight: RHYTHM.row - 6, flexDirection: 'row', alignItems: 'center', gap: 12,
         borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line,
@@ -271,6 +287,7 @@ function NewPage({ M, m, doc, mode, onMode, goal, onGoal }: {
               onPress={() => { if (!on) onMode(x); }}
               accessibilityRole="radio"
               accessibilityLabel={`${t.title}, ${t.sub}`}
+              {...a11yLangProp()}
               accessibilityState={{ checked: on, selected: on }}
               style={({ pressed }) => [
                 groupEdge(M, i === 0, i === MODES.length - 1),
@@ -316,6 +333,7 @@ function StartPage({ M, m, mode, blocked }: { M: Palette; m: Messages; mode: New
       <View
         accessible
         accessibilityLabel={`${m.year.pageNew}, ${t.title}, ${t.sub}`}
+        {...a11yLangProp()}
         style={{ marginTop: RHYTHM.sectionTop, paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}
       >
         <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{m.year.pageNew}</Text>

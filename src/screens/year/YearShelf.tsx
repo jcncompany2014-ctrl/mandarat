@@ -3,7 +3,7 @@
 // onOpen: 이 화면 안에서 다른 쪽을 연다(지난 표 한 장 · 그 해 돌아보기) — Year가 안쪽 뒤로 가기 줄에 쌓는다.
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLangProp } from '../../components/AppText';
 import { RowDivider, groupEdge, pressedRow } from '../../components/common';
 import { MiniChart } from '../../components/GridMark';
 import { NUM, RHYTHM, TYPE } from '../../theme/type';
@@ -89,6 +89,7 @@ export const YearShelf = memo(function YearShelf({ M, onOpen }: { M: M; onOpen: 
           testID={TID.yearShelfMore}
           accessibilityRole="button"
           accessibilityLabel={m.year.shelfMore({ n: Math.min(left, SHELF_PAGE) })}
+          {...a11yLangProp()}
           style={({ pressed }) => [groupEdge(M, false, true), { minHeight: 44, paddingHorizontal: 2, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
         >
           <RowDivider M={M} inset={0} />
@@ -120,6 +121,7 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, cellShape, locked, f
       onPress={() => { tap(); onPick(a.id); }}
       accessibilityRole="button"
       accessibilityLabel={[label, range, goal, line, locked ? m.common.proMark : ''].filter(Boolean).join(', ')}
+      {...a11yLangProp()}
       accessibilityHint={locked ? m.year.shelfLockedHint : undefined}
       style={({ pressed }) => [
         groupEdge(M, first, last),
@@ -141,7 +143,7 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, cellShape, locked, f
         )}
         <Text style={[{ fontSize: 12, lineHeight: 16, fontWeight: '600', color: M.sub, marginTop: 3 }, NUM]} numberOfLines={2}>{line}</Text>
       </View>
-      <Text style={{ fontSize: locked ? 13 : 18, fontWeight: '700', color: locked ? M.ink : M.sub }}>{locked ? m.common.proMark : '›'}</Text>
+      <Text style={{ fontSize: locked ? 13 : 18, fontWeight: locked ? '600' : '700', color: M.sub }}>{locked ? m.common.proMark : '›'}</Text>
     </Pressable>
   );
 });
