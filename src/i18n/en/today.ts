@@ -54,7 +54,7 @@ export default {
   streakStart: 'Do one today to start',
   streakCol: 'Streak',
   runNone: 'No streak yet',
-  runLabel: ({ run }) => `${run} streak`,
+  runLabel: ({ run }) => `Streak of ${run}`,
   streakLabel: ({ run, text, bestRun }) => `Current streak ${run}, ${text}. Best ${bestRun}`,
   streakNone: 'No streak going yet. Do one today to start',
   weekCount: ({ total, done }) => `${done} of ${total} this week`,
