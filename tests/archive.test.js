@@ -162,6 +162,66 @@ test('startNewChart: 오늘 시작한 표를 또 닫으면 null(같은 아이디
   assert.deepEqual(next.archives.map((a) => a.id), ['y20260105', 'y20261220']);
 });
 
+test('startNewChart: 닫기 전 저장본을 되돌린 뒤 나중에 닫으면 같은 지난 표를 더 긴 것으로 바꾼다(R-1 F1)', () => {
+  const d = usedDoc();
+  const closed = startNewChart(d, 'continue', NOW, { goal: '', note: '한 줄', time: T });
+  // readSnapshot: 닫기 전 문서에 지금 지난 표를 다시 붙인다 — chartStart는 예전 것(같은 아이디)
+  const restored = { ...d, archives: closed.archives };
+  // 같은 날 또 닫기만 막는다(YearClose의 sameDay 알림은 이때만)
+  assert.equal(startNewChart(restored, 'continue', NOW, { goal: '', note: '', time: T + 1 }), null);
+  const later = new Date(2026, 11, 29, 10);
+  const again = startNewChart(restored, 'continue', later, { goal: '', note: '', time: T + 2 });
+  assert.ok(again, '나중에 닫으면 닫힌다');
+  assert.deepEqual(again.archives.map((a) => [a.id, a.from, a.to]), [['y20260105', '2026-01-05', '2026-12-29']]);
+  assert.equal(again.archives[0].note, '한 줄', '이번 한 줄이 비면 앞의 한 줄을 남긴다');
+  const noted = startNewChart(restored, 'continue', later, { goal: '', note: '새 줄', time: T + 2 });
+  assert.equal(noted.archives[0].note, '새 줄');
+  // 시계를 되돌린 기기 — 더 늦게 닫힌 지난 표를 짧은 것으로 바꾸지 않는다
+  assert.equal(startNewChart(restored, 'continue', new Date(2026, 11, 10), { goal: '', note: '', time: T + 3 }), null);
+  assert.deepEqual(migrate(JSON.parse(JSON.stringify(again))).archives, again.archives);
+});
+
+test('chartRange: 시작한 날을 모르면(v3 백업) 마지막으로 닫은 지난 표의 끝보다 앞서지 않는다(R-1 F1)', () => {
+  const d = usedDoc();
+  const closed = startNewChart(d, 'continue', NOW, { goal: '', note: '', time: T });
+  // v3 백업을 불러온 문서 — chartStart 없음, 지난 표는 unionArchives로 지금 것
+  const imported = { ...d, chartStart: undefined, archives: closed.archives };
+  delete imported.chartStart;
+  const later = new Date(2026, 11, 29, 10);
+  const r = chartRange(imported, later);
+  assert.ok(r.from >= '2026-12-20', r.from);
+  assert.deepEqual(r, { from: '2026-12-20', to: '2026-12-29' });
+  const n = startNewChart(imported, 'continue', later, { goal: '', note: '', time: T + 1 });
+  assert.deepEqual(n.archives.map((a) => [a.id, a.from, a.to]), [['y20260105', '2026-01-05', '2026-12-20'], ['y20261220', '2026-12-20', '2026-12-29']]);
+  // 시작한 날을 알면 그대로(기간은 사용자가 정한 것)
+  assert.equal(chartRange({ chartStart: '2026-01-05', dayLog: {}, archives: closed.archives }, later).from, '2026-01-05');
+  // 지난 표가 없으면 예전처럼 첫 기록 날
+  assert.equal(chartRange({ dayLog: d.dayLog }, later).from, '2026-01-04');
+});
+
+test('makeArchive: 닫은 날은 지난 표 한 장에만 센다 — 떼어 둔 키는 다음 표에 담지 않는다(R-1 F6)', () => {
+  const d = usedDoc();
+  const first = startNewChart(d, 'continue', NOW, { goal: '', note: '', time: T });
+  assert.deepEqual(first.archives[0].dayLog['2026-12-20'], ['0-0']);
+  // 닫은 날 새 표에서 한 체크 · 직접 추가한 할 일은 새 표의 것
+  const used = { ...first, dayLog: { ...first.dayLog, '2026-12-20': [...first.dayLog['2026-12-20'], '1-1', '0-xq'] } };
+  const second = startNewChart(used, 'continue', new Date(2026, 11, 21, 9), { goal: '', note: '', time: T + 1 });
+  const [a1, a2] = second.archives;
+  assert.equal(a2.from, '2026-12-20');
+  assert.deepEqual(a2.dayLog['2026-12-20'], ['1-1', '0-xq']);
+  // 아무것도 하지 않았으면 그날은 다음 표에 없다
+  const plain = startNewChart(first, 'continue', new Date(2026, 11, 21, 9), { goal: '', note: '', time: T + 1 });
+  assert.equal(plain.archives[1].dayLog['2026-12-20'], undefined);
+  // 한 해 돌아보기 — 닫은 날을 두 표가 함께 세지 않는다
+  const { yearDigest } = require('../src/lib/yearReview');
+  const days = (a) => yearDigest(archiveAsDoc(a, d.settings), a.from, a.to, a.focusMinutes).days;
+  const p1 = plain.archives[0];
+  const p2 = plain.archives[1];
+  assert.equal(days(p1), Object.values(p1.dayLog).filter((l) => l.length > 0).length);
+  assert.equal(days(p2), 0);
+  assert.ok(a1.dayLog['2026-12-20'].includes('0-0'));
+});
+
 test('startNewChart: 30장을 넘는 지난 표도 버리지 않는다(migrate와 같은 순서)', () => {
   const d = usedDoc();
   d.archives = Array.from({ length: 30 }, (_, i) => {

@@ -7,7 +7,7 @@
 // 화면 글은 여기서 만들지 않는다(yearLabel만 fmt로 해 표기를 돌려준다).
 import type { Action, ArchivedChart, MandaratDoc, Settings, Theme, WeekReviewEntry } from '../types';
 import { ARCHIVE_KEEP, ARCHIVE_NOTE_MAX, blankDoc, cleanArchives, scaffoldThemes } from '../data/defaults';
-import { archiveAllCells, detachReviewPicks, firstLogDay } from './history';
+import { archiveAllCells, detachReviewPicks, firstLogDay, isArchivedKey } from './history';
 import { kindOf, ymd } from './routine';
 import { addDays } from './kinds';
 import { msg, type Lang } from '../i18n';
@@ -15,10 +15,16 @@ import { msg, type Lang } from '../i18n';
 /** 새 표를 어떻게 시작하나 — continue: 같은 실천을 새로 · areas: 8영역 이름만 · blank: 처음부터 */
 export type NewChartMode = 'continue' | 'areas' | 'blank';
 
-/** 지금 표의 기간 — 시작한 날(없으면 첫 기록 날, 그것도 없으면 오늘) ~ 오늘 */
-export function chartRange(doc: Pick<MandaratDoc, 'chartStart' | 'dayLog'>, now: Date): { from: string; to: string } {
+/**
+ * 지금 표의 기간 — 시작한 날(없으면 첫 기록 날, 그것도 없으면 오늘) ~ 오늘.
+ * 시작한 날을 모를 때(v3 백업 · 예전 저장본)는 가장 늦게 닫은 지난 표의 끝(to)보다 앞서 시작하지 않는다 —
+ * 이미 닫은 기간을 또 담으면 같은 해가 지난 표 두 장에 겹친다.
+ */
+export function chartRange(doc: Pick<MandaratDoc, 'chartStart' | 'dayLog' | 'archives'>, now: Date): { from: string; to: string } {
   const to = ymd(now);
-  const from = doc.chartStart ?? firstLogDay(doc.dayLog) ?? to;
+  const lastTo = (doc.archives ?? []).reduce((m, a) => (a.to > m ? a.to : m), '');
+  let from = doc.chartStart ?? firstLogDay(doc.dayLog) ?? to;
+  if (!doc.chartStart && lastTo && from < lastTo) from = lastTo;
   // 시계를 되돌린 기기 — 시작한 날이 오늘보다 늦으면 오늘 하루짜리 표로 본다
   return { from: from <= to ? from : to, to };
 }
@@ -41,7 +47,27 @@ function sortCap(list: ArchivedChart[]): ArchivedChart[] {
 }
 
 /**
+ * 닫은 날의 겹침 — 표를 닫은 날(to)은 다음 표의 시작한 날(from)이기도 하다. 그날 지난 표에 담긴 칸 기록 "ti-ai"는
+ * 지금 문서에 떼어 둔 키 "ti-xh<시각>_ai"로 남아 있으니(archiveAllCells), 다음 표에 또 담으면 그날을 두 번 센다.
+ * 그 떼어 둔 키만 뺀다 — 새 표에서 한 체크 · 직접 추가한 할 일 · 지난 표에 없던 칸은 그대로.
+ */
+function dropClosedDay(dayLog: MandaratDoc['dayLog'], from: string, past: readonly ArchivedChart[]): MandaratDoc['dayLog'] {
+  // 같은 아이디(같은 표를 다시 닫는 것)는 앞 표가 아니다
+  const prev = past.find((a) => a.to === from && a.id !== archiveId(from));
+  const closed = new Set(prev?.dayLog[from] ?? []);
+  const list = dayLog[from];
+  if (closed.size === 0 || !list) return dayLog;
+  const keep = list.filter((k) => !(isArchivedKey(k) && closed.has(k.replace(/-xh[0-9a-z]+_/, '-'))));
+  if (keep.length === list.length) return dayLog;
+  const out = { ...dayLog };
+  if (keep.length > 0) out[from] = keep;
+  else delete out[from];
+  return out;
+}
+
+/**
  * 지금 표를 지난 표 한 장으로 — 기록(dayLog · dayMeta · 돌아보기 · 마감한 날)을 그 기간으로 잘라 담는다.
+ * 앞 표를 닫은 날(from)의 기록 중 앞 표에 이미 담긴 것은 뺀다(dropClosedDay).
  * 돌아보기 키는 그 주 월요일이라 기간에 걸친 주(월요일이 from보다 6일까지 앞선 주)도 담는다(defaults.cleanArchive와 같게).
  * 집중 시간은 이 표를 쓰는 동안의 것(focusMinutes − focusStart). 한 줄은 120자까지, 비면 없다.
  * migrate를 거쳐도 같은 모양이다(cleanArchives로 다듬어 돌려준다).
@@ -58,7 +84,7 @@ export function makeArchive(doc: MandaratDoc, now: Date, note = ''): ArchivedCha
     to,
     centerGoal: doc.centerGoal,
     themes: doc.themes,
-    dayLog: within(doc.dayLog, from, to),
+    dayLog: dropClosedDay(within(doc.dayLog, from, to), from, doc.archives ?? []),
     dayMeta: within(doc.dayMeta, from, to),
     ...(Object.keys(reviews).length > 0 ? { reviews } : {}),
     ...(closedDays.length > 0 ? { closedDays } : {}),
@@ -101,8 +127,10 @@ function themesFor(doc: MandaratDoc, mode: NewChartMode, day: string): Theme[] {
 }
 
 /**
- * 지금 표를 닫고 새 표를 시작한 문서 — null이면 아무것도 바꾸지 않는다:
- *   같은 아이디의 지난 표가 이미 있을 때, 또는 지금 표가 오늘 시작했고 오늘 닫은 지난 표가 있을 때(오늘 두 번 닫기).
+ * 지금 표를 닫고 새 표를 시작한 문서 — null이면 아무것도 바꾸지 않는다(오늘 두 번 닫기):
+ *   같은 아이디의 지난 표를 오늘(또는 시계를 되돌린 기기에서 그 뒤에) 닫았을 때, 또는 지금 표가 오늘 시작했고 오늘 닫은 지난 표가 있을 때.
+ * - 같은 아이디의 지난 표가 더 일찍 닫혀 있으면 같은 표를 다시 닫는 것이다(닫기 전 저장본 · 예전 백업을 되돌린 뒤) —
+ *   더 긴 이번 것으로 바꾼다. 이번 한 줄이 비면 그 표의 한 줄을 남긴다. iCloud에서는 ar/<id> 하나라 늦게 닫은 것이 이긴다.
  * - archives: 지난 표들 + 이번 표(버리지 않는다 — 상한 ARCHIVE_KEEP은 깨진 저장본 대비)
  * - themes: mode대로. centerGoal: goal을 다듬은 것(비면 지금 목표)
  * - 오늘 목록의 실천은 비우고, 끝내지 않은 직접 추가한 할 일은 남긴다. 기분·한 줄·마감한 날은 그대로(지금 문서의 것)
@@ -118,13 +146,15 @@ export function startNewChart(
   const archive = makeArchive(doc, now, opts.note);
   const today = ymd(now);
   const past = doc.archives ?? [];
-  // 같은 지난 표가 이미 있거나, 오늘 닫고 시작한 표를 오늘 또 닫으려 할 때
-  if (past.some((a) => a.id === archive.id || (archive.from === today && a.to === today))) return null;
+  // 같은 지난 표를 오늘(이후) 이미 닫았거나, 오늘 닫고 시작한 표를 오늘 또 닫으려 할 때
+  const same = past.find((a) => a.id === archive.id);
+  if ((same && same.to >= today) || past.some((a) => archive.from === today && a.to === today)) return null;
+  const next = same?.note && !archive.note ? { ...archive, note: same.note } : archive;
   const goal = opts.goal.trim();
   const reviews = detachReviewPicks(doc.reviews);
   return {
     ...doc,
-    archives: sortCap([...(doc.archives ?? []), archive]),
+    archives: sortCap([...past.filter((a) => a.id !== archive.id), next]),
     themes: themesFor(doc, mode, today),
     centerGoal: goal || doc.centerGoal,
     todayKeys: [],

@@ -1,11 +1,15 @@
 // 위젯·Siri가 남긴 체크(ops)를 문서에 옮길 명령으로 바꾼다(순수) — 손잡이는 src/hosts/WidgetSync.tsx.
 // - 같은 (k, at)은 한 번만, 시각(at) 순으로. 같은 칸·같은 날에 여러 번 눌렀으면 마지막 것(on)이 바라는 모습이다.
 // - 지금 문서와 견주어 다른 것만 명령으로 낸다. 그래서 같은 ops를 두 번 읽어도(쓰기 전에 늘 읽는다) 두 번째는 아무것도 하지 않는다.
-// - 오늘이 아닌 날의 ops는 버린다 — 단, 습관을 정한 날(since) ~ 오늘 사이의 습관은 그날 체크로 옮긴다.
+// - 지난 날의 ops(앱을 그날 열지 않았다) — 습관은 정한 날(since) ~ 어제의 그날 체크로 옮긴다.
+//   한 번 · 쌓기 · 직접 추가한 할 일은 7일 안(Siri·위젯 타임라인이 담는 날, TodayStore.swift)의 것만:
+//   한 번은 달성(날에 묶이지 않는다 — 기록은 오늘에 남는다), 쌓기는 그날에 한 번(step) 더하기(켬일 때만),
+//   직접 추가한 할 일은 아직 오늘 목록에 남아 있을 때(끝내지 않은 것은 날을 넘어 남는다). 위젯이 이미 한 것으로 그려 보였다.
 // - 모르는 칸 · 글이 없는 칸 · 마음가짐은 버린다.
 import type { MandaratDoc } from '../types';
 import type { WidgetOp } from './contracts';
 import { doneOn, doneToday, kindOf, ymd } from './routine';
+import { addDays, countInfo } from './kinds';
 import { WIDGET_URL } from './widgetSnapshot';
 
 export type WidgetCommand =
@@ -13,6 +17,8 @@ export type WidgetCommand =
   | { kind: 'checkToday'; ti: number; ai: number }
   /** 지난 날의 습관 체크(useActions().toggleHabitOn) */
   | { kind: 'toggleHabitOn'; ti: number; ai: number; day: string }
+  /** 지난 날의 쌓기 — 그날 기록에 더한다(useActions().addCountOn) */
+  | { kind: 'addCountOn'; ti: number; ai: number; delta: number; day: string }
   /** 직접 추가한 할 일(useActions().toggleExtra) */
   | { kind: 'toggleExtra'; id: string }
   /** 집중 타이머 열기(useUIActions().startFocus) */
@@ -25,6 +31,8 @@ type OpsDoc = Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayExtra'>;
 const DAY_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const CELL_RE = /^([0-7])-([0-7])$/;
 const OP_KINDS: readonly WidgetOp['kind'][] = ['check', 'focus', 'open'];
+/** 지난 날의 한 번 · 쌓기 · 직접 추가한 할 일을 들이는 날 수 — 타임라인은 지금 + 다음 자정 7번 */
+export const STALE_DAYS = 7;
 
 /** op 하나를 가리키는 열쇠 — 같은 누름이 두 번 읽혀도 한 번만 */
 export function opId(op: Pick<WidgetOp, 'k' | 'at'>): string {
@@ -77,9 +85,12 @@ export function planOps(ops: readonly unknown[], doc: OpsDoc, today: Date, seen:
     else open = op;
   }
 
+  // 날에 묶이지 않는 것(한 번 · 직접 추가한 할 일)은 날이 달라도 칸마다 가장 늦은 하나만 — 어제 켜고 오늘 끄면 끈 것
+  const lastOfKey = new Map<string, number>();
+  for (const op of lastCheck.values()) lastOfKey.set(op.k, op.at);
   const out: { at: number; cmd: WidgetCommand }[] = [];
   for (const op of lastCheck.values()) {
-    const cmd = checkCommand(op, doc, tk);
+    const cmd = checkCommand(op, doc, tk, lastOfKey.get(op.k) === op.at);
     if (cmd) out.push({ at: op.at, cmd });
   }
   if (focus && focus.day === tk && !seen.has(opId(focus))) {
@@ -91,9 +102,12 @@ export function planOps(ops: readonly unknown[], doc: OpsDoc, today: Date, seen:
 }
 
 /** 체크 하나 — 지금 모습과 다를 때만 명령 */
-function checkCommand(op: WidgetOp, doc: OpsDoc, tk: string): WidgetCommand | null {
+function checkCommand(op: WidgetOp, doc: OpsDoc, tk: string, latest: boolean): WidgetCommand | null {
+  // 앞날 · 날짜가 아닌 것은 버린다. 지난 날은 습관 밖에는 7일 안의 것만
+  if (!DAY_RE.test(op.day) || op.day > tk) return null;
+  const recent = op.day >= addDays(tk, -STALE_DAYS);
   if (op.k.startsWith('x:')) {
-    if (op.day !== tk) return null;
+    if (!recent || !latest) return null;
     const id = op.k.slice(2);
     const x = doc.todayExtra.find((e) => e.id === id);
     return x && x.done !== op.on ? { kind: 'toggleExtra', id } : null;
@@ -101,11 +115,20 @@ function checkCommand(op: WidgetOp, doc: OpsDoc, tk: string): WidgetCommand | nu
   const c = cellOf(doc, op.k);
   if (!c) return null;
   const kind = kindOf(c.a);
+  if (kind === 'mind') return null;
   if (op.day === tk) {
-    if (kind === 'mind') return null;
+    if (kind === 'once' && !latest) return null;
     return doneToday(doc, c.a, op.k, tk) !== op.on ? { kind: 'checkToday', ti: c.ti, ai: c.ai } : null;
   }
-  // 지난 날 — 습관을 정한 날 ~ 어제의 습관만
-  if (kind !== 'habit' || !DAY_RE.test(op.day) || op.day > tk || (c.a.since && op.day < c.a.since)) return null;
-  return doneOn(doc.dayLog, op.k, op.day) !== op.on ? { kind: 'toggleHabitOn', ti: c.ti, ai: c.ai, day: op.day } : null;
+  // 지난 날 — 습관은 정한 날 ~ 어제
+  if (kind === 'habit') {
+    if (c.a.since && op.day < c.a.since) return null;
+    return doneOn(doc.dayLog, op.k, op.day) !== op.on ? { kind: 'toggleHabitOn', ti: c.ti, ai: c.ai, day: op.day } : null;
+  }
+  if (!recent) return null;
+  // 한 번 — 달성은 날에 묶이지 않는다
+  if (kind === 'once') return latest && !!c.a.done !== op.on ? { kind: 'checkToday', ti: c.ti, ai: c.ai } : null;
+  // 쌓기 — 위젯의 체크는 한 번(step) 더하기. 그날 아직 더한 게 없을 때 켬만 들인다(그날 것을 되돌리는 끔은 버린다)
+  const info = countInfo(c.a, op.day);
+  return op.on && info.today === 0 ? { kind: 'addCountOn', ti: c.ti, ai: c.ai, delta: info.step, day: op.day } : null;
 }

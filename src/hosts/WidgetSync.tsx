@@ -4,7 +4,8 @@
 // 쓰기 전에 늘 읽는다: updateTimeline은 저장된 배열을 통째로 바꾸는데, 위젯 버튼(expo-widgets AppIntent)과
 // Siri(V3-B)는 다른 프로세스에서 아무 때나 그 배열의 props.ops에 체크를 덧붙인다. 그래서 모든 쓰기는 한 줄의
 // 약속 사슬(chain) 위에서 readOps() → planOps → 명령 돌리기 → 그 뒤 문서로 만든 타임라인 쓰기, 한 덩어리로 돈다.
-// 그냥 쓰면 앱이 뒤에 열려 있는 동안 위젯에서 한 체크를 지워 버린다.
+// 그냥 쓰면 앱이 뒤에 열려 있는 동안 위젯에서 한 체크를 지워 버린다. 같은 까닭으로 읽지 못한 차례(readOps가 null)에는
+// 아무것도 쓰지 않는다 — 다음 문서 변경 · 앞으로 나올 때 다시 한다.
 // 온보딩을 마치기 전에는 읽지도 쓰지도 않는다 — 위젯 모습의 {} 기본값이 빈 모습을 그린다.
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
@@ -46,6 +47,7 @@ export function WidgetSync() {
     (cmd: WidgetCommand) => {
       if (cmd.kind === 'checkToday') actions.checkToday(cmd.ti, cmd.ai);
       else if (cmd.kind === 'toggleHabitOn') actions.toggleHabitOn(cmd.ti, cmd.ai, cmd.day);
+      else if (cmd.kind === 'addCountOn') actions.addCountOn(cmd.ti, cmd.ai, cmd.delta, cmd.day);
       else if (cmd.kind === 'toggleExtra') actions.toggleExtra(cmd.id);
       else if (cmd.kind === 'focus') live.current.startFocus(cmd.ti, cmd.ai);
       else live.current.go('today');
@@ -59,6 +61,8 @@ export function WidgetSync() {
       .then(async () => {
         if (!live.current.ready || !live.current.onboarded) return;
         const ops = await widgetBridge.readOps();
+        // 읽지 못했다 — 쓰면 남아 있는 ops를 지운다
+        if (ops === null) return;
         if (ops.length > 0) {
           crash.crumb('widget', `ops ${ops.length}`);
           const cmds = planOps(ops, actions.getDoc(), new Date(), seen.current);

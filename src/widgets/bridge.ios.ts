@@ -18,7 +18,7 @@ export const widgetBridge = {
       console.warn('[widget] updateTimeline', e);
     }
   },
-  readOps: async (): Promise<WidgetOp[]> => {
+  readOps: async (): Promise<WidgetOp[] | null> => {
     try {
       const timeline = await todayWidget.getTimeline();
       const out: WidgetOp[] = [];
@@ -28,8 +28,9 @@ export const widgetBridge = {
       }
       return out;
     } catch (e) {
+      // 빈 배열이 아니라 null — 읽지 못한 ops를 쓰기로 덮어 지우지 않게(WidgetSync는 이번 차례를 건너뛴다)
       console.warn('[widget] getTimeline', e);
-      return [];
+      return null;
     }
   },
 } satisfies WidgetBridge;

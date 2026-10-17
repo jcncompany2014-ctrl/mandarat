@@ -8,11 +8,14 @@ export interface WidgetEntry { date: Date; props: TodayWidgetProps }
 export interface WidgetBridge {
   /** 타임라인을 통째로 바꾼다(지금 + 다음 자정 7번) */
   writeTimeline(entries: WidgetEntry[]): void;
-  /** 위젯·Siri가 남긴 체크(ops)를 읽는다 — 앱이 앞으로 나올 때 */
-  readOps(): Promise<WidgetOp[]>;
+  /**
+   * 위젯·Siri가 남긴 체크(ops)를 읽는다 — 앱이 앞으로 나올 때. 읽지 못하면 null:
+   * 그 차례에는 타임라인을 쓰지 않는다(쓰면 읽지 못한 ops를 지운다).
+   */
+  readOps(): Promise<WidgetOp[] | null>;
 }
 
 export const widgetBridge = {
   writeTimeline: (_entries: WidgetEntry[]) => {},
-  readOps: async (): Promise<WidgetOp[]> => [],
+  readOps: async (): Promise<WidgetOp[] | null> => [],
 } satisfies WidgetBridge;
