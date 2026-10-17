@@ -7,7 +7,7 @@ export default {
   recoveredTitle: "Couldn't read your saved records",
   recoveredBody: "The records that couldn't be read weren't deleted. They're kept aside.",
 
-  heading: 'Write down one goal\nyou want to reach this year',
+  heading: 'Write down one goal\nfor this year',
   goalLabel: 'Core goal',
   goalPlaceholder: 'e.g. Finish my first marathon',
   exampleMark: 'e.g.',
@@ -18,7 +18,7 @@ export default {
 
   templateAreas: ({ name }) => `Starting with the 8 areas of “${name}”`,
   defaultAreas: 'Starting with 8 default areas',
-  defaultCaption: 'Starting with 8 default areas · you can change them to fit your goal',
+  defaultCaption: 'Starting with 8 default areas · change them anytime',
   unpick: 'Undo',
   unpickHint: 'Goes back to the default areas',
 
