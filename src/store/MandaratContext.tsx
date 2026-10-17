@@ -163,8 +163,8 @@ export interface Actions {
   resetAll: () => void;
   replaceDoc: (d: MandaratDoc) => void;
   /**
-   * 지금 표를 지난 표로 닫고 새 표를 시작한다(archive.startNewChart) — 지금 표가 오늘 시작한 표라
-   * 같은 지난 표가 이미 있으면 아무것도 바꾸지 않고 false
+   * 지금 표를 지난 표로 닫고 새 표를 시작한다(archive.startNewChart) — 같은 지난 표가 이미 있거나
+   * 오늘 닫고 시작한 표를 오늘 또 닫으려 하면 아무것도 바꾸지 않고 false
    */
   startNewChart: (mode: NewChartMode, opts: { goal: string; note: string }) => boolean;
   /** 편집 횟수 — 통째 되돌리기 전에 그 사이 다른 변경이 있었는지 확인하는 데 쓴다 */
