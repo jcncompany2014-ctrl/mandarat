@@ -12,6 +12,7 @@ import { Icon } from '../components/Icon';
 import { select, success, tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
+import { SyncChoiceHost } from '../screens/settings/SyncChoiceSheet';
 import { TAB_BAR_H, isDeep, useUIActions, useUIState, type Screen } from './ui';
 import { TID } from '../lib/testIds';
 import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
@@ -113,6 +114,7 @@ function milestone() {
  */
 export function Root() {
   const { doc } = useDoc();
+  const M = usePalette();
   return (
     <>
       <Milestones />
@@ -120,6 +122,8 @@ export function Root() {
       <ReminderSync />
       <WidgetSync />
       <ICloudSync />
+      {/* iCloud 처음 고르기 — 어느 화면에 있든 묻는다(설정 안에만 두면 설정을 열어야 보인다) */}
+      <SyncChoiceHost M={M} />
       <RootView onboarded={doc.onboarded} />
     </>
   );

@@ -147,7 +147,9 @@ test('settings section: iOS with the native module only; the toggle and "지금 
   assert.match(sec, /testID=\{TID\.setICloud\}/);
   assert.match(sec, /testID=\{TID\.setICloudNow\}/);
   assert.match(sec, /void requestSync\(\)/);
-  assert.match(sec, /<SyncChoiceHost M=\{M\} \/>/);
+  // 처음 고르기 시트는 Root에 하나만 — 어느 화면에서든 묻고, 설정 안에는 두지 않는다(V5-E 넘겨줄 일)
+  assert.doesNotMatch(sec, /<SyncChoiceHost/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/navigation/Root.tsx'), 'utf8'), /<SyncChoiceHost M=\{M\} \/>/);
   // 웹 안내 문장 그대로
   assert.equal(msg('ko').sync.webNote, 'iPhone·iPad 앱에서만 쓸 수 있어요. 다른 기기로 옮길 때는 백업 파일을 써요.');
   // 웹 쪽 갈래에서는 맞추기 함수를 부르지 않는다(구역 머리 · 안내 한 줄만)

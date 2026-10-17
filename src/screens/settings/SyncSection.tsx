@@ -15,7 +15,6 @@ import { useMsg } from '../../i18n/react';
 import { useDoc } from '../../store/MandaratContext';
 import type { M } from '../../theme/usePalette';
 import { Section } from './rows';
-import { SyncChoiceHost } from './SyncChoiceSheet';
 import { problemLine, statusLine, syncSupported } from './syncView';
 
 export function SyncSection({ M }: { M: M }) {
@@ -108,7 +107,6 @@ function SyncRows({ M }: { M: M }) {
           />
         </View>
       )}
-      <SyncChoiceHost M={M} />
     </>
   );
 }

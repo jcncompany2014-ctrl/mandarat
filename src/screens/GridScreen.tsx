@@ -11,6 +11,7 @@ import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useDoc } from '../store/MandaratContext';
+import { TID } from '../lib/testIds';
 
 /** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만, 표 아래 괘선 한 줄로 */
 function NextStepRow({ M }: { M: M }) {
@@ -74,7 +75,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
         kr="만다라트"
         right={
           <View style={{ flexDirection: 'row' }}>
-            <IconBtn M={M} name="share" label="표 이미지로 공유" onPress={openShare} />
+            <IconBtn M={M} name="share" label="표 이미지로 공유" onPress={openShare} testID={TID.gridShare} />
             <IconBtn M={M} name="pencil" label="핵심 목표 고치기" onPress={() => openEditor({ kind: 'center' })} />
           </View>
         }

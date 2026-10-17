@@ -22,20 +22,7 @@ const files = walk(SRC).map((p) => ({ rel: path.relative(ROOT, p), text: fs.read
 
 // 같은 웨이브(5)의 다른 묶음이 자기 파일에 붙이는 이름 — 그 묶음이 합쳐지기 전에는 src에 없을 수 있다.
 // 합쳐진 뒤에는 아래 '모두 쓰인다' 검사가 이 이름들도 잡는다(찾으면 통과). 리드가 웨이브 5를 합친 뒤 지운다.
-const PENDING = {
-  gridTable: 'V5-A src/screens/FullGrid.tsx',
-  gridShare: 'V5-A src/screens/GridScreen.tsx',
-  detailBack: 'V5-A src/screens/Detail.tsx',
-  spreadLeft: 'V5-A src/navigation/Root.tsx',
-  spreadRight: 'V5-A src/navigation/Root.tsx',
-  onbGoal: 'V5-E src/screens/Onboarding.tsx',
-  onbNext: 'V5-E src/screens/Onboarding.tsx',
-  onbSample: 'V5-E src/screens/Onboarding.tsx',
-  onbStart: 'V5-E src/screens/Onboarding.tsx',
-  onbICloud: 'V5-E src/screens/Onboarding.tsx',
-  setICloud: 'V5-E src/screens/settings/SyncSection.tsx',
-  setICloudNow: 'V5-E src/screens/settings/SyncSection.tsx',
-};
+const PENDING = {};
 
 /** testID 자리(testID={…} 또는 옵션의 testID: …)에서 TID.<name>을 쓰는 줄이 있는 파일들 */
 function usedAt(name) {

@@ -27,6 +27,7 @@ import { sameProps } from '../lib/sameProps';
 import { fitTableW } from '../lib/spread';
 import type { MandaratDoc } from '../types';
 import { gridMemory, stepArea, swipeStep, takeFreshDone, type GridFocus } from './gridMemory';
+import { TID } from '../lib/testIds';
 
 type Focus = GridFocus;
 
@@ -725,7 +726,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange, onFocusArea, 
       </View>
 
       {/* 표 — 종이 위에 바로 인쇄된 한 장(흰 카드 없이) */}
-      <View onLayout={onTable} style={fitW < fullW ? { width: fitW, alignSelf: 'center' } : null}>
+      <View testID={TID.gridTable} onLayout={onTable} style={fitW < fullW ? { width: fitW, alignSelf: 'center' } : null}>
         <Animated.View
           pointerEvents={focus == null ? 'auto' : 'none'}
           accessibilityElementsHidden={focus != null}

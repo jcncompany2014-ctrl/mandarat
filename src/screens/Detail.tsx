@@ -17,6 +17,7 @@ import { kindOf } from '../lib/routine';
 import { announce, screenReader } from '../lib/useReducedMotion';
 import { areaTitle, neighborArea, pageSpeech, rowLabelFor, rowStatus } from '../lib/areaPage';
 import type { Action } from '../types';
+import { TID } from '../lib/testIds';
 
 /** 왼쪽 표시(체크 칸·상태 네모) 한 변 */
 const MARK = 22;
@@ -118,6 +119,7 @@ export const Detail = memo(function Detail({ ti, embedded = false }: { ti: numbe
         sub={`영역 ${ti + 1} / 8`}
         kr={title}
         onBack={embedded ? undefined : back}
+        backTestID={TID.detailBack}
         stacked
         focusTitle={!embedded}
         right={
