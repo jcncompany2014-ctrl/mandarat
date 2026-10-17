@@ -1,6 +1,0 @@
-{
-  "src/lib/backup.ts": 5,
-  "src/lib/backupLedger.ts": 12,
-  "src/lib/backupNote.ts": 4,
-  "src/overlays/BackupImport.tsx": 25
-}

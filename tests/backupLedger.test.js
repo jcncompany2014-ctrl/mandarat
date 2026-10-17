@@ -37,7 +37,9 @@ test('장부: 화면 읽기 말 — 채운 칸은 64칸 중, 마지막 기록은
   const said = rows.map((r) => `${r.label}, 지금 ${r.nowSay ?? r.now}, 백업 ${r.backupSay ?? r.backup}`);
   for (const s of said) assert.doesNotMatch(s, /\d\s*\/\s*\d|\d\.\d+ \(/, s);
   const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src/overlays/BackupImport.tsx'), 'utf8');
-  assert.match(src, /accessibilityLabel=\{`\$\{r\.label\}, 지금 \$\{r\.nowSay \?\? r\.now\}, 백업 \$\{r\.backupSay \?\? r\.backup\}`\}/);
+  assert.match(src, /accessibilityLabel=\{b\.rowSay\(\{ label: r\.label, now: r\.nowSay \?\? r\.now, backup: r\.backupSay \?\? r\.backup \}\)\}/);
+  const ko = require('../src/i18n/ko/backup').default;
+  assert.deepEqual(rows.map((r) => ko.rowSay({ label: r.label, now: r.nowSay ?? r.now, backup: r.backupSay ?? r.backup })), said);
 });
 
 test('장부: 기록이 없으면 마지막 기록은 없음', () => {
@@ -72,4 +74,32 @@ test('장부: 지난 표가 어느 쪽이든 있으면 지난 표 줄을 더한�
   } finally {
     setLang('ko');
   }
+});
+
+test('장부: ja·en에서는 이름표 · 값 · 소리 말이 그 언어로, 없음도 따라간다(X-K)', () => {
+  const { setLang } = require('../src/i18n');
+  const today = new Date(2026, 9, 14);
+  const now = { ...base, goal: '', filled: 23, done: 1, days: 12, lastLog: '2026-10-03' };
+  try {
+    setLang('en');
+    let rows = ledgerRows(now, base, today);
+    assert.deepEqual(rows.map((r) => r.label), ['Core goal', 'Filled', 'Achieved', 'Days logged', 'Last record']);
+    assert.equal(rows[0].now, 'None');
+    assert.equal(require('../src/lib/backupLedger').LEDGER_NONE, 'None');
+    assert.equal(rows[1].nowSay, '23 of 64 squares');
+    assert.equal(rows[2].now, '1 square');
+    assert.equal(rows[3].now, '12 days');
+    assert.equal(rows[4].backup, 'None');
+    setLang('ja');
+    rows = ledgerRows(now, base, today);
+    assert.deepEqual(rows.map((r) => r.label), ['中心の目標', '書いたマス', '達成', '記録した日', '最後の記録']);
+    assert.equal(require('../src/lib/backupLedger').LEDGER_NONE, 'なし');
+    assert.equal(rows[1].nowSay, '64マス中23マス');
+    assert.equal(rows[2].now, '1マス');
+    // 언어를 넘겨 주면 지금 언어와 상관없이
+    assert.equal(ledgerRows(now, base, today, 'ko')[0].now, '없음');
+  } finally {
+    setLang('ko');
+  }
+  assert.equal(require('../src/lib/backupLedger').LEDGER_NONE, '없음');
 });
