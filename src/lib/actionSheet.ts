@@ -20,23 +20,27 @@ export function dowOf(key: string, l?: Lang): string {
  * 제목 아래 한 줄 — 아래 블록이 이미 보여 주는 것(이번 주 n/m회, 7/12권, 마감)은 되풀이하지 않고 정한 것만.
  * 습관 '습관 · 월·수·금 반복' / '습관 · 주 3회' · 쌓기 '쌓기 · 한 번에 1권' · 한 번 '한 번' · 마음가짐 '마음가짐 · 한 주에 한 번'
  */
-export function sheetSubtitle(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date, l?: Lang): string {
+export function sheetSubtitle(
+  doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date, l?: Lang, spoken = false,
+): string {
   const a = doc.themes[ti]?.actions[ai];
   if (!a) return '';
   const kind = kindOf(a);
-  const { sheet: m, core } = msg(l);
-  const dot = core.dot;
-  // 유형 이름은 kinds의 이름(KIND_LABEL — 지금 언어로 읽힌다)
+  const m = msg(l).sheet;
+  // 유형 이름은 kinds의 이름(KIND_LABEL — 지금 언어로 읽힌다). 이름과 정한 것은 sheet.kindPlan으로 잇는다
+  // (ja는 괄호 — 요일 목록의 '・'와 같은 점으로 이으면 '習慣・月・水・金'이 한 목록으로 읽힌다)
   const name = KIND_LABEL[kind];
   if (kind === 'habit') {
-    const plan = kindLine(doc, ti, ai, today)?.plan;
-    return plan ? `${name}${dot}${plan}` : name;
+    const line = kindLine(doc, ti, ai, today, l);
+    // spoken: 화면 읽기 라벨용 — en '3x a week'를 '3 times a week'로
+    const plan = spoken ? line?.planSpeech : line?.plan;
+    return plan ? m.kindPlan({ name, plan }) : name;
   }
   if (kind === 'count') {
     const c = countInfo(a);
-    return `${name}${dot}${m.perStep({ n: c.step, unit: c.unit })}`;
+    return m.kindPlan({ name, plan: m.perStep({ n: c.step, unit: c.unit }) });
   }
-  if (kind === 'mind') return `${name}${dot}${m.onceAWeek}`;
+  if (kind === 'mind') return m.kindPlan({ name, plan: m.onceAWeek });
   return name;
 }
 

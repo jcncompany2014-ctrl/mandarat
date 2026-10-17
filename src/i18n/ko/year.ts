@@ -73,6 +73,8 @@ export default {
   wearTitle: '닳은 자리',
   /** 닳은 자리 오른쪽 — 칸마다 4주에 한 날 수의 평균으로 칠한다 */
   wearRight: '4주 평균',
+  /** 닳은 자리 범례 머리 — stats.legendLast4처럼 끝에 가운뎃점 */
+  wearLegend: '4주 평균 ·',
   weeksTitle: '돌아본 주',
   notesTitle: '회고',
   notesEmpty: '이 표를 쓰는 동안 남긴 한 줄이 없어요',

@@ -57,6 +57,7 @@ export default {
   frameSpeech: ({ label, n }) => `By ${label}, ${n} of 64 squares achieved`,
   wearTitle: 'Well-worn squares',
   wearRight: 'Avg per 4 weeks',
+  wearLegend: 'Avg per 4 weeks ·',
   weeksTitle: 'Reviewed weeks',
   notesTitle: 'Reflections',
   notesEmpty: 'No one-line notes were written on this chart',

@@ -20,6 +20,8 @@ export default {
   /** 제목 아래 한 줄 — 쌓기 '한 번에 1권' · 마음가짐 '한 주에 한 번' (앞의 유형 이름은 kinds의 이름) */
   perStep: (p: Amount) => `한 번에 ${amt(p)}`,
   onceAWeek: '한 주에 한 번',
+  /** 시트 제목 아래 — 유형 이름과 정한 것 '습관 · 월·수·금 반복' */
+  kindPlan: ({ name, plan }: { name: string; plan: string }) => `${name} · ${plan}`,
 
   // ── 체크 줄 · 습관 ──
   checkHint: '다시 누르면 해제돼요',

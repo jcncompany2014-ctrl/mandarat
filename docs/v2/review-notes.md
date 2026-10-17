@@ -23,7 +23,7 @@ Product: com.jcncompany.mandarat.pro, Non-Consumable, one-time purchase.
 1. Finish the short first-run setup (type any goal, then start).
 2. On Home, tap the Settings icon in the header.
 3. Scroll to the section "Pro" (Korean: 설정 › 프로) and tap the row "Pro". This opens the Pro sheet with the price from StoreKit and "Unlock Pro for <price>".
-4. "Restore Purchase" (구입 복원) is the row right below it in the same section.
+4. "Restore Purchases" (구입 복원) is the row right below it in the same section.
 The Pro sheet also opens when you tap a locked option, for example Settings › Appearance › Paper pattern › "Grid", or a print size A3/A5/B5 in Chart › share › Printable PDF.
 Everything that was free in version 1 stays free. Pro adds only paper patterns, the widget's paper pattern, extra print sizes and the archive of past charts.
 
@@ -31,7 +31,7 @@ SUGGESTED TEST PATH (about 5 minutes)
 1. First run: enter a goal and start. To fill the chart quickly: Settings › Records › "Fill in examples".
 2. Home and Today: check off an item; the day closes with a double rule after the last one.
 3. Chart tab: tap a block to open its 3x3 page. Tap the share icon › "Printable PDF ›" to print or export a PDF (AirPrint).
-4. Settings › Pro: open the Pro sheet, buy with a sandbox account, then use "Restore Purchase".
+4. Settings › Pro: open the Pro sheet, buy with a sandbox account, then use "Restore Purchases".
 5. Settings › Appearance › Paper pattern: Grid / Lined / Plain now apply.
 6. Settings › Reminders: turning on a reminder asks for notification permission (never at launch). Notifications are local only.
 7. Focus timer: open any action and tap "Focus for 25 min". On iPhone, a Live Activity appears on the Lock Screen and in the Dynamic Island.
@@ -47,7 +47,7 @@ SIRI AND SHORTCUTS
 App Shortcuts (App Intents). No SiriKit entitlement is used. Open the app once first, so Today's list exists. Phrases (the device language decides the set):
 - "What's left today in Mandalart" / "Show Today in Mandalart" / "Check off the next one in Mandalart" / "Start focus in Mandalart"
 - Korean: "만다라트 오늘 남은 일" / "만다라트 오늘 보기" / "만다라트 다음 할 일 체크" / "만다라트 집중 시작"
-- Japanese: "マンダラートで今日の残り" / "マンダラートで今日を見る" / "マンダラートで次をできたにする" / "マンダラートで集中を始める"
+- Japanese: "マンダラートで今日の残り" / "マンダラートで今日を見る" / "マンダラートで次を「できた」にする" / "マンダラートで集中を始める"
 They are also listed in the Shortcuts app › App Shortcuts › Mandalart.
 
 ICLOUD SYNC (optional, off by default)
@@ -63,7 +63,7 @@ Contact: <SUPPORT_EMAIL>
 ## In-App Purchase review notes (paste into the IAP's Review Information)
 
 ```
-Non-Consumable "Pro" (com.jcncompany.mandarat.pro). Where: Home › Settings › section "Pro" (설정 › 프로) › row "Pro". Restore: the "Restore Purchase" row in the same section. Locked options (Settings › Appearance › Paper pattern › Grid) also open it. No login is required.
+Non-Consumable "Pro" (com.jcncompany.mandarat.pro). Where: Home › Settings › section "Pro" (설정 › 프로) › row "Pro". Restore: the "Restore Purchases" row in the same section. Locked options (Settings › Appearance › Paper pattern › Grid) also open it. No login is required.
 ```
 
 ---

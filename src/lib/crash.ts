@@ -9,4 +9,5 @@ export const crash = {
   crumb: (_category: string, _message: string) => {},
   tag: (_key: string, _value: string) => {},
   setEnabled: (_on: boolean) => {},
+  qaNativeCrash: () => {},
 } satisfies CrashApi;

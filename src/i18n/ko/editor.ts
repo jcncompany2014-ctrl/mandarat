@@ -75,6 +75,8 @@ export default {
   perWeekA11y: '주간 횟수',
   /** '주 3회' */
   perWeek: ({ n }: { n: number }) => `주 ${n}회`,
+  /** 화면 읽기 값 — 보이는 말이 기호 꼴인 언어(en '3x a week')만 다르다 */
+  perWeekSay: ({ n }: { n: number }) => `주 ${n}회`,
   perWeekLess: '주 1회 줄이기',
   perWeekMore: '주 1회 늘리기',
   days: '요일',

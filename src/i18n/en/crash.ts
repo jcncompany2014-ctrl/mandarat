@@ -6,4 +6,5 @@ export default {
   row: 'Send error reports',
   rowSub: 'If the app stops, only device details and the error are sent. Nothing you write is sent',
   qaSent: 'Test error sent',
+  qaNative: 'Test a native crash (closes the app)',
 } satisfies Like<typeof ko>;

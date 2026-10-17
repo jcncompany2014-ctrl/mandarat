@@ -35,6 +35,8 @@ export default {
   weekLong: ({ done, total }: { done: number; total: number }) => `이번 주 ${done}/${total}회`,
   /** 정한 것 — '주 3회' */
   weekPlan: ({ n }: { n: number }) => `주 ${n}회`,
+  /** 정한 것을 소리로 — 보이는 말(weekPlan)이 기호 꼴일 때만 다르다(en '3x a week' → '3 times a week') */
+  weekPlanSay: ({ n }: { n: number }) => `주 ${n}회`,
   /** '이번 주 3회 중 2회' */
   weekSpeech: ({ done, total }: { done: number; total: number }) => `이번 주 ${total}회 중 ${done}회`,
   /** 요일 습관 — 좁은 칸 '월·수·금' */

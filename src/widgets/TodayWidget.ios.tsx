@@ -40,7 +40,8 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   const day = p.day || '';
   const url = p.url || 'mandarat://today';
   const pat = p.pat || 'dots';
-  // 앱이 아직 읽지 않은 체크 기록의 상한 — 한 건 ≈ 80 B라 300건 ≈ 24 KB(App Group). 50건은 습관 5개면 열흘에 넘쳤다
+  // 앱이 아직 읽지 않은 체크 기록의 상한 — 타임라인 한 칸(하루)마다 따로 쌓인다. 한 건 ≈ 80 B라 300건 ≈ 24 KB(App Group).
+  // 50건은 하루에 여러 번 켜고 끄면 닿을 수 있었다(R-1 F5)
   const OPS_MAX = 300;
 
   /** '{n}' · '{t}' 틀 채우기 */

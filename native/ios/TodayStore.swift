@@ -105,7 +105,7 @@ enum TodayStore {
     ["kind": kind, "k": k, "on": on, "day": day, "at": Int(at.timeIntervalSince1970 * 1000), "t": t, "src": "siri"]
   }
 
-  /// snapshot의 칸에 op를 덧붙여(마지막 50개) 다시 쓴다. checked가 있으면 그 줄을 했음으로, done을 하나 올린다.
+  /// snapshot의 칸에 op를 덧붙여(마지막 300개 — 위젯 버튼의 OPS_MAX와 같다, R-1 F5) 다시 쓴다. checked가 있으면 그 줄을 했음으로, done을 하나 올린다.
   /// 쓰기 바로 전에 다시 읽는다 — 그 사이 위젯 버튼이나 앱이 쓴 것을 덮지 않게.
   @discardableResult
   static func appendOp(_ op: [String: Any], to snapshot: TodaySnapshot, checked: String? = nil) -> Bool {

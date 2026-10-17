@@ -103,6 +103,11 @@ test('beforeSend: 개인정보 칸을 지우고 오류 글의 따옴표 안을 "
   assert.equal(ev.contexts.device.model, 'iPhone16,1');
   assert.equal(ev.exception.values[0].value, 'Cannot read property "…" of "…" — "…" "…"');
   assert.ok(ev.exception.values[1].value.length <= 200, '200자');
+  // 걸러도 긴 글(ASCII만)은 200자에서 자르고 끝에 '…'
+  const long = mod.scrubText(`TypeError: ${'x'.repeat(300)}`);
+  assert.equal(long.length, 200);
+  assert.ok(long.endsWith('…'));
+  assert.equal(mod.scrubText('TypeError: short'), 'TypeError: short');
   assert.doesNotMatch(ev.exception.values[1].value, /가/, '따옴표 안의 글이 남지 않는다');
   const json = JSON.stringify(ev);
   for (const s of ['매일 아침', '건강', '마라톤', '김민지', '비밀', '민지의', '물 2L', '핵심 목표']) assert.equal(json.includes(s), false, s);
@@ -251,6 +256,17 @@ test('@sentry/react-native를 부르는 앱 파일은 crash.native.ts 하나', (
   assert.doesNotMatch(code('src/lib/crash.ts'), /sentry/i);
   assert.match(code('src/lib/crash.ts'), /satisfies CrashApi/);
   assert.match(code('src/lib/crash.native.ts'), /satisfies CrashApi/);
+});
+
+test('네이티브 멈춤 시험은 미리보기 빌드에서만 — 출시 빌드에서는 부르는 곳도, 하는 일도 없다(R-8 #1 기기 QA)', () => {
+  const nat = code('src/lib/crash.native.ts');
+  assert.match(nat, /qaNativeCrash: \(\) => \{\s*if \(process\.env\.EXPO_PUBLIC_APP_ENV !== 'preview' \|\| !SENTRY_DSN \|\| !started\) return;\s*Sentry\.nativeCrash\(\);/);
+  assert.match(code('src/lib/crash.ts'), /qaNativeCrash: \(\) => \{\}/);
+  // 설정의 링크는 PREVIEW 갈래 안에만
+  const row = code('src/screens/settings/CrashRow.tsx');
+  const preview = row.slice(row.indexOf('if (PREVIEW) {'), row.indexOf('\n  return (', row.indexOf('if (PREVIEW) {') + 20));
+  assert.match(preview, /crash\.qaNativeCrash\(\)/);
+  assert.equal(row.split('qaNativeCrash').length - 1, 1, '링크는 한 곳뿐');
 });
 
 test('envProblems: 프로 미리보기 값이 환경에 있으면 출시를 막는다', () => {

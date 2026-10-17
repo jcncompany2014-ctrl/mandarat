@@ -772,7 +772,7 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
             accessible
             accessibilityRole="adjustable"
             accessibilityLabel={ed.perWeekA11y}
-            accessibilityValue={{ text: ed.perWeek({ n }) }}
+            accessibilityValue={{ text: ed.perWeekSay({ n }) }}
             accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
             onAccessibilityAction={(e) => {
               const d = e.nativeEvent.actionName === 'increment' ? 1 : e.nativeEvent.actionName === 'decrement' ? -1 : 0;
@@ -783,7 +783,7 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }}
           >
             <StepBtn M={M} icon="minus" label={ed.perWeekLess} disabled={n <= 1} onPress={() => step(-1)} />
-            <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, minWidth: 72, textAlign: 'center', fontVariant: ['tabular-nums'] }} accessibilityLiveRegion="polite">
+            <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, minWidth: 72, textAlign: 'center', fontVariant: ['tabular-nums'] }} accessibilityLiveRegion="polite" accessibilityLabel={ed.perWeekSay({ n })}>
               {ed.perWeek({ n })}
             </Text>
             <StepBtn M={M} icon="plus" label={ed.perWeekMore} disabled={n >= 6} onPress={() => step(1)} />

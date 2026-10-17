@@ -85,7 +85,7 @@ test('YearReview: 네 숫자 · 한 해 달력 · 채워진 모습 · 닳은 자
     'title={m.year.framesTitle}',
     'title={m.year.wearTitle}',
     '<ActivityChart ',
-    '<WearLegend M={M} head={m.year.wearRight} />',
+    '<WearLegend M={M} head={m.year.wearLegend} />',
     'title={m.year.weeksTitle}',
     'title={m.year.notesTitle}',
     'm.year.noteLabel',

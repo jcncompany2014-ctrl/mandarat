@@ -93,7 +93,8 @@ test('NEW-3(a11y): 연속 기록 줄은 체크 · 몸통 두 번만 멈추고, �
   const s = src('src/screens/TodayModes.tsx');
   const line = slice(s, 'const StreakLine = memo(', '// ── 보드');
   assert.match(line, /const week = summary \?\? weekStripSummary\(states, today >= 0 \? today : weekdayIndex\(new Date\(\)\)\);/);
-  assert.match(line, /const bodyLabel = \[text, area, plan, week, run\.a11y, done \? m\.today\.doneToday : ''\]/);
+  // 정한 것은 소리 말(planSay — en '3x a week'를 '3 times a week'로)
+  assert.match(line, /const bodyLabel = \[text, area, planSay, week, run\.a11y, done \? m\.today\.doneToday : ''\]/);
   assert.equal(require('../src/i18n/ko/today').default.doneToday, '오늘 했어요');
   assert.match(line, /<View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">\s*<WeekStrip /);
 });

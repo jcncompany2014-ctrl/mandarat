@@ -2,7 +2,7 @@
 // 설정 화면과 v2 구역(src/screens/settings/*)이 같은 모양으로 쓴다.
 import React from 'react';
 import { Alert, Platform, Pressable, View, type ViewStyle } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLangProp } from '../../components/AppText';
 import { Check } from '../../components/Check';
 import { RowDivider, groupEdge, pressedRow } from '../../components/common';
 import { msg } from '../../i18n';
@@ -71,6 +71,7 @@ export function RadioRow({
       accessibilityRole="radio"
       accessibilityLabel={a11yLabel}
       accessibilityState={{ checked: on, selected: on }}
+      {...a11yLangProp()}
       style={({ pressed }) => [rowBase(M, first, last), pressed && !on ? pressedRow(M) : null]}
     >
       {!first && <RowDivider M={M} inset={0} />}
@@ -89,6 +90,7 @@ export function ColophonRow({ M, label, value, first }: { M: M; label: string; v
     <View
       accessible
       accessibilityLabel={`${label}, ${value}`}
+      {...a11yLangProp()}
       style={{ flexDirection: 'row', alignItems: 'baseline', paddingVertical: 9, borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line }}
     >
       <Text style={{ width: 52, fontSize: 12.5, lineHeight: 18, color: M.sub }}>{label}</Text>
@@ -105,6 +107,7 @@ export function TextLink({ M, label, onPress, hint }: { M: M; label: string; onP
       accessibilityRole="link"
       accessibilityLabel={label}
       accessibilityHint={hint}
+      {...a11yLangProp()}
       hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
       style={({ pressed }) => ({ minHeight: 24, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
     >

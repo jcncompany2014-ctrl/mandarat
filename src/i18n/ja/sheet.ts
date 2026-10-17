@@ -15,6 +15,8 @@ export default {
   titleA11y: ({ text, subtitle }) => `${text}、${subtitle}、文と種類を編集`,
   perStep: (p) => `1回に${amt(p)}`,
   onceAWeek: '週に1回',
+  // 曜日の並び（月・水・金）と同じ「・」でつなぐと一続きに読めるので、括弧でくくる
+  kindPlan: ({ name, plan }) => `${name}（${plan}）`,
 
   checkHint: 'もう一度押すと外れます',
   doneToday: '今日できた',

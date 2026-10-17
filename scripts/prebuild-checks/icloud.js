@@ -5,13 +5,15 @@
 const fs = require('fs');
 const path = require('path');
 
-/** ubiquity URL에 쓰면 매니페스트 이유가 없는 파일 시각 API */
-const TIMESTAMP_API = /contentModificationDateKey|creationDateKey|attributesOfItem|modificationDate/;
+/** ubiquity URL에 쓰면 매니페스트 이유가 없는 파일 시각 API — URLResourceKey 날짜 · FileManager 속성 · stat 무리 */
+const TIMESTAMP_API =
+  /contentModificationDate|creationDate|attributeModificationDate|contentAccessDate|addedToDirectoryDate|attributesOfItem|[mM]odificationDate|\b[fl]?stat(?:at)?\s*\(|getattrlist/;
 
 module.exports = (ctx, assert) => {
   const swift = fs.readFileSync(path.join(ctx.root, 'modules', 'icloud-sync', 'ios', 'ICloudSyncModule.swift'), 'utf8');
-  // 주석은 빼고 본다 — 하지 말라는 설명에 이름이 들어갈 수 있다
-  const hit = swift.split('\n').findIndex((l) => TIMESTAMP_API.test(l.replace(/\/\/.*$/, '')));
+  // 주석은 빼고 본다 — 하지 말라는 설명에 이름이 들어갈 수 있다. 글자열 안의 '//'(주소 등)가 뒤의 코드를 지우지 않게 글자열을 먼저 비운다
+  const code = (l) => l.replace(/"(?:\\.|[^"\\])*"/g, '""').replace(/\/\/.*$/, '');
+  const hit = swift.split('\n').findIndex((l) => TIMESTAMP_API.test(code(l)));
   assert.equal(hit, -1, `ICloudSyncModule.swift:${hit + 1} 파일 시각 API — NSMetadataItem 속성으로 읽어 주세요`);
 
   const mod = ctx.autolinking.modules.find((m) => m.packageName === 'icloud-sync');

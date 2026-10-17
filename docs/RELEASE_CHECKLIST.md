@@ -262,9 +262,9 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
   - a symbolicated stack;
   - tags `lang`, `pro` and `layout`;
   - no user, no device name and no chart text.
-- [ ] A render error carries `componentStack`. A native crash is symbolicated.
+- [ ] A render error carries `componentStack`. A native crash is symbolicated: on a preview build tap 네이티브 오류 시험 under the row (preview only), relaunch, and check the event.
 - [ ] Breadcrumbs carry no chart text. Kept console crumbs (for example `Mandarat crashed …` from the ErrorBoundary) show `"…"` in place of chart text and have no `data`.
-- [ ] **Installation ID and sessions (R-8 #1).** On a preview build, force a native crash and relaunch. In Sentry the event shows `user.id` set to a UUID (the random per-install ID that the policy declares) and no name, e-mail or IP address. Open and close the app a few times: no sessions arrive in Sentry › Releases › Sessions (`enableAutoSessionTracking: false`).
+- [ ] **Installation ID and sessions (R-8 #1).** On a preview build, tap 네이티브 오류 시험 under Settings › 정보 › 오류 기록 보내기 (the app closes) and relaunch. In Sentry the event shows `user.id` set to a UUID (the random per-install ID that the policy declares) and no name, e-mail or IP address. Open and close the app a few times: no sessions arrive in Sentry › Releases › Sessions (`enableAutoSessionTracking: false`).
 - [ ] The opt-out stops all events, including native crashes after a relaunch.
 - [ ] The release and dist match the build.
 - [ ] No row on web or Android.

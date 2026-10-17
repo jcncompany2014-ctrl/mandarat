@@ -449,6 +449,8 @@ export interface KindLine {
   long: string;
   /** 정한 것(계획) — '월·수·금 반복' · '주 3회' · '6/12권' · '마감 D-3' · '마음가짐' */
   plan: string;
+  /** plan을 소리로 — '12권 중 6권' · '마감 3일 남음' · en '3 times a week'(보이는 말은 '3x a week') */
+  planSpeech: string;
   /**
    * 소리로 읽을 말(long과 같은 내용) — '이번 주 3회 중 2회' · '12권 중 6권, 오늘 1권 더함' · '마감 3일 남음' · '마음가짐, 이번 주 4점'.
    * '6/12권'·'D-3'은 VoiceOver가 날짜·'디 마이너스'로 읽으므로 화면 읽기 라벨에는 long 대신 이것을 쓴다.
@@ -481,18 +483,18 @@ export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number
     if (n > 0) {
       const w = routineWeekCount(doc, ti, ai, today);
       const p = { done: w.done, total: w.planned };
-      return { icon: 'repeat', short: k.weekShort(p), long: k.weekLong(p), plan: k.weekPlan({ n }), speech: k.weekSpeech(p) };
+      return { icon: 'repeat', short: k.weekShort(p), long: k.weekLong(p), plan: k.weekPlan({ n }), planSpeech: k.weekPlanSay({ n }), speech: k.weekSpeech(p) };
     }
     const dows = habitDays(a);
     const label = k.daysLong({ dows });
-    return { icon: 'repeat', short: k.daysShort({ dows }), long: label, plan: label, speech: label };
+    return { icon: 'repeat', short: k.daysShort({ dows }), long: label, plan: label, planSpeech: label, speech: label };
   }
   if (kind === 'count') {
     const c = countInfo(a, ymd(today));
     const text = countText(c, l);
     const said = countSpeech(c, l);
     return {
-      short: text, long: c.today > 0 ? k.countToday({ text, n: c.today }) : text, plan: text, pct: c.pct,
+      short: text, long: c.today > 0 ? k.countToday({ text, n: c.today }) : text, plan: text, planSpeech: said, pct: c.pct,
       speech: c.today > 0 ? k.countTodaySpeech({ said, n: c.today, unit: c.unit }) : said,
     };
   }
@@ -501,11 +503,11 @@ export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number
     if (!d || a.done) return null;
     const label = d.long;
     const said = dueSpeech(d.days, l);
-    return { icon: 'calendar', short: d.label, long: label, plan: label, speech: said, alert: d.over };
+    return { icon: 'calendar', short: d.label, long: label, plan: label, planSpeech: said, speech: said, alert: d.over };
   }
   const r = ratingOf(a, today);
   return {
-    short: r ? k.mindShort({ n: r }) : k.labelMind, long: r ? k.mindLong({ n: r }) : k.labelMind, plan: k.labelMind,
+    short: r ? k.mindShort({ n: r }) : k.labelMind, long: r ? k.mindLong({ n: r }) : k.labelMind, plan: k.labelMind, planSpeech: k.labelMind,
     speech: r ? k.mindSpeech({ n: r }) : k.labelMind,
   };
 }

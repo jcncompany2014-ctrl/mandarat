@@ -68,4 +68,6 @@ export interface Notifier {
 export interface CrashApi {
   init(): void; wrap<T>(root: T): T; report(e: unknown, ctx?: Record<string, string>): void;
   crumb(category: string, message: string): void; tag(key: string, value: string): void; setEnabled(on: boolean): void;
+  /** 미리보기 빌드의 기기 QA에서만 — 네이티브 쪽에서 앱을 멈춘다(설치 번호 · 기호 풀이 확인). 출시 빌드 · 웹에서는 아무것도 하지 않는다 */
+  qaNativeCrash(): void;
 }

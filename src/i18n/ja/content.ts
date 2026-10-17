@@ -24,7 +24,7 @@ export default {
   healthArea3: '睡眠',
   healthArea4: '心を整える',
   healthArea5: '活力',
-  healthArea6: '姿勢・体型',
+  healthArea6: '姿勢と体型',
   healthArea7: '休息',
   healthArea8: '健康管理',
 

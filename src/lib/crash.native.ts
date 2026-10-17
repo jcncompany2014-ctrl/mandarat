@@ -152,4 +152,9 @@ export const crash = {
       pending = [];
     }
   },
+  qaNativeCrash: () => {
+    // 미리보기 빌드에서만(EXPO_PUBLIC_APP_ENV는 빌드 때 박힌다) — 출시 빌드에서는 부르는 곳도 없고, 불러도 아무것도 하지 않는다
+    if (process.env.EXPO_PUBLIC_APP_ENV !== 'preview' || !SENTRY_DSN || !started) return;
+    Sentry.nativeCrash();
+  },
 } satisfies CrashApi;

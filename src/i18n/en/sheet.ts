@@ -15,6 +15,7 @@ export default {
   titleA11y: ({ text, subtitle }) => `${text}, ${subtitle}, edit text and type`,
   perStep: (p) => `${amt(p)} at a time`,
   onceAWeek: 'Once a week',
+  kindPlan: ({ name, plan }) => `${name} · ${plan}`,
 
   checkHint: 'Tap again to undo',
   doneToday: 'Done today',

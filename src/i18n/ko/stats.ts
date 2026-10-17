@@ -105,7 +105,7 @@ export default {
   wearSay: ({ n }: { n: number }) => `최근 4주 ${n}일`,
   wearNone: '최근 4주 기록 없음',
   legendLast4: '최근 4주 ·',
-  /** 범례 끝 칸 — '5+번' */
+  /** 범례 끝 칸 — '5+일'(최근 4주 동안 한 날 수) */
   legendTimes: ({ label }: { label: string }) => `${label}일`,
 
   // ── 회고 ──

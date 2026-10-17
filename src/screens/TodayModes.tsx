@@ -296,6 +296,7 @@ export function TodayStreak({ M }: { M: M }) {
               color={th?.color ?? M.sub}
               area={areaName(th?.title, ti)}
               plan={info.plan}
+              planSay={info.planSay}
               states={info.states}
               summary={info.summary}
               onOpen={onOpen}
@@ -311,7 +312,7 @@ export function TodayStreak({ M }: { M: M }) {
 
 /** 연속 기록 줄 하나의 일정 · 이번 주 칸 — 같은 실천(a)과 같은 이번 주 기록이면 지난번 값을 그대로 쓴다 */
 type StreakCacheEntry = { a: Action | undefined; logs: (string[] | undefined)[]; day: string; clock: number; out: StreakLineInfo };
-type StreakLineInfo = { plan: string; states: DayState[]; summary?: string };
+type StreakLineInfo = { plan: string; planSay: string; states: DayState[]; summary?: string };
 
 function streakLineInfo(
   cache: Map<string, StreakCacheEntry>, doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, item: TodayItem, a: Action | undefined,
@@ -323,8 +324,10 @@ function streakLineInfo(
   const now = new Date();
   const { ti, ai } = item;
   const weekly = a && perWeekOf(a) > 0 ? routineWeekCount(doc, ti, ai, now) : null;
+  const line = kindLine(doc, ti, ai, now);
   const out: StreakLineInfo = {
-    plan: kindLine(doc, ti, ai, now)?.plan ?? '',
+    plan: line?.plan ?? '',
+    planSay: line?.planSpeech ?? '',
     states: routineWeek(doc, ti, ai, now),
     summary: weekly ? msg().today.weekCount({ total: weekly.planned, done: weekly.done }) : undefined,
   };
@@ -334,7 +337,7 @@ function streakLineInfo(
 
 /** 습관 한 줄 — 문서에서 고른 값만 받아 그린다(item · run은 값으로 비교). onOpen · onToggle은 고정된 함수 */
 const StreakLine = memo(function StreakLine({
-  M, item, text, run, runW, first, last, color, area, plan, states, summary, onOpen: openItem, onToggle: toggleItem, checkLabel,
+  M, item, text, run, runW, first, last, color, area, plan, planSay, states, summary, onOpen: openItem, onToggle: toggleItem, checkLabel,
 }: {
   M: M;
   item: TodayItem;
@@ -347,6 +350,8 @@ const StreakLine = memo(function StreakLine({
   color: string;
   area: string;
   plan: string;
+  /** plan을 소리로(en '3x a week' → '3 times a week') */
+  planSay: string;
   states: DayState[];
   summary?: string;
   onOpen: (it: TodayItem) => void;
@@ -361,7 +366,7 @@ const StreakLine = memo(function StreakLine({
   // 주 N회는 '이번 주 3회 중 2회', 요일 습관은 '월 함, 화 놓침, 수 오늘 …'
   const today = states.indexOf('today');
   const week = summary ?? weekStripSummary(states, today >= 0 ? today : weekdayIndex(new Date()));
-  const bodyLabel = [text, area, plan, week, run.a11y, done ? m.today.doneToday : ''].filter(Boolean).join(m.today.listSep);
+  const bodyLabel = [text, area, planSay, week, run.a11y, done ? m.today.doneToday : ''].filter(Boolean).join(m.today.listSep);
 
   return (
     <Pressable

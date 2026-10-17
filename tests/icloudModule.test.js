@@ -239,7 +239,11 @@ test('prebuild-checks/icloud.js: 자동 연결 · 권한 · Swift에 파일 시�
   fs.mkdirSync(swiftDir, { recursive: true });
   const swift = src('modules/icloud-sync/ios/ICloudSyncModule.swift');
   try {
-    for (const api of ['.contentModificationDateKey', '.creationDateKey', 'FileManager.default.attributesOfItem(atPath: p)', 'attrs[.modificationDate]']) {
+    for (const api of [
+      '.contentModificationDateKey', '.creationDateKey', 'FileManager.default.attributesOfItem(atPath: p)', 'attrs[.modificationDate]',
+      'stat(p, &st)', 'lstat(p, &st)', 'url.resourceValues(forKeys: [.attributeModificationDateKey])', 'attrs.fileModificationDate()',
+      'let s = "a//b"; _ = stat(p, &st)',
+    ]) {
       fs.writeFileSync(path.join(swiftDir, 'ICloudSyncModule.swift'), `${swift}\nlet x = ${api}\n`);
       assert.throws(() => check({ ...ctx, root: tmp }, assert), /ICloudSyncModule\.swift:\d+ 파일 시각 API/, api);
     }

@@ -55,6 +55,7 @@ export default {
   frameSpeech: ({ label, n }) => `${label}まで、64マス中${n}マス達成`,
   wearTitle: 'よく使ったところ',
   wearRight: '4週の平均',
+  wearLegend: '4週の平均・',
   weeksTitle: 'ふりかえった週',
   notesTitle: 'ふりかえり',
   notesEmpty: 'この表を使っていた間に残したひとことはありません',

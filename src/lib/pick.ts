@@ -76,7 +76,7 @@ export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'da
       const state: PickState = auto ? 'auto' : picked.has(`${ti}-${ai}`) ? 'on' : 'off';
       const line = kindLine(doc, ti, ai, today);
       // 쌓기는 보이는 hint('6/12권')와 같은 내용만 — line.speech에 붙는 '오늘 1권 더함'은 화면에 없다
-      const say = kind === 'habit' ? line?.plan ?? '' : kind === 'count' ? countSpeech(countInfo(a, ymd(today))) : line?.speech ?? '';
+      const say = kind === 'habit' ? line?.planSpeech ?? '' : kind === 'count' ? countSpeech(countInfo(a, ymd(today))) : line?.speech ?? '';
       rows.push({ ti, ai, text: a.text, state, hint: line?.plan ?? '', say, why: auto ? whyAuto(doc, ti, ai, today, l) : '' });
     });
     if (!rows.length) return;

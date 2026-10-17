@@ -52,6 +52,7 @@ export default {
   perWeekLabel: '回数',
   perWeekA11y: '週の回数',
   perWeek: ({ n }) => `週${n}回`,
+  perWeekSay: ({ n }) => `週${n}回`,
   perWeekLess: '週1回減らす',
   perWeekMore: '週1回増やす',
   days: '曜日',

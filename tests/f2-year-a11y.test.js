@@ -111,7 +111,9 @@ test('D-6: "프로" 글자는 한 가지 모양(13 · 600 · sub)', () => {
 
 test('D-9: 돌아보기의 닳은 자리 범례는 제목 줄과 같은 머리말', () => {
   assert.match(src('src/components/StatsCharts.tsx'), /\{head \?\? m\.stats\.legendLast4\}/);
-  assert.match(src('src/screens/year/YearReview.tsx'), /<WearLegend M=\{M\} head=\{m\.year\.wearRight\} \/>/);
+  assert.match(src('src/screens/year/YearReview.tsx'), /<WearLegend M=\{M\} head=\{m\.year\.wearLegend\} \/>/);
+  // 머리 끝에 가운뎃점 — 기록 화면의 범례(stats.legendLast4)와 같은 모양
+  for (const l of ['ko', 'ja', 'en']) assert.ok(msg(l).year.wearLegend.endsWith(msg(l).stats.legendLast4.slice(-1)), l);
 });
 
 test('R2-2: 언어 아래 덧말(iPhone 언어를 따라요)은 iOS에서만', () => {

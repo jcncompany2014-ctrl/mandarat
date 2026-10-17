@@ -35,6 +35,7 @@ export default {
   weekShort: ({ done, total }) => `今週 ${done}/${total}`,
   weekLong: ({ done, total }) => `今週 ${done}/${total}回`,
   weekPlan: ({ n }) => `週${n}回`,
+  weekPlanSay: ({ n }) => `週${n}回`,
   weekSpeech: ({ done, total }) => `今週${total}回のうち${done}回`,
   daysShort: ({ dows }) => fmt.daysLabel({ dows }),
   daysLong: ({ dows }) => repeatDays(dows),

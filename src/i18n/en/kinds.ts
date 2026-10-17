@@ -68,6 +68,8 @@ export default {
   weekShort: ({ done, total }) => `${done}/${total} this week`,
   weekLong: ({ done, total }) => `${done}/${total} ${plural(total, 'time', 'times')} this week`,
   weekPlan: ({ n }) => (n === 1 ? 'Once a week' : `${n}x a week`),
+  // VoiceOver reads '3x' as letters — the spoken form keeps 'times'
+  weekPlanSay: ({ n }) => (n === 1 ? 'Once a week' : `${n} ${plural(n, 'time', 'times')} a week`),
   weekSpeech: ({ done, total }) => `${done} of ${total} ${plural(total, 'time', 'times')} this week`,
   daysShort: ({ dows }) => fmt.daysLabel({ dows }),
   daysLong: ({ dows }) => repeatDays(dows),

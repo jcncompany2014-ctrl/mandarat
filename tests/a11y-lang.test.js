@@ -9,7 +9,7 @@ const path = require('path');
 const ts = require('typescript');
 
 const ROOT = path.join(__dirname, '..');
-const DIRS = ['src/screens/year'];
+const DIRS = ['src/screens/year', 'src/screens/settings'];
 const FILES = [
   'src/screens/settings/PaperRows.tsx',
   'src/screens/settings/LanguageSection.tsx',

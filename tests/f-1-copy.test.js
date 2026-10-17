@@ -28,7 +28,8 @@ test('R-5가 짚은 자리는 core.dot을 쓴다 — 손으로 쓴 ASCII 가운�
     'src/screens/Stats.tsx': [/\$\{m\.core\.dot\}\$\{parts\.month\}/],
     // R-5가 짚지 않았지만 같은 모양의 자리(F-1 넘겨줄 일 2)
     'src/lib/statsView.ts': [/parts\.join\(m\.core\.dot\)[\s\S]*parts\.join\(m\.core\.dot\)/, /\$\{line\}\$\{m\.core\.dot\}\$\{s\.thisWeek\}/, /\$\{dot\}\$\{word\}/],
-    'src/lib/actionSheet.ts': [/\$\{name\}\$\{dot\}\$\{plan\}/, /\$\{name\}\$\{dot\}\$\{m\.onceAWeek\}/],
+    // 시트 제목 아래 한 줄은 sheet.kindPlan으로 잇는다(ja는 괄호 — 요일 목록의 ・와 섞이지 않게)
+    'src/lib/actionSheet.ts': [/m\.kindPlan\(\{ name, plan \}\)/, /m\.kindPlan\(\{ name, plan: m\.onceAWeek \}\)/],
     'src/overlays/ActionSheet.tsx': [/\$\{m\.core\.dot\}\$\{c\.reached/, /\$\{fmtDateLong\(due\.date\)\}\$\{m\.core\.dot\}/],
     'src/overlays/CellEditor.tsx': [/\$\{fmtDateLong\(due\)\}\$\{core\.dot\}/],
     'src/overlays/YearClose.tsx': [/\$\{yearLabel\(from, to\)\}\$\{m\.core\.dot\}/],

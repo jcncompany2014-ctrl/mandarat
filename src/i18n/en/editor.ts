@@ -53,6 +53,7 @@ export default {
   perWeekLabel: 'Times',
   perWeekA11y: 'Times a week',
   perWeek: ({ n }) => (n === 1 ? 'Once a week' : `${n}x a week`),
+  perWeekSay: ({ n }) => (n === 1 ? 'Once a week' : `${n} ${plural(n, 'time', 'times')} a week`),
   perWeekLess: 'One fewer time a week',
   perWeekMore: 'One more time a week',
   days: 'Days',

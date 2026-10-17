@@ -125,7 +125,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
       <SectionHead M={M} title={m.year.wearTitle} right={m.year.wearRight} />
       <View style={{ paddingHorizontal: GUTTER }}>
         <ActivityChart M={M} doc={view} activity={wear} width={contentW} />
-        <WearLegend M={M} head={m.year.wearRight} />
+        <WearLegend M={M} head={m.year.wearLegend} />
       </View>
 
       {digest.weekNotes.length > 0 && (

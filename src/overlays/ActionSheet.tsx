@@ -63,6 +63,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const area = th.title || m.sheet.areaFallback({ n: ti + 1 });
   const text = a.text || m.sheet.actionFallback;
   const subtitle = sheetSubtitle(doc, ti, ai, now);
+  const subtitleSay = sheetSubtitle(doc, ti, ai, now, undefined, true);
 
   // iOS는 시트 위에 시트를 띄우지 못한다 — 이 시트가 다 내려간 뒤에 연다(한 번에 한 장)
   const edit = () => { dismiss(); afterOverlays(() => openEditor({ kind: 'action', ti, ai })); };
@@ -87,7 +88,7 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
       </View>
 
       {/* 글 — 눌러도 고친다 */}
-      <Pressable onPress={edit} accessibilityRole="button" accessibilityLabel={m.sheet.titleA11y({ text, subtitle })}>
+      <Pressable onPress={edit} accessibilityRole="button" accessibilityLabel={m.sheet.titleA11y({ text, subtitle: subtitleSay })}>
         <Text style={{ fontSize: 20, fontWeight: '800', color: M.ink }}>{text}</Text>
         <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginTop: 4 }}>{subtitle}</Text>
       </Pressable>
