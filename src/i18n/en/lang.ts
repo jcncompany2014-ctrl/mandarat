@@ -1,5 +1,10 @@
-// 'lang' namespace — filled by V4-E (docs/v2/plan.md Appendix B).
+// 'lang' namespace — filled by V4-E (docs/v2/plan.md Appendix B). Settings › Language.
 import type ko from '../ko/lang';
 import type { Like } from '../types';
 
-export default {} satisfies Like<typeof ko>;
+export default {
+  sectionTitle: 'Language',
+  system: 'Use device setting',
+  footnote: 'The notification prompt and the Home Screen name follow your iPhone language.',
+  changed: ({ name }) => `Switched to ${name}`,
+} satisfies Like<typeof ko>;
