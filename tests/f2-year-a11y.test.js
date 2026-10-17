@@ -100,3 +100,7 @@ test('D-9: 돌아보기의 닳은 자리 범례는 제목 줄과 같은 머리�
   assert.match(src('src/components/StatsCharts.tsx'), /\{head \?\? m\.stats\.legendLast4\}/);
   assert.match(src('src/screens/year/YearReview.tsx'), /<WearLegend M=\{M\} head=\{m\.year\.wearRight\} \/>/);
 });
+
+test('R2-2: 언어 아래 덧말(iPhone 언어를 따라요)은 iOS에서만', () => {
+  assert.match(src('src/screens/settings/LanguageSection.tsx'), /\{Platform\.OS === 'ios' && \(\n\s+<Text[^>]*>\{m\.lang\.footnote\}<\/Text>/);
+});

@@ -76,7 +76,10 @@ function LanguageRows({ M }: { M: M }) {
           </Pressable>
         );
       })}
-      <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 8 }}>{m.lang.footnote}</Text>
+      {/* 알림 허락 창 · 홈 화면 이름은 iPhone에만 있는 이야기 — 웹 · 안드로이드에서는 적지 않는다 */}
+      {Platform.OS === 'ios' && (
+        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 8 }}>{m.lang.footnote}</Text>
+      )}
     </>
   );
 }
