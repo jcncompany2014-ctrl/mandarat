@@ -20,6 +20,8 @@ import { DOW_KR, orderedTodayItems, todayItems, todayProgress, weekCounts } from
 import { GUIDE_FILL_TARGET, GUIDE_STEP_COUNT, canPickAny, firstAreaWithEmpty, guideSteps, type GuideKey } from '../lib/pick';
 import { ritualTarget, weekPriority } from '../lib/ritual';
 import { homeSummary } from '../lib/a11y';
+import { yearClosePrompt } from '../lib/archive';
+import { useMsg } from '../i18n/react';
 import { areaLine, headerMeta, homeGate } from '../lib/home';
 import { fmtDateLong, fmtRange, noOrphan } from '../lib/text';
 import { useIncreaseContrast, useReducedMotion } from '../lib/useReducedMotion';
@@ -63,7 +65,8 @@ const SectionHead = memo(function SectionHead({ M, title, right, rightSpeech, on
  */
 export const Dashboard = memo(function Dashboard() {
   const M = usePalette();
-  const { go, openEditor, openRitual, openAction } = useUIActions();
+  const m = useMsg();
+  const { go, openEditor, openRitual, openAction, openYearClose } = useUIActions();
   const { doc, storageError, saveFailed, clock } = useDoc();
   const { width, fontScale } = useWindowDimensions();
 
@@ -78,6 +81,9 @@ export const Dashboard = memo(function Dashboard() {
   const ritualWeek = ritualTarget(doc, now);
   const priority = weekPriority(doc, now).slice(0, 3);
   const meta = headerMeta(now);
+  // 12월 15일 ~ 1월 31일, 아직 마무리하지 않은 표 — clock이 바뀌면(자정) 다시 본다
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const yearPrompt = useMemo(() => yearClosePrompt(doc, new Date()), [doc.onboarded, doc.chartStart, doc.dayLog, doc.archives, clock]);
 
   // 81칸 위 오늘 표시 — 오늘 할 일인 칸과 그중 오늘 한 칸.
   // 문서는 체크마다 바뀌지만 Set은 서명(칸 키 + 했는지)이 같으면 그대로 둔다 — 81칸이 칸 값을 다시 세지 않게
@@ -141,6 +147,25 @@ export const Dashboard = memo(function Dashboard() {
         <View style={{ height: 1.5, backgroundColor: M.ink }} />
         <View style={{ height: 0.5, backgroundColor: M.ink, marginTop: 3 }} />
       </View>
+
+      {/* 한 해 마무리 안내 — 머리 아래 괘선 한 줄(카드 없이) */}
+      {yearPrompt && (
+        <Pressable
+          testID={TID.homeYearPrompt}
+          onPress={() => { tap(); openYearClose(); }}
+          accessibilityRole="button"
+          accessibilityLabel={`${m.year.homePrompt}, ${m.year.homePromptAction}`}
+          style={({ pressed }) => [
+            { marginHorizontal: GUTTER, minHeight: 48, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderColor: M.line },
+            pressed ? pressedRow(M) : null,
+          ]}
+        >
+          <Text style={{ flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '600', color: M.ink }} numberOfLines={2}>
+            {`${m.year.homePrompt} · ${m.year.homePromptAction}`}
+          </Text>
+          <Icon name="chevR" size={16} color={M.sub} />
+        </Pressable>
+      )}
 
       {/* 핵심 목표 + 내 81칸 */}
       <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', gap: big ? 16 : 18, paddingHorizontal: GUTTER, marginTop: 20 }}>

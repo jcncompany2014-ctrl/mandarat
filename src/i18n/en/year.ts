@@ -3,8 +3,47 @@ import type ko from '../ko/year';
 import type { Like } from '../types';
 import { plural } from './plural';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 export default {
   // V1-D — backup import ledger row for past charts
   ledgerArchives: 'Past charts',
   archiveCount: ({ n }) => `${n} ${plural(n, 'chart', 'charts')}`,
+
+  // V2-E — year close (overlay · settings rows · home prompt)
+  pageReview: 'The year in review',
+  pageNew: 'New chart',
+  pageStart: 'Wrap up',
+  pageSpeech: ({ n, total }) => `Page ${n} of ${total}`,
+  next: 'Next',
+  statDays: 'Days with records',
+  statLongest: 'Longest streak',
+  statAchieved: 'Achieved',
+  statFocus: 'Focus',
+  achievedSpeech: ({ n }) => `${n} of 64 ${plural(n, 'square', 'squares')}`,
+  ledgerTitle: 'Days with records, by month',
+  monthShort: ({ m }) => MONTHS[(m - 1 + 12) % 12],
+  monthLong: ({ y, m }) => `${MONTHS_LONG[(m - 1 + 12) % 12]} ${y}`,
+  monthSpeech: ({ label, n }) => (n > 0 ? `${label}, ${n} ${plural(n, 'day', 'days')} with records` : `${label}, no records`),
+  noteLabel: 'The year in one line',
+  noteCount: ({ n, max }) => `${n} of ${max} characters`,
+  modeContinue: 'Keep the actions',
+  modeContinueSub: 'Achieved marks and records start empty',
+  modeAreas: 'Keep only the areas',
+  modeAreasSub: 'Action squares start empty',
+  modeBlank: 'Blank chart',
+  modeBlankSub: 'Start again from the areas',
+  goalLabel: 'Core goal of the new chart',
+  goalHint: 'Leave it empty to keep the current goal',
+  keepNote: 'This chart stays in the Archive as it is',
+  keepSub: 'Its records are kept too, so you can look back any time',
+  start: 'Start a new chart',
+  started: 'New chart started',
+  sameDay: 'A chart started today can be wrapped up from tomorrow',
+  settingsHead: 'The year',
+  shelf: 'Past charts in the Archive',
+  shelfEmpty: 'None yet',
+  homePrompt: 'Time to wrap up this year’s chart',
+  homePromptAction: 'The year in review',
 } satisfies Like<typeof ko>;
