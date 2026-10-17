@@ -19,7 +19,7 @@ export const FALLBACK: Lang = 'ko';
  * 번역이 끝났는가 — 끝나기 전에는 'system'이 늘 한국어로 열린다(반쯤 한국어인 앱을 ja·en 기기에 보이지 않게).
  * 직접 고른 언어와 웹의 ?lang=은 그대로 따른다. V8-A가 이 한 줄만 true로 바꾼다.
  */
-export const I18N_READY = false;
+export const I18N_READY = true;
 
 let current: Lang = FALLBACK;
 const listeners = new Set<(l: Lang) => void>();

@@ -13,7 +13,7 @@ export default {
   colAction: '行動',
   colKind: '種類',
   colTally: '1か月の記録',
-  kindOnce: '一度だけ',
+  kindOnce: '一度きり',
   kindHabit: '習慣',
   kindCount: '積み上げ',
   kindMind: '心がけ',
