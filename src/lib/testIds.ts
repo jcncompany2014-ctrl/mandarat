@@ -49,6 +49,10 @@ export const TID = {
   sheetHandle: 'sheet-handle',
   sheetClose: 'sheet-close',
 
+  // 덮개 · 알림
+  celebrateClose: 'celebrate-close',
+  toastAction: 'toast-action',
+
   // 집중 타이머
   focusPause: 'focus-pause',
   focusFinish: 'focus-finish',
