@@ -3,7 +3,6 @@
 //
 // 복제본 = 문서 + 시계(경로 → 도장) + 판(epoch) + 카운터 몫. 경로별로:
 // - 보통 레지스터: 유효 도장(eff, 판 E 이하는 '')이 큰 쪽의 값. 같으면 rank가 큰 쪽(값 > 값 없음).
-// - 'ob'·'as': 한 판 안에서는 true가 이긴다(값 먼저, 그다음 도장) — 다른 기기의 늦은 false가 온보딩을 되돌리지 않게.
 // - 카운터: 바탕 b는 위와 같이 고르고, 몫 p는 기기마다 더한 합·뺀 합의 큰 쪽(판이 E인 복제본의 몫만).
 //   그날 더한 수(c/<k>/log/<day>)는 없으면 0이다(지운 표시가 아니다) — 한 기기의 되돌리기가 다른 기기의 +1을 지우지 않는다.
 // - 판 E = 두 쪽 판 중 큰 것. 판이 E보다 낮은 복제본에서는 E보다 큰 도장이 붙은 값만 남고, 카운터는 모두 빠진다.
@@ -12,7 +11,7 @@ import type { MandaratDoc } from '../types';
 import { extraLogKey, kindOf } from './routine';
 import type { Parts, PNPart, SyncMeta } from './syncMeta';
 import { eff, maxStamp, type Stamp } from './syncStamp';
-import { assemble, canon, isCounterPath, partsSum, project, rank, type Json, type Registers } from './syncProject';
+import { assemble, canon, isCounterPath, partsSum, project, rank, type Json } from './syncProject';
 
 /** 한 기기의 복제본 — 파일(syncFile)로 오가고, 합치면 새 복제본이 된다 */
 export interface Replica {
@@ -70,9 +69,6 @@ function isLogPath(path: string): boolean {
   return path.charCodeAt(0) === 99 /* c */ && path.split('/')[2] === 'log';
 }
 
-/** 'ob'·'as' — 한 판 안에서 true가 이긴다 */
-const OR_PATHS = new Set(['ob', 'as']);
-
 function own(o: object, k: string): boolean {
   return Object.prototype.hasOwnProperty.call(o, k);
 }
@@ -84,35 +80,47 @@ function baseOf(v: Json | undefined): number | null {
   return typeof b === 'number' && Number.isSafeInteger(b) ? b : null;
 }
 
+/** 합치기의 바탕 상태 — 경로별 값(project 모양, 카운터는 {b, p})·시계·몫·판. 합치기는 이 상태 위의 join이다 */
+export interface SyncState {
+  epoch: Stamp;
+  clock: Readonly<Record<string, Stamp>>;
+  parts: Readonly<Parts>;
+  values: ReadonlyMap<string, Json>;
+}
+
+/** 복제본 → 상태(문서를 경로별 값으로 펼친다) */
+export function stateOf(R: Pick<Replica, 'epoch' | 'clock' | 'parts' | 'doc'>): SyncState {
+  return { epoch: R.epoch, clock: R.clock, parts: R.parts, values: project(R.doc, R.parts as Parts) };
+}
+
 interface Lifted {
   regs: Map<string, Reg>;
   ctrs: Map<string, Ctr>;
-  /** 판이 E인 복제본의 카운터 몫(E보다 낮으면 비어 있다) */
+  /** 판이 E인 상태의 카운터 몫(E보다 낮으면 비어 있다) */
   parts: Readonly<Parts>;
 }
 
 /**
- * 복제본을 판 E 위로 올린다 — 경로마다 유효 도장과 값.
+ * 상태를 판 E 위로 올린다 — 경로마다 유효 도장과 값.
  * - 판이 E보다 낮으면: E 이하 도장(과 도장 없는 값)은 초기화로 지워진 것, 카운터는 모두 빠진다.
  * - 그날 더한 수가 없으면 합이 0인 카운터(b = −Σp)로 본다.
  */
-function lift(R: Replica, E: Stamp): Lifted {
-  const current = R.epoch === E;
-  const values: Registers = project(R.doc, current ? (R.parts as Parts) : {});
+function lift(S: SyncState, E: Stamp): Lifted {
+  const current = S.epoch === E;
   const regs = new Map<string, Reg>();
   const ctrs = new Map<string, Ctr>();
-  const paths = new Set<string>(values.keys());
-  for (const p of Object.keys(R.clock)) paths.add(p);
-  if (current) for (const p of Object.keys(R.parts)) if (isCounterPath(p)) paths.add(p);
+  const paths = new Set<string>(S.values.keys());
+  for (const p of Object.keys(S.clock)) paths.add(p);
+  if (current) for (const p of Object.keys(S.parts)) if (isCounterPath(p)) paths.add(p);
   for (const p of paths) {
     if (p === '__proto__') continue;
-    const s = eff(R, p, E);
-    const raw = values.get(p);
+    const s = eff(S, p, E);
+    const raw = S.values.get(p);
     if (isCounterPath(p)) {
       if (!current) continue;
       const b = baseOf(raw);
       if (b !== null) ctrs.set(p, { s, has: true, b });
-      else if (isLogPath(p)) ctrs.set(p, { s, has: true, b: -partsSum(own(R.parts, p) ? R.parts[p] : undefined) });
+      else if (isLogPath(p)) ctrs.set(p, { s, has: true, b: 0 - partsSum(own(S.parts, p) ? S.parts[p] : undefined) });
       else ctrs.set(p, { s, has: false, b: 0 });
       continue;
     }
@@ -121,17 +129,11 @@ function lift(R: Replica, E: Stamp): Lifted {
     if (v === null && s === '') continue;
     regs.set(p, { s, v });
   }
-  return { regs, ctrs, parts: current ? R.parts : {} };
+  return { regs, ctrs, parts: current ? S.parts : {} };
 }
 
 /** 이기는 쪽 — 큰 쪽이 a면 true */
-function regWins(p: string, a: Reg, b: Reg): boolean {
-  if (OR_PATHS.has(p)) {
-    const ra = rank(a.v);
-    const rb = rank(b.v);
-    if (ra !== rb) return ra > rb;
-    return a.s >= b.s;
-  }
+function regWins(a: Reg, b: Reg): boolean {
   if (a.s !== b.s) return a.s > b.s;
   return rank(a.v) >= rank(b.v);
 }
@@ -166,27 +168,27 @@ function joinParts(a: Readonly<Parts>, b: Readonly<Parts>): Parts {
 }
 
 /**
- * 두 복제본을 하나로(§7.1). 교환·결합·멱등(문서는 기기마다의 필드와 목록 순서를 빼고).
- * 결과의 dev·todayDate·목록 순서는 L에서 온다.
+ * 상태 둘의 join(§7.1) — 교환·결합·멱등이 정확히 성립한다(tests/syncMerge.test.js).
+ * 그날 더한 수는 합이 0 이하여도 값으로 남긴다(문서로 지을 때 빠진다).
  */
-export function merge(L: Replica, X: Replica): Replica {
-  const E = maxStamp(L.epoch, X.epoch);
-  const a = lift(L, E);
+export function joinStates(A: SyncState, X: SyncState): SyncState {
+  const E = maxStamp(A.epoch, X.epoch);
+  const a = lift(A, E);
   const b = lift(X, E);
   const clock: Record<string, Stamp> = {};
-  const regs: Registers = new Map();
+  const values = new Map<string, Json>();
 
   for (const [p, ra] of a.regs) {
     const rb = b.regs.get(p);
-    const w = rb && !regWins(p, ra, rb) ? rb : ra;
+    const w = rb && !regWins(ra, rb) ? rb : ra;
     const s = rb ? maxStamp(ra.s, rb.s) : ra.s;
     if (s) clock[p] = s;
-    if (w.v !== null) regs.set(p, w.v);
+    if (w.v !== null) values.set(p, w.v);
   }
   for (const [p, rb] of b.regs) {
     if (a.regs.has(p)) continue;
     if (rb.s) clock[p] = rb.s;
-    if (rb.v !== null) regs.set(p, rb.v);
+    if (rb.v !== null) values.set(p, rb.v);
   }
 
   const parts = joinParts(a.parts, b.parts);
@@ -194,13 +196,23 @@ export function merge(L: Replica, X: Replica): Replica {
   for (const p of ctrPaths) {
     const ca = a.ctrs.get(p);
     const cb = b.ctrs.get(p);
-    const w = ca && cb ? (ctrWins(ca, cb) ? ca : cb) : (ca ?? cb) as Ctr;
+    const w = ca && cb ? (ctrWins(ca, cb) ? ca : cb) : ((ca ?? cb) as Ctr);
     const s = ca && cb ? maxStamp(ca.s, cb.s) : w.s;
     if (s) clock[p] = s;
-    if (w.has) regs.set(p, { b: w.b, p: (own(parts, p) ? parts[p] : {}) as unknown as Json });
+    if (w.has) values.set(p, { b: w.b, p: (own(parts, p) ? parts[p] : {}) as unknown as Json });
   }
+  return { epoch: E, clock, parts, values };
+}
 
-  return { dev: L.dev, epoch: E, clock, parts, doc: assemble(regs, L.doc) };
+/**
+ * 두 복제본을 하나로 — joinStates를 문서로 짓는다(assemble). 결과의 dev·todayDate·목록 순서는 L에서 온다.
+ * 문서는 기기마다의 필드와 목록 순서를 빼면 교환·결합·멱등이다. 다만 문서가 담을 수 없는 값
+ * (함께 줄여 0 밑으로 간 수, 누적 집중보다 큰 집중 시작점, 31장째 지난 표)은 assemble·migrate가 잘라 내므로,
+ * 그런 값이 생긴 합치기에서만 순서에 따라 그 경로의 결과가 다를 수 있다(docs/v2/V2-F.md §7.2).
+ */
+export function merge(L: Replica, X: Replica): Replica {
+  const j = joinStates(stateOf(L), stateOf(X));
+  return { dev: L.dev, epoch: j.epoch, clock: j.clock, parts: j.parts, doc: assemble(j.values, L.doc) };
 }
 
 /**

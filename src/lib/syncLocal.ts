@@ -183,6 +183,14 @@ export function reattribute(parts: Readonly<Parts>, dev: string, path: string, f
   return { ...parts, [path]: { ...byDev, [dev]: next } };
 }
 
+/** 시계 사본 — 경로가 2만 개를 넘을 수 있어 펼치기({ ...c })보다 빠른 키 순회로 */
+function copyClock(c: Readonly<Record<string, Stamp>>): Record<string, Stamp> {
+  const out: Record<string, Stamp> = {};
+  const keys = Object.keys(c);
+  for (let i = 0; i < keys.length; i++) out[keys[i]] = c[keys[i]];
+  return out;
+}
+
 /**
  * 이 기기에서 prev → next로 고쳤다 — 바뀐 경로마다 같은 도장 하나(없어진 경로는 지운 표시), 카운터는 내 몫에.
  * 바뀐 것이 없으면 meta를 그대로 돌려준다.
@@ -191,7 +199,7 @@ export function stampLocal(prev: MandaratDoc, next: MandaratDoc, meta: SyncMeta,
   const changes = changedPaths(prev, next);
   if (changes.size === 0) return meta;
   const { meta: ticked, stamp } = tick(meta, wall);
-  const clock: Record<string, Stamp> = { ...meta.clock };
+  const clock = copyClock(meta.clock);
   let parts: Parts = meta.parts;
   for (const [p, { from, to }] of changes) {
     clock[p] = stamp;
