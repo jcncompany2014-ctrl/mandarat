@@ -365,6 +365,9 @@ test('ProStoreModule.swift: StoreKit 2의 권리 · 갱신 · 복원 · 환불',
   for (const c of ['E_NETWORK', 'E_NOT_ALLOWED', 'E_UNAVAILABLE', 'E_CANCELLED', 'E_UNKNOWN']) assert.ok(sw.includes(`"${c}"`), c);
   for (const r of ['purchased', 'pending', 'cancelled', 'unverified']) assert.ok(sw.includes(`return "${r}"`), r);
   assert.match(sw, /Exception\(name: "ProStoreError", description: description, code: code\)/);
+  // 창 찾기와 결제는 main에서 한 번에, 거래 듣기는 self를 붙잡지 않고 취소되면 끝난다
+  assert.match(sw, /@MainActor\s+static func buy\(_ product: Product\) async throws -> Product\.PurchaseResult \{\s*if #available\(iOS 17\.0, \*\), let scene = activeScene\(\)/);
+  assert.match(sw, /self\.updates = Task\.detached \{\s*for await result in Transaction\.updates \{\s*if Task\.isCancelled \{ return \}/);
   // 앱 이름을 모듈 이름(JS 이름 · Swift 클래스 · pod)에 넣지 않는다
   const names = [/Name\("([^"]+)"\)/.exec(sw)[1], /public class (\w+): Module/.exec(sw)[1], /s\.name\s+= '([^']+)'/.exec(src('modules/pro-store/ios/ProStore.podspec'))[1]];
   assert.deepEqual(names, ['ProStore', 'ProStoreModule', 'ProStore']);

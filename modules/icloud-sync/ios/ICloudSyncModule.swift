@@ -231,6 +231,8 @@ public class ICloudSyncModule: Module {
   }
 
   // MARK: - 메타데이터 질의 (main 줄)
+  // 복제본의 바뀐 때 · 크기는 NSMetadataItem 값으로만 읽는다 — 우비쿼티 주소에서 URLResourceKey의 날짜나 stat을 읽지 않는다
+  // (개인정보 목록(PrivacyInfo)의 파일 시각 사유 C617.1은 앱 · 앱 그룹 컨테이너만 덮고 iCloud 컨테이너는 덮지 않는다)
 
   private func startQuery() {
     if let running = query {

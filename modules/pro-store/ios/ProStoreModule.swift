@@ -23,13 +23,17 @@ public class ProStoreModule: Module {
     Events("onEntitlementChange")
 
     OnCreate {
-      self.updates = Task.detached { [weak self] in
+      // 일(Task)은 self를 붙잡지 않고 알림 보내기만 넘겨받는다 — 모듈이 사라지면(OnDestroy가 cancel) 다음 거래에서 스스로 끝난다
+      let emit: @Sendable (String, Bool) -> Void = { [weak self] id, owned in
+        self?.sendEvent("onEntitlementChange", ["id": id, "owned": owned])
+      }
+      self.updates = Task.detached {
         for await result in Transaction.updates {
+          if Task.isCancelled { return }
           // 확인된 거래만 마무리한다 — 확인되지 않은 것은 열지 않고 그대로 둔다
           guard case .verified(let transaction) = result else { continue }
           await transaction.finish()
-          let owned = await ProStoreModule.isOwned(transaction.productID)
-          self?.sendEvent("onEntitlementChange", ["id": transaction.productID, "owned": owned])
+          emit(transaction.productID, await ProStoreModule.isOwned(transaction.productID))
         }
       }
     }
@@ -58,11 +62,7 @@ public class ProStoreModule: Module {
       let product = try await ProStoreModule.load(id)
       let result: Product.PurchaseResult
       do {
-        if #available(iOS 17.0, *), let scene = await ProStoreModule.activeScene() {
-          result = try await product.purchase(confirmIn: scene)
-        } else {
-          result = try await product.purchase()
-        }
+        result = try await ProStoreModule.buy(product)
       } catch {
         throw ProStoreModule.mapped(error)
       }
@@ -120,6 +120,15 @@ public class ProStoreModule: Module {
       throw error("E_UNAVAILABLE", "Product \(id) is not available")
     }
     return product
+  }
+
+  /// 창 찾기와 결제를 main에서 한 번에 — 둘 사이에 창(아이패드의 여러 창)이 닫혀도 엇갈리지 않게
+  @MainActor
+  static func buy(_ product: Product) async throws -> Product.PurchaseResult {
+    if #available(iOS 17.0, *), let scene = activeScene() {
+      return try await product.purchase(confirmIn: scene)
+    }
+    return try await product.purchase()
   }
 
   /// 결제 확인 창을 띄울 화면 — 앞에 나와 있는 창의 scene(아이패드에서 여러 창일 때)
