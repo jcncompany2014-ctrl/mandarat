@@ -134,14 +134,15 @@ test('wearActivity: 기간 내내 한 날 수를 4주 평균으로 — 한 번�
   assert.deepEqual(wearActivity([[0, 5]], 28), [[0, 5]]);
 });
 
-test('보관함 · 지난 표 자리(V4-B가 채운다)는 m.year.loading 한 줄 — onOpen을 받는다', () => {
+test('보관함 · 지난 표(V4-B가 채웠다) — onOpen을 받고 안쪽 쪽은 onOpen으로 연다', () => {
   for (const rel of [SHELF, SHEET]) {
     const s = src(rel);
     assert.match(s, /memo\(function Year(Shelf|Sheet)\(/);
     assert.match(s, /onOpen: \(v: YearView\) => void/);
-    assert.match(s, /m\.year\.loading/);
+    assert.doesNotMatch(s, /setYearView/);
   }
-  for (const l of ['ko', 'ja', 'en']) assert.ok(msg(l).year.loading.length > 0);
+  assert.match(src(SHELF), /onOpen\(\{ kind: 'sheet', id \}\)/);
+  assert.match(src(SHEET), /onOpen\(\{ kind: 'review', id: a\.id \}\)/);
 });
 
 test('통계: 맨 끝 구역 \'한 해\' — 한 해 돌아보기(TID.statsYear) · 보관함 n장', () => {

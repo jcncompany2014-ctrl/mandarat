@@ -85,4 +85,30 @@ export default {
   lockedLink: '프로 알아보기',
   /** 통계 › 한 해 */
   statsShelf: ({ n }: { n: number }) => `보관함 ${n}장`,
+
+  // V4-B — 보관함(지난 표 목록) · 지난 표 한 장
+  /** 보관함이 비었을 때 */
+  shelfNone: '아직 보관한 표가 없어요',
+  shelfNoneSub: '한 해를 마무리하면 그 표가 여기에 남아요',
+  /** 보관함 한 줄의 셋째 줄 — '64칸 중 24칸 달성 · 120일 기록' */
+  shelfLine: ({ n, days }: { n: number; days: number }) => `64칸 중 ${n}칸 달성 · ${days}일 기록`,
+  /** 보관함 아래 — '지난 표 24장 더 보기' */
+  shelfMore: ({ n }: { n: number }) => `지난 표 ${n}장 더 보기`,
+  /** 잠긴 줄을 누르면 무엇을 하는지(화면 읽기) */
+  shelfLockedHint: '프로에서 펼쳐 볼 수 있어요',
+  /** 지난 표 한 장 — 표 그림을 읽는 말 */
+  sheetSpeech: ({ label, goal, n }: { label: string; goal: string; n: number }) => (goal ? `${label} 표, ${goal}, 64칸 중 ${n}칸 달성` : `${label} 표, 64칸 중 ${n}칸 달성`),
+  /** 영역 장부 */
+  areasTitle: '영역별로 보기',
+  /** 이름을 짓지 않은 영역 */
+  areaUnnamed: ({ n }: { n: number }) => `영역 ${n}`,
+  /** 영역 한 줄 오른쪽 — '8칸 중 3칸 달성' */
+  areaLine: ({ n, of }: { n: number; of: number }) => `${of}칸 중 ${n}칸 달성`,
+  /** 영역 줄을 누르면(화면 읽기) */
+  areaOpenHint: '이 영역의 아홉 칸을 펼쳐요',
+  areaCloseHint: '아홉 칸을 접어요',
+  /** 아래 두 링크 */
+  sheetReview: '이 해 돌아보기',
+  /** 잠긴 지난 표 한 장 */
+  sheetLocked: '지난 표를 펼쳐 보는 건 프로에서 할 수 있어요',
 } satisfies Namespace;

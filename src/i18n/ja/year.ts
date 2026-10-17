@@ -64,4 +64,19 @@ export default {
   lockedLine: '過去の表の一年のふりかえりは「プロ」で見られます',
   lockedLink: '「プロ」について',
   statsShelf: ({ n }) => `保管庫 ${n}枚`,
+
+  // V4-B — archive shelf · one past chart
+  shelfNone: 'まだ保管した表はありません',
+  shelfNoneSub: '一年をしめくくると、その表がここに残ります',
+  shelfLine: ({ n, days }) => `64マス中${n}マス達成・${days}日記録`,
+  shelfMore: ({ n }) => `過去の表をあと${n}枚見る`,
+  shelfLockedHint: '「プロ」で開けます',
+  sheetSpeech: ({ label, goal, n }) => (goal ? `${label}の表、${goal}、64マス中${n}マス達成` : `${label}の表、64マス中${n}マス達成`),
+  areasTitle: '分野ごとに見る',
+  areaUnnamed: ({ n }) => `分野${n}`,
+  areaLine: ({ n, of }) => `${of}マス中${n}マス達成`,
+  areaOpenHint: 'この分野の9マスを広げます',
+  areaCloseHint: '9マスを閉じます',
+  sheetReview: 'この年をふりかえる',
+  sheetLocked: '過去の表を広げて見るのは「プロ」でできます',
 } satisfies Like<typeof ko>;

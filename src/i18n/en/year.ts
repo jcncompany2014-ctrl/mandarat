@@ -66,4 +66,19 @@ export default {
   lockedLine: 'Year reviews of past charts open with Pro',
   lockedLink: 'About Pro',
   statsShelf: ({ n }) => `Archive · ${n} ${plural(n, 'chart', 'charts')}`,
+
+  // V4-B — archive shelf · one past chart
+  shelfNone: 'No charts in the Archive yet',
+  shelfNoneSub: 'When you wrap up a year, its chart stays here',
+  shelfLine: ({ n, days }) => `${n} of 64 squares achieved · ${days} ${plural(days, 'day', 'days')} recorded`,
+  shelfMore: ({ n }) => `Show ${n} more past ${plural(n, 'chart', 'charts')}`,
+  shelfLockedHint: 'Opens with Pro',
+  sheetSpeech: ({ label, goal, n }) => (goal ? `${label} chart, ${goal}, ${n} of 64 squares achieved` : `${label} chart, ${n} of 64 squares achieved`),
+  areasTitle: 'By area',
+  areaUnnamed: ({ n }) => `Area ${n}`,
+  areaLine: ({ n, of }) => `${n} of ${of} achieved`,
+  areaOpenHint: 'Shows the nine squares of this area',
+  areaCloseHint: 'Hides the nine squares',
+  sheetReview: 'Review this year',
+  sheetLocked: 'Opening past charts comes with Pro',
 } satisfies Like<typeof ko>;
