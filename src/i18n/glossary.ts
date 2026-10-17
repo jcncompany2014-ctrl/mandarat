@@ -49,8 +49,8 @@ export const BANNED_COPY = [
 /** 낱말 사이에 다른 말이 끼는 금지 꼴 — '칸을 채웠어요' · '8칸을 다 채웠어요' */
 export const BANNED_COPY_RE: readonly RegExp[] = [/칸을\s*(다\s*)?채웠/];
 
-/** 일본어 글에 쓰지 않는 말 — セル(→マス) · タスク(→行動) · データ(→記録) · ストリーク(→連続) · 完了(→できた) · 感嘆符 · 英語名 · 西暦 */
-export const BANNED_JA: readonly (string | RegExp)[] = ['セル', 'タスク', 'データ', 'ストリーク', '完了', '！', '!', 'Mandarat', 'マンダラチャート', /20\d\d/];
+/** 일본어 글에 쓰지 않는 말 — セル(→マス, キャンセル은 괜찮다) · タスク(→行動) · データ(→記録) · ストリーク(→連続) · 完了(→できた) · 感嘆符 · 英語名 · 西暦 */
+export const BANNED_JA: readonly (string | RegExp)[] = [/(?<!キャン)セル/, 'タスク', 'データ', 'ストリーク', '完了', '！', '!', 'Mandarat', 'マンダラチャート', /20\d\d/];
 
 /** 영어 글에 쓰지 않는 말 — cell(→square) · task(→action) · data(→record) · complete(→done) · 느낌표 · 영문 이름 · 연도 */
 export const BANNED_EN: readonly (string | RegExp)[] = [
