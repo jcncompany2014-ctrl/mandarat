@@ -126,3 +126,6 @@ The step names and inputs were checked against `@expo/build-tools` 25.1.1 (`dist
 - [ ] Widget VoiceOver: a row reads "{text}, 아직 안 했어요" or "{text} — 했어요" and flips after a tap; the chart reads "오늘 10개 중 3개 했어요" (ja and en likewise), with no slash (R-7 A-4).
 - [ ] Widget centre caption: "오늘" shows only on systemLarge, at 9 pt medium; small and medium show just `n/m` (R-6 D-11).
 - [ ] Widget ops backlog: without opening the app, tap more than 50 rows over several days; on the next launch every tap is applied (the widget now keeps the last 300 ops — R-1 F5).
+- [ ] Widget privacy manifest (R-2 R3-1): after the first TestFlight upload, read the App Store Connect e-mail; add any reason it still names for `PlugIns/ExpoWidgetsTarget.appex` to `PRIVACY_API` in `plugins/withWidgetStrings.js`.
+- [ ] Siri / App Intents compile (R-2 R3-3): on the first EAS preview build, the build log shows `AppIntents.swift` compiling and the Shortcuts app lists the 4 App Shortcuts. If not, add the `withObjectVersion.js` fallback from `docs/RELEASE_CHECKLIST.md`.
+- [ ] Widget taps from earlier days (R-1 F3): check a once item, a count item and a hand-added task on the widget at night, open the app the next morning: the once item and the task stay done, and the count shows the added step on the previous day.

@@ -5,7 +5,7 @@ require('../../tests/register');
 
 module.exports = async (page, h) => {
   const paper = require(`../../src/i18n/${h.lang}/paper`).default;
-  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1';
+  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV; // 앱(src/lib/pro.ts)과 같은 규칙
   await page.goto(h.url);
   await page.waitForSelector(`[data-testid="${h.TID.tab('dashboard')}"]`, { timeout: 30000 });
   await h.settle();

@@ -198,7 +198,7 @@ test('웹 스모크 장면: 설정 › 프로 → 시트를 세 언어로 찍고
   const s = src('scripts/smoke/pro.js');
   assert.match(s, /h\.TID\.setPro/);
   assert.match(s, /h\.TID\.proClose/);
-  assert.match(s, /EXPO_PUBLIC_PRO_PREVIEW === '1'/);
+  assert.match(s, /EXPO_PUBLIC_PRO_PREVIEW === '1' && !process\.env\.EXPO_PUBLIC_APP_ENV/);
   assert.match(s, /h\.shot\(owned \? 'pro-owned' : 'pro'\)/);
   assert.match(s, /h\.TID\.proBuy[\s\S]{0,40}count\(\)\) > 0\) throw/);
   assert.equal(s.includes('needsDev'), false, '장면은 개발 번들 없이도 돈다(세 언어 모두)');

@@ -1582,7 +1582,7 @@ The standard acceptance **(SA)** is: `npm run typecheck` · `npm test` · `npm r
   - an op equal to the current state emits nothing;
   - a count op uses `checkToday`;
   - a past-day habit uses `toggleHabitOn`;
-  - a stale once-op is dropped;
+  - stale once, count and extra ops within 7 days are applied (R-1 F3; a count adds one step on that day);
   - focus ops need text;
   - an unknown key is dropped;
   - Siri and widget ops interleave by `at`;

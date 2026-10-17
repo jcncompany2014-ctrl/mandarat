@@ -4,7 +4,7 @@ require('../../tests/register');
 
 module.exports = async (page, h) => {
   const pro = require(`../../src/i18n/${h.lang}/pro`).default;
-  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1';
+  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV; // 앱(src/lib/pro.ts)과 같은 규칙
   // 설정은 깊은 화면(탭 막대가 없다) — 처음부터 다시 연다
   await page.goto(h.url);
   await page.waitForSelector(`[data-testid="${h.TID.tab('dashboard')}"]`, { timeout: 30000 });

@@ -26,7 +26,7 @@ function seededDoc() {
 }
 
 module.exports = async (page, h) => {
-  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1';
+  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV; // 앱(src/lib/pro.ts)과 같은 규칙
   const load = async (d) => {
     await page.goto(new URL('/favicon.ico', h.url).href);
     await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(d)]);
