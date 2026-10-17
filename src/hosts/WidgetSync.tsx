@@ -7,7 +7,7 @@
 // 그냥 쓰면 앱이 뒤에 열려 있는 동안 위젯에서 한 체크를 지워 버린다.
 // 온보딩을 마치기 전에는 읽지도 쓰지도 않는다 — 위젯 모습의 {} 기본값이 빈 모습을 그린다.
 import { useCallback, useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { useActions, useDoc } from '../store/MandaratContext';
 import { useUIActions } from '../navigation/ui';
 import { usePro } from '../store/ProContext';
@@ -20,6 +20,8 @@ import { toWidgetEntries, widgetTimeline } from '../lib/widgetSnapshot';
 import { widgetBridge } from '../widgets/bridge';
 
 const DEBOUNCE_MS = 1000;
+/** 위젯은 iOS에만 있다 — 웹·Android에서는 타임라인을 세지도 않는다(다리도 아무것도 하지 않는다) */
+const HAS_WIDGET = Platform.OS === 'ios';
 
 export function WidgetSync() {
   const { doc, ready, clock } = useDoc();
@@ -80,7 +82,7 @@ export function WidgetSync() {
 
   // 문서·언어·무늬·시계(자정 · 앱으로 돌아옴)가 바뀌면 1초 몰아서
   useEffect(() => {
-    if (!ready || !onboarded) return;
+    if (!HAS_WIDGET || !ready || !onboarded) return;
     const timer = setTimeout(sync, DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [doc, ready, onboarded, clock, lang, pat, sync]);
@@ -88,7 +90,7 @@ export function WidgetSync() {
   // 처음(저장본을 읽고 온보딩을 마친 뒤)과 앱이 앞으로 나올 때는 곧바로 — 위젯에서 한 체크를 먼저 들인다.
   // 앞으로 나올 때는 한 박자 늦춘다: 문서의 하루 정리(같은 'active'에서 돈다)가 먼저 끝나게
   useEffect(() => {
-    if (!ready || !onboarded) return;
+    if (!HAS_WIDGET || !ready || !onboarded) return;
     sync();
     let timer: ReturnType<typeof setTimeout> | null = null;
     const sub = AppState.addEventListener('change', (state) => {
