@@ -8,6 +8,7 @@ import { RATING_TEXT } from '../lib/kinds';
 import { useIncreaseContrast } from '../lib/useReducedMotion';
 import { checkEdge } from './Check';
 import { select } from '../lib/haptics';
+import { useMsg } from '../i18n/react';
 
 /**
  * 마감이 지난 일의 글자색 — 작은 글씨라 종이 바탕 네 가지 모두에서 4.5:1을 넘게(밝은 테마 4.66, 다크 8.1).
@@ -89,6 +90,7 @@ export function RatingBoxes({ M, value, onRate, size = MIN_TAP, gap = 6, label, 
   const showNum = fill || side >= 26;
   const more = useIncreaseContrast();
   const edge = checkEdge(M.dark, more);
+  const ed = useMsg().editor;
 
   return (
     <View
@@ -96,7 +98,7 @@ export function RatingBoxes({ M, value, onRate, size = MIN_TAP, gap = 6, label, 
       // 매길 수 있으면 다섯 칸을 한 묶음(radiogroup)으로, 보기만 하면 점수 한 마디로 읽는다
       accessibilityRole={onRate ? 'radiogroup' : 'text'}
       accessible={!onRate}
-      accessibilityLabel={onRate ? label : `${label} ${value ? `${value}점` : '점수 없음'}`}
+      accessibilityLabel={onRate ? label : value ? ed.ratingValue({ label, n: value }) : ed.ratingNone({ label })}
     >
       {[1, 2, 3, 4, 5].map((n) => {
         // 고른 점수 한 칸만 먹으로 찍는다(인쇄된 기록지처럼 — 오늘 기분 줄과 같은 표시, 소리의 checked와도 같다)
@@ -123,8 +125,8 @@ export function RatingBoxes({ M, value, onRate, size = MIN_TAP, gap = 6, label, 
             hitSlop={4}
             accessibilityRole="radio"
             accessibilityState={{ checked: n === value }}
-            accessibilityLabel={`${label} ${n}점, ${RATING_TEXT[n]}`}
-            accessibilityHint={n === value ? '다시 누르면 점수를 지워요' : undefined}
+            accessibilityLabel={ed.ratingOption({ label, n, word: RATING_TEXT[n] })}
+            accessibilityHint={n === value ? ed.ratingClearHint : undefined}
             style={({ pressed }) => ({ flex: fill ? 1 : undefined, opacity: pressed ? 0.6 : 1 })}
           >
             {box}

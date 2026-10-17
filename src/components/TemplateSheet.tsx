@@ -4,6 +4,7 @@ import { Text } from './AppText';
 import { CloseBtn, LineRow, Sheet, useSheetDismiss } from './common';
 import { TEMPLATES, type Template } from '../data/templates';
 import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
 import type { M } from '../theme/usePalette';
 
 /**
@@ -57,9 +58,10 @@ export function SheetHead({ M, title, body, closeTestID = TID.sheetClose }: {
 function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => void) => void }) {
   const dismiss = useSheetDismiss();
   const close = () => dismiss();
+  const ed = useMsg().editor;
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-      <SheetHead M={M} title="템플릿 고르기" body="영역 8개를 골라 둔 시작점이에요. 실천 칸은 비어 있어요." />
+      <SheetHead M={M} title={ed.templateTitle} body={ed.templateBody} />
       {TEMPLATES.map((t, i) => {
         const areas = t.areas.map((a) => a.title).join(' · ');
         return (
@@ -77,8 +79,8 @@ function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => 
                 </Text>
               </>
             }
-            accessibilityLabel={`${t.name}, ${t.desc}`}
-            accessibilityHint={`영역: ${t.areas.map((a) => a.title).join(', ')}`}
+            accessibilityLabel={ed.templateA11y({ name: t.name, desc: t.desc })}
+            accessibilityHint={ed.templateAreasHint({ areas: t.areas.map((a) => a.title).join(ed.listSep) })}
             onPress={() => onPick(t, close)}
             testID={TID.onbTemplate(t.id)}
           />

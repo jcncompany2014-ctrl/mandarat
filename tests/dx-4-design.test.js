@@ -92,6 +92,7 @@ test('D-32: 백업 불러오기 — 파일에서 읽으면 붙여 넣기 칸 대
   // 같은 머리를 템플릿 고르기·설정 시트가 함께 쓴다
   const sheet = src('src/components/TemplateSheet.tsx');
   assert.match(sheet, /export function SheetHead\(/);
-  assert.match(sheet, /<SheetHead M=\{M\} title="템플릿 고르기"/);
+  assert.match(sheet, /<SheetHead M=\{M\} title=\{ed\.templateTitle\} body=\{ed\.templateBody\} \/>/);
+  assert.equal(require('../src/i18n/ko/editor').default.templateTitle, '템플릿 고르기');
   assert.match(src('src/screens/Settings.tsx'), /import \{ SheetHead, TemplateSheet \} from '\.\.\/components\/TemplateSheet';/);
 });

@@ -72,9 +72,11 @@ test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 바닥 괘
 
 test('D-15 · D-28: 편집 창 — 바닥 첫 글자 버튼을 가장자리에, 빈 칸 안내가 아래 고르기 줄을 되풀이하지 않는다', () => {
   const s = src('src/overlays/CellEditor.tsx');
-  assert.match(s, /label="칸 비우기"[^\n]*style=\{EDGE\}/);
-  assert.match(s, /label="저장"[^\n]*style=\{filledAction \? undefined : EDGE\}/);
-  assert.match(s, /placeholder=\{help\.length > 0 \? '직접 적거나 아래에서 골라요' : m\.placeholder\}/);
+  assert.match(s, /label=\{ed\.clearCell\}[^\n]*style=\{EDGE\}/);
+  assert.match(s, /label=\{ed\.save\}[^\n]*style=\{filledAction \? undefined : EDGE\}/);
+  assert.match(s, /placeholder=\{help\.length > 0 \? ed\.helpPlaceholder : m\.placeholder\}/);
+  const ed = require('../src/i18n/ko/editor').default;
+  assert.deepEqual([ed.clearCell, ed.save, ed.helpPlaceholder], ['칸 비우기', '저장', '직접 적거나 아래에서 골라요']);
 });
 
 test("D-19: 오늘 고르기 — 아무것도 없으면 '오늘 0개 · 다 골랐어요' 대신 조용한 닫기", () => {

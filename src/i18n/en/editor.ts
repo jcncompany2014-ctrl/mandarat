@@ -1,5 +1,105 @@
 // 'editor' namespace — filled by X-A (docs/v2/plan.md Appendix B).
 import type ko from '../ko/editor';
 import type { Like } from '../types';
+import fmt from './fmt';
+import { groupNum } from '../num';
+import { plural } from './plural';
 
-export default {} satisfies Like<typeof ko>;
+export default {
+  centerTitle: 'Core goal',
+  centerPlaceholder: 'e.g. Run my first marathon',
+  themeTitle: ({ n }) => `Area ${n} name`,
+  themePlaceholder: 'e.g. Health',
+  actionTitle: ({ area, n }) => `${area} · Action ${n}/8`,
+  example: ({ text }) => `e.g. ${text}`,
+  areaN: ({ n }) => `Area ${n}`,
+
+  allWritten: ({ area }) => `All 8 actions written for ${area}`,
+  nextTheme: ({ n }) => `Now naming area ${n}`,
+  cleared: 'Square cleared',
+  discardAsk: 'Discard your changes?',
+  keepEditing: 'Keep editing',
+  discard: 'Discard',
+  clearCell: 'Clear square',
+  save: 'Save',
+  saveNextArea: 'Save, next area',
+  saveNextCell: 'Save, next square',
+
+  draftFound: 'You have unsaved writing',
+  draftDiscardA11y: 'Discard unsaved writing',
+  draftResume: 'Keep writing',
+  draftResumeA11y: 'Keep writing where you left off',
+  draftRestored: 'Your unsaved writing is back',
+
+  textLabel: 'Text',
+  helpPlaceholder: 'Write your own or pick one below',
+  charCount: ({ n, max }) => `${n} of ${max} ${plural(max, 'character', 'characters')}`,
+  helpTitle: 'Some actions to try',
+  helpHint: 'Fills in the text',
+
+  kindLabel: 'Type',
+  kindA11y: ({ label }) => `Type: ${label}`,
+  autoPicked: 'Picked from your text · ',
+  offerBefore: 'Change to ',
+  offerAfter: () => '?',
+  offerKeep: 'Keep',
+  offerKeepA11y: 'Keep the current type',
+  offerTake: 'Change',
+  offerTakeA11y: ({ label }) => `Change to ${label}`,
+
+  repeat: 'Repeat',
+  byDays: 'On set days',
+  byCount: 'Times a week',
+  perWeekLabel: 'Times',
+  perWeekA11y: 'Times a week',
+  perWeek: ({ n }) => (n === 1 ? 'Once a week' : `${n} ${plural(n, 'time', 'times')} a week`),
+  perWeekLess: 'One fewer time a week',
+  perWeekMore: 'One more time a week',
+  days: 'Days',
+
+  goal: 'Goal',
+  unit: 'Unit',
+  unitPlaceholder: 'books, km, $',
+  step: 'Per log',
+  sofar: 'So far',
+  left: ({ n, unit }) => (unit ? `${fmt.count({ n, unit })} to go` : `${groupNum(n)} to go`),
+  reached: 'Goal reached · Save to mark it achieved',
+  needGoal: 'Enter a goal number',
+  tooBig: 'Numbers can go up to 1 billion',
+  stepNumbers: 'Use only numbers for the amount per log',
+  sofarNumbers: 'Use only numbers for "So far"',
+
+  due: 'Due',
+  dueChipA11y: ({ label, date }) => `Due ${label}, ${date}`,
+  date: 'Date',
+  dueA11y: ({ date, left }) => `${date}, ${left}`,
+  dueClear: 'Remove due date',
+  weekEarlier: '−1 wk',
+  dayEarlier: '−1 day',
+  dayLater: '+1 day',
+  weekLater: '+1 wk',
+  weekEarlierA11y: 'Move due date 1 week earlier',
+  dayEarlierA11y: 'Move due date 1 day earlier',
+  dayLaterA11y: 'Move due date 1 day later',
+  weekLaterA11y: 'Move due date 1 week later',
+  noDue: 'No due date',
+
+  ratingValue: ({ label, n }) => `${label}, ${n} out of 5`,
+  ratingNone: ({ label }) => `${label}, no score`,
+  ratingOption: ({ label, n, word }) => `${label}, ${n} out of 5, ${word}`,
+  ratingClearHint: 'Press again to clear the score',
+
+  templateTitle: 'Choose a template',
+  templateBody: 'A starting point with 8 areas already picked. The action squares are left empty.',
+  templateA11y: ({ name, desc }) => `${name}, ${desc}`,
+  listSep: ', ',
+  templateAreasHint: ({ areas }) => `Areas: ${areas}`,
+
+  cellTitleSpeech: ({ area, n }) => `${area} area, ${fmt.ordinalCell({ n })} of 8`,
+  nextCellSpeech: ({ area, n }) => `Next: ${area} area, ${fmt.ordinalCell({ n })}`,
+  dueSpeech: ({ days }) => (days > 0 ? `Due in ${days} ${plural(days, 'day', 'days')}` : days === 0 ? 'Due today' : `${-days} ${plural(-days, 'day', 'days')} overdue`),
+  weekCountSpeech: ({ done, total }) => `${done} of ${total} this week`,
+  countNowSpeech: ({ goalText, nowText, unit }) => (unit ? `${nowText} of ${goalText} ${unit}` : `${nowText} of ${goalText}`),
+  pageSpeech: ({ n, total }) => `Page ${n} of ${total}`,
+  ledgerHabitSpeech: ({ done, total }) => `${groupNum(done)} of ${groupNum(total)} ${plural(total, 'time', 'times')}`,
+} satisfies Like<typeof ko>;
