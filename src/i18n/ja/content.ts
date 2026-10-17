@@ -6,7 +6,7 @@ import type { Like } from '../types';
 export default {
   balanceName: 'バランスのいい暮らし',
   balanceDesc: '体・心・人間関係・仕事のバランス',
-  balanceGoal: '仕事と暮らしのバランスを整える',
+  balanceGoal: '仕事と暮らしを両立する',
   balanceArea1: '健康',
   balanceArea2: '仕事',
   balanceArea3: '学び',

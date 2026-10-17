@@ -7,9 +7,9 @@ export const GROUPS: readonly ExampleGroup[] = [
   { id: 'health', keys: ['health', 'fitness', 'exercise', 'workout', 'gym', 'running', 'diet', 'body'], items: ['30 min of cardio 3x a week', 'Drink 8 glasses of water a day', 'Stretch 10 min before bed', 'Take the stairs every day'] },
   { id: 'study', keys: ['study', 'studies', 'learning', 'learn', 'reading', 'book', 'self-improvement', 'school'], items: ['Read 30 min a day', 'Finish one online course', 'Learn 20 new words a day', 'Write up what I learned once a week'] },
   { id: 'career', keys: ['career', 'work', 'job', 'project', 'growth', 'professional'], items: ['Pick 3 priorities every morning', 'Update my portfolio once a week', 'Note one thing to improve every day'] },
-  { id: 'money', keys: ['money', 'finance', 'saving', 'savings', 'budget', 'investing', 'wealth'], items: ['Log every expense daily', 'Review my budget every Sunday', 'Set up automatic savings', 'Clean out unused subscriptions'] },
+  { id: 'money', keys: ['money', 'finance', 'saving', 'savings', 'budget', 'investing', 'wealth'], items: ['Log every expense daily', 'Review my budget every Sunday', 'Set up automatic savings of 10%', 'Clean out 3 unused subscriptions'] },
   { id: 'people', keys: ['relationship', 'family', 'friend', 'people', 'social', 'partner'], items: ['Call a friend or family member once a week', 'Say thank you to someone every day', 'Book a dinner with friends'] },
-  { id: 'hobby', keys: ['hobby', 'hobbies', 'fun', 'leisure', 'play', 'creative'], items: ['Make time for a hobby once a week', 'Sign up for a beginner class', 'Read 12 books on my hobby'] },
+  { id: 'hobby', keys: ['hobby', 'hobbies', 'fun', 'leisure', 'play', 'creative'], items: ['Make time for a hobby once a week', 'Sign up for one beginner class', 'Read 12 books on my hobby'] },
   { id: 'mind', keys: ['mind', 'mental', 'meditation', 'mindfulness', 'emotion', 'calm', 'rest', 'stress', 'wellbeing'], items: ['Meditate 5 min every morning', 'Write 3 lines in a gratitude journal', 'Take 5 deep breaths every day'] },
   { id: 'adventure', keys: ['adventure', 'challenge', 'experience', 'travel', 'explore'], items: ['Visit one place I have never been', 'Finish one bucket list item', 'Try something new once a week'] },
 ];
