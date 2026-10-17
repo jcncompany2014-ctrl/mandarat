@@ -1,10 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWindowDimensions } from '../lib/screen';
 import { Text, TextInput } from '../components/AppText';
 import { ChartSketch } from '../components/ChartSketch';
-import { PrimaryButton, RuledNotice } from '../components/common';
+import { LineRow, PrimaryButton, RuledNotice } from '../components/common';
 import { PaperDots } from '../components/PaperDots';
 import { TemplateSheet } from '../components/TemplateSheet';
 import { usePalette } from '../theme/usePalette';
@@ -13,6 +13,10 @@ import { useMandarat } from '../store/MandaratContext';
 import { templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
 import { announce } from '../lib/useReducedMotion';
+import { getSyncStatus, probeRemote, setSyncEnabled } from '../lib/syncStatus';
+import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
+import { offerFor, problemLine } from './settings/syncView';
 
 /** 목표 예시 — 숫자가 들어간 구체적인 목표(연도는 넣지 않는다). 누르면 입력칸만 채운다 */
 const EXAMPLES = ['몸무게 5kg 줄이기', '토익 900점 넘기', '이직 성공하기'];
@@ -35,6 +39,38 @@ export function Onboarding() {
   // 고른 템플릿 — 바로 시작하지 않고 표에 영역을 먼저 보여 준다
   const [picked, setPicked] = useState<Template | null>(null);
   const [sheet, setSheet] = useState(false);
+  const t = useMsg();
+  // iCloud에 다른 기기 기록이 있나 — iOS에서만, 맞추기를 켜지 않고 한 번 본다(묻는 창은 없다)
+  const [offer, setOffer] = useState(false);
+  const [importing, setImporting] = useState<'busy' | 'failed' | null>(null);
+  const [failNote, setFailNote] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    let live = true;
+    probeRemote().then((p) => { if (live) setOffer(offerFor(p)); }, () => {});
+    return () => { live = false; };
+  }, []);
+
+  // 가져오기 — 맞추기를 'iCloud 기록으로'(adopt) 켠다. 가져온 문서가 시작을 마친 문서라 그대로 첫 화면으로 넘어간다
+  const importICloud = () => {
+    if (importing === 'busy') return;
+    tap();
+    Keyboard.dismiss();
+    setImporting('busy');
+    announce(t.sync.onbBusy);
+    void setSyncEnabled(true, 'adopt').then(() => {
+      const s = getSyncStatus();
+      if (s.phase === 'problem' || !s.enabled) {
+        setFailNote(problemLine(s.problem, t)?.title);
+        setImporting('failed');
+        announce(t.sync.onbFailed);
+      } else setImporting(null);
+    }, () => {
+      setFailNote(undefined);
+      setImporting('failed');
+      announce(t.sync.onbFailed);
+    });
+  };
 
   const typed = goal.trim();
 
@@ -97,12 +133,33 @@ export function Onboarding() {
             </View>
           )}
 
+          {offer && (
+            <View style={{ marginBottom: 28 }} testID={TID.onbICloud}>
+              <LineRow
+                M={M}
+                first
+                last
+                title={t.sync.onbOffer}
+                sub={importing === 'busy' ? t.sync.onbBusy : importing === 'failed' ? t.sync.onbFailed : t.sync.onbSub}
+                right={`${t.sync.onbImport} ›`}
+                onPress={importICloud}
+                accessibilityLabel={`${t.sync.onbOffer}, ${t.sync.onbImport}`}
+                accessibilityHint={t.sync.onbSub}
+                accessibilityState={{ busy: importing === 'busy' }}
+              />
+              {importing === 'failed' && !!failNote && (
+                <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 8 }}>{failNote}</Text>
+              )}
+            </View>
+          )}
+
           <Text accessibilityRole="header" style={{ ...TYPE.title, fontSize: 28, lineHeight: 36, color: M.ink }}>
             올해 꼭 이루고 싶은{'\n'}목표 하나를 적어 주세요
           </Text>
 
           {/* 공책 줄 — 상자 없이 밑줄 하나 */}
           <TextInput
+            testID={TID.onbGoal}
             value={goal}
             onChangeText={setGoal}
             onFocus={() => setFocused(true)}
@@ -125,9 +182,10 @@ export function Onboarding() {
           {/* 예시 한 줄 — 글자마다 누를 수 있다(칩·구분점 없이 띄어 놓기만). 줄이 바뀌어도 32pt 간격, 누르는 자리는 위아래로 넓혀 44pt */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, marginTop: 4 }}>
             <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>예)</Text>
-            {EXAMPLES.map((s) => (
+            {EXAMPLES.map((s, i) => (
               <Pressable
                 key={s}
+                testID={i === 0 ? TID.onbSample : undefined}
                 onPress={() => { tap(); setGoal(s); }}
                 hitSlop={{ top: 6, bottom: 6 }}
                 accessibilityRole="button"
@@ -165,9 +223,13 @@ export function Onboarding() {
 
         {/* 아래 막대 — 스크롤 밖, 키보드 위에 붙는다 */}
         <View style={{ marginHorizontal: GUTTER, paddingTop: 8, paddingBottom: Math.max(12, insets.bottom) }}>
-          <PrimaryButton M={M} height={54} label={cta.label} accessibilityHint={cta.hint} tone={cta.tone} onPress={start} />
+          {/* 적었거나 템플릿을 골랐으면 '시작', 비어 있으면 '다음'(목표는 나중에) */}
+          <View testID={typed || picked ? TID.onbStart : TID.onbNext}>
+            <PrimaryButton M={M} height={54} label={cta.label} accessibilityHint={cta.hint} tone={cta.tone} onPress={start} />
+          </View>
           <Pressable
             ref={templateBtn}
+            testID={TID.onbTemplate(picked ? picked.id : 'pick')}
             onPress={() => { tap(); Keyboard.dismiss(); setSheet(true); }}
             accessibilityRole="button"
             accessibilityLabel={picked ? '다른 템플릿 고르기' : '템플릿으로 시작하기'}
