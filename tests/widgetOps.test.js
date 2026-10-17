@@ -233,3 +233,10 @@ test('저장소: addCountOn은 그날(오늘까지) 기록으로 더하고, 액�
   assert.match(s, /const addCountOn = useCallback\([\s\S]*?update\(\(d\) => \(day <= dateKey\(\) \? addCountTo\(d, ti, ai, delta, day\) : d\)\)/);
   assert.equal((s.match(/checkToday, addCount, addCountOn, rateMind/g) || []).length, 2);
 });
+
+test('앞날 · 날짜가 아닌 op는 더 늦어도 오늘의 한 번 · 직접 추가한 할 일 체크를 가리지 않는다(시계를 되돌린 기기)', () => {
+  const d = doc();
+  const today = [op('0-0', true, { at: 50 }), op('x:e1', true, { at: 51 })];
+  const future = [op('0-0', false, { at: 90, day: '2026-10-16' }), op('x:e1', false, { at: 91, day: '2026-10-15' }), op('0-0', false, { at: 92, day: 'bad' })];
+  assert.deepEqual(planOps([...today, ...future], d, NOW), [{ kind: 'checkToday', ti: 0, ai: 0 }, { kind: 'toggleExtra', id: 'e1' }]);
+});

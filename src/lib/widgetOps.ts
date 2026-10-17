@@ -85,9 +85,12 @@ export function planOps(ops: readonly unknown[], doc: OpsDoc, today: Date, seen:
     else open = op;
   }
 
-  // 날에 묶이지 않는 것(한 번 · 직접 추가한 할 일)은 날이 달라도 칸마다 가장 늦은 하나만 — 어제 켜고 오늘 끄면 끈 것
+  // 날에 묶이지 않는 것(한 번 · 직접 추가한 할 일)은 날이 달라도 칸마다 가장 늦은 하나만 — 어제 켜고 오늘 끄면 끈 것.
+  // 버릴 것(앞날 · 날짜가 아닌 것 — 시계를 되돌린 기기)은 견주지 않는다: 그것이 더 늦어도 오늘의 체크를 가리지 않게
   const lastOfKey = new Map<string, number>();
-  for (const op of lastCheck.values()) lastOfKey.set(op.k, op.at);
+  for (const op of lastCheck.values()) {
+    if (DAY_RE.test(op.day) && op.day <= tk && op.at >= (lastOfKey.get(op.k) ?? -Infinity)) lastOfKey.set(op.k, op.at);
+  }
   const out: { at: number; cmd: WidgetCommand }[] = [];
   for (const op of lastCheck.values()) {
     const cmd = checkCommand(op, doc, tk, lastOfKey.get(op.k) === op.at);
