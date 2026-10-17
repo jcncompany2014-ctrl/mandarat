@@ -11,16 +11,16 @@
     "chart": "81マスに一年の計画を書く",
     "today": "今日やることが自然にそろう",
     "home": "一日を手帳のように締める",
-    "stats": "よく取り組んだマスほど濃くなる",
+    "stats": "よく続けたマスほど濃くなる",
     "ritual": "日曜日に一週間をふりかえる",
     "year": "一年を一枚でふりかえる"
   },
   "en": {
     "chart": "Plan your year in 81 squares",
     "today": "Today’s list fills itself in",
-    "home": "Close the day like a notebook",
-    "stats": "Squares you use most grow darker",
-    "ritual": "Look back on the week each Sunday",
-    "year": "Your whole year on one page"
+    "home": "Close each day like a ledger",
+    "stats": "Busy squares grow darker",
+    "ritual": "Look back every Sunday",
+    "year": "Your year on a single page"
   }
 }
