@@ -82,6 +82,7 @@ export function PaperRows({ M }: { M: M }) {
               accessibilityLabel={kept ? `${label}, ${m.paper.keptNote}` : label}
               accessibilityHint={locked ? m.paper.lockedHint : undefined}
               accessibilityState={{ checked: on, selected: on }}
+              aria-checked={on}
               style={({ pressed }) => [rowBase(M, first, last), pressed && (locked || !on) ? pressedRow(M) : null]}
             >
               {!first && <RowDivider M={M} inset={0} />}
