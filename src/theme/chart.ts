@@ -9,7 +9,7 @@
 // - 괘선은 바깥 테두리 > 블록 사이 > 칸 사이 순으로 가늘어진다.
 import type { CellShape } from '../types';
 import { PRETENDARD_GLYPHS, breakUnits, textWidth, type Glyphs } from '../lib/labelFit';
-import { lang, type Lang } from '../i18n';
+import { lang, msg, type Lang } from '../i18n';
 import { alpha, mix, tint, toHex } from './moods';
 import { contrast } from './palette';
 
@@ -216,10 +216,11 @@ export function chartFit(text: string, kind: 'theme' | 'center', winW: number): 
 }
 
 /** 고치는 칸 아래 한 줄 — 81칸에 다 들어가는지(빈 글이면 null) */
-export function chartFitHint(text: string, kind: 'theme' | 'center', winW: number): string | null {
+export function chartFitHint(text: string, kind: 'theme' | 'center', winW: number, l: Lang = lang()): string | null {
   if (!text.trim()) return null;
   const { lines, max } = chartFit(text, kind, winW);
-  return lines <= max ? '81칸에 다 들어가요' : `81칸에서는 ${max}줄까지만 보여요`;
+  const c = msg(l).core;
+  return lines <= max ? c.fitAll : c.fitLines({ max });
 }
 
 /**

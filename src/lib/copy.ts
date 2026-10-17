@@ -14,31 +14,44 @@
 //
 // 저장값(Mood · Mgmt · CellShape)은 이전 저장본과 백업 호환을 위해 그대로 두고, 화면에는 아래 이름만 보인다.
 import type { CellShape, Mgmt, Mood } from '../types';
+import { msg } from '../i18n';
+import { liveList, liveRecord } from '../i18n/live';
 
-/** 오늘 화면 보기 — 목록 · 연속 기록 · 보드 */
-export const MGMT_LABEL: Record<Mgmt, string> = {
-  '일일 체크': '목록',
-  '습관 스트릭': '연속 기록',
-  '칸반': '보드',
-};
+/**
+ * 오늘 화면 보기 — 목록 · 연속 기록 · 보드 (지금 언어의 core.mgmt*)
+ * @deprecated msg().core.mgmtList · mgmtStreak · mgmtBoard를 쓴다(V8-A가 지운다).
+ */
+export const MGMT_LABEL: Record<Mgmt, string> = liveRecord(() => {
+  const c = msg().core;
+  return { '일일 체크': c.mgmtList, '습관 스트릭': c.mgmtStreak, '칸반': c.mgmtBoard };
+});
 
-/** 칸 모서리 */
-export const SHAPE_LABEL: Record<CellShape, string> = {
-  '둥근': '둥글게',
-  '각진': '반듯하게',
-};
+/**
+ * 칸 모서리 (core.shape*)
+ * @deprecated msg().core.shapeRound · shapeSquare를 쓴다(V8-A가 지운다).
+ */
+export const SHAPE_LABEL: Record<CellShape, string> = liveRecord(() => {
+  const c = msg().core;
+  return { '둥근': c.shapeRound, '각진': c.shapeSquare };
+});
 
-/** 종이 색 */
-export const MOOD_LABEL: Record<Mood, string> = {
-  '연꽃': '미색',
-  '크림': '크림',
-  '화이트': '회색',
-  '파스텔': '연보라',
-  '다크': '다크',
-};
+/**
+ * 종이 색 (core.paper*)
+ * @deprecated msg().core.paperIvory … paperDark를 쓴다(V8-A가 지운다).
+ */
+export const MOOD_LABEL: Record<Mood, string> = liveRecord(() => {
+  const c = msg().core;
+  return { '연꽃': c.paperIvory, '크림': c.paperCream, '화이트': c.paperGray, '파스텔': c.paperLavender, '다크': c.paperDark };
+});
 
-/** 오늘 기분 — dayMeta.mood 0~4의 이름(얼굴 그림 없이 낱말로) */
-export const MOOD_WORDS = ['힘듦', '별로', '보통', '좋음', '최고'] as const;
+/**
+ * 오늘 기분 — dayMeta.mood 0~4의 이름(얼굴 그림 없이 낱말로, core.mood0~4)
+ * @deprecated msg().core.mood0 … mood4를 쓴다(V8-A가 지운다).
+ */
+export const MOOD_WORDS: readonly string[] = liveList(() => {
+  const c = msg().core;
+  return [c.mood0, c.mood1, c.mood2, c.mood3, c.mood4];
+});
 
 // 화면 글에 쓰지 않는 말(BANNED_COPY · BANNED_COPY_RE)은 src/i18n/glossary.ts로 옮겼다 — 이 이름으로 그대로 쓴다
 export { BANNED_COPY, BANNED_COPY_RE } from '../i18n/glossary';

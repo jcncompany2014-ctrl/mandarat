@@ -1,8 +1,7 @@
 // 글자 다듬기 — 줄바꿈, 조사, 날짜·마감·횟수 표기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 날짜 표기는 앱 전체에서 이 함수들로만 만든다(같은 날짜가 화면마다 다르게 적히지 않게). 연도는 적지 않는다.
-import { DOW_KR } from './routine';
 import { breakUnits, isCjk, textWidth, type Glyphs } from './labelFit';
-import { lang, type Lang } from '../i18n';
+import { lang, msg, type Lang } from '../i18n';
 import { estimateLines } from '../theme/chart';
 
 const NBSP = ' ';
@@ -82,43 +81,37 @@ function toDate(d: string | Date): Date {
   return new Date(y, m - 1, day);
 }
 
-/** '10월 14일 수요일' — 머리말·마감·저장본처럼 날짜 하나를 또박또박 읽을 때 */
-export function fmtDateLong(d: string | Date): string {
-  const t = toDate(d);
-  return `${t.getMonth() + 1}월 ${t.getDate()}일 ${DOW_KR[t.getDay()]}요일`;
+/** '10월 14일 수요일' — 머리말·마감·저장본처럼 날짜 하나를 또박또박 읽을 때 (fmt.dateLong) */
+export function fmtDateLong(d: string | Date, l: Lang = lang()): string {
+  return msg(l).fmt.dateLong({ d: toDate(d) });
 }
 
 /**
- * 화면 읽기가 말할 날짜 — fmtDateLong에 해가 다르면 해까지: '2027년 1월 14일 목요일'.
+ * 화면 읽기가 말할 날짜 — fmtDateLong에 해가 다르면 해까지: '2027년 1월 14일 목요일' (fmt.dateSpeech).
  * '10.14 (수)'처럼 점 찍은 짧은 표기는 소수로 읽히므로 화면 읽기 이름에는 이것을 쓴다.
  */
-export function fmtDateSpeech(d: string | Date, today = new Date()): string {
-  const t = toDate(d);
-  return `${t.getFullYear() !== today.getFullYear() ? `${t.getFullYear()}년 ` : ''}${fmtDateLong(t)}`;
+export function fmtDateSpeech(d: string | Date, today = new Date(), l: Lang = lang()): string {
+  return msg(l).fmt.dateSpeech({ d: toDate(d), today });
 }
 
-/** '10.14 (수)' — 표·기록처럼 좁은 자리 */
-export function fmtDateShort(d: string | Date): string {
-  const t = toDate(d);
-  return `${t.getMonth() + 1}.${t.getDate()} (${DOW_KR[t.getDay()]})`;
+/** '10.14 (수)' — 표·기록처럼 좁은 자리 (fmt.dateShort) */
+export function fmtDateShort(d: string | Date, l: Lang = lang()): string {
+  return msg(l).fmt.dateShort({ d: toDate(d) });
 }
 
-/** 한 주(월요일 키) → '10월 12일 – 18일', 달이 바뀌면 '9월 28일 – 10월 4일' */
-export function fmtRange(monday: string | Date): string {
+/** 한 주(월요일 키) → '10월 12일 – 18일', 달이 바뀌면 '9월 28일 – 10월 4일' (fmt.range) */
+export function fmtRange(monday: string | Date, l: Lang = lang()): string {
   const s = toDate(monday);
-  const e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
-  const end = e.getMonth() === s.getMonth() ? `${e.getDate()}일` : `${e.getMonth() + 1}월 ${e.getDate()}일`;
-  return `${s.getMonth() + 1}월 ${s.getDate()}일 – ${end}`;
+  return msg(l).fmt.range({ from: s, to: new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6) });
 }
 
 /**
- * 마감까지 남은 날(지났으면 음수) → 짧게 'D-2' · 'D-day' · 'D+3', 길게 '마감 D-2' · '오늘 마감' · '마감 3일 지남'.
- * 남은 날은 routine.daysBetween(오늘, 마감)으로 센다.
+ * 마감까지 남은 날(지났으면 음수) → 짧게 'D-2' · 'D-day' · 'D+3', 길게 '마감 D-2' · '오늘 마감' · '마감 3일 지남'
+ * (fmt.dueShort · fmt.dueLong). 남은 날은 routine.daysBetween(오늘, 마감)으로 센다.
  */
-export function fmtDue(days: number, form: 'short' | 'long' = 'short'): string {
-  const n = Math.round(days);
-  if (form === 'short') return n > 0 ? `D-${n}` : n === 0 ? 'D-day' : `D+${-n}`;
-  return n > 0 ? `마감 D-${n}` : n === 0 ? '오늘 마감' : `마감 ${-n}일 지남`;
+export function fmtDue(days: number, form: 'short' | 'long' = 'short', l: Lang = lang()): string {
+  const f = msg(l).fmt;
+  return form === 'short' ? f.dueShort({ days }) : f.dueLong({ days });
 }
 
 /** 1234.5 → '1,234.5' (소수 둘째 자리까지, 소수는 있을 때만) */
@@ -129,7 +122,8 @@ export function fmtNum(n: number): string {
   return `${r < 0 ? '-' : ''}${int}${f ? `.${f}` : ''}`;
 }
 
-/** 횟수·양 — '3번' · '1,200권' · '50만 원' (단위는 숫자에 붙여 쓴다) */
-export function fmtCount(n: number, unit = '번'): string {
-  return `${fmtNum(n)}${unit}`;
+/** 횟수·양 — '3번'(fmt.times) · '1,200권' · '50만 원'(fmt.count — 단위는 그 언어의 말로 넘긴다) */
+export function fmtCount(n: number, unit?: string, l: Lang = lang()): string {
+  const f = msg(l).fmt;
+  return unit === undefined ? f.times({ n }) : f.count({ n, unit });
 }
