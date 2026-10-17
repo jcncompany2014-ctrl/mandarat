@@ -13,19 +13,30 @@ module.exports = async (page, h) => {
     await page.waitForSelector(`[data-testid="${h.TID.tab('dashboard')}"]`, { timeout: 30000 });
     await h.settle();
   };
+  // 앱이 떠나며 지금 문서를 다시 저장하므로, 고친 문서는 다음 불러오기에서 앱보다 먼저 넣는다(sessionStorage '__xh_doc')
   const withDoc = async (edit, name) => {
     await page.evaluate(([k, src]) => {
       const d = JSON.parse(localStorage.getItem(k));
       // eslint-disable-next-line no-new-func
       new Function('d', src)(d);
-      localStorage.setItem(k, JSON.stringify(d));
+      sessionStorage.setItem('__xh_doc', JSON.stringify(d));
     }, [DOC, edit]);
     await open();
     await h.shot(name);
     await wheel(600);
     await h.shot(`${name}-bottom`);
   };
+  const restore = async () => {
+    await page.evaluate((s) => sessionStorage.setItem('__xh_doc', s), saved);
+    await open();
+  };
 
+  await page.addInitScript((k) => {
+    try {
+      const d = sessionStorage.getItem('__xh_doc');
+      if (d) { localStorage.setItem(k, d); sessionStorage.removeItem('__xh_doc'); }
+    } catch {}
+  }, DOC);
   await open();
   const saved = await page.evaluate((k) => localStorage.getItem(k), DOC);
   try {
@@ -39,13 +50,12 @@ module.exports = async (page, h) => {
     `, 'xh-guide');
 
     // 하루 마감 — 오늘 할 일을 다 한 날(직접 적은 한 줄만, 다 함)
-    await page.evaluate(([k, s]) => localStorage.setItem(k, s), [DOC, saved]);
+    await restore();
     await withDoc(`
       for (const t of d.themes) t.actions = t.actions.map((a) => ({ text: a.text, note: a.note || '', done: a.done }));
       d.todayKeys = []; d.todayExtra = [{ id: 'xh', ti: 0, text: 'Mail', done: true }];
     `, 'xh-closed');
   } finally {
-    await page.evaluate(([k, s]) => localStorage.setItem(k, s), [DOC, saved]);
-    await open();
+    await restore();
   }
 };

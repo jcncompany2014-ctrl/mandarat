@@ -20,7 +20,7 @@ Wave 7, i18n extraction II. Branch `mp/v2-x-h`.
 - Month: `home.month({ n })` (10월 / 10月 / October). `fmt` has no month-only key and is frozen, so the month lives in `home` (see Deviations).
 - Week and days left: `fmt.weekNo` and `fmt.daysLeftYear` through `headerMeta`.
 
-**Catalogs:** `src/i18n/{ko,ja,en}/home.ts`, 70 keys each.
+**Catalogs:** `src/i18n/{ko,ja,en}/home.ts`, 63 keys each.
 
 **Reused from other namespaces (read only):** `today.closeLeft` for the visible day-close line (the same words as the Today screen), `fmt.times` for the week total, `fmt.dowNarrow` for the week letters, and `core.listSep`.
 
@@ -33,7 +33,7 @@ Wave 7, i18n extraction II. Branch `mp/v2-x-h`.
   - Dashboard no longer uses `DOW_KR`, and the pending file is gone.
 - `tests/dx-1-today.test.js` (line-owned): the two `실천에서 더 고르기` assertions now match `m.home.pickMore` and `m.home.pickMoreLink`.
 - Existing `home`, `a11y` and `i18n-catalog` tests pass unchanged (they run in ko).
-- New smoke scene `scripts/smoke/x-h.js`: it shoots Home scrolled down, the 시작하기 guide on a blank chart, and a closed day, then restores the seeded doc.
+- New smoke scene `scripts/smoke/x-h.js`: it shoots Home scrolled down, the 시작하기 guide on a blank chart, and a closed day, then restores the seeded doc. The edited doc is injected from an init script before the app boots, because the app re-saves its in-memory doc when the page unloads.
 
 **Gates**
 - `npm run typecheck` is clean.
