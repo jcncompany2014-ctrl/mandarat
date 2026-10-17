@@ -71,7 +71,7 @@ for (const [l, v] of Object.entries(INFO)) {
     const want = {
       ko: ['81칸', 'iCloud', '위젯', '알림', '인쇄', 'Siri', '한 해 돌아보기', '프로', '한 번 결제'],
       ja: ['81マス', 'iCloud', 'ウィジェット', '通知', '印刷', 'Siri', '一年のふりかえり', 'プロ', '一度の購入'],
-      'en-US': ['81 squares', 'iCloud', 'Widgets', 'Reminders', 'Print', 'Siri', 'Year review', 'Pro', 'one-time purchase'],
+      'en-US': ['81 squares', 'iCloud', 'Widgets', 'Reminders', 'Print', 'Siri', 'The year in review', 'Pro', 'one-time purchase'],
     }[l];
     for (const w of want) assert.ok(d.includes(w), `${l}.description에 '${w}'가 없어요`);
     // 지금 무료인 것은 계속 무료(owner 결정 3) — 설명이 이를 밝힌다

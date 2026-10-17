@@ -48,7 +48,7 @@ export default {
 
   mindAsk: '今週はどのくらい守れましたか？',
   mindScore: '今週の点数',
-  mindPrompt: '直感で付けてください',
+  mindPrompt: '直感でつけてください',
   mindHistory: ({ n, list }) => `最近${n}週の点数 ${list}`,
   mindPoint: ({ n }) => `${n}点`,
   mindNone: 'なし',
@@ -69,7 +69,7 @@ export default {
   achieveMindHint: '根づいたら押してください',
   achieved: '達成したマスです',
   achieve: 'このマスを達成にする',
-  achieveA11y: 'このマスの達成',
+  achieveA11y: 'このマスを達成',
   memo: 'メモ',
 
   rowDone: 'できました',

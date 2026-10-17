@@ -21,6 +21,8 @@ export default {
   undoable: ({ message }: { message: string }) => `${message}. 되돌릴 수 있어요`,
   /** 통째 바꾸기를 되돌리려는데 그사이 다른 기록이 생겼을 때 (src/store/useSnapshotUndo.ts) */
   undoStale: '그사이 바뀐 게 있어 되돌릴 수 없어요',
+  /** 한 줄 안에서 두 조각을 가르는 점 — 앞뒤 빈칸 포함. 따로 놓인 글 조각으로 쓸 때는 trim() */
+  dot: ' · ',
 
   // 공용 부품 (src/components/common.tsx)
   back: '뒤로 가기',

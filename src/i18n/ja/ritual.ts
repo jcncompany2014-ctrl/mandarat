@@ -20,7 +20,7 @@ export default {
   total: ({ n }) => `${n}回`,
   totalSay: ({ range, n }) => `${range}、合計${n}回`,
   deltaMore: ({ n }) => `先週より${n}回多くできました`,
-  deltaLess: ({ n }) => `先週より${n}回少なめです`,
+  deltaLess: ({ n }) => `先週より${n}回少なかったです`,
   deltaSame: '先週と同じです',
   rowHabit: '習慣',
   rowAdded: '積み上げた分',
@@ -38,7 +38,7 @@ export default {
 
   mindHint: 'その週を思い出して1〜5点で',
 
-  nextHint: ({ n }) => `来週力を入れるマスを${tsu(n)}まで選びます`,
+  nextHint: ({ n }) => `来週力を入れるマスを${tsu(n)}まで選んでください`,
   pickedSay: ({ n }) => `${tsu(n)}選びました`,
   pickMax: ({ n }) => `選べるのは${tsu(n)}までです`,
   note: 'ひとことメモ',

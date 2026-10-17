@@ -106,7 +106,7 @@ export default {
   wearNone: '최근 4주 기록 없음',
   legendLast4: '최근 4주 ·',
   /** 범례 끝 칸 — '5+번' */
-  legendTimes: ({ label }: { label: string }) => `${label}번`,
+  legendTimes: ({ label }: { label: string }) => `${label}일`,
 
   // ── 회고 ──
   secReflect: '회고',

@@ -97,6 +97,8 @@ export default {
   appName: '만다라트',
   colVersion: '판',
   colFont: '서체',
+  /** 판권 줄의 서체 값 — 글꼴 이름과 라이선스 */
+  colFontValue: 'Pretendard · SIL OFL 1.1',
   colPlace: '저장 위치',
   privacy: '개인정보 처리방침',
   contact: '문의하기',

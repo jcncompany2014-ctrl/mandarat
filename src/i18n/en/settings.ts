@@ -45,7 +45,7 @@ export default {
   snapAskBody: 'Your current records will be replaced with this saved copy. You can undo right after.',
   snapAskOk: 'Go back',
   snapReadFail: "Couldn't read the saved copy",
-  snapRestored: ({ date }) => `Went back to the saved copy from ${date}`,
+  snapRestored: ({ date }) => `Restored the saved copy from ${date}`,
 
   storageNoteLocal: 'Your records are saved on this device. Export a backup before you switch devices.',
   storagePlaceLocal: 'This device',
@@ -61,9 +61,9 @@ export default {
   templateRowSub: ({ n }) => `Choose from ${n} ${plural(n, 'template', 'templates')}`,
   templateAskTitle: 'Switch to this template?',
   templateAskBody: ({ n, name }) =>
-    `Your ${n} written ${plural(n, 'action', 'actions')} and Today's list will be cleared, and the 8 areas will become the ‘${name}’ areas. Your core goal and past records stay. You can undo right after.`,
+    `Your ${n} written ${plural(n, 'action', 'actions')} and Today's list will be cleared, and the 8 areas will become the “${name}” areas. Your core goal and past records stay. You can undo right after.`,
   templateAskOk: 'Switch',
-  templateDone: ({ name }) => `Switched to the ‘${name}’ template`,
+  templateDone: ({ name }) => `Switched to the “${name}” template`,
   sampleRow: 'Fill in examples',
   sampleRowSub: 'Example actions for 8 areas and 64 squares',
   sampleAskTitle: 'Fill in examples?',
@@ -82,6 +82,7 @@ export default {
   appName: 'Mandalart',
   colVersion: 'Version',
   colFont: 'Font',
+  colFontValue: 'Pretendard · SIL OFL 1.1',
   colPlace: 'Storage',
   privacy: 'Privacy policy',
   contact: 'Contact us',

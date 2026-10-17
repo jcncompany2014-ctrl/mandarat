@@ -2,7 +2,7 @@
 
 "Show Today in ${applicationName}" = "${applicationName}で今日を見る";
 "Open Today in ${applicationName}" = "${applicationName}の今日を開く";
-"Check off the next one in ${applicationName}" = "${applicationName}で次をできたにする";
+"Check off the next one in ${applicationName}" = "${applicationName}で次を「できた」にする";
 "Mark the next one done in ${applicationName}" = "${applicationName}で次をチェック";
 "What's left today in ${applicationName}" = "${applicationName}で今日の残り";
 "How many are left in ${applicationName}" = "${applicationName}であと何件";

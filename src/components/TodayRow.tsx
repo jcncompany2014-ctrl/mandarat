@@ -353,11 +353,11 @@ const RowView = memo(function RowView({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
             <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>
-              {extra ? `${area} · ${m.sheet.rowWritten}` : area}
+              {extra ? `${area}${m.core.dot}${m.sheet.rowWritten}` : area}
             </Text>
             {metaLine && (
               <>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>·</Text>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.core.dot.trim()}</Text>
                 <KindMeta M={M} line={metaLine} color={color} size={13} weight="500" icon={false} />
               </>
             )}

@@ -4,13 +4,13 @@ import type { Like } from '../types';
 import { groupNum } from '../num';
 import fmt from './fmt';
 
-/** 曜日の習慣の一行 — 毎日 · 平日 · 毎週末 · 毎週月・水・金 · 毎週日曜日 */
+/** 曜日の習慣の一行 — 毎日 · 平日 · 毎週末 · 毎週日曜日 · 月・水・金（2日以上は「毎週」を付けず、行を短く保つ） */
 function repeatDays(dows: readonly number[]): string {
   const label = fmt.daysLabel({ dows });
-  const d = [...new Set(dows)].sort((a, b) => a - b).join();
+  const days = [...new Set(dows)].sort((a, b) => a - b);
   if (!label || label === '毎日' || label === '平日') return label;
-  if (d === '0,6') return '毎週末';
-  return `毎週${label}`;
+  if (days.join() === '0,6') return '毎週末';
+  return days.length === 1 ? `毎週${label}` : label;
 }
 
 export default {
@@ -19,7 +19,7 @@ export default {
   labelCount: '累計',
   labelMind: '心がけ',
   hintOnce: '締め切りの3日前から「今日」に入ります',
-  hintHabit: '決めた曜日ごとに「今日」に入ります。週N回にすると、回数をこなすまで毎日入ります。',
+  hintHabit: '決めた曜日ごとに「今日」に入ります。週に何回と決めると、その回数をこなすまで毎日入ります。',
   hintCount: '数を積み上げていく行動です。目標の数に届くと、マスが達成になります。',
   hintMind: '週に一度、1〜5点でふりかえります',
   presetWeek: '今週中',

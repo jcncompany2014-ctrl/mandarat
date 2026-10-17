@@ -40,11 +40,11 @@ export default {
   keepSub: 'Its records are kept too, so you can look back any time',
   start: 'Start a new chart',
   started: 'New chart started',
-  sameDay: 'A chart started today can be wrapped up from tomorrow',
+  sameDay: 'You can wrap up a chart started today from tomorrow on',
   settingsHead: 'The year',
   shelf: 'Past charts in the Archive',
   shelfEmpty: 'None yet',
-  homePrompt: 'Time to wrap up this year’s chart',
+  homePrompt: "Time to wrap up this year's chart",
   homePromptAction: 'The year in review',
 
   // V3-D — year screen (review · Stats section)

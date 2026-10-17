@@ -9,7 +9,7 @@ export default {
 
   heading: '今年かなえたい目標を\nひとつ書いてください',
   goalLabel: '中心の目標',
-  goalPlaceholder: '例）フルマラソン完走',
+  goalPlaceholder: '例）初めてのマラソンを完走',
   exampleMark: '例）',
   ex1: '体重を5kg落とす',
   ex2: 'TOEICで800点を取る',
@@ -18,7 +18,7 @@ export default {
 
   templateAreas: ({ name }) => `「${name}」の8分野で始めます`,
   defaultAreas: '基本の8分野で始めます',
-  defaultCaption: '基本の8分野で始めます・あとで変えられます',
+  defaultCaption: '基本の8分野で始めます。あとで変えられます',
   unpick: '元に戻す',
   unpickHint: '基本の分野に戻します',
 

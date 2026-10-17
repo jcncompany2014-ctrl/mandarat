@@ -13,8 +13,9 @@ export default {
   tabAddHint: 'Write something and add it to Today',
   todayAllDone: "Everything on Today's list is done",
   areaAllDone: ({ name, n }) => `${name || `Area ${n}`}: all 8 squares achieved`,
-  undoable: ({ message }) => `${message}. You can undo this.`,
+  undoable: ({ message }) => `${message}. You can undo this`,
   undoStale: "Something changed in the meantime, so this can't be undone",
+  dot: ' · ',
 
   back: 'Back',
   sheetHandle: 'Close sheet',

@@ -103,7 +103,10 @@ test('D-11: 연속 기록 정보 줄 — 가운뎃점을 따로 써서 목록 ·
   const s = src('src/screens/TodayModes.tsx');
   const line = slice(s, 'const StreakLine = memo(', '// ── 보드');
   assert.doesNotMatch(line, /`\$\{area\} · \$\{plan\}`/);
-  assert.match(line, /\{!!plan && \(\s*<>\s*<Text style=\{\{ fontSize: 13, fontWeight: '500', color: M\.sub \}\}>·<\/Text>/);
+  // 가운뎃점은 core.dot을 다듬어 쓴다 — ja는 '・' (F-1 · R-5 #6)
+  assert.match(line, /\{!!plan && \(\s*<>\s*<Text style=\{\{ fontSize: 13, fontWeight: '500', color: M\.sub \}\}>\{m\.core\.dot\.trim\(\)\}<\/Text>/);
+  // 영역 이름은 줄지 않고(폭 상한) 반복 일정이 먼저 줄어든다 (F-1 · R-5 #1)
+  assert.match(line, /<Text style=\{\{ flexShrink: 0, maxWidth: 78, [^}]*\}\} numberOfLines=\{1\}>\{area\}<\/Text>/);
 });
 
 test('D-25: 연속 기록 큰 숫자 — 통계와 같은 46/52 숫자, 20pt 회색 단위', () => {

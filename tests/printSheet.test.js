@@ -117,7 +117,7 @@ test('머리말 날짜는 언어마다 다르게 찍힌다', () => {
   assert.ok(render(demoDoc(), { lang: 'en' }).html.includes('Wednesday, October 14'));
   // 달성 수와 머리말도
   assert.match(render(demoDoc(), { lang: 'en' }).html, /\d+ of 64 squares achieved/);
-  assert.match(render(demoDoc(), { lang: 'ja' }).html, /64マス中 \d+マス達成/);
+  assert.match(render(demoDoc(), { lang: 'ja' }).html, /64マス中\d+マス達成/);
 });
 
 test('ja·en 인쇄물에는 한글이 없다(사용자 글 빼고)', () => {

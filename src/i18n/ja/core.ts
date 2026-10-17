@@ -14,6 +14,7 @@ export default {
   areaAllDone: ({ name, n }) => `${name ? `「${name}」` : `分野${n}`}の8マスをすべて達成しました`,
   undoable: ({ message }) => `${message}。元に戻せます`,
   undoStale: 'その間に変更があったため、元に戻せません',
+  dot: '・',
 
   back: '戻る',
   sheetHandle: 'シートを閉じる',

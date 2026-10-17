@@ -161,7 +161,7 @@ export const Dashboard = memo(function Dashboard() {
           ]}
         >
           <Text style={{ flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '600', color: M.ink }} numberOfLines={2}>
-            {`${m.year.homePrompt} · ${m.year.homePromptAction}`}
+            {`${m.year.homePrompt}${m.core.dot}${m.year.homePromptAction}`}
           </Text>
           <Icon name="chevR" size={16} color={M.sub} />
         </Pressable>

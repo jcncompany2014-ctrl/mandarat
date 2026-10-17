@@ -8,7 +8,7 @@ export default {
   /** 기기 언어를 따르는 줄(언어 이름은 names.ts — 저마다 제 글자로) */
   system: '기기 설정 따르기',
   /** 구역 아래 한 줄 — 앱 안에서 바꿀 수 없는 글 */
-  footnote: '알림 허락 창과 홈 화면 이름은 iPhone 언어를 따라요',
+  footnote: '알림 허락 창과 홈 화면 이름은 기기 언어를 따라요',
   /** 바꾼 뒤 화면 읽기 — 새 언어로 읽는다 */
   changed: ({ name }: { name: string }) => `${josa(name, '으로/로')} 바꿨어요`,
 } satisfies Namespace;

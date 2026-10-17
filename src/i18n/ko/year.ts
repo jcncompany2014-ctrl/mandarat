@@ -37,7 +37,7 @@ export default {
   /** 새 표 고르기 */
   modeContinue: '실천은 그대로',
   modeContinueSub: '달성·기록은 비워요',
-  modeAreas: '영역만 남겨요',
+  modeAreas: '영역만 남기기',
   modeAreasSub: '실천 칸은 비워요',
   modeBlank: '빈 표',
   modeBlankSub: '영역부터 다시 정해요',
@@ -45,7 +45,7 @@ export default {
   goalHint: '비워 두면 지금 목표를 그대로 써요',
   /** 마무리 쪽 */
   keepNote: '지금 표는 보관함에 그대로 남아요',
-  keepSub: '기록도 함께 담아 두니 언제든 다시 볼 수 있어요',
+  keepSub: '기록도 함께 남아 있어 언제든 다시 볼 수 있어요',
   start: '새 표 시작하기',
   started: '새 표를 시작했어요',
   sameDay: '오늘 시작한 표는 내일부터 마무리할 수 있어요',

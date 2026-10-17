@@ -6,7 +6,7 @@ import { groupNum } from '../num';
 
 export default {
   centerTitle: '中心の目標',
-  centerPlaceholder: '例）初めてのマラソン完走',
+  centerPlaceholder: '例）初めてのマラソンを完走',
   themeTitle: ({ n }) => `分野${n}の名前`,
   themePlaceholder: '例）健康',
   actionTitle: ({ area, n }) => `${area}・行動 ${n}/8`,

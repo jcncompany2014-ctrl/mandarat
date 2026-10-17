@@ -44,20 +44,21 @@ test('ko: 추출 전 글과 글자 하나까지 같다', () => {
   assert.deepEqual(sv.reflections(meta, WED, 14, 'ko')[0], { date: '2026-10-13', head: '10.13 (화) · 좋음', say: '10월 13일 화요일, 좋음', text: '좋았다' });
   const map = sv.heatMap({ '2026-08-20': ['0-0'] }, calendarWeeks(WED, 10), WED, 'ko');
   assert.ok(map.months.includes('9월') && map.months.includes('10월'));
-  assert.equal(ko.legendTimes({ label: '5+' }), '5+번');
+  // 범례는 지난 4주 중 '한 날 수' — 추출 뒤 '번'에서 '일'로 바로잡았다 (F-1 · R-5)
+  assert.equal(ko.legendTimes({ label: '5+' }), '5+일');
   assert.equal(ko.barFutureSay({ i: 4 }), '목요일부터는 아직');
 });
 
 test('ja · en: 날짜 · 요일 · 횟수를 그 언어로, 분수(5/7)로 읽지 않는다', () => {
   const d = doc(() => ({ dayLog: { '2026-10-12': ['0-0', '0-1'], '2026-10-14': ['2-0'] } }));
   const r = weekReview(d, WED);
-  assert.equal(sv.weekBarsSpeech(r.days, 'ja'), '月曜日 2回、火曜日 0回、今日の水曜日 1回、木曜日からはまだ');
-  assert.equal(sv.weekBarsSpeech(r.days, 'en'), 'Monday: 2 times, Tuesday: 0 times, Today, Wednesday: 1 time, Thursday on: not yet');
+  assert.equal(sv.weekBarsSpeech(r.days, 'ja'), '月曜日 2回、火曜日 0回、水曜日（今日） 1回、木曜日からはまだ');
+  assert.equal(sv.weekBarsSpeech(r.days, 'en'), 'Monday: 2 times, Tuesday: 0 times, Today, Wednesday: 1 time, From Thursday: not yet');
   const habit = sv.habitRow({ habitCount: 2, routineDone: 5, routinePlannedWeek: 9, routineRemaining: 2 }, 'en');
   assert.equal(habit.value, '5/9');
   assert.equal(sv.ledgerLabel({ label: 'Habit', ...habit }, 'en'), 'Habit: 5 of 9 times, 2 missed, 2 to go');
   const hja = sv.habitRow({ habitCount: 2, routineDone: 5, routinePlannedWeek: 9, routineRemaining: 2 }, 'ja');
-  assert.equal(sv.ledgerLabel({ label: '習慣', ...hja }, 'ja'), '習慣 9回のうち5回、2回できず、あと2回');
+  assert.equal(sv.ledgerLabel({ label: '習慣', ...hja }, 'ja'), '習慣 9回のうち5回、2回できなかった、あと2回');
   assert.equal(sv.streakCaption(4, false, 'en'), 'Do one today for day 5');
   assert.equal(sv.streakSpeech(1, true, 'en'), 'Streak 1 day');
   assert.equal(sv.streakSpeech(4, false, 'ja'), '連続4日、今日はまだ');
