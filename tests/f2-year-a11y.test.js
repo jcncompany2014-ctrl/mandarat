@@ -17,13 +17,26 @@ test('R-5 #2: 네 숫자의 값은 375pt 폭 한 칸 안에 한 줄로 들어간
     const f = msg(l).fmt;
     const values = [f.days({ n: 365 }), f.days({ n: 120 }), '64/64', f.duration({ mins: 125 })];
     const size = statValueSize(values, inner);
-    assert.ok(size >= 12 && size <= 20, `${l}: ${size}`);
+    assert.ok(size >= 8.5 && size <= 20, `${l}: ${size}`);
     for (const v of values) assert.ok(statEm(v) * size <= inner, `${l}: ${v} @ ${size}`);
   }
   // 짧은 값은 20pt 그대로
   assert.equal(statValueSize(['12/64'], inner), 20);
-  // 아무리 길어도 12pt 아래로는 줄이지 않는다
-  assert.equal(statValueSize(['123時間45分'.repeat(3)], inner), 12);
+  // 아무리 길어도 8.5pt 아래로는 줄이지 않는다(네이티브의 12 × 0.7쯤)
+  assert.equal(statValueSize(['123時間45分'.repeat(3)], inner), 8.5);
+});
+
+test('R-5 #2: 긴 집중 시간(10시간 넘게 · 백 시간 넘게)도 360 ~ 430pt 폭 네 칸에서 말줄임 없이 한 줄', () => {
+  for (const w of [360, 375, 390, 414, 430]) {
+    const inner = (w - 40) / 4 - 17;
+    for (const l of ['ko', 'ja', 'en']) {
+      for (const mins of [659, 719, 9150]) {
+        const v = msg(l).fmt.duration({ mins });
+        const size = statValueSize([v], inner);
+        assert.ok(statEm(v) * size <= inner, `${l} ${w}pt: ${v} @ ${size}`);
+      }
+    }
+  }
 });
 
 test('R-5 #2: 넓은 글자(가나·한자·한글)는 1em, 숫자는 그보다 좁게 잡는다', () => {

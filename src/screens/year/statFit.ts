@@ -18,8 +18,12 @@ export function statEm(text: string): number {
   return w;
 }
 
-/** 값 글자 크기 — 칸 안쪽 폭(width)에 한 줄로 들어가는 가장 큰 크기, 12~max pt */
+/** 값 글자 크기의 바닥 — 네이티브가 줄일 수 있는 만큼(12pt × minimumFontScale 0.7 ≈ 8.4)과 같게. 12로 두면 긴 집중 시간
+ *  ('152 hr 30 min')이 웹에서 말줄임표로 잘린다 */
+export const STAT_MIN = 8.5;
+
+/** 값 글자 크기 — 칸 안쪽 폭(width)에 한 줄로 들어가는 가장 큰 크기, STAT_MIN~max pt */
 export function statValueSize(texts: readonly string[], width: number, max = 20): number {
   const em = Math.max(1, ...texts.map(statEm));
-  return Math.max(12, Math.min(max, Math.floor(width / em)));
+  return Math.max(STAT_MIN, Math.min(max, Math.floor(width / em)));
 }
