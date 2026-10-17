@@ -18,6 +18,7 @@ import { legibleMark } from '../theme/chart';
 import { useOptionalUIActions } from '../navigation/ui';
 import { NUM, TYPE } from '../theme/type';
 import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
 import type { M } from '../theme/usePalette';
 import type { IconName } from '../types';
 
@@ -55,12 +56,13 @@ export function RowDivider({ M, inset }: { M: M; inset: number }) {
 
 /** 뒤로 가기 — 바탕 없는 44pt 버튼. 화살표가 화면 여백 선(20pt)에 맞도록 왼쪽으로 11pt 당긴다 */
 function BackBtn({ M, onPress, testID }: { M: M; onPress: () => void; testID?: string }) {
+  const m = useMsg();
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel="뒤로 가기"
+      accessibilityLabel={m.core.back}
       hitSlop={4}
       style={({ pressed }) => ({
         width: 44, height: 44, marginLeft: -11,
@@ -293,6 +295,7 @@ export function Sheet({
   /** 닫힌 뒤 스크린리더 초점을 돌려줄 곳(시트를 연 버튼) */
   returnFocusRef?: React.RefObject<React.ComponentRef<typeof View> | null>;
 }) {
+  const m = useMsg();
   const insets = useSafeAreaInsets();
   // 넓은 창(아이패드·웹)에서는 판을 min(560, 단 폭)으로 가운데에 — 시트 안의 폭은 판의 폭(PageSize)
   const panel = usePanelStyle();
@@ -454,8 +457,8 @@ export function Sheet({
             importantForAccessibility={ownClose ? 'no-hide-descendants' : 'auto'}
             accessibilityElementsHidden={ownClose}
             accessibilityRole="button"
-            accessibilityLabel="시트 닫기"
-            accessibilityHint="아래로 끌어내려도 닫혀요"
+            accessibilityLabel={m.core.sheetHandle}
+            accessibilityHint={m.core.sheetHandleHint}
             onAccessibilityTap={() => dismiss()}
             style={{ paddingTop: 10, paddingBottom: 10, alignItems: 'center' }}
           >
@@ -490,13 +493,14 @@ export function Sheet({
  * 동그라미 바탕은 지금 먹색을 아주 옅게(종이 색과 같은 온도). light: 늘 어두운 화면(집중 타이머) 위.
  */
 export function CloseBtn({ M, onPress, light, testID }: { M: M; onPress: () => void; light?: boolean; testID?: string }) {
+  const m = useMsg();
   return (
     <Pressy
       onPress={onPress}
       testID={testID}
       scaleTo={0.86}
       accessibilityRole="button"
-      accessibilityLabel="닫기"
+      accessibilityLabel={m.common.close}
       hitSlop={6}
       style={{
         width: 32, height: 32, borderRadius: 16,
@@ -685,10 +689,11 @@ export function IndexTabs({
   onChange: (key: string) => void;
   wrap?: boolean;
 }) {
+  const m = useMsg();
   const row = items.map((it) => {
     const on = it.key === value;
     const mark = it.color ?? M.ink;
-    const a11y = it.count != null ? `${it.label}, ${it.count}개` : it.label;
+    const a11y = it.count != null ? m.core.labelCount({ label: it.label, n: it.count }) : it.label;
     return (
       <Pressable
         key={it.key}

@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { announce, screenReader } from '../lib/useReducedMotion';
+import { msg } from '../i18n';
 import { createOverlayQueue, OVERLAY_GAP, type OverlayQueue } from '../lib/overlayQueue';
 import type { PrintTarget, ProFeature, YearView } from '../lib/contracts';
 
@@ -361,7 +362,7 @@ export function UIProvider({ children, initialScreen }: { children: React.ReactN
     // 스크린리더로 한 번만 읽는다 — Snackbar는 시트 안팎에 두 번 놓이므로 거기서 읽으면 두 번 들린다.
     // 안드로이드는 Snackbar의 accessibilityLiveRegion이 읽어 주므로 여기서는 iOS만.
     if (Platform.OS === 'ios' && screenReader()) {
-      announce(action ? `${message}. 되돌릴 수 있어요` : message);
+      announce(action ? msg().core.undoable({ message }) : message);
     }
   }, []);
   const hideToast = useCallback((id?: number) => setToast((t) => (id === undefined || t?.id === id ? null : t)), []);

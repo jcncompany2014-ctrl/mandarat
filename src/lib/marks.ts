@@ -3,6 +3,8 @@
 import type { DayState } from './routine';
 import { toHex } from '../theme/moods';
 import { readableOn } from '../theme/palette';
+import { lang, msg, type Lang } from '../i18n';
+import { liveList } from '../i18n/live';
 
 // ── 체크 칸 ──────────────────────────────────────────────────────────────────
 
@@ -62,8 +64,14 @@ export function seedTilt(seed?: string, max = 3): number {
 
 // ── 주간 칸(월~일) ────────────────────────────────────────────────────────────
 
-/** 월요일부터 — routineWeek()의 칸 순서와 같다 */
-export const WEEKDAY_KR = ['월', '화', '수', '목', '금', '토', '일'] as const;
+/** 월요일부터 자리 i(월 0 … 일 6) → fmt의 요일 번호(0 = 일요일) */
+const dowOf = (i: number) => (i + 1) % 7;
+
+/**
+ * 월요일부터 — routineWeek()의 칸 순서와 같다(지금 언어의 fmt.dowNarrow).
+ * @deprecated msg().fmt.dowNarrow({ i })를 쓴다(V8-A가 지운다).
+ */
+export const WEEKDAY_KR: readonly string[] = liveList(() => [0, 1, 2, 3, 4, 5, 6].map((i) => msg().fmt.dowNarrow({ i: dowOf(i) })));
 
 /** 날짜의 요일 자리(월 0 … 일 6) */
 export function weekdayIndex(d: Date): number {
@@ -86,34 +94,37 @@ export function stripCenters(width: number = STRIP.width, gap: number = STRIP.ga
  * 하루 칸 상태의 말 — 화면 읽기용.
  * routineWeek()는 이미 한 오늘을 'done'으로 주므로, 오늘인지(isToday)를 따로 받아 '오늘 함'으로 읽는다.
  */
-export function dayWord(state: DayState, isToday = false): string {
+export function dayWord(state: DayState, isToday = false, l: Lang = lang()): string {
+  const c = msg(l).core;
   switch (state) {
     case 'done':
-      return isToday ? '오늘 함' : '함';
+      return isToday ? c.dayDoneToday : c.dayDone;
     case 'today':
-      return '오늘';
+      return c.dayToday;
     case 'missed':
-      return '놓침';
+      return c.dayMissed;
     case 'planned':
-      return '예정';
+      return c.dayPlanned;
     default:
-      return isToday ? '오늘 쉬는 날' : '쉬는 날';
+      return isToday ? c.dayRestToday : c.dayRest;
   }
 }
 
 /** 주간 칸 한 줄의 읽기 글 — '월 함, 화 놓침, 수 오늘, 목 예정, 금 쉬는 날, …' */
-export function weekStripSummary(states: readonly DayState[], todayIndex = -1): string {
-  return states.map((s, i) => `${WEEKDAY_KR[i] ?? ''} ${dayWord(s, i === todayIndex)}`).join(', ');
+export function weekStripSummary(states: readonly DayState[], todayIndex = -1, l: Lang = lang()): string {
+  const c = msg(l).core;
+  return states.map((s, i) => c.stripDay({ i: dowOf(i), word: dayWord(s, i === todayIndex, l) })).join(c.listSep);
 }
 
 /** 지난 요일 칸을 눌러 기록을 남기거나 지우는 버튼의 이름 */
-export function weekDayActionLabel(i: number, done: boolean): string {
-  return `${WEEKDAY_KR[i] ?? ''}요일 ${done ? '기록 지우기' : '했어요로 남기기'}`;
+export function weekDayActionLabel(i: number, done: boolean, l: Lang = lang()): string {
+  const c = msg(l).core;
+  return done ? c.dayClear({ i: dowOf(i) }) : c.dayMark({ i: dowOf(i) });
 }
 
 /** 누를 수 없는 요일 칸의 이름 — '수요일 오늘', '월요일 함' */
-export function weekDayLabel(i: number, state: DayState, isToday = false): string {
-  return `${WEEKDAY_KR[i] ?? ''}요일 ${dayWord(state, isToday)}`;
+export function weekDayLabel(i: number, state: DayState, isToday = false, l: Lang = lang()): string {
+  return msg(l).core.dayState({ i: dowOf(i), word: dayWord(state, isToday, l) });
 }
 
 // ── 동그라미(기분 고르기) ──────────────────────────────────────────────────────

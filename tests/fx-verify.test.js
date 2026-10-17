@@ -112,7 +112,8 @@ test('NEW-2(ui): 연속 기록 칸은 모든 줄 · 머리글이 같은 폭(가�
 
 test('NEW-4(a11y): 반복 안 함 칩은 보이는 글 그대로 읽는다', () => {
   const s = src('src/components/DayPicker.tsx');
-  assert.match(s, /<PaperChip M=\{M\} label="반복 안 함" onPress=\{\(\) => pick\(\[\]\)\} \/>/);
+  assert.match(s, /<PaperChip M=\{M\} label=\{m\.core\.noRepeat\} onPress=\{\(\) => pick\(\[\]\)\} \/>/);
+  assert.equal(require('../src/i18n').msg('ko').core.noRepeat, '반복 안 함');
   assert.doesNotMatch(s, /반복 해제/);
 });
 

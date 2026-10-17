@@ -236,7 +236,7 @@ export function WeekCaption({ M, todayIndex, width = STRIP.width }: { M: M; toda
         const left = i === 0 ? centers[0] - SLOT / 2 : centers[i] - centers[i - 1] - SLOT;
         return (
           <Text
-            key={d}
+            key={i}
             numberOfLines={1}
             maxFontSizeMultiplier={1.2}
             style={{

@@ -22,6 +22,8 @@ import { BINDING, BINDING_W, SPREAD_TABS_W, companionFor, companionKey, modeFor,
 import { crash } from '../lib/crash';
 import { gridMemory } from '../screens/gridMemory';
 import { mix } from '../theme/moods';
+import { msg } from '../i18n';
+import { useMsg } from '../i18n/react';
 import type { M as Palette } from '../theme/usePalette';
 
 import { Onboarding } from '../screens/Onboarding';
@@ -76,11 +78,11 @@ type TabId = 'dashboard' | 'grid' | 'today' | 'stats';
 type IconName = Parameters<typeof Icon>[0]['name'];
 
 /** 탭바 다섯 칸 — 홈 · 만다라트 · 담기 · 오늘 · 통계 (가운데 칸이 오늘 할 일 담기) */
-const TABS: { id: TabId; icon: IconName; label: string; slot: number }[] = [
-  { id: 'dashboard', icon: 'home', label: '홈', slot: 0 },
-  { id: 'grid', icon: 'grid', label: '만다라트', slot: 1 },
-  { id: 'today', icon: 'checkCircle', label: '오늘', slot: 3 },
-  { id: 'stats', icon: 'chart', label: '통계', slot: 4 },
+const TABS: { id: TabId; icon: IconName; msgKey: 'tabHome' | 'tabGrid' | 'tabToday' | 'tabStats'; slot: number }[] = [
+  { id: 'dashboard', icon: 'home', msgKey: 'tabHome', slot: 0 },
+  { id: 'grid', icon: 'grid', msgKey: 'tabGrid', slot: 1 },
+  { id: 'today', icon: 'checkCircle', msgKey: 'tabToday', slot: 3 },
+  { id: 'stats', icon: 'chart', msgKey: 'tabStats', slot: 4 },
 ];
 const SLOTS = 5;
 const ADD_SLOT = 2;
@@ -167,11 +169,11 @@ function Milestones() {
       timers.current.delete(t);
       milestone();
       const cur = uiRef.current;
-      const msg = '오늘 할 일을 다 했어요';
+      const text = msg().core.todayAllDone;
       // 되돌리기가 달린 안내나 방금 띄운 영역 8칸 안내는 덮지 않는다
       const busy = !!cur.getToast()?.action || Date.now() - milestoneToastAt.current < 1500;
-      if (!onPage && !busy) cur.showToast(msg);
-      else if (screenReader()) announce(msg);
+      if (!onPage && !busy) cur.showToast(text);
+      else if (screenReader()) announce(text);
     }, 650);
     timers.current.add(t);
   }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -204,7 +206,7 @@ function Milestones() {
     const th = doc.themes[ti];
     milestone();
     milestoneToastAt.current = Date.now();
-    ui.showToast(`${th.title ? `${th.title} 영역` : `영역 ${ti + 1}`} 8칸을 모두 달성했어요`);
+    ui.showToast(msg().core.areaAllDone({ name: th.title, n: ti + 1 }));
   }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
   // 마무리 페이지가 실제로 뜨는 순간 한 번 울린다(대기열에서 기다렸다 떠도 그때)
   useEffect(() => {
@@ -629,6 +631,7 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset, p
   padX?: number;
 }) {
   const M = usePalette();
+  const m = useMsg();
   const [width, setWidth] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
   const placed = useRef(false);
@@ -651,7 +654,7 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset, p
   );
 
   const items = TABS.map((t) => (
-    <TabItem key={t.id} id={t.id} icon={t.icon} label={t.label} on={active === t.id} onTab={onTab} />
+    <TabItem key={t.id} id={t.id} icon={t.icon} label={m.core[t.msgKey]} on={active === t.id} onTab={onTab} />
   ));
   items.splice(ADD_SLOT, 0, <AddSlot key="add" onPress={onAdd} />);
 
@@ -711,15 +714,16 @@ const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
 /** 가운데 '담기' 칸 — 점선 네모 안의 ＋(오늘 할 일 담기). 손으로 그린 빈칸처럼, 탭들과 같은 줄에 앉는다 */
 function AddSlot({ onPress }: { onPress: () => void }) {
   const M = usePalette();
+  const m = useMsg();
   return (
     <Pressable
       onPress={onPress}
       testID={TID.tabAdd}
       accessibilityRole="button"
-      accessibilityLabel="담기"
-      accessibilityHint="오늘 할 일을 적어 담아요"
+      accessibilityLabel={m.core.tabAdd}
+      accessibilityHint={m.core.tabAddHint}
       accessibilityShowsLargeContentViewer
-      accessibilityLargeContentTitle="담기"
+      accessibilityLargeContentTitle={m.core.tabAdd}
       style={({ pressed }) => ({ flex: 1, height: TAB_BAR_H - 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
     >
       <View
@@ -735,7 +739,7 @@ function AddSlot({ onPress }: { onPress: () => void }) {
         numberOfLines={1}
         style={{ marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }}
       >
-        담기
+        {m.core.tabAdd}
       </Text>
     </Pressable>
   );
