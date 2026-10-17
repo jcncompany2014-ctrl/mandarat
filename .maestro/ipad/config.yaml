@@ -1,0 +1,6 @@
+# 이 폴더만 돌릴 때의 설정(EAS의 flow_path가 이 폴더를 가리킨다).
+# 흐름은 이름 순서(01-, 02- …)로 돈다. 흐름마다 clearState로 새로 시작하므로 앞 흐름에 기대지 않는다.
+flows:
+  - "*"
+executionOrder:
+  continueOnFailure: true

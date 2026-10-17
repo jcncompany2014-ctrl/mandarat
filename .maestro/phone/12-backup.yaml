@@ -1,0 +1,30 @@
+appId: com.jcncompany.mandarat
+name: "12 백업 내보내기"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 설정 › 백업 내보내기 → iOS 공유 시트가 뜬다 → 닫는다(파일을 어디에도 저장하지 않는다)
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-export"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-export"
+# 공유 시트는 iOS 것이라 testID가 없다. 닫기 버튼 이름으로 닫고, 없으면 아래로 끌어 닫는다.
+- extendedWaitUntil:
+    visible:
+      text: "닫기|Close|취소|Cancel|저장|Save to Files|파일에 저장"
+    timeout: 15000
+- tapOn:
+    text: "닫기|Close|취소|Cancel"
+    optional: true
+- assertVisible:
+    id: "set-export"

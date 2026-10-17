@@ -1,0 +1,34 @@
+# 오늘 탭에 실천 줄이 있게 한다.
+# 시작하기의 예시(onb-sample)가 이미 채웠으면 아무것도 하지 않는다.
+# 아니면 설정 › 예시로 채우기를 누른다 — 이 줄에는 testID가 없어 글자로 찾는다(흐름은 늘 ko로 띄운다).
+appId: com.jcncompany.mandarat
+---
+- tapOn:
+    id: "tab-today"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      notVisible:
+        id: "today-row-.*"
+    commands:
+      - tapOn:
+          id: "tab-dashboard"
+      - tapOn:
+          id: "home-settings"
+      - scrollUntilVisible:
+          element:
+            text: "예시로 채우기"
+          direction: DOWN
+          timeout: 20000
+      - tapOn:
+          text: "예시로 채우기"
+      # 이미 적어 둔 칸이 있으면 묻는 창이 뜬다
+      - tapOn:
+          text: "채우기"
+          optional: true
+      - openLink: "mandarat://today"
+- extendedWaitUntil:
+    visible:
+      id: "today-row-.*"
+    timeout: 15000

@@ -1,0 +1,32 @@
+appId: com.jcncompany.mandarat
+name: "10 인쇄 시트"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# mandarat://print → 인쇄 시트 → 종이·인쇄 버튼이 보인다 → 닫기. AirPrint는 띄우지 않는다(print-go·print-pdf를 누르지 않는다).
+- runFlow: ../common/onboard.yaml
+- openLink: "mandarat://print"
+- tapOn:
+    text: "열기|Open"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "print-go"
+    timeout: 10000
+- assertVisible:
+    id: "print-paper-.*"
+    index: 0
+# 시트는 손잡이를 아래로 끌어 닫는다
+- swipe:
+    from:
+      id: "sheet-handle"
+    direction: DOWN
+- extendedWaitUntil:
+    notVisible:
+      id: "print-go"
+    timeout: 10000

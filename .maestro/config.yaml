@@ -1,0 +1,8 @@
+# Maestro 작업 공간 설정 — `maestro test .maestro`로 폰과 아이패드 흐름을 한꺼번에 돌릴 때.
+# 보통은 기기에 맞는 폴더 하나만 돌린다: `maestro test .maestro/phone` · `maestro test .maestro/ipad`.
+# common/은 다른 흐름이 runFlow로 부르는 조각이라 따로 돌리지 않는다.
+flows:
+  - "phone/*"
+  - "ipad/*"
+executionOrder:
+  continueOnFailure: true

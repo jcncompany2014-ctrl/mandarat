@@ -1,0 +1,48 @@
+appId: com.jcncompany.mandarat
+name: "03 칸 고치기"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 만다라트 표 → 첫 영역 → 빈 칸 → 글 적기 → 저장 → 표에 글이 보인다
+- runFlow: ../common/onboard.yaml
+- tapOn:
+    id: "tab-grid"
+- extendedWaitUntil:
+    visible:
+      id: "grid-table"
+    timeout: 10000
+# 81칸 표에서 칸을 누르면 그 영역이 먼저 크게 보인다(줌). 줌이 없는 화면이면 바로 편집이 열린다.
+- tapOn:
+    id: "grid-cell-0-0"
+- runFlow:
+    when:
+      notVisible:
+        id: "editor-text"
+    commands:
+      - tapOn:
+          id: "grid-cell-0-0"
+      # 이미 글이 있는 칸이면 실천 시트가 먼저 뜬다
+      - tapOn:
+          id: "sheet-edit"
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "editor-text"
+    timeout: 10000
+- tapOn:
+    id: "editor-text"
+- eraseText: 40
+- inputText: "Morning run"
+- tapOn:
+    id: "editor-save"
+- extendedWaitUntil:
+    notVisible:
+      id: "editor-save"
+    timeout: 10000
+- assertVisible:
+    text: "Morning.*"

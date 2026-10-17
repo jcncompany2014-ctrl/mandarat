@@ -1,0 +1,28 @@
+appId: com.jcncompany.mandarat
+name: "iPad 01 두 쪽 펼침"
+tags:
+  - ipad
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 13인치 iPad — 두 쪽(왼쪽·오른쪽)이 함께 보인다. 가로로 돌려도 두 쪽이다.
+- runFlow: ../common/onboard.yaml
+- extendedWaitUntil:
+    visible:
+      id: "spread-left"
+    timeout: 10000
+- assertVisible:
+    id: "spread-right"
+- takeScreenshot: "ipad-spread-portrait"
+- setOrientation: LANDSCAPE_LEFT
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "spread-left"
+- assertVisible:
+    id: "spread-right"
+- takeScreenshot: "ipad-spread-landscape"
+- setOrientation: PORTRAIT

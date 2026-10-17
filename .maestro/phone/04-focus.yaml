@@ -1,0 +1,38 @@
+appId: com.jcncompany.mandarat
+name: "04 집중 타이머"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 실천 시트 → 집중 시작 → 멈춤 → 닫기
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/sample.yaml
+- tapOn:
+    id: "today-row-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "sheet-focus"
+    timeout: 10000
+- tapOn:
+    id: "sheet-focus"
+- extendedWaitUntil:
+    visible:
+      id: "focus-pause"
+    timeout: 10000
+- tapOn:
+    id: "focus-pause"
+- assertVisible:
+    id: "focus-close"
+- tapOn:
+    id: "focus-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "focus-pause"
+    timeout: 10000
+- assertVisible:
+    id: "tab-today"
