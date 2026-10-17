@@ -63,7 +63,7 @@ const r = await printer.exportPdf(html, size, printFileName(now));   // or print
 
 ## 4. Handoffs
 
-- **V2-D** (`src/overlays/PrintSheet.tsx`, `src/i18n/*/print.ts`): use the calls above. `accent` is the current accent hex; `printHtml` makes it legible on white itself. Treat `'cancelled'` as silent and show "PDF를 만들지 못했어요" only on `'failed'`. Give `printNow` on web no success feedback (Deviation 3). Append keys to `src/i18n/{ko,ja,en}/print.ts` after `appName` (ko line 29) without renaming the V1-B keys.
+- **V2-D** (`src/overlays/PrintSheet.tsx`, `src/i18n/*/print.ts`): use the calls above. `accent` is the current accent hex; `printHtml` makes it legible on white itself. Treat `'cancelled'` as silent and show "PDF를 만들지 못했어요" only on `'failed'`. Give `printNow` on web no success feedback (Deviation 3). Append keys to `src/i18n/{ko,ja,en}/print.ts` after `appName` (ko line 28) without renaming the V1-B keys.
 - **Lead (optional)**: to make the print interfaces contracts, move `PrintFonts`, `Printer`, `PrintNowResult` and `ExportPdfResult` from `src/lib/printSheet.ts:29-44` into `src/lib/contracts.ts`. Then change the `import type` lines in `src/lib/print{,.web,.native}.ts` and `src/lib/printFonts{,.web,.native}.ts` to `'./contracts'`.
 - **X-E** (`src/lib/poster.ts:57`): when `영역 ${c.ti + 1}` is extracted, `printSheet` needs no change, because it already uses `print.areaN` for unnamed heads.
 - **X-B** (`src/lib/kinds.ts:9`): `KIND_LABEL` could reuse `msg().print.kind*`, or keep its own `kinds.*` keys. The wording is identical in ko.
