@@ -1,7 +1,7 @@
 // 백업 불러오기의 '지금 | 백업' 장부 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 import type { BackupSummary } from './backup';
 import { fmtDateShort, fmtDateSpeech } from './text';
-import { msg } from '../i18n';
+import { lang, msg, subscribeLang, type Lang } from '../i18n';
 
 export interface LedgerRow {
   label: string;
@@ -17,26 +17,35 @@ export interface LedgerRow {
   backupSay?: string;
 }
 
-/** 값이 없는 칸의 표기 */
-export const LEDGER_NONE = '없음';
+/**
+ * 값이 없는 칸의 표기(m.backup.none) — 화면은 이것과 같은지로 흐린 글자를 고른다(BackupImport · SyncChoiceSheet).
+ * 언어를 따르는 살아 있는 값: 언어가 바뀌면 다시 적는다(ESM live binding).
+ */
+export let LEDGER_NONE: string = msg().backup.none;
+subscribeLang((l) => {
+  LEDGER_NONE = msg(l).backup.none;
+});
 
 /**
  * 핵심 목표 · 채운 칸 · 달성 · 기록 일수 · 마지막 기록(+ 지난 표가 있으면 지난 표 수) — 지금과 백업을 나란히.
  * today: 마지막 기록을 소리로 말할 때 해가 다르면 해까지 붙이는 기준(백업은 다른 해의 것일 수 있다)
  */
-export function ledgerRows(now: BackupSummary, backup: BackupSummary, today = new Date()): LedgerRow[] {
-  const day = (d?: string) => (d ? fmtDateShort(d) : LEDGER_NONE);
-  const daySay = (d?: string) => (d ? fmtDateSpeech(d, today) : LEDGER_NONE);
+export function ledgerRows(now: BackupSummary, backup: BackupSummary, today = new Date(), l: Lang = lang()): LedgerRow[] {
+  const m = msg(l);
+  const b = m.backup;
+  const none = b.none;
+  const day = (d?: string) => (d ? fmtDateShort(d, l) : none);
+  const daySay = (d?: string) => (d ? fmtDateSpeech(d, today, l) : none);
   const rows: LedgerRow[] = [
-    { label: '핵심 목표', now: now.goal || LEDGER_NONE, backup: backup.goal || LEDGER_NONE, text: true },
+    { label: b.rowGoal, now: now.goal || none, backup: backup.goal || none, text: true },
     {
-      label: '채운 칸', now: `${now.filled}/64`, backup: `${backup.filled}/64`,
-      nowSay: `64칸 중 ${now.filled}칸`, backupSay: `64칸 중 ${backup.filled}칸`,
+      label: b.rowFilled, now: `${now.filled}/64`, backup: `${backup.filled}/64`,
+      nowSay: b.filledSay({ n: now.filled }), backupSay: b.filledSay({ n: backup.filled }),
     },
-    { label: '달성', now: `${now.done}칸`, backup: `${backup.done}칸` },
-    { label: '기록 일수', now: `${now.days}일`, backup: `${backup.days}일` },
+    { label: b.rowDone, now: m.fmt.cells({ n: now.done }), backup: m.fmt.cells({ n: backup.done }) },
+    { label: b.rowDays, now: m.fmt.days({ n: now.days }), backup: m.fmt.days({ n: backup.days }) },
     {
-      label: '마지막 기록', now: day(now.lastLog), backup: day(backup.lastLog),
+      label: b.rowLast, now: day(now.lastLog), backup: day(backup.lastLog),
       nowSay: daySay(now.lastLog), backupSay: daySay(backup.lastLog),
     },
   ];
@@ -44,7 +53,7 @@ export function ledgerRows(now: BackupSummary, backup: BackupSummary, today = ne
   const nowArch = now.archives ?? 0;
   const backArch = backup.archives ?? 0;
   if (nowArch > 0 || backArch > 0) {
-    const y = msg().year;
+    const y = m.year;
     rows.push({ label: y.ledgerArchives, now: y.archiveCount({ n: nowArch }), backup: y.archiveCount({ n: backArch }) });
   }
   return rows;

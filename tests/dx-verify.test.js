@@ -107,10 +107,11 @@ test('백업 불러오기: 파일을 읽은 뒤 파일 고르기 줄과 파일 �
 
 test("백업 불러오기: '지금 기록이 더 최근' 경고는 표 위 — 작은 화면에서도 아래로 밀려 가려지지 않는다", () => {
   const ledger = slice(src('src/overlays/BackupImport.tsx'), 'function Ledger(', '\n}\n');
-  const warn = ledger.indexOf('{NEWER_NOW}');
+  const warn = ledger.indexOf('{b.newerNow}');
   const table = ledger.indexOf('<View style={{ marginTop: 10, borderTopWidth: 1');
   assert.ok(warn > 0 && table > 0);
   assert.ok(warn < table, '경고가 표보다 먼저');
-  assert.equal((ledger.match(/\{NEWER_NOW\}/g) ?? []).length, 1);
-  assert.match(ledger, /color: alertInk\(M\), marginTop: 6 \}\}>\{NEWER_NOW\}/);
+  assert.equal((ledger.match(/\{b\.newerNow\}/g) ?? []).length, 1);
+  assert.match(ledger, /color: alertInk\(M\), marginTop: 6 \}\}>\{b\.newerNow\}/);
+  assert.equal(require('../src/i18n/ko/backup').default.newerNow, '지금 기록이 백업보다 최근이에요 · 바꾸면 최근 기록이 사라져요');
 });

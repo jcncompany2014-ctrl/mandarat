@@ -85,7 +85,10 @@ test('D-32: 백업 불러오기 — 파일에서 읽으면 붙여 넣기 칸 대
   const s = src('src/overlays/BackupImport.tsx');
   assert.match(s, /\{fromFile \? \(\s*<FileRow M=\{M\} name=\{fromFile\.name\} onPaste=\{toPaste\} \/>/);
   assert.match(s, /takeFile\(await picked\.result\.text\(\), picked\.result\.name\)/);
-  assert.match(s, /<SheetHead M=\{M\} title="백업 불러오기" body="지금 기록이 백업 내용으로 바뀌어요\. 바꾼 직후에는 되돌릴 수 있어요\." \/>/);
+  assert.match(s, /<SheetHead M=\{M\} title=\{b\.sheetTitle\} body=\{b\.sheetBody\} \/>/);
+  const kb = require('../src/i18n/ko/backup').default;
+  assert.equal(kb.sheetTitle, '백업 불러오기');
+  assert.equal(kb.sheetBody, '지금 기록이 백업 내용으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.');
   assert.doesNotMatch(s, /fontSize: 20, lineHeight: 26/);
   // 붙여 넣기로 돌아가면 읽은 글을 비운다
   assert.match(s, /const toPaste = useCallback\(\(\) => \{[\s\S]{0,120}setFromFile\(null\);\s*setText\(''\);\s*setSettled\(''\);/);

@@ -57,6 +57,19 @@ test('글 백업의 머리말에는 중괄호가 없고, 붙은 채로 불러올
   const r = parseBackup(prefix + makeBackup(doc, now, true));
   assert.equal(r.ok, true);
   assert.equal(r.doc.centerGoal, '마라톤 완주');
+  // 한국어 머리말은 추출 전 그대로
+  assert.equal(prefix, '만다라트 백업 · 2026년 10월 14일\n설정 › 백업 불러오기에 이 글 전체를 붙여 넣으면 돼요.\n\n');
+});
+
+test('backupAgeLabel · 글 백업 머리말 — ja · en (X-K)', () => {
+  const now = new Date(2026, 9, 14, 9);
+  assert.equal(backupAgeLabel(undefined, now, 'en'), 'No backup yet');
+  assert.equal(backupAgeLabel('2026-10-14', now, 'en'), 'Last backup · today');
+  assert.equal(backupAgeLabel('2026-10-13', now, 'en'), 'Last backup · 1 day ago');
+  assert.equal(backupAgeLabel('2026-09-14', now, 'en'), 'Last backup · 30 days ago');
+  assert.equal(backupAgeLabel('2026-10-13', now, 'ja'), '最後のバックアップ・1日前');
+  assert.ok(backupTextPrefix(now, 'en').startsWith('Mandalart backup · Oct 14, 2026\n'));
+  assert.ok(backupTextPrefix(now, 'ja').startsWith('マンダラートのバックアップ・2026年10月14日\n'));
 });
 
 test('설정 화면에는 오늘 화면 보기 고르기가 없다(오늘에서만 고른다)', () => {

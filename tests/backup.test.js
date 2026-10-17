@@ -46,7 +46,7 @@ test('더 새로운 스키마(5)의 백업은 거절하고, 이전 스키마(2)�
   const doc = sampleDoc();
   const v5 = B.parseBackup(JSON.stringify({ app: 'mandarat', schema: 5, exportedAt: '2026-10-14T00:00:00.000Z', doc }));
   assert.equal(v5.ok, false);
-  assert.ok(v5.error.includes('업데이트'));
+  assert.equal(v5.error, 'newer');
   const v4 = B.parseBackup(JSON.stringify({ app: 'mandarat', schema: 4, exportedAt: '2026-10-14T00:00:00.000Z', doc }));
   assert.equal(v4.ok, true);
   // 스키마 2 시절 백업에는 areasSet·reviews가 없다 — 적힌 실천이 있으니 영역은 정한 것으로 본다
@@ -154,24 +154,52 @@ test('요약: 목표·채운 칸·달성·기록 일수·루틴 수·백업 시�
   assert.equal(s.exportedAt, at.toISOString());
 });
 
-test('잘못된 입력은 이해하기 쉬운 오류로', () => {
+test('잘못된 입력은 까닭 코드로 — 글은 m.backup.err*에서(X-K)', () => {
   const cases = [
-    ['', '붙여넣은 내용이 없어요'],
-    ['   \n ', '붙여넣은 내용이 없어요'],
-    ['그냥 글', '백업 내용을 찾지 못했어요'],
-    ['{"app":"mandarat","doc":{"themes":[', '잘렸거나'],
-    ['{"app":"mandarat","doc":{"themes":[{"title":"건강","actions":[{"text":"걷기"}', '잘렸거나'],
-    ['{bad}', '백업 내용을 찾지 못했어요'],
-    ['안녕 {친구} 잘 지내?', '백업 내용을 찾지 못했어요'],
-    ['{"foo":1}', '만다라트 백업 형식이 아니에요'],
-    ['{"app":"mandarat","doc":"x"}', '만다라트 백업 형식이 아니에요'],
-    ['{"app":"mandarat","schema":99,"doc":{"themes":[]}}', '업데이트'],
+    ['', 'empty'],
+    ['   \n ', 'empty'],
+    ['그냥 글', 'notFound'],
+    ['{"app":"mandarat","doc":{"themes":[', 'broken'],
+    ['{"app":"mandarat","doc":{"themes":[{"title":"건강","actions":[{"text":"걷기"}', 'broken'],
+    ['{bad}', 'notFound'],
+    ['안녕 {친구} 잘 지내?', 'notFound'],
+    ['{"foo":1}', 'notOurs'],
+    ['{"app":"mandarat","doc":"x"}', 'notOurs'],
+    ['{"app":"mandarat","schema":99,"doc":{"themes":[]}}', 'newer'],
   ];
-  for (const [input, msg] of cases) {
+  for (const [input, code] of cases) {
     const r = B.parseBackup(input);
     assert.equal(r.ok, false, input);
-    assert.ok(r.error.includes(msg), `${input} → ${r.error}`);
+    assert.equal(r.error, code, input);
   }
+  // 한국어 글은 추출 전과 한 글자도 다르지 않다
+  const ko = require('../src/i18n/ko/backup').default;
+  assert.equal(ko.errEmpty, '붙여넣은 내용이 없어요');
+  assert.equal(ko.errNotFound, '백업 내용을 찾지 못했어요. 내보낸 글 전체를 붙여넣어 주세요');
+  assert.equal(ko.errBroken, '백업 내용이 잘렸거나 손상됐어요. 처음부터 끝까지 다시 복사해 주세요');
+  assert.equal(ko.errNotOurs, '만다라트 백업 형식이 아니에요');
+  assert.equal(ko.errNewer, '더 새로운 버전의 앱에서 만든 백업이에요. 앱을 업데이트한 뒤 불러와 주세요');
+});
+
+test('ja·en에서 만든 백업도 그대로 불러온다 — 형식은 언어와 무관하다(X-K)', () => {
+  const { setLang } = require('../src/i18n');
+  const { backupTextPrefix } = require('../src/lib/backupNote');
+  const now = new Date(2026, 9, 14, 9);
+  const doc = sampleDoc();
+  try {
+    for (const l of ['ja', 'en']) {
+      setLang(l);
+      const text = backupTextPrefix(now) + B.makeBackup(doc, now, true);
+      assert.ok(!/[{}]/.test(backupTextPrefix(now)), l);
+      setLang('ko');
+      const r = B.parseBackup(text);
+      assert.equal(r.ok, true, l);
+      assert.equal(r.doc.centerGoal, doc.centerGoal);
+    }
+  } finally {
+    setLang('ko');
+  }
+  assert.equal(B.backupFileName(now), 'mandarat-backup-2026-10-14.json');
 });
 
 test('불러온 손상 값은 migrate로 안전하게 보정된다', () => {
