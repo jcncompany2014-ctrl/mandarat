@@ -47,7 +47,7 @@ enum TodayStore {
   static let appGroup = "group.com.jcncompany.mandarat"
   static let widgetKind = "TodayWidget"
   static let timelineKey = "__expo_widgets_TodayWidget_timeline"
-  static let maxOps = 50
+  static let maxOps = 300
 
   private static var defaults: UserDefaults? { UserDefaults(suiteName: appGroup) }
 

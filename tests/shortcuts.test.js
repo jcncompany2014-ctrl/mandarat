@@ -45,8 +45,9 @@ test('Swift는 contracts의 App Group · 타임라인 키 · 위젯 이름을 �
   assert.match(store, new RegExp(`static let widgetKind = "${C.WIDGET_KIND}"`));
   assert.match(store, /UserDefaults\(suiteName: appGroup\)/);
   assert.match(store, /reloadTimelines\(ofKind: widgetKind\)/);
-  // ops는 위젯 버튼과 같이 마지막 50개
-  assert.match(store, /static let maxOps = 50/);
+  // ops는 위젯 버튼과 같이 마지막 300개(R-1 F5) — 둘이 다르면 Siri 한 번이 위젯의 밀린 체크를 잘라 낸다
+  assert.match(store, /static let maxOps = 300/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/widgets/TodayWidget.ios.tsx'), 'utf8'), /const OPS_MAX = 300;/);
   assert.match(store, /ops\.suffix\(maxOps\)/);
 });
 

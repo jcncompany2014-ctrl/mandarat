@@ -1174,7 +1174,7 @@ The standard acceptance **(SA)** is: `npm run typecheck` · `npm test` · `npm r
    | `accessoryCircular` | `AccessoryWidgetBackground`, the remaining number, `leftShort` or `doneShort` |
    | `accessoryRectangular` | `left`, then the next item, then a row of up to 10 squares filled for done |
 
-   - `systemMedium` and `systemLarge` rows: on iOS 17+ the square is a `Button target={\`check:${k}\`}` whose `onPress` returns `{ items, done, ops: [...ops, op].slice(-50) }` with op `{kind:'check', k, on, day, at: Date.now(), t, src:'widget'}`.
+   - `systemMedium` and `systemLarge` rows: on iOS 17+ the square is a `Button target={\`check:${k}\`}` whose `onPress` returns `{ items, done, ops: [...ops, op].slice(-300) }` (300 since R-1 F5) with op `{kind:'check', k, on, day, at: Date.now(), t, src:'widget'}`.
    - When everything is done, show a double rule and `lines.allDone`.
    - **The mapped rows are the only child of their own `<VStack>`.**
    - Tinted and vibrant rendering: read through shape and opacity, not hue.
@@ -1807,7 +1807,7 @@ The standard acceptance **(SA)** is: `npm run typecheck` · `npm test` · `npm r
 1. `TodayStore.swift`:
    - Read `UserDefaults(suiteName: APP_GROUP)` array `WIDGET_TIMELINE_KEY` (`[{timestamp: Int ms, props: [String: Any]}]`).
    - `current()` returns the last entry with `timestamp ≤ now`, and only when its `props.day` is today's local date. The app writes 8 entries (today plus 7 midnights), so after more than 7 days without opening the app the newest entry belongs to a past day. Every intent then returns `"open_app_first"` instead of reading or checking off a stale list.
-   - `appendOp(op)` writes back the same entry with the changed `items`, `done` and `ops` (last 50).
+   - `appendOp(op)` writes back the same entry with the changed `items`, `done` and `ops` (last 300, the same cap as the widget buttons — R-1 F5).
    - `reload()` calls `WidgetCenter.shared.reloadTimelines(ofKind: "TodayWidget")`.
 2. `AppIntents.swift` (iOS 16+). All titles are `LocalizedStringResource` keys.
 
