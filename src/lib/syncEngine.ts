@@ -69,7 +69,8 @@ export interface SyncIO {
 /** 이 기기 문서에 사람이 적은 것이 없나 — 처음 쓰지 않았거나, 글 · 기록 · 돌아보기 · 지난 표가 하나도 없다 */
 export function isEmptyDoc(doc: MandaratDoc): boolean {
   if (!doc.onboarded) return true;
-  if (doc.centerGoal.trim() || doc.centerGoalEn.trim()) return false;
+  // centerGoalEn은 기본값('My Best Self')이 늘 있어 세지 않는다
+  if (doc.centerGoal.trim()) return false;
   if ((doc.archives?.length ?? 0) > 0 || doc.todayExtra.length > 0) return false;
   if (Object.keys(doc.dayLog).some((d) => doc.dayLog[d].length > 0)) return false;
   if (Object.keys(doc.dayMeta).some((d) => doc.dayMeta[d].reflection?.trim() || doc.dayMeta[d].mood !== undefined)) return false;

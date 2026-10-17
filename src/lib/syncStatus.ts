@@ -73,7 +73,7 @@ export function setChoice(choice: SyncChoice | null): Promise<void> {
 
 /**
  * 맞추기를 켜지 않고 iCloud에 다른 기기 기록이 있는지 본다(온보딩, V5-E) — 질의를 시작해 첫 모으기를 기다린다.
- * icloud.list()는 모으기 전에 비어 있어 쓰지 않는다. 기기 모듈이 없으면 { available: false, files: 0 }.
+ * 질의의 목록(list)은 모으기 전에 비어 있어 쓰지 않는다. 기기 모듈이 없으면 { available: false, files: 0 }.
  */
 export function probeRemote(): Promise<RemoteProbe> {
   if (!icloud) return Promise.resolve({ available: false, files: 0 });
