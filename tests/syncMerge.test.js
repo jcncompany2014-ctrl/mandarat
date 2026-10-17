@@ -16,7 +16,7 @@ const { extraLogKey, setDayLog, toggleDayLog, ymd } = require('../src/lib/routin
 const { canon, project, isCounterPath, counterTotal, pathOf, COUNTER_SCALE } = require('../src/lib/syncProject');
 const { cleanSyncMeta } = require('../src/lib/syncMeta');
 const { observe, isStamp } = require('../src/lib/syncStamp');
-const { merge, mergeAll, joinStates, stateOf, materialize, replicaOf, adoptMerged, isNewer } = require('../src/lib/syncMerge');
+const { merge, mergeAll, joinStates, stateOf, materialize, replicaOf, adoptMerged, isNewer, topStamp } = require('../src/lib/syncMerge');
 const { stampLocal, epochReset, changedPaths } = require('../src/lib/syncLocal');
 const { encodeReplica, decodeReplica, replicaName, devOfName, replicaDigest, SIZE_WARN } = require('../src/lib/syncFile');
 const { BACKUP_SCHEMA } = require('../src/lib/backup');
@@ -210,10 +210,7 @@ function world(seed, opts = {}) {
   };
   const pull = (d, o) => {
     const m = merge(replicaOf(d.doc, d.meta), replicaOf(o.doc, o.meta));
-    let top = '';
-    for (const s of Object.values(o.meta.clock)) if (s > top) top = s;
-    if (o.meta.epoch > top) top = o.meta.epoch;
-    d.meta = observe(adoptMerged(d.meta, m), top, wall + d.skew);
+    d.meta = observe(adoptMerged(d.meta, m), topStamp(replicaOf(o.doc, o.meta)), wall + d.skew);
     d.doc = m.doc;
     if (opts.materialize !== false && r() < 0.5) commit(d, materialize(d.doc), wall + d.skew);
   };
@@ -597,6 +594,8 @@ test('mergeAll folds in device order and rejects a newer-schema replica without 
   const b = mergeAll(local, [rs[2], rs[0], rs[1]]);
   assert.equal(replicaKey(a), replicaKey(b));
   assert.equal(mergeAll(null, []), null);
+  assert.equal(topStamp(rs[0]), Object.values(rs[0].clock).reduce((a, x) => (x > a ? x : a), rs[0].epoch));
+  assert.equal(topStamp({ epoch: '', clock: {} }), '');
   assert.equal(mergeAll(null, [rs[0]]), rs[0]);
   const text = encodeReplica({ ...rs[0], at: 1 }).replace(`"schema":${BACKUP_SCHEMA}`, `"schema":${BACKUP_SCHEMA + 1}`);
   const newer = decodeReplica(text);
@@ -715,6 +714,7 @@ test('a heavy 3-year doc merges in under 600 ms in Node', () => {
   const m = merge(replicaOf(A.doc, A.meta), replicaOf(B.doc, B.meta));
   const ms = Number(process.hrtime.bigint() - t) / 1e6;
   assert.ok(ms < 600, `merge took ${ms.toFixed(0)} ms`);
+  if (process.env.SYNC_TIMING) console.log(`heavy merge ${ms.toFixed(0)} ms`);
   assert.equal(m.doc.themes[7].actions[7].note, '아이패드에서');
   assert.equal(m.doc.themes[3].actions[3].count, 401);
 });

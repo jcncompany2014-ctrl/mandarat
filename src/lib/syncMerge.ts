@@ -42,6 +42,13 @@ export function replicaOf(doc: MandaratDoc, meta: Pick<SyncMeta, 'dev' | 'epoch'
   return { dev: meta.dev, epoch: meta.epoch, clock: meta.clock, parts: meta.parts, doc };
 }
 
+/** 복제본의 가장 큰 도장(판 포함) — 받은 뒤 observe(meta, topStamp(R), wall)로 이 기기 시계를 그 뒤로 당긴다(V4-A) */
+export function topStamp(R: Pick<Replica, 'epoch' | 'clock'>): Stamp {
+  let top = R.epoch;
+  for (const p of Object.keys(R.clock)) if (R.clock[p] > top) top = R.clock[p];
+  return top;
+}
+
 /** 합친 복제본의 시계·몫·판을 이 기기 메타에 — 나머지(dev·last·seen…)는 그대로 */
 export function adoptMerged(meta: SyncMeta, merged: Pick<Replica, 'epoch' | 'clock' | 'parts'>): SyncMeta {
   return { ...meta, epoch: merged.epoch, clock: { ...merged.clock }, parts: clonePartsOf(merged.parts) };
