@@ -53,6 +53,7 @@ export function widgetLines(lang?: Lang): TodayWidgetLines {
   return {
     left: w.left, allDone: w.allDone, empty: w.empty, more: w.more,
     leftShort: w.leftShort, doneShort: w.doneShort, today: w.today, next: w.next, checked: w.checked,
+    unchecked: w.unchecked, progress: w.progress,
   };
 }
 

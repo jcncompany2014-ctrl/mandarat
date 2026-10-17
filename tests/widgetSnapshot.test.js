@@ -128,9 +128,11 @@ test('문구 — ko · ja · en 모두, 틀은 채우지 않고 넘긴다', () =
   for (const lang of LANGS) {
     const p = tl(doc(), { lang })[0].props;
     assert.deepEqual(p.lines, (({ galleryName, galleryDesc, ...lines }) => lines)(msg(lang).widget), lang); // 위젯 고르기 문구(V2-C)는 위젯에 넘기지 않는다
-    assert.deepEqual(Object.keys(p.lines).sort(), ['allDone', 'checked', 'doneShort', 'empty', 'left', 'leftShort', 'more', 'next', 'today']);
+    assert.deepEqual(Object.keys(p.lines).sort(), ['allDone', 'checked', 'doneShort', 'empty', 'left', 'leftShort', 'more', 'next', 'progress', 'today', 'unchecked']);
     for (const k of ['left', 'more']) assert.ok(p.lines[k].includes('{n}'), `${lang}.${k}`);
-    for (const k of ['next', 'checked']) assert.ok(p.lines[k].includes('{t}'), `${lang}.${k}`);
+    for (const k of ['next', 'checked', 'unchecked', 'progress']) assert.ok(p.lines[k].includes('{t}'), `${lang}.${k}`);
+    assert.ok(p.lines.progress.includes('{n}'), `${lang}.progress`);
+    assert.ok(!p.lines.progress.includes('/'), `${lang}.progress: 빗금 없이 말로`);
     assert.equal(p.date, msg(lang).fmt.monthDayDow({ d: NOW }));
     seen.add(p.lines.left);
   }

@@ -65,7 +65,7 @@ export function FocusLayout(p: Partial<FocusActivityProps>, env: LiveActivityEnv
       />
     );
   }
-  /** 가는 진행 막대 — 25분 동안 먹으로 찬다 */
+  /** 가는 진행 막대 — 25분 동안 먹으로 찬다. 둥근 캡슐 막대는 앱 없이 timerInterval로 차는 유일한 길이라 받아들인 시스템 예외 */
   function progress(fg: string) {
     const mods = [progressViewStyle('linear'), tint(fg)];
     if (done || paused) {
@@ -94,7 +94,8 @@ export function FocusLayout(p: Partial<FocusActivityProps>, env: LiveActivityEnv
     banner: banner,
     compactLeading: square(12),
     compactTrailing: clock(14, islandInk, islandSub),
-    minimal: clock(12, islandInk, islandSub),
+    // 가장 작게(36pt 캡슐)는 '24:13'이 잘린다 — 영역 네모 하나로 알아보고, 시간은 한 번 누르면 보인다
+    minimal: square(12),
     expandedLeading: (
       <HStack spacing={8} alignment="center" modifiers={[padding({ leading: 4 })]}>
         {square(12)}

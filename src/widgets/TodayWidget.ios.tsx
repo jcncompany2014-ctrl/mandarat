@@ -50,6 +50,13 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
     if (left === 0) return fill(L.allDone, 0, '');
     return fill(L.left, left, '');
   }
+  /** 한 수의 읽어 주기 — '3/10'의 빗금 대신 말로('오늘 10개 중 3개 했어요') */
+  function spoken() {
+    if (total === 0) return fill(L.empty, 0, '');
+    // 앱을 새로 열기 전의 옛 스냅숏에는 progress가 없다 — 그때는 예전 모양 그대로
+    if (!L.progress) return String(done) + '/' + String(total) + ' ' + fill(L.today, 0, '');
+    return fill(L.progress, done, String(total));
+  }
   function nextItem() {
     for (let i = 0; i < items.length; i++) if (!items[i].d) return items[i];
     return null;
@@ -63,6 +70,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   }
 
   // ── 종이 무늬: 모눈(grid)·줄(lines)만 괘선을 긋는다. 점(dots)·민무늬(blank)는 그리지 않는다 ──
+  // 무늬 선은 목록 괘선(line)보다 옅게(0.55) — 같은 굵기면 목록이 두 겹으로 그은 듯 읽힌다
   function rules(vertical: boolean) {
     const marks: number[] = [];
     for (let i = 0; i < 30; i++) marks.push(i);
@@ -70,7 +78,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       return (
         <Rectangle
           key={(vertical ? 'v' : 'h') + i}
-          modifiers={[foregroundStyle(line), vertical ? frame({ width: 0.5, maxHeight: 2000 }) : frame({ height: 0.5, maxWidth: 2000 })]}
+          modifiers={[foregroundStyle(line), opacity(0.55), vertical ? frame({ width: 0.5, maxHeight: 2000 }) : frame({ height: 0.5, maxWidth: 2000 })]}
         />
       );
     });
@@ -101,13 +109,14 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       </ZStack>
     );
   }
+  /** 가운데 칸 — 오늘 한 수. '오늘' 글은 칸이 넉넉할 때(크게 · 36pt)만 */
   function center(s: number) {
     return (
       <VStack key="c" spacing={0} modifiers={[frame({ width: s, height: s }), border({ color: ink, width: 1.5 })]}>
         <Text modifiers={[font({ size: s > 34 ? 15 : 12, weight: 'bold' }), monospacedDigit(), foregroundStyle(ink), lineLimit(1)]}>
           {String(done) + '/' + String(total)}
         </Text>
-        <Text modifiers={[font({ size: 8 }), foregroundStyle(sub), lineLimit(1)]}>{fill(L.today, 0, '')}</Text>
+        {s > 32 ? <Text modifiers={[font({ size: 9, weight: 'medium' }), foregroundStyle(sub), lineLimit(1)]}>{fill(L.today, 0, '')}</Text> : null}
       </VStack>
     );
   }
@@ -118,7 +127,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       return <HStack key={'r' + r} spacing={2}>{cells}</HStack>;
     });
     return (
-      <VStack spacing={2} modifiers={[accessibilityLabel(String(done) + '/' + String(total) + ' ' + fill(L.today, 0, ''))]}>
+      <VStack spacing={2} modifiers={[accessibilityLabel(spoken())]}>
         {rows}
       </VStack>
     );
@@ -144,18 +153,19 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       </ZStack>
     );
   }
+  // 한 줄 — 한 일은 채운 네모 · 옅은 색 막대 · 보조 글씨(sub, 4.5:1 넘게)로 읽힌다. 글에 불투명도를 더 걸지 않는다
   function row(it: WidgetItem) {
     return (
       <VStack key={it.k} spacing={0} alignment="leading">
         <Button
           target={'check:' + it.k}
           onPress={press(it)}
-          modifiers={[buttonStyle('plain'), accessibilityLabel(it.d ? fill(L.checked, 0, it.t) : it.t)]}
+          modifiers={[buttonStyle('plain'), accessibilityLabel(fill(it.d ? L.checked : L.unchecked || '{t}', 0, it.t))]}
         >
           <HStack spacing={7} modifiers={[frame({ maxWidth: 2000, minHeight: 22, alignment: 'leading' })]}>
             {box(it.d)}
             <Rectangle modifiers={[foregroundStyle(full ? it.c || ink : ink), opacity(it.d ? 0.4 : 1), frame({ width: 2, height: 11 })]} />
-            <Text modifiers={[font({ size: 13 }), foregroundStyle(it.d ? sub : ink), opacity(it.d ? 0.6 : 1), lineLimit(1)]}>{it.t}</Text>
+            <Text modifiers={[font({ size: 13 }), foregroundStyle(it.d ? sub : ink), lineLimit(1)]}>{it.t}</Text>
             <Spacer />
           </HStack>
         </Button>
@@ -237,7 +247,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       <VStack alignment="leading" spacing={2} modifiers={[frame({ maxWidth: 2000, alignment: 'leading' })]}>
         <Text modifiers={[font({ size: 14, weight: 'semibold' }), lineLimit(1)]}>{status()}</Text>
         <Text modifiers={[font({ size: 12 }), opacity(nx ? 1 : 0), lineLimit(1)]}>{nx ? fill(L.next, 0, nx.t) : ' '}</Text>
-        <HStack spacing={3} modifiers={[accessibilityLabel(String(done) + '/' + String(total))]}>{squares}</HStack>
+        <HStack spacing={3} modifiers={[accessibilityLabel(spoken())]}>{squares}</HStack>
       </VStack>
     );
   }

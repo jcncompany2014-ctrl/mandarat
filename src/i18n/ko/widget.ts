@@ -16,6 +16,10 @@ export default {
   next: '다음 할 일: {t}',
   /** 한 일 '{t}' — 체크한 줄의 읽어 주기 */
   checked: '{t} — 했어요',
+  /** 아직 안 한 일 '{t}' — 체크하지 않은 줄의 읽어 주기 */
+  unchecked: '{t}, 아직 안 했어요',
+  /** 3×3 표의 읽어 주기 — 한 수 '{n}' · 모두 '{t}'(빗금 없이 말로) */
+  progress: '오늘 {t}개 중 {n}개 했어요',
   /** 위젯 고르기 화면의 이름 — app.json expo-widgets displayName과 같아야 한다(위젯 확장 Localizable.strings의 열쇠) */
   galleryName: '오늘',
   /** 위젯 고르기 화면의 설명 — app.json expo-widgets description과 같아야 한다 */

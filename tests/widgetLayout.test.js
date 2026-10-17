@@ -185,3 +185,70 @@ test('시험대 자체 — 바깥 이름을 쓰는 함수는 vm에서 ReferenceE
   assert.throws(() => widgetRuntime('function (p) { return outside(p); }').render({}), /outside is not defined/);
   assert.throws(() => widgetRuntime('function (p) { return _swiftUi.Text(p); }').render({}), /_swiftUi is not defined/);
 });
+
+/** 수정자 하나의 인자(없으면 null) */
+const modArgs = (n, type) => { const m = (n.props.modifiers || []).find((x) => x.$type === type); return m ? m.args : null; };
+
+test('줄의 읽어 주기 — 한 일은 checked, 아직 안 한 일은 unchecked(R-7 A-4)', () => {
+  const p = real();
+  const labels = [];
+  walk(rt.render(p, { widgetFamily: 'systemLarge' }), (n) => { if (n.type === 'Button') labels.push(modArgs(n, 'accessibilityLabel')[0]); });
+  const shown = p.items.slice(0, 8);
+  assert.deepEqual(labels, shown.map((i) => (i.d ? `${i.t} — 했어요` : `${i.t}, 아직 안 했어요`)));
+  assert.ok(shown.some((i) => i.d) && shown.some((i) => !i.d), '두 모습 다 본다');
+  // 옛 스냅숏(unchecked 없음)은 글만 읽는다
+  const old = { ...p, lines: { ...p.lines, unchecked: undefined } };
+  walk(rt.render(old, { widgetFamily: 'systemMedium' }), (n) => {
+    if (n.type === 'Button') assert.doesNotMatch(modArgs(n, 'accessibilityLabel')[0], /^$|undefined|\{t\}/);
+  });
+});
+
+test('표의 읽어 주기는 빗금 없이 말로(R-7 A-4)', () => {
+  const p = real();
+  const want = `오늘 ${p.total}개 중 ${p.done}개 했어요`;
+  for (const family of ['systemSmall', 'systemMedium', 'systemLarge', 'accessoryRectangular']) {
+    const said = [];
+    walk(rt.render(p, { widgetFamily: family }), (n) => { const a = modArgs(n, 'accessibilityLabel'); if (a && (n.type === 'VStackView' || n.type === 'HStackView' || n.type === 'VStack' || n.type === 'HStack')) said.push(a[0]); });
+    assert.ok(said.includes(want), `${family}: ${said.join(' | ')}`);
+    for (const s of said) assert.doesNotMatch(s, /\d\/\d/, `${family}: ${s}`);
+  }
+  const en = widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'en' })[0].props;
+  const said = [];
+  walk(rt.render(en, { widgetFamily: 'systemSmall' }), (n) => { const a = modArgs(n, 'accessibilityLabel'); if (a) said.push(a[0]); });
+  assert.ok(said.includes(`${en.done} of ${en.total} done today`), said.join(' | '));
+});
+
+test('한 일 줄의 글은 sub 그대로 — 불투명도를 더 걸지 않는다(R-7 A-3b)', () => {
+  const p = real();
+  const P = p.pal.light;
+  let seen = 0;
+  walk(rt.render(p, { widgetFamily: 'systemLarge', colorScheme: 'light' }), (n) => {
+    if (n.type !== 'TextView' || !p.items.some((i) => i.t === n.props.text)) return;
+    const it = p.items.find((i) => i.t === n.props.text);
+    assert.equal(modArgs(n, 'foregroundStyle')[0], it.d ? P.sub : P.ink, it.t);
+    assert.equal(modArgs(n, 'opacity'), null, `${it.t}: 글에 opacity 없음`);
+    seen++;
+  });
+  assert.ok(seen >= 2);
+});
+
+test("가운데 칸의 '오늘'은 9pt medium, 작은 표(32pt 이하)에서는 빠진다(R-6 D-11)", () => {
+  const p = real();
+  const captions = (family) => {
+    const out = [];
+    walk(rt.render(p, { widgetFamily: family }), (n) => { if (n.type === 'TextView' && n.props.text === '오늘') out.push(JSON.stringify(modArgs(n, 'font')[0])); });
+    return out;
+  };
+  assert.deepEqual(captions('systemSmall'), []);
+  assert.deepEqual(captions('systemMedium'), []);
+  assert.deepEqual(captions('systemLarge'), [JSON.stringify({ size: 9, weight: 'medium' })]);
+});
+
+test('종이 무늬 선은 목록 괘선보다 옅다 — opacity 0.55(R-6 D-4)', () => {
+  let n = 0;
+  walk(rt.render({ ...real(), pat: 'grid' }, { widgetFamily: 'systemLarge' }), (node) => {
+    if (!(node.props.modifiers || []).some((m) => m.$type === 'clipped')) return;
+    walk(node.props.children, (r) => { if (r.type === 'RectangleView') { assert.equal(JSON.stringify(modArgs(r, 'opacity')), '[0.55]'); n++; } });
+  });
+  assert.equal(n, 60);
+});

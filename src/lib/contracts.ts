@@ -32,6 +32,7 @@ export interface TodayWidgetLines {
   left: string /* '오늘 {n}개 남았어요' */; allDone: string; empty: string; more: string /* '그 밖에 {n}개' */;
   leftShort: string /* '남음' */; doneShort: string /* '끝' */; today: string /* '오늘' */;
   next: string /* '다음 할 일: {t}' */; checked: string /* '{t} — 했어요' */;
+  unchecked: string /* '{t}, 아직 안 했어요' */; progress: string /* '오늘 {t}개 중 {n}개 했어요' — {n} 한 수 · {t} 모두 */;
 }
 export interface TodayWidgetProps {
   v: 1; day: string; date: string; done: number; total: number;
