@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
-import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
+import { Header, LineRow, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { ActivityChart, MoodStrip, TenWeeks, WearLegend, WeekBars } from '../components/StatsCharts';
 import { alpha } from '../theme/moods';
 import { NUM, TYPE } from '../theme/type';
@@ -16,6 +16,11 @@ import { sameProps } from '../lib/sameProps';
 import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { fmtDateLong, fmtDateShort, fmtDateSpeech } from '../lib/text';
+import { chartRange, yearLabel } from '../lib/archive';
+import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
+import type { Messages } from '../i18n';
+import type { YearView } from '../lib/contracts';
 import { addedLine, addedSpeech, mindLine } from '../lib/ritualView';
 import { reviewWeeks, ritualTarget } from '../lib/ritual';
 import type { HeatMap } from '../lib/statsView';
@@ -39,7 +44,8 @@ const STACK_SCALE = 1.35;
 export const Stats = memo(function Stats() {
   const M = usePalette();
   const { doc, clock } = useDoc();
-  const { go, openAction, openRitual } = useUIActions();
+  const m = useMsg();
+  const { go, openAction, openRitual, openYear } = useUIActions();
   const { width: winW, fontScale } = useWindowDimensions();
   const contentW = Math.max(0, winW - 40);
 
@@ -137,9 +143,51 @@ export const Stats = memo(function Stats() {
       {/* 회고 */}
       <SectionHead M={M} title="회고" right="최근 14일" />
       <Reflections M={M} doc={doc} now={now} />
+
+      {/* 한 해 — 지금 표의 한 해 돌아보기 · 지난 표 보관함 */}
+      <SectionHead M={M} title={m.year.settingsHead} />
+      <YearSection M={M} m={m} doc={doc} now={now} onOpen={(v) => { tap(); openYear(v); }} />
     </View>
   );
 });
+
+/** 한 해 — '한 해 돌아보기 ›'(지금 쓰는 표) · '보관함 n장 ›' */
+function YearSection({ M, m, doc, now, onOpen }: {
+  M: M;
+  m: Messages;
+  doc: MandaratDoc;
+  now: Date;
+  onOpen: (v: YearView) => void;
+}) {
+  const { from, to } = chartRange(doc, now);
+  const label = yearLabel(from, to);
+  const shelf = m.year.statsShelf({ n: doc.archives?.length ?? 0 });
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      <View testID={TID.statsYear}>
+        <LineRow
+          M={M}
+          first
+          title={m.year.pageReview}
+          sub={label}
+          right="chevron"
+          accessibilityRole="button"
+          accessibilityLabel={`${m.year.pageReview}, ${label}`}
+          onPress={() => onOpen({ kind: 'review', id: null })}
+        />
+      </View>
+      <LineRow
+        M={M}
+        last
+        title={shelf}
+        right="chevron"
+        accessibilityRole="button"
+        accessibilityLabel={shelf}
+        onPress={() => onOpen({ kind: 'shelf' })}
+      />
+    </View>
+  );
+}
 
 function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
   return doc.themes.some((th) => th.actions.some((a) => a.text.trim() && kindOf(a) === kind));
