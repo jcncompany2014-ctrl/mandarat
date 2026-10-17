@@ -26,4 +26,34 @@ export default {
   kindMind: '마음가짐',
   /** 꼬리말의 앱 이름 */
   appName: '만다라트',
+  // ── 인쇄 시트(V2-D) ──
+  sheetHead: '인쇄용 PDF',
+  paperHead: '종이 크기',
+  paperA4: 'A4',
+  paperLetter: '레터',
+  paperA3: 'A3',
+  paperA5: 'A5',
+  paperB5: 'B5',
+  /** 종이 크기 줄의 설명 — '210 × 297 mm' */
+  paperMm: ({ w, h }: { w: number; h: number }) => `${w} × ${h} mm`,
+  /** 잠긴 선택의 오른쪽 글씨 */
+  pro: '프로',
+  /** 잠긴 줄의 화면 읽기 이름 — 'A3, 297 × 420 mm, 프로 기능' */
+  lockedSay: ({ name }: { name: string }) => `${name}, 프로 기능`,
+  layoutHead: '구성',
+  layoutChart: '표 한 장',
+  layoutAreas: '표지 + 영역별 8쪽',
+  blank: '빈 표로',
+  blankSub: '손으로 채워 쓰게 실천 칸을 비워요',
+  /** 고른 것 한 줄 — 'A4 · 1쪽' */
+  summary: ({ paper, n }: { paper: string; n: number }) => `${paper} · ${n}쪽`,
+  printGo: '인쇄하기',
+  exportPdf: 'PDF로 내보내기',
+  /** 웹·안드로이드 — 따로 내보내기 버튼이 없다 */
+  webNote: '인쇄 창에서 PDF로 저장할 수 있어요',
+  busy: 'PDF를 만드는 중이에요',
+  failed: 'PDF를 만들지 못했어요',
+  /** 표 이미지 시트 아래 글자 링크 */
+  shareLink: '인쇄용 PDF ›',
+  shareLinkSay: '인쇄용 PDF',
 } satisfies Namespace;

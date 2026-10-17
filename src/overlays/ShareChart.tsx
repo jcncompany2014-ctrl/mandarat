@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { PixelRatio, Platform, Share, View } from 'react-native';
+import { PixelRatio, Platform, Pressable, Share, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { Text } from '../components/AppText';
@@ -14,6 +14,8 @@ import { useUIActions, useUIState } from '../navigation/ui';
 import { useDoc } from '../store/MandaratContext';
 import { announce } from '../lib/useReducedMotion';
 import { Snackbar } from './Snackbar';
+import { useMsg } from '../i18n/react';
+import { TID } from '../lib/testIds';
 
 type Mode = 'progress' | 'blank';
 
@@ -49,11 +51,14 @@ function ShareSheet() {
       maxHeightPct={0.94}
       overlay={<Snackbar placement="top" />}
       footer={
-        CAN_CAPTURE ? (
-          <SaveButton M={M} posterRef={posterRef} />
-        ) : (
-          <Text style={{ fontSize: 13, lineHeight: 19, color: M.sub, paddingVertical: 8 }}>앱에서 이미지로 공유할 수 있어요</Text>
-        )
+        <>
+          {CAN_CAPTURE ? (
+            <SaveButton M={M} posterRef={posterRef} />
+          ) : (
+            <Text style={{ fontSize: 13, lineHeight: 19, color: M.sub, paddingVertical: 8 }}>앱에서 이미지로 공유할 수 있어요</Text>
+          )}
+          <PrintLink M={M} />
+        </>
       }
     >
       <ShareBody M={M} mode={mode} setMode={setMode} posterRef={posterRef} />
@@ -176,4 +181,27 @@ function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | 
   };
 
   return <PrimaryButton M={M} label="이미지 저장·공유" onPress={save} disabled={busy} />;
+}
+
+/** 버튼 아래 글자 링크 — 이 시트를 내리고 인쇄 시트를 연다(한 번에 시트 하나) */
+function PrintLink({ M }: { M: M }) {
+  const m = useMsg();
+  const dismiss = useSheetDismiss();
+  const { openPrint } = useUIActions();
+  return (
+    <Pressable
+      testID={TID.sharePrint}
+      onPress={() => {
+        tap();
+        dismiss(true);
+        openPrint();
+      }}
+      accessibilityRole="link"
+      accessibilityLabel={m.print.shareLinkSay}
+      hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
+      style={({ pressed }) => ({ alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 8, opacity: pressed ? 0.5 : 1 })}
+    >
+      <Text style={{ fontSize: 14, lineHeight: 19, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>{m.print.shareLink}</Text>
+    </Pressable>
+  );
 }
