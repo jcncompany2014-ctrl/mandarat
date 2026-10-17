@@ -291,7 +291,10 @@ node --test tests/storeMetadata.test.js
 
 - `npx eas-cli@25.1.1 metadata:lint` (from a scratch install, not added to the repo): "✅ Store configuration is valid."
 - `npm --prefix tools/store-shots run verify`: all 72 PNGs have the right size and are RGB with no alpha.
-- `npm run typecheck`, `npm test`, `npm run prebuild-check` and `npm run web-smoke`: see the gate results in the commit/PR notes.
+- `npm run typecheck`: clean.
+- `npm test`: 1098 tests, 1097 pass, 0 fail, 1 skipped (the skip is not in this package's tests). This includes the 16 tests in `tests/storeMetadata.test.js` and the 21 in `tests/storeShots.test.js`.
+- `npm run prebuild-check`: all passed.
+- `npm run web-smoke`: all passed, 228 screens in ko, ja and en.
 
 ## Handoffs
 
