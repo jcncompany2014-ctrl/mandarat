@@ -261,13 +261,20 @@ function world(seed, opts = {}) {
   return { devs, issued, pull, commit, r, get wall() { return wall; } };
 }
 
-/** 모두 맞춘다 — 둘씩 서로 받기를 몇 바퀴 */
+/**
+ * 모두 맞춘다 — 둘씩 서로 받기를 몇 바퀴. 한 기기가 모두에게서 받고, 모두가 그 기기에게서 받는다.
+ * 받을 때마다 다듬기(materialize)가 이 기기 도장을 새로 낼 수 있어, 마지막 받기에서 다듬은 것은 아직 다른 기기에 없다 —
+ * 그 도장까지 퍼질 때까지(같아질 때까지, 많아야 8바퀴) 돈다. 같아졌는지는 부르는 쪽이 따로 확인한다.
+ * (두 바퀴로 끊으면 50,000개 중 몇 개가 마지막 다듬기만 남긴 채 끝난다 — 예: seed 1203, R-1 F8 재실행)
+ */
 function converge(w) {
-  // 한 기기가 모두에게서 받고, 모두가 그 기기에게서 받는다 — 그다음 한 바퀴 더(다듬기 도장까지 퍼지게)
   const [hub, ...rest] = w.devs;
-  for (let round = 0; round < 2; round++) {
+  for (let round = 0; round < 8; round++) {
     for (const d of rest) w.pull(hub, d);
     for (const d of rest) w.pull(d, hub);
+    if (round === 0) continue;
+    const keys = replicas(w).map(replicaKey);
+    if (keys.every((k) => k === keys[0])) return;
   }
 }
 
