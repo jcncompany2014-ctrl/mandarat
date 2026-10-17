@@ -1,5 +1,46 @@
-// 'seeds' namespace — filled by X-I (docs/v2/plan.md Appendix B).
+// 'seeds' namespace — the 8 default areas of a first chart, and the goal and 64 squares of the sample (X-I).
+// Keys: area<area> · s<area><square> · unit<area><square> (the unit of a count square). Numbers and kinds live in SLOTS in src/data/defaults.ts.
 import type ko from '../ko/seeds';
 import type { Like } from '../types';
 
-export default {} satisfies Like<typeof ko>;
+export default {
+  area0: '健康',
+  area1: '仕事',
+  area2: '自己成長',
+  area3: '人間関係',
+  area4: 'お金',
+  area5: '趣味',
+  area6: '心',
+  area7: '挑戦',
+
+  sampleGoal: '健康・仕事・人間関係を大切に',
+
+  s00: '週3回の運動', s01: '1日に水を2L', s02: '11時に寝る', s03: '1日1万歩',
+  s04: '甘いものを控える', s05: '定期健診', s06: 'ストレッチ10分', s07: '夜食をやめる',
+
+  s10: 'サイドプロジェクト', s11: '発表を1回', s12: 'メンターを見つける', s13: '履歴書を更新',
+  s14: '新しいスキルを1つ', s15: '業界の交流会', s16: '成果を記録', s17: '資格を取る',
+
+  s20: '本を12冊読む', s21: 'オンライン講座', s22: '英会話', s23: '朝に文章を書く',
+  s24: '新しい言語を学ぶ', s25: 'ドキュメンタリーを見る', s26: 'メモを整理', s27: '講演会に行く',
+
+  s30: '週1回親に電話', s31: '友だちと集まる', s32: '感謝を伝える', s33: 'ふたりでデート',
+  s34: '新しい友だちを作る', s35: '手紙を書く', s36: '話をよく聞く', s37: 'ボランティア',
+
+  s40: '家計簿をつける', s41: '貯金30万円', s42: '投資の勉強', s43: 'サブスクを見直す',
+  s44: '収入の20%を貯金', s45: '副収入をつくる', s46: '支出を見直す', s47: '年金を確認',
+
+  s50: '写真を撮る', s51: '料理を10品', s52: '楽器を習う', s53: '絵を描く',
+  s54: '山に登る', s55: '植物を育てる', s56: 'ボードゲーム', s57: 'キャンプに行く',
+
+  s60: '瞑想10分', s61: '感謝日記', s62: 'デジタルデトックス', s63: '呼吸の練習',
+  s64: '散歩する', s65: '日記を書く', s66: 'ヨガ', s67: '気持ちをふりかえる',
+
+  s70: '知らない街を3か所', s71: 'ひとり旅', s72: 'バンジージャンプ', s73: 'ライブに行く',
+  s74: '初めての料理を食べる', s75: '日の出を見る', s76: '外国語で話す', s77: '星空キャンプ',
+
+  unit20: '冊',
+  unit41: '万円',
+  unit51: '品',
+  unit70: 'か所',
+} satisfies Like<typeof ko>;
