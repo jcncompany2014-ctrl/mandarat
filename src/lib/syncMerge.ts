@@ -11,7 +11,7 @@ import type { MandaratDoc } from '../types';
 import { extraLogKey, kindOf } from './routine';
 import type { Parts, PNPart, SyncMeta } from './syncMeta';
 import { eff, maxStamp, type Stamp } from './syncStamp';
-import { assemble, canon, isCounterPath, partsSum, project, rank, type Json } from './syncProject';
+import { assemble, canon, partsSum, project, rank, type Json } from './syncProject';
 
 /** 한 기기의 복제본 — 파일(syncFile)로 오가고, 합치면 새 복제본이 된다 */
 export interface Replica {
@@ -64,9 +64,17 @@ interface Reg { s: Stamp; v: Json }
 /** 카운터 하나 — has: 값이 있는가(그날 더한 수는 늘 있다), b: 바탕(1/100 단위) */
 interface Ctr { s: Stamp; has: boolean; b: number }
 
-/** 그날 더한 수 경로 — 없으면 0으로 본다 */
-function isLogPath(path: string): boolean {
-  return path.charCodeAt(0) === 99 /* c */ && path.split('/')[2] === 'log';
+/**
+ * 카운터 종류 — 0: 카운터 아님, 1: 누적 집중·쌓기 수, 2: 그날 더한 수(없으면 0으로 본다).
+ * isCounterPath와 같은 판정을 조각으로 나누지 않고 한다(합치기에서 경로마다 부른다).
+ */
+function ctrKind(p: string): 0 | 1 | 2 {
+  if (p === 'fm') return 1;
+  if (p.charCodeAt(0) !== 99 /* c */ || p.charCodeAt(1) !== 47 /* / */) return 0;
+  const i = p.indexOf('/', 2);
+  if (i < 0) return 0;
+  if (p.length === i + 2 && p.charCodeAt(i + 1) === 110 /* n */) return 1;
+  return p.startsWith('log/', i + 1) && p.indexOf('/', i + 5) < 0 ? 2 : 0;
 }
 
 function own(o: object, k: string): boolean {
@@ -111,16 +119,17 @@ function lift(S: SyncState, E: Stamp): Lifted {
   const ctrs = new Map<string, Ctr>();
   const paths = new Set<string>(S.values.keys());
   for (const p of Object.keys(S.clock)) paths.add(p);
-  if (current) for (const p of Object.keys(S.parts)) if (isCounterPath(p)) paths.add(p);
+  if (current) for (const p of Object.keys(S.parts)) if (ctrKind(p) !== 0) paths.add(p);
   for (const p of paths) {
     if (p === '__proto__') continue;
     const s = eff(S, p, E);
     const raw = S.values.get(p);
-    if (isCounterPath(p)) {
+    const kind = ctrKind(p);
+    if (kind !== 0) {
       if (!current) continue;
       const b = baseOf(raw);
       if (b !== null) ctrs.set(p, { s, has: true, b });
-      else if (isLogPath(p)) ctrs.set(p, { s, has: true, b: 0 - partsSum(own(S.parts, p) ? S.parts[p] : undefined) });
+      else if (kind === 2) ctrs.set(p, { s, has: true, b: 0 - partsSum(own(S.parts, p) ? S.parts[p] : undefined) });
       else ctrs.set(p, { s, has: false, b: 0 });
       continue;
     }
@@ -132,10 +141,23 @@ function lift(S: SyncState, E: Stamp): Lifted {
   return { regs, ctrs, parts: current ? S.parts : {} };
 }
 
+/** 값 객체의 rank — 레지스터 값은 고치지 않는 객체라서 객체마다 한 번만 센다(여러 복제본을 접을 때 같은 객체가 다시 온다) */
+const rankCache = new WeakMap<object, string>();
+function rankOf(v: Json): string {
+  if (!v || typeof v !== 'object') return rank(v);
+  let r = rankCache.get(v);
+  if (r === undefined) {
+    r = rank(v);
+    rankCache.set(v, r);
+  }
+  return r;
+}
+
 /** 이기는 쪽 — 큰 쪽이 a면 true */
 function regWins(a: Reg, b: Reg): boolean {
   if (a.s !== b.s) return a.s > b.s;
-  return rank(a.v) >= rank(b.v);
+  if (a.v === b.v) return true;
+  return rankOf(a.v) >= rankOf(b.v);
 }
 
 function ctrRank(c: Ctr): string {
@@ -152,7 +174,7 @@ function joinParts(a: Readonly<Parts>, b: Readonly<Parts>): Parts {
   const out: Parts = {};
   for (const src of [a, b]) {
     for (const p of Object.keys(src)) {
-      if (!isCounterPath(p) || p === '__proto__') continue;
+      if (ctrKind(p) === 0 || p === '__proto__') continue;
       const byDev = src[p];
       const dst = own(out, p) ? out[p] : (out[p] = {});
       for (const d of Object.keys(byDev)) {

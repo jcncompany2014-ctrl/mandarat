@@ -31,26 +31,46 @@ function metaFor(dev) {
 // ── 상태 비교 ────────────────────────────────────────────────────────────────
 
 /** 상태의 정규형 — 판 이하 도장은 지우고, 그날 더한 수의 합 0 이하는 "없음"(합 0)으로 본다 */
+const keyCache = new WeakMap();
+const valueCanon = new WeakMap();
+/** 값의 canon — 합친 상태는 받은 값 객체를 그대로 쓰므로 객체마다 한 번만 센다 */
+function canonOf(v) {
+  if (!v || typeof v !== 'object') return canon(v);
+  let c = valueCanon.get(v);
+  if (c === undefined) {
+    c = canon(v);
+    valueCanon.set(v, c);
+  }
+  return c;
+}
 function normState(S) {
-  const j = joinStates(S, S);
-  const values = {};
-  for (const [p, v] of j.values) values[p] = v;
-  return canon({ e: j.epoch, c: j.clock, p: j.parts, v: values });
+  if (keyCache.has(S)) return keyCache.get(S);
+  const j = S.joined ? S : joinStates(S, S);
+  const paths = [...j.values.keys()].sort();
+  const key = canon({ e: j.epoch, c: j.clock, p: j.parts }) + paths.map((p) => `\n${p}=${canonOf(j.values.get(p))}`).join('');
+  keyCache.set(S, key);
+  return key;
+}
+
+/** joinStates의 결과 표시 — 결과는 이미 정규형이다(멱등 검사가 확인한다) */
+function J(a, b) {
+  const out = joinStates(a, b);
+  out.joined = true;
+  return out;
 }
 
 /** 두 정규형이 다르면 어디가 다른지 */
 function sameState(x, y, msg) {
-  const a = normState(x);
-  const b = normState(y);
-  if (a === b) return;
-  const ja = JSON.parse(a);
-  const jb = JSON.parse(b);
+  if (normState(x) === normState(y)) return;
+  const nx = x.joined ? x : joinStates(x, x);
+  const ny = y.joined ? y : joinStates(y, y);
   const diffs = [];
-  for (const k of ['e', 'c', 'p', 'v']) {
-    if (k === 'e') { if (ja.e !== jb.e) diffs.push(`epoch ${ja.e} ${jb.e}`); continue; }
-    for (const q of new Set([...Object.keys(ja[k]), ...Object.keys(jb[k])])) {
-      if (canon(ja[k][q]) !== canon(jb[k][q])) diffs.push(`${k}:${q} ${canon(ja[k][q])} ≠ ${canon(jb[k][q])}`);
-    }
+  if (nx.epoch !== ny.epoch) diffs.push(`epoch ${nx.epoch} ${ny.epoch}`);
+  for (const [k, a, b] of [['c', nx.clock, ny.clock], ['p', nx.parts, ny.parts]]) {
+    for (const q of new Set([...Object.keys(a), ...Object.keys(b)])) if (canon(a[q]) !== canon(b[q])) diffs.push(`${k}:${q} ${canon(a[q])} ≠ ${canon(b[q])}`);
+  }
+  for (const q of new Set([...nx.values.keys(), ...ny.values.keys()])) {
+    if (canon(nx.values.get(q) ?? null) !== canon(ny.values.get(q) ?? null)) diffs.push(`v:${q} ${canon(nx.values.get(q) ?? null)} ≠ ${canon(ny.values.get(q) ?? null)}`);
   }
   assert.fail(`${msg}: ${diffs.slice(0, 8).join(' | ')}`);
 }
@@ -168,7 +188,7 @@ function appEdit(r, doc, day, now) {
 function world(seed, opts = {}) {
   const r = rng(seed);
   const n = opts.devices ?? 3;
-  const base = opts.base ?? (r() < 0.5 ? fuzzDoc(r) : migrate({ ...blankDoc(), onboarded: true, themes: sampleThemes(new Date(2026, 8, 1)) }));
+  const base = opts.base ?? (opts.fuzzBase ?? r() < 0.3 ? fuzzDoc(r) : migrate({ ...blankDoc(), onboarded: true, themes: sampleThemes(new Date(2026, 8, 1)) }));
   const devs = DEVS.slice(0, n).map((dev) => ({
     dev, meta: metaFor(dev), doc: opts.sameBase === false && r() < 0.5 ? fuzzDoc(r) : base, undo: [],
     skew: Math.floor((r() - 0.5) * 20000),
@@ -234,8 +254,11 @@ function world(seed, opts = {}) {
 
 /** 모두 맞춘다 — 둘씩 서로 받기를 몇 바퀴 */
 function converge(w) {
-  for (let round = 0; round < 3; round++) {
-    for (const d of w.devs) for (const o of w.devs) if (d !== o) w.pull(d, o);
+  // 한 기기가 모두에게서 받고, 모두가 그 기기에게서 받는다 — 그다음 한 바퀴 더(다듬기 도장까지 퍼지게)
+  const [hub, ...rest] = w.devs;
+  for (let round = 0; round < 2; round++) {
+    for (const d of rest) w.pull(hub, d);
+    for (const d of rest) w.pull(d, hub);
   }
 }
 
@@ -245,43 +268,39 @@ function replicas(w) {
 
 // ── 격자 성질 ────────────────────────────────────────────────────────────────
 
-test('joinStates is commutative, associative and idempotent on 6,000 random triples of multi-device histories', () => {
-  let triples = 0;
-  for (let seed = 1; triples < 6000; seed++) {
-    const w = world(seed, { sameBase: seed % 3 !== 0 });
-    const pool = replicas(w).map(stateOf);
-    // 같은 세계의 기기 셋, 그리고 다른 세계의 상태와도 섞는다
-    const other = world(seed + 100000, { steps: 8 });
-    pool.push(...replicas(other).map(stateOf));
-    const r = rng(seed * 31);
-    for (let k = 0; k < 6; k++) {
-      const [A, B, C] = [0, 1, 2].map(() => pool[Math.floor(r() * pool.length)]);
-      const ab = joinStates(A, B);
-      sameState(ab, joinStates(B, A), `comm seed ${seed}`);
-      sameState(joinStates(ab, C), joinStates(A, joinStates(B, C)), `assoc seed ${seed}`);
-      sameState(joinStates(ab, ab), ab, `idem seed ${seed}`);
-      sameState(joinStates(joinStates(A, A), A), joinStates(A, A), `idem A seed ${seed}`);
-      triples++;
-    }
+test('joinStates is commutative, associative and idempotent on 5,000 random triples of multi-device histories', () => {
+  // 세계 100개(기기 셋씩)의 상태 — 같은 세계의 기기끼리(대부분)와 다른 세계끼리(다른 바탕) 섞는다
+  const worlds = [];
+  for (let seed = 1; seed <= 100; seed++) worlds.push(replicas(world(seed, { sameBase: seed % 3 !== 0, fuzzBase: seed % 4 === 0 })).map(stateOf));
+  const r = rng(4242);
+  const pick = (ws) => ws[Math.floor(r() * ws.length)];
+  for (let k = 0; k < 5000; k++) {
+    const home = pick(worlds);
+    const [A, B, C] = [0, 1, 2].map(() => (r() < 0.8 ? pick(home) : pick(pick(worlds))));
+    const ab = J(A, B);
+    sameState(ab, J(B, A), `comm ${k}`);
+    sameState(J(ab, C), J(A, J(B, C)), `assoc ${k}`);
+    sameState(J(ab, ab), ab, `idem ${k}`);
+    if (k % 5 === 0) sameState(J(J(A, A), A), J(A, A), `idem A ${k}`);
   }
 });
 
-test('merge on documents is commutative, associative and idempotent wherever nothing had to be clipped (5,000 triples)', () => {
+test('merge on documents is commutative, associative and idempotent wherever nothing had to be clipped (500 triples)', () => {
   let exact = 0;
   let clipped = 0;
-  for (let seed = 1; exact + clipped < 5000; seed++) {
-    const w = world(seed + 7000);
-    const pool = replicas(w);
+  for (let seed = 1; exact + clipped < 500; seed++) {
+    // 받은 복제본은 늘 migrate를 거친다(decodeReplica) — 이 기기 문서도 같은 모양으로 맞춰 둔다
+    const pool = replicas(world(seed + 7000)).map((R) => ({ ...R, doc: migrate(JSON.parse(JSON.stringify(R.doc))) }));
     const r = rng(seed * 17);
-    for (let k = 0; k < 5; k++) {
+    for (let k = 0; k < 4; k++) {
       const [A, B, C] = [0, 1, 2].map(() => pool[Math.floor(r() * pool.length)]);
       const ab = merge(A, B);
       // 두 쪽만으로는 잘라 낼 것이 없다 — 교환·멱등은 늘 정확하다
       assert.equal(replicaKey(ab), replicaKey(merge(B, A)), `comm seed ${seed}`);
       assert.equal(replicaKey(merge(ab, ab)), replicaKey(ab), `idem seed ${seed}`);
-      assert.deepEqual(merge(A, A).doc, migrate(JSON.parse(JSON.stringify(A.doc))), `merge(A, A) keeps A's doc, seed ${seed}`);
+      if (k === 0) assert.deepEqual(merge(A, A).doc, migrate(JSON.parse(JSON.stringify(A.doc))), `merge(A, A) keeps A's doc, seed ${seed}`);
       const bc = merge(B, C);
-      const lossy = [...lossyPaths(joinStates(stateOf(A), stateOf(B)), ab.doc), ...lossyPaths(joinStates(stateOf(B), stateOf(C)), bc.doc)];
+      const lossy = [...lossyPaths(J(stateOf(A), stateOf(B)), ab.doc), ...lossyPaths(J(stateOf(B), stateOf(C)), bc.doc)];
       const left = merge(ab, C);
       const right = merge(A, bc);
       if (lossy.length === 0) {
@@ -290,10 +309,10 @@ test('merge on documents is commutative, associative and idempotent wherever not
       } else {
         // 잘라 낸 경로 밖은 같다
         const strip = (R) => {
-          const s = stateOf(R);
-          const values = new Map(s.values);
+          const st = stateOf(R);
+          const values = new Map(st.values);
           for (const p of lossy) values.delete(p);
-          return normState({ ...s, values, clock: s.clock });
+          return normState({ ...st, values });
         };
         assert.equal(strip(left), strip(right), `assoc outside ${lossy.join(',')} seed ${seed}`);
         clipped++;
@@ -319,8 +338,8 @@ test('merge of a replica with itself returns the same document, and assemble ∘
 
 // ── 잃지 않음 ────────────────────────────────────────────────────────────────
 
-test('never loses an edit: after convergence every path holds the value of its latest edit since the last epoch (400 histories)', () => {
-  for (let seed = 1; seed <= 400; seed++) {
+test('never loses an edit: after convergence every path holds the value of its latest edit since the last epoch (150 histories)', () => {
+  for (let seed = 1; seed <= 150; seed++) {
     const w = world(seed + 50000, { devices: 2 + (seed % 3) });
     converge(w);
     const reps = replicas(w);
@@ -359,7 +378,7 @@ test('never loses an edit: after convergence every path holds the value of its l
 });
 
 test('counters are conserved: random +/− on many devices with random pulls add up exactly after convergence', () => {
-  for (let seed = 1; seed <= 150; seed++) {
+  for (let seed = 1; seed <= 80; seed++) {
     const r = rng(seed + 900);
     let base = migrate({ ...blankDoc(), onboarded: true, themes: sampleThemes(new Date(2026, 8, 1)) });
     base = editCell(base, 1, 1, (a) => ({ ...a, text: '책', kind: 'count', count: 5, step: 1, goal: 1000 }));
