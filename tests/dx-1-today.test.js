@@ -32,9 +32,12 @@ test('D-1: 다 한 날 오늘 — 고르기 줄은 빼고, 했어요가 3개보�
   const head = slice(s, 'const DoneHead = memo(', '/**\n * 목록의 한 줄');
   assert.match(head, /accessibilityRole="button"/);
   assert.match(head, /accessibilityState=\{\{ expanded: !fold \}\}/);
-  assert.match(head, /accessibilityLabel=\{`했어요 \$\{count\}개`\}/);
+  assert.match(head, /accessibilityLabel=\{m\.today\.doneHeadLabel\(\{ n: count \}\)\}/);
   assert.match(head, /minHeight: 44/);
-  assert.match(head, /fold \? '펼치기' : '접기'/);
+  assert.match(head, /fold \? m\.today\.expand : m\.today\.collapse/);
+  const koToday = require('../src/i18n/ko/today').default;
+  assert.equal(koToday.doneHeadLabel({ n: 4 }), '했어요 4개');
+  assert.deepEqual([koToday.expand, koToday.collapse], ['펼치기', '접기']);
   // 접지 않을 때는 머리말 그대로
   assert.match(head, /accessibilityRole="header"/);
 });
@@ -92,7 +95,8 @@ test('D-11: 보드 — 마감 지난 것부터, 할 일 묶음에 목록과 같�
   // 진행 중 줄도 같은 여백 자리 · 같은 굵기, 표·통계와 같은 표시색(최종 점검 NEW-2 · NEW-1)
   assert.match(card, /stage === 1 && \([\s\S]*?left: -10, top: 12, bottom: 12, width: 2, backgroundColor: legibleMark\(M\.gold, M\.bg, M\)/);
   assert.doesNotMatch(card, /left: -12|width: 3, borderRadius/);
-  assert.match(kanban, /\{ label: '진행 중', stage: 1, mark: legibleMark\(M\.gold, M\.bg, M\) \}/);
+  assert.match(kanban, /\{ label: m\.today\.colDoing, stage: 1, mark: legibleMark\(M\.gold, M\.bg, M\) \}/);
+  assert.equal(require('../src/i18n/ko/today').default.colDoing, '진행 중');
 });
 
 test('D-11: 연속 기록 정보 줄 — 가운뎃점을 따로 써서 목록 · 보드와 같은 간격', () => {
@@ -104,7 +108,7 @@ test('D-11: 연속 기록 정보 줄 — 가운뎃점을 따로 써서 목록 ·
 
 test('D-25: 연속 기록 큰 숫자 — 통계와 같은 46/52 숫자, 20pt 회색 단위', () => {
   const s = src('src/screens/TodayModes.tsx');
-  const hero = slice(s, '{/* 지금 연속', '최고 ');
+  const hero = slice(s, '{/* 지금 연속', 'm.today.streakBest(');
   assert.match(hero, /fontSize: 46, lineHeight: 52/);
   assert.match(hero, /maxFontSizeMultiplier=\{1\.35\}/);
   assert.match(hero, /\{ fontSize: 46, fontWeight: '800', letterSpacing: -1\.5, color: M\.ink \}/);

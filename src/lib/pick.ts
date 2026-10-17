@@ -2,6 +2,7 @@
 import type { MandaratDoc } from '../types';
 import { autoToday, daysBetween, isRoutine, kindOf, perWeekOf, routineWeekCount, ymd } from './routine';
 import { countInfo, countSpeech, kindLine } from './kinds';
+import { msg, type Lang } from '../i18n';
 
 /** auto = 오늘 저절로 담김(반복 요일·주 N회·다가온 마감 — 고를 필요 없음), on/off = 오늘 목록에 담겼는지 */
 export type PickState = 'auto' | 'on' | 'off';
@@ -38,21 +39,22 @@ export interface PickSection {
  * 저절로 '오늘'에 담긴 까닭 한 줄 — 저절로 담기지 않았으면 ''.
  * 마감 지남 · 마감 가까움 · 주 N회 남은 횟수 · 반복하는 날.
  */
-export function whyAuto(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): string {
+export function whyAuto(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date, l?: Lang): string {
   if (!autoToday(doc, ti, ai, today)) return '';
+  const t = msg(l).today;
   const a = doc.themes[ti].actions[ai];
   if (kindOf(a) === 'once') {
     const due = a.due ? daysBetween(ymd(today), a.due) : 0;
-    return due < 0 ? '마감이 지나 ‘오늘’에 이미 있어요' : '마감이 가까워 ‘오늘’에 이미 있어요';
+    return due < 0 ? t.whyOverdue : t.whyDueSoon;
   }
   if (perWeekOf(a) > 0) {
     // 정한 주에는 남은 날만큼이 목표라 N이 아니라 이번 주 목표(planned)로 센다
     const w = routineWeekCount(doc, ti, ai, today);
     const left = w.planned - w.done;
     // 남은 횟수가 없는데도 담겨 있다면 오늘 체크로 채운 것
-    return left > 0 ? `이번 주 ${left}회 남아 ‘오늘’에 이미 있어요` : `이번 주 ${w.planned}회를 오늘 다 했어요`;
+    return left > 0 ? t.whyWeekLeft({ n: left }) : t.whyWeekDone({ n: w.planned });
   }
-  return '반복하는 날이라 ‘오늘’에 이미 있어요';
+  return t.whyRepeat;
 }
 
 /**
@@ -61,7 +63,7 @@ export function whyAuto(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number,
  * 마음가짐은 날마다 하는 일이 아니라 고르지 않는다.
  * 저절로 담긴 칸은 고를 수 없으므로 autoNames·autoCount로도 따로 준다(줄은 호환을 위해 rows에도 남긴다).
  */
-export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'dayLog'>, today: Date): PickSection[] {
+export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'dayLog'>, today: Date, l?: Lang): PickSection[] {
   const picked = new Set(doc.todayKeys);
   const out: PickSection[] = [];
   doc.themes.forEach((th, ti) => {
@@ -75,7 +77,7 @@ export function pickSections(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'da
       const line = kindLine(doc, ti, ai, today);
       // 쌓기는 보이는 hint('6/12권')와 같은 내용만 — line.speech에 붙는 '오늘 1권 더함'은 화면에 없다
       const say = kind === 'habit' ? line?.plan ?? '' : kind === 'count' ? countSpeech(countInfo(a, ymd(today))) : line?.speech ?? '';
-      rows.push({ ti, ai, text: a.text, state, hint: line?.plan ?? '', say, why: auto ? whyAuto(doc, ti, ai, today) : '' });
+      rows.push({ ti, ai, text: a.text, state, hint: line?.plan ?? '', say, why: auto ? whyAuto(doc, ti, ai, today, l) : '' });
     });
     if (!rows.length) return;
     const autoNames = rows.filter((r) => r.state === 'auto').map((r) => r.text.trim());
@@ -131,7 +133,9 @@ export const GUIDE_STEP_COUNT = 5;
  */
 export function guideSteps(
   doc: Pick<MandaratDoc, 'centerGoal' | 'themes' | 'todayKeys' | 'todayExtra' | 'dayLog'> & { areasSet?: boolean },
+  l?: Lang,
 ): { steps: GuideStep[]; filled: number; next: number } {
+  const t = msg(l).today;
   const filled = doc.themes.reduce((s, th) => s + th.actions.filter((a) => a.text.trim()).length, 0);
   const anyRoutine = doc.themes.some((th) => th.actions.some((a) => a.text.trim() && isRoutine(a)));
   const anyDone = doc.themes.some((th) => th.actions.some((a) => a.done));
@@ -139,11 +143,11 @@ export function guideSteps(
   // '오늘 할 일'은 날짜가 바뀌면 끝낸 것부터 정리되므로, 한 번이라도 해낸 기록이 있으면 고른 적이 있는 것으로 본다
   // (그래야 다 끝낸 가이드가 다음 날 아침 다시 나오지 않는다)
   const steps: GuideStep[] = [
-    { key: 'goal', label: '핵심 목표 정하기', done: !!doc.centerGoal.trim() },
-    { key: 'areas', label: '영역 8개 정하기', done: doc.areasSet === true },
-    { key: 'fill', label: `실천 칸 ${GUIDE_FILL_TARGET}개 채우기`, done: filled >= GUIDE_FILL_TARGET },
-    { key: 'today', label: '오늘 할 일 고르기', done: doc.todayKeys.length > 0 || doc.todayExtra.length > 0 || anyRoutine || anyDone || anyLog },
-    { key: 'check', label: '하나 해 보기', done: anyDone || anyLog },
+    { key: 'goal', label: t.guideGoal, done: !!doc.centerGoal.trim() },
+    { key: 'areas', label: t.guideAreas, done: doc.areasSet === true },
+    { key: 'fill', label: t.guideFill({ n: GUIDE_FILL_TARGET }), done: filled >= GUIDE_FILL_TARGET },
+    { key: 'today', label: t.guideToday, done: doc.todayKeys.length > 0 || doc.todayExtra.length > 0 || anyRoutine || anyDone || anyLog },
+    { key: 'check', label: t.guideCheck, done: anyDone || anyLog },
   ];
   return { steps, filled, next: steps.findIndex((s) => !s.done) };
 }

@@ -92,7 +92,8 @@ test('NEW-3(a11y): 연속 기록 줄은 체크 · 몸통 두 번만 멈추고, �
   const s = src('src/screens/TodayModes.tsx');
   const line = slice(s, 'const StreakLine = memo(', '// ── 보드');
   assert.match(line, /const week = summary \?\? weekStripSummary\(states, today >= 0 \? today : weekdayIndex\(new Date\(\)\)\);/);
-  assert.match(line, /const bodyLabel = \[text, area, plan, week, run\.a11y, done \? '오늘 했어요' : ''\]/);
+  assert.match(line, /const bodyLabel = \[text, area, plan, week, run\.a11y, done \? m\.today\.doneToday : ''\]/);
+  assert.equal(require('../src/i18n/ko/today').default.doneToday, '오늘 했어요');
   assert.match(line, /<View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">\s*<WeekStrip /);
 });
 
@@ -120,8 +121,9 @@ test('NEW-4(a11y): 반복 안 함 칩은 보이는 글 그대로 읽는다', () 
 
 test('A-1(1): 오늘 할 일 고르기 줄은 소리 말(say)을 읽는다', () => {
   const s = src('src/overlays/PickToday.tsx');
-  assert.match(s, /\[r\.text, r\.focus \? '이번 주 중점' : '', r\.say\]/);
-  assert.doesNotMatch(s, /r\.focus \? '이번 주 중점' : '', r\.hint\]/);
+  assert.match(s, /\[r\.text, r\.focus \? m\.today\.weekFocus : '', r\.say\]/);
+  assert.doesNotMatch(s, /r\.focus \? m\.today\.weekFocus : '', r\.hint\]/);
+  assert.equal(require('../src/i18n/ko/today').default.weekFocus, '이번 주 중점');
 });
 
 test('HANDOFF-A9 · NEW-1: 통계는 날짜를 또박또박 읽는다(속도 · 고른 날 · 회고 · 머리 오른쪽)', () => {
