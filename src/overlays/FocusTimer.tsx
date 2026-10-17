@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, AppState, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { PaperColumn } from '../components/WebColumn';
-import { MODAL_ORIENTATIONS, useWindowDimensions } from '../lib/screen';
+import { useWindowDimensions } from '../lib/screen';
+import { MODAL_ORIENTATIONS } from '../lib/screen';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '../components/AppText';
 import { EASE } from '../theme/motion';
