@@ -1,0 +1,10 @@
+/* 단축어 · Siri(V3-B) 부르는 말 — 열쇠는 AppIntents.swift의 영어 문장, 값마다 ${applicationName}(만다라트)이 들어간다. */
+
+"Show Today in ${applicationName}" = "${applicationName} 오늘 보기";
+"Open Today in ${applicationName}" = "${applicationName} 오늘 열어 줘";
+"Check off the next one in ${applicationName}" = "${applicationName} 다음 할 일 체크";
+"Mark the next one done in ${applicationName}" = "${applicationName} 하나 했어";
+"What's left today in ${applicationName}" = "${applicationName} 오늘 남은 일";
+"How many are left in ${applicationName}" = "${applicationName} 몇 개 남았어";
+"Start focus in ${applicationName}" = "${applicationName} 집중 시작";
+"Start a focus timer in ${applicationName}" = "${applicationName} 집중 타이머 켜 줘";

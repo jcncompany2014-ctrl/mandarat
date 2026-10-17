@@ -1,0 +1,18 @@
+/* Shortcuts and Siri (V3-B): intent titles, descriptions, short titles and replies. Keys are the same in every language (tests/shortcuts.test.js). */
+
+"intent.showToday.title" = "Show Today";
+"intent.showToday.desc" = "Opens Mandalart on Today's list.";
+"intent.todayLeft.title" = "What's left today";
+"intent.todayLeft.desc" = "Tells you how many are left today and what's next, without opening the app.";
+"intent.checkNext.title" = "Check off the next one";
+"intent.checkNext.desc" = "Marks the first undone item on Today's list as done.";
+"intent.startFocus.title" = "Start focus";
+"intent.startFocus.desc" = "Opens Mandalart and starts the focus timer on the first undone action.";
+
+"shortcut.showToday" = "Show Today";
+"shortcut.todayLeft" = "What's left today";
+"shortcut.checkNext" = "Check off the next one";
+"shortcut.startFocus" = "Start focus";
+
+"dialog.openAppFirst" = "Open Mandalart once so it can load Today's list.";
+"dialog.openAppList" = "Open Mandalart to choose which one to check off.";
