@@ -392,7 +392,7 @@ export function Settings() {
         <Section M={M} label={st.secInfo} />
         <ColophonRow M={M} first label={st.colName} value={st.appName} />
         <ColophonRow M={M} label={st.colVersion} value={APP_VERSION} />
-        <ColophonRow M={M} label={st.colFont} value="Pretendard · SIL OFL 1.1" />
+        <ColophonRow M={M} label={st.colFont} value={st.colFontValue} />
         <ColophonRow M={M} label={st.colPlace} value={storage.place} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 8, marginTop: 14 }}>
           {!!PRIVACY_URL && <TextLink M={M} label={st.privacy} onPress={() => openLink(PRIVACY_URL)} />}

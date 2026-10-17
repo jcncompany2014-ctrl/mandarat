@@ -82,6 +82,14 @@ async function main() {
     console.error(`${dist}/index.html이 없어요 — --no-export 없이 다시 실행해 주세요`);
     process.exit(2);
   }
+  // 웹 번들에는 iCloud 합치기 · 도장 코드가 없다(src/lib/syncCommit.ts 갈래 — R-8 #5)
+  const jsDir = path.join(dist, '_expo/static/js/web');
+  for (const f of fs.existsSync(jsDir) ? fs.readdirSync(jsDir) : []) {
+    if (/mergeAll|adoptMerged|joinStates|stampLocal/.test(fs.readFileSync(path.join(jsDir, f), 'utf8'))) {
+      console.error(`웹 번들(${f})에 iCloud 합치기 코드가 들어 있어요 — src/lib/syncCommit.ts 갈래를 확인해 주세요`);
+      process.exit(1);
+    }
+  }
 
   require('../tests/register');
   const { TID } = require('../src/lib/testIds');

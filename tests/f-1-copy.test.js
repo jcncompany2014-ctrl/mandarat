@@ -107,4 +107,8 @@ test('판권 줄 서체 값 — ja는 일본어 글자가 시스템 서체임을
   assert.equal(msg('ko').settings.colFontValue, 'Pretendard · SIL OFL 1.1');
   assert.equal(msg('en').settings.colFontValue, 'Pretendard · SIL OFL 1.1');
   assert.equal(msg('ja').settings.colFontValue, 'Pretendard・SIL OFL 1.1、和文はシステムの書体');
+  // 설정의 판권 줄은 카탈로그 값을 그린다(글자 그대로 쓰지 않는다)
+  const settings = src('src/screens/Settings.tsx');
+  assert.match(settings, /label=\{st\.colFont\} value=\{st\.colFontValue\}/);
+  assert.doesNotMatch(settings, /SIL OFL/);
 });

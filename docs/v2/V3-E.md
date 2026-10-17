@@ -163,7 +163,7 @@ useSyncPort(): SyncPort | null   // iOS only, after load; null on web/Android/st
 
 ## 5. Device QA (after V4-A and V5-E)
 
-- On a large doc (a 3-year chart), typing in the cell editor, the Today reflection and quick add stays smooth. Each commit runs one `stampLocal`: under 1 ms to find the changed paths, plus a clock copy of about 9 ms in Node for 27k paths (V2-F). If it stutters, apply V2-F handoff 1c (stamp at persist time and flush in the port). Note that the commit tests pin the current eager form.
+- On a large doc (a 3-year chart), typing in the cell editor, the Today reflection and quick add stays smooth. Since wave 10 (F-5, R-8 #3) commits no longer stamp: `commitMeta` returns at once for `'stamp'`, and the net change is stamped once at the next persist (300 ms debounce) or port read (`flushStamp`). The tests pin this lazy form. Check that a check-off tap on a 3-year chart has no visible delay, and that a persist does not stutter typing.
 - Saving a large doc is debounced (300 ms) and now also writes the clock. Check that backgrounding the app right after an edit still saves it: reopen the app and the edit is there.
 - Kill the app right after a pull while it is still on screen, then reopen. The pulled changes are there, or they come back on the next pull. Nothing local is lost.
 - Undo of 처음부터 다시 on the iPhone, while the iPad has already pulled the reset: both end up with the restored chart, and an edit made on the iPad in between is kept.
