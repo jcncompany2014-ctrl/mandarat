@@ -22,6 +22,18 @@ const { encodeReplica, decodeReplica, replicaName, devOfName, replicaDigest, SIZ
 const { BACKUP_SCHEMA } = require('../src/lib/backup');
 
 const DEVS = ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd'];
+
+/**
+ * 잃지 않음 · 카운터 보존 흉내의 기록 수 — 기본은 CI 그대로, FUZZ_SEEDS=N이면 N개(FUZZ_FROM=K면 K번째부터, 나눠 돌리기용).
+ * 예: FUZZ_SEEDS=12500 FUZZ_FROM=12501 node --test --test-name-pattern="never loses|conserved" tests/syncMerge.test.js
+ */
+function fuzzSeeds(dflt) {
+  const n = Number(process.env.FUZZ_SEEDS);
+  const from = Number(process.env.FUZZ_FROM);
+  const count = Number.isSafeInteger(n) && n > 0 ? n : dflt;
+  const first = Number.isSafeInteger(from) && from > 0 ? from : 1;
+  return { first, last: first + count - 1, count };
+}
 const T0 = Date.UTC(2026, 9, 1, 0, 0, 0);
 
 function metaFor(dev) {
@@ -336,7 +348,8 @@ test('merge of a replica with itself returns the same document, and assemble ∘
 // ── 잃지 않음 ────────────────────────────────────────────────────────────────
 
 test('never loses an edit: after convergence every path holds the value of its latest edit since the last epoch (150 histories)', () => {
-  for (let seed = 1; seed <= 150; seed++) {
+  const { first, last } = fuzzSeeds(150);
+  for (let seed = first; seed <= last; seed++) {
     const w = world(seed + 50000, { devices: 2 + (seed % 3) });
     converge(w);
     const reps = replicas(w);
@@ -355,6 +368,10 @@ test('never loses an edit: after convergence every path holds the value of its l
     }
     for (const [p, s] of latest) {
       if (isCounterPath(p)) continue; // 카운터는 아래 보존 검사
+      // 직접 추가한 할 일의 끝냄(x/<id>/done)은 그 할 일(x/<id>)이 있을 때만 값이다 — 머리가 지워졌으면(초기화 · 지우기가
+      // 더 늦거나 판 이하) 늦게 고친 끝냄도 문서에 없다. V1-F 레지스터 표의 "x/<id>/done — 원소, x/<id> 없으면 무시"(R-1 F8)
+      const xd = /^x\/([^/]+)\/done$/.exec(p);
+      if (xd && !S.values.has(pathOf('x', xd[1]))) continue;
       const stamp = F.clock[p] ?? '';
       assert.equal(stamp, s, `latest stamp kept for ${p}, seed ${seed}`);
       const want = w.issued.get(`${p}|${s}`);
@@ -375,12 +392,30 @@ test('never loses an edit: after convergence every path holds the value of its l
 });
 
 test('counters are conserved: random +/− on many devices with random pulls add up exactly after convergence', () => {
-  for (let seed = 1; seed <= 80; seed++) {
+  const { first, last } = fuzzSeeds(80);
+  const COUNTED = [['1-1', 1, 1], ['2-2', 2, 2]];
+  let exact = 0;
+  for (let seed = first; seed <= last; seed++) {
     const r = rng(seed + 900);
     let base = migrate({ ...blankDoc(), onboarded: true, themes: sampleThemes(new Date(2026, 8, 1)) });
     base = editCell(base, 1, 1, (a) => ({ ...a, text: '책', kind: 'count', count: 5, step: 1, goal: 1000 }));
     base = editCell(base, 2, 2, (a) => ({ ...a, text: '물', kind: 'count', step: 0.5, goal: 1000 }));
     const devs = DEVS.slice(0, 3).map((dev) => ({ dev, meta: metaFor(dev), doc: base }));
+    // 합친 카운터(바탕 + 몫의 합)를 문서가 담지 못해 잘라 낸 적이 있는가 — 함께 줄여 0 밑으로 간 수(V2-F §7.2).
+    // 잘라 낸 뒤 이 기기에서 고치면 잘린 값이 새 바탕이 되므로, 그런 기록의 그 카운터는 보존 법칙 밖이다(R-1 F8)
+    const clipped = new Set();
+    const pull = (d, o) => {
+      const L = replicaOf(d.doc, d.meta);
+      const X = replicaOf(o.doc, o.meta);
+      const m = merge(L, X);
+      const j = joinStates(stateOf(L), stateOf(X));
+      for (const [key, ti, ai] of COUNTED) {
+        const total = counterTotal(j.values.get(`c/${key}/n`));
+        if (total !== null && total !== Math.round((m.doc.themes[ti].actions[ai].count ?? 0) * COUNTER_SCALE)) clipped.add(key);
+      }
+      d.meta = adoptMerged(d.meta, m);
+      d.doc = m.doc;
+    };
     let wall = T0;
     let expectFm = 0;
     const expectCount = { '1-1': 5, '2-2': 0 };
@@ -392,7 +427,7 @@ test('counters are conserved: random +/− on many devices with random pulls add
         const [ti, ai] = r() < 0.5 ? [1, 1] : [2, 2];
         const key = `${ti}-${ai}`;
         const a = d.doc.themes[ti].actions[ai];
-        // 0 밑으로 내려가지 않는 고침만(내려가면 문서가 0에서 멈춰 보존 법칙 밖이다)
+        // 이 기기가 보는 수는 0 밑으로 내려가지 않는다(다른 기기와 함께 줄여 합이 0 밑으로 가는 것은 위 clipped가 센다)
         const delta = r() < 0.7 || (a.count ?? 0) < 3 ? [1, 0.5, 2][Math.floor(r() * 3)] : -1;
         const next = addCount(d.doc, ti, ai, delta, ymd(new Date(2026, 9, 1 + Math.floor(r() * 3))));
         const real = (next.themes[ti].actions[ai].count ?? 0) - (a.count ?? 0);
@@ -407,28 +442,25 @@ test('counters are conserved: random +/− on many devices with random pulls add
       } else {
         const o = devs[Math.floor(r() * 3)];
         if (o === d) continue;
-        const m = merge(replicaOf(d.doc, d.meta), replicaOf(o.doc, o.meta));
-        d.meta = adoptMerged(d.meta, m);
-        d.doc = m.doc;
+        pull(d, o);
       }
     }
-    // 다른 기기가 함께 줄인 수만큼 겹치지 않으면(이 흉내는 각 기기가 제 문서를 보고 줄인다) 합은 정확하다
     for (let round = 0; round < 2; round++) {
       for (const d of devs) for (const o of devs) {
-        if (d === o) continue;
-        const m = merge(replicaOf(d.doc, d.meta), replicaOf(o.doc, o.meta));
-        d.meta = adoptMerged(d.meta, m);
-        d.doc = m.doc;
+        if (d !== o) pull(d, o);
       }
     }
     const F = devs[0].doc;
     for (const d of devs) assert.deepEqual(canonArrays(withoutLocal(d.doc)), canonArrays(withoutLocal(F)));
     assert.equal(F.focusMinutes, expectFm, `focus minutes, seed ${seed}`);
-    // 줄이기는 그 기기가 본 수에서만 한다 — 다른 기기의 더하기와 겹쳐도 0 밑으로 가지 않으면 정확하다
-    const got = (ti, ai) => F.themes[ti].actions[ai].count ?? 0;
-    if (expectCount['1-1'] >= 0) assert.equal(got(1, 1), expectCount['1-1'], `count 1-1, seed ${seed}`);
-    assert.equal(got(2, 2), expectCount['2-2'], `count 2-2, seed ${seed}`);
+    // 어느 합치기에서도 잘라 내지 않은 카운터는 정확하다 — 잘라 낸 것만 건너뛴다(짐작이 아니라 잰 것)
+    for (const [key, ti, ai] of COUNTED) {
+      if (clipped.has(key)) continue;
+      assert.equal(F.themes[ti].actions[ai].count ?? 0, expectCount[key], `count ${key}, seed ${seed}`);
+      exact++;
+    }
   }
+  assert.ok(exact > (last - first + 1), `most counters were checked (${exact})`);
 });
 
 // ── 시나리오 ────────────────────────────────────────────────────────────────
@@ -682,25 +714,8 @@ test('decodeReplica returns null on garbage and never throws', () => {
 
 // ── 무거운 문서 ──────────────────────────────────────────────────────────────
 
-/** 3년 문서 — 1,095일 × 체크 10개, 쌓기 칸 64개 × 200일 */
-function heavyDoc() {
-  const themes = sampleThemes(new Date(2024, 0, 1)).map((t, ti) => ({
-    ...t,
-    actions: t.actions.map((a, ai) => {
-      const log = {};
-      for (let i = 0; i < 200; i++) log[ymd(new Date(2024, 0, 1 + i * 5))] = 1 + ((ti + ai + i) % 3);
-      return { ...a, text: `칸 ${ti}-${ai}`, kind: 'count', goal: 1000, count: 400, log };
-    }),
-  }));
-  const dayLog = {};
-  const dayMeta = {};
-  for (let i = 0; i < 1095; i++) {
-    const day = ymd(new Date(2024, 0, 1 + i));
-    dayLog[day] = Array.from({ length: 10 }, (_, k) => `${k % 8}-${(i + k) % 8}`).filter((k, j, xs) => xs.indexOf(k) === j);
-    if (i % 3 === 0) dayMeta[day] = { mood: i % 5, reflection: '괜찮은 하루' };
-  }
-  return migrate({ ...fullDoc(), themes, dayLog, dayMeta, focusMinutes: 50000 });
-}
+// 3년 문서(tests/helpers/heavyDoc.js) — 도장 시간 지킴이(syncEnvelope.test.js)와 같은 것
+const { heavyDoc } = require('./helpers/heavyDoc');
 
 test('a heavy 3-year doc merges in under 600 ms in Node', () => {
   const d = heavyDoc();
@@ -719,4 +734,3 @@ test('a heavy 3-year doc merges in under 600 ms in Node', () => {
   assert.equal(m.doc.themes[3].actions[3].count, 401);
 });
 
-void [pathOf, COUNTER_SCALE];

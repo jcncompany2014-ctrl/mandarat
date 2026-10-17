@@ -120,7 +120,9 @@ test('설정 화면 · 줄 · appInfo에 한글 화면 글이 없고, 확인 대
   assert.match(rows, /\{ text: msg\(\)\.common\.cancel, style: 'cancel' \}/);
   assert.match(rows, /style: destructive \? 'destructive' : 'default'/);
   const s = src('src/screens/Settings.tsx');
-  assert.match(s, /storageText\(st, useSyncStatus\(\)\.enabled\)/);
+  // 켜짐만 듣는다 — 맞추기 단계마다 설정 화면이 다시 그려지지 않게(R-8 #9)
+  assert.match(s, /storageText\(st, useSyncEnabled\(\)\)/);
+  assert.doesNotMatch(s, /useSyncStatus/);
   assert.match(s, /<ColophonRow M=\{M\} label=\{st\.colPlace\} value=\{storage\.place\} \/>/);
   // 지우기 · 템플릿 · 저장본은 빨간(destructive) 단추, 예시 채우기는 보통 단추
   assert.match(s, /ask\(st\.resetAskTitle, st\.resetAskBody, st\.resetAskOk, doReset, true\)/);

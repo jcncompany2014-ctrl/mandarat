@@ -3,7 +3,9 @@
 // 묶인 엔진이 없으면(웹 · 안드로이드 · Expo Go · 저장본을 읽기 전) 상태는 늘 'off'이고 부르기는 아무것도 하지 않는다.
 import { useSyncExternalStore } from 'react';
 import { icloud } from '../../modules/icloud-sync';
-import { OFF_STATUS, probe, type RemoteProbe, type SyncChoice, type SyncStatus } from './syncEngine';
+// 엔진이 아니라 손잡이(syncCommit)에서 — 웹 번들에 엔진 · 합치기가 들어가지 않게(R-8 #5)
+import { OFF_STATUS, probe } from './syncCommit';
+import type { RemoteProbe, SyncChoice, SyncStatus } from './syncEngine';
 
 export type { RemoteProbe, SyncChoice, SyncPhase, SyncProblem, SyncStatus } from './syncEngine';
 
@@ -41,6 +43,15 @@ export function publishSyncStatus(s: SyncStatus): void {
 /** 지금 맞추기 상태 — 바뀔 때만 다시 그린다 */
 export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore(subscribeSyncStatus, getSyncStatus, getSyncStatus);
+}
+
+function getSyncEnabled(): boolean {
+  return current.enabled;
+}
+
+/** 맞추기를 켰는가만 — 단계(syncing · idle …)가 바뀔 때는 다시 그리지 않는다(R-8 #9) */
+export function useSyncEnabled(): boolean {
+  return useSyncExternalStore(subscribeSyncStatus, getSyncEnabled, getSyncEnabled);
 }
 
 /** 기기 손잡이가 엔진을 묶는다 — 돌려받은 함수로 푼다(풀면 상태는 'off') */

@@ -20,8 +20,9 @@ import { rekey } from './syncMeta';
 import { pathOf } from './syncProject';
 import { eff, maxStamp, observe } from './syncStamp';
 
-/** 이 기기에서 고친 뒤 올리기까지 몰아 두는 시간 */
-export const PUSH_DEBOUNCE_MS = 5000;
+// 웹과 함께 쓰는 값(syncCommitBase) — 엔진에서도 그대로 부를 수 있게
+export { EPOCH_PUSH_DEBOUNCE_MS, OFF_STATUS, PUSH_DEBOUNCE_MS } from './syncCommitBase';
+
 /** 메타데이터 질의가 처음 모으기를 마칠 때까지 기다리는 시간 — 넘으면 ioError */
 export const GATHER_TIMEOUT_MS = 10_000;
 /** 온보딩의 살펴보기(probeRemote)가 첫 모으기를 기다리는 시간 */
@@ -45,8 +46,6 @@ export interface SyncStatus {
   /** phase가 'needsChoice'일 때 iCloud에 있는 기록(다른 기기 것을 모두 합친 문서) — 고르기 화면의 비교용 */
   remote?: MandaratDoc;
 }
-
-export const OFF_STATUS: SyncStatus = { phase: 'off', enabled: false };
 
 /** 엔진이 쓰는 기기 IO — 기기에서는 icloud 모듈, 테스트에서는 가짜 폴더 */
 export interface SyncIO {
@@ -222,6 +221,11 @@ export async function push(port: SyncPort, io: SyncIO): Promise<PushResult> {
   return { wrote: true, large: json.length > SIZE_WARN };
 }
 
+/** JS 줄을 한 번 비운다 — 쌓인 누르기 · 그리기가 먼저 돈다 */
+export function yieldToApp(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 export type PullResult = { kind: 'newer' } | { kind: 'ok'; changed: boolean; files: ICloudFile[] };
 
 /**
@@ -232,6 +236,9 @@ export type PullResult = { kind: 'newer' } | { kind: 'ok'; changed: boolean; fil
 export async function pull(port: SyncPort, io: SyncIO): Promise<PullResult> {
   const r = await readRemotes(port, io, false);
   if (r.tried > 0 && r.failed === r.tried) throw new SyncStop('ioError');
+  // 풀기와 합치기 사이에 한 번 쉰다 — 무거운 받기(R-8 #6) 동안 그 사이의 누르기가 먼저 돈다.
+  // 넣기는 그 뒤에도 기다림 없이 그 순간의 문서와 합친다(applyPulled)
+  await yieldToApp();
   const merged = mergeAll(null, r.remotes);
   if (isNewer(merged)) return { kind: 'newer' };
   let changed = false;
@@ -602,7 +609,9 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
     local: () => queue('push', () => cycle(false)),
     background: async () => {
       const meta = port.meta();
-      if (disposed || !meta?.enabled || block || !verified || status.phase === 'needsChoice') return;
+      // 오래 맞추지 않은 기기(isStale)는 고르기 전에는 올리지 않는다 — 묻기를 준비하는 동안 뒤로 가도(R-1 F4).
+      // 그동안 다른 기기가 치운 지운 표시를 모르니, 올리면 지운 값이 되살아난다
+      if (disposed || !meta?.enabled || block || !verified || status.phase === 'needsChoice' || isStale(meta, io.now())) return;
       try {
         await pushQueued();
       } catch (e) {

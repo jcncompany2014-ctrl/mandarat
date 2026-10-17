@@ -11,14 +11,14 @@ import { summarize } from '../lib/backup';
 import { backupAgeLabel } from '../lib/backupNote';
 import { select, tap } from '../lib/haptics';
 import { exportBackup } from '../lib/shareFile';
-import { useSyncStatus } from '../lib/syncStatus';
+import { useSyncEnabled } from '../lib/syncStatus';
 import { fmtDateLong } from '../lib/text';
 import { useMsg } from '../i18n/react';
 import type { Messages } from '../i18n';
 import { useUIActions } from '../navigation/ui';
 import { BackupImport } from '../overlays/BackupImport';
 import { useMandarat, type SnapshotInfo } from '../store/MandaratContext';
-import { useSnapshotUndo } from '../store/useSnapshotUndo';
+import { useResetUndo, useSnapshotUndo } from '../store/useSnapshotUndo';
 import { MOODS } from '../theme/moods';
 import { ACCENTS, GOLD, readableOn } from '../theme/palette';
 import { TYPE } from '../theme/type';
@@ -172,11 +172,13 @@ function LicenseList({ M }: { M: M }) {
 export function Settings() {
   const M = usePalette();
   const { go, back, openEditor, showToast } = useUIActions();
-  const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, listSnapshots, readSnapshot } = useMandarat();
+  const { doc, getDoc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, listSnapshots, readSnapshot } = useMandarat();
   const offerUndo = useSnapshotUndo();
+  const offerResetUndo = useResetUndo();
   const m = useMsg();
   const st = m.settings;
-  const storage = storageText(st, useSyncStatus().enabled);
+  // 켜짐만 본다 — 맞추기 단계가 바뀔 때마다 설정 화면 전체가 다시 그려지지 않게(R-8 #9)
+  const storage = storageText(st, useSyncEnabled());
 
   const [importing, setImporting] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -268,9 +270,10 @@ export function Settings() {
   };
 
   const doReset = () => {
-    const snapshot = doc; // 되돌리기용 직전 상태
+    // 되돌리기용 직전 상태 — 저장소의 지금 문서(초기화가 기억한 것과 같은 객체여야 맞추기 판까지 거둔다)
+    const snapshot = getDoc();
     resetAll();
-    offerUndo(st.resetDone, snapshot);
+    offerResetUndo(st.resetDone, snapshot);
   };
   const confirmReset = () => {
     tap();

@@ -1,4 +1,4 @@
-// V4-A iCloud 맞추기 엔진 — 가짜 iCloud 폴더 위에서 저장소 흉내(같은 makeSyncPort · stampCommit · openStored)와
+// V4-A iCloud 맞추기 엔진 — 가짜 iCloud 폴더 위에서 저장소 흉내(같은 makeSyncPort · commitMeta · stampPending · openStored)와
 // 진짜 엔진(createSyncEngine)을 돌린다. 가장 중요한 것: 어느 순서로 끼어들어도 이 기기에서 고친 것을 잃지 않는다.
 require('./register');
 const { test } = require('node:test');
@@ -16,9 +16,9 @@ const { cleanSyncMeta, newSyncMeta } = require('../src/lib/syncMeta');
 const { isStamp, tagOfStamp } = require('../src/lib/syncStamp');
 const { encodeReplica, replicaName, devOfName } = require('../src/lib/syncFile');
 const { SYNC_TTL_MS } = require('../src/lib/syncLocal');
-const { makeSyncPort, openStored, serializeStored, stampCommit, docOnlyJson } = require('../src/lib/syncEnvelope');
+const { makeSyncPort, openStored, serializeStored, commitMeta, stampPending, docOnlyJson } = require('../src/lib/syncEnvelope');
 const {
-  classify, isEmptyDoc, createSyncEngine, probe, applyPulled, PUSH_DEBOUNCE_MS,
+  classify, isEmptyDoc, createSyncEngine, probe, applyPulled, PUSH_DEBOUNCE_MS, EPOCH_PUSH_DEBOUNCE_MS,
 } = require('../src/lib/syncEngine');
 
 const ROOT = path.join(__dirname, '..');
@@ -58,7 +58,8 @@ function makeCloud() {
 function makeDevice(world, cloud, dev, doc, opts = {}) {
   const key = opts.key ?? `key-${dev}`;
   const meta0 = opts.meta ?? cleanSyncMeta({ v: 1, dev, vendor: key, last: '', epoch: '', clock: {}, parts: {}, enabled: false, seen: {} });
-  const d = { dev, key, latest: doc, meta: meta0, rev: 0, copies: [], calls: [], hooks: {}, statuses: [], cloud };
+  const d = { dev, key, latest: doc, stamped: doc, meta: meta0, rev: 0, copies: [], calls: [], hooks: {}, statuses: [], cloud };
+  world.devices.push(d);
   const record = (oldMeta, newMeta, docNow) => {
     if (!newMeta || newMeta === oldMeta) return;
     let vals = null;
@@ -71,9 +72,19 @@ function makeDevice(world, cloud, dev, doc, opts = {}) {
       world.issued.set(k, canon(vals.get(p) ?? null));
     }
   };
-  d.commit = (next, how = 'stamp') => {
+  // 저장소처럼 도장은 미뤄서 — commit은 문서만, 저장 · 손잡이 읽기 전에 flush(R-8 #3)
+  d.flush = () => {
     const old = d.meta;
-    d.meta = stampCommit(d.latest, next, d.meta, how, world.wall);
+    d.meta = stampPending(d.stamped, d.latest, d.meta, world.wall);
+    d.stamped = d.latest;
+    record(old, d.meta, d.latest);
+  };
+  d.commit = (next, how = 'stamp') => {
+    if (how !== 'stamp') d.flush();
+    const old = d.meta;
+    const c = commitMeta(d.latest, next, d.meta, d.stamped, how, world.wall);
+    d.meta = c.meta;
+    d.stamped = c.stamped;
     d.latest = next;
     record(old, d.meta, next);
   };
@@ -84,6 +95,7 @@ function makeDevice(world, cloud, dev, doc, opts = {}) {
   const raw = makeSyncPort({
     doc: () => d.latest,
     meta: () => d.meta,
+    flush: () => d.flush(),
     setMeta: (m) => { record(d.meta, m, d.latest); d.meta = m; },
     putMerged: (doc2, m) => { record(d.meta, m, doc2); d.meta = m; d.rev += 1; d.commit(doc2, 'none'); },
     today: () => ymd(new Date(world.wall)),
@@ -137,9 +149,11 @@ function makeDevice(world, cloud, dev, doc, opts = {}) {
   /** 앱이 꺼졌다 다시 열린다 — 저장된 것(문서 + 메타)만 남는다 */
   d.kill = () => {
     void d.engine.dispose();
+    d.flush();
     const stored = serializeStored(d.latest, d.meta);
     const o = openStored(stored, ymd(new Date(world.wall)), world.wall, () => newSyncMeta(world.random));
     d.latest = o.doc;
+    d.stamped = o.doc;
     d.meta = o.meta;
     d.hooks = {};
     d.makeEngine();
@@ -147,9 +161,22 @@ function makeDevice(world, cloud, dev, doc, opts = {}) {
   return d;
 }
 
+/**
+ * 시계를 움직이면 먼저 모든 기기의 밀린 도장을 찍는다 — 저장소는 고친 뒤 300ms 안에 저장하며(persist) 찍으니,
+ * 시간이 흐르기 전에 늘 찍혀 있다(R-8 #3). 같은 순간의 고침 여러 개는 한 번에 찍힌다.
+ */
 function makeWorld(seed = 1) {
   const r = rng(seed);
-  return { wall: T0, issued: new Map(), random: r, r };
+  let wall = T0;
+  const world = {
+    issued: new Map(), random: r, r, devices: [],
+    get wall() { return wall; },
+    set wall(v) {
+      if (v !== wall) for (const d of world.devices) d.flush();
+      wall = v;
+    },
+  };
+  return world;
 }
 
 /** 정규형 — 문서만(판 · 시계 · 순서 · 기기 필드 없이) */
@@ -590,6 +617,35 @@ test('stale (no pull for longer than the TTL) forces ask', async () => {
   assert.equal(textOf(A.latest, 0, 2), 'B');
 });
 
+test('R-1 F4: a stale device never pushes on background while the stale-ask is being prepared (probe p3, inverted)', async () => {
+  const world = makeWorld(19);
+  const { A, B } = await pairOn(world);
+  await converge(A, B);
+  A.update((d) => editCell(d, 0, 2, (a) => ({ ...a, text: 'B-old' })));
+  await converge(A, B);
+  world.wall += SYNC_TTL_MS + DAY;
+  B.update((d) => editCell(d, 1, 1, (a) => ({ ...a, note: 'offline note' })));
+  let release;
+  B.hooks.read = (name) => new Promise((res) => { release = () => res([B.cloud.files.get(name).json]); });
+  const before = B.writes;
+  const p = B.engine.sync();
+  await settle(10);
+  assert.equal(B.engine.status().phase, 'checking', 'the ask is still being prepared (reading every remote)');
+  await B.engine.background();
+  assert.equal(B.writes, before, 'no write while stale');
+  release && release();
+  await p;
+  assert.equal(B.engine.status().phase, 'needsChoice');
+  await B.engine.background();
+  assert.equal(B.writes, before, 'still none while the choice is open');
+  // 고른 뒤에는 받고 올린다(pulledAt이 새로 — 더는 오래되지 않았다)
+  B.hooks = {};
+  await B.engine.choose('merge');
+  assert.equal(B.engine.status().phase, 'idle');
+  assert.ok(B.writes > before, 'pushes again after the choice');
+  assert.equal(B.latest.themes[1].actions[1].note, 'offline note');
+});
+
 test('unchanged replicas are never pushed', async () => {
   const world = makeWorld(20);
   const { A, B } = await pairOn(world);
@@ -850,11 +906,23 @@ test('source guards: host, engine and status', () => {
   assert.match(host, /Platform\.OS === 'ios' && icloud !== null/);
   assert.match(host, /state === 'active'\) void e\.foreground\(\)/);
   assert.match(host, /state === 'background'\) void e\.background\(\)/);
-  assert.match(host, /setTimeout\(\(\) => void e\.local\(\), PUSH_DEBOUNCE_MS\)/);
+  // 몰아 올리기는 5초, 새 판(처음부터 다시)은 되돌리기 토스트보다 오래(R-1 F2)
+  assert.match(host, /const wait = epoch !== pushedEpoch\.current \? EPOCH_PUSH_DEBOUNCE_MS : PUSH_DEBOUNCE_MS;/);
+  assert.match(host, /setTimeout\(\(\) => \{\s*pushedEpoch\.current = epoch;\s*void e\.local\(\);\s*\}, wait\)/);
+  assert.match(host, /const epoch = port\.epoch\(\);/);
+  // 엔진은 손잡이(syncCommit)에서만 — 웹 번들에 들어가지 않게(R-8 #5)
+  assert.match(host, /import \{ createSyncEngine, EPOCH_PUSH_DEBOUNCE_MS, PUSH_DEBOUNCE_MS \} from '\.\.\/lib\/syncCommit';/);
+  assert.doesNotMatch(host, /^import \{[^}]*\} from '\.\.\/lib\/syncEngine';/m);
   assert.match(host, /crash\.crumb\('sync', phase\)/);
   // 듣기를 start(boot) 전에
   assert.ok(host.indexOf("addListener('onChange'") < host.indexOf('e.boot()'));
   assert.equal(PUSH_DEBOUNCE_MS, 5000);
+  // 되돌리기 토스트(행동이 있는 토스트 8초 — Snackbar toastLife)보다 길다. 스크린리더가 켜져 있으면 토스트는 닫힐 때까지 남는다:
+  // 그 사이 뒤로 가면(background) 곧바로 올린다(R-1 F2가 받아들인 틈)
+  const snack = src('src/overlays/Snackbar.tsx');
+  const life = Number(/return t\.duration \?\? \(t\.action \? (\d+) : \d+\);/.exec(snack)[1]);
+  assert.equal(life, 8000);
+  assert.ok(EPOCH_PUSH_DEBOUNCE_MS > life, `${EPOCH_PUSH_DEBOUNCE_MS} > ${life}`);
   const eng = src('src/lib/syncEngine.ts');
   // 엔진은 기기 모듈을 타입으로만 안다(Node · 웹에서 불러도 된다)
   assert.match(eng, /import type \{[^}]+\} from '\.\.\/\.\.\/modules\/icloud-sync';/);
