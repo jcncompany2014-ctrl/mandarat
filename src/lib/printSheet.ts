@@ -181,14 +181,14 @@ function chartTable(doc: Doc, m: M, blank: boolean, side: number, k: number, acc
 
 // ── 쪽 ──────────────────────────────────────────────────────────────────────
 
-/** 표 한 장 — 머리말 · 목표 · 81칸 · 달성 수 · 메모 5줄 · 꼬리말 */
+/** 표 한 장 — 머리말 · 목표 · 81칸 · 달성 수 · 메모 5줄 · 꼬리말. 표는 판의 너비 그대로라 모두 같은 왼쪽 끝에서 시작한다 */
 function chartPage(doc: Doc, o: Opts, m: M, f: Frame, accentMark: string): string {
-  const side = 470 * f.k;
+  const side = BASE.w * f.k;
   const date = m.fmt.dateLong({ d: o.now });
   const done = posterDone(doc);
   const memo = Array.from({ length: 5 }, () => '<div class="rule"></div>').join('');
   return [
-    '<section class="page">',
+    '<section class="page cp">',
     headLine(m.print.sheetTitle, date),
     goalBlock(doc.centerGoal.trim()),
     chartTable(doc, m, o.blank, side, f.k, accentMark),
@@ -266,7 +266,8 @@ function areaPage(doc: Doc, o: Opts, m: M, f: Frame, ti: number): string {
     const text = o.blank ? '' : a?.text.trim() ?? '';
     const kind = text && a ? kindName[kindOf(a)] : '';
     const check = text && a?.done ? `<i class="chk on" style="background:${color};border-color:${color}"></i>` : '<i class="chk"></i>';
-    return `<tr><td class="act">${check}<span>${escLines(text)}</span></td><td class="kd" style="color:${SUB}">${esc(kind)}</td>${boxes}</tr>`;
+    // 칸은 표의 칸 그대로 두고(그래야 밑줄이 줄 전체와 이어진다) 네모 · 글의 가로 줄은 안쪽 div가 맡는다
+    return `<tr><td class="act"><div class="ai">${check}<span>${escLines(text)}</span></div></td><td class="kd" style="color:${SUB}">${esc(kind)}</td>${boxes}</tr>`;
   }).join('');
 
   return [
@@ -290,6 +291,7 @@ function css(f: Frame, fontCss: string): string {
   const frame = alpha(INK, 0.85);
   const block = alpha(INK, 0.55);
   const cell = alpha(INK, 0.22);
+  // 81칸 글 · 날짜 숫자는 작은 종이(A5)에서도 읽히게 크기에 바닥을 둔다(Math.max)
   // 81칸의 괘선 — 칸마다 왼쪽·위를 긋고, 마지막 줄·칸만 오른쪽·아래를 긋는다(겹치는 선은 굵은 쪽이 이긴다)
   const rules: string[] = [];
   for (let i = 0; i < 9; i++) {
@@ -307,6 +309,7 @@ body{font-family:${PRINT_FONT};font-weight:500;-webkit-text-size-adjust:100%;wor
 .page:last-child{break-after:auto;page-break-after:auto}
 .page>*{width:100%}
 .page>.chart{flex:none}
+.cp>*{width:${s(BASE.w)}}
 .num{font-variant-numeric:tabular-nums}
 .hl{display:flex;justify-content:space-between;font-size:${s(10)};line-height:1.3;font-weight:600;color:${SUB}}
 .goal,.area{font-size:${s(20)};line-height:1.25;font-weight:700;margin:${s(6)} 0 ${s(14)};display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -320,8 +323,8 @@ td,th{padding:0;vertical-align:middle;text-align:center}
 .t81 td{width:11.111%;height:11.111%}
 .in{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${s(2.5)};overflow:hidden}
 .t{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-.t81 .in{font-size:${s(8.5)};line-height:1.2;font-weight:600}
-.t81 .head .in,.t81 .core .in{font-size:${s(9)};font-weight:700}
+.t81 .in{font-size:${pt(Math.max(6.5, 8.5 * k))};line-height:1.2;font-weight:600}
+.t81 .head .in,.t81 .core .in{font-size:${pt(Math.max(7, 9 * k))};font-weight:700}
 .t81 .head.unnamed .in{font-weight:500}
 .t81 .done .in{font-weight:700}
 .fin{font-size:${s(7)};line-height:1.2;font-weight:700;margin-top:${s(1)}}
@@ -345,11 +348,12 @@ i{display:block;font-style:normal}
 .rows th{font-size:${s(7.5)};font-weight:600;color:${SUB};padding-bottom:${s(3)};border-bottom:${s(1)} solid ${block}}
 .rows td{height:${s(34)};border-bottom:${s(0.5)} solid ${alpha(INK, 0.3)}}
 .rows .act{width:${s(170)};text-align:left;font-size:${s(9)};line-height:1.25;font-weight:600;padding-right:${s(6)}}
-.rows td.act{display:flex;align-items:center;gap:${s(5)}}
-.rows td.act span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rows td.act{vertical-align:middle}
+.rows .ai{display:flex;align-items:center;gap:${s(5)}}
+.rows .ai span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .rows .kd{width:${s(44)};font-size:${s(8)};font-weight:600;text-align:left}
 .rows .d{padding:0 ${s(0.6)}}
-.rows th.d{font-size:${s(5.5)};font-weight:500}
+.rows th.d{font-size:${pt(Math.max(5.5, 6.5 * k))};font-weight:500}
 .rows td.d i{width:100%;aspect-ratio:1;border:${s(0.5)} solid ${alpha(INK, 0.45)}}
 .chk{flex:none;width:${s(8)};height:${s(8)};border:${s(0.75)} solid ${alpha(INK, 0.6)}}
 .tally-l{font-size:${s(7.5)};text-align:right;margin-top:${s(4)}}
