@@ -367,13 +367,14 @@ export function ActivityChart({
  * 닳은 자리 범례 — '최근 4주 · ■1 ■2 ■3 ■5+번'. 색은 영역마다 다르므로 중간 회색 농도로 보인다:
  * 밝은 무드는 보조 글씨색(sub), 다크는 sub를 종이 쪽으로 30% 섞은 색 — 실제 칸(영역 색 25~85%)과 밝기가 맞는다
  * (먹색을 쓰면 밝은 무드의 5+가 가운데 칸만큼 검고, 다크의 5+는 흰 가운데 칸과 같아진다)
+ * head — 범례 앞 머리말(기본 '최근 4주'). 한 해 돌아보기는 제목 줄과 같은 '4주 평균'을 준다
  */
-export function WearLegend({ M }: { M: M }) {
+export function WearLegend({ M, head }: { M: M; head?: string }) {
   const m = useMsg();
   const swatch = M.dark ? toHex(mix(M.sub, M.bg, 0.3)) : toHex(M.sub);
   return (
     <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 10 }}>
-      <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub, marginRight: 2 }} maxFontSizeMultiplier={1.2}>{m.stats.legendLast4}</Text>
+      <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub, marginRight: 2 }} maxFontSizeMultiplier={1.2}>{head ?? m.stats.legendLast4}</Text>
       {DAY_BIN_LABELS.map((l, i) => (
         <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 3 : 0 }}>
           <View style={{ width: 11, height: 11, borderRadius: 2, backgroundColor: alpha(swatch, WEAR_FILL[i + 1] / 100) }} />

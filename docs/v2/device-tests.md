@@ -119,3 +119,4 @@ The step names and inputs were checked against `@expo/build-tools` 25.1.1 (`dist
 - [ ] In 12, the share sheet's close button is matched in ko.
 - [ ] `setOrientation` (iPad 01) is supported by the Maestro version EAS installs. If not, drop the landscape half.
 - [ ] Look at the iPad screenshots in the job artifacts: sheets are capped at 560 pt, and the spread shows two pages.
+- [ ] iPad 13" landscape, VoiceOver: swipe right from the Home title reaches every Home row before any 81-cell cell (R-6 A-2). The spread row passes `experimental_accessibilityOrder` (left page, then right page), but RN 0.85 stable leaves the `enableAccessibilityOrder` feature flag off, so on this build the order comes from Fabric grouping each page `View`'s children (`shouldGroupAccessibilityChildren`). If rows of the two pages interleave, report it: the fix is turning that flag on, not a layout change.

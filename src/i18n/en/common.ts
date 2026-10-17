@@ -10,6 +10,7 @@ export default {
   off: 'Off',
   later: 'Later',
   undo: 'Undo',
+  back: 'Back',
   proMark: 'Pro',
   iosOnly: 'Available in the iPhone and iPad app',
 } satisfies Like<typeof ko>;

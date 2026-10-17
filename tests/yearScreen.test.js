@@ -85,7 +85,7 @@ test('YearReview: 네 숫자 · 한 해 달력 · 채워진 모습 · 닳은 자
     'title={m.year.framesTitle}',
     'title={m.year.wearTitle}',
     '<ActivityChart ',
-    '<WearLegend M={M} />',
+    '<WearLegend M={M} head={m.year.wearRight} />',
     'title={m.year.weeksTitle}',
     'title={m.year.notesTitle}',
     'm.year.noteLabel',
@@ -106,14 +106,14 @@ test('YearReview: 네 숫자 · 한 해 달력 · 채워진 모습 · 닳은 자
   assert.match(s, /<ActivityChart M=\{M\} doc=\{view\} activity=\{wear\} width=\{contentW\} \/>/);
 });
 
-test('YearReview: 큰 글자(1.35)에서 네 숫자는 2×2, 숫자는 두 줄까지 · 글자 크기 상한', () => {
+test('YearReview: 큰 글자(1.35)에서 네 숫자는 2×2, 숫자는 한 줄(값 안에서 줄을 바꾸지 않는다) · 글자 크기 상한', () => {
   const s = src(REVIEW);
   assert.match(s, /const STACK_SCALE = 1\.35;/);
   assert.match(s, /const stacked = fontScale >= STACK_SCALE \|\| contentW < ROW_MIN_W;/);
   assert.match(s, /const lines = stacked \? \[cells\.slice\(0, 2\), cells\.slice\(2\)\] : \[cells\];/);
   const nums = s.slice(s.indexOf('function Numbers('), s.indexOf('// ── 표가 채워진 모습'));
   assert.equal((nums.match(/maxFontSizeMultiplier=\{STACK_SCALE\}/g) ?? []).length, 2);
-  assert.match(nums, /numberOfLines=\{2\}\n\s+adjustsFontSizeToFit/);
+  assert.match(nums, /numberOfLines=\{1\}\n\s+adjustsFontSizeToFit\n\s+minimumFontScale=\{0\.7\}/);
   assert.match(nums, /accessibilityLabel=\{`\$\{c\.label\}, \$\{c\.speech \?\? c\.value\}`\}/);
 });
 

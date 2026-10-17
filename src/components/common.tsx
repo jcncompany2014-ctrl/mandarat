@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { MODAL_ORIENTATIONS, PageSize, usePanelStyle } from '../lib/screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text } from './AppText';
+import { Text, a11yLangProp } from './AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { Icon } from './Icon';
@@ -63,6 +63,7 @@ function BackBtn({ M, onPress, testID }: { M: M; onPress: () => void; testID?: s
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={m.core.back}
+      {...a11yLangProp()}
       hitSlop={4}
       style={({ pressed }) => ({
         width: 44, height: 44, marginLeft: -11,
@@ -183,6 +184,7 @@ export function IconBtn({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
+      {...a11yLangProp()}
       accessibilityElementsHidden={hidden}
       importantForAccessibility={hidden ? 'no' : 'yes'}
       style={({ pressed }) => ({
@@ -458,6 +460,7 @@ export function Sheet({
             accessibilityElementsHidden={ownClose}
             accessibilityRole="button"
             accessibilityLabel={m.core.sheetHandle}
+            {...a11yLangProp()}
             accessibilityHint={m.core.sheetHandleHint}
             onAccessibilityTap={() => dismiss()}
             style={{ paddingTop: 10, paddingBottom: 10, alignItems: 'center' }}
@@ -567,6 +570,7 @@ export function PrimaryButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      {...a11yLangProp()}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled }}
       style={({ pressed }) => [
@@ -609,6 +613,7 @@ export function PaperChip({
       hitSlop={{ top: 4, bottom: 4 }}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      {...a11yLangProp()}
       accessibilityState={{ selected: on, disabled }}
       style={({ pressed }) => ({
         minHeight: 40, paddingHorizontal: 12, borderRadius: 6,
@@ -652,6 +657,7 @@ export function TextTabs<T extends string>({
             hitSlop={{ top: 7, bottom: 7 }}
             accessibilityRole={TAB_ROLE}
             accessibilityLabel={label}
+            {...a11yLangProp()}
             accessibilityState={{ selected: on }}
             style={({ pressed }) => ({ minHeight: 30, justifyContent: 'center', opacity: pressed && !on ? 0.6 : 1 })}
           >
@@ -701,6 +707,7 @@ export function IndexTabs({
         hitSlop={{ top: 6, bottom: 6 }}
         accessibilityRole={TAB_ROLE}
         accessibilityLabel={a11y}
+        {...a11yLangProp()}
         accessibilityState={{ selected: on }}
         style={({ pressed }) => ({ minHeight: 32, justifyContent: 'center', opacity: pressed && !on ? 0.6 : 1 })}
       >
@@ -808,7 +815,7 @@ export function LineRow({
 
   if (!onPress) {
     return (
-      <View style={base} testID={testID} accessible accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} accessibilityRole={accessibilityRole} accessibilityState={a11yState}>
+      <View style={base} testID={testID} accessible accessibilityLabel={accessibilityLabel} {...a11yLangProp()} accessibilityHint={accessibilityHint} accessibilityRole={accessibilityRole} accessibilityState={a11yState}>
         {content}
       </View>
     );
@@ -821,6 +828,7 @@ export function LineRow({
       accessibilityRole={accessibilityRole ?? 'button'}
       accessibilityState={a11yState}
       accessibilityLabel={accessibilityLabel}
+      {...a11yLangProp()}
       accessibilityHint={accessibilityHint}
       style={({ pressed }) => [base, pressed ? pressedRow(M) : null]}
     >
@@ -853,6 +861,7 @@ export function RuledNotice({
           hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
           accessibilityRole="button"
           accessibilityLabel={action.accessibilityLabel ?? action.label}
+          {...a11yLangProp()}
           style={({ pressed }) => ({ alignSelf: 'flex-start', marginTop: 10, opacity: pressed ? 0.5 : 1 })}
         >
           <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{action.label}</Text>

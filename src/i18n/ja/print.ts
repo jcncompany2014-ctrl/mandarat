@@ -28,6 +28,7 @@ export default {
   paperMm: ({ w, h }) => `${w} × ${h} mm`,
   pro: 'プロ',
   lockedSay: ({ name }) => `${name}、プロの機能`,
+  lockedHint: 'タップするとプロの案内が開きます',
   layoutHead: '構成',
   layoutChart: '表1枚',
   layoutAreas: '表紙＋分野ごとの8ページ',

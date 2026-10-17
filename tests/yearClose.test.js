@@ -134,7 +134,7 @@ test('장부: 13달 · 윤년 2월 29일 · 없는 날은 칸이 없다', () => 
   // 폰 폭(390 - 40)에서 10pt 안팎
   assert.equal(ledgerCellSize(350), 10);
   assert.equal(ledgerCellSize(100), 6);
-  assert.equal(ledgerCellSize(1000), 12);
+  assert.equal(ledgerCellSize(1000), 16);
   // 칸 사이 머리카락 괘선 · 둥근 모서리 없음
   const s = src('src/components/YearLedger.tsx');
   assert.match(s, /borderRightWidth: rule/);

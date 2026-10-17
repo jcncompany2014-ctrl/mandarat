@@ -184,6 +184,7 @@ function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
                 last={i === PRINT_PAPERS.length - 1}
                 accessibilityRole="radio"
                 accessibilityLabel={locked ? m.print.lockedSay({ name }) : name}
+                accessibilityHint={locked ? m.print.lockedHint : undefined}
                 checked={on}
                 right={locked ? <ProMark M={M} label={m.print.pro} /> : <Check on={on} color={M.ink} dark={M.dark} size={22} />}
                 onPress={() => pickPaper(p)}
@@ -210,6 +211,7 @@ function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
                 last={i === LAYOUTS.length - 1}
                 accessibilityRole="radio"
                 accessibilityLabel={locked ? m.print.lockedSay({ name }) : name}
+                accessibilityHint={locked ? m.print.lockedHint : undefined}
                 checked={on}
                 right={locked ? <ProMark M={M} label={m.print.pro} /> : <Check on={on} color={M.ink} dark={M.dark} size={22} />}
                 onPress={() => pickLayout(l)}

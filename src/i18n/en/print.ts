@@ -29,6 +29,7 @@ export default {
   paperMm: ({ w, h }) => `${w} × ${h} mm`,
   pro: 'Pro',
   lockedSay: ({ name }) => `${name}, Pro feature`,
+  lockedHint: 'Opens the Pro page',
   layoutHead: 'Layout',
   layoutChart: 'One-page chart',
   layoutAreas: 'Cover and 8 area pages',

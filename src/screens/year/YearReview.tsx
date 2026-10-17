@@ -3,7 +3,7 @@
 // 잠긴 지난 표는 보관함 줄 하나와 '프로 알아보기'만.
 import React, { memo, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '../../components/AppText';
+import { Text, a11yLangProp } from '../../components/AppText';
 import { RowDivider, groupEdge, pressedRow } from '../../components/common';
 import { MiniChart } from '../../components/GridMark';
 import { ActivityChart, WearLegend } from '../../components/StatsCharts';
@@ -15,6 +15,7 @@ import { useUIActions } from '../../navigation/ui';
 import { dateKey } from '../../store/MandaratContext';
 import { archiveAsDoc, chartRange, yearLabel } from '../../lib/archive';
 import { fillFrames, yearCalendar, yearDigest } from '../../lib/yearReview';
+import { statValueSize } from './statFit';
 import { TID } from '../../lib/testIds';
 import { tap } from '../../lib/haptics';
 import { useMsg } from '../../i18n/react';
@@ -110,7 +111,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
         )}
         <DoubleRule M={M} />
 
-        <Numbers M={M} m={m} digest={digest} stacked={stacked} />
+        <Numbers M={M} m={m} digest={digest} stacked={stacked} width={contentW} />
       </View>
 
       <SectionHead M={M} title={m.year.calendarTitle} />
@@ -124,7 +125,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
       <SectionHead M={M} title={m.year.wearTitle} right={m.year.wearRight} />
       <View style={{ paddingHorizontal: GUTTER }}>
         <ActivityChart M={M} doc={view} activity={wear} width={contentW} />
-        <WearLegend M={M} />
+        <WearLegend M={M} head={m.year.wearRight} />
       </View>
 
       {digest.weekNotes.length > 0 && (
@@ -139,7 +140,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
 
       {!!note.trim() && (
         <View style={{ paddingHorizontal: GUTTER, marginTop: RHYTHM.sectionTop + 10 }}>
-          <View accessible accessibilityLabel={`${m.year.noteLabel}, ${note.trim()}`} style={{ paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
+          <View accessible accessibilityLabel={`${m.year.noteLabel}, ${note.trim()}`} {...a11yLangProp()} style={{ paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
             <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{m.year.noteLabel}</Text>
             <Text style={{ fontSize: 16, lineHeight: 23, color: M.ink, marginTop: 4 }}>{note.trim()}</Text>
           </View>
@@ -149,8 +150,9 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
       <View style={{ paddingHorizontal: GUTTER, marginTop: RHYTHM.sectionTop }} testID={TID.yearPrint}>
         <Pressable
           onPress={() => { tap(); openPrint(archive ? { archiveId: archive.id } : undefined); }}
-          accessibilityRole="link"
+          accessibilityRole="button"
           accessibilityLabel={m.year.printLink}
+          {...a11yLangProp()}
           hitSlop={6}
           style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', opacity: pressed ? 0.5 : 1 })}
         >
@@ -186,7 +188,7 @@ function SectionHead({ M, title, right }: { M: M; title: string; right?: string 
 type Digest = ReturnType<typeof yearDigest>;
 
 /** 괘선 한 줄에 네 칸 — 기록한 날 · 가장 긴 연속 · 달성 · 집중. 큰 글자 · 좁은 화면에서는 2×2 */
-function Numbers({ M, m, digest, stacked }: { M: M; m: Messages; digest: Digest; stacked: boolean }) {
+function Numbers({ M, m, digest, stacked, width }: { M: M; m: Messages; digest: Digest; stacked: boolean; width: number }) {
   const cells = [
     { key: 'days', label: m.year.statDays, value: m.fmt.days({ n: digest.days }) },
     { key: 'streak', label: m.year.statStreak, value: m.fmt.days({ n: digest.longest }) },
@@ -194,6 +196,8 @@ function Numbers({ M, m, digest, stacked }: { M: M; m: Messages; digest: Digest;
     { key: 'focus', label: m.year.statFocus, value: m.fmt.duration({ mins: Math.max(0, digest.focusMins) }) },
   ];
   const lines = stacked ? [cells.slice(0, 2), cells.slice(2)] : [cells];
+  // 값은 한 줄 — 칸 안쪽(좌우 여백 16 · 괘선 1을 뺀 폭)에 들어가는 크기로(네이티브의 adjustsFontSizeToFit처럼 칸마다)
+  const inner = width / lines[0].length - 17;
   return (
     <View style={{ marginTop: 18, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
       {lines.map((line, li) => (
@@ -203,12 +207,13 @@ function Numbers({ M, m, digest, stacked }: { M: M; m: Messages; digest: Digest;
               key={c.key}
               accessible
               accessibilityLabel={`${c.label}, ${c.speech ?? c.value}`}
+              {...a11yLangProp()}
               style={{ flex: 1, minWidth: 0, paddingVertical: 12, paddingLeft: ci ? 10 : 2, paddingRight: 6, borderLeftWidth: ci ? 1 : 0, borderColor: M.line }}
             >
-              {/* 숫자를 위에 — 이름이 두 줄로 접혀도 네 숫자의 높이가 맞는다. 긴 값(2시간 5분)은 두 줄까지 */}
+              {/* 숫자를 위에 — 이름이 두 줄로 접혀도 네 숫자의 높이가 맞는다. 긴 값(2시간 5분)도 한 줄 — 값 안에서 줄을 바꾸지 않는다 */}
               <Text
-                style={[{ fontSize: 20, lineHeight: 26, fontWeight: '800', color: M.ink }, NUM]}
-                numberOfLines={2}
+                style={[{ fontSize: statValueSize([c.value], inner), lineHeight: 26, fontWeight: '800', color: M.ink }, NUM]}
+                numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.7}
                 maxFontSizeMultiplier={STACK_SCALE}
@@ -239,7 +244,7 @@ function Frames({ M, m, frames, cellShape, width }: {
         const n = f.themes.reduce((s, th) => s + th.actions.filter((a) => a.done).length, 0);
         const label = m.fmt.monthDay({ d: dayOf(f.end) });
         return (
-          <View key={f.end} accessible accessibilityLabel={m.year.frameSpeech({ label, n })} style={{ width: size }}>
+          <View key={f.end} accessible accessibilityLabel={m.year.frameSpeech({ label, n })} {...a11yLangProp()} style={{ width: size }}>
             <MiniChart themes={f.themes} cellShape={cellShape} size={size} />
             <Text style={[{ fontSize: 11.5, lineHeight: 15, fontWeight: '600', color: M.sub, marginTop: 6 }, NUM]} numberOfLines={1}>
               {label}
@@ -265,6 +270,7 @@ function WeekNotes({ M, m, notes }: { M: M; m: Messages; notes: Digest['weekNote
             key={w.week}
             accessible
             accessibilityLabel={`${range}, ${w.note}`}
+            {...a11yLangProp()}
             style={[groupEdge(M, i === 0, i === notes.length - 1), { paddingVertical: 12, paddingHorizontal: 2 }]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
@@ -317,6 +323,7 @@ function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['refl
                   key={e.date}
                   accessible
                   accessibilityLabel={`${m.fmt.dateLong({ d: dayOf(e.date) })}, ${e.text}`}
+                  {...a11yLangProp()}
                   style={[groupEdge(M, i === 0, i === g.items.length - 1 && !(lastGroup && more)), { paddingVertical: 11, paddingHorizontal: 2 }]}
                 >
                   {i > 0 && <RowDivider M={M} inset={0} />}
@@ -333,6 +340,7 @@ function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['refl
           onPress={() => { tap(); setAll(true); }}
           accessibilityRole="button"
           accessibilityLabel={m.year.notesMore({ n: total - NOTE_ROWS })}
+          {...a11yLangProp()}
           style={({ pressed }) => [groupEdge(M, false, true), { minHeight: 44, paddingHorizontal: 2, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
         >
           <RowDivider M={M} inset={0} />
@@ -357,20 +365,22 @@ function LockedLine({ M, archive }: { M: M; archive: ArchivedChart }) {
       <View
         accessible
         accessibilityLabel={[label, range, goal, m.common.proMark].filter(Boolean).join(', ')}
+        {...a11yLangProp()}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 12, paddingHorizontal: 2, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]}>{`${label} · ${range}`}</Text>
           {!!goal && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }} numberOfLines={2}>{goal}</Text>}
         </View>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: M.ink }}>{m.common.proMark}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.common.proMark}</Text>
       </View>
       <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 12 }}>{m.year.lockedLine}</Text>
       <Pressable
         onPress={() => { tap(); openPro('archive'); }}
         testID={TID.yearLockedPro}
-        accessibilityRole="link"
+        accessibilityRole="button"
         accessibilityLabel={m.year.lockedLink}
+        {...a11yLangProp()}
         hitSlop={6}
         style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', opacity: pressed ? 0.5 : 1 })}
       >

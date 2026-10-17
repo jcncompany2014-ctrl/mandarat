@@ -69,7 +69,7 @@ test('모든 말 — 깨진 값이 없고 그 언어의 규칙을 지킨다', ()
 
 test('common: 여러 화면이 함께 쓰는 말', () => {
   assert.deepEqual(msg('ko').common, {
-    close: '닫기', cancel: '취소', retry: '다시 시도', openSettings: '설정 열기', on: '켬', off: '끔', later: '나중에', undo: '되돌리기',
+    close: '닫기', cancel: '취소', retry: '다시 시도', openSettings: '설정 열기', on: '켬', off: '끔', later: '나중에', undo: '되돌리기', back: '이전',
     proMark: '프로', iosOnly: 'iPhone·iPad 앱에서 쓸 수 있어요',
   });
 });

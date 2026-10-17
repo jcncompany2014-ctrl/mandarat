@@ -10,6 +10,7 @@ export default {
   off: 'オフ',
   later: 'あとで',
   undo: '元に戻す',
+  back: '前へ',
   proMark: 'プロ',
   iosOnly: 'iPhone・iPadのアプリで使えます',
 } satisfies Like<typeof ko>;

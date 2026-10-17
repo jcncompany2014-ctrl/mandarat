@@ -85,6 +85,8 @@ function SyncRows({ M }: { M: M }) {
             last
             title={t.sync.now}
             onPress={busy ? undefined : onNow}
+            // 맞추는 중에도 '흐린 버튼'으로 읽히게 — onPress가 없으면 LineRow는 역할 없는 줄이 된다
+            accessibilityRole="button"
             accessibilityLabel={t.sync.now}
             accessibilityState={{ disabled: busy }}
           />
