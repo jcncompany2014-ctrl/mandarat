@@ -31,7 +31,7 @@ export default {
   linePlaceholder: '今日のひとこと',
 
   mindTitle: '今週の心がけ',
-  mindProgress: ({ total, done }) => `${total}件中${done}件つけました`,
+  mindProgress: ({ total, done }) => `${total}件中${done}件を評価しました`,
   mindIntro: '1週間どれだけ守れたか、1〜5点でつけます',
   rateLastWeek: '先週の点数をつける',
   rateLastWeekHint: '「週のふりかえり」を開きます',
@@ -57,7 +57,7 @@ export default {
   streakNone: '続いている記録はまだありません。今日ひとつやれば始まります',
   weekCount: ({ total, done }) => `今週${total}回中${done}回`,
   doneToday: '今日できた',
-  undoDone: '「できた」を取り消す',
+  undoDone: '「できた」を消す',
   markDone: '「できた」にする',
 
   colTodo: 'やること',

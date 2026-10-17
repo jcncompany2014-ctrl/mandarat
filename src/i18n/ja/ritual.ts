@@ -23,7 +23,7 @@ export default {
   deltaLess: ({ n }) => `先週より${n}回少なめです`,
   deltaSame: '先週と同じです',
   rowHabit: '習慣',
-  rowAdded: '積み上げ',
+  rowAdded: '積み上げた分',
   rowMind: '心がけ',
   rowSay: ({ label, value }) => `${label}、${value}`,
   rowNone: 'なし',

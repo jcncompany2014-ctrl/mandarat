@@ -16,7 +16,7 @@ export default {
   allWritten: ({ area }) => `「${area}」の行動を8つすべて書きました`,
   nextTheme: ({ n }) => `分野${n}の名前を入力します`,
   cleared: 'マスを空にしました',
-  discardAsk: '直した内容を破棄しますか？',
+  discardAsk: '編集した内容を破棄しますか？',
   keepEditing: '編集を続ける',
   discard: '破棄',
   clearCell: 'マスを空にする',

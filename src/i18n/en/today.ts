@@ -59,8 +59,8 @@ export default {
   streakNone: 'No streak going yet. Do one today to start',
   weekCount: ({ total, done }) => `${done} of ${total} this week`,
   doneToday: 'Done today',
-  undoDone: 'Undo done',
-  markDone: 'Mark as done',
+  undoDone: 'Clear Done',
+  markDone: 'Mark done',
 
   colTodo: 'To do',
   colDoing: 'Doing',

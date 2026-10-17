@@ -9,7 +9,7 @@ export default {
   fillAction: ({ n }) => `行動${n}を書く`,
   sep: '、',
   coreGoal: '中心の目標',
-  goalPrompt: '中心の目標を決めましょう',
+  goalPrompt: '中心の目標を決めてください',
   areaOrdinalSay: ({ n }) => `8つの分野のうち${n}番目`,
   prevArea: '前の分野',
   nextArea: '次の分野',
