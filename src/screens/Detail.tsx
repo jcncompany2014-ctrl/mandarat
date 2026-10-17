@@ -150,18 +150,22 @@ export const Detail = memo(function Detail({ ti, embedded = false }: { ti: numbe
         )}
       </View>
 
-      {/* 실천 보드 — 81칸의 크게 보기와 같은 보드 */}
-      <Text accessibilityRole="header" style={sectionHead}>실천 보드</Text>
-      <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10, paddingBottom: RHYTHM.sectionTop }}>
-        <ChartBoard
-          M={M}
-          doc={doc}
-          ti={ti}
-          onCell={onBoardCell}
-          onCellLong={onBoardLong}
-          onHead={onBoardHead}
-        />
-      </View>
+      {/* 실천 보드 — 81칸의 크게 보기와 같은 보드. 펼침(embedded)에서는 왼쪽 쪽이 같은 보드를 크게 보고 있어 목록만 */}
+      {!embedded && (
+        <>
+          <Text accessibilityRole="header" style={sectionHead}>실천 보드</Text>
+          <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10, paddingBottom: RHYTHM.sectionTop }}>
+            <ChartBoard
+              M={M}
+              doc={doc}
+              ti={ti}
+              onCell={onBoardCell}
+              onCellLong={onBoardLong}
+              onHead={onBoardHead}
+            />
+          </View>
+        </>
+      )}
 
       {p.filled === 0 ? (
         // 아직 쓴 칸이 없으면 빈 줄 8개 대신 한 줄만
