@@ -33,9 +33,9 @@ They all read the current language, so they are correct; they are just indirect.
 
 **Gates**
 - `npm run typecheck` — clean.
-- `npm test` — see §6.
+- `npm test` — passes (1082 tests: 1081 pass, 0 fail, 1 skipped, which was already there).
 - `npm run prebuild-check` — passes.
-- `npm run web-smoke` — ko, ja, en, production and `--dev`; see §6.
+- `npm run web-smoke` — passes in ko, ja and en: production 228 shots (the new `v8-a` scene runs there), `--dev` 249 shots.
 
 ## 2. Glossary as finally applied
 
@@ -120,4 +120,13 @@ No leftover Korean UI text in ja or en. The Korean visible in ja/en shots is use
 
 ## 6. Verification
 
-Filled in at the end of the run, below.
+- `npm run typecheck`: clean.
+- `npm test`: 1082 tests. 1081 pass, 0 fail, 1 skipped (that skip was already there).
+- `npm run prebuild-check`: passes (base, icloud, pro, sentry, shortcuts, widgets).
+- `npm run web-smoke`: passes in ko, ja and en.
+  - Production: 228 shots, including the `v8-a` scene for ko-KR, ja-JP and en-US locales with no `?lang`.
+  - `--dev`: 249 shots.
+- **ko byte-identical check.** The `--dev` ko shots were compared with a baseline built from the wave base `fdcb054` in a separate worktree. 79 of 85 shots are identical.
+  - `ko-xj-grid-career`, `ko-xj-grid-learn`, `ko-xk-import-applied`, `ko-year-close-done` and `ko-year-review-375` differ by 1–6 pixels: toast and animation timing.
+  - `ko-v4e-language` differs only in the scroll-linked dot paper. Text and layout are identical (X-0 and X-L recorded the same noise).
+  - Production ko Settings shots now include the 언어 section. That is the intended effect of `I18N_READY`.
