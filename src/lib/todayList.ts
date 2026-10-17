@@ -1,7 +1,7 @@
 // 오늘 목록 화면(Today.tsx)의 순수 계산 — 색인 탭 · 마감 지남 · 집계 칸 · 빈 상태 · 마감 줄 글.
 // React Native에 기대지 않아 Node 테스트에서 바로 부른다(tests/todayList.test.js).
 import { daysBetween, kindOf, ymd } from './routine';
-import { fmtDateLong } from './text';
+import { msg, type Lang } from '../i18n';
 import type { MandaratDoc } from '../types';
 
 /** 집계 네모를 그리는 최대 개수 — 이보다 많으면 가는 막대 하나로 */
@@ -52,11 +52,12 @@ export function todayEmptyKind(doc: Pick<MandaratDoc, 'themes'>, canPick: boolea
 }
 
 /** 마감 줄 아래 글 — 왼쪽 '10월 14일 수요일 마감', 오른쪽 '10 / 10', 화면 읽기 한 마디 */
-export function dayCloseText(now: Date, total: number): { left: string; right: string; speech: string } {
-  const day = fmtDateLong(now);
+export function dayCloseText(now: Date, total: number, l?: Lang): { left: string; right: string; speech: string } {
+  const m = msg(l);
+  const day = m.fmt.dateLong({ d: now });
   return {
-    left: `${day} 마감`,
+    left: m.today.closeLeft({ day }),
     right: `${total} / ${total}`,
-    speech: `${day} 마감, 오늘 할 일 ${total}개를 다 했어요`,
+    speech: m.today.closeSpeech({ day, n: total }),
   };
 }

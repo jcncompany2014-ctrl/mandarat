@@ -1,6 +1,7 @@
 // '오늘 할 일 추가'와 '오늘 할 일 고르기' 시트의 판단 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 import type { MandaratDoc } from '../types';
 import { pickSections, type PickRow, type PickSection } from './pick';
+import { msg, type Lang } from '../i18n';
 
 /** 빈 입력칸 아래에 보여 줄, 이 영역에서 아직 담지 않은 실천 수 */
 export const QUICK_PICK_MAX = 3;
@@ -43,9 +44,10 @@ export function choosableRows(sec: Pick<PickSection, 'rows'>, priority: readonly
 }
 
 /** '저절로 담김 3 · 아침 스트레칭, 물 2L 외 1' — 저절로 담긴 칸이 없으면 '' */
-export function autoLine(sec: Pick<PickSection, 'autoCount' | 'autoNames'>): string {
+export function autoLine(sec: Pick<PickSection, 'autoCount' | 'autoNames'>, l?: Lang): string {
   if (sec.autoCount <= 0) return '';
+  const t = msg(l).today;
   const names = sec.autoNames.slice(0, 2);
   const more = sec.autoCount - names.length;
-  return `저절로 담김 ${sec.autoCount} · ${names.join(', ')}${more > 0 ? ` 외 ${more}` : ''}`;
+  return `${t.autoLine({ n: sec.autoCount, names: names.join(t.listSep) })}${more > 0 ? t.autoMore({ n: more }) : ''}`;
 }

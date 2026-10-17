@@ -79,7 +79,8 @@ test('D-15 · D-28: 편집 창 — 바닥 첫 글자 버튼을 가장자리에, 
 
 test("D-19: 오늘 고르기 — 아무것도 없으면 '오늘 0개 · 다 골랐어요' 대신 조용한 닫기", () => {
   const s = src('src/overlays/PickToday.tsx');
-  assert.match(s, /if \(total === 0\) return <PrimaryButton M=\{M\} tone="quiet" label="닫기"/);
+  assert.match(s, /if \(total === 0\) return <PrimaryButton M=\{M\} tone="quiet" label=\{m\.common\.close\}/);
+  assert.equal(require('../src/i18n/ko/common').default.close, '닫기');
 });
 
 test('D-22: 집중 타이머 — 멈추면 숫자가 흐려지고(4.5:1 이상) 움직임 없이도 다르게 보인다', () => {

@@ -13,6 +13,8 @@ import { suggestKind } from '../lib/kindSuggest';
 import { areaPicks, firstEmptyCell } from '../lib/quickAdd';
 import { check, select, tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
+import { msg } from '../i18n';
+import { useMsg } from '../i18n/react';
 
 /** 마지막으로 고른 영역 — 앱이 켜져 있는 동안 기억한다(시트를 다시 열 때 그 영역으로) */
 const lastArea = { ti: 0 };
@@ -25,7 +27,7 @@ const BOX = 22;
 const GAP = 12;
 
 function areaName(doc: MandaratDoc, ti: number): string {
-  return doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
+  return doc.themes[ti]?.title.trim() || msg().today.areaFallback({ n: ti + 1 });
 }
 
 /** 오늘 할 일 담기 — 글을 먼저 쓰고, 어느 영역의 일인지 고른다. 주 버튼은 시트 맨 아래에 붙어 있다. */
@@ -67,6 +69,7 @@ function QuickBody({
   ti: number;
   setTi: (i: number) => void;
 }) {
+  const m = useMsg();
   const { doc, addExtra, toggleToday } = useMandarat();
   const { showToast } = useUIActions();
   const dismiss = useSheetDismiss();
@@ -86,7 +89,7 @@ function QuickBody({
     check();
     toggleToday(key);
     lastArea.ti = ti;
-    showToast('오늘 할 일에 담았어요');
+    showToast(m.today.quickAdded);
     dismiss();
   };
 
@@ -94,7 +97,7 @@ function QuickBody({
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 32 }}>
         <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
-          오늘 할 일 담기
+          {m.today.quickTitle}
         </Text>
         <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
@@ -102,8 +105,8 @@ function QuickBody({
       <TextInput
         value={text}
         onChangeText={setText}
-        accessibilityLabel="오늘 할 일"
-        placeholder="예) 서류 제출하기"
+        accessibilityLabel={m.today.quickField}
+        placeholder={m.today.quickPlaceholder}
         placeholderTextColor={M.sub}
         autoFocus
         maxLength={MAX_LEN}
@@ -121,14 +124,14 @@ function QuickBody({
       {text.length >= COUNT_FROM && (
         <Text
           style={{ alignSelf: 'flex-end', marginTop: 6, fontSize: 12, fontWeight: '600', color: M.sub, ...NUM }}
-          accessibilityLabel={`${text.length}자, 최대 ${MAX_LEN}자`}
+          accessibilityLabel={m.today.quickCount({ n: text.length, max: MAX_LEN })}
         >
           {text.length}/{MAX_LEN}
         </Text>
       )}
 
       <Text style={{ marginTop: 22, marginBottom: 10, fontSize: 12.5, fontWeight: '600', color: M.sub }}>
-        어느 영역의 일인가요?
+        {m.today.quickAreaAsk}
       </Text>
       <IndexTabs
         M={M}
@@ -140,14 +143,14 @@ function QuickBody({
 
       {picks.length > 0 && (
         <View style={{ marginTop: 24 }}>
-          <Text style={{ marginBottom: 6, fontSize: 12.5, fontWeight: '600', color: M.sub }}>이 영역 실천 담기</Text>
+          <Text style={{ marginBottom: 6, fontSize: 12.5, fontWeight: '600', color: M.sub }}>{m.today.quickPicks}</Text>
           {picks.map((r, i) => (
             <Pressable
               key={r.ai}
               onPress={() => putToday(`${r.ti}-${r.ai}`)}
               accessibilityRole="button"
               accessibilityLabel={r.text}
-              accessibilityHint="오늘 할 일에 담아요"
+              accessibilityHint={m.today.quickPickHint}
               style={({ pressed }) => [
                 {
                   ...groupEdge(M, i === 0, i === picks.length - 1),
@@ -171,6 +174,7 @@ function QuickBody({
 
 /** 시트 맨 아래 — 주 버튼, 그리고 글이 있고 이 영역에 빈 칸이 있으면 '빈 칸에 적기' */
 function QuickFooter({ M, text, ti }: { M: M; text: string; ti: number }) {
+  const m = useMsg();
   const { doc, addExtra, setActionText, setActionConfig } = useMandarat();
   const undo = useSnapshotUndo();
   const dismiss = useSheetDismiss();
@@ -198,23 +202,23 @@ function QuickFooter({ M, text, ti }: { M: M; text: string; ti: number }) {
     }
     lastArea.ti = ti;
     // 바꾼 직후에 불러야 되돌리기가 이 변경을 알아본다
-    undo(`${area} ${ai + 1}번 칸에 적었어요`, snapshot);
+    undo(m.today.quickWroteCell({ area, n: ai + 1 }), snapshot);
     dismiss();
   };
 
   return (
     <View>
-      <PrimaryButton M={M} label="오늘 할 일에 담기" onPress={submit} disabled={!value} />
+      <PrimaryButton M={M} label={m.today.quickSubmit} onPress={submit} disabled={!value} />
       {ai >= 0 && (
         <Pressable
           onPress={writeCell}
           accessibilityRole="button"
-          accessibilityLabel={`${area} 빈 칸에 적기`}
-          accessibilityHint={`만다라트 ${area} 영역의 ${ai + 1}번 칸에 적어요`}
+          accessibilityLabel={m.today.quickWriteCell({ area })}
+          accessibilityHint={m.today.quickWriteCellHint({ area, n: ai + 1 })}
           style={({ pressed }) => ({ minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 2, opacity: pressed ? 0.5 : 1 })}
         >
           <Text style={{ fontSize: 14, fontWeight: '600', color: M.sub }} numberOfLines={1}>
-            {`${area} 빈 칸에 적기`}
+            {m.today.quickWriteCell({ area })}
           </Text>
         </Pressable>
       )}
