@@ -211,10 +211,11 @@ test('app.json: NSUbiquitousContainers가 없다(파일 앱에 폴더가 보이�
   assert.deepEqual(e['com.apple.developer.icloud-services'], ['CloudDocuments']);
 });
 
-test('prebuild-checks/icloud.js: 자동 연결 · 권한을 본다', () => {
+test('prebuild-checks/icloud.js: 자동 연결 · 권한 · Swift에 파일 시각 API가 없는지 본다', () => {
   const check = require('../scripts/prebuild-checks/icloud');
   const container = ICLOUD_CONTAINER;
   const ctx = {
+    root: ROOT,
     autolinking: { modules: [{ packageName: 'icloud-sync', modules: [{ class: 'ICloudSyncModule' }], pods: [{ podName: 'ICloudSync', podspecDir: '/x/modules/icloud-sync/ios' }] }] },
     entitlements: {
       'com.apple.developer.icloud-container-identifiers': [container],
@@ -227,4 +228,19 @@ test('prebuild-checks/icloud.js: 자동 연결 · 권한을 본다', () => {
   assert.throws(() => check({ ...ctx, autolinking: { modules: [] } }, assert));
   assert.throws(() => check({ ...ctx, infoPlist: { NSUbiquitousContainers: {} } }, assert));
   assert.throws(() => check({ ...ctx, entitlements: { ...ctx.entitlements, 'com.apple.developer.icloud-services': [] } }, assert));
+  // ubiquity URL의 파일 시각을 읽는 줄이 들어오면 멈춘다(R3-2) — 주석 속 이름은 괜찮다
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'icloud-check-'));
+  const swiftDir = path.join(tmp, 'modules', 'icloud-sync', 'ios');
+  fs.mkdirSync(swiftDir, { recursive: true });
+  const swift = src('modules/icloud-sync/ios/ICloudSyncModule.swift');
+  try {
+    for (const api of ['.contentModificationDateKey', '.creationDateKey', 'FileManager.default.attributesOfItem(atPath: p)', 'attrs[.modificationDate]']) {
+      fs.writeFileSync(path.join(swiftDir, 'ICloudSyncModule.swift'), `${swift}\nlet x = ${api}\n`);
+      assert.throws(() => check({ ...ctx, root: tmp }, assert), /ICloudSyncModule\.swift:\d+ 파일 시각 API/, api);
+    }
+    fs.writeFileSync(path.join(swiftDir, 'ICloudSyncModule.swift'), `${swift}\n// URLResourceKey 날짜(.contentModificationDateKey)는 쓰지 않는다\n`);
+    check({ ...ctx, root: tmp }, assert);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });

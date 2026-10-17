@@ -2,5 +2,8 @@
   "ios": {
     "CFBundleDisplayName": "만다라트",
     "NSPhotoLibraryAddUsageDescription": "만다라트 표 이미지를 사진 앱에 저장하려면 권한이 필요해요."
+  },
+  "android": {
+    "app_name": "만다라트"
   }
 }

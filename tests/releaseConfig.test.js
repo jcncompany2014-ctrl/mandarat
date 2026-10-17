@@ -35,7 +35,7 @@ test('사진 저장 권한 문구는 한국어로, Info.plist와 ko.lproj가 같
   assert.ok(typeof text === 'string' && /[가-힣]/.test(text), '사진 앱 저장 권한 문구가 없으면 이미지 저장에서 앱이 종료된다');
   assert.equal(app.locales.ko, './locales/ko.json');
   const ko = JSON.parse(read('locales/ko.json'));
-  assert.deepEqual(Object.keys(ko), ['ios'], 'iOS 키는 ios 아래에 둔다(getResolvedLocalesAsync)');
+  assert.deepEqual(Object.keys(ko), ['ios', 'android'], 'iOS 키는 ios, Android 런처 이름은 android 아래에 둔다(getResolvedLocalesAsync)');
   assert.equal(ko.ios.CFBundleDisplayName, plist.CFBundleDisplayName);
   assert.equal(ko.ios.NSPhotoLibraryAddUsageDescription, text);
 });
@@ -117,9 +117,14 @@ test('의존성: 안 쓰는 네이티브·서체 패키지는 빼고, 출시에 
 
 test('v2 언어: 번들은 ko · ja · en, ja.json · en.json은 이름과 사진 권한 문구만', () => {
   assert.deepEqual(app.locales, { ko: './locales/ko.json', ja: './locales/ja.json', en: './locales/en.json' });
+  // Android 런처 이름 — Locales.js는 android 블록만 values-b+<언어>/strings.xml에 쓴다(R2-1). app.json name(Xcode 대상 이름)은 그대로
+  assert.equal(app.name, 'Mandarat');
+  for (const [l, name] of [['ko', '만다라트'], ['ja', 'マンダラート'], ['en', 'Mandalart']]) {
+    assert.deepEqual(JSON.parse(read(`locales/${l}.json`)).android, { app_name: name }, l);
+  }
   for (const l of ['ja', 'en']) {
     const j = JSON.parse(read(`locales/${l}.json`));
-    assert.deepEqual(Object.keys(j), ['ios']);
+    assert.deepEqual(Object.keys(j), ['ios', 'android']);
     assert.deepEqual(Object.keys(j.ios).sort(), ['CFBundleDisplayName', 'NSPhotoLibraryAddUsageDescription']);
     for (const v of Object.values(j.ios)) {
       assert.ok(typeof v === 'string' && v.length > 0);
@@ -166,8 +171,19 @@ test('v2 권한(entitlements): iCloud 문서 컨테이너', () => {
   });
   const pm = app.ios.privacyManifests;
   assert.equal(pm.NSPrivacyTracking, false);
-  assert.deepEqual(pm.NSPrivacyCollectedDataTypes.map((t) => [t.NSPrivacyCollectedDataType, t.NSPrivacyCollectedDataTypeLinked, t.NSPrivacyCollectedDataTypeTracking]), [
-    ['NSPrivacyCollectedDataTypeCrashData', false, false],
+  // Sentry(sentry-cocoa)의 매니페스트와 같은 셋 — 강제 종료 · 멈춤(hang) · 발자국과 기기 모델(R-8 #1). 모두 연결 안 함 · 추적 안 함 · 앱 기능
+  assert.deepEqual(pm.NSPrivacyCollectedDataTypes.map((t) => [t.NSPrivacyCollectedDataType, t.NSPrivacyCollectedDataTypeLinked, t.NSPrivacyCollectedDataTypeTracking, t.NSPrivacyCollectedDataTypePurposes]), [
+    ['NSPrivacyCollectedDataTypeCrashData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
+    ['NSPrivacyCollectedDataTypePerformanceData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
+    ['NSPrivacyCollectedDataTypeOtherDiagnosticData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
+  ]);
+});
+
+test('Android: 템플릿 기본 권한은 막는다(R2-4)', () => {
+  assert.deepEqual(app.android.blockedPermissions, [
+    'android.permission.SYSTEM_ALERT_WINDOW',
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'android.permission.WRITE_EXTERNAL_STORAGE',
   ]);
 });
 

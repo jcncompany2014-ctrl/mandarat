@@ -2,6 +2,7 @@
 // 출시 막음 검사 — 개인정보 처리방침 주소(PRIVACY_URL)와 문의 메일(SUPPORT_EMAIL)이 비어 있으면 출시 빌드를 만들지 않는다.
 // App Review는 개인정보 처리방침 URL과 지원 URL을 요구한다(docs/RELEASE_CHECKLIST.md › 막는 항목).
 // 오류 수집(V4-F): Sentry DSN(SENTRY_DSN, src/lib/crash.native.ts)이 비어 있어도 막는다 — 비면 출시 앱이 오류를 보내지 않는다.
+// 프로 미리보기(EXPO_PUBLIC_PRO_PREVIEW)가 환경에 있어도 막는다 — 웹 스크린샷 전용 값이 출시 빌드에 실리면 안 된다(R-8 #7).
 // 쓰는 법: npm run release-check  (production 빌드 전에. 실패하면 종료 코드 1)
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +32,12 @@ function crashProblems({ SENTRY_DSN }) {
   return [];
 }
 
+/** 빌드 환경 → 고칠 것 목록 — 프로 미리보기 값이 있으면 막는다 */
+function envProblems(env = process.env) {
+  if (env.EXPO_PUBLIC_PRO_PREVIEW === undefined) return [];
+  return ['EXPO_PUBLIC_PRO_PREVIEW 값이 들어 있어요 — 웹 스크린샷 전용이에요. 셸과 expo.dev 환경 변수에서 지워 주세요.'];
+}
+
 /** crash.native.ts는 @sentry/react-native를 불러와 Node에서 읽을 수 없다 — 소스에서 SENTRY_DSN 한 줄만 읽는다 */
 function readSentryDsn(root = path.join(__dirname, '..')) {
   const src = fs.readFileSync(path.join(root, 'src', 'lib', 'crash.native.ts'), 'utf8');
@@ -38,12 +45,12 @@ function readSentryDsn(root = path.join(__dirname, '..')) {
   return m ? m[2] : '';
 }
 
-module.exports = { releaseProblems, crashProblems, readSentryDsn };
+module.exports = { releaseProblems, crashProblems, envProblems, readSentryDsn };
 
 if (require.main === module) {
   require(path.join(__dirname, '..', 'tests', 'register'));
   const info = require(path.join(__dirname, '..', 'src', 'lib', 'appInfo.ts'));
-  const problems = [...releaseProblems(info), ...crashProblems({ SENTRY_DSN: readSentryDsn() })];
+  const problems = [...releaseProblems(info), ...crashProblems({ SENTRY_DSN: readSentryDsn() }), ...envProblems()];
   if (problems.length) {
     console.error('출시할 수 없어요 (docs/RELEASE_CHECKLIST.md):');
     for (const p of problems) console.error(`  - ${p}`);

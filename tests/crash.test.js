@@ -86,6 +86,8 @@ function koreanEvent() {
     breadcrumbs: [
       { category: 'console', level: 'log', message: '실천: 물 2L' },
       { category: 'console', level: 'warning', message: 'short', data: { arguments: [{ text: '핵심 목표' }] } },
+      // ErrorBoundary의 console.warn('Mandarat crashed', error) — 오류 글이 그대로 발자국에 실린다
+      { category: 'console', level: 'warning', message: 'Mandarat crashed TypeError: Cannot find cell "매일 아침"' },
       { category: 'widget', level: 'info', message: 'ops 2' },
       { category: 'link', level: 'info', message: `x${'가'.repeat(90)}` },
     ],
@@ -99,13 +101,14 @@ test('beforeSend: 개인정보 칸을 지우고 오류 글의 따옴표 안을 "
   for (const k of ['extra', 'user', 'request', 'server_name']) assert.equal(k in ev, false, k);
   assert.equal('name' in ev.contexts.device, false, '기기 이름');
   assert.equal(ev.contexts.device.model, 'iPhone16,1');
-  assert.equal(ev.exception.values[0].value, 'Cannot read property "…" of "…" — "…" 영역');
+  assert.equal(ev.exception.values[0].value, 'Cannot read property "…" of "…" — "…" "…"');
   assert.ok(ev.exception.values[1].value.length <= 200, '200자');
   assert.doesNotMatch(ev.exception.values[1].value, /가/, '따옴표 안의 글이 남지 않는다');
   const json = JSON.stringify(ev);
   for (const s of ['매일 아침', '건강', '마라톤', '김민지', '비밀', '민지의', '물 2L', '핵심 목표']) assert.equal(json.includes(s), false, s);
-  // 남는 발자국: 경고 이상 console(인자 없이) · 짧은 앱 발자국
-  assert.deepEqual(ev.breadcrumbs.map((b) => b.message), ['short', 'ops 2']);
+  // 남는 발자국: 경고 이상 console(인자 없이, 글은 걸러서) · 짧은 앱 발자국
+  assert.deepEqual(ev.breadcrumbs.map((b) => b.message), ['short', 'Mandarat crashed TypeError: Cannot find cell "…"', 'ops 2']);
+  assert.ok(ev.breadcrumbs[1].message.endsWith('"…"'));
   assert.equal('data' in ev.breadcrumbs[0], false);
 });
 
@@ -116,6 +119,18 @@ test('beforeBreadcrumb: 경고보다 낮은 console · 80자보다 긴 글은 �
   assert.equal(mod.keepCrumb({ category: 'pro', level: 'info', message: 'a'.repeat(81) }), null);
   assert.deepEqual(mod.keepCrumb({ category: 'pro', level: 'info', message: 'a'.repeat(80) }), { category: 'pro', level: 'info', message: 'a'.repeat(80) });
   assert.deepEqual(mod.keepCrumb({ category: 'touch', level: 'info', message: 'Touch event within element: View' }).category, 'touch');
+  // 남기는 글도 거르고, console 기록의 인자는 늘 뺀다(원본은 그대로)
+  const crumb = { category: 'console', level: 'error', message: "[store] 저장 실패 'x'", data: { arguments: ['매일 아침'] } };
+  assert.deepEqual(mod.keepCrumb(crumb), { category: 'console', level: 'error', message: '[store] "…"' });
+  assert.equal(crumb.data.arguments[0], '매일 아침');
+});
+
+test('scrubText: 따옴표 없는 한글 · 가나 · 한자도 줄 끝까지 지우고, ASCII 코드 글은 남긴다', () => {
+  const { mod } = loadNative();
+  assert.equal(mod.scrubText('SyntaxError: JSON Parse error: Unexpected identifier 매일 아침'), 'SyntaxError: JSON Parse error: Unexpected identifier "…"');
+  assert.equal(mod.scrubText('Error: 毎朝ランニング at line 3\n    at parse (store.ts:12)'), 'Error: "…"\n    at parse (store.ts:12)');
+  assert.equal(mod.scrubText('Error: 早起き'), 'Error: "…"');
+  assert.equal(mod.scrubText('TypeError: undefined is not a function'), 'TypeError: undefined is not a function');
 });
 
 test('init: 개인정보 · 화면 캡처 · 화면 구조 · 추적 없이 한 번만, 미리 단 tag · report · crumb는 시작할 때', async () => {
@@ -134,6 +149,7 @@ test('init: 개인정보 · 화면 캡처 · 화면 구조 · 추적 없이 한 
   assert.equal(o.attachScreenshot, false);
   assert.equal(o.attachViewHierarchy, false);
   assert.equal(o.enableAutoPerformanceTracing, false);
+  assert.equal(o.enableAutoSessionTracking, false, '켤 때마다의 세션 기록(설치 번호)을 보내지 않는다');
   assert.equal(o.maxBreadcrumbs, 50);
   assert.equal(o.enabled, true);
   assert.equal(o.environment, process.env.EXPO_PUBLIC_APP_ENV ?? 'production');
@@ -235,6 +251,17 @@ test('@sentry/react-native를 부르는 앱 파일은 crash.native.ts 하나', (
   assert.doesNotMatch(code('src/lib/crash.ts'), /sentry/i);
   assert.match(code('src/lib/crash.ts'), /satisfies CrashApi/);
   assert.match(code('src/lib/crash.native.ts'), /satisfies CrashApi/);
+});
+
+test('envProblems: 프로 미리보기 값이 환경에 있으면 출시를 막는다', () => {
+  const { envProblems } = require('../scripts/releaseCheck');
+  assert.deepEqual(envProblems({}), []);
+  assert.deepEqual(envProblems({ EXPO_PUBLIC_APP_ENV: 'production' }), []);
+  for (const v of ['1', '0', '']) {
+    assert.equal(envProblems({ EXPO_PUBLIC_PRO_PREVIEW: v }).length, 1, JSON.stringify(v));
+    assert.match(envProblems({ EXPO_PUBLIC_PRO_PREVIEW: v })[0], /EXPO_PUBLIC_PRO_PREVIEW/);
+  }
+  assert.match(src('scripts/releaseCheck.js'), /\.\.\.envProblems\(\)/, '실행할 때 검사에 들어간다');
 });
 
 test('crashProblems: DSN이 비거나 모양이 틀리면 출시를 막는다', () => {
