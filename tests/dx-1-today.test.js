@@ -59,8 +59,8 @@ test('D-1: 홈 — 다 한 날엔 점선 고르기 줄이 마감 두 줄 위에 
   assert.match(s, /if \(!complete && \(canPick \|\| todayTotal === 0\)\) \{/);
   const after = slice(s, '<LedgerClose M={M}', '</View>\n    </>');
   assert.match(after, /\{complete && canPick && \(/);
-  assert.match(after, /accessibilityLabel="실천에서 더 고르기"/);
-  assert.match(after, /실천에서 더 고르기 ›/);
+  assert.match(after, /accessibilityLabel=\{m\.home\.pickMore\}/);
+  assert.match(after, /\{m\.home\.pickMoreLink\}/);
   assert.match(after, /minHeight: 44/);
 });
 

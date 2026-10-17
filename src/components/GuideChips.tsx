@@ -5,6 +5,7 @@ import { Text } from './AppText';
 import type { M } from '../theme/usePalette';
 import { analyzeAction, guideScore } from '../lib/coach';
 import { TICK_PATH } from '../lib/marks';
+import { useMsg } from '../i18n/react';
 
 /** 점검 칸 한 변 */
 const BOX = 10;
@@ -16,18 +17,20 @@ const BOX = 10;
  * 이름은 GuideChips 그대로(부르는 곳이 많다).
  */
 export function GuideChips({ M, text }: { M: M; text: string }) {
+  const m = useMsg();
+  const t = m.home;
   const g = analyzeAction(text);
   const score = guideScore(g);
   const items: [string, boolean][] = [
-    ['무엇을', g.what],
-    ['얼마나', g.howMuch],
-    ['언제·어디서', g.when],
+    [t.chipWhat, g.what],
+    [t.chipHowMuch, g.howMuch],
+    [t.chipWhen, g.when],
   ];
-  const hint = score < 3 ? '구체적일수록 실천하기 쉬워요' : '';
-  const spoken = items.map(([label, on]) => `${label} ${on ? '있음' : '없음'}`).join(', ');
+  const hint = score < 3 ? t.chipHint : '';
+  const spoken = items.map(([label, on]) => (on ? t.chipHas({ label }) : t.chipMissing({ label }))).join(m.core.listSep);
 
   return (
-    <View style={{ marginTop: 12 }} accessible accessibilityLabel={hint ? `${spoken}. ${hint}` : spoken}>
+    <View style={{ marginTop: 12 }} accessible accessibilityLabel={hint ? t.chipSpeech({ spoken, hint }) : spoken}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 6 }}>
         {items.map(([label, on]) => (
           <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
