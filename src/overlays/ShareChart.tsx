@@ -40,6 +40,7 @@ export function ShareChart() {
 
 function ShareSheet() {
   const M = usePalette();
+  const m = useMsg();
   const { closeShare } = useUIActions();
   const [mode, setMode] = useState<Mode>('progress');
   const posterRef = useRef<View>(null);
@@ -55,7 +56,7 @@ function ShareSheet() {
           {CAN_CAPTURE ? (
             <SaveButton M={M} posterRef={posterRef} />
           ) : (
-            <Text style={{ fontSize: 13, lineHeight: 19, color: M.sub, paddingVertical: 8 }}>앱에서 이미지로 공유할 수 있어요</Text>
+            <Text style={{ fontSize: 13, lineHeight: 19, color: M.sub, paddingVertical: 8 }}>{m.chart.shareWebOnly}</Text>
           )}
           <PrintLink M={M} />
         </>
@@ -73,6 +74,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
   posterRef: React.RefObject<View | null>;
 }) {
   const { doc } = useDoc();
+  const m = useMsg();
   const dismiss = useSheetDismiss();
   const { width: winW, height: winH } = useWindowDimensions();
   const now = new Date();
@@ -90,7 +92,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, lineHeight: 24, fontWeight: '800', color: M.ink }}>
-          표 이미지
+          {m.chart.shareTitle}
         </Text>
         <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
@@ -99,7 +101,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
       <View
         accessible
         accessibilityRole="image"
-        accessibilityLabel={blank ? '표 이미지 미리보기, 빈 표' : `표 이미지 미리보기, 64칸 중 ${done}칸 달성`}
+        accessibilityLabel={blank ? m.chart.previewBlankSay : m.chart.previewSay({ done })}
         style={{ alignSelf: 'center', width: pw + 2, height: ph + 2, marginTop: 14, borderWidth: 1, borderColor: M.line, overflow: 'hidden' }}
       >
         <View
@@ -121,8 +123,8 @@ function ShareBody({ M, mode, setMode, posterRef }: {
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'progress', label: '진행 표시' },
-            { value: 'blank', label: '빈 표' },
+            { value: 'progress', label: m.chart.modeProgress },
+            { value: 'blank', label: m.chart.modeBlank },
           ]}
         />
       </View>
@@ -143,6 +145,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
 }
 
 function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | null> }) {
+  const m = useMsg();
   const { showToast } = useUIActions();
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -153,7 +156,7 @@ function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | 
     setBusy(true);
     tap();
     // VoiceOver는 버튼이 흐려진 것만으로는 아무 말이 없다 — 무엇을 기다리는지 알린다
-    announce('이미지를 만드는 중이에요');
+    announce(m.chart.making);
     let uri: string | null = null;
     try {
       uri = await captureRef(posterRef, { format: 'png', result: 'tmpfile', ...captureSize() });
@@ -161,14 +164,14 @@ function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | 
       console.warn('[ShareChart] capture failed', e);
     }
     if (!uri) {
-      showToast('이미지를 만들지 못했어요');
+      showToast(m.chart.makeFailed);
     } else {
       try {
         // 공유 시트의 '이미지 저장'이 사진 보관함에 더한다(사진 추가 권한 문구는 app.json의 한국어)
         await Share.share({ url: uri });
       } catch (e) {
         console.warn('[ShareChart] share failed', e);
-        showToast('공유하지 못했어요');
+        showToast(m.chart.shareFailed);
       }
       try {
         releaseCapture(uri);
@@ -180,7 +183,7 @@ function SaveButton({ M, posterRef }: { M: M; posterRef: React.RefObject<View | 
     setBusy(false);
   };
 
-  return <PrimaryButton M={M} label="이미지 저장·공유" onPress={save} disabled={busy} />;
+  return <PrimaryButton M={M} label={m.chart.saveShare} onPress={save} disabled={busy} />;
 }
 
 /** 버튼 아래 글자 링크 — 이 시트를 내리고 인쇄 시트를 연다(한 번에 시트 하나) */

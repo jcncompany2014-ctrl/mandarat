@@ -8,6 +8,7 @@ import { PRETENDARD_GLYPHS } from '../lib/labelFit';
 import { EASE } from '../theme/motion';
 import type { M } from '../theme/usePalette';
 import { useReducedMotion } from '../lib/useReducedMotion';
+import { useMsg } from '../i18n/react';
 
 /** 가운데 칸 글자 크기 후보(큰 것부터) — 칸의 폭과 높이 안에(세 줄까지) 어절을 끊지 않고 들어가는 가장 큰 크기를 고른다 */
 const CENTER_SIZES = [18, 17, 16, 15, 14, 13, 12, 11, 10] as const;
@@ -44,6 +45,7 @@ export function ChartSketch({
   placeholder?: string;
   revealKey?: string | number;
 }) {
+  const m = useMsg();
   const reduced = useReducedMotion();
   const rule = alpha(M.ink, 0.4);
   const cell = (size - 2) / 3; // 바깥 테두리 1pt씩
@@ -89,7 +91,7 @@ export function ChartSketch({
     () => areaKey.split('\n').map((n) => fitBox(n, cell - AREA_PAD * 2, cell - AREA_PAD * 2, size >= 240 ? AREA_SIZES_LARGE : AREA_SIZES, AREA_LINES, 14 / 11, PRETENDARD_GLYPHS)),
     [areaKey, cell, size],
   );
-  const label = `만다라트 표, 가운데 칸 ${goal || placeholder || '비어 있음'}, 영역 ${names.filter(Boolean).join(', ')}`;
+  const label = m.chart.sketchSay({ goal: goal || placeholder || m.chart.sketchEmpty, areas: names.filter(Boolean).join(m.chart.sep) });
   const goldLine = legibleMark(M.gold, M.bg, M);
 
   return (

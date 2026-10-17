@@ -40,13 +40,14 @@ test('D-13: 8칸 다 달성한 블록은 크게 보기·영역 화면에서도 �
   const b = src('src/components/ChartBoard.tsx');
   assert.match(b, /const finished = th\.actions\.every\(\(a\) => !!a\?\.text\.trim\(\) && !!a\.done\)/);
   assert.match(b, /finished=\{finished\}/);
-  assert.match(b, /\{finished && \(\s*<Text[^>]*>\s*달성/);
+  assert.match(b, /\{finished && \(\s*<Text[^>]*>\s*\{m\.chart\.done\}/);
+  assert.equal(require('../src/i18n').msg('ko').chart.done, '달성');
   assert.match(b, /borderWidth: 2, borderColor: legibleMark\(M\.gold, M\.bg, M\)/);
   const g = src('src/components/GridMark.tsx');
   assert.match(g, /base\.dot = a\?\.done \? DONE_INK : legibleMark\(M\.gold, base\.bg \?\? M\.bg, M\);/);
   // 81칸 표의 '달성'도 크게 보기와 같은 꼴 — 이름표 바탕(bg = headBg) 위 4.5:1, 포인트 색(최종 점검 NEW-1)
   const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /color: legibleMark\(M\.gold, bg, M, 4\.5\), marginTop: 1 \}\} maxFontSizeMultiplier=\{1\}>달성/);
+  assert.match(grid, /color: legibleMark\(M\.gold, bg, M, 4\.5\), marginTop: 1 \}\} maxFontSizeMultiplier=\{1\}>\{m\.chart\.done\}/);
   assert.doesNotMatch(grid, /color: M\.goldInk/);
   assert.match(b, /legibleMark\(M\.gold, headBg\(color, M\), M, 4\.5\)/);
 });
