@@ -9,19 +9,23 @@
       "ko": {
         "title": "만다라트",
         "subtitle": "81칸에 적는 한 해 계획",
-        "description": "가운데에 한 해의 목표를 적고, 둘레 여덟 칸에 영역을, 그 바깥 64칸에 실천을 적어요. 종이 수첩에 적듯 81칸 한 장으로 한 해를 계획합니다.\n\n• 오늘 할 일 — 반복하는 습관과 다가온 마감이 오늘 목록에 저절로 담겨요.\n• 하루 마감 — 다 하면 장부처럼 두 줄을 긋고 하루를 닫아요.\n• 기록 — 자주 한 칸일수록 표가 짙어져, 어디에 힘을 썼는지 한눈에 보여요.\n• 한 주 돌아보기 — 일요일 저녁, 3분이면 지난주를 돌아보고 다음 주 중점을 골라요.\n• 한 해 돌아보기 — 한 해를 한 장으로 돌아보고, 표를 닫아 보관해요.\n• 위젯과 알림, 인쇄용 PDF, 아이폰과 아이패드 사이 iCloud 맞추기.\n\n로그인 없이 기기 안에 저장해요. 지금 쓸 수 있는 기능은 모두 무료이고, 종이 무늬 같은 꾸미기와 지난 표 보관은 한 번 결제(프로)로 열 수 있어요.",
+        "promoText": "가운데에 목표 하나, 둘레에 영역 여덟, 바깥에 실천 64. 한 해 계획을 81칸 한 장에 적고, 오늘 할 일부터 하나씩 해 나가요.",
+        "description": "가운데 칸에 한 해의 핵심 목표를 적고, 둘레 여덟 칸에 영역을, 그 바깥 64칸에 실천을 적어요. 종이에 그리던 만다라트 표를 그대로 옮겨, 81칸 한 장으로 한 해를 계획합니다.\n\n표를 다 채운 다음에는 날마다 쓰는 수첩이 돼요.\n\n오늘 할 일\n반복하는 습관과 마감이 다가온 실천이 오늘 목록에 저절로 담겨요. 필요한 것은 직접 골라 담을 수도 있어요.\n\n하루 마감\n다 하면 장부처럼 두 줄을 긋고 하루를 닫아요. 한 줄 메모도 남길 수 있어요.\n\n기록\n자주 한 칸일수록 표가 짙어져, 어느 영역에 힘을 썼고 어디가 비었는지 한눈에 보여요. 연속 기록과 영역별 실천 수도 함께 볼 수 있어요.\n\n한 주 돌아보기\n일요일 저녁, 몇 분이면 지난주를 돌아보고 다음 주 중점을 골라요.\n\n한 해 돌아보기\n한 해의 기록을 한 장으로 돌아보고, 다 쓴 표는 닫아서 보관해요.\n\n그 밖에\n• 알림: 아침에 오늘 할 일, 저녁에 남은 일, 일요일에 한 주 돌아보기를 알려 줘요.\n• 위젯: 홈 화면과 잠금 화면에서 오늘 할 일을 보고 바로 체크해요.\n• 집중 타이머: 25분 동안 한 가지에 집중하고, 잠금 화면에서 남은 시간을 봐요.\n• Siri와 단축어: “만다라트 오늘 보기”, “만다라트 다음 할 일 체크”처럼 말로 열고 체크해요.\n• 인쇄: 81칸 표를 A4(미국·캐나다는 레터) PDF로 만들어 인쇄하거나 공유해요.\n• iCloud: 같은 Apple 계정의 아이폰과 아이패드끼리 기록을 맞춰요.\n• 아이패드: 넓은 화면에서는 펼친 수첩처럼 두 쪽을 나란히 보여 줘요.\n• 한국어, 일본어, 영어\n\n로그인은 없어요. 기록은 기기 안에 저장되고, iCloud 맞추기를 켜면 본인의 iCloud에만 올라가요.\n\n프로\n지금 쓸 수 있는 기능은 모두 무료예요. 프로는 한 번 결제로 아래를 더 열어요.\n• 모눈 · 줄 · 무지 종이 무늬\n• 고른 종이 무늬를 그리는 위젯\n• A3 · A5 · B5 인쇄와 영역별 페이지\n• 지난 표 보관함: 지난 표와 그해 돌아보기를 다시 열고 인쇄하기",
         "keywords": [
-          "만다라트",
           "목표",
+          "체크리스트",
           "계획",
           "습관",
           "플래너",
           "다이어리",
           "루틴",
           "회고",
-          "투두"
+          "투두",
+          "수첩",
+          "위젯",
+          "연간계획"
         ],
-        "releaseNotes": "일본어와 영어, 아이패드, 위젯과 알림, 한 해 돌아보기, 인쇄용 PDF, iCloud 맞추기를 더했어요.",
+        "releaseNotes": "버전 2.0\n• 일본어와 영어를 더했어요.\n• 아이패드에서도 써요. 넓은 화면에서는 두 쪽을 펼쳐 보여 줘요.\n• 홈 화면 · 잠금 화면 위젯과 알림이 생겼어요.\n• 한 해 돌아보기와 지난 표 보관함이 생겼어요.\n• 81칸 표를 PDF로 인쇄해요.\n• 같은 Apple 계정의 아이폰과 아이패드끼리 iCloud로 기록을 맞춰요.\n• 집중 타이머가 잠금 화면에 남은 시간을 보여 줘요.\n• Siri와 단축어로 오늘 할 일을 열어요.",
         "privacyPolicyUrl": "https://TODO.invalid/privacy",
         "supportUrl": "https://TODO.invalid/support",
         "screenshots": {
@@ -45,20 +49,24 @@
       },
       "ja": {
         "title": "マンダラート",
-        "subtitle": "81マスで書く一年の計画",
-        "description": "まん中に一年の目標を書き、まわりの8マスに分野を、その外の64マスに行動を書きます。紙の手帳に書くように、81マス一枚で一年を計画します。\n\n• 今日やること — くり返す習慣と近づいた締め切りが、今日のリストに自然に集まります。\n• 一日の締め — ぜんぶ終えたら帳簿のように二本線を引いて一日を閉じます。\n• 記録 — よく続けたマスほど表が濃くなり、どこに力を注いだかがひと目でわかります。\n• 一週間のふり返り — 日曜の夜、3分で先週をふり返り、来週の重点を選びます。\n• 一年のふり返り — 一年を一枚でふり返り、表を閉じて保管します。\n• ウィジェットと通知、印刷用PDF、iPhoneとiPadのあいだのiCloud同期。\n\nログイン不要、データは端末の中に保存します。いま使える機能はすべて無料です。紙の柄などの飾りと過去の表の保管は、一度の購入(プロ)で使えます。",
+        "subtitle": "81マスで立てる一年の計画",
+        "promoText": "まん中に目標をひとつ、まわりに分野を8つ、その外に行動を64。一年の計画を81マスの一枚に書き、今日やることからひとつずつ進めます。",
+        "description": "まん中のマスに一年の中心の目標を、まわりの8マスに分野を、その外の64マスに行動を書きます。紙に書いていたマンダラートの表をそのまま、81マスの一枚で一年を計画します。\n\n表ができあがったら、毎日使う手帳になります。\n\n今日やること\nくり返す習慣と締め切りの近い行動が、今日のリストに自然に入ります。自分で選んで入れることもできます。\n\n一日の締め\nぜんぶ終えたら、帳簿のように二本線を引いて一日を締めます。ひとことメモも残せます。\n\n記録\nよく取り組んだマスほど表が濃くなり、どの分野に力を注ぎ、どこが手つかずかがひと目でわかります。連続記録や分野ごとの回数も見られます。\n\n週のふりかえり\n日曜の夜、数分で先週をふりかえり、来週の重点を選びます。\n\n一年のふりかえり\n一年の記録を一枚でふりかえり、使い終えた表は閉じて保管します。\n\nそのほか\n・通知：朝は今日やること、夜は残り、日曜は週のふりかえりをお知らせします。\n・ウィジェット：ホーム画面とロック画面で今日やることを見て、その場でチェックできます。\n・集中タイマー：25分間ひとつのことに集中し、残り時間をロック画面で確認できます。\n・Siriとショートカット：「マンダラートで今日を見る」「マンダラートで次をできたにする」のように声で開いたり、チェックしたりできます。\n・印刷：81マスの表をA4（米国・カナダはレター）のPDFにして、印刷や共有ができます。\n・iCloud：同じApple AccountのiPhoneとiPadのあいだで記録を同期します。\n・iPad：広い画面では、開いた手帳のように2ページを並べて表示します。\n・日本語、韓国語、英語\n\nログインはありません。記録は端末の中に保存され、iCloud同期をオンにしたときだけ、ご自身のiCloudに保存されます。\n\nプロ\nいま使える機能はすべて無料です。プロは一度の購入で、次の機能が使えるようになります。\n・方眼・罫線・無地の紙の柄\n・選んだ紙の柄で描くウィジェット\n・A3・A5・B5の印刷と分野ごとのページ\n・過去の表の保管庫：過去の表とその年のふりかえりを開き直し、印刷できます",
         "keywords": [
-          "マンダラート",
           "目標",
+          "チェックリスト",
+          "目標達成",
           "計画",
           "習慣",
           "手帳",
           "プランナー",
           "ルーティン",
-          "ふり返り",
-          "ToDo"
+          "ふりかえり",
+          "ToDo",
+          "ウィジェット",
+          "年間計画"
         ],
-        "releaseNotes": "日本語と英語、iPad、ウィジェットと通知、一年のふり返り、印刷用PDF、iCloud同期に対応しました。",
+        "releaseNotes": "バージョン2.0\n・日本語と英語に対応しました。\n・iPadに対応しました。広い画面では2ページを開いて表示します。\n・ホーム画面とロック画面のウィジェット、通知が加わりました。\n・一年のふりかえりと過去の表の保管庫が加わりました。\n・81マスの表をPDFで印刷できます。\n・同じApple AccountのiPhoneとiPadのあいだで、iCloudで記録を同期します。\n・集中タイマーの残り時間をロック画面に表示します。\n・Siriとショートカットで今日やることを開けます。",
         "privacyPolicyUrl": "https://TODO.invalid/privacy",
         "supportUrl": "https://TODO.invalid/support",
         "screenshots": {
@@ -83,19 +91,22 @@
       "en-US": {
         "title": "Mandalart",
         "subtitle": "Plan your year in 81 squares",
-        "description": "Write your goal for the year in the center, eight areas around it, and 64 actions around those. One page of 81 squares, like a paper notebook, holds your whole year.\n\n• Today — repeating habits and coming deadlines fill your list for the day.\n• Close the day — finish everything and draw two lines under it, like a ledger.\n• Records — the squares you use most grow darker, so you can see where your effort went.\n• Weekly review — on Sunday evening, three minutes to look back and pick next week’s focus.\n• Year review — your year on one page; close the chart and keep it.\n• Widgets and reminders, a printable PDF, and iCloud sync between iPhone and iPad.\n\nNo sign-in; your data stays on your device. Everything you can use today is free. Decorations such as paper patterns and keeping past charts are a one-time purchase (Pro).",
+        "promoText": "One goal in the middle, eight areas around it, 64 actions around those. Write your year on a single 81-square chart, then work through it one day at a time.",
+        "description": "Write your core goal for the year in the center square, eight areas around it, and 64 actions around those. It is the Mandalart chart you may have drawn on paper, kept as one page of 81 squares.\n\nOnce the chart is filled in, it becomes a notebook you use every day.\n\nToday\nRepeating habits and actions that are coming due land on Today’s list on their own. You can add anything else yourself.\n\nClose the day\nWhen everything is done, draw two lines under it like a ledger and close the day. Leave a one-line note if you like.\n\nRecords\nThe squares you work on most grow darker, so you can see where your effort went and which areas are still empty. Streaks and counts per area are there too.\n\nWeekly review\nOn Sunday evening, take a few minutes to look back on the week and pick next week’s focus.\n\nYear review\nSee your whole year on one page, then close the chart and keep it.\n\nAlso\n• Reminders: Today’s list in the morning, what’s left in the evening, and the weekly review on Sunday.\n• Widgets: see Today’s list on the Home Screen and Lock Screen and check things off there.\n• Focus timer: 25 minutes on one thing, with the time left on the Lock Screen.\n• Siri and Shortcuts: say “Show Today in Mandalart” or “Check off the next one in Mandalart”.\n• Print: turn the 81-square chart into a Letter or A4 PDF to print or share.\n• iCloud: keep your records in sync between iPhone and iPad on the same Apple Account.\n• iPad: on a wide screen, two pages side by side like an open notebook.\n• English, Japanese and Korean\n\nThere is no sign-in. Your records are stored on your device, and only go to your own iCloud if you turn on iCloud sync.\n\nPro\nEverything you can use now is free. Pro is a one-time purchase that adds:\n• Grid, lined and plain paper patterns\n• Widgets drawn on the paper pattern you chose\n• A3, A5 and B5 print sizes, with a page per area\n• Archive of past charts: open, review and print the charts of earlier years",
         "keywords": [
-          "mandalart",
           "goals",
+          "checklist",
+          "goal setting",
           "planner",
           "habit",
           "yearly plan",
           "notebook",
           "routine",
           "review",
-          "to do"
+          "to do",
+          "widget"
         ],
-        "releaseNotes": "Now in Japanese and English, on iPad, with widgets, reminders, a year review, a printable PDF and iCloud sync.",
+        "releaseNotes": "Version 2.0\n• Now in Japanese and English.\n• Works on iPad, with a two-page spread on wide screens.\n• Home Screen and Lock Screen widgets, and reminders.\n• A year review, and an archive for past charts.\n• Print the 81-square chart as a PDF.\n• iCloud sync between iPhone and iPad on the same Apple Account.\n• The focus timer shows the time left on the Lock Screen.\n• Open Today’s list with Siri and Shortcuts.",
         "privacyPolicyUrl": "https://TODO.invalid/privacy",
         "supportUrl": "https://TODO.invalid/support",
         "screenshots": {
