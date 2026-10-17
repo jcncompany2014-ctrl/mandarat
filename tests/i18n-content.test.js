@@ -8,7 +8,8 @@ const { templates, TEMPLATES, templateThemes } = require('../src/data/templates'
 const { suggestActions, exampleGroup } = require('../src/lib/suggest');
 const { analyzeAction, guideScore } = require('../src/lib/coach');
 const { suggestKind } = require('../src/lib/kindSuggest');
-const { chartFit, estimateLines } = require('../src/theme/chart');
+const { chartFit, estimateLines, CHART_HEAD_FS, RULE } = require('../src/theme/chart');
+const { PRETENDARD_GLYPHS } = require('../src/lib/labelFit');
 const { fitBox, longestWord } = require('../src/lib/text');
 const { textProblems } = require('./i18nLint');
 
@@ -63,6 +64,7 @@ test('TEMPLATES는 지금 언어를 따르는 보기이고, templateThemes는 �
   const th = templateThemes(templates('en')[2]);
   assert.equal(th.length, 8);
   assert.equal(th[3].title, 'Side project');
+  assert.equal(exampleGroup(th[5].title), 'career', "'My work'는 커리어 예시");
   assert.ok(th.every((x) => x.actions.length === 8 && x.actions.every((a) => a.text === '' && !a.done)));
 });
 
@@ -78,6 +80,9 @@ test('템플릿 글은 81칸(375 · 390)의 영역 칸 3줄 · 가운데 칸 4�
           for (const a of t.areas) {
             const f = chartFit(a.title, 'theme', w);
             assert.ok(f.lines <= f.max, `${l} ${w}: '${a.title}' ${f.lines}줄`);
+            // 낱말이 칸 폭보다 길면 81칸이 낱말 가운데서 끊는다(Language/s) — 영어는 낱말마다 칸 폭 안
+            const cellW = (w - 22 - RULE.frame * 2) / 9 - 4 - RULE.cell;
+            assert.ok(longestWord(a.title, CHART_HEAD_FS, PRETENDARD_GLYPHS) <= cellW, `${l} ${w}: '${a.title}' 낱말이 칸보다 넓다`);
           }
         }
         for (const { title } of t.areas) {

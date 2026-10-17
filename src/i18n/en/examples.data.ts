@@ -11,7 +11,7 @@ export const GROUPS: readonly ExampleGroup[] = [
   { id: 'people', keys: ['relationship', 'family', 'friend', 'people', 'social', 'partner'], items: ['Call a friend or family member once a week', 'Say thank you to someone every day', 'Book a dinner with friends'] },
   { id: 'hobby', keys: ['hobby', 'hobbies', 'fun', 'leisure', 'play', 'creative'], items: ['Make time for a hobby once a week', 'Sign up for one beginner class', 'Read 12 books on my hobby'] },
   { id: 'mind', keys: ['mind', 'mental', 'meditation', 'mindfulness', 'emotion', 'calm', 'rest', 'stress', 'wellbeing'], items: ['Meditate 5 min every morning', 'Write 3 lines in a gratitude journal', 'Take 5 deep breaths every day'] },
-  { id: 'adventure', keys: ['adventure', 'challenge', 'experience', 'travel', 'explore'], items: ['Visit one place I have never been', 'Finish one bucket list item', 'Try something new once a week'] },
+  { id: 'adventure', keys: ['adventure', 'new things', 'challenge', 'experience', 'travel', 'explore'], items: ['Visit one place I have never been', 'Finish one bucket list item', 'Try something new once a week'] },
 ];
 
 /** When no group matches */

@@ -36,7 +36,7 @@ export default {
   careerArea3: '成果',
   careerArea4: '副業',
   careerArea5: '学習',
-  careerArea6: 'ポートフォリオ',
+  careerArea6: '実績づくり',
   careerArea7: '健康',
   careerArea8: 'お金',
 
