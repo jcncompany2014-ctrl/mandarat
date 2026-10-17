@@ -41,10 +41,9 @@ function loadLedger() {
 test('오버레이: 전체 화면 Modal · 네 방향 · 웹 폭 틀(WebColumn 안에서 닫힌다)', () => {
   const s = src('src/overlays/YearClose.tsx');
   assert.match(s, /<Modal[\s\S]*presentationStyle="fullScreen"/);
-  assert.match(s, /supportedOrientations=\{\[\.\.\.ORIENTATIONS\]\}/);
-  assert.match(s, /const ORIENTATIONS = \['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right'\] as const;/);
-  assert.match(s, /<WebColumn bg=\{M\.bg\}/);
-  assert.ok(s.indexOf('</WebColumn>') < s.indexOf('</Modal>'));
+  assert.match(s, /supportedOrientations=\{MODAL_ORIENTATIONS\}/);
+  assert.match(s, /<PaperColumn bg=\{M\.bg\}/);
+  assert.ok(s.indexOf('</PaperColumn>') < s.indexOf('</Modal>'));
   assert.match(s, /accessibilityViewIsModal/);
   // 세 쪽 · 버튼 testID
   assert.match(s, /const PAGES = \['review', 'new', 'start'\] as const;/);

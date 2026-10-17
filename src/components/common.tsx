@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AccessibilityInfo, Animated, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView,
-  StyleSheet, View, type AccessibilityRole, type AccessibilityState, type StyleProp, type Text as RNText, type ViewStyle,
+  StyleSheet, View, useWindowDimensions as useRNWindowDimensions, type AccessibilityRole, type AccessibilityState, type StyleProp, type Text as RNText, type ViewStyle,
 } from 'react-native';
-import { WEB_PANEL } from '../lib/screen';
+import { MODAL_ORIENTATIONS, PageSize, usePanelStyle } from '../lib/screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
@@ -290,6 +290,11 @@ export function Sheet({
   returnFocusRef?: React.RefObject<React.ComponentRef<typeof View> | null>;
 }) {
   const insets = useSafeAreaInsets();
+  // 넓은 창(아이패드·웹)에서는 판을 min(560, 단 폭)으로 가운데에 — 시트 안의 폭은 판의 폭(PageSize)
+  const panel = usePanelStyle();
+  const { width: winW } = useRNWindowDimensions();
+  const panelW = panel ? Math.min(winW, panel.maxWidth as number) : null;
+  const page = useMemo(() => (panelW == null ? null : { width: panelW }), [panelW]);
   const uiActions = useOptionalUIActions();
   const register = uiActions?.registerOverlay;
   // 마운트된 동안(내려가는 애니메이션까지) 열린 모달 하나로 센다
@@ -397,7 +402,14 @@ export function Sheet({
   );
 
   return (
-    <Modal transparent visible animationType="none" onRequestClose={() => dismiss()} statusBarTranslucent>
+    <Modal
+      transparent
+      visible
+      animationType="none"
+      onRequestClose={() => dismiss()}
+      statusBarTranslucent
+      supportedOrientations={MODAL_ORIENTATIONS}
+    >
       {/* 바깥 — 스크린리더에서는 없는 것으로(닫기는 × 버튼·손잡이·두 손가락 Z로) */}
       <APressable
         onPress={onBackdrop}
@@ -426,7 +438,7 @@ export function Sheet({
               maxHeight: `${maxHeightPct * 100}%`,
               transform: [{ translateY }],
             },
-            WEB_PANEL,
+            panel,
             shadow(8, '#000', 0.12),
           ]}
         >
@@ -445,6 +457,7 @@ export function Sheet({
           >
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: M.line }} />
           </View>
+          <PageSize.Provider value={page}>
           <SheetDismiss.Provider value={dismiss}>
             <ScrollView
               ref={scrollRef}
@@ -460,6 +473,7 @@ export function Sheet({
               </View>
             )}
           </SheetDismiss.Provider>
+          </PageSize.Provider>
         </Animated.View>
       </KeyboardAvoidingView>
       {overlay}

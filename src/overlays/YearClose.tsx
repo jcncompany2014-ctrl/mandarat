@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WebColumn } from '../components/WebColumn';
+import { PaperColumn } from '../components/WebColumn';
+import { MODAL_ORIENTATIONS } from '../lib/screen';
 import { Text, TextInput } from '../components/AppText';
 import { Check } from '../components/Check';
 import { PaperDots } from '../components/PaperDots';
@@ -26,8 +27,6 @@ import type { MandaratDoc } from '../types';
 const GUTTER = RHYTHM.gutter;
 /** 위 막대(닫기 · 쪽 번호) 높이 — 안전 영역 아래 */
 const TOP_BAR_H = 48;
-/** 아이패드에서 열린 채 돌려도 닫히지 않게 — 네 방향 모두(V4-D가 상수로 옮긴다) */
-const ORIENTATIONS = ['portrait', 'portrait-upside-down', 'landscape-left', 'landscape-right'] as const;
 const PAGES = ['review', 'new', 'start'] as const;
 type Page = (typeof PAGES)[number];
 
@@ -131,11 +130,11 @@ function ClosePages() {
       visible
       animationType={reduce ? 'none' : 'slide'}
       presentationStyle="fullScreen"
-      supportedOrientations={[...ORIENTATIONS]}
+      supportedOrientations={MODAL_ORIENTATIONS}
       onRequestClose={onBack}
       statusBarTranslucent
     >
-      <WebColumn bg={M.bg} edge={M.line}>
+      <PaperColumn bg={M.bg} edge={M.line}>
       <View style={{ flex: 1, backgroundColor: M.bg }} accessibilityViewIsModal onAccessibilityEscape={onBack}>
         <PaperDots M={M} offsetY={insets.top % RHYTHM.dot} />
 
@@ -186,7 +185,7 @@ function ClosePages() {
           </View>
         </View>
       </View>
-      </WebColumn>
+      </PaperColumn>
     </Modal>
   );
 }
