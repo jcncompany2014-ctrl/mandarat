@@ -12,19 +12,21 @@ import { usePalette } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useDoc } from '../store/MandaratContext';
 import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
 
 /** 다음 할 일 — 지금 가장 의미 있는 한 칸을 하나만, 표 아래 괘선 한 줄로 */
 function NextStepRow({ M }: { M: M }) {
   const { doc, clock } = useDoc();
+  const m = useMsg();
   const { openAction, openEditor } = useUIActions();
   // 문서·날짜(clock)가 그대로면 다시 찾지 않는다
   const step = useMemo(() => nextStep(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!step) return null;
   const th = doc.themes[step.ti];
-  const area = th.title.trim() || `영역 ${step.ti + 1}`;
+  const area = th.title.trim() || m.chart.areaN({ n: step.ti + 1 });
   const empty = step.kind === 'empty';
   const blanks = doc.themes.reduce((s, t) => s + t.actions.filter((a) => !a.text.trim()).length, 0);
-  const title = empty ? `빈 칸 ${blanks} · ${area}부터 채우기` : th.actions[step.ai].text.trim();
+  const title = empty ? m.chart.nextBlanks({ n: blanks, area }) : th.actions[step.ai].text.trim();
   return (
     <Pressable
       onPress={() => {
@@ -33,14 +35,14 @@ function NextStepRow({ M }: { M: M }) {
         else openAction(step.ti, step.ai);
       }}
       accessibilityRole="button"
-      accessibilityLabel={empty ? `다음 할 일, ${title}` : `다음 할 일, ${title}, ${area}`}
+      accessibilityLabel={empty ? m.chart.nextStepSay({ title }) : m.chart.nextStepAreaSay({ title, area })}
       style={({ pressed }) => ({
         flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginHorizontal: 9, paddingVertical: 14,
         borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, opacity: pressed ? 0.6 : 1,
       })}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>다음 할 일</Text>
+        <Text style={{ fontSize: 12.5, fontWeight: '600', color: M.sub }}>{m.chart.next}</Text>
         <Text style={{ fontSize: 16, lineHeight: 22, fontWeight: '800', color: M.ink, marginTop: 3 }} numberOfLines={2}>{title}</Text>
         {!empty && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
@@ -64,6 +66,7 @@ const HEADER_H = 64;
  */
 export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusArea?: (ti: number | null) => void } = {}) {
   const M = usePalette();
+  const m = useMsg();
   const { openEditor, openShare } = useUIActions();
   // 블록을 크게 보는 동안엔 '다음 할 일'을 접는다
   const [zoomed, setZoomed] = useState(gridMemory.focus != null);
@@ -72,11 +75,11 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
     <View style={{ flex: 1 }}>
       <Header
         M={M}
-        kr="만다라트"
+        kr={m.chart.tabTitle}
         right={
           <View style={{ flexDirection: 'row' }}>
-            <IconBtn M={M} name="share" label="표 이미지로 공유" onPress={openShare} testID={TID.gridShare} />
-            <IconBtn M={M} name="pencil" label="핵심 목표 고치기" onPress={() => openEditor({ kind: 'center' })} />
+            <IconBtn M={M} name="share" label={m.chart.shareSay} onPress={openShare} testID={TID.gridShare} />
+            <IconBtn M={M} name="pencil" label={m.chart.editGoal} onPress={() => openEditor({ kind: 'center' })} />
           </View>
         }
       />

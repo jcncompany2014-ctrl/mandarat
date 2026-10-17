@@ -8,6 +8,8 @@ import { NUM } from '../theme/type';
 import { cellBreak, noOrphan } from '../lib/text';
 import { POSTER_H, POSTER_W, posterCells, posterDate, posterDone, posterFinished, type PosterCell } from '../lib/poster';
 import type { MandaratDoc } from '../types';
+import { useLang } from '../i18n/react';
+import { msg } from '../i18n';
 
 /**
  * 그림의 치수(pt) — 모두 scale에서 나온다. scale 1이 공유 이미지(360×450, 1080×1350으로 찍는다)의 원래 값 그대로,
@@ -69,7 +71,7 @@ type Metrics = typeof BASE;
 /** 화면 크기 설정과 상관없이 늘 같은 크기로 찍힌다(그림 한 장) */
 const FIXED = { maxFontSizeMultiplier: 1, allowFontScaling: false } as const;
 
-function Cell({ c, P, k, blank, finished, gold }: { c: PosterCell; P: Palette; k: Metrics; blank: boolean; finished: boolean; gold: string }) {
+function Cell({ c, P, k, blank, finished, gold, doneWord }: { c: PosterCell; P: Palette; k: Metrics; blank: boolean; finished: boolean; gold: string; doneWord: string }) {
   const core = c.kind === 'core';
   const head = c.kind === 'head';
   const bg = blank ? 'transparent' : core ? coreBg(P) : head ? headBg(c.color, P) : c.done ? c.color : 'transparent';
@@ -94,7 +96,7 @@ function Cell({ c, P, k, blank, finished, gold }: { c: PosterCell; P: Palette; k
         </Text>
       )}
       {finished && head && (
-        <Text {...FIXED} style={{ fontSize: k.fsMark, lineHeight: k.lhMark, fontWeight: '800', color: legibleMark(gold, bg, P, 4.5), letterSpacing: 0 }}>달성</Text>
+        <Text {...FIXED} style={{ fontSize: k.fsMark, lineHeight: k.lhMark, fontWeight: '800', color: legibleMark(gold, bg, P, 4.5), letterSpacing: 0 }}>{doneWord}</Text>
       )}
       {c.headPct != null && (
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: k.bar, backgroundColor: headTrack(c.color) }}>
@@ -138,8 +140,10 @@ export const ChartPoster = forwardRef<View, {
   scale?: number;
 }>(function ChartPoster({ doc, blank = false, now, paper = MOODS['연꽃'], gold = GOLD, scale = 1 }, ref) {
   const P = paper;
+  const l = useLang();
+  const m = msg(l);
   const k = useMemo(() => (scale === 1 ? BASE : posterMetrics(scale)), [scale]);
-  const cells = useMemo(() => posterCells(doc, blank), [doc, blank]);
+  const cells = useMemo(() => posterCells(doc, blank, l), [doc, blank, l]);
   const finished = useMemo(() => posterFinished(doc, blank), [doc, blank]);
   const done = posterDone(doc);
   const goal = doc.centerGoal.trim();
@@ -154,8 +158,8 @@ export const ChartPoster = forwardRef<View, {
     >
       <View style={{ height: k.headH, justifyContent: 'space-between', paddingBottom: k.headGap }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-          <Text {...FIXED} style={{ flex: 1, fontSize: k.fsTop, lineHeight: k.lhTop, fontWeight: '600', color: P.sub }}>목표 달성표</Text>
-          <Text {...FIXED} style={[{ fontSize: k.fsTop, lineHeight: k.lhTop, fontWeight: '600', color: P.sub }, NUM]}>{posterDate(now)}</Text>
+          <Text {...FIXED} style={{ flex: 1, fontSize: k.fsTop, lineHeight: k.lhTop, fontWeight: '600', color: P.sub }}>{m.chart.posterTitle}</Text>
+          <Text {...FIXED} style={[{ fontSize: k.fsTop, lineHeight: k.lhTop, fontWeight: '600', color: P.sub }, NUM]}>{posterDate(now, l)}</Text>
         </View>
         {goal ? (
           <Text {...FIXED} numberOfLines={2} style={{ fontSize: k.fsGoal, lineHeight: k.lhGoal, fontWeight: '800', color: P.ink }}>
@@ -169,7 +173,7 @@ export const ChartPoster = forwardRef<View, {
 
       <View style={{ width: k.table, height: k.table, borderRadius: radius, overflow: 'hidden', backgroundColor: P.bg }}>
         {cells.map((c) => (
-          <Cell key={`${c.row}-${c.col}`} c={c} P={P} k={k} blank={blank} finished={c.kind === 'head' && finished.includes(c.ti)} gold={gold} />
+          <Cell key={`${c.row}-${c.col}`} c={c} P={P} k={k} blank={blank} finished={c.kind === 'head' && finished.includes(c.ti)} gold={gold} doneWord={m.chart.done} />
         ))}
         <Rules P={P} k={k} />
         {/* 가운데 블록은 핵심 목표 자리 — 블록 괘선과 같은 굵기로 한 번 더 감싼다 */}
@@ -208,9 +212,9 @@ export const ChartPoster = forwardRef<View, {
 
       <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: k.footGap }}>
         <Text {...FIXED} style={[{ flex: 1, fontSize: k.fsFoot, lineHeight: k.lhFoot, fontWeight: '600', color: P.sub }, NUM]}>
-          {blank ? '' : `64칸 중 ${done}칸`}
+          {blank ? '' : m.chart.posterDone({ done })}
         </Text>
-        <Text {...FIXED} style={{ fontSize: k.fsFoot, lineHeight: k.lhFoot, fontWeight: '700', color: P.sub }}>만다라트</Text>
+        <Text {...FIXED} style={{ fontSize: k.fsFoot, lineHeight: k.lhFoot, fontWeight: '700', color: P.sub }}>{m.chart.brand}</Text>
       </View>
     </View>
   );

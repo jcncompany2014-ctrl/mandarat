@@ -76,7 +76,8 @@ test('HANDOFF-B1: 준비됐는지만 읽는 useReady — 문지기(Gate)는 문�
 
 test('NEW-2 · NEW-5(ui): 칸·영역 자리는 어디서나 고유어 서수 — 81칸 줌 머리 · 실천 시트 머리', () => {
   const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /`8개 영역 중 \$\{ORDINAL\[focus\] \?\? `\$\{focus \+ 1\}`\} 번째`/);
+  assert.match(grid, /m\.chart\.areaOrdinalSay\(\{ n: focus \+ 1 \}\)/);
+  assert.equal(require('../src/i18n').msg('ko').chart.areaOrdinalSay({ n: 3 }), '8개 영역 중 세 번째');
   const sheet = src('src/overlays/ActionSheet.tsx');
   assert.match(sheet, /`\$\{area\} 영역, \$\{ORDINAL\[ai\] \?\? `\$\{ai \+ 1\}`\} 번째 칸, 영역 보기`/);
   // 앱 소스의 읽는 말에 '3번째'·'${n + 1}번째' 꼴이 남지 않는다(주석 제외)

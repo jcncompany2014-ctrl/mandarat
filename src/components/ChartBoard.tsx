@@ -16,6 +16,7 @@ import { useScreenReader } from '../lib/useReducedMotion';
 import { areaLabel, cellLabel } from '../lib/chartSpeech';
 import { tap } from '../lib/haptics';
 import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
 import type { MandaratDoc } from '../types';
 
 // 칸 안 글자 리듬 — 줄 수를 칸 높이에 맞춰 정한다(글이 칸 밖으로 넘치거나 아래 표시와 겹치지 않게)
@@ -133,12 +134,13 @@ function edgeRow(show: { todayWord: boolean; week: boolean }): number {
   return Math.max(show.todayWord ? TODAY_ROW : 0, show.week ? WEEK_ROW : 0);
 }
 
-const LONG_ACTION_CELL = [{ name: 'longpress', label: '글자 고치기' }];
-const LONG_ACTION_HEAD = [{ name: 'longpress', label: '영역 이름 고치기' }];
+/** 길게 누르기 동작 — 화면 읽기 동작 목록의 이름(그 언어의 말) */
+const longAction = (label: string) => [{ name: 'longpress', label }];
 
 /** 실천 칸 하나 — 값(BoardRow)과 칸 크기가 그대로면 다시 그리지 않는다. 다른 칸을 체크해도 이 칸은 그대로 */
 const BoardCell = memo(function BoardCell(p: BoardCellProps) {
   const { M, ai, text, done, isToday, didIt, meta, week, dueSoon, countPct, label, color, canPress, canLong, readOnly, onPressAt, onLongAt, testID } = p;
+  const m = useMsg();
   const press = canPress ? () => onPressAt(ai) : undefined;
   const long = canLong ? () => { tap(); onLongAt(ai); } : undefined;
 
@@ -153,7 +155,7 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
         delayLongPress={LONG_PRESS_MS}
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel={`실천 ${ai + 1} 채우기`}
+        accessibilityLabel={m.chart.fillAction({ n: ai + 1 })}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
       >
         {({ pressed }) => (
@@ -180,7 +182,7 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
       {show.todayWord && (
         <View pointerEvents="none" style={{ position: 'absolute', top: PAD, left: PAD, right: PAD, height: TODAY_ROW - 3, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
           <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', color: done ? DONE_INK : didIt ? M.sub : M.ink }} maxFontSizeMultiplier={1.2}>
-            오늘
+            {m.chart.today}
           </Text>
           {didIt && !done && <Icon name="check" size={10} color={M.sub} sw={2.6} />}
         </View>
@@ -242,7 +244,7 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityActions={long ? LONG_ACTION_CELL : undefined}
+      accessibilityActions={long ? longAction(m.chart.editText) : undefined}
       onAccessibilityAction={(e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') long?.(); }}
       accessibilityShowsLargeContentViewer
       accessibilityLargeContentTitle={text}
@@ -270,6 +272,7 @@ const BoardHead = memo(function BoardHead({ M, color, name, named, pct, finished
   onLong: () => void;
   headRef?: React.Ref<View>;
 }) {
+  const m = useMsg();
   return (
     <Pressable
       ref={headRef}
@@ -279,7 +282,7 @@ const BoardHead = memo(function BoardHead({ M, color, name, named, pct, finished
       delayLongPress={LONG_PRESS_MS}
       accessibilityRole={readOnly ? 'text' : 'button'}
       accessibilityLabel={label}
-      accessibilityActions={canLong ? LONG_ACTION_HEAD : undefined}
+      accessibilityActions={canLong ? longAction(m.chart.editAreaName) : undefined}
       onAccessibilityAction={(e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') onLong(); }}
       style={{ flex: 1, backgroundColor: headBg(color, M) }}
     >
@@ -296,7 +299,7 @@ const BoardHead = memo(function BoardHead({ M, color, name, named, pct, finished
             </Text>
             {finished && (
               <Text style={{ fontSize: 12, lineHeight: 15, marginTop: 2, fontWeight: '800', color: legibleMark(M.gold, headBg(color, M), M, 4.5) }} maxFontSizeMultiplier={1.3}>
-                달성
+                {m.chart.done}
               </Text>
             )}
           </View>
@@ -377,6 +380,7 @@ export const ChartBoard = memo(function ChartBoard({
 }) {
   const { fontScale } = useWindowDimensions();
   const sr = useScreenReader();
+  const m = useMsg();
   const fixed = typeof size === 'number' ? size : null;
   const [box, setBox] = useState<{ w: number; h: number } | null>(fixed != null ? { w: fixed, h: fixed } : null);
   const mode = boardMode({ readOnly, asOf, onCell, onCellLong, onHead, onHeadLong }, new Date());
@@ -408,7 +412,7 @@ export const ChartBoard = memo(function ChartBoard({
     const text = a?.text.trim() ?? '';
     if (!text) {
       const r = { ai, text: '', done: false, isToday: false, didIt: false, meta: null, week: null, dueSoon: false, countPct: null };
-      return { ...r, label: `실천 ${ai + 1} 채우기` };
+      return { ...r, label: m.chart.fillAction({ n: ai + 1 }) };
     }
     const kind = kindOf(a);
     const done = !!a.done;
@@ -428,7 +432,7 @@ export const ChartBoard = memo(function ChartBoard({
 
   // 가운데 이름표의 말 — '건강, 8칸 중 3칸 달성, 오늘 2칸' (chartSpeech.areaLabel, 오늘 칸 수는 위에서 센 것)
   const named = !!th.title.trim();
-  const name = named ? th.title.trim() : `영역 ${ti + 1}`;
+  const name = named ? th.title.trim() : m.chart.areaN({ n: ti + 1 });
   const p = themeProgress(th);
   // 8칸 모두 달성 — 81칸의 complete()와 같은 규칙(쓴 칸 8개가 다 달성)
   const finished = th.actions.every((a) => !!a?.text.trim() && !!a.done);

@@ -60,7 +60,13 @@ test('칸·블록 말과 고유어 서수는 chartSpeech 한 곳에 — a11y.ts�
   const { ORDINAL } = require('../src/lib/chartSpeech');
   assert.deepEqual([...ORDINAL], ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟']);
   const src = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-  assert.match(src('src/lib/areaPage.ts'), /import \{ ORDINAL \} from '\.\/chartSpeech';/);
+  // 영역 화면의 넘김 말은 chart 바구니(X-E) — 한국어는 chartSpeech의 고유어 서수와 같은 말
+  assert.match(src('src/lib/areaPage.ts'), /msg\(l\)\.chart\.pageSay\(\{ name: areaTitle\(doc, ti, l\), n: ti \+ 1 \}\)/);
+  const { msg } = require('../src/i18n');
+  ORDINAL.forEach((w, i) => {
+    assert.equal(msg('ko').chart.pageSay({ name: '건강', n: i + 1 }), `건강, 8개 영역 중 ${w} 번째`);
+    assert.equal(msg('ko').chart.areaOrdinalSay({ n: i + 1 }), `8개 영역 중 ${w} 번째`);
+  });
   assert.match(src('src/lib/sheetSpeech.ts'), /import \{ ORDINAL \} from '\.\/chartSpeech';/);
   // ORDINAL을 정의하는 곳은 하나
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
