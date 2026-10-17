@@ -8,18 +8,20 @@ import {
   CENTER_SLOT, RULE, SLOT_INDEX, coreBg, coreInk, frameRadius, headBg, headTrack, legibleMark, ruleColor,
 } from '../theme/chart';
 import type { M } from '../theme/usePalette';
-import { DOW_KR, kindOf } from '../lib/routine';
+import { kindOf } from '../lib/routine';
 import { countInfo } from '../lib/kinds';
 import { DAY_BIN_LABELS, dayBin, type WeekDay } from '../lib/review';
 import { barHeight, weekBarsSpeech, type HeatMap, type MoodDay } from '../lib/statsView';
 import { themeProgress, totalDone } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
+import { useLang, useMsg } from '../i18n/react';
+import type { Messages } from '../i18n';
 
 // 통계 화면의 그림 넷 — 이번 주 막대 · 최근 10주 · 8개 영역(닳은 자리) · 기분 줄.
 // 모두 종이 위에 바로 인쇄한 모양: 카드·그림자·둥근 알약 없이, 바닥선과 네모 칸만.
 
-const areaName = (doc: MandaratDoc, ti: number) => doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
+const areaName = (m: Messages, doc: MandaratDoc, ti: number) => doc.themes[ti]?.title.trim() || m.chart.areaN({ n: ti + 1 });
 
 /** 화면 읽기에서 숨기는 장식 — 범례처럼 이미 글로 읽은 것 */
 const HIDDEN = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
@@ -34,12 +36,14 @@ const BAR_FULL = 72;
  * 줄 전체가 그림 하나로 읽힌다('월 5번, 화 1번, 수 2번 오늘, 목요일부터는 아직').
  */
 export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
+  const m = useMsg();
+  const l = useLang();
   const max = Math.max(1, ...days.map((d) => (d.future ? 0 : d.count)));
   // 막대는 불투명한 포인트 색 — 막대가 놓인 종이(bg) 위 3:1 이상으로(옅게 비친 색은 모든 포인트 색에서 3:1에 못 미친다).
   // 통계는 카드 없이 종이 위에 바로 그리므로 면(card)으로 재면 골드가 2.8:1에 머문다
   const fill = legibleMark(M.gold, M.bg, M);
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={weekBarsSpeech(days)}>
+    <View accessible accessibilityRole="image" accessibilityLabel={weekBarsSpeech(days, l)}>
       <View style={{ flexDirection: 'row', gap: 9, height: BAR_FULL + 20, alignItems: 'flex-end' }}>
         {days.map((d, i) => {
           const h = d.future ? 0 : barHeight(d.count, max, BAR_FULL);
@@ -68,7 +72,7 @@ export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
               style={{ fontSize: 11, lineHeight: 14, fontWeight: d.isToday ? '800' : '600', color: d.isToday ? M.ink : M.sub, opacity: d.future ? 0.45 : 1 }}
               maxFontSizeMultiplier={1.2}
             >
-              {DOW_KR[d.dow]}
+              {m.fmt.dowNarrow({ i: d.dow })}
             </Text>
             {d.isToday && <View style={{ width: 12, height: 2, marginTop: 3, backgroundColor: M.ink }} />}
           </View>
@@ -83,7 +87,8 @@ export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
 const HEAT_FILL = [0, 30, 50, 70, 90] as const;
 const HEAT_GAP = 3;
 const HEAT_LABEL_W = 24;
-const HEAT_ROW_LABELS = ['월', '', '수', '', '금', '', ''];
+/** 줄 이름을 적는 요일(월 · 수 · 금, 0 = 일요일) — 나머지 줄은 비운다 */
+const HEAT_ROW_DOWS = [1, null, 3, null, 5, null, null] as const;
 
 /** 칸 한 변(pt) — 요일 라벨 자리와 칸 사이를 뺀 폭을 10주로 나눈다 */
 export function heatCellSize(width: number, weeks = 10): number {
@@ -123,6 +128,7 @@ export function TenWeeks({
   /** 고른 날을 읽는 글(고른 날이 없으면 안내) */
   pickedText: string;
 }) {
+  const msgs = useMsg();
   const cell = heatCellSize(width, map.cols.length);
   // 칸 한 변을 내림한 나머지는 요일 라벨 자리로 — 마지막 열이 범례·닳은 자리 표와 같은 오른쪽 끝(20pt)에 닿게
   const labelW = Math.max(HEAT_LABEL_W, Math.floor(width) - cell * map.cols.length - HEAT_GAP * (map.cols.length - 1));
@@ -142,7 +148,7 @@ export function TenWeeks({
       accessibilityRole="adjustable"
       accessibilityLabel={speech}
       accessibilityValue={{ text: pickedText }}
-      accessibilityHint="위아래로 쓸어 하루씩 옮겨요"
+      accessibilityHint={msgs.stats.heatHint}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) => {
         if (e.nativeEvent.actionName === 'increment') step(1);
@@ -162,9 +168,9 @@ export function TenWeeks({
           </View>
         ))}
       </View>
-      {HEAT_ROW_LABELS.map((label, d) => (
+      {HEAT_ROW_DOWS.map((dow, d) => (
         <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginTop: d ? HEAT_GAP : 0 }}>
-          <Text style={{ width: labelW, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1.2}>{label}</Text>
+          <Text style={{ width: labelW, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1.2}>{dow == null ? '' : msgs.fmt.dowNarrow({ i: dow })}</Text>
           {map.cols.map((col, w) => {
             const c = col[d];
             const on = picked === c.date;
@@ -247,6 +253,7 @@ export function ActivityChart({
   onCell?: (ti: number, ai: number) => void;
   onArea?: (ti: number) => void;
 }) {
+  const m = useMsg();
   const cellRule = ruleColor(M, 'cell');
   const side = Math.max(0, Math.floor(width));
   const overall = Math.round((totalDone(doc) / 64) * 100);
@@ -256,13 +263,13 @@ export function ActivityChart({
   const head = (ti: number) => {
     const th = doc.themes[ti];
     const p = themeProgress(th);
-    const name = areaName(doc, ti);
+    const name = areaName(m, doc, ti);
     return (
       <Pressable
         onPress={onArea ? () => { tap(); onArea(ti); } : undefined}
         disabled={!onArea}
         accessibilityRole={onArea ? 'button' : undefined}
-        accessibilityLabel={`${name} ${p.pct}%${onArea ? ', 영역 보기' : ''}`}
+        accessibilityLabel={`${name} ${p.pct}%${onArea ? `${m.core.listSep}${m.stats.openArea}` : ''}`}
         // 9pt 이름은 글자 크기를 따라 커지지 않는다 — 길게 누르면 큰 글자로 보여 준다
         accessibilityShowsLargeContentViewer
         accessibilityLargeContentTitle={`${name} ${p.pct}%`}
@@ -293,7 +300,7 @@ export function ActivityChart({
         onPress={onCell ? () => { tap(); onCell(ti, ai); } : undefined}
         disabled={!onCell}
         accessibilityRole={onCell ? 'button' : undefined}
-        accessibilityLabel={`${text}, 최근 4주 ${n > 0 ? `${n}일` : '기록 없음'}${a.done ? ', 달성' : ''}${count ? `, ${count.pct}%` : ''}`}
+        accessibilityLabel={[text, n > 0 ? m.stats.wearSay({ n }) : m.stats.wearNone, a.done ? m.chart.done : '', count ? `${count.pct}%` : ''].filter(Boolean).join(m.core.listSep)}
         style={({ pressed }) => ({ flex: 1, backgroundColor: bin ? fade(th.color, WEAR_FILL[bin]) : 'transparent', opacity: pressed ? 0.7 : 1 })}
       >
         {/* 진행 막대는 칸 안쪽에 띄운다 — 바닥 괘선에 붙으면 100%가 아래 칸의 윗 테두리처럼 읽힌다 */}
@@ -309,7 +316,7 @@ export function ActivityChart({
   const core = (
     <View
       accessible
-      accessibilityLabel={`핵심 목표, 64칸 중 ${totalDone(doc)}칸 달성, ${overall}%`}
+      accessibilityLabel={[m.chart.coreGoal, m.chart.doneOf64Say({ done: totalDone(doc) }), `${overall}%`].join(m.core.listSep)}
       style={{ flex: 1, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center' }}
     >
       {!blank && (
@@ -362,15 +369,16 @@ export function ActivityChart({
  * (먹색을 쓰면 밝은 무드의 5+가 가운데 칸만큼 검고, 다크의 5+는 흰 가운데 칸과 같아진다)
  */
 export function WearLegend({ M }: { M: M }) {
+  const m = useMsg();
   const swatch = M.dark ? toHex(mix(M.sub, M.bg, 0.3)) : toHex(M.sub);
   return (
     <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 10 }}>
-      <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub, marginRight: 2 }} maxFontSizeMultiplier={1.2}>최근 4주 ·</Text>
+      <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub, marginRight: 2 }} maxFontSizeMultiplier={1.2}>{m.stats.legendLast4}</Text>
       {DAY_BIN_LABELS.map((l, i) => (
         <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 3 : 0 }}>
           <View style={{ width: 11, height: 11, borderRadius: 2, backgroundColor: alpha(swatch, WEAR_FILL[i + 1] / 100) }} />
           <Text style={[{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub }, NUM]} maxFontSizeMultiplier={1.2}>
-            {i === DAY_BIN_LABELS.length - 1 ? `${l}번` : l}
+            {i === DAY_BIN_LABELS.length - 1 ? m.stats.legendTimes({ label: l }) : l}
           </Text>
         </View>
       ))}
@@ -389,13 +397,15 @@ const MOOD_SCALE_W = 26;
  * 바닥선 아래에 요일 한 글자. 기분을 남기지 않은 날은 비워 둔다. 줄 전체가 글 하나로 읽힌다.
  */
 export function MoodStrip({ M, days, speech }: { M: M; days: readonly MoodDay[]; speech: string }) {
+  const m = useMsg();
   const last = days.length - 1;
   return (
     <View accessible accessibilityRole="image" accessibilityLabel={speech}>
       <View style={{ flexDirection: 'row' }}>
-        <View {...HIDDEN} style={{ width: MOOD_SCALE_W, height: MOOD_ROW * 5, justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1}>최고</Text>
-          <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1}>힘듦</Text>
+        {/* 눈금 이름 폭은 최소 MOOD_SCALE_W — 긴 낱말(ja · en)이면 그만큼 넓힌다 */}
+        <View {...HIDDEN} style={{ minWidth: MOOD_SCALE_W, paddingRight: 4, height: MOOD_ROW * 5, justifyContent: 'space-between' }}>
+          <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1}>{m.core.mood4}</Text>
+          <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1}>{m.core.mood0}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', height: MOOD_ROW * 5 }}>

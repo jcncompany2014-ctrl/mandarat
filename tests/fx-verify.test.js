@@ -129,15 +129,19 @@ test('A-1(1): 오늘 할 일 고르기 줄은 소리 말(say)을 읽는다', () 
 
 test('HANDOFF-A9 · NEW-1: 통계는 날짜를 또박또박 읽는다(속도 · 고른 날 · 회고 · 머리 오른쪽)', () => {
   const s = src('src/screens/Stats.tsx');
-  assert.match(s, /const paceSay = c\.reached \? '' : pace\.eta \? `이 속도면 \$\{fmtDateSpeech\(pace\.eta, now\)\}` : paceText;/);
-  assert.match(s, /\$\{paceSay \? `, \$\{paceSay\}` : ''\}/);
-  assert.doesNotMatch(s, /\$\{paceText \? `, \$\{paceText\}` : ''\}/);
-  assert.match(s, /pickedText=\{picked \? pickedSpeech\(doc, picked\) : '고른 날 없음'\}/);
-  assert.match(s, /accessibilityLabel=\{`\$\{e\.say\}, \$\{e\.text\}`\}/);
-  assert.match(s, /rightLabel=\{map\.since \? `\$\{fmtDateLong\(map\.since\)\}부터` : undefined\}/);
+  assert.match(s, /const paceSay = c\.reached \? '' : pace\.eta \? m\.stats\.pace\(\{ date: fmtDateSpeech\(pace\.eta, now, l\) \}\) : paceText;/);
+  assert.match(s, /\[area, a\.text\.trim\(\), said, `\$\{c\.pct\}%`, right, paceSay\]\.filter\(Boolean\)/);
+  assert.doesNotMatch(s, /right, paceText\]/);
+  assert.match(s, /pickedText=\{picked \? pickedSpeech\(doc, picked, l\) : m\.stats\.noPick\}/);
+  assert.match(s, /accessibilityLabel=\{`\$\{e\.say\}\$\{m\.core\.listSep\}\$\{e\.text\}`\}/);
+  assert.match(s, /rightLabel=\{map\.since \? m\.stats\.since\(\{ date: fmtDateLong\(map\.since, l\) \}\) : undefined\}/);
+  const ko = require('../src/i18n/ko/stats').default;
+  assert.equal(ko.pace({ date: '10월 20일 화요일' }), '이 속도면 10월 20일 화요일');
+  assert.equal(ko.noPick, '고른 날 없음');
+  assert.equal(ko.since({ date: '10월 3일 토요일' }), '10월 3일 토요일부터');
   const head = slice(s, 'const SectionHead = memo(', '// ── 큰 숫자 둘');
   assert.match(head, /NUM\]\} accessibilityLabel=\{rightLabel \?\? right\}>\{right\}<\/Text>/);
-  assert.match(s, /accessibilityLabel=\{ledgerLabel\(r\)\}/);
+  assert.match(s, /accessibilityLabel=\{ledgerLabel\(r, l\)\}/);
 });
 
 // ── 누르기 · 표시 ─────────────────────────────────────────────────────────────
