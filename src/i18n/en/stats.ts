@@ -4,6 +4,9 @@ import type { Like } from '../types';
 import fmt from './fmt';
 import { plural } from './plural';
 
+/** A Latin unit is set off by a space ('+2 books'); a sign, an empty unit or a unit in another script is not ('+12권') */
+const withUnit = (n: string, unit: string) => (/^[a-z]/i.test(unit) ? `${n} ${unit}` : `${n}${unit}`);
+
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const times = (n: number) => plural(n, 'time', 'times');
 const days = (n: number) => plural(n, 'day', 'days');
@@ -78,9 +81,9 @@ export default {
   secMind: 'Mindset',
   last8w: 'Last 8 weeks',
   pace: ({ date }) => `At this pace, ${date}`,
-  monthZero: ({ unit }) => `0 ${unit} this month`,
+  monthZero: ({ unit }) => `${withUnit('0', unit)} this month`,
   goalReached: 'Goal reached',
-  weekAdded: ({ num, unit }) => `+${num} ${unit} this week`,
+  weekAdded: ({ num, unit }) => `${withUnit(`+${num}`, unit)} this week`,
   mindAvg: ({ n, avg }) => `${n} rated ${plural(n, 'week', 'weeks')}, avg ${avg}`,
   mindNoWeeks: 'No weeks rated yet',
   mindWeekSay: ({ n }) => `This week ${n} of 5`,

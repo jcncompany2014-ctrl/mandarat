@@ -20,7 +20,20 @@ function repeatDays(dows: readonly number[]): string {
   if (d.length === 1) return `Every ${DOW[d[0]]}`;
   if (d.join() === '1,2,3,4,5') return 'Every weekday';
   if (d.join() === '0,6') return 'Every weekend';
-  return `Every ${fmt.daysLabel({ dows: d })}`;
+  return `Every ${dayRuns(d)}`;
+}
+
+/** Monday-first, with runs of three or more days joined by an en dash — 'Mon–Thu, Sun' (keeps the kind line short) */
+function dayRuns(d: readonly number[]): string {
+  const order = [1, 2, 3, 4, 5, 6, 0].filter((x) => d.includes(x));
+  const runs: number[][] = [];
+  for (const x of order) {
+    const last = runs[runs.length - 1];
+    if (last && (last[last.length - 1] + 1) % 7 === x && x !== 1) last.push(x);
+    else runs.push([x]);
+  }
+  const short = (i: number) => fmt.dowShort({ i });
+  return runs.flatMap((r) => (r.length >= 3 ? [`${short(r[0])}–${short(r[r.length - 1])}`] : r.map(short))).join(', ');
 }
 
 /** daily habit · weekday habit · weekend habit · Sunday habit · Mon, Wed, Fri habit */
@@ -30,11 +43,11 @@ function daysHabit(dows: readonly number[]): string {
   if (d.length === 1) return `${DOW[d[0]]} habit`;
   if (d.join() === '1,2,3,4,5') return 'weekday habit';
   if (d.join() === '0,6') return 'weekend habit';
-  return `${fmt.daysLabel({ dows: d })} habit`;
+  return `${dayRuns(d)} habit`;
 }
 
 export default {
-  labelOnce: 'One-time',
+  labelOnce: 'Once',
   labelHabit: 'Habit',
   labelCount: 'Count',
   labelMind: 'Mindset',

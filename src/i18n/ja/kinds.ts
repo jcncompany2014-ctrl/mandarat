@@ -14,9 +14,9 @@ function repeatDays(dows: readonly number[]): string {
 }
 
 export default {
-  labelOnce: '一度きり',
+  labelOnce: '単発',
   labelHabit: '習慣',
-  labelCount: '積み上げ',
+  labelCount: '累計',
   labelMind: '心がけ',
   hintOnce: '締め切りの3日前から「今日」に入ります',
   hintHabit: '決めた曜日ごとに「今日」に入ります。週N回にすると、回数をこなすまで毎日入ります。',

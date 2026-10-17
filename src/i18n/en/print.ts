@@ -14,7 +14,7 @@ export default {
   colAction: 'Action',
   colKind: 'Type',
   colTally: 'This month',
-  kindOnce: 'One-time',
+  kindOnce: 'Once',
   kindHabit: 'Habit',
   kindCount: 'Count',
   kindMind: 'Mindset',
