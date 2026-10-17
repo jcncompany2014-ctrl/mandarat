@@ -5,10 +5,11 @@ import { Alert, Platform, Pressable, View, type ViewStyle } from 'react-native';
 import { Text } from '../../components/AppText';
 import { Check } from '../../components/Check';
 import { RowDivider, groupEdge, pressedRow } from '../../components/common';
+import { msg } from '../../i18n';
 import { NUM, TYPE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 
-/** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
+/** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert(취소 단추는 지금 언어의 common.cancel) */
 export function ask(title: string, message: string, ok: string, onOk: () => void, destructive = false) {
   if (Platform.OS === 'web') {
     // eslint-disable-next-line no-alert
@@ -16,7 +17,7 @@ export function ask(title: string, message: string, ok: string, onOk: () => void
     return;
   }
   Alert.alert(title, message, [
-    { text: '취소', style: 'cancel' },
+    { text: msg().common.cancel, style: 'cancel' },
     { text: ok, style: destructive ? 'destructive' : 'default', onPress: onOk },
   ]);
 }

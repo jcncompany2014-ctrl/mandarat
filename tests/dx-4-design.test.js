@@ -25,7 +25,7 @@ test('D-14: 탭바의 지금 탭 표시는 윗 괘선 위가 아니라 탭바 �
 });
 
 test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 10주 칸은 오른쪽 끝까지', () => {
-  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr="설정" onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);
+  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr=\{st\.screenTitle\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);
   const charts = src('src/components/StatsCharts.tsx');
   assert.match(charts, /const labelW = Math\.max\(HEAT_LABEL_W, Math\.floor\(width\) - cell \* map\.cols\.length - HEAT_GAP \* \(map\.cols\.length - 1\)\);/);
   assert.doesNotMatch(charts, /width: HEAT_LABEL_W/);
@@ -74,9 +74,9 @@ test('D-31: 설정 › 기록 — 백업 묶음(+저장 위치 안내)과 새로
     return i;
   };
   const order = [
-    '<Section M={M} label="기록" />', '<SubHead M={M} label="백업" first />', 'title="백업 내보내기"', 'title="백업 불러오기"',
-    'last title="저장본"', '{STORAGE_NOTE}', '<SubHead M={M} label="새로 시작" />', 'first title="템플릿으로 새로 쓰기"',
-    'title="예시로 채우기"', 'last danger title="전체 초기화"', '<Section M={M} label="정보" />',
+    '<Section M={M} label={st.secRecords} />', '<SubHead M={M} label={st.subBackup} first />', 'title={st.exportTitle}', 'title={st.importTitle}',
+    'last title={st.snapTitle}', '{storage.note}', '<SubHead M={M} label={st.subRestart} />', 'first title={st.templateRow}',
+    'title={st.sampleRow}', 'last danger title={st.resetRow}', '<Section M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
 });

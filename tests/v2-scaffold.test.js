@@ -16,12 +16,12 @@ test('설정: v2 구역 자리가 정해진 순서로 있다', () => {
     return i;
   };
   const order = [
-    '<Section M={M} label="핵심 목표" />',
-    '<Section M={M} label="보기" />', '<SubHead M={M} label="칸 모서리" />', '<PaperRows M={M} />',
+    '<Section M={M} label={st.secGoal} />',
+    '<Section M={M} label={st.secView} />', '<SubHead M={M} label={st.subShape} />', '<PaperRows M={M} />',
     '<LanguageSection M={M} />', '<NotifySection M={M} />', '<SyncSection M={M} />',
-    '<Section M={M} label="기록" />', 'last title="저장본"', '{STORAGE_NOTE}', '<YearRows M={M} />', '<SubHead M={M} label="새로 시작" />',
-    'last danger title="전체 초기화"', '<ProSection M={M} />',
-    '<Section M={M} label="정보" />', '<CrashRow M={M} />',
+    '<Section M={M} label={st.secRecords} />', 'last title={st.snapTitle}', '{storage.note}', '<YearRows M={M} />', '<SubHead M={M} label={st.subRestart} />',
+    'last danger title={st.resetRow}', '<ProSection M={M} />',
+    '<Section M={M} label={st.secInfo} />', '<CrashRow M={M} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
   // 줄 모양은 settings/rows.tsx 한 곳에
