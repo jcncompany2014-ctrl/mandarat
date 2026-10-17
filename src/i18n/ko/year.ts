@@ -56,4 +56,33 @@ export default {
   /** 홈 — 12월 15일 ~ 1월 31일 */
   homePrompt: '올해 표를 마무리할 때예요',
   homePromptAction: '한 해 돌아보기',
+
+  // V3-D — 한 해 화면(돌아보기 · 통계의 한 해 구역)
+  /** 화면 머리 — 보관함에서 연 지난 표 한 장 */
+  sheetTitle: '지난 표',
+  /** 보관함 · 지난 표 쪽을 채우기 전의 괘선 한 줄(V4-B가 채운다) */
+  loading: '아직 준비 중이에요',
+  /** 지금 쓰는 표의 돌아보기 — 기간 아래 작은 줄 */
+  currentChart: '지금 쓰는 표',
+  /** 네 숫자 중 하나 — 좁은 칸에 들어가게 짧게 */
+  statStreak: '가장 긴 연속',
+  calendarTitle: '한 해 달력',
+  framesTitle: '표가 채워진 모습',
+  /** 네 장면 중 하나를 읽는 말 — label은 '3월 31일' */
+  frameSpeech: ({ label, n }: { label: string; n: number }) => `${label}까지, 64칸 중 ${n}칸 달성`,
+  wearTitle: '닳은 자리',
+  /** 닳은 자리 오른쪽 — 칸마다 4주에 한 날 수의 평균으로 칠한다 */
+  wearRight: '4주 평균',
+  weeksTitle: '돌아본 주',
+  notesTitle: '회고',
+  notesEmpty: '이 표를 쓰는 동안 남긴 한 줄이 없어요',
+  /** '회고 12개 더 보기' */
+  notesMore: ({ n }: { n: number }) => `회고 ${n}개 더 보기`,
+  more: '더 보기',
+  printLink: '인쇄용 PDF',
+  /** 잠긴 지난 표 — 보관함 줄 오른쪽 */
+  lockedLine: '지난 표의 한 해 돌아보기는 프로에서 볼 수 있어요',
+  lockedLink: '프로 알아보기',
+  /** 통계 › 한 해 */
+  statsShelf: ({ n }: { n: number }) => `보관함 ${n}장`,
 } satisfies Namespace;
