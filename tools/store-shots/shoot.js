@@ -167,7 +167,10 @@ async function main() {
   if (opt.export) {
     const cmd = ['expo', 'export', '--platform', 'web', '--output-dir', WEB];
     console.log(`› npx ${cmd.join(' ')}`);
-    execFileSync('npx', cmd, { cwd: ROOT, stdio: 'inherit', env: { ...process.env, CI: '1', EXPO_NO_TELEMETRY: '1' } });
+    // 프로 미리보기를 켠 채 내보내지 않는다 — 스토어 그림은 무료로 쓰는 모습 그대로
+    const env = { ...process.env, CI: '1', EXPO_NO_TELEMETRY: '1' };
+    delete env.EXPO_PUBLIC_PRO_PREVIEW;
+    execFileSync('npx', cmd, { cwd: ROOT, stdio: 'inherit', env });
   }
   if (!fs.existsSync(path.join(WEB, 'index.html'))) {
     console.error(`${WEB}/index.html이 없어요 — --no-export 없이 다시 실행해 주세요`);
