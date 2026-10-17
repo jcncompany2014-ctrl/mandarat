@@ -46,22 +46,41 @@ function sortCap(list: ArchivedChart[]): ArchivedChart[] {
   return out.slice(-ARCHIVE_KEEP);
 }
 
+/** 칸 기록 키 "ti-ai" — 새 표에서 같은 칸을 다시 체크하면 앞 표의 키와 글자가 같다 */
+const CELL_KEY = /^[0-7]-[0-7]$/;
+
+/** 앞 표 — 이 표가 시작한 날(from)에 닫힌 다른 지난 표(같은 아이디는 같은 표를 다시 닫는 것이라 앞 표가 아니다) */
+function prevChart(from: string, past: readonly ArchivedChart[]): ArchivedChart | undefined {
+  return past.find((a) => a.to === from && a.id !== archiveId(from));
+}
+
 /**
- * 닫은 날의 겹침 — 표를 닫은 날(to)은 다음 표의 시작한 날(from)이기도 하다. 그날 지난 표에 담긴 칸 기록 "ti-ai"는
- * 지금 문서에 떼어 둔 키 "ti-xh<시각>_ai"로 남아 있으니(archiveAllCells), 다음 표에 또 담으면 그날을 두 번 센다.
- * 그 떼어 둔 키만 뺀다 — 새 표에서 한 체크 · 직접 추가한 할 일 · 지난 표에 없던 칸은 그대로.
+ * 닫은 날의 겹침 — 표를 닫은 날(to)은 다음 표의 시작한 날(from)이기도 하다. 앞 표에 이미 담긴 그날의 기록은 빼서 두 번 세지 않는다.
+ * - 칸 기록 "ti-ai"는 지금 문서에 떼어 둔 키 "ti-xh<시각>_ai"로 남아 있다(archiveAllCells) — 그 키를 뺀다.
+ * - 닫기 전에 끝낸 직접 추가한 할 일 "ti-x<id>" · 그날 먼저 비운 칸 "ti-xh…_ai"는 앞 표에 같은 글자 그대로 있다 — 그 키를 뺀다
+ *   (끝낸 할 일은 닫을 때 목록에서 빠지고, 새로 떼는 키는 새 시각이라 새 표의 기록과 글자가 겹치지 않는다).
+ * - 새 표에서 같은 칸을 다시 체크한 "ti-ai"는 앞 표의 키와 글자가 같아도 남긴다.
  */
 function dropClosedDay(dayLog: MandaratDoc['dayLog'], from: string, past: readonly ArchivedChart[]): MandaratDoc['dayLog'] {
-  // 같은 아이디(같은 표를 다시 닫는 것)는 앞 표가 아니다
-  const prev = past.find((a) => a.to === from && a.id !== archiveId(from));
-  const closed = new Set(prev?.dayLog[from] ?? []);
+  const closed = new Set(prevChart(from, past)?.dayLog[from] ?? []);
   const list = dayLog[from];
   if (closed.size === 0 || !list) return dayLog;
-  const keep = list.filter((k) => !(isArchivedKey(k) && closed.has(k.replace(/-xh[0-9a-z]+_/, '-'))));
+  const keep = list.filter((k) =>
+    !(!CELL_KEY.test(k) && closed.has(k)) && !(isArchivedKey(k) && closed.has(k.replace(/-xh[0-9a-z]+_/, '-'))));
   if (keep.length === list.length) return dayLog;
   const out = { ...dayLog };
   if (keep.length > 0) out[from] = keep;
   else delete out[from];
+  return out;
+}
+
+/** 닫은 날의 한 줄 · 기분 — 앞 표에 같은 것이 이미 담겼으면 이 표에서는 뺀다(닫은 뒤 고쳐 쓰면 다르니 남는다) */
+function dropClosedDayMeta(dayMeta: MandaratDoc['dayMeta'], from: string, past: readonly ArchivedChart[]): MandaratDoc['dayMeta'] {
+  const was = prevChart(from, past)?.dayMeta[from];
+  const now = dayMeta[from];
+  if (!was || !now || was.mood !== now.mood || (was.reflection ?? '') !== (now.reflection ?? '')) return dayMeta;
+  const out = { ...dayMeta };
+  delete out[from];
   return out;
 }
 
@@ -76,7 +95,9 @@ export function makeArchive(doc: MandaratDoc, now: Date, note = ''): ArchivedCha
   const { from, to } = chartRange(doc, now);
   const weekFrom = addDays(from, -6);
   const reviews = within<WeekReviewEntry>(doc.reviews, weekFrom, to);
-  const closedDays = (doc.closedDays ?? []).filter((d) => d >= from && d <= to);
+  // 앞 표에서 이미 마감한 날로 담긴 닫은 날은 빼서 두 번 세지 않는다
+  const prevClosed = prevChart(from, doc.archives ?? [])?.closedDays ?? [];
+  const closedDays = (doc.closedDays ?? []).filter((d) => d >= from && d <= to && !(d === from && prevClosed.includes(d)));
   const text = Array.from(note.trim()).slice(0, ARCHIVE_NOTE_MAX).join('').trim();
   const raw: ArchivedChart = {
     id: archiveId(from),
@@ -85,11 +106,39 @@ export function makeArchive(doc: MandaratDoc, now: Date, note = ''): ArchivedCha
     centerGoal: doc.centerGoal,
     themes: doc.themes,
     dayLog: dropClosedDay(within(doc.dayLog, from, to), from, doc.archives ?? []),
-    dayMeta: within(doc.dayMeta, from, to),
+    dayMeta: dropClosedDayMeta(within(doc.dayMeta, from, to), from, doc.archives ?? []),
     ...(Object.keys(reviews).length > 0 ? { reviews } : {}),
     ...(closedDays.length > 0 ? { closedDays } : {}),
     focusMinutes: Math.max(0, Math.round((doc.focusMinutes ?? 0) - (doc.focusStart ?? 0))),
     ...(text ? { note: text } : {}),
+  };
+  return cleanArchives([raw])[0] ?? raw;
+}
+
+/** 날(주) 단위로 채우기 — mine에 없는 열쇠만 theirs에서 */
+function fill<T>(mine: Record<string, T> | undefined, theirs: Record<string, T> | undefined): Record<string, T> {
+  const out: Record<string, T> = { ...(mine ?? {}) };
+  for (const [k, v] of Object.entries(theirs ?? {})) if (!(k in out)) out[k] = v;
+  return out;
+}
+
+/**
+ * 같은 표를 다시 닫을 때(닫기 전 저장본 · 예전 백업을 되돌린 뒤) — 이번 것을 바탕으로, 앞서 닫은 그 표에만 남은 기록을 잃지 않게 합친다.
+ * 되돌린 저장본 · 백업보다 뒤에 쓴 기록은 앞서 닫은 지난 표에만 있다(readSnapshot · 백업 불러오기는 지난 표를 그대로 둔다).
+ * - 기록(dayLog · dayMeta)은 날 단위로 — 이번 것에 없는 날만 앞 것에서 가져온다(같은 날은 지금 문서의 것)
+ * - 마감한 날은 합집합, 돌아보기는 이번 것에 없는 주만, 집중 시간은 더 큰 쪽, 한 줄은 이번 것이 비면 앞 것
+ */
+export function mergeReclosed(next: ArchivedChart, same: ArchivedChart): ArchivedChart {
+  const reviews = fill(next.reviews, same.reviews);
+  const closedDays = [...new Set([...(next.closedDays ?? []), ...(same.closedDays ?? [])])].sort();
+  const raw: ArchivedChart = {
+    ...next,
+    dayLog: fill(next.dayLog, same.dayLog),
+    dayMeta: fill(next.dayMeta, same.dayMeta),
+    ...(Object.keys(reviews).length > 0 ? { reviews } : {}),
+    ...(closedDays.length > 0 ? { closedDays } : {}),
+    focusMinutes: Math.max(next.focusMinutes ?? 0, same.focusMinutes ?? 0),
+    ...(next.note || same.note ? { note: next.note || same.note } : {}),
   };
   return cleanArchives([raw])[0] ?? raw;
 }
@@ -130,7 +179,7 @@ function themesFor(doc: MandaratDoc, mode: NewChartMode, day: string): Theme[] {
  * 지금 표를 닫고 새 표를 시작한 문서 — null이면 아무것도 바꾸지 않는다(오늘 두 번 닫기):
  *   같은 아이디의 지난 표를 오늘(또는 시계를 되돌린 기기에서 그 뒤에) 닫았을 때, 또는 지금 표가 오늘 시작했고 오늘 닫은 지난 표가 있을 때.
  * - 같은 아이디의 지난 표가 더 일찍 닫혀 있으면 같은 표를 다시 닫는 것이다(닫기 전 저장본 · 예전 백업을 되돌린 뒤) —
- *   더 긴 이번 것으로 바꾼다. 이번 한 줄이 비면 그 표의 한 줄을 남긴다. iCloud에서는 ar/<id> 하나라 늦게 닫은 것이 이긴다.
+ *   더 긴 이번 것으로 바꾸되 앞 것에만 남은 기록은 합친다(mergeReclosed). iCloud에서는 ar/<id> 하나라 늦게 닫은 것이 이긴다.
  * - archives: 지난 표들 + 이번 표(버리지 않는다 — 상한 ARCHIVE_KEEP은 깨진 저장본 대비)
  * - themes: mode대로. centerGoal: goal을 다듬은 것(비면 지금 목표)
  * - 오늘 목록의 실천은 비우고, 끝내지 않은 직접 추가한 할 일은 남긴다. 기분·한 줄·마감한 날은 그대로(지금 문서의 것)
@@ -149,7 +198,7 @@ export function startNewChart(
   // 같은 지난 표를 오늘(이후) 이미 닫았거나, 오늘 닫고 시작한 표를 오늘 또 닫으려 할 때
   const same = past.find((a) => a.id === archive.id);
   if ((same && same.to >= today) || past.some((a) => archive.from === today && a.to === today)) return null;
-  const next = same?.note && !archive.note ? { ...archive, note: same.note } : archive;
+  const next = same ? mergeReclosed(archive, same) : archive;
   const goal = opts.goal.trim();
   const reviews = detachReviewPicks(doc.reviews);
   return {

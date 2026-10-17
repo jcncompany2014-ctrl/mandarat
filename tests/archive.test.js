@@ -375,3 +375,70 @@ test('백업 불러오기: 불러온 문서의 지난 표를 지금 것과 합�
   assert.match(s, /replaceDoc\(\{ \.\.\.imported, archives: unionArchives\(getDoc\(\)\.archives, imported\.archives\) \}\);/);
   assert.match(s, /import \{ unionArchives \} from '\.\.\/lib\/archive';/);
 });
+
+test('startNewChart: 같은 표를 다시 닫으면 앞서 닫은 그 표에만 남은 기록을 합친다 — 되돌린 저장본 · 예전 백업 뒤에도 잃지 않는다', () => {
+  // 12-22 저장본을 받아 두고 계속 쓰다가 12-28에 닫는다
+  const d = usedDoc();
+  const snap = JSON.parse(JSON.stringify({ ...d, dayLog: { ...d.dayLog, '2026-12-20': ['0-0'] } }));
+  const later = {
+    ...snap,
+    dayLog: { ...snap.dayLog, '2026-12-24': ['1-1'], '2026-12-27': ['2-2'] },
+    dayMeta: { ...snap.dayMeta, '2026-12-27': { mood: 3, reflection: '마지막 주' } },
+    closedDays: [...(snap.closedDays ?? []), '2026-12-27'],
+    focusMinutes: 420,
+  };
+  const first = startNewChart(later, 'continue', new Date(2026, 11, 28, 20), { goal: '', note: '한 해 끝', time: T });
+  const id = first.archives[0].id;
+  // 12-29에 12-22 저장본을 되돌리면(readSnapshot은 지난 표를 그대로 붙인다) 1월 5일에 같은 표를 다시 닫는다
+  const restored = { ...migrate(snap), archives: first.archives };
+  const again = startNewChart(restored, 'continue', new Date(2027, 0, 5, 9), { goal: '', note: '', time: T + 1 });
+  assert.ok(again, '다시 닫을 수 있다');
+  const a = again.archives.find((x) => x.id === id);
+  assert.equal(again.archives.filter((x) => x.id === id).length, 1);
+  assert.equal(a.to, '2027-01-05');
+  assert.deepEqual(a.dayLog['2026-12-24'], ['1-1']);
+  assert.deepEqual(a.dayLog['2026-12-27'], ['2-2']);
+  assert.equal(a.dayMeta['2026-12-27'].reflection, '마지막 주');
+  assert.ok(a.closedDays.includes('2026-12-27'));
+  assert.equal(a.focusMinutes, 420 - 40);
+  assert.equal(a.note, '한 해 끝');
+  // 같은 날은 지금 문서의 것(되돌린 뒤 다시 쓴 기록이 이긴다)
+  const edited = { ...restored, dayLog: { ...restored.dayLog, '2026-12-24': ['3-3'] } };
+  const b = startNewChart(edited, 'continue', new Date(2027, 0, 5, 9), { goal: '', note: '', time: T + 1 }).archives.find((x) => x.id === id);
+  assert.deepEqual(b.dayLog['2026-12-24'], ['3-3']);
+});
+
+test('startNewChart: 두 번 닫은 뒤 첫 표의 저장본을 되돌려 다시 닫아도 닫은 날의 기록이 남는다', () => {
+  const snap = JSON.parse(JSON.stringify(usedDoc())); // 12-27의 저장본 — 12-28의 체크는 아직 없다
+  const d = { ...usedDoc(), dayLog: { ...usedDoc().dayLog, '2026-12-28': ['2-2'] } };
+  const one = startNewChart(d, 'continue', new Date(2026, 11, 28, 20), { goal: '', note: '', time: T });
+  const two = startNewChart(one, 'continue', new Date(2026, 11, 29, 20), { goal: '', note: '', time: T + 1 });
+  const restored = { ...migrate(snap), archives: two.archives };
+  const again = startNewChart(restored, 'continue', new Date(2026, 11, 30, 9), { goal: '', note: '', time: T + 2 });
+  const holders = again.archives.filter((a) => (a.dayLog['2026-12-28'] ?? []).includes('2-2'));
+  assert.equal(holders.length, 1, '12-28의 체크는 지난 표 한 장에 남는다');
+});
+
+test('makeArchive: 닫기 전에 끝낸 직접 추가한 할 일 · 그날 비운 칸 · 같은 한 줄은 다음 표에 또 담지 않는다(R-1 F6)', () => {
+  const d = usedDoc();
+  const day = '2026-12-20';
+  const used = {
+    ...d,
+    dayLog: { ...d.dayLog, [day]: ['0-0', '2-xabc', '3-xhrs_3'] },
+    dayMeta: { ...d.dayMeta, [day]: { mood: 2, reflection: '닫는 날' } },
+    closedDays: [...(d.closedDays ?? []), day],
+  };
+  const first = startNewChart(used, 'continue', NOW, { goal: '', note: '', time: T });
+  assert.deepEqual([...first.archives[0].dayLog[day]].sort(), ['0-0', '2-xabc', '3-xhrs_3']);
+  // 닫은 뒤 같은 칸을 새 표에서 다시 체크하고, 새 할 일을 끝낸다
+  const after = { ...first, dayLog: { ...first.dayLog, [day]: [...first.dayLog[day], '0-0', '4-xkeep'] } };
+  const second = startNewChart(after, 'continue', new Date(2026, 11, 21, 9), { goal: '', note: '', time: T + 1 });
+  const next = second.archives.find((a) => a.from === day);
+  assert.deepEqual(next.dayLog[day], ['0-0', '4-xkeep'], '새 표의 체크만');
+  assert.equal(next.dayMeta[day], undefined, '같은 한 줄 · 기분은 앞 표에만');
+  assert.ok(!(next.closedDays ?? []).includes(day), '마감한 날도 앞 표에만');
+  // 닫은 뒤 한 줄을 고쳐 쓰면 새 표의 것으로 남는다
+  const rewrote = { ...after, dayMeta: { ...after.dayMeta, [day]: { mood: 2, reflection: '새 표 첫날' } } };
+  const third = startNewChart(rewrote, 'continue', new Date(2026, 11, 21, 9), { goal: '', note: '', time: T + 1 });
+  assert.equal(third.archives.find((a) => a.from === day).dayMeta[day].reflection, '새 표 첫날');
+});
