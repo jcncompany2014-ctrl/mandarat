@@ -13,4 +13,6 @@ export default {
   today: 'Today',
   next: 'Next: {t}',
   checked: '{t} — done',
+  galleryName: 'Today',
+  galleryDesc: "Shows Today's list and how many are left.",
 } satisfies Like<typeof ko>;
