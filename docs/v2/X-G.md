@@ -22,7 +22,7 @@ Wave 7, i18n extraction II. Branch `mp/v2-x-g`.
 
 On iPad (`Platform.isPad`) every iOS variant says iPad instead of iPhone. In ko that is 이 iPad와, with the right josa (see Deviations).
 
-**Catalogs.** `src/i18n/{ko,ja,en}/settings.ts` has 81 keys in each language.
+**Catalogs.** `src/i18n/{ko,ja,en}/settings.ts` has 74 keys in each language.
 
 **Tests**
 - New `tests/x-g-settings.test.js` (6 tests) covers:
