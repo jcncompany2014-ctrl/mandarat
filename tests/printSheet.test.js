@@ -151,12 +151,26 @@ test('작은 종이에서도 글자 크기에 바닥이 있다(R-6 D-2)', () => 
   const size = (html, sel) => parseFloat(html.match(new RegExp(`${sel.replace(/[.]/g, '\\.')}\\{font-size:([\\d.]+)pt`))[1]);
   const a5 = render(demoDoc(), { paper: 'A5' }).html;
   const a4 = render(demoDoc(), { paper: 'A4' }).html;
-  assert.equal(size(a5, '.rows th.d'), 5.5, 'A5 날짜 숫자는 5.5pt 바닥');
+  // A5 날짜 숫자는 날 칸에 '31'이 한 줄로 들어가는 크기(예전 3.9pt보다 크고, 5.5pt 바닥보다 작다 — 5.5pt면 두 줄로 쌓였다)
+  assert.ok(size(a5, '.rows th.d') > 4.4 && size(a5, '.rows th.d') < 5.5, `A5 ${size(a5, '.rows th.d')}`);
   assert.equal(size(a5, '.t81 .in'), 6.5, 'A5 81칸 글은 6.5pt 바닥');
   assert.equal(size(a5, '.t81 .head .in,.t81 .core .in'), 7, 'A5 이름표 · 핵심은 7pt 바닥');
   // A4(k≈1)는 바닥 위 — 날짜 숫자 6.5pt, 칸 글 8.5pt
   assert.ok(Math.abs(size(a4, '.rows th.d') - 6.5) < 0.01);
   assert.ok(Math.abs(size(a4, '.t81 .in') - 8.5) < 0.01);
+});
+
+test('날짜 숫자 \'31\'은 어느 종이에서도 날 칸 한 줄에 들어간다', () => {
+  const { dayColumnInner } = require('../src/lib/printSheet');
+  const { PRINT_PAPERS } = require('../src/lib/contracts');
+  const size = (html) => parseFloat(html.match(/\.rows th\.d\{font-size:([\d.]+)pt;font-weight:500;white-space:nowrap\}/)[1]);
+  const kOf = (html) => parseFloat(html.match(/\.rows \.kd\{width:([\d.]+)pt/)[1]) / 44;
+  for (const paper of PRINT_PAPERS) {
+    const html = render(demoDoc(), { paper, layout: 'areas' }).html;
+    const k = kOf(html);
+    // Pretendard Medium의 '31'은 1.26em쯤 — 1.3em이 날 칸 안쪽에 들어간다
+    assert.ok(size(html) * 1.3 <= dayColumnInner(k) + 0.01, `${paper}: ${size(html)}pt × 1.3 > ${dayColumnInner(k)}pt`);
+  }
 });
 
 test('표 한 장은 머리말 · 목표 · 표 · 메모가 같은 너비(같은 왼쪽 끝)(R-6 D-3)', () => {

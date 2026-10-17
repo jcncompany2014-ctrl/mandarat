@@ -285,6 +285,16 @@ function areaPage(doc: Doc, o: Opts, m: M, f: Frame, ti: number): string {
 
 // ── 스타일 ──────────────────────────────────────────────────────────────────
 
+/** 실천 장부의 날 칸 하나의 안쪽 폭(pt) — (표 515 − 실천 170 − 유형 44) ÷ 31일 − 좌우 여백 0.6×2 */
+export function dayColumnInner(k: number): number {
+  return ((BASE.w - 170 - 44) / 31 - 1.2) * k;
+}
+
+/** 날짜 숫자의 상한(pt) — '31'은 숫자 두 개로 1.26em쯤, 여유를 두고 1.3em이 날 칸 안에 들어가게 */
+export function dayFontMax(k: number): number {
+  return dayColumnInner(k) / 1.3;
+}
+
 function css(f: Frame, fontCss: string): string {
   const k = f.k;
   const s = (n: number) => pt(n * k);
@@ -292,6 +302,8 @@ function css(f: Frame, fontCss: string): string {
   const block = alpha(INK, 0.55);
   const cell = alpha(INK, 0.22);
   // 81칸 글 · 날짜 숫자는 작은 종이(A5)에서도 읽히게 크기에 바닥을 둔다(Math.max)
+  // 날짜 숫자는 그래도 날 칸(31칸)에 '31'이 한 줄로 들어가는 크기까지만 — 넘치면 숫자가 두 줄로 쌓인다(A5)
+  const dayPt = Math.min(Math.max(5.5, 6.5 * k), dayFontMax(k));
   // 81칸의 괘선 — 칸마다 왼쪽·위를 긋고, 마지막 줄·칸만 오른쪽·아래를 긋는다(겹치는 선은 굵은 쪽이 이긴다)
   const rules: string[] = [];
   for (let i = 0; i < 9; i++) {
@@ -353,7 +365,7 @@ i{display:block;font-style:normal}
 .rows .ai span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .rows .kd{width:${s(44)};font-size:${s(8)};font-weight:600;text-align:left}
 .rows .d{padding:0 ${s(0.6)}}
-.rows th.d{font-size:${pt(Math.max(5.5, 6.5 * k))};font-weight:500}
+.rows th.d{font-size:${pt(dayPt)};font-weight:500;white-space:nowrap}
 .rows td.d i{width:100%;aspect-ratio:1;border:${s(0.5)} solid ${alpha(INK, 0.45)}}
 .chk{flex:none;width:${s(8)};height:${s(8)};border:${s(0.75)} solid ${alpha(INK, 0.6)}}
 .tally-l{font-size:${s(7.5)};text-align:right;margin-top:${s(4)}}
