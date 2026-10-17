@@ -162,15 +162,15 @@ test('startNewChart: 오늘 시작한 표를 또 닫으면 null(같은 아이디
   assert.deepEqual(next.archives.map((a) => a.id), ['y20260105', 'y20261220']);
 });
 
-test('startNewChart: 지난 표는 최근 30장까지(migrate와 같은 순서)', () => {
+test('startNewChart: 30장을 넘는 지난 표도 버리지 않는다(migrate와 같은 순서)', () => {
   const d = usedDoc();
-  d.archives = Array.from({ length: ARCHIVE_KEEP }, (_, i) => {
+  d.archives = Array.from({ length: 30 }, (_, i) => {
     const day = `2025-${String(1 + Math.floor(i / 28)).padStart(2, '0')}-${String(1 + (i % 28)).padStart(2, '0')}`;
     return makeArchive({ ...blankDoc(), chartStart: day }, new Date(2025, 2, 1));
   });
-  assert.equal(migrate(d).archives.length, ARCHIVE_KEEP);
+  assert.equal(migrate(d).archives.length, 30);
   const n = startNewChart(d, 'continue', NOW, { goal: '', note: '', time: T });
-  assert.equal(n.archives.length, ARCHIVE_KEEP);
+  assert.equal(n.archives.length, 31, '31번째 표를 닫아도 가장 오래된 표가 사라지지 않는다');
   assert.equal(n.archives[n.archives.length - 1].id, 'y20260105');
   assert.deepEqual(migrate(n).archives, n.archives);
 });

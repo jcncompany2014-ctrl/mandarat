@@ -356,7 +356,11 @@ test('archives: 아이디·기간이 깨진 표와 겹치는 아이디는 버리
   // 35장 — 닫은 날이 겹치는 표(i와 i+28)는 아이디 순서로
   const many = Array.from({ length: 35 }, (_, i) => arch({ id: `a${String(i).padStart(2, '0')}`, from: '2025-01-01', to: `2026-01-${String((i % 28) + 1).padStart(2, '0')}` }));
   const kept = migrate({ archives: many }).archives;
-  assert.equal(kept.length, ARCHIVE_KEEP);
+  // 30장을 넘어도 버리지 않는다 — 여러 기기·백업을 합친 지난 표가 조용히 사라지지 않게
+  assert.equal(kept.length, 35);
+  assert.ok(ARCHIVE_KEEP >= 200, '상한은 깨진 저장본 대비일 뿐 — 평소에는 닿지 않는다');
+  const huge = Array.from({ length: ARCHIVE_KEEP + 5 }, (_, i) => arch({ id: `b${String(i).padStart(4, '0')}`, from: '2025-01-01', to: '2026-01-01' }));
+  assert.equal(migrate({ archives: huge }).archives.length, ARCHIVE_KEEP);
   for (let i = 1; i < kept.length; i++) {
     const p = kept[i - 1], c = kept[i];
     assert.ok(p.to < c.to || (p.to === c.to && p.id < c.id), `${p.id} → ${c.id}`);

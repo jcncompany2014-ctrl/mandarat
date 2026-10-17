@@ -229,7 +229,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       const keys = await AsyncStorage.getAllKeys();
       const snaps = keys.filter((k) => k.startsWith(SNAP_PREFIX));
       const mine = `${SNAP_PREFIX}${day}`;
-      // 지난 표는 저장본에 넣지 않는다(7벌 × 지난 표 30장이 저장소를 채우지 않게) — 되살릴 때 지금 것을 다시 붙인다(readSnapshot)
+      // 지난 표는 저장본에 넣지 않는다(7벌 × 지난 표 여러 장이 저장소를 채우지 않게) — 되살릴 때 지금 것을 다시 붙인다(readSnapshot)
       if (!snaps.includes(mine)) await AsyncStorage.setItem(mine, d.archives ? JSON.stringify({ ...d, archives: undefined }) : json);
       const keep = new Set(
         [...new Set([...snaps, mine])].filter((k) => snapDayOf(k) !== null).sort().reverse().slice(0, SNAP_KEEP),

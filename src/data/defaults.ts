@@ -169,8 +169,12 @@ const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** 종이 무늬(프로) — 없으면 점 종이 */
 export const PAPER_OPTS: readonly PaperPattern[] = ['grid', 'lines', 'blank'];
-/** 남겨 두는 지난 표 — 닫은 날 순서로 최근 30장 */
-export const ARCHIVE_KEEP = 30;
+/**
+ * 지난 표의 상한 — 깨진 저장본이 끝없이 커지지 않게 막는 안전장치일 뿐, 평소에는 닿지 않는다.
+ * 지난 표는 사용자가 남긴 기념물이라 조용히 버리지 않는다: 표를 닫을 때(startNewChart)도,
+ * 다른 기기·백업과 합칠 때(cleanArchives · iCloud union)도 이 수까지 모두 남긴다(1년에 한 장이면 수백 년).
+ */
+export const ARCHIVE_KEEP = 200;
 /** 지난 표를 닫으며 적는 한 줄 메모의 글자 수 상한 */
 export const ARCHIVE_NOTE_MAX = 120;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
@@ -429,7 +433,7 @@ function cleanArchive(v: unknown): ArchivedChart | null {
   };
 }
 
-/** 지난 표들 — 아이디가 겹치면 앞의 것만, 닫은 날(to)·아이디 순서로 최근 30장까지 */
+/** 지난 표들 — 아이디가 겹치면 앞의 것만, 닫은 날(to)·아이디 순서로(상한 ARCHIVE_KEEP은 깨진 저장본 대비) */
 export function cleanArchives(v: unknown): ArchivedChart[] {
   if (!Array.isArray(v)) return [];
   const seen = new Set<string>();

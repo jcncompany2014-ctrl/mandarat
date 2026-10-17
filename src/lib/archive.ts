@@ -34,7 +34,7 @@ function within<T>(rec: Record<string, T> | undefined, from: string, to: string)
   return out;
 }
 
-/** 닫은 날(to) · 아이디 순서로, 최근 ARCHIVE_KEEP장까지 — migrate(cleanArchives)와 같은 순서 */
+/** 닫은 날(to) · 아이디 순서로 — migrate(cleanArchives)와 같은 순서 · 같은 상한(ARCHIVE_KEEP, 평소에는 닿지 않는다) */
 function sortCap(list: ArchivedChart[]): ArchivedChart[] {
   const out = [...list].sort((a, b) => (a.to === b.to ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : a.to < b.to ? -1 : 1));
   return out.slice(-ARCHIVE_KEEP);
@@ -103,7 +103,7 @@ function themesFor(doc: MandaratDoc, mode: NewChartMode, day: string): Theme[] {
 /**
  * 지금 표를 닫고 새 표를 시작한 문서 — null이면 아무것도 바꾸지 않는다:
  *   같은 아이디의 지난 표가 이미 있을 때, 또는 지금 표가 오늘 시작했고 오늘 닫은 지난 표가 있을 때(오늘 두 번 닫기).
- * - archives: 지난 표들 + 이번 표(최근 30장까지)
+ * - archives: 지난 표들 + 이번 표(버리지 않는다 — 상한 ARCHIVE_KEEP은 깨진 저장본 대비)
  * - themes: mode대로. centerGoal: goal을 다듬은 것(비면 지금 목표)
  * - 오늘 목록의 실천은 비우고, 끝내지 않은 직접 추가한 할 일은 남긴다. 기분·한 줄·마감한 날은 그대로(지금 문서의 것)
  * - 칸 기록은 칸에서 떼어 두고(time: 떼어 둔 키의 시각, 보통 Date.now()), 돌아보기의 중점 칸도 떼어 낸다
@@ -173,7 +173,7 @@ export function resetDoc(d: Pick<MandaratDoc, 'settings' | 'archives'>): Mandara
 
 /**
  * 백업을 불러올 때의 지난 표 — 아이디로 합치고 같은 아이디는 백업(incoming)의 것. 백업에 없는 지난 표는 남긴다.
- * 닫은 날 순서로 최근 30장까지, 하나도 없으면 undefined(필드를 두지 않는다).
+ * 닫은 날 순서로(버리지 않는다), 하나도 없으면 undefined(필드를 두지 않는다).
  */
 export function unionArchives(
   current: readonly ArchivedChart[] | undefined,

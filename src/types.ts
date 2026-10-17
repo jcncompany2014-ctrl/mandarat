@@ -180,7 +180,7 @@ export interface MandaratDoc {
   reviews?: Record<string, WeekReviewEntry>;
   /** 오늘 할 일을 다 해 마감한 날 'YYYY-MM-DD' — 오래된 날부터, 최근 400일까지 */
   closedDays?: string[];
-  /** 지난 표 — 닫은 날(to) 순서로 최근 30장까지 */
+  /** 지난 표 — 닫은 날(to) 순서로. 기념물이라 버리지 않는다(상한 ARCHIVE_KEEP은 깨진 저장본 대비) */
   archives?: ArchivedChart[];
   /** 지금 표를 시작한 날 'YYYY-MM-DD' */
   chartStart?: string;
