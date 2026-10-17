@@ -68,9 +68,14 @@ module.exports = async (page, h) => {
     if (owned) {
       await h.tid(h.TID.yearSheet).waitFor({ state: 'visible', timeout: 10000 });
       await h.shot('year-sheet');
-      const areas = page.locator('[aria-expanded="false"]');
-      await areas.first().scrollIntoViewIfNeeded();
-      await areas.first().click();
+      // 첫 영역 줄(영역 장부) — 이름과 'n칸 중 m칸 달성'을 읽는 버튼
+      const first = doc.archives[1].themes[0];
+      const done = first.actions.filter((x) => x.text.trim() && x.done).length;
+      const written = first.actions.filter((x) => x.text.trim()).length;
+      const y = require(`../../src/i18n/${h.lang}/year`).default;
+      const area = h.tid(h.TID.yearSheet).locator(`[aria-label="${first.title.trim()}, ${y.areaLine({ n: done, of: written })}"]`).first();
+      await area.scrollIntoViewIfNeeded();
+      await area.click();
       await h.settle();
       await h.shot('year-sheet-area');
       const print = h.tid(h.TID.yearPrint);
