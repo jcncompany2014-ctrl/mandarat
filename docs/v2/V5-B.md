@@ -20,6 +20,7 @@ Branch `mp/v2-v5-b`. Only `testID` / accessibility plumbing changed. Nothing ren
 - `npm run web-smoke` (production): all scenes pass. `npm run web-smoke -- --dev`: all scenes pass. The compare runs (§2, deviation 1) fail only on shots that also differ between two clean HEAD runs.
 - **Byte-identical check.**
   - Production: baselines `base-prod` and `base-prod2` came from a clean `git worktree` of `12bec86`, and `after-prod` and `after-prod2` came from this branch, all with `--langs ko,ja,en`. 99 of 102 shots match a baseline byte for byte. The 3 that never match are the `*-year-close-done` shots, and those also differ between the two clean baselines.
+  - Dev (`--dev`, 117 shots): two clean HEAD runs differ from each other on 9 shots: `*-pro-settings`, `*-v2a-notify`, `*-v4e-language*`, `*-year-review-375` and `*-year-close-done`. 107 of this branch's 117 shots match a clean dev baseline byte for byte. The 10 that don't are all in those same families: the long Settings scrolls (`en-pro-settings`, `en/ja-v2a-notify`, `*-v4e-language*`) and `*-year-close-done`.
   - DOM: I dumped `outerHTML` for all 34 ko scenes on both builds. After removing `data-testid`, the bundle hash and the font-path `<style>`, 33 pages are identical. The 34th, `year-close-done`, differs only in the toast countdown line's `transform` (`translateX(-37.59px) scaleX(0.79)` vs `(-38.17px) 0.787`). That is timing, not structure.
 
 ## 2. Deviations
