@@ -144,14 +144,3 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, cellShape, locked, f
     </Pressable>
   );
 });
-
-/** 괘선 사이 한 줄 — 짧은 안내 한 줄(잠긴 지난 표 등) */
-export function RuledLine({ M, text }: { M: M; text: string }) {
-  return (
-    <View style={{ paddingHorizontal: GUTTER }}>
-      <View style={{ minHeight: 48, justifyContent: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, paddingHorizontal: 2 }}>
-        <Text style={{ ...TYPE.caption, color: M.sub }}>{text}</Text>
-      </View>
-    </View>
-  );
-}
