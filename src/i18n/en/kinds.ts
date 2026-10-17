@@ -7,8 +7,8 @@ import { plural } from './plural';
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-/** A unit made of letters is set off by a space ('12 books', '30 km'); a sign is not ('80%') */
-const withUnit = (n: string, unit: string) => (/^\p{L}/u.test(unit) ? `${n} ${unit}` : `${n}${unit}`);
+/** A Latin unit is set off by a space ('12 books', '30 km'); a sign or a unit written in another script is not ('80%', '12권') */
+const withUnit = (n: string, unit: string) => (/^[a-z]/i.test(unit) ? `${n} ${unit}` : `${n}${unit}`);
 
 const sorted = (dows: readonly number[]) => [...new Set(dows.filter((x) => Number.isInteger(x) && x >= 0 && x <= 6))].sort((a, b) => a - b);
 
