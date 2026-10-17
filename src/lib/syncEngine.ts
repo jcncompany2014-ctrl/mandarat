@@ -212,10 +212,14 @@ export async function push(port: SyncPort, io: SyncIO): Promise<PushResult> {
   const digest = replicaDigest(rep);
   if (digest === meta.pushed) return { wrote: false, large: false };
   const json = encodeReplica({ ...rep, at: io.now() });
+  // 쓰는 동안은 '올리는 중' — 지문(pushed)은 끝난 뒤에야 남으니, 그 사이의 초기화 되돌리기가 이미 떠난 새 판을 거두지 않게(R-1 F2)
+  port.writing?.(1);
   try {
     await io.write(replicaName(rep.dev), json);
   } catch (e) {
     throw new SyncStop(errCode(e) === 'E_NO_ACCOUNT' ? 'noAccount' : 'ioError');
+  } finally {
+    port.writing?.(-1);
   }
   port.updateMeta((m) => (m.dev === rep.dev ? { ...m, pushed: digest } : m));
   return { wrote: true, large: json.length > SIZE_WARN };
@@ -534,7 +538,11 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
     }
     const local = port.replica()?.doc;
     if (!local) return;
-    const c: Classified | SyncChoice = choice ?? classify(local, r.remotes);
+    let c: Classified | SyncChoice = choice ?? classify(local, r.remotes);
+    // 오래 받지 못한 기기 — 다른 기기 파일이 있는데 하나도 풀지 못했으면(깨짐 · 모르는 꼴) 묻지 않고 올리지 않는다.
+    // 그 파일이 다시 읽히는 날, 지운 지 오래된 것(묘비를 이미 치운 것)이 이 복제본에서 되살아난다(isStale이 막으려는 것)
+    const m0 = port.meta();
+    if (!choice && c === 'push' && r.tried > 0 && m0 && isStale(m0, io.now())) c = 'ask';
     if (c === 'ask') {
       set('needsChoice', { remote: merged ? merged.doc : undefined });
       return;

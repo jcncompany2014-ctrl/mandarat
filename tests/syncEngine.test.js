@@ -16,7 +16,7 @@ const { cleanSyncMeta, newSyncMeta } = require('../src/lib/syncMeta');
 const { isStamp, tagOfStamp } = require('../src/lib/syncStamp');
 const { encodeReplica, replicaName, devOfName } = require('../src/lib/syncFile');
 const { SYNC_TTL_MS } = require('../src/lib/syncLocal');
-const { makeSyncPort, openStored, serializeStored, commitMeta, stampPending, docOnlyJson } = require('../src/lib/syncEnvelope');
+const { makeSyncPort, openStored, serializeStored, commitMeta, stampPending, docOnlyJson, undoResetMeta } = require('../src/lib/syncEnvelope');
 const {
   classify, isEmptyDoc, createSyncEngine, probe, applyPulled, PUSH_DEBOUNCE_MS, EPOCH_PUSH_DEBOUNCE_MS,
 } = require('../src/lib/syncEngine');
@@ -104,7 +104,34 @@ function makeDevice(world, cloud, dev, doc, opts = {}) {
       d.copies.push(JSON.parse(docOnlyJson(x)));
       return Promise.resolve(opts.copyFails ? false : true);
     },
+    writing: (delta) => { d.writing += delta; },
   });
+  d.writing = 0;
+  // 처음부터 다시와 그 되돌리기(MandaratContext resetAll · undoReset과 같은 차례) — 판까지 거두었으면 undoReset이 true
+  d.resetAll = () => {
+    d.flush();
+    const before = d.latest;
+    const meta = d.meta;
+    d.update((x) => rolloverToday(resetDoc(x), ymd(new Date(world.wall))), 'epoch');
+    d.resetUndo = { doc: before, rev: d.rev, mark: meta ? { before: meta, epoch: d.meta.epoch, ...(meta.pushed ? { pushed: meta.pushed } : {}) } : null };
+    return before;
+  };
+  d.undoReset = (snapshot) => {
+    const u = d.resetUndo;
+    d.resetUndo = null;
+    d.flush();
+    const restored = u && d.writing === 0 && u.doc === snapshot && u.rev === d.rev ? undoResetMeta(u.mark, d.meta) : null;
+    if (!restored) {
+      d.rev += 1;
+      d.commit(rolloverToday(snapshot, ymd(new Date(world.wall))));
+      return false;
+    }
+    d.rev += 1;
+    d.meta = restored;
+    d.commit(snapshot, 'none');
+    d.commit(rolloverToday(snapshot, ymd(new Date(world.wall))));
+    return true;
+  };
   // 손잡이 감시 — 부른 순서를 남긴다(저장본이 늘 먼저인지)
   d.port = {
     ...raw,
@@ -939,4 +966,110 @@ test('source guards: host, engine and status', () => {
   const st = src('src/lib/syncStatus.ts');
   assert.match(st, /if \(!icloud\) return Promise\.resolve\(\{ available: false, files: 0 \}\);/);
   assert.doesNotMatch(src('src/lib/syncStatus.ts') + eng, /icloud\.list\(/);
+});
+
+test('R-1 F2: 새 판을 쓰는 중에 누른 되돌리기는 판을 거두지 않는다 — 그 파일을 다른 기기가 읽어도 두 기기 모두 표가 남는다', async () => {
+  const world = makeWorld(31);
+  const { cloud, A, B } = await pairOn(world);
+  A.update((d) => editCell(d, 1, 1, (a) => ({ ...a, text: 'A의 칸' })));
+  await converge(A, B);
+  const snap = A.resetAll();
+  let release;
+  A.hooks.write = (name, json) => new Promise((resolve) => {
+    release = () => {
+      cloud.t += 1000;
+      cloud.files.set(name, { json, modified: cloud.t });
+      resolve();
+    };
+  });
+  const pushing = A.engine.sync(); // 새 판을 올린다(쓰기가 붙잡혀 있다)
+  for (let i = 0; i < 200 && !release; i++) await new Promise((r) => setTimeout(r, 1));
+  assert.ok(release, '쓰는 중');
+  assert.equal(A.writing, 1);
+  assert.equal(A.undoReset(snap), false, '쓰는 중이면 판을 거두지 않고 replaceDoc');
+  A.hooks = {};
+  release();
+  await pushing;
+  assert.equal(A.writing, 0);
+  // B가 A의 새 판 파일을 먼저 읽는다 — 그래도 A가 되살린 표는 새 도장이라 두 기기 모두 남는다
+  world.wall += 1000;
+  await B.engine.sync();
+  await converge(A, B);
+  assert.equal(textOf(A.latest, 1, 1), 'A의 칸');
+  assert.equal(textOf(B.latest, 1, 1), 'A의 칸');
+  assert.equal(A.latest.centerGoal, 'A의 목표');
+});
+
+test('R-1 F2: 아무것도 쓰지 않은 사이의 되돌리기는 판을 거둔다(쓰는 중이 아니면 빠른 길)', async () => {
+  const world = makeWorld(32);
+  const { A, B } = await pairOn(world);
+  await converge(A, B);
+  const epoch = A.meta.epoch;
+  const snap = A.resetAll();
+  assert.notEqual(A.meta.epoch, epoch);
+  assert.equal(A.undoReset(snap), true);
+  assert.equal(A.meta.epoch, epoch);
+});
+
+test('R-1 F2: 초기화한 문서는 오늘로 정리돼 있다 — 그 사이 아무것도 바꾸지 않는 받기가 편집 횟수를 올려 되돌리기를 막지 않는다', async () => {
+  const world = makeWorld(33);
+  const { A, B } = await pairOn(world);
+  await converge(A, B);
+  const snap = A.resetAll();
+  assert.equal(A.latest.todayDate, ymd(new Date(world.wall)));
+  const rev = A.rev;
+  // 다른 기기가 다시 올린 것을 받는 한 바퀴(onChange) — 내용은 그대로
+  world.wall += 1000;
+  B.update((d) => editCell(d, 5, 5, (a) => ({ ...a, note: '' })));
+  await B.engine.local();
+  await A.engine.sync();
+  assert.equal(A.rev, rev, '받은 것이 아무것도 바꾸지 않았으니 편집 횟수 그대로 — 되돌리기 알림이 거절하지 않는다');
+  // 그 바퀴가 새 판을 올렸으니 판은 거두지 않고 replaceDoc — 표는 되살아난다
+  assert.equal(A.undoReset(snap), false);
+  assert.equal(A.latest.centerGoal, 'A의 목표');
+});
+
+test('R-1 F4: 오래 받지 못한 기기는 다른 기기 파일을 하나도 풀지 못해도 묻는다 — 깨진 파일 앞에서 올리지 않는다', async () => {
+  const world = makeWorld(34);
+  const { cloud, A, B } = await pairOn(world);
+  await converge(A, B);
+  world.wall += SYNC_TTL_MS + 24 * 3600e3;
+  B.update((d) => editCell(d, 2, 2, (a) => ({ ...a, text: '오래 전' })));
+  const aName = [...cloud.files.keys()].find((n) => devOfName(n) === A.dev);
+  cloud.t += 1000;
+  cloud.files.set(aName, { json: 'garbage', modified: cloud.t });
+  const before = B.writes;
+  await B.engine.sync();
+  assert.equal(B.engine.status().phase, 'needsChoice');
+  assert.equal(B.writes, before, '묻는 동안 올리지 않는다');
+  await B.engine.choose('merge');
+  assert.ok(B.writes > before, '고른 뒤에는 올린다');
+});
+
+test('R-8 #6: 받기는 풀기와 합치기 사이에 한 번 쉰다 — 그 사이의 고침도 합친 문서에 남고 다른 기기로 간다', async () => {
+  const world = makeWorld(35);
+  const { A, B } = await pairOn(world);
+  await converge(A, B);
+  A.update((d) => editCell(d, 3, 3, (a) => ({ ...a, text: 'A가 먼저' })));
+  await A.engine.local();
+  const real = global.setTimeout;
+  let hooked = 0;
+  global.setTimeout = (fn, ms, ...rest) => {
+    if (ms === 0 && hooked === 0) {
+      hooked += 1;
+      // 쉬는 동안 B에서 누른 것
+      B.update((d) => editCell(d, 4, 4, (a) => ({ ...a, text: '쉬는 동안' })));
+    }
+    return real(fn, ms, ...rest);
+  };
+  try {
+    await B.engine.sync();
+  } finally {
+    global.setTimeout = real;
+  }
+  assert.equal(hooked, 1, '받기 안에서 한 번 쉬었다');
+  assert.equal(textOf(B.latest, 3, 3), 'A가 먼저');
+  assert.equal(textOf(B.latest, 4, 4), '쉬는 동안');
+  await converge(A, B);
+  assert.equal(textOf(A.latest, 4, 4), '쉬는 동안');
 });

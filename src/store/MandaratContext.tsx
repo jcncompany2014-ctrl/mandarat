@@ -736,6 +736,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   /** 처음부터 다시 직전의 문서 · 편집 횟수 · 맞추기 몫 — 그 되돌리기(undoReset)가 새 판을 거두는 데 쓴다(R-1 F2) */
   const resetUndo = useRef<{ doc: MandaratDoc; rev: number; mark: ResetMark | null } | null>(null);
+  /** 지금 쓰고 있는 복제본 수(엔진의 push) — 쓰는 중에는 새 판이 이미 떠났을 수 있어 되돌리기가 판을 거두지 않는다 */
+  const writingRef = useRef(0);
 
   const resetAll = useCallback(
     () => {
@@ -743,7 +745,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       const before = latest.current;
       const meta = metaRef.current;
       dropEditorDraft();
-      update((d) => resetDoc(d), 'epoch'); // keep look-and-feel and past charts — a new sync epoch restamps what is kept
+      // 보기 설정과 지난 표는 남기고 새 판으로 다시 도장. 오늘 날짜까지 정리해 둔다 — 비워 둔 todayDate 때문에
+      // 그 사이의 받기가 '바뀜'으로 세여 편집 횟수가 오르면 되돌리기가 거절된다
+      update((d) => rolloverToday(resetDoc(d), dateKey()), 'epoch');
       const after = metaRef.current;
       resetUndo.current = {
         doc: before,
@@ -806,7 +810,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     const u = resetUndo.current;
     resetUndo.current = null;
     flushStamp();
-    const restored = u && u.doc === snapshot && u.rev === revRef.current ? undoResetMeta(u.mark, metaRef.current) : null;
+    const idle = writingRef.current === 0;
+    const restored = u && idle && u.doc === snapshot && u.rev === revRef.current ? undoResetMeta(u.mark, metaRef.current) : null;
     if (!restored) {
       replaceDoc(snapshot);
       return;
@@ -884,6 +889,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         today: () => dateKey(),
         now: () => Date.now(),
         writeCopy: keepSnapshot,
+        writing: (delta) => {
+          writingRef.current = Math.max(0, writingRef.current + delta);
+        },
       }),
     [commit, keepSnapshot, flushStamp],
   );

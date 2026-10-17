@@ -360,7 +360,8 @@ test('저장소: 저장본은 지난 표를 빼고 쓰고, 읽을 때 지금 지
 test('저장소: resetAll은 resetDoc, startNewChart는 먼저 계산해 null이면 false', () => {
   const s = src('src/store/MandaratContext.tsx');
   const reset = s.slice(s.indexOf('const resetAll = useCallback'), s.indexOf('const applyTemplate = useCallback'));
-  assert.match(reset, /dropEditorDraft\(\);\s*update\(\(d\) => resetDoc\(d\), 'epoch'\)/);
+  // 오늘 날짜까지 정리한 채 새 판으로(되돌리기가 그 사이의 받기에 거절되지 않게 — R-1 F2)
+  assert.match(reset, /dropEditorDraft\(\);[\s\S]*?update\(\(d\) => rolloverToday\(resetDoc\(d\), dateKey\(\)\), 'epoch'\)/);
   assert.doesNotMatch(reset, /blankDoc\(\)/);
   const start = s.slice(s.indexOf('const startNewChart = useCallback'), s.indexOf('const dismissRecovered = useCallback'));
   assert.match(start, /const next = nextChart\(latest\.current, mode, new Date\(\), opts\);\s*if \(!next\) return false;\s*dropEditorDraft\(\);\s*update\(\(\) => next\);\s*return true;/);

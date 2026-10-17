@@ -155,6 +155,8 @@ export interface SyncPort {
   epochReset(): void;
   /** 오늘 저장본 'mandarat:snap:<오늘>'을 지금 문서로 다시 쓴다 — 문서는 부른 순간의 것 */
   keepCopy(): Promise<boolean>;
+  /** 복제본 쓰기가 시작되면 +1, 끝나면(실패해도) −1 — 저장소가 '올리는 중'을 안다(초기화 되돌리기가 판을 거둘지 정한다) */
+  writing?(delta: 1 | -1): void;
 }
 
 /** 저장소가 손잡이에 빌려주는 것 — 모두 그 순간의 값(latest.current · metaRef.current) */
@@ -172,6 +174,8 @@ export interface SyncPortHost {
   now(): number;
   /** 문서를 오늘 저장본으로 쓴다(성공하면 true) */
   writeCopy(doc: MandaratDoc): Promise<boolean>;
+  /** 복제본 쓰기가 시작될 때 +1, 끝날 때 −1(SyncPort.writing) */
+  writing?(delta: 1 | -1): void;
 }
 
 export function makeSyncPort(host: SyncPortHost): SyncPort {
@@ -232,5 +236,6 @@ export function makeSyncPort(host: SyncPortHost): SyncPort {
       if (meta) host.setMeta(epochReset(meta, host.now(), host.doc()));
     },
     keepCopy,
+    writing: (delta) => host.writing?.(delta),
   };
 }

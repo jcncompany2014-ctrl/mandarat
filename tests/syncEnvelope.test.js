@@ -256,7 +256,7 @@ function storeSim(world, dev, doc) {
     const before = s.latest;
     const meta = s.meta;
     s.sinceReset = [];
-    s.update((d) => resetDoc(d), 'epoch');
+    s.update((d) => rolloverToday(resetDoc(d), world.today(s)), 'epoch');
     s.resetUndo = { doc: before, rev: s.rev, mark: { before: meta, epoch: s.meta.epoch, ...(meta.pushed ? { pushed: meta.pushed } : {}) } };
     return before;
   };
@@ -879,7 +879,7 @@ test('source: the store stamps lazily — commit only through commitMeta, every 
     assert.match(body(port, m, '\n    },\n'), /^[^\n]*\{\s*host\.flush\?\.\(\);/, `${m.trim()} flushes first`);
   }
   // 초기화는 새 판, 받은 것을 넣을 때는 도장 없이
-  assert.match(body(s, 'const resetAll = useCallback', 'const applyTemplate = useCallback'), /update\(\(d\) => resetDoc\(d\), 'epoch'\)/);
+  assert.match(body(s, 'const resetAll = useCallback', 'const applyTemplate = useCallback'), /update\(\(d\) => rolloverToday\(resetDoc\(d\), dateKey\(\)\), 'epoch'\)/);
   const host = body(s, 'makeSyncPort({', '}),');
   assert.match(host, /doc: \(\) => latest\.current,/);
   assert.match(host, /meta: \(\) => metaRef\.current,/);
@@ -931,7 +931,11 @@ test('source: reset-undo wiring — Settings resets with getDoc() and useResetUn
   const reset = body(s, 'const resetAll = useCallback', 'const relocalizeDefaults = useCallback');
   assert.match(reset, /resetUndo\.current = \{\s*doc: before,\s*rev: revRef\.current,\s*mark: meta && after \? \{ before: meta, epoch: after\.epoch, \.\.\.\(meta\.pushed \? \{ pushed: meta\.pushed \} : \{\}\) \} : null,/);
   const undo = body(s, 'const undoReset = useCallback', '}, [flushStamp, replaceDoc, commit]);');
-  assert.match(undo, /const restored = u && u\.doc === snapshot && u\.rev === revRef\.current \? undoResetMeta\(u\.mark, metaRef\.current\) : null;/);
+  // 복제본을 쓰는 중이면(새 판이 이미 떠났을 수 있다) 판을 거두지 않는다 — 엔진이 쓰기 앞뒤로 port.writing(±1)
+  assert.match(undo, /const idle = writingRef\.current === 0;\s*const restored = u && idle && u\.doc === snapshot && u\.rev === revRef\.current \? undoResetMeta\(u\.mark, metaRef\.current\) : null;/);
+  assert.match(s, /writing: \(delta\) => \{\s*writingRef\.current = Math\.max\(0, writingRef\.current \+ delta\);/);
+  const eng = src('src/lib/syncEngine.ts');
+  assert.match(eng, /port\.writing\?\.\(1\);\s*try \{\s*await io\.write\(replicaName\(rep\.dev\), json\);[\s\S]*?\} finally \{\s*port\.writing\?\.\(-1\);/);
   assert.match(undo, /if \(!restored\) \{\s*replaceDoc\(snapshot\);\s*return;\s*\}/);
   assert.match(undo, /metaRef\.current = restored;\s*commit\(snapshot, 'none'\);\s*\/\/[^\n]*\n\s*commit\(rolloverToday\(snapshot, dateKey\(\)\)\);/);
   assert.match(undo, /dropEditorDraft\(\);\s*revRef\.current \+= 1;/);
