@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '../types';
 import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleThemes } from '../data/defaults';
@@ -11,12 +11,20 @@ import { MOODS, withAccent, type Palette } from '../theme/moods';
 import { GOLD } from '../theme/palette';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
+import { newSyncMeta, type SyncMeta } from '../lib/syncMeta';
+import { docOnlyJson, makeSyncPort, openStored, serializeStored, stampCommit, type CommitHow, type SyncPort } from '../lib/syncEnvelope';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 /** 하루 한 번 남기는 저장본 'mandarat:snap:YYYY-MM-DD' */
 const SNAP_PREFIX = 'mandarat:snap:';
 /** 저장본은 최근 7일치만 */
 const SNAP_KEEP = 7;
+/**
+ * iCloud 맞추기는 iOS에서만 — 저장본은 { ...doc, _sync } 봉투가 되고 바꿀 때마다 도장을 찍는다(docs/v2/V3-E.md).
+ * 웹·안드로이드는 메타가 없어 지금처럼 문서만 쓴다.
+ */
+const SYNC_ON = Platform.OS === 'ios';
+const makeMeta = SYNC_ON ? () => newSyncMeta(Math.random) : null;
 
 /**
  * 편집 창이 적어 둔 쓰던 글을 지운다 — 문서를 통째로 바꾸면(예시·초기화·템플릿·되돌리기·백업) 그 글은 지난 칸의 것이다.
@@ -56,6 +64,22 @@ function snapDayOf(key: string): string | null {
   if (!key.startsWith(SNAP_PREFIX)) return null;
   const day = key.slice(SNAP_PREFIX.length);
   return DATE_RE.test(day) ? day : null;
+}
+
+/**
+ * 그날 저장본을 쓰고 최근 7일치만 둔다. force가 아니면 이미 있는 그날 저장본은 그대로 둔다(하루의 처음 모습).
+ * 지난 표와 맞추기 메타는 넣지 않는다(7벌 × 지난 표 여러 장이 저장소를 채우지 않게) — 되살릴 때 지금 지난 표를 다시 붙인다(readSnapshot)
+ */
+async function writeSnap(d: MandaratDoc, day: string, force: boolean): Promise<void> {
+  const keys = await AsyncStorage.getAllKeys();
+  const snaps = keys.filter((k) => k.startsWith(SNAP_PREFIX));
+  const mine = `${SNAP_PREFIX}${day}`;
+  if (force || !snaps.includes(mine)) await AsyncStorage.setItem(mine, docOnlyJson(d));
+  const keep = new Set(
+    [...new Set([...snaps, mine])].filter((k) => snapDayOf(k) !== null).sort().reverse().slice(0, SNAP_KEEP),
+  );
+  const drop = snaps.filter((k) => !keep.has(k));
+  if (drop.length > 0) await AsyncStorage.multiRemove(drop);
 }
 
 function parseSnapshot(raw: string | null): MandaratDoc | null {
@@ -186,6 +210,8 @@ const DocCtx = createContext<DocState | null>(null);
 const ActionsCtx = createContext<Actions | null>(null);
 /** 저장본을 다 읽었는지만 — 문서가 바뀔 때는 다시 그리지 않는다(첫 화면 문지기용) */
 const ReadyCtx = createContext(false);
+/** 맞추기 엔진(V4-A)의 손잡이 — iOS에서 저장본을 다 읽은 뒤에만, 그 밖에는 null. 처음 한 번만 바뀐다 */
+const SyncPortCtx = createContext<SyncPort | null>(null);
 
 // ── palette ───────────────────────────────────────────────────────────────────
 /** 지금 고른 종이(무드) 팔레트 + 포인트 컬러 */
@@ -209,10 +235,20 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
    * 아직 그려지지 않은 변경까지 함께 보게(그린 문서만 보면 한 박자 늦은 문서를 저장한다).
    */
   const latest = useRef(doc);
-  const commit = useCallback((next: MandaratDoc) => {
+  /**
+   * 맞추기 메타(iOS) — latest와 늘 같은 순간의 짝. 바꿀 때마다 그 자리에서 함께 맞추고, 저장도 둘을 함께 쓴다.
+   * 저장본을 다 읽기 전·웹·안드로이드·저장소 오류에서는 null(도장을 찍지 않는다)
+   */
+  const metaRef = useRef<SyncMeta | null>(null);
+  // how: 보통은 바뀐 경로에 도장, 초기화는 새 판(epoch), 받은 것을 합쳐 넣을 때는 그대로(none) — 메타가 있을 때만(stampCommit)
+  const commit = useCallback((next: MandaratDoc, how: CommitHow = 'stamp') => {
+    metaRef.current = stampCommit(latest.current, next, metaRef.current, how, Date.now());
     latest.current = next;
     setDoc(next);
   }, []);
+  /** 메타만 바뀌었을 때(받은 기록 · 엔진의 seen 등) 저장을 예약한다 — 문서가 그대로여도 */
+  const [saveTick, setSaveTick] = useState(0);
+  const [portOn, setPortOn] = useState(false);
   const revRef = useRef(0);
   // 저장본을 읽지 못했다면(저장소 오류) 빈 문서로 덮어쓰지 않도록 이번 세션은 저장하지 않는다
   const blockSave = useRef(false);
@@ -221,33 +257,46 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   // 하루의 첫 저장 뒤에 그 내용을 'mandarat:snap:날짜'로 한 벌 더 남기고, 최근 7일치만 둔다.
   // 실패해도 본 저장에는 영향이 없다(같은 날 다시 시도하지 않는다).
-  const snapshot = useCallback(async (d: MandaratDoc, json: string) => {
+  /** 저장본 쓰기는 한 줄로 — 오늘 저장본 다시 쓰기(keepCopy)가 그보다 먼저 부른 하루 저장본에 덮이지 않게 */
+  const snapChain = useRef<Promise<void>>(Promise.resolve());
+  const snapshot = useCallback((d: MandaratDoc) => {
     const day = dateKey();
     if (!d.onboarded || snapDay.current === day) return;
     snapDay.current = day;
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-      const snaps = keys.filter((k) => k.startsWith(SNAP_PREFIX));
-      const mine = `${SNAP_PREFIX}${day}`;
-      // 지난 표는 저장본에 넣지 않는다(7벌 × 지난 표 여러 장이 저장소를 채우지 않게) — 되살릴 때 지금 것을 다시 붙인다(readSnapshot)
-      if (!snaps.includes(mine)) await AsyncStorage.setItem(mine, d.archives ? JSON.stringify({ ...d, archives: undefined }) : json);
-      const keep = new Set(
-        [...new Set([...snaps, mine])].filter((k) => snapDayOf(k) !== null).sort().reverse().slice(0, SNAP_KEEP),
-      );
-      const drop = snaps.filter((k) => !keep.has(k));
-      if (drop.length > 0) await AsyncStorage.multiRemove(drop);
-    } catch (e) {
-      console.warn('[store] daily snapshot failed', e);
-    }
+    snapChain.current = snapChain.current.then(() =>
+      writeSnap(d, day, false).catch((e) => {
+        console.warn('[store] daily snapshot failed', e);
+      }),
+    );
   }, []);
 
+  // 오늘 저장본을 지금 문서로 다시 쓴다(동기화 고르기 · 판이 높은 기록을 합치기 전) — 처음 쓰지 않은 표는 남기지 않는다
+  // (그날 앞서 남긴 저장본을 빈 표로 덮지 않게)
+  const keepSnapshot = useCallback((d: MandaratDoc): Promise<boolean> => {
+    if (!d.onboarded || blockSave.current) return Promise.resolve(false);
+    const day = dateKey();
+    snapDay.current = day;
+    const done = snapChain.current.then(() =>
+      writeSnap(d, day, true).then(
+        () => true,
+        (e) => {
+          console.warn('[store] keep copy failed', e);
+          return false;
+        },
+      ),
+    );
+    snapChain.current = done.then(() => {});
+    return done;
+  }, []);
+
+  // 문서와 메타는 같은 순간의 짝으로 쓴다 — 부르는 곳은 모두 latest.current를 넘긴다(metaRef는 늘 그 짝)
   const persist = useCallback(
     (d: MandaratDoc) => {
-      const json = JSON.stringify(d);
+      const json = serializeStored(d, metaRef.current);
       return AsyncStorage.setItem(STORAGE_KEY, json).then(
         () => {
           setSaveFailed(false);
-          void snapshot(d, json);
+          snapshot(d);
         },
         (e) => {
           console.warn('[store] save failed', e);
@@ -263,13 +312,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     let alive = true;
     (async () => {
       const read = await takeStoredRead();
-      let loaded: MandaratDoc | null = null;
+      let loaded: { doc: MandaratDoc; meta: SyncMeta | null } | null = null;
       if (!read.ok) {
         console.warn('[store] load failed', read.error);
         blockSave.current = true;
       } else if (read.raw) {
         try {
-          loaded = rolloverToday(migrate(JSON.parse(read.raw)), dateKey());
+          loaded = openStored(read.raw, dateKey(), Date.now(), makeMeta);
         } catch (e) {
           // 깨진 저장본은 지우지 않고 따로 보관해 두고 새로 시작한다 — 보관도 못 하면 원본을 덮어쓰지 않는다
           console.warn('[store] unreadable doc — kept a copy', e);
@@ -283,7 +332,10 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         }
       }
       if (!alive) return;
-      if (loaded) commit(loaded);
+      // 읽은 메타(없으면 새로) — 문서와 함께 넣고, 정리로 바뀐 것은 openStored가 이미 찍었다
+      if (makeMeta && !blockSave.current) metaRef.current = loaded ? loaded.meta : makeMeta();
+      if (loaded) commit(loaded.doc, 'none');
+      if (metaRef.current) setPortOn(true);
       if (blockSave.current) setStorageError(true);
       setReady(true);
     })();
@@ -300,12 +352,12 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     saveTimer.current = setTimeout(() => {
       saveTimer.current = null;
       pendingSave.current = false;
-      void persist(doc);
+      void persist(latest.current);
     }, 300);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [doc, ready, persist]);
+  }, [doc, saveTick, ready, persist]);
 
   // 내려갈 때(오류 화면 등) 아직 쓰지 않은 변경이 있으면 바로 쓴다
   useEffect(
@@ -389,9 +441,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ready, commit]);
 
-  const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc) => {
+  const update = useCallback((fn: (d: MandaratDoc) => MandaratDoc, how: CommitHow = 'stamp') => {
     revRef.current += 1;
-    commit(fn(latest.current));
+    commit(fn(latest.current), how);
   }, [commit]);
   const revision = useCallback(() => revRef.current, []);
 
@@ -650,7 +702,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const resetAll = useCallback(
     () => {
       dropEditorDraft();
-      update((d) => resetDoc(d)); // keep look-and-feel and past charts
+      update((d) => resetDoc(d), 'epoch'); // keep look-and-feel and past charts — a new sync epoch restamps what is kept
     },
     [update],
   );
@@ -727,6 +779,28 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const getDoc = useCallback(() => latest.current, []);
 
+  // 맞추기 손잡이 — 모든 값은 부르는 순간의 latest · metaRef에서 읽는다(syncEnvelope.makeSyncPort)
+  const port = useMemo(
+    () =>
+      makeSyncPort({
+        doc: () => latest.current,
+        meta: () => metaRef.current,
+        setMeta: (m) => {
+          metaRef.current = m;
+          setSaveTick((t) => t + 1);
+        },
+        putMerged: (d, m) => {
+          metaRef.current = m;
+          revRef.current += 1;
+          commit(d, 'none');
+        },
+        today: () => dateKey(),
+        now: () => Date.now(),
+        writeCopy: keepSnapshot,
+      }),
+    [commit, keepSnapshot],
+  );
+
   // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
   const actions = useMemo<Actions>(
     () => ({
@@ -756,7 +830,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     <ActionsCtx.Provider value={actions}>
       <DocCtx.Provider value={state}>
         <ReadyCtx.Provider value={ready}>
-          <PaletteCtx.Provider value={palette}>{children}</PaletteCtx.Provider>
+          <PaletteCtx.Provider value={palette}>
+            <SyncPortCtx.Provider value={portOn ? port : null}>{children}</SyncPortCtx.Provider>
+          </PaletteCtx.Provider>
         </ReadyCtx.Provider>
       </DocCtx.Provider>
     </ActionsCtx.Provider>
@@ -793,6 +869,11 @@ export function useMandarat(): Ctx {
     () => ({ ...state, ...actions, inToday: (key: string) => todayKeys.includes(key) }),
     [state, actions, todayKeys],
   );
+}
+
+/** 맞추기 엔진(V4-A)의 손잡이 — iOS에서 저장본을 다 읽은 뒤에만 있고, 웹·안드로이드·저장소 오류에서는 null */
+export function useSyncPort(): SyncPort | null {
+  return useContext(SyncPortCtx);
 }
 
 /** 지금 팔레트 — 무드·포인트 컬러가 바뀔 때만 새 객체(그 밖의 문서 변경에는 같은 객체) */
