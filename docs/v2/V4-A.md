@@ -41,7 +41,7 @@ The rule this package is built around: **no edit made on any device is ever lost
 ### The engine's ordering rules
 
 - All engine work runs on one serial chain; triggers that have not started yet are coalesced (`pull`, `push`).
-- Pushes have their own serial chain, so `background()` writes **immediately**, without waiting behind a pull that may be waiting up to 10 s for a download. The native write queue is serial, so the order of writes is the order of calls.
+- Pushes have their own serial chain, so `background()` issues its write **immediately** on the JS side, without waiting behind a pull. Natively, `write` shares the serial io queue with `read`, so it can still wait behind an in-flight read (about 11 s at most); the module covers that backlog with one background task when the app leaves the foreground (R-4 P2-5). The native queue is serial, so the order of writes is the order of calls.
 - No meta is ever computed before an `await` and written after it: every meta change is `port.updateMeta((current) => …)`.
 - Applying is synchronous: `applyPulled`, `applyMine` and the choice branches contain no `await` (a source guard pins this). The store therefore joins with the doc of that exact moment.
 

@@ -180,11 +180,16 @@ test('ICloudSyncModule.swift: 읽기 · 쓰기 · 열쇠의 차례', () => {
   const cat = c.map((x) => cread.indexOf(x));
   assert.ok(cat.every((i) => i >= 0), `${c} in coordinatedRead`);
   assert.deepEqual([...cat].sort((a, b) => a - b), cat, '차례');
-  // 너무 큰 복제본은 풀지 않는다
-  assert.match(sw, /guard data\.count < maxPacked else \{\s*throw error\("E_CORRUPT"/);
-  // 쓰기: 누르기 → 배경 작업 안에서 조율된 .forReplacing 원자적 쓰기
+  // 충돌본 목록은 조율된 읽기 안에서만 잡는다
+  assert.ok(!read.includes('unresolvedConflictVersionsOfItem'), '충돌본은 coordinatedRead 안에서만');
+  // 너무 큰 복제본은 풀지 않는다 — 풀기 전에 막는다
+  assert.match(sw, /static let maxPacked = 8 << 20/);
+  const inflate = sw.slice(sw.indexOf('static func inflate('), sw.indexOf('static func loadDeviceKey('));
+  assert.match(inflate, /guard data\.count < maxPacked else \{\s*throw error\("E_CORRUPT"/);
+  assert.ok(inflate.indexOf('data.count < maxPacked') < inflate.indexOf('decompressed(using: .zlib)'), '풀기 전에 크기를 본다');
+  // 쓰기: 배경 작업을 맨 먼저 열고 → 누르기 → 조율된 .forReplacing 원자적 쓰기
   const write = fn('write');
-  const w = ['deflate(json)', 'BackgroundTask.begin(', 'defer { task.end() }', 'coordinatedWrite(url, options: .forReplacing)', 'data.write(to: target, options: .atomic)'];
+  const w = ['BackgroundTask.begin(', 'defer { task.end() }', 'fileURL(name)', 'deflate(json)', 'coordinatedWrite(url, options: .forReplacing)', 'data.write(to: target, options: .atomic)'];
   const wat = w.map((x) => write.indexOf(x));
   assert.ok(wat.every((i) => i >= 0), `${w} in write`);
   assert.deepEqual([...wat].sort((a, b) => a - b), wat, '차례');

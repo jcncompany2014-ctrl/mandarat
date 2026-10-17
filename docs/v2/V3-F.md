@@ -54,7 +54,7 @@ No shared guard test needed a change. `package.json`, `package-lock.json` and `a
 
 Queues:
 - One serial `DispatchQueue` (`io`, `.utility`). `status`, `start`, `read`, `write`, `remove` and `deviceKey` all use `.runOnQueue(io)`.
-- `url(forUbiquityContainerIdentifier:)` is called in exactly one place, `resolveContainer()`. That function asserts `dispatchPrecondition(.onQueue(io))` and caches only a non-nil URL.
+- `url(forUbiquityContainerIdentifier:)` is called in exactly one place, `resolveContainer()`. That function asserts `dispatchPrecondition(.onQueue(io))` and caches only a non-nil URL. It checks `ubiquityIdentityToken` on every call before using the cache and drops the cache when the token is gone, so a sign-out gives `E_NO_ACCOUNT` even before `NSUbiquityIdentityDidChange` arrives (R-4 P1-2).
 - `NSMetadataQuery` is created, started and stopped on the main queue (`start` hops with `DispatchQueue.main.async`). `stop` and `list` use `.runOnQueue(.main)`.
 - The io queue may `main.sync` (for the background task), but nothing ever waits on io from main, so the two cannot deadlock. A test guards against `io.sync`.
 
@@ -75,11 +75,11 @@ Functions:
   1. Validates the name.
   2. Calls `startDownloadingUbiquitousItem` unless the item is already `.current`.
   3. Polls the downloading status every 0.25 s for up to 10 s. If time runs out but a stale `.downloaded` copy exists, it reads that, because the join is monotone and a stale replica loses nothing. Otherwise it throws `E_TIMEOUT`.
-  4. Does a coordinated read and inflates the data.
-  5. Inflates each `NSFileVersion.unresolvedConflictVersionsOfItem` version, appends it to the result, then marks exactly those versions resolved and removes them inside a coordinated `.forMerging` write.
+  4. Does a coordinated read bounded by what is left of the 10 s (at least 1 s), and takes the unresolved conflict versions inside the same accessor. If the coordinator is still waiting for a download when time runs out, it is cancelled and the local copy is read without coordination (every write is `.atomic`), or `E_TIMEOUT` if there is none; conflicts are then left for the next read (R-4 P1-1, P2-6).
+  5. Inflates the data and each of those conflict versions, appends them to the result, then marks exactly those versions resolved and removes them inside a coordinated `.forMerging` write.
 - **`write(name, json)`**:
-  1. Deflates the JSON.
-  2. Runs `UIApplication.beginBackgroundTask`; the expiration handler ends the task itself.
+  1. Runs `UIApplication.beginBackgroundTask` first; the expiration handler ends the task itself.
+  2. Deflates the JSON.
   3. Creates `Sync/v1/`.
   4. Does a coordinated `.forReplacing` write with `Data.write(.atomic)`.
   5. Calls `endBackgroundTask` in a `defer`.
@@ -110,7 +110,7 @@ Functions:
 - The container id equals `ICLOUD_CONTAINER`, and `dir` equals `REPLICA_DIR`.
 - The Swift name regex accepts `replicaName(dev)` and rejects path traversal, nesting, uppercase, the wrong extension and other folders.
 - Queues: each function's `runOnQueue` target; the single `url(forUbiquityContainerIdentifier:)` with its precondition; query observers on `.main`; no `io.sync`; no concurrent queue.
-- Step order inside `read` (download → coordinated read → inflate → conflicts → resolve) and `write` (deflate → background task → `.forReplacing` atomic write). The device-key exclusion is set on both the folder and the file.
+- Step order inside `read` (download → coordinated read with the conflict list inside → inflate → resolve) and `write` (background task → deflate → `.forReplacing` atomic write). The coordinated read cancels itself at the deadline, and `inflate` checks the size before decompressing. The device-key exclusion is set on both the folder and the file.
 - `app.json` has no `NSUbiquitousContainers`, so the folder stays hidden from the Files app, and the entitlements carry the container.
 - `prebuild-checks/icloud.js` passes on a good context and fails on missing autolinking, `NSUbiquitousContainers`, or wrong `icloud-services`.
 
@@ -142,7 +142,7 @@ icloud.status(): Promise<{ available: boolean; account: string | null }>
 icloud.start(): Promise<boolean>         // add listeners first; re-emits onChange if already running
 icloud.stop(): Promise<void>
 icloud.list(): Promise<ICloudFile[]>     // { name: 'Sync/v1/<dev>.jsonz', modified: ms, size, downloaded }; [] before the first gather
-icloud.read(name): Promise<string[]>     // [current, ...unresolved conflict versions]; waits up to 10 s for a download
+icloud.read(name): Promise<string[]>     // [current, ...unresolved conflict versions]; waits about 11 s at most (10 s download + ≥1 s coordinated read)
 icloud.write(name, json): Promise<void>  // runs in a background task
 icloud.remove(name): Promise<void>       // a missing file is fine
 icloud.deviceKey(): Promise<string>      // lowercase UUID, excluded from backup
@@ -159,8 +159,8 @@ icloud.addListener('onAccountChange', ({ available, account }) => …)
   | `E_NO_ACCOUNT` | no container (signed out, Drive off, or account changed) |
   | `E_BAD_NAME` | the name does not match the pattern above |
   | `E_NOT_FOUND` | the file is gone |
-  | `E_TIMEOUT` | the download did not finish in 10 s and there is no older copy |
-  | `E_CORRUPT` | the file is not a replica file |
+  | `E_TIMEOUT` | the download did not finish in time (about 11 s) and there is no older copy |
+  | `E_CORRUPT` | the file is not a replica file, or is 8 MiB or larger compressed (V4-A marks it seen and skips it) |
   | `E_IO` | any other coordination or file error |
 - `modified` is rounded milliseconds. Compare it with `!==` against `SyncMeta.seen[name]`.
 
@@ -205,6 +205,8 @@ The Swift was not compiled here, so the first EAS build is itself a QA item.
 - [ ] **Query:** `start()` emits `onChange` on gather, with the iPad's `Sync/v1/<dev>.jsonz` on the iPhone. A write on one device emits `onChange` on the other within about a minute while the app is active. `list()` shows `downloaded: false` for a file that has not been fetched yet.
 - [ ] **Download wait:** with the other device's file not yet downloaded (first launch after install), `read` starts the download and returns within 10 s on a normal network. In airplane mode it rejects with `E_TIMEOUT` and never hangs longer.
   - Also check: is `resourceValues(.ubiquitousItemDownloadingStatusKey)` on the real URL valid while only a placeholder exists (older iOS `.name.icloud` stubs)?
+- [ ] **Stale copy + airplane mode (R-4 P1-1):** with an older `.downloaded` copy of the other device's file, run `read` in airplane mode. It returns the stale content in about 11 s, and a `write` issued right after completes (io is not stuck behind the read).
+- [ ] **Foreground sign-out (R-4 P1-2):** sign out of iCloud with the app in the foreground and trigger a push at once. `write` rejects with `E_NO_ACCOUNT` (problem `noAccount`), not `E_IO`.
 - [ ] **Main thread:** no main-thread hang while `start()` resolves the container the first time (Xcode Main Thread Checker and Instruments hang detection), and no Main Thread Checker warning for `NSMetadataQuery` or `UIApplication`.
 - [ ] **Background push:** edit, then press Home right away. The write finishes (the other device receives it) and the console shows no "background task … was not ended" warning.
 - [ ] **Conflict versions:** write the same device file from two devices while offline. (This can only happen with a cloned device key, before re-keying.) Then go online. `read` returns 2 entries once, and later reads return 1 (the conflicts were resolved).

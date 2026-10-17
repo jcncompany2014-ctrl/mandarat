@@ -146,13 +146,13 @@ public class ICloudSyncModule: Module {
     }.runOnQueue(io)
 
     /// 누른 뒤 조율된 .forReplacing 쓰기(원자적). 앱이 뒤로 가도(V4-A가 background에서 밀어 올린다) 끝나도록
-    /// UIApplication 배경 작업 안에서 돈다.
+    /// UIApplication 배경 작업 안에서 돈다 — 배경 작업은 맨 먼저 연다(뒤로 갈 때의 배경 작업이 끝난 바로 뒤에 와도 틈이 없게).
     AsyncFunction("write") { (name: String, json: String) throws -> Void in
+      let task = BackgroundTask.begin("icloud-sync write")
+      defer { task.end() }
       try ICloudSyncModule.guarded {
         let url = try self.fileURL(name)
         let data = try ICloudSyncModule.deflate(json)
-        let task = BackgroundTask.begin("icloud-sync write")
-        defer { task.end() }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try ICloudSyncModule.coordinatedWrite(url, options: .forReplacing) { target in
           try data.write(to: target, options: .atomic)
@@ -232,7 +232,8 @@ public class ICloudSyncModule: Module {
 
   // MARK: - 메타데이터 질의 (main 줄)
   // 복제본의 바뀐 때 · 크기는 NSMetadataItem 값으로만 읽는다 — 우비쿼티 주소에서 URLResourceKey의 날짜나 stat을 읽지 않는다
-  // (개인정보 목록(PrivacyInfo)의 파일 시각 사유 C617.1은 앱 · 앱 그룹 컨테이너만 덮고 iCloud 컨테이너는 덮지 않는다)
+  // (개인정보 목록(PrivacyInfo)의 파일 시각 사유 C617.1은 앱 · 앱 그룹 · CloudKit 컨테이너만 덮고 iCloud 문서(우비쿼티) 컨테이너는
+  // 덮지 않는다)
 
   private func startQuery() {
     if let running = query {
@@ -399,7 +400,8 @@ public class ICloudSyncModule: Module {
     return magic + packed
   }
 
-  /// 누른 파일의 상한 — 복제본은 SIZE_WARN(src/lib/syncFile.ts)보다 훨씬 작다. 망가진 큰 파일을 통째로 풀지 않게
+  /// 누른 파일의 상한(8 MiB) — SIZE_WARN(src/lib/syncFile.ts, 누르기 전 2 MB, 알리기만 한다)을 넘는 복제본도 누르면 이보다
+  /// 훨씬 작다. 망가진 큰 파일을 통째로 풀지 않게 — 넘으면 E_CORRUPT(V4-A는 그 파일을 본 것으로 치고 바뀔 때까지 건너뛴다)
   static let maxPacked = 8 << 20
 
   static func inflate(_ data: Data) throws -> String {
