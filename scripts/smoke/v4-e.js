@@ -1,4 +1,4 @@
-// V4-E — 설정 › 언어: 네 줄(기기 설정 · 한국어 · 日本語 · English)과 안내 한 줄. 다른 언어를 고르면 앱이 그 언어로 다시 그려지고
+// V4-E — 설정 › 언어: 네 줄(기기 설정 · 한국어 · 日本語 · English). 안내 한 줄은 iOS에서만이라 웹에는 없다. 다른 언어를 고르면 앱이 그 언어로 다시 그려지고
 // 설정 화면에 머문다. 번역이 끝나기 전(I18N_READY 거짓)에는 개발 번들에서만 보이므로 --dev에서만 돈다.
 require('../../tests/register');
 
@@ -13,9 +13,9 @@ const run = async (page, h) => {
   for (const p of ['system', 'ko', 'ja', 'en']) {
     if ((await page.locator(`[data-testid="${h.TID.setLang(p)}"]`).count()) !== 1) throw new Error(`언어 줄이 없어요: ${p}`);
   }
-  const foot = page.getByText(m.footnote, { exact: true }).first();
-  await foot.scrollIntoViewIfNeeded();
-  if (!(await foot.isVisible())) throw new Error(`언어 안내가 없어요: ${m.footnote}`);
+  // 안내 한 줄(알림 허락 창 · 홈 화면 이름)은 iPhone 이야기라 iOS에서만 — 웹에는 없어야 한다(R-2 R2-2)
+  if ((await page.getByText(m.footnote, { exact: true }).count()) !== 0) throw new Error('언어 안내는 iOS에서만 보여요(R2-2)');
+  await page.locator(`[data-testid="${h.TID.setLang('en')}"]`).scrollIntoViewIfNeeded();
   await h.shot('v4e-language');
   // 다른 언어로 바꾸면 그 언어로 다시 그려지고(<html lang>도) 설정에 그대로 머문다(App.tsx Resume)
   const to = h.lang === 'en' ? 'ja' : 'en';
