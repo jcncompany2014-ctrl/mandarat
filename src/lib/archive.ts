@@ -101,7 +101,8 @@ function themesFor(doc: MandaratDoc, mode: NewChartMode, day: string): Theme[] {
 }
 
 /**
- * 지금 표를 닫고 새 표를 시작한 문서 — 지금 표가 오늘 시작한 표라 같은 아이디의 지난 표가 이미 있으면 null(아무것도 바꾸지 않는다).
+ * 지금 표를 닫고 새 표를 시작한 문서 — null이면 아무것도 바꾸지 않는다:
+ *   같은 아이디의 지난 표가 이미 있을 때, 또는 지금 표가 오늘 시작했고 오늘 닫은 지난 표가 있을 때(오늘 두 번 닫기).
  * - archives: 지난 표들 + 이번 표(최근 30장까지)
  * - themes: mode대로. centerGoal: goal을 다듬은 것(비면 지금 목표)
  * - 오늘 목록의 실천은 비우고, 끝내지 않은 직접 추가한 할 일은 남긴다. 기분·한 줄·마감한 날은 그대로(지금 문서의 것)
@@ -115,8 +116,10 @@ export function startNewChart(
   opts: { goal: string; note: string; time?: number },
 ): MandaratDoc | null {
   const archive = makeArchive(doc, now, opts.note);
-  if ((doc.archives ?? []).some((a) => a.id === archive.id)) return null;
   const today = ymd(now);
+  const past = doc.archives ?? [];
+  // 같은 지난 표가 이미 있거나, 오늘 닫고 시작한 표를 오늘 또 닫으려 할 때
+  if (past.some((a) => a.id === archive.id || (archive.from === today && a.to === today))) return null;
   const goal = opts.goal.trim();
   const reviews = detachReviewPicks(doc.reviews);
   return {
