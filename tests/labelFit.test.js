@@ -53,3 +53,27 @@ test('넘치면 몇 줄까지 보이는지 말한다 — 6자 규칙·잘린 글
   assert.equal(chartFitHint('건강하고 활기찬 몸 만들기', 'theme', 375), '81칸에서는 3줄까지만 보여요');
   assert.equal(chartFitHint('   ', 'theme', 390), null);
 });
+
+// ── V4-E — 일본어·영어 글자 폭(가나·한자 1em, 영문은 Pretendard 글자별 폭) ──────────────────
+test('일본어: 가나·한자 1em(일본어 글꼴), 한글은 표의 폭 그대로', () => {
+  assert.equal(textWidth('今日', 10, PRETENDARD_GLYPHS, 'ja'), 20);
+  assert.equal(textWidth('今日', 10, SVG_GLYPHS, 'ja'), 20);
+  assert.equal(textWidth('건강', 10, PRETENDARD_GLYPHS, 'ja'), 17.28);
+  assert.equal(textWidth('、。', 10, PRETENDARD_GLYPHS, 'ja'), 20);
+});
+
+test('영어: 글자마다 Pretendard 폭 — i는 좁고 W는 넓다, SVG 표는 3% 넉넉하게', () => {
+  assert.ok(Math.abs(textWidth('i', 10, PRETENDARD_GLYPHS, 'en') - 2.57) < 1e-9);
+  assert.ok(Math.abs(textWidth('W', 10, PRETENDARD_GLYPHS, 'en') - 9.99) < 1e-9);
+  assert.ok(textWidth('Drink water', 10, SVG_GLYPHS, 'en') > textWidth('Drink water', 10, PRETENDARD_GLYPHS, 'en'));
+  assert.ok(Math.abs(textWidth('a b', 10, PRETENDARD_GLYPHS, 'en') - (5.58 + 2.3 + 6.11)) < 1e-9);
+  // 한국어는 예전 평균 폭 그대로
+  assert.equal(textWidth('a b', 10, SVG_GLYPHS, 'ko'), 6.2 + 3.2 + 6.2);
+});
+
+test('영어·일본어 이름도 넘치면 말줄임', () => {
+  assert.equal(fitLabel('Health', 60, 10, 'en'), 'Health');
+  assert.equal(fitLabel('Mindfulness and feelings', 60, 10, 'en').endsWith('…'), true);
+  assert.deepEqual(labelLines('Side project', 50, 11.5, 'en'), ['Side', 'project']);
+  assert.deepEqual(labelLines('健康な体', 30, 11.5, 'ja'), ['健康', 'な体']);
+});
