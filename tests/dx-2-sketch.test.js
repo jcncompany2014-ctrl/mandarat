@@ -70,5 +70,5 @@ test('D-8 · D-15: 81칸 범례는 실제 칸 모양, 글은 20pt 쪽 가장자�
   assert.match(src('src/screens/GridScreen.tsx'), /marginHorizontal: 9/);
   // 81칸과 공유 이미지는 같은 줄바꿈 도우미
   assert.match(f, /cellBreak\(text, textW/);
-  assert.match(src('src/components/ChartPoster.tsx'), /cellBreak\(c\.text, TEXT_W, fs\)/);
+  assert.match(src('src/components/ChartPoster.tsx'), /cellBreak\(c\.text, k\.textW, fs\)/);
 });
