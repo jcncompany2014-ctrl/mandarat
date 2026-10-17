@@ -44,7 +44,7 @@ test('D-20: 달성한 칸이 없으면 닳은 자리 표에 0%를 찍지 않는�
   assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 2, '영역 이름표 % · 가운데 %');
   assert.match(charts, /accessibilityLabel=\{`\$\{name\} \$\{p\.pct\}%/);
   const stats = src('src/screens/Stats.tsx');
-  assert.match(stats, /caption=\{hasData \? streakCaption\(streak, todayHas\) : ''\}/);
+  assert.match(stats, /caption=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);
 });
 
 test('D-24: 닳은 자리 범례 견본의 밝기가 실제 칸(영역 색) 범위에 든다 — 다크의 5+가 흰 가운데 칸처럼 보이지 않는다', () => {
