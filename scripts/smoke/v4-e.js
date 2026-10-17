@@ -17,15 +17,13 @@ const run = async (page, h) => {
   await foot.scrollIntoViewIfNeeded();
   if (!(await foot.isVisible())) throw new Error(`언어 안내가 없어요: ${m.footnote}`);
   await h.shot('v4e-language');
-  // 다른 언어로 바꾸면 그 언어로 다시 그려진다(<html lang>도). 설정으로 돌아오는 것(takeResumeHint)은 App.tsx 몫 —
-  // 지금은 홈으로 돌아올 수 있어 설정을 다시 연다(docs/v2/V4-E.md 넘겨줄 일).
+  // 다른 언어로 바꾸면 그 언어로 다시 그려지고(<html lang>도) 설정에 그대로 머문다(App.tsx Resume)
   const to = h.lang === 'en' ? 'ja' : 'en';
   await h.tap(h.TID.setLang(to));
   await h.settle();
   if ((await page.evaluate(() => document.documentElement.lang)) !== to) throw new Error('<html lang>이 바뀌지 않았어요');
   if ((await page.locator(`[data-testid="${h.TID.setLang(to)}"]`).count()) === 0) {
-    await h.tap(h.TID.homeSettings);
-    await h.settle();
+    throw new Error('언어를 바꾼 뒤 설정으로 돌아오지 않았어요(App.tsx Resume)');
   }
   const title = page.getByText(cat(to).sectionTitle, { exact: true }).first();
   await title.scrollIntoViewIfNeeded();

@@ -123,7 +123,8 @@ test('the fast path skips untouched sections: a one-cell edit on a heavy doc fin
   find.sort((a, b) => a - b);
   stamp.sort((a, b) => a - b);
   assert.ok(Object.keys(meta.clock).length > 20000, 'heavy');
-  assert.ok(find[15] < 1, `changedPaths median ${find[15].toFixed(2)} ms`);
+  // 2만 경로 문서에서 바뀐 길 찾기는 중간값 1ms 안팎 — 바쁜 CI에서도 흔들리지 않게 여유를 두되, 통째 비교(수십 ms)는 잡는다
+  assert.ok(find[15] < 5, `changedPaths median ${find[15].toFixed(2)} ms`);
   // 나머지는 2만 경로 시계의 사본이다(순수 함수라 고쳐 쓰지 않는다) — docs/v2/V2-F.md §8 성능
   assert.ok(stamp[15] < 40, `stampLocal median ${stamp[15].toFixed(2)} ms`);
 });

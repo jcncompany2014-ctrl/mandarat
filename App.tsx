@@ -46,6 +46,15 @@ function Gate() {
   return <Shell />;
 }
 
+/**
+ * 언어를 바꾸고 LangRoot가 다시 마운트될 때마다 돌아올 화면(설정)을 읽는다.
+ * Shell이 그릴 때 읽으면 바꾸기 전에 읽혀 비어 있다 — 다시 마운트되는 이 자식 안에서 읽어야 한다(V4-E 넘겨줄 일).
+ */
+function Resume({ children }: { children: React.ReactNode }) {
+  const [hint] = useState(takeResumeHint);
+  return <UIProvider initialScreen={hint}>{children}</UIProvider>;
+}
+
 /** 준비가 끝난 뒤 처음 마운트된다 — 스플래시를 어떻게 걷을지 이때 한 번 정한다 */
 const Shell = memo(function Shell() {
   // 네이티브 스플래시가 아직 덮고 있으면 첫 레이아웃 뒤 그것을 페이드로 걷고(JS 페이드 없음),
@@ -55,17 +64,17 @@ const Shell = memo(function Shell() {
   // 넓은 창(웹 미리보기·아이패드): 종이 한 단을 가운데에 — 바깥은 종이보다 한 톤 짙은 책상, 가장자리에 가는 괘선.
   // 단 폭은 PaperColumn이 창 크기로 고르고(layoutFor) PageSize로 내려 준다 — 두 쪽 펼침(spread)은 V5-A
   const P = usePaletteValue();
-  // 언어를 바꾸면 LangRoot 아래를 통째로 다시 그린다 — 문서는 그대로, 화면은 설정으로 돌아온다(takeResumeHint)
+  // 언어를 바꾸면 LangRoot 아래를 통째로 다시 그린다 — 문서는 그대로, 화면은 설정으로 돌아온다(Resume)
   return (
     <LangRoot>
-      <UIProvider initialScreen={takeResumeHint()}>
+      <Resume>
         <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
           <PaperColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
             <Root />
           </PaperColumn>
           {jsFade && <SplashFade onDone={endFade} />}
         </View>
-      </UIProvider>
+      </Resume>
     </LangRoot>
   );
 });

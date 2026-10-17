@@ -84,7 +84,9 @@ test('App: 오류 수집 · 언어 · 프로 공급자 순서', () => {
     return i;
   });
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
-  assert.match(s, /<LangRoot>\s*<UIProvider initialScreen=\{takeResumeHint\(\)\}>/);
+  // 언어를 바꿔 LangRoot가 다시 마운트될 때 돌아올 화면은 그 아래에서 다시 읽는다(V4-E 넘겨줄 일 → Resume)
+  assert.match(s, /<LangRoot>\s*<Resume>/);
+  assert.match(s, /const \[hint\] = useState\(takeResumeHint\);\s*return <UIProvider initialScreen=\{hint\}>/);
   assert.match(src('src/components/ErrorBoundary.tsx'), /crash\.report\(error, \{ componentStack: info\.componentStack \?\? '' \}\);/);
   assert.match(src('src/screens/Dashboard.tsx'), /testID=\{TID\.homeSettings\}/);
 });
