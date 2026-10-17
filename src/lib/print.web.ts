@@ -1,6 +1,6 @@
 // 찍기 — 웹: 숨긴 <iframe srcdoc>에 HTML을 싣고, 다 읽히면 그 창의 print()를 부른다. 끝나면 iframe을 치운다.
 // expo-print는 웹에서 부르지 않는다(지금 페이지 전체를 찍는다). PDF는 브라우저 인쇄 창의 'PDF로 저장'이 맡는다.
-import type { ExportPdfResult, PrintNowResult, Printer } from './printSheet';
+import { esc, type ExportPdfResult, type PrintNowResult, type Printer } from './printSheet';
 
 /** 인쇄 창이 끝내 열리지 않을 때 기다리는 한도 */
 const LOAD_TIMEOUT = 15000;
@@ -53,9 +53,10 @@ function printInFrame(html: string): Promise<PrintNowResult> {
 
 export const printer = {
   printNow: (html: string, _size: { w: number; h: number }) => printInFrame(html),
-  // 브라우저 인쇄 창에서 'PDF로 저장'을 고른다 — 파일 이름은 문서 제목(<title>)을 따른다
-  exportPdf: async (html: string, _size: { w: number; h: number }, _name: string): Promise<ExportPdfResult> => {
-    const r = await printInFrame(html);
+  // 브라우저 인쇄 창에서 'PDF로 저장'을 고른다 — 저장할 파일 이름은 문서 제목을 따르므로 제목을 파일 이름으로 바꿔 둔다
+  exportPdf: async (html: string, _size: { w: number; h: number }, name: string): Promise<ExportPdfResult> => {
+    const titled = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(name.replace(/\.pdf$/i, ''))}</title>`);
+    const r = await printInFrame(titled);
     return r === 'printed' ? 'shared' : r;
   },
 } satisfies Printer;

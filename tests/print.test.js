@@ -33,6 +33,7 @@ test('웹은 숨긴 iframe(srcdoc)의 print()로 찍고, expo-print를 부르지
   assert.match(src, /contentWindow/);
   assert.match(src, /\.print\(\)/);
   assert.match(src, /frame\.remove\(\)/, '찍은 뒤 iframe을 치운다');
+  assert.match(src, /<title>\$\{esc\(name/, "PDF 파일 이름 = 제목");
   assert.doesNotMatch(src, /expo-print/);
 });
 
