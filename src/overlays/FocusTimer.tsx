@@ -17,6 +17,10 @@ import { doneOn, kindOf } from '../lib/routine';
 import {
   FOCUS_TOTAL, TALLY_BOXES, elapsedOf, filledBoxes, finishLabel, fmtClock, focusOutcome, leftOfMs, minutesToRecord,
 } from '../lib/focusClock';
+import { FOCUS_DONE_LINGER_MS, focusProps, focusStartOf } from '../lib/focusActivity';
+import { notifier } from '../lib/notifier';
+import { focusLive } from '../widgets/focusLive';
+import { useLang, useMsg } from '../i18n/react';
 
 /** 화면을 켜 두는 표시 — 다른 곳의 켜 두기와 섞이지 않게 이름을 붙인다 */
 const KEEP_AWAKE_TAG = 'focus';
@@ -32,6 +36,12 @@ const STACK_SCALE = 1.35;
 
 export function FocusTimer() {
   const { focus } = useUIState();
+  // 앱이 꺼지며 잠금 화면에 남은 Live Activity를 처음 한 번 치운다(세션이 열려 있으면 그 세션 것이다)
+  const openRef = useRef(!!focus);
+  openRef.current = !!focus;
+  useEffect(() => {
+    if (!openRef.current) focusLive.endAll();
+  }, []);
   if (!focus) return null;
   // 세션마다 새로 그려 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
   return <FocusSession ti={focus.ti} ai={focus.ai} />;
@@ -55,6 +65,16 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const stack = fontScale >= STACK_SCALE;
   const { doc, toggleDone, toggleRoutineToday, addFocusMinutes } = useMandarat();
   const reduce = useReducedMotion();
+  const m = useMsg();
+  const lang = useLang();
+  const th0 = doc.themes[ti];
+  const a0 = th0?.actions[ai];
+  const areaName = th0 ? th0.title || `영역 ${ti + 1}` : '';
+  // 알림·Live Activity가 읽는 지금 값 — 효과는 run·finished가 바뀔 때만 돌므로 ref로 넘긴다
+  const textRef = useRef('');
+  textRef.current = a0?.text.trim() ?? '';
+  const msgRef = useRef(m);
+  msgRef.current = m;
 
   const [left, setLeft] = useState(FOCUS_TOTAL);
   const [run, setRun] = useState(true);
@@ -81,13 +101,21 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     };
     tick();
     const id = setInterval(tick, 500);
-    // 잠금을 풀고 돌아오면 다음 박자를 기다리지 않고 바로 맞춘다
+    // 잠금을 풀고 돌아오면 다음 박자를 기다리지 않고 바로 맞춘다.
+    // 도는 채로 앱을 떠나면 끝날 시각에 알림을 걸어 두고(허락이 있을 때만, 묻지 않는다), 돌아오면 거둔다.
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') tick();
+      if (s === 'active') {
+        notifier.focusEnd(null).catch(() => {});
+        tick();
+      } else if (s === 'background') {
+        notifier.focusEnd(endAtRef.current, msgRef.current.live.doneTitle, textRef.current).catch(() => {});
+      }
     });
     return () => {
       clearInterval(id);
       sub.remove();
+      // 멈춤·끝·닫기 — 걸어 둔 알림은 거둔다
+      notifier.focusEnd(null).catch(() => {});
       // 멈추는 순간까지 흐른 시간을 남긴다(다음 박자 전에 멈춰도 잃지 않게)
       remainingMsRef.current = Math.max(0, endAtRef.current - Date.now());
     };
@@ -99,6 +127,40 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     keepAwake(true);
     return () => keepAwake(false);
   }, [run, finished]);
+
+  // ── 잠금 화면·다이내믹 아일랜드(Live Activity) ─────────────────────────────────
+  // 세션마다 한 번 띄우고(start) 한 번 끝낸다(end): 25분을 채우면 '마쳤어요'를 5분 남기고, 닫기·언마운트면 바로 지운다.
+  // 'idle' 아직 · 'live' 떠 있음 · 'none' 기기가 못 띄움 · 'ended' 끝냄
+  const liveRef = useRef<'idle' | 'live' | 'none' | 'ended'>('idle');
+  const liveInfo = useRef({ area: areaName, color: '', mood: doc.settings.mood, accent: doc.settings.accent, lang });
+  liveInfo.current = { area: areaName, color: th0?.color ?? '', mood: doc.settings.mood, accent: doc.settings.accent, lang };
+  useEffect(() => {
+    const st = liveRef.current;
+    if (st === 'none' || st === 'ended') return;
+    const info = liveInfo.current;
+    const endAt = finished ? Date.now() : run ? endAtRef.current : Date.now() + remainingMsRef.current;
+    const props = focusProps({
+      text: textRef.current, area: info.area, color: info.color, mood: info.mood, accent: info.accent, lang: info.lang,
+      startAt: focusStartOf(endAt), endAt, pausedLeft: run || finished ? null : remainingMsRef.current, done: finished,
+    });
+    if (finished) {
+      if (st === 'live') focusLive.end(props, FOCUS_DONE_LINGER_MS);
+      liveRef.current = 'ended';
+      return;
+    }
+    if (st === 'idle') {
+      if (run) liveRef.current = focusLive.start(props) ? 'live' : 'none';
+      return;
+    }
+    focusLive.update(props);
+  }, [run, finished]);
+  // 닫기·언마운트 — 아직 떠 있으면 바로 지운다(개발 모드의 두 번 마운트는 다시 띄울 수 있게 'idle'로)
+  useEffect(() => () => {
+    if (liveRef.current === 'live') {
+      focusLive.end();
+      liveRef.current = 'idle';
+    }
+  }, []);
 
   // ── 기록: 어떻게 나가든 집중한 분은 남긴다(한 번만) ──────────────────────────
   const recordedRef = useRef(false);
@@ -174,7 +236,6 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   };
 
   const cue = finished ? '끝났어요' : run ? '집중하는 중' : '잠시 멈췄어요';
-  const areaName = th.title || `영역 ${ti + 1}`;
 
   return (
     <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent>
