@@ -13,6 +13,8 @@ export default {
   today: 'Today',
   next: 'Next: {t}',
   checked: '{t} — done',
+  unchecked: '{t}, not done yet',
+  progress: '{n} of {t} done today',
   galleryName: 'Today',
   galleryDesc: "Shows Today's list and how many are left.",
 } satisfies Like<typeof ko>;

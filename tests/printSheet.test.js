@@ -36,7 +36,7 @@ test('종이마다 @page 크기가 정확하다', () => {
 test('표 한 장은 9×9 = 81칸, 1쪽', () => {
   const r = render(demoDoc());
   assert.equal(r.pages, 1);
-  assert.equal(count(r.html, /<section class="page">/g), 1);
+  assert.equal(count(r.html, /<section class="page[ "]/g), 1);
   const table = r.html.slice(r.html.indexOf('<table class="t81">'), r.html.indexOf('</table>'));
   assert.equal(count(table, /<tr>/g), 9);
   assert.equal(count(table, /<td /g), 81);
@@ -136,4 +136,34 @@ test('printFileName은 영문·숫자만', () => {
   const name = printFileName(NOW);
   assert.equal(name, 'mandarat-chart-2026-10-14.pdf');
   assert.match(name, /^[\x21-\x7E]+$/);
+});
+
+test('실천 칸은 표의 칸 그대로 — 가로 줄은 안쪽 div(.ai)가 맡는다(R-6 D-1)', () => {
+  const { html } = render(demoDoc(), { layout: 'areas' });
+  assert.equal(count(html, /<td class="act"><div class="ai"><i class="chk/g), 64, '8쪽 × 8줄');
+  assert.ok(!/\.rows td\.act\{[^}]*display:flex/.test(html), 'td에 flex를 걸면 칸이 아니게 되어 밑줄이 끊긴다');
+  assert.match(html, /\.rows td\.act\{vertical-align:middle\}/);
+  assert.match(html, /\.rows \.ai\{display:flex;align-items:center;gap:/);
+  assert.match(html, /\.rows \.ai span\{display:-webkit-box;-webkit-line-clamp:2/);
+});
+
+test('작은 종이에서도 글자 크기에 바닥이 있다(R-6 D-2)', () => {
+  const size = (html, sel) => parseFloat(html.match(new RegExp(`${sel.replace(/[.]/g, '\\.')}\\{font-size:([\\d.]+)pt`))[1]);
+  const a5 = render(demoDoc(), { paper: 'A5' }).html;
+  const a4 = render(demoDoc(), { paper: 'A4' }).html;
+  assert.equal(size(a5, '.rows th.d'), 5.5, 'A5 날짜 숫자는 5.5pt 바닥');
+  assert.equal(size(a5, '.t81 .in'), 6.5, 'A5 81칸 글은 6.5pt 바닥');
+  assert.equal(size(a5, '.t81 .head .in,.t81 .core .in'), 7, 'A5 이름표 · 핵심은 7pt 바닥');
+  // A4(k≈1)는 바닥 위 — 날짜 숫자 6.5pt, 칸 글 8.5pt
+  assert.ok(Math.abs(size(a4, '.rows th.d') - 6.5) < 0.01);
+  assert.ok(Math.abs(size(a4, '.t81 .in') - 8.5) < 0.01);
+});
+
+test('표 한 장은 머리말 · 목표 · 표 · 메모가 같은 너비(같은 왼쪽 끝)(R-6 D-3)', () => {
+  for (const paper of ['A4', 'A5', 'Letter']) {
+    const { html } = render(demoDoc(), { paper });
+    const side = html.match(/<div class="chart" style="width:([\d.]+)pt/)[1];
+    assert.ok(html.includes(`<section class="page cp">`), paper);
+    assert.ok(html.includes(`.cp>*{width:${side}pt}`), `${paper}: 쪽의 모든 줄이 표 너비 ${side}pt`);
+  }
 });

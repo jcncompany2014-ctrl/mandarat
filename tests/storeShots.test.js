@@ -10,9 +10,10 @@ const path = require('path');
 const TOOL = path.join(__dirname, '..', 'tools', 'store-shots');
 const { DEVICES, pickDevices } = require(path.join(TOOL, 'devices'));
 const { SCENES, pickScenes, finishDay, unreviewed } = require(path.join(TOOL, 'scenes'));
+const { msg } = require('../src/i18n');
 const { encodeRGB, decode, readHeader, toRGB } = require(path.join(TOOL, 'png'));
 const { checkFile, verifyDir } = require(path.join(TOOL, 'verify'));
-const { zonedEpoch, composeHtml } = require(path.join(TOOL, 'shoot'));
+const { zonedEpoch, composeHtml, viewOf } = require(path.join(TOOL, 'shoot'));
 const CAPTIONS = require(path.join(TOOL, 'captions.json'));
 const { migrate } = require('../src/data/defaults');
 const { TID } = require('../src/lib/testIds');
@@ -49,8 +50,32 @@ test('장면은 testID로만 찾는다 — 글자(getByText · :has-text)로 찾
   const src = fs.readFileSync(path.join(TOOL, 'scenes.js'), 'utf8');
   assert.doesNotMatch(src, /getByText|has-text|text=|aria-label/);
   const used = [...src.matchAll(/h\.TID\.(\w+)/g)].map((m) => m[1]);
-  // statsWear는 V5-B에 요청한 것 — 없으면 statsYear에서 거리로 내린다
+  // statsWear는 V5-B에 요청한 것 — 없으면 statsYear의 스크롤 판에서 앱 문구로 머리를 찾고, 그것도 없으면 거리로 내린다
   for (const id of used) if (id !== 'statsWear') assert.ok(id in TID, `TID.${id}`);
+  // 글로 찾는 곳은 그 한 군데뿐이고, 글은 손으로 쓴 말이 아니라 앱 문구(msg().stats.secAreas)
+  assert.match(src, /scrollToHead\(page, h\.TID\.statsYear, msg\(h\.lang\)\.stats\.secAreas\)/);
+  assert.equal((src.match(/textContent/g) || []).length, 1);
+  for (const l of LANGS) assert.ok(msg(l).stats.secAreas.length > 0, l);
+});
+
+test('아이패드 한 주 돌아보기는 704pt 창 — PNG 크기는 그대로, 배율만 오른다(R-6 D-12)', () => {
+  const ritual = SCENES.find((s) => s.id === 'ritual');
+  assert.equal(ritual.padWidth, 704);
+  // 704pt는 한 단 배치(600 이상 960 미만) — 한 단 640pt + 양옆 종이 32pt
+  assert.ok(ritual.padWidth >= 600 && ritual.padWidth < 960);
+  for (const d of DEVICES) {
+    const v = viewOf(d, ritual);
+    const appH = d.height - d.band;
+    if (d.width < 700) {
+      assert.deepEqual(v, { width: d.width, height: appH, scale: d.scale }, `${d.id}: 폰은 그대로`);
+      continue;
+    }
+    assert.equal(v.width, 704);
+    assert.ok(Math.abs(v.width * v.scale - d.width * d.scale) < 1e-9, `${d.id}: PNG 폭 ${d.out[0]}`);
+    assert.ok(Math.abs(v.height * v.scale - appH * d.scale) <= v.scale / 2 + 1e-9, `${d.id}: PNG 높이`);
+  }
+  // padWidth가 없는 장면은 어느 기기든 그대로
+  for (const d of DEVICES) assert.deepEqual(viewOf(d, SCENES[0]), { width: d.width, height: d.height - d.band, scale: d.scale });
 });
 
 test('설명: 언어마다 같은 키, 장면마다 하나, 짧게', () => {

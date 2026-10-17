@@ -13,6 +13,8 @@ export default {
   today: '今日',
   next: '次にやること：{t}',
   checked: '{t}　できました',
+  unchecked: '{t}、まだできていません',
+  progress: '今日は{t}件中{n}件できました',
   galleryName: '今日',
   galleryDesc: '今日やることと残りの数を表示します。',
 } satisfies Like<typeof ko>;

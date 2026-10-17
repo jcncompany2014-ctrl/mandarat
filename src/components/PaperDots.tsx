@@ -24,7 +24,8 @@ type Props = {
  * - offsetX: 기본 11 — 칸 가운데(gap/2) 점과 더해 x = 20에 점 한 줄이 선다(화면 좌우 여백 20과 같은 선).
  * - offsetY: 내용이 시작하는 높이(insets.top)를 gap으로 나눈 나머지 — 점 줄이 내용과 같은 박자로 놓인다.
  * - iOS '대비 증가'에서는 점이 진해진다(밝은 종이 0.11 → 0.2, 다크 0.08 → 0.15).
- * - 종이 무늬(V4-C, 프로): 모눈 · 줄은 점과 같은 색 · 같은 알파의 머리카락 선이 점 자리를 지난다. 무지는 아무것도 그리지 않는다.
+ * - 종이 무늬(V4-C, 프로): 모눈 · 줄은 점과 같은 색의 머리카락 선이 점 자리를 지난다. 알파는 점보다 낮다
+ *   (밝은 종이 0.065 · 대비 증가 0.12, 다크 0.05 · 0.1 — 목록 괘선보다 옅게). 무지는 아무것도 그리지 않는다.
  *   프로가 없으면 저장된 무늬는 그대로 두고 점으로 그린다(src/lib/paper.ts drawnPattern).
  */
 export function PaperDots(props: Props) {
@@ -40,9 +41,11 @@ const PaperSheet = memo(function PaperSheet({
   // 같은 화면에 두 장(예: 앱 바탕 + 64칸 마무리 페이지)이 있어도 웹에서 무늬 id가 겹치지 않게
   const id = `paper-dots-${useId().replace(/[^A-Za-z0-9_-]/g, '')}`;
   const more = useIncreaseContrast();
-  const color = M.dark
-    ? `rgba(255,255,255,${more ? 0.15 : 0.08})`
-    : `rgba(60,45,20,${more ? 0.2 : 0.11})`;
+  // 모눈 · 줄은 점보다 옅게 — 목록 괘선(M.line)과 같은 세기면 22pt 무늬와 52pt 줄이 겹쳐 두 겹으로 그은 듯 읽힌다
+  const a = pattern === 'dots'
+    ? (M.dark ? (more ? 0.15 : 0.08) : (more ? 0.2 : 0.11))
+    : (M.dark ? (more ? 0.1 : 0.05) : (more ? 0.12 : 0.065));
+  const color = M.dark ? `rgba(255,255,255,${a})` : `rgba(60,45,20,${a})`;
   // 무지 — 종이 바탕만
   if (pattern === 'blank') return null;
   return (

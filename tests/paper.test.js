@@ -115,7 +115,10 @@ test('PaperDots: release.test.js의 지키기 그대로 — 대비 증가에서 
   assert.match(dots, /more \? 0\.15 : 0\.08/);
   // 점은 그대로(반지름 0.9, gap/2) — 무료 기본값의 모양이 바뀌지 않는다
   assert.match(dots, /<Circle cx=\{gap \/ 2\} cy=\{gap \/ 2\} r=\{0\.9\} fill=\{color\} \/>/);
-  // 모눈 · 줄은 점과 같은 색(stroke={color})
+  // 모눈 · 줄은 점과 같은 색조(stroke={color}), 알파만 낮다 — 목록 괘선보다 옅게(R-6 D-4)
+  assert.match(dots, /more \? 0\.12 : 0\.065/);
+  assert.match(dots, /more \? 0\.1 : 0\.05/);
+  assert.match(dots, /const a = pattern === 'dots'/);
   assert.match(dots, /stroke=\{color\} strokeWidth=\{PATTERN_STROKE\}/);
   assert.match(dots, /pointerEvents="none"/);
   assert.match(dots, /importantForAccessibility="no-hide-descendants"/);
@@ -155,12 +158,16 @@ function seenPaper(rgba, bg, kind, gap = RHYTHM.dot) {
 }
 
 test('무늬 위에서도 글씨 대비가 4.5:1 이상(모든 무드 · 다크 · 대비 증가), 선 자체는 조용하다', () => {
-  const ink = (dark, more) => (dark ? `rgba(255,255,255,${more ? 0.15 : 0.08})` : `rgba(60,45,20,${more ? 0.2 : 0.11})`);
+  // PaperDots의 알파 — 점과 모눈 · 줄이 다르다(R-6 D-4)
+  const ink = (dark, more, kind = 'dots') => {
+    const a = kind === 'dots' ? (dark ? (more ? 0.15 : 0.08) : (more ? 0.2 : 0.11)) : (dark ? (more ? 0.1 : 0.05) : (more ? 0.12 : 0.065));
+    return dark ? `rgba(255,255,255,${a})` : `rgba(60,45,20,${a})`;
+  };
   for (const [name, P] of Object.entries(MOODS)) {
     for (const more of [false, true]) {
       const pal = more ? contrastEdition(P) : P;
       for (const kind of ['grid', 'lines']) {
-        const paper = seenPaper(ink(P.dark, more), P.bg, kind);
+        const paper = seenPaper(ink(P.dark, more, kind), P.bg, kind);
         for (const k of ['ink', 'sub', 'goldInk']) {
           const plain = contrast(pal[k], P.bg);
           const c = contrast(pal[k], paper);
@@ -169,9 +176,11 @@ test('무늬 위에서도 글씨 대비가 4.5:1 이상(모든 무드 · 다크 
           assert.ok(c / plain > 0.97, `${at}: 대비가 3% 넘게 준다 ${plain.toFixed(2)} → ${c.toFixed(2)}`);
         }
       }
-      // 선 한 가닥은 바탕과 거의 같은 색 — 점과 같은 알파(밝은 종이 0.11, 다크 0.08)
-      const line = over(ink(P.dark, more), P.bg);
-      if (!more) assert.ok(contrast(line, P.bg) < 1.25, `${name}: 선이 너무 진하다 ${contrast(line, P.bg).toFixed(2)}`);
+      // 선 한 가닥은 바탕과 거의 같은 색 — 점보다 옅고(밝은 종이 0.065, 다크 0.05), 목록 괘선(M.line)보다도 옅다
+      const line = over(ink(P.dark, more, 'lines'), P.bg);
+      if (!more) assert.ok(contrast(line, P.bg) < 1.15, `${name}: 선이 너무 진하다 ${contrast(line, P.bg).toFixed(2)}`);
+      assert.ok(contrast(line, P.bg) < contrast(over(ink(P.dark, more), P.bg), P.bg), `${name}: 선이 점보다 옅다`);
+      if (!more && /^rgba/.test(P.line)) assert.ok(contrast(line, P.bg) < contrast(over(P.line, P.bg), P.bg), `${name}: 무늬 선이 목록 괘선보다 옅다`);
     }
   }
 });

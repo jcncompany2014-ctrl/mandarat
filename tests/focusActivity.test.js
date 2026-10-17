@@ -198,7 +198,7 @@ test('{} props · 도는 중 · 멈춤 · 끝 × 밝게·어둡게 — 모든 �
 test('도는 중 — 타이머 글이 시작~끝으로 스스로 줄고, 진행 막대도 같은 구간', () => {
   const p = focusProps(base);
   const out = rt.render(p, { colorScheme: 'light' });
-  for (const r of ['banner', 'compactTrailing', 'minimal', 'expandedTrailing']) {
+  for (const r of ['banner', 'compactTrailing', 'expandedTrailing']) {
     const timer = find(out[r], (n) => n.type === 'TextView' && n.props.timerInterval);
     assert.ok(timer, r);
     assert.deepEqual({ ...timer.props.timerInterval }, { lower: p.start, upper: p.end }, r);
@@ -214,6 +214,13 @@ test('도는 중 — 타이머 글이 시작~끝으로 스스로 줄고, 진행 
   // 영역 색은 네모 한 칸
   const sq = find(out.compactLeading, (n) => n.type === 'RectangleView');
   assert.ok(sq.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.c));
+  // 가장 작게는 영역 네모 하나 — 시계 글은 36pt 캡슐에서 잘리므로 두지 않는다(R-6 D-10)
+  assert.equal(out.minimal.type, 'RectangleView');
+  assert.ok(out.minimal.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.c));
+  assert.equal(find(out.minimal, (n) => n.type === 'TextView'), null);
+  for (const m of [focusProps({ ...base, pausedLeft: 60_000 }), focusProps({ ...base, done: true })]) {
+    assert.equal(rt.render(m, {}).minimal.type, 'RectangleView');
+  }
   // 글이 없으면 영역 이름으로
   assert.ok(texts(rt.render(focusProps({ ...base, text: '' }), {}).banner).includes('일'));
 });
@@ -222,7 +229,7 @@ test('멈춤 — 남은 시간을 굳힌 글과 lines.paused, 끝 — lines.done
   const left = 12 * 60 * 1000 + 5_000;
   const p = focusProps({ ...base, pausedLeft: left });
   const out = rt.render(p, {});
-  for (const r of ['banner', 'compactTrailing', 'minimal', 'expandedTrailing']) {
+  for (const r of ['banner', 'compactTrailing', 'expandedTrailing']) {
     assert.equal(find(out[r], (n) => n.props.timerInterval), null, `${r}: 타이머가 멈춘다`);
     assert.ok(texts(out[r]).includes(fmtClock(left / 1000)), r);
   }
