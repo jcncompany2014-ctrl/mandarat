@@ -272,12 +272,20 @@ async function main() {
               await document.fonts.ready;
               await Promise.all([...document.images].map((im) => (im.complete ? null : new Promise((r) => { im.onload = r; im.onerror = r; }))));
             });
-            const fit = await cp.evaluate(() => {
+            // 맞추기 — 일본어는 글자 어디서나 줄이 바뀌어 한 글자만 넘어가기 쉬우니 한 줄에 들게 글씨를 조금(85%까지) 줄인다.
+            // 한국어 · 영어는 낱말 단위로 두 줄까지 두고, 그보다 길면 줄인다.
+            const fit = await cp.evaluate((ja) => {
               const band = document.querySelector('.band');
               const cap = document.querySelector('.cap');
-              const lh = parseFloat(getComputedStyle(cap).lineHeight);
-              return { lines: Math.round(cap.getBoundingClientRect().height / lh), over: band.scrollHeight > band.clientHeight + 1 };
-            });
+              const base = parseFloat(getComputedStyle(cap).fontSize);
+              const lines = () => Math.round(cap.getBoundingClientRect().height / parseFloat(getComputedStyle(cap).lineHeight));
+              if (ja) cap.style.whiteSpace = 'nowrap';
+              let size = base;
+              const over = () => (ja ? cap.scrollWidth > cap.clientWidth : lines() > 2);
+              while (over() && size > base * 0.85) cap.style.fontSize = `${(size -= 0.5)}px`;
+              if (ja && over()) cap.style.whiteSpace = 'normal';
+              return { lines: lines(), over: band.scrollHeight > band.clientHeight + 1 };
+            }, lang === 'ja');
             if (fit.over || fit.lines > 2) problems.push(`${tag} 설명이 띠를 넘쳐요(${fit.lines}줄): ${caption}`);
             const shot = await cp.screenshot({ type: 'png', clip: { x: 0, y: 0, width: device.width, height: device.height } });
             await comp.close();
