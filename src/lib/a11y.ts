@@ -5,6 +5,7 @@
 import type { Action, MandaratDoc } from '../types';
 import { todayProgress } from './routine';
 import { fmtDateLong } from './text';
+import { lang, msg, type Lang } from '../i18n';
 
 type SummaryDoc = Pick<MandaratDoc, 'centerGoal' | 'themes' | 'dayLog' | 'todayKeys' | 'todayExtra'>;
 
@@ -21,26 +22,28 @@ function doneCells(doc: Pick<MandaratDoc, 'themes'>): number {
  * 홈 머리말 — '10월 14일 수요일. 핵심 목표, 건강한 한 해. 64칸 중 29칸 달성. 오늘 할 일 8개 남았어요.'
  * 목표가 없으면 '핵심 목표를 아직 정하지 않았어요.'
  */
-export function homeSummary(doc: SummaryDoc, now: Date): string {
+export function homeSummary(doc: SummaryDoc, now: Date, l: Lang = lang()): string {
+  const t = msg(l).home;
   const goal = doc.centerGoal.trim().replace(/[.。!?]+$/, '');
   const p = todayProgress(doc, now);
   const left = p.total === 0
-    ? '오늘 할 일은 아직 없어요.'
+    ? t.sumNone
     : p.done >= p.total
-      ? '오늘 할 일을 다 했어요.'
-      : `오늘 할 일 ${p.total - p.done}개 남았어요.`;
+      ? t.sumAllDone
+      : t.sumLeft({ n: p.total - p.done });
   return [
-    `${fmtDateLong(now)}.`,
-    goal ? `핵심 목표, ${goal}.` : '핵심 목표를 아직 정하지 않았어요.',
-    `64칸 중 ${doneCells(doc)}칸 달성.`,
+    t.sumDate({ day: fmtDateLong(now, l) }),
+    goal ? t.sumGoal({ goal }) : t.sumNoGoal,
+    t.sumDone({ n: doneCells(doc) }),
     left,
-  ].join(' ');
+  ].join(t.sentSep);
 }
 
 /** 오늘 카운터 — '오늘 할 일 10개 중 2개 했어요' (없으면 '오늘 할 일이 아직 없어요', 다 하면 '오늘 할 일 10개를 다 했어요') */
-export function todaySummary(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys' | 'todayExtra'>, now: Date): string {
+export function todaySummary(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys' | 'todayExtra'>, now: Date, l: Lang = lang()): string {
+  const t = msg(l).home;
   const p = todayProgress(doc, now);
-  if (p.total === 0) return '오늘 할 일이 아직 없어요';
-  if (p.done >= p.total) return `오늘 할 일 ${p.total}개를 다 했어요`;
-  return `오늘 할 일 ${p.total}개 중 ${p.done}개 했어요`;
+  if (p.total === 0) return t.todayNone;
+  if (p.done >= p.total) return t.todayAll({ total: p.total });
+  return t.todayOf({ total: p.total, done: p.done });
 }

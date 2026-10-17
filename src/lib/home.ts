@@ -1,6 +1,7 @@
 // 홈 — 수첩의 오늘 쪽에 쓰는 작은 계산들 (React·RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 머리의 해·주 표기, 正 세기, 영역 줄의 '다음' 한 줄, 처음 쓰는 사람에게 무엇을 보여 줄지.
 import type { Theme } from '../types';
+import { lang, msg, type Lang } from '../i18n';
 import { GUIDE_FILL_TARGET } from './pick';
 
 /** ISO 8601 주 번호와 그 주의 해 — 월요일 시작, 그해 첫 목요일이 든 주가 1주 */
@@ -25,9 +26,10 @@ export function daysLeftInYear(d: Date): number {
 }
 
 /** 머리 오른쪽 두 줄 — '2026 · 42주' / '올해 78일 남음' */
-export function headerMeta(d: Date): { week: string; left: string } {
+export function headerMeta(d: Date, l: Lang = lang()): { week: string; left: string } {
   const w = isoWeek(d);
-  return { week: `${w.year} · ${w.week}주`, left: `올해 ${daysLeftInYear(d)}일 남음` };
+  const f = msg(l).fmt;
+  return { week: f.weekNo({ y: w.year, w: w.week }), left: f.daysLeftYear({ n: daysLeftInYear(d) }) };
 }
 
 /** 正 한 자에 긋는 획 수 */
@@ -43,13 +45,14 @@ export function tallyMarks(n: number): { strokes: number; extra: number } {
  * 영역 줄의 한 줄 — 무엇이 다음인지.
  * 8칸 다 달성 → '8칸 모두 달성했어요' · 적어 두고 아직 달성하지 않은 첫 칸 → '다음 · {글}' · 그 밖 → '빈 칸 n개'
  */
-export function areaLine(th: Pick<Theme, 'actions'>): string {
+export function areaLine(th: Pick<Theme, 'actions'>, l: Lang = lang()): string {
+  const t = msg(l).home;
   const done = th.actions.filter((a) => a.done).length;
-  if (done >= 8) return '8칸 모두 달성했어요';
+  if (done >= 8) return t.areaAllDone;
   const next = th.actions.find((a) => a.text.trim() && !a.done);
-  if (next) return `다음 · ${next.text.trim()}`;
+  if (next) return t.areaNext({ text: next.text.trim() });
   const blank = th.actions.filter((a) => !a.text.trim()).length;
-  return `빈 칸 ${blank}개`;
+  return t.areaBlank({ n: blank });
 }
 
 /**

@@ -6,6 +6,8 @@ import { EASE } from '../theme/motion';
 import { NUM } from '../theme/type';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { tallyMarks } from '../lib/home';
+import { useLang } from '../i18n/react';
+import type { Lang } from '../i18n';
 
 const APath = Animated.createAnimatedComponent(Path);
 
@@ -17,6 +19,16 @@ const STROKES: { d: string; len: number }[] = [
   { d: 'M5 11V18.5', len: 7.5 },
   { d: 'M2.5 18.5H19.5', len: 17 },
 ];
+/** 영어권의 다섯 묶음(five-bar gate) — 세로 넷을 왼쪽부터, 다섯째는 넷을 가로지르는 사선 */
+const GATE: { d: string; len: number }[] = [
+  { d: 'M5 3.5V18.5', len: 15 },
+  { d: 'M9 3.5V18.5', len: 15 },
+  { d: 'M13 3.5V18.5', len: 15 },
+  { d: 'M17 3.5V18.5', len: 15 },
+  { d: 'M2.5 15.5L19.5 6.5', len: 19.3 },
+];
+/** 한국어·일본어는 正, 영어는 다섯 묶음 */
+export const tallyStrokes = (l: Lang) => (l === 'en' ? GATE : STROKES);
 const BOX = 22;
 const STROKE_W = 1.8;
 /** 새 획이 그어지는 시간 */
@@ -42,6 +54,7 @@ export const Tally = memo(function Tally({
   size?: number;
 }) {
   const { strokes, extra } = tallyMarks(n);
+  const shape = tallyStrokes(useLang());
   // 마지막으로 그은 획(1~5)이 0 → 1로 그어진다. 처음 그릴 때는 이미 다 그어진 모습
   const draw = useRef(new Animated.Value(1)).current;
   const prev = useRef(strokes);
@@ -60,7 +73,7 @@ export const Tally = memo(function Tally({
     return () => run.stop();
   }, [strokes, grow, draw]);
 
-  const last = strokes > 0 ? STROKES[strokes - 1] : null;
+  const last = strokes > 0 ? shape[strokes - 1] : null;
   const offset = useMemo(
     () => (last ? draw.interpolate({ inputRange: [0, 1], outputRange: [last.len, 0] }) : 0),
     [draw, last],
@@ -71,7 +84,7 @@ export const Tally = memo(function Tally({
   return (
     <View style={{ alignItems: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={size} height={size} viewBox={`0 0 ${BOX} ${BOX}`}>
-        {STROKES.slice(0, Math.max(0, strokes - 1)).map((s) => (
+        {shape.slice(0, Math.max(0, strokes - 1)).map((s) => (
           <Path key={s.d} d={s.d} stroke={color} strokeWidth={STROKE_W} strokeLinecap="round" fill="none" />
         ))}
         {last && (
