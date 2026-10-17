@@ -301,12 +301,13 @@ const Hero = memo(function Hero({ M, m, l, streak, todayHas, done, hasData, stac
 });
 
 const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnType<typeof recordParts> }) {
+  const m = useMsg();
   return (
     <Text style={[{ ...TYPE.caption, color: M.sub, paddingHorizontal: 20, marginTop: 14 }, NUM]}>
       {!!parts.lead && (
         <Text style={parts.best ? { color: M.ink, fontWeight: '700' } : undefined}>{parts.lead}</Text>
       )}
-      {parts.lead ? ` · ${parts.month}` : parts.month}
+      {parts.lead ? `${m.core.dot}${parts.month}` : parts.month}
     </Text>
   );
 }, sameProps);

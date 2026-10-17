@@ -88,7 +88,7 @@ test('편집 창 글 — ja · en (말 순서 · 복수형)', () => {
   assert.equal(ja.left({ n: 5, unit: '冊' }), 'あと5冊');
   assert.equal(en.left({ n: 5, unit: 'books' }), '5 books to go');
   assert.equal(en.left({ n: 1500, unit: '' }), '1,500 to go');
-  assert.deepEqual([1, 3].map((n) => en.perWeek({ n })), ['Once a week', '3 times a week']);
+  assert.deepEqual([1, 3].map((n) => en.perWeek({ n })), ['Once a week', '3x a week']);
   assert.equal(ja.perWeek({ n: 3 }), '週3回');
   assert.equal(en.charCount({ n: 12, max: 60 }), '12 of 60 characters');
   assert.equal(ja.charCount({ n: 12, max: 60 }), '60文字中12文字');

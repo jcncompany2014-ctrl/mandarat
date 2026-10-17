@@ -12,7 +12,7 @@ const withUnit = (n: string, unit: string) => (/^[a-z]/i.test(unit) ? `${n} ${un
 
 const sorted = (dows: readonly number[]) => [...new Set(dows.filter((x) => Number.isInteger(x) && x >= 0 && x <= 6))].sort((a, b) => a - b);
 
-/** Every day · Every weekday · Every weekend · Every Sunday · Every Mon, Wed, Fri */
+/** Every day · Every weekday · Every weekend · Every Sunday · Mon, Wed, Fri (no 'Every' for two or more days, so the kind line stays short) */
 function repeatDays(dows: readonly number[]): string {
   const d = sorted(dows);
   if (d.length === 0) return '';
@@ -20,7 +20,7 @@ function repeatDays(dows: readonly number[]): string {
   if (d.length === 1) return `Every ${DOW[d[0]]}`;
   if (d.join() === '1,2,3,4,5') return 'Every weekday';
   if (d.join() === '0,6') return 'Every weekend';
-  return `Every ${dayRuns(d)}`;
+  return dayRuns(d);
 }
 
 /** Monday-first, with runs of three or more days joined by an en dash — 'Mon–Thu, Sun' (keeps the kind line short) */
@@ -51,8 +51,8 @@ export default {
   labelHabit: 'Habit',
   labelCount: 'Count',
   labelMind: 'Mindset',
-  hintOnce: 'Shows up in Today 3 days before the due date',
-  hintHabit: 'Shows up in Today on the days you pick. With N times a week, it shows up every day until you reach that number.',
+  hintOnce: 'Shows up on Today 3 days before the due date',
+  hintHabit: 'Shows up on Today on the days you pick. With a weekly count, it shows up every day until you reach it.',
   hintCount: 'An action you count up. The square is achieved when you reach the goal.',
   hintMind: 'Once a week, rate how it went from 1 to 5',
   presetWeek: 'This week',
@@ -67,7 +67,7 @@ export default {
   rating5: 'Kept it very well',
   weekShort: ({ done, total }) => `${done}/${total} this week`,
   weekLong: ({ done, total }) => `${done}/${total} ${plural(total, 'time', 'times')} this week`,
-  weekPlan: ({ n }) => (n === 1 ? 'Once a week' : `${n} ${plural(n, 'time', 'times')} a week`),
+  weekPlan: ({ n }) => (n === 1 ? 'Once a week' : `${n}x a week`),
   weekSpeech: ({ done, total }) => `${done} of ${total} ${plural(total, 'time', 'times')} this week`,
   daysShort: ({ dows }) => fmt.daysLabel({ dows }),
   daysLong: ({ dows }) => repeatDays(dows),

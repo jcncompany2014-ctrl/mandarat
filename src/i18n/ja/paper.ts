@@ -9,7 +9,7 @@ export default {
   lines: '罫線',
   blank: '無地',
   pro: 'プロ',
-  keptNote: 'プロを開くとこの柄で表示されます',
+  keptNote: 'プロにするとこの柄で表示されます',
   say: ({ name }) => `紙の柄 ${name}`,
   sayLocked: ({ name }) => `紙の柄 ${name}、プロ`,
   lockedHint: 'プロの案内を開きます',

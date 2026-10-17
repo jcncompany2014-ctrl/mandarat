@@ -5,9 +5,9 @@ import type { Like } from '../types';
 export default {
   sheetTitle: '目標達成表',
   coverTitle: '分野の一覧',
-  achieved: ({ done, total }) => `${total}マス中 ${done}マス達成`,
-  areaN: ({ n }) => `分野 ${n}`,
-  areaOf: ({ n, total }) => `分野 ${n} / ${total}`,
+  achieved: ({ done, total }) => `${total}マス中${done}マス達成`,
+  areaN: ({ n }) => `分野${n}`,
+  areaOf: ({ n, total }) => `分野${n} / ${total}`,
   finished: '達成',
   memo: 'メモ',
   colAction: '行動',

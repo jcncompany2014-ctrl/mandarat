@@ -6,7 +6,7 @@ import type { Like } from '../types';
 export default {
   left: 'Time left',
   paused: 'Paused',
-  done: '25 minutes of focus, finished',
+  done: 'Finished 25 minutes of focus',
   focus: 'Focusing',
   doneTitle: '25 minutes are up',
 } satisfies Like<typeof ko>;

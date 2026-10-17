@@ -5,7 +5,7 @@ import fmt from './fmt';
 import { plural } from './plural';
 
 export default {
-  errEmpty: 'Nothing has been pasted yet',
+  errEmpty: 'Nothing pasted yet',
   errNotFound: "Couldn't find a backup here. Please paste the whole exported text",
   errBroken: 'This backup is cut off or damaged. Please copy it again from start to end',
   errNotOurs: "This isn't a Mandalart backup",
@@ -20,8 +20,8 @@ export default {
   pasteHelp: 'If you kept a backup as text in Notes or a chat, press and hold, Select All, Copy, then paste it here',
   pasteLabel: 'Paste backup text',
   pastePlaceholder: 'Paste the whole backup text',
-  fromFile: 'Read from file',
-  fromFileSay: ({ name }) => `Read from file, ${name}`,
+  fromFile: 'Loaded from a file',
+  fromFileSay: ({ name }) => `Loaded from a file, ${name}`,
   toPaste: 'Paste instead',
   toPasteLabel: 'Switch to pasting',
   toPasteHint: 'Paste backup text instead of using a file',
@@ -29,7 +29,7 @@ export default {
   applied: 'Backup imported',
   readOk: 'This backup can be imported',
   exportedOn: ({ d }) => `Backup made on ${fmt.dateLong({ d })}`,
-  newerNow: 'Your current records are newer than this backup · Replacing them removes the recent records',
+  newerNow: 'Your current records are newer than this backup. Replacing them removes your recent changes.',
 
   colNow: 'Current',
   colBackup: 'Backup',

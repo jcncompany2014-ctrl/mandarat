@@ -68,7 +68,7 @@ export default {
   columnHead: ({ label, n }) => `${label}, ${n}`,
   boardHint: 'Tap a card to move it to the next step',
   boardEmpty: "Today's list shows up here as cards",
-  boardEmptySub: 'Habits are added on their days by themselves',
+  boardEmptySub: 'Habits show up here on their days',
   writeTodo: 'Write a to-do',
   emptyColumn: 'Empty',
   focus25: 'Focus 25 min',
@@ -112,7 +112,7 @@ export default {
   whyOverdue: 'Already on Today because it is past due',
   whyDueSoon: 'Already on Today because it is due soon',
   whyWeekLeft: ({ n }) => `Already on Today with ${n} more ${plural(n, 'time', 'times')} to go this week`,
-  whyWeekDone: ({ n }) => `All ${n} ${plural(n, 'time', 'times')} this week done today`,
+  whyWeekDone: ({ n }) => `Done all ${n} for this week today`,
   whyRepeat: 'Already on Today because it repeats today',
 
   guideGoal: 'Set your core goal',

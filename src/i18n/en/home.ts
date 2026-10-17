@@ -76,7 +76,7 @@ export default {
   chipWhat: 'What',
   chipHowMuch: 'How much',
   chipWhen: 'When · where',
-  chipHint: 'The more specific it is, the easier it is to do',
+  chipHint: 'The more specific, the easier it is to do',
   chipHas: ({ label }) => `${label}: yes`,
   chipMissing: ({ label }) => `${label}: missing`,
   chipSpeech: ({ spoken, hint }) => `${spoken}. ${hint}`,

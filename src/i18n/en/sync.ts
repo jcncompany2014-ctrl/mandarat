@@ -30,7 +30,7 @@ export default {
   adoptSub: "This device's chart and records are replaced with the ones in iCloud. Past charts in the Archive are combined",
   mine: "Keep going with this device's records",
   mineSub: "Anything written on other devices in the meantime is replaced with this device's records",
-  copyNote: "How things looked before you chose stays in Settings › Saved copies under today's date",
+  copyNote: "A copy from before your choice is kept in Settings › Saved copies, under today's date",
   confirm: 'Sync this way',
   confirmHint: 'Choose one first',
 

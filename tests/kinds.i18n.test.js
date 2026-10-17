@@ -44,7 +44,7 @@ test('ko — v1 그대로(짧게 · 길게 · 계획 · 소리)', () => {
 });
 
 test('ja — 助数詞と「のうち」で読む', () => {
-  assert.deepEqual(line('ja', 0, 0), ['月・水・金', '毎週月・水・金', '毎週月・水・金', '毎週月・水・金']);
+  assert.deepEqual(line('ja', 0, 0), ['月・水・金', '月・水・金', '月・水・金', '月・水・金']);
   assert.deepEqual(line('ja', 0, 1), ['今週 1/3', '今週 1/3回', '週3回', '今週3回のうち1回']);
   assert.deepEqual(line('ja', 1, 0), ['6/12冊', '6/12冊', '6/12冊', '12冊のうち6冊']);
   assert.deepEqual(line('ja', 0, 2), ['5/12권', '5/12권・今日 +1', '5/12권', '12권のうち5권、今日1권足しました']);
@@ -57,8 +57,8 @@ test('ja — 助数詞と「のうち」で読む', () => {
 });
 
 test('en — units with a space, plural counts, speakable forms', () => {
-  assert.deepEqual(line('en', 0, 0), ['Mon, Wed, Fri', 'Every Mon, Wed, Fri', 'Every Mon, Wed, Fri', 'Every Mon, Wed, Fri']);
-  assert.deepEqual(line('en', 0, 1), ['1/3 this week', '1/3 times this week', '3 times a week', '1 of 3 times this week']);
+  assert.deepEqual(line('en', 0, 0), ['Mon, Wed, Fri', 'Mon, Wed, Fri', 'Mon, Wed, Fri', 'Mon, Wed, Fri']);
+  assert.deepEqual(line('en', 0, 1), ['1/3 this week', '1/3 times this week', '3x a week', '1 of 3 times this week']);
   assert.deepEqual(line('en', 0, 7), ['6/12 books', '6/12 books', '6/12 books', '6 of 12 books']);
   assert.deepEqual(line('en', 0, 2), ['5/12권', '5/12권 · +1 today', '5/12권', '5 of 12권, 1 logged today']);
   assert.deepEqual(line('en', 0, 3), ['in 3d', 'Due in 3 days', 'Due in 3 days', 'Due in 3 days']);
@@ -98,7 +98,7 @@ test('살아 있는 보기 — KIND_LABEL · KIND_HINT · RATING_TEXT는 지금 
     setLang('en');
     assert.deepEqual(Object.keys(K.KIND_LABEL), ['once', 'habit', 'count', 'mind']);
     assert.equal(K.RATING_TEXT.length, 6);
-    assert.equal(K.kindLine(docWith(), 0, 1, WED).plan, '3 times a week', '기본은 지금 언어');
+    assert.equal(K.kindLine(docWith(), 0, 1, WED).plan, '3x a week', '기본은 지금 언어');
   } finally {
     setLang('ko');
   }

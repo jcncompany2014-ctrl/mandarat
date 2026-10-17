@@ -36,7 +36,7 @@ test('ko: 옮기기 전 글 그대로', () => {
 
 test('ritualView: 언어마다', () => {
   assert.equal(V.deltaLine(12, 8, 'ja'), '先週より4回多くできました');
-  assert.equal(V.deltaLine(3, 5, 'ja'), '先週より2回少なめです');
+  assert.equal(V.deltaLine(3, 5, 'ja'), '先週より2回少なかったです');
   assert.equal(V.deltaLine(5, 5, 'en'), 'Same as last week');
   assert.equal(V.deltaLine(12, 8, 'en'), '4 more than last week');
   const added = [{ ti: 0, ai: 0, amount: 2, unit: 'books' }, { ti: 0, ai: 1, amount: 5, unit: 'km' }, { ti: 1, ai: 0, amount: 1, unit: 'x' }];
@@ -52,7 +52,7 @@ test('ritualView: 언어마다', () => {
   assert.equal(V.finishToast(2, 'en'), 'Set 2 squares to focus on next week');
   assert.equal(V.finishToast(0, 'ja'), '一週間をふりかえりました');
   assert.equal(msg('en').ritual.nextHint({ n: 3 }), 'Pick up to 3 squares to work on next week');
-  assert.equal(msg('ja').ritual.nextHint({ n: 3 }), '来週力を入れるマスを3つまで選びます');
+  assert.equal(msg('ja').ritual.nextHint({ n: 3 }), '来週力を入れるマスを3つまで選んでください');
 });
 
 test('weekSentence: 언어마다 어순·조사·복수를 다시 짠다', () => {

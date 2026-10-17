@@ -30,7 +30,7 @@ export default {
   deltaMore: ({ n }) => `先週の同じころより+${n}回`,
   deltaLess: ({ n }) => `先週の同じころより−${n}回`,
   barDaySay: ({ i, n }) => `${fmt.dowLong({ i })} ${n}回`,
-  barTodaySay: ({ i, n }) => `今日の${fmt.dowLong({ i })} ${n}回`,
+  barTodaySay: ({ i, n }) => `${fmt.dowLong({ i })}（今日） ${n}回`,
   barFutureSay: ({ i }) => `${fmt.dowLong({ i })}からはまだ`,
 
   ledgerAdded: '積み上げた分',
@@ -40,7 +40,7 @@ export default {
   habitValue: ({ done, total }) => `${done}/${total}回`,
   habitFromToday: '今日から数えます',
   habitAll: '今週は全部できました',
-  habitMissed: ({ n }) => `${n}回できず`,
+  habitMissed: ({ n }) => `${n}回できなかった`,
   habitLeft: ({ n }) => `あと${n}回`,
   mindRatedOf: ({ total, done }) => `${tsu(total)}のうち${tsu(done)}を評価しました`,
   mindNotYet: '今週はまだ評価していません',

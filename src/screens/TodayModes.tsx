@@ -248,7 +248,7 @@ export function TodayStreak({ M }: { M: M }) {
             <Text style={{ fontSize: 46, lineHeight: 52, color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.35}>
               <Text style={[{ fontSize: 46, fontWeight: '800', letterSpacing: -1.5, color: M.ink }, TABULAR]}>{lead.cur}</Text>
               <Text style={[{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }, TABULAR]}>{lead.unit === 'week' ? m.today.unitWeek({ n: lead.cur }) : m.today.unitDay({ n: lead.cur })}</Text>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{` · ${lead.text}`}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{`${m.core.dot}${lead.text}`}</Text>
             </Text>
             <Text style={[{ fontSize: 13, color: M.sub }, TABULAR]}>{m.today.streakBest({ run: runText(lead.best, lead.unit) })}</Text>
           </>
@@ -400,11 +400,12 @@ const StreakLine = memo(function StreakLine({
         <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '700', color: M.ink }} numberOfLines={2}>{text}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
           <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
-          {/* 목록 · 보드와 같은 '·' 간격 — 따로 쓴 가운뎃점에 gap 5 */}
-          <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>{area}</Text>
+          {/* 목록 · 보드와 같은 '·' 간격 — 따로 쓴 가운뎃점에 gap 5.
+              영역 이름은 줄지 않고(여섯 글자쯤에서 자름) 반복 일정이 먼저 줄어든다 — 주 띠가 오른쪽을 차지해 줄이 좁다 */}
+          <Text style={{ flexShrink: 0, maxWidth: 78, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>{area}</Text>
           {!!plan && (
             <>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>·</Text>
+              <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.core.dot.trim()}</Text>
               <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>{plan}</Text>
             </>
           )}
@@ -653,7 +654,7 @@ const KanbanCard = memo(function KanbanCard({
             </Text>
             {line && (
               <>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>·</Text>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.core.dot.trim()}</Text>
                 <KindMeta M={M} line={line} color={color} size={13} weight="500" icon={false} />
               </>
             )}

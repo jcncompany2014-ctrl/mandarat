@@ -5,6 +5,6 @@ import type { Like } from '../types';
 export default {
   sectionTitle: 'Language',
   system: 'Use device setting',
-  footnote: 'The notification prompt and the Home Screen name follow your iPhone language.',
+  footnote: 'The notification prompt and the Home Screen name follow your device language.',
   changed: ({ name }) => `Switched to ${name}`,
 } satisfies Like<typeof ko>;

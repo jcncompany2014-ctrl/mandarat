@@ -50,7 +50,7 @@ export default {
   storageNoteLocal: '記録はこの端末に保存されます。端末を替える前に、バックアップを書き出しておいてください。',
   storagePlaceLocal: 'この端末',
   storageNoteBackup: ({ device }) =>
-    `記録は${thisDevice(device)}とiCloudバックアップに保存されます。iCloudバックアップをオフにしている場合は、機種変更の前にバックアップを書き出しておいてください。`,
+    `記録は${thisDevice(device)}とiCloudバックアップに保存されます。iCloudバックアップをオフにしている場合は、端末を替える前にバックアップを書き出しておいてください。`,
   storagePlaceBackup: ({ device }) => `${thisDevice(device)}とiCloudバックアップ`,
   storageNoteSync: ({ device }) =>
     `記録は${thisDevice(device)}とiCloudに保存され、同じAppleアカウントのiPhone・iPadどうしで同期します。AndroidやWebに移すときは、バックアップを書き出してください。`,
@@ -82,6 +82,7 @@ export default {
   appName: 'マンダラート',
   colVersion: '版',
   colFont: '書体',
+  colFontValue: 'Pretendard・SIL OFL 1.1、和文はシステムの書体',
   colPlace: '保存先',
   privacy: 'プライバシーポリシー',
   contact: 'お問い合わせ',

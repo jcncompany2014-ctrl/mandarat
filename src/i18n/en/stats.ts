@@ -38,7 +38,7 @@ export default {
   deltaLess: ({ n }) => `−${n} vs. this time last week`,
   barDaySay: ({ i, n }) => `${fmt.dowLong({ i })}: ${n} ${times(n)}`,
   barTodaySay: ({ i, n }) => `Today, ${fmt.dowLong({ i })}: ${n} ${times(n)}`,
-  barFutureSay: ({ i }) => `${fmt.dowLong({ i })} on: not yet`,
+  barFutureSay: ({ i }) => `From ${fmt.dowLong({ i })}: not yet`,
 
   ledgerAdded: 'Added',
   ledgerFocus: 'Focus',
@@ -86,7 +86,7 @@ export default {
   weekAdded: ({ num, unit }) => `${withUnit(`+${num}`, unit)} this week`,
   mindAvg: ({ n, avg }) => `${n} rated ${plural(n, 'week', 'weeks')}, avg ${avg}`,
   mindNoWeeks: 'No weeks rated yet',
-  mindWeekSay: ({ n }) => `This week ${n} of 5`,
+  mindWeekSay: ({ n }) => `This week: ${n} of 5`,
   mindWeekNone: 'Not rated this week',
   mindOf8Say: ({ sub }) => `Last 8 weeks: ${sub}`,
 

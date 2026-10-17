@@ -58,12 +58,13 @@ export function SheetHead({ M, title, body, closeTestID = TID.sheetClose }: {
 function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => void) => void }) {
   const dismiss = useSheetDismiss();
   const close = () => dismiss();
-  const ed = useMsg().editor;
+  const m = useMsg();
+  const ed = m.editor;
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
       <SheetHead M={M} title={ed.templateTitle} body={ed.templateBody} />
       {TEMPLATES.map((t, i) => {
-        const areas = t.areas.map((a) => a.title).join(' · ');
+        const areas = t.areas.map((a) => a.title).join(m.core.dot);
         return (
           <LineRow
             key={t.id}

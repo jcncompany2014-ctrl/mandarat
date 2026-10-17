@@ -21,7 +21,7 @@ export default {
   pastePlaceholder: 'バックアップの文章をすべて貼り付け',
   fromFile: 'ファイルから読み込みました',
   fromFileSay: ({ name }) => `ファイルから読み込みました、${name}`,
-  toPaste: '貼り付けにする',
+  toPaste: '貼り付けに戻す',
   toPasteLabel: '貼り付けに切り替える',
   toPasteHint: 'ファイルの代わりにバックアップの文章を貼り付けます',
   apply: 'このバックアップに置き換える',
