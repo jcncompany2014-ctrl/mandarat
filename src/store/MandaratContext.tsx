@@ -270,10 +270,9 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  // 오늘 저장본을 지금 문서로 다시 쓴다(동기화 고르기 · 판이 높은 기록을 합치기 전) — 처음 쓰지 않은 표는 남기지 않는다
-  // (그날 앞서 남긴 저장본을 빈 표로 덮지 않게)
+  // 오늘 저장본을 지금 문서로 다시 쓴다(동기화 고르기 · 판이 높은 기록을 합치기 전 — syncEnvelope keepCopy)
   const keepSnapshot = useCallback((d: MandaratDoc): Promise<boolean> => {
-    if (!d.onboarded || blockSave.current) return Promise.resolve(false);
+    if (blockSave.current) return Promise.resolve(false);
     const day = dateKey();
     snapDay.current = day;
     const done = snapChain.current.then(() =>

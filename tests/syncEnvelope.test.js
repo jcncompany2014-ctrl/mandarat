@@ -542,6 +542,45 @@ test('port: replica() pairs the doc with its meta; updateMeta gets the current m
   inert.epochReset();
 });
 
+test('adopt: an empty phone takes the iPad chart exactly; a phone with its own archives keeps them, unioned; a copy is kept first', () => {
+  const world = makeWorld(303, 2);
+  const [P, I] = world.devs;
+  // 아이패드: 고친 표와 지난 표 하나
+  for (let k = 0; k < 15; k++) { world.tick(); I.update((d) => appEdit(world.r, d, world.today(I), world.now(I))); }
+  world.tick();
+  I.update((d) => startNewChart(d, 'continue', new Date(world.now(I)), { goal: '', note: 'iPad', time: world.now(I) }) ?? d);
+  // 빈 아이폰
+  P.latest = migrate({ ...blankDoc(), todayDate: world.today(P) });
+  P.meta = metaFor(P.dev);
+  assert.equal(P.port.adopt(wire(I.port.replica(), world.now(I))), true);
+  assert.deepEqual(canonArrays(withoutLocal(migrate(JSON.parse(JSON.stringify(P.latest))))), canonArrays(withoutLocal(migrate(JSON.parse(JSON.stringify(I.latest))))));
+  assert.equal(P.meta.epoch, I.meta.epoch);
+  assert.equal(P.copies.length, 0, 'nothing onboarded to keep — today’s copy is not overwritten with an empty chart');
+  // 지난 표가 있는 아이폰
+  const world2 = makeWorld(304, 2);
+  const [P2, I2] = world2.devs;
+  world2.tick();
+  P2.update((d) => startNewChart(d, 'blank', new Date(world2.now(P2) - 400 * 24 * HOUR), { goal: '', note: 'phone', time: world2.now(P2) }) ?? d);
+  const mine = P2.latest.archives.map((a) => a.id);
+  for (let k = 0; k < 10; k++) { world2.tick(); I2.update((d) => appEdit(world2.r, d, world2.today(I2), world2.now(I2))); }
+  world2.tick();
+  I2.update((d) => startNewChart(d, 'continue', new Date(world2.now(I2)), { goal: '', note: 'iPad', time: world2.now(I2) }) ?? d);
+  const theirs = (I2.latest.archives ?? []).map((a) => a.id);
+  const pre = P2.latest;
+  P2.port.adopt(wire(I2.port.replica(), world2.now(I2)));
+  assert.equal(P2.copies.length, 1);
+  assert.equal(P2.copies[0].json, docOnlyJson(pre));
+  const ids = (P2.latest.archives ?? []).map((a) => a.id);
+  for (const id of [...mine, ...theirs]) assert.ok(ids.includes(id), `archive ${id} kept`);
+  assert.equal(P2.latest.centerGoal, I2.latest.centerGoal);
+  // 아이패드가 아이폰을 받으면 아이폰의 지난 표도 간다 — 그리고 둘은 같아진다
+  converge(world2);
+  for (const id of mine) assert.ok(I2.latest.archives.some((a) => a.id === id));
+  // 고른 기기의 다른 고침은 바꾼 것(adopt) — 저장본(위)에 남는다. 둘은 같아진다
+  const keys = world2.devs.map((d) => replicaKey(d.port.replica()));
+  assert.equal(keys[0], keys[1]);
+});
+
 // ── 소스 지킴 ────────────────────────────────────────────────────────────────
 
 function body(s, start, end) {
@@ -580,8 +619,12 @@ test('source: applyRemote reads the doc and meta inside its own body and awaits 
   assert.doesNotMatch(apply, /stampLocal|epochReset/);
   assert.match(apply, /joinRemote\(doc, meta, remote, host\.today\(\), host\.now\(\)\)/);
   assert.match(apply, /if \(r\.changed\) host\.putMerged\(r\.doc, r\.meta\);/);
+  const adopt = body(env, '    adopt(remote) {', '\n    },\n');
+  assert.match(adopt, /const local = host\.doc\(\);\s*const meta = host\.meta\(\);/);
+  assert.doesNotMatch(adopt, /\bawait\b|\.then\(|async/);
+  assert.match(adopt, /void keepCopy\(\);[\s\S]*unionArchives\(local\.archives, remote\.doc\.archives\)/);
   const keep = body(env, 'const keepCopy = (): Promise<boolean> => {', '\n  };');
-  assert.match(keep, /const doc = host\.doc\(\);\s*return host\.writeCopy\(doc\);/);
+  assert.match(keep, /const doc = host\.doc\(\);\s*return doc\.onboarded \? host\.writeCopy\(doc\) : Promise\.resolve\(false\);/);
 });
 
 test('source: persist writes the envelope of latest.current, snapshots are doc-only, and the guard lines stay verbatim', () => {

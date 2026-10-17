@@ -9,6 +9,7 @@
 import type { MandaratDoc } from '../types';
 import { migrate } from '../data/defaults';
 import { rolloverToday } from './routine';
+import { unionArchives } from './archive';
 import { cleanSyncMeta, type SyncMeta } from './syncMeta';
 import { changedPaths, epochReset, stampLocal } from './syncLocal';
 import { adoptMerged, isNewer, materialize, mergeAll, replicaOf, topStamp, type NewerReplica, type Replica } from './syncMerge';
@@ -101,6 +102,11 @@ export interface SyncPort {
   replica(): Replica | null;
   /** 받은 복제본을 지금 문서와 합쳐 넣는다 — 기다리지 않는다. 문서가 바뀌었으면 true */
   applyRemote(remote: Replica | NewerReplica): boolean;
+  /**
+   * 처음 켤 때 '다른 기기 기록으로'(V4-A enable('adopt')) — 받은(합친) 복제본의 표·설정·기록과 판을 그대로 쓰되,
+   * 이 기기의 지난 표는 버리지 않고 아이디로 합친다. 바꾸기 전에 오늘 저장본을 남긴다. 바꿨으면 true
+   */
+  adopt(remote: Replica | NewerReplica): boolean;
   /** 지금 문서를 남긴 채 새 판('이 기기 기록으로 이어 써요') */
   epochReset(): void;
   /** 오늘 저장본 'mandarat:snap:<오늘>'을 지금 문서로 다시 쓴다 — 문서는 부른 순간의 것 */
@@ -123,9 +129,10 @@ export interface SyncPortHost {
 
 export function makeSyncPort(host: SyncPortHost): SyncPort {
   const keepCopy = (): Promise<boolean> => {
-    // 문서는 지금 읽는다 — 쓰기를 기다리는 동안 바뀌어도 부른 순간의 모습이 남는다
+    // 문서는 지금 읽는다 — 쓰기를 기다리는 동안 바뀌어도 부른 순간의 모습이 남는다.
+    // 처음 쓰지 않은 표(초기화 뒤 등)는 남기지 않는다 — 그날 앞서 남긴 저장본을 빈 표로 덮지 않게
     const doc = host.doc();
-    return host.writeCopy(doc);
+    return doc.onboarded ? host.writeCopy(doc) : Promise.resolve(false);
   };
   return {
     meta: () => host.meta(),
@@ -149,6 +156,19 @@ export function makeSyncPort(host: SyncPortHost): SyncPort {
       if (r.changed) host.putMerged(r.doc, r.meta);
       else if (r.meta !== meta) host.setMeta(r.meta);
       return r.changed;
+    },
+    adopt(remote) {
+      const local = host.doc();
+      const meta = host.meta();
+      if (!meta || isNewer(remote)) return false;
+      void keepCopy();
+      const { archives: _theirs, ...rest } = remote.doc;
+      const archives = unionArchives(local.archives, remote.doc.archives);
+      // 날짜 정리 상태(todayDate)는 이 기기의 것 — 그다음 이 기기 날짜로 하루 정리
+      const doc = rolloverToday({ ...rest, ...(archives ? { archives } : {}), todayDate: local.todayDate }, host.today());
+      // 받은 시계·몫·판을 쓰고, 그 위에 이 기기에서 더한 것(남긴 지난 표 · 하루 정리)만 도장 — 다른 기기로 퍼지게
+      host.putMerged(doc, observe(stampLocal(remote.doc, doc, adoptMerged(meta, remote), host.now()), topStamp(remote), host.now()));
+      return true;
     },
     epochReset() {
       const meta = host.meta();
