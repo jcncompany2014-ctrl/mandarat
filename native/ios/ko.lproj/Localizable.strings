@@ -1,0 +1,18 @@
+/* 단축어 · Siri(V3-B) — 인텐트 제목 · 설명 · 짧은 이름 · 안내 말. 열쇠는 세 언어가 같다(tests/shortcuts.test.js). */
+
+"intent.showToday.title" = "오늘 보기";
+"intent.showToday.desc" = "만다라트를 열고 오늘 할 일을 보여 줘요.";
+"intent.todayLeft.title" = "오늘 남은 일";
+"intent.todayLeft.desc" = "앱을 열지 않고 오늘 남은 수와 다음 할 일을 알려 줘요.";
+"intent.checkNext.title" = "다음 할 일 체크";
+"intent.checkNext.desc" = "오늘 할 일에서 아직 안 한 첫 줄을 했어요로 바꿔요.";
+"intent.startFocus.title" = "집중 시작";
+"intent.startFocus.desc" = "만다라트를 열고 아직 안 한 첫 실천으로 집중 타이머를 시작해요.";
+
+"shortcut.showToday" = "오늘 보기";
+"shortcut.todayLeft" = "오늘 남은 일";
+"shortcut.checkNext" = "다음 할 일 체크";
+"shortcut.startFocus" = "집중 시작";
+
+"dialog.openAppFirst" = "만다라트를 한 번 열어 주세요. 오늘 할 일을 새로 불러와야 해요.";
+"dialog.openAppList" = "남은 일은 만다라트에서 골라 체크해 주세요.";

@@ -1,0 +1,18 @@
+/* ショートカット・Siri(V3-B) — インテントの名前・説明・短い名前・案内。キーは3言語で同じ(tests/shortcuts.test.js)。 */
+
+"intent.showToday.title" = "今日を見る";
+"intent.showToday.desc" = "マンダラートを開いて今日やることを表示します。";
+"intent.todayLeft.title" = "今日の残り";
+"intent.todayLeft.desc" = "アプリを開かずに、今日の残りの数と次にやることを伝えます。";
+"intent.checkNext.title" = "次をできたにする";
+"intent.checkNext.desc" = "今日やることのうち、まだの最初の1件を「できた」にします。";
+"intent.startFocus.title" = "集中を始める";
+"intent.startFocus.desc" = "マンダラートを開いて、まだの最初の行動で集中タイマーを始めます。";
+
+"shortcut.showToday" = "今日を見る";
+"shortcut.todayLeft" = "今日の残り";
+"shortcut.checkNext" = "次をできたにする";
+"shortcut.startFocus" = "集中を始める";
+
+"dialog.openAppFirst" = "マンダラートを一度開いてください。今日やることを読み込み直します。";
+"dialog.openAppList" = "残りはマンダラートで選んでチェックしてください。";
