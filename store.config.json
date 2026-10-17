@@ -1,0 +1,122 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "categories": [
+      "PRODUCTIVITY",
+      "LIFESTYLE"
+    ],
+    "info": {
+      "ko": {
+        "title": "만다라트",
+        "subtitle": "81칸에 적는 한 해 계획",
+        "description": "가운데에 한 해의 목표를 적고, 둘레 여덟 칸에 영역을, 그 바깥 64칸에 실천을 적어요. 종이 수첩에 적듯 81칸 한 장으로 한 해를 계획합니다.\n\n• 오늘 할 일 — 반복하는 습관과 다가온 마감이 오늘 목록에 저절로 담겨요.\n• 하루 마감 — 다 하면 장부처럼 두 줄을 긋고 하루를 닫아요.\n• 기록 — 자주 한 칸일수록 표가 짙어져, 어디에 힘을 썼는지 한눈에 보여요.\n• 한 주 돌아보기 — 일요일 저녁, 3분이면 지난주를 돌아보고 다음 주 중점을 골라요.\n• 한 해 돌아보기 — 한 해를 한 장으로 돌아보고, 표를 닫아 보관해요.\n• 위젯과 알림, 인쇄용 PDF, 아이폰과 아이패드 사이 iCloud 맞추기.\n\n로그인 없이 기기 안에 저장해요. 지금 쓸 수 있는 기능은 모두 무료이고, 종이 무늬 같은 꾸미기와 지난 표 보관은 한 번 결제(프로)로 열 수 있어요.",
+        "keywords": [
+          "만다라트",
+          "목표",
+          "계획",
+          "습관",
+          "플래너",
+          "다이어리",
+          "루틴",
+          "회고",
+          "투두"
+        ],
+        "releaseNotes": "일본어와 영어, 아이패드, 위젯과 알림, 한 해 돌아보기, 인쇄용 PDF, iCloud 맞추기를 더했어요.",
+        "privacyPolicyUrl": "https://TODO.invalid/privacy",
+        "supportUrl": "https://TODO.invalid/support",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "./store/screenshots/ko/APP_IPHONE_67/01-chart.png",
+            "./store/screenshots/ko/APP_IPHONE_67/02-today.png",
+            "./store/screenshots/ko/APP_IPHONE_67/03-home.png",
+            "./store/screenshots/ko/APP_IPHONE_67/04-stats.png",
+            "./store/screenshots/ko/APP_IPHONE_67/05-ritual.png",
+            "./store/screenshots/ko/APP_IPHONE_67/06-year.png"
+          ],
+          "APP_IPAD_PRO_3GEN_129": [
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/01-chart.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/02-today.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/03-home.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/04-stats.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/05-ritual.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/06-year.png"
+          ]
+        }
+      },
+      "ja": {
+        "title": "マンダラート",
+        "subtitle": "81マスで書く一年の計画",
+        "description": "まん中に一年の目標を書き、まわりの8マスに分野を、その外の64マスに行動を書きます。紙の手帳に書くように、81マス一枚で一年を計画します。\n\n• 今日やること — くり返す習慣と近づいた締め切りが、今日のリストに自然に集まります。\n• 一日の締め — ぜんぶ終えたら帳簿のように二本線を引いて一日を閉じます。\n• 記録 — よく続けたマスほど表が濃くなり、どこに力を注いだかがひと目でわかります。\n• 一週間のふり返り — 日曜の夜、3分で先週をふり返り、来週の重点を選びます。\n• 一年のふり返り — 一年を一枚でふり返り、表を閉じて保管します。\n• ウィジェットと通知、印刷用PDF、iPhoneとiPadのあいだのiCloud同期。\n\nログイン不要、データは端末の中に保存します。いま使える機能はすべて無料です。紙の柄などの飾りと過去の表の保管は、一度の購入(プロ)で使えます。",
+        "keywords": [
+          "マンダラート",
+          "目標",
+          "計画",
+          "習慣",
+          "手帳",
+          "プランナー",
+          "ルーティン",
+          "ふり返り",
+          "ToDo"
+        ],
+        "releaseNotes": "日本語と英語、iPad、ウィジェットと通知、一年のふり返り、印刷用PDF、iCloud同期に対応しました。",
+        "privacyPolicyUrl": "https://TODO.invalid/privacy",
+        "supportUrl": "https://TODO.invalid/support",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "./store/screenshots/ja/APP_IPHONE_67/01-chart.png",
+            "./store/screenshots/ja/APP_IPHONE_67/02-today.png",
+            "./store/screenshots/ja/APP_IPHONE_67/03-home.png",
+            "./store/screenshots/ja/APP_IPHONE_67/04-stats.png",
+            "./store/screenshots/ja/APP_IPHONE_67/05-ritual.png",
+            "./store/screenshots/ja/APP_IPHONE_67/06-year.png"
+          ],
+          "APP_IPAD_PRO_3GEN_129": [
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/01-chart.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/02-today.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/03-home.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/04-stats.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/05-ritual.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/06-year.png"
+          ]
+        }
+      },
+      "en-US": {
+        "title": "Mandalart",
+        "subtitle": "Plan your year in 81 squares",
+        "description": "Write your goal for the year in the center, eight areas around it, and 64 actions around those. One page of 81 squares, like a paper notebook, holds your whole year.\n\n• Today — repeating habits and coming deadlines fill your list for the day.\n• Close the day — finish everything and draw two lines under it, like a ledger.\n• Records — the squares you use most grow darker, so you can see where your effort went.\n• Weekly review — on Sunday evening, three minutes to look back and pick next week’s focus.\n• Year review — your year on one page; close the chart and keep it.\n• Widgets and reminders, a printable PDF, and iCloud sync between iPhone and iPad.\n\nNo sign-in; your data stays on your device. Everything you can use today is free. Decorations such as paper patterns and keeping past charts are a one-time purchase (Pro).",
+        "keywords": [
+          "mandalart",
+          "goals",
+          "planner",
+          "habit",
+          "yearly plan",
+          "notebook",
+          "routine",
+          "review",
+          "to do"
+        ],
+        "releaseNotes": "Now in Japanese and English, on iPad, with widgets, reminders, a year review, a printable PDF and iCloud sync.",
+        "privacyPolicyUrl": "https://TODO.invalid/privacy",
+        "supportUrl": "https://TODO.invalid/support",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "./store/screenshots/en/APP_IPHONE_67/01-chart.png",
+            "./store/screenshots/en/APP_IPHONE_67/02-today.png",
+            "./store/screenshots/en/APP_IPHONE_67/03-home.png",
+            "./store/screenshots/en/APP_IPHONE_67/04-stats.png",
+            "./store/screenshots/en/APP_IPHONE_67/05-ritual.png",
+            "./store/screenshots/en/APP_IPHONE_67/06-year.png"
+          ],
+          "APP_IPAD_PRO_3GEN_129": [
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/01-chart.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/02-today.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/03-home.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/04-stats.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/05-ritual.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/06-year.png"
+          ]
+        }
+      }
+    }
+  }
+}
