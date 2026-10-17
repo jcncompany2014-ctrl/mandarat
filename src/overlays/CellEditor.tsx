@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, Keyboard, Platform, Pressable, ScrollView, View, type StyleProp, type TextInput as RNTextInput, type ViewStyle } from 'react-native';
+import { Alert, AppState, Keyboard, Linking, Platform, Pressable, ScrollView, View, type StyleProp, type TextInput as RNTextInput, type ViewStyle } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, TextInput } from '../components/AppText';
@@ -30,6 +30,12 @@ import { Snackbar } from './Snackbar';
 import { DayPicker } from '../components/DayPicker';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { CLOCKWISE, chartFitHint } from '../theme/chart';
+import { Check } from '../components/Check';
+import { RemindRow } from '../components/RemindRow';
+import { useMsg } from '../i18n/react';
+import { notifier } from '../lib/notifier';
+import { writeNotifyDevice } from '../lib/notifyPrefs';
+import { TID } from '../lib/testIds';
 
 const KIND_ORDER: ActionKind[] = ['once', 'habit', 'count', 'mind'];
 
@@ -38,6 +44,9 @@ const ROW_H = 52;
 const LABEL_W = 64;
 
 const IS_WEB = Platform.OS === 'web';
+
+/** 습관 알림을 처음 정할 때의 시각 */
+const HABIT_REMIND_DEFAULT = '08:00';
 
 /** 바닥 줄의 첫 글자 버튼 — 안쪽 여백 8만큼 당겨 글자를 20pt 쪽 가장자리에 맞춘다 */
 const EDGE: ViewStyle = { marginLeft: -8 };
@@ -779,7 +788,94 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
           </View>
         </Row>
       )}
+      <RemindRows M={M} cfg={cfg} setCfg={setCfg} onReveal={onReveal} />
     </>
+  );
+}
+
+/** 습관 알림 — '없음' / '시각 정하기' 괘선 고르기 두 줄과, 고르면 10분씩 바꾸는 시각 줄. 저장은 편집 창의 저장(remindAt)과 함께 */
+function RemindRows({ M, cfg, setCfg, onReveal }: {
+  M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
+}) {
+  const t = useMsg();
+  const on = !!cfg.remindAt;
+  // 껐다가 다시 고르면 이번에 쓰던 시각으로
+  const last = useRef(cfg.remindAt ?? HABIT_REMIND_DEFAULT);
+  if (cfg.remindAt) last.current = cfg.remindAt;
+  const [refused, setRefused] = useState(false);
+
+  /** 누를 때만 — 처음이면 허락을 묻고, 받으면 이 기기를 켠다. 알림이 없는 웹은 시각만 적어 둔다(아이폰에서 울린다) */
+  const onPickTime = async () => {
+    if (on) return;
+    tap();
+    if (notifier.supported) {
+      let s = await notifier.status();
+      if (s === 'undetermined') s = await notifier.request();
+      if (s !== 'granted') {
+        if (s === 'denied') {
+          setRefused(true);
+          announce(t.notify.denied);
+        }
+        return;
+      }
+      setRefused(false);
+      await writeNotifyDevice(true);
+    }
+    setCfg((c) => ({ ...c, remindAt: last.current }));
+    onReveal();
+  };
+
+  const onPickNone = () => {
+    if (!on) return;
+    tap();
+    setRefused(false);
+    setCfg((c) => ({ ...c, remindAt: undefined }));
+  };
+
+  return (
+    <Row M={M} label={t.notify.sectionTitle} stack>
+      <View accessibilityRole="radiogroup" style={{ paddingTop: 2 }}>
+        <ChoiceRow M={M} label={t.notify.editorNone} a11y={t.notify.editorNoneA11y} on={!on} first onPress={onPickNone} />
+        <ChoiceRow M={M} label={t.notify.editorPick} a11y={t.notify.editorPickA11y} on={on} onPress={() => { void onPickTime(); }} />
+      </View>
+      {on && cfg.remindAt && (
+        <View style={{ paddingBottom: 10 }}>
+          <RemindRow M={M} value={cfg.remindAt} onChange={(v) => setCfg((c) => ({ ...c, remindAt: v }))} label={t.notify.habitTime} testID={TID.editorRemind} />
+          <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 4 }}>
+            {notifier.supported ? t.notify.habitHint : t.common.iosOnly}
+          </Text>
+        </View>
+      )}
+      {refused && !on && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderColor: M.line, marginBottom: 4 }}>
+          <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '600', color: M.ink }} accessibilityLiveRegion="polite">
+            {t.notify.denied}
+          </Text>
+          <TextBtn M={M} label={t.common.openSettings} color={M.ink} onPress={() => { void Linking.openSettings(); }} size={13.5} />
+        </View>
+      )}
+    </Row>
+  );
+}
+
+/** 하나만 고르는 괘선 줄 — 이름 · 오른쪽 네모 체크(칩이 아니다) */
+function ChoiceRow({ M, label, a11y, on, first = false, onPress }: {
+  M: M; label: string; a11y: string; on: boolean; first?: boolean; onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityLabel={a11y}
+      accessibilityState={{ checked: on, selected: on }}
+      style={({ pressed }) => ({
+        minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12,
+        borderTopWidth: first ? 0 : 1, borderColor: M.line, opacity: pressed && !on ? 0.55 : 1,
+      })}
+    >
+      <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: M.ink }} numberOfLines={1}>{label}</Text>
+      <Check on={on} color={M.ink} dark={M.dark} size={20} />
+    </Pressable>
   );
 }
 
