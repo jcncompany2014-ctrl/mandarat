@@ -162,6 +162,8 @@ export interface Actions {
   checkToday: (ti: number, ai: number) => void;
   /** 쌓기 수를 더하거나 뺀다(오늘 기록에 남는다) */
   addCount: (ti: number, ai: number, delta: number) => void;
+  /** 쌓기 수를 지난 날(day, 오늘까지) 기록으로 더한다 — 위젯에서 그날 한 체크를 늦게 들일 때 */
+  addCountOn: (ti: number, ai: number, delta: number, day: string) => void;
   /** 마음가짐 점수(0이면 지움) — on이 속한 주(기본: 이번 주) */
   rateMind: (ti: number, ai: number, score: number, on?: Date) => void;
   addFocusMinutes: (minutes: number) => void;
@@ -543,6 +545,11 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  const addCountOn = useCallback(
+    (ti: number, ai: number, delta: number, day: string) => update((d) => (day <= dateKey() ? addCountTo(d, ti, ai, delta, day) : d)),
+    [update],
+  );
+
   const rateMind = useCallback(
     (ti: number, ai: number, score: number, on: Date = new Date()) => update((d) => rateWeek(d, ti, ai, score, on)),
     [update],
@@ -829,13 +836,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const actions = useMemo<Actions>(
     () => ({
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
-      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
+      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
       relocalizeDefaults, replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     }),
     [
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
-      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
+      toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
       relocalizeDefaults, replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     ],

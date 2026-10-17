@@ -43,7 +43,7 @@ To make sure the check is not vacuous, I removed the build-file line from the pb
   - mind ops dropped;
   - extras using `toggleExtra`;
   - past-day habits using `toggleHabitOn`, with the `since` and future limits;
-  - stale once, count and extra ops dropped;
+  - stale once, count and extra ops applied within 7 days (once → `checkToday`, count → `addCountOn` on that day, extra → `toggleExtra` while still listed) and dropped outside it (changed by R-1 F3);
   - focus ops needing text, the latest one winning, and stale focus or open ops dropped, as are ops in `seen`;
   - unknown keys and malformed ops dropped;
   - Siri and widget ops interleaving by `at`;
@@ -104,8 +104,8 @@ No file outside V2-C's list was edited, apart from the two line-owned assertions
 - [ ] On the medium widget (iOS 17+), check two items, then open the app: both are checked in the doc. If they were the last two, the day closes (the close line or toast appears).
 - [ ] With the app open in the background, check an item on the widget, then return to the app and edit a cell: the widget check is still there, in the app and on the widget.
 - [ ] Check an item in the app: the widget updates within about 1 s of leaving the app. Uncheck it on the widget, open the app: it is unchecked.
-- [ ] Late-night check: check a habit and a once item on the widget just before midnight, and open the app after midnight. The habit is checked on yesterday, and the once item is not checked (stale).
-- [ ] Midnight rollover with the app closed: the widget shows the next day, through the stored timeline. Open the app after midnight: it rewrites the timeline for the new day, and no op from yesterday is applied (except habits).
+- [ ] Late-night check: check a habit, a once item, a count item and a hand-added task on the widget just before midnight, and open the app after midnight. The habit is checked on yesterday, the count is added on yesterday (one step), and the once item and the hand-added task are checked (stale ops within 7 days are applied, R-1 F3).
+- [ ] Midnight rollover with the app closed: the widget shows the next day, through the stored timeline. Open the app after midnight: it rewrites the timeline for the new day. Ops from yesterday are applied as in the late-night check; ops older than 7 days are dropped (except habits).
 - [ ] Change the language in Settings: the widget text changes to that language.
 - [ ] Widget gallery: with the device in ko, ja and en, the 오늘 widget is listed as 오늘 / 今日 / Today, with the matching description.
 - [ ] Pro pattern: with paper set to grid or lines and pro owned, the widget draws the rules. Without pro (or after a refund), it draws plain paper, and the stored choice is kept.
