@@ -134,6 +134,13 @@ export function sampleCell(ti: number, ai: number, l: Lang = lang()): SampleCell
   return { text, ...(unit ? { unit } : {}), goal: perLang(a.goal, l), count: perLang(a.count, l) ?? 0 };
 }
 
+/** 자리별 색 · 아이콘과 지금 언어의 기본 이름 — tools/store-shots가 색과 아이콘을 읽는다 */
+export const THEME_SEEDS: readonly { readonly title: string; readonly color: string; readonly icon: Theme['icon'] }[] = SLOTS.map((s, i) => ({
+  get title() { return seedTitles()[i]; },
+  color: s.color,
+  icon: s.icon,
+}));
+
 function emptyActions(): Action[] {
   return Array.from({ length: 8 }, () => ({ text: '', note: '', done: false }));
 }
