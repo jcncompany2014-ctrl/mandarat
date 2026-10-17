@@ -1,7 +1,7 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
 import {
-  ICON_NAMES, type Action, type ActionKind, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra,
-  type WeekReviewEntry,
+  ICON_NAMES, type Action, type ActionKind, type ArchivedChart, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood,
+  type PaperPattern, type Reminders, type Settings, type Theme, type TodayExtra, type WeekReviewEntry,
 } from '../types';
 import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
@@ -165,6 +165,14 @@ export const ACTION_KEY_RE = /^[0-7]-[0-7]$/;
  */
 const LOG_KEY_RE = /^[0-7]-(?:[0-7]|x[A-Za-z0-9_-]{1,40})$/;
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+/** 알림 시각 'HH:MM' (24시간) */
+export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** 종이 무늬(프로) — 없으면 점 종이 */
+export const PAPER_OPTS: readonly PaperPattern[] = ['grid', 'lines', 'blank'];
+/** 남겨 두는 지난 표 — 닫은 날 순서로 최근 30장 */
+export const ARCHIVE_KEEP = 30;
+/** 지난 표를 닫으며 적는 한 줄 메모의 글자 수 상한 */
+export const ARCHIVE_NOTE_MAX = 120;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
 const MOOD_OPTS = Object.keys(MOODS) as Mood[];
 const MGMT_OPTS: readonly Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
@@ -259,6 +267,8 @@ function cleanAction(a: Record<string, unknown>): Action {
   const log = cleanDateNums(a.log, (n) => cleanNum(n, 0.01));
   const due = typeof a.due === 'string' && DATE_RE.test(a.due) ? a.due : undefined;
   const ratings = cleanDateNums(a.ratings, (n) => (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 5 ? (n as number) : undefined));
+  // 습관 알림 시각 — 유형과 상관없이 형식이 맞으면 남긴다(다른 유형 값은 남겨 둔다)
+  const remindAt = typeof a.remindAt === 'string' && TIME_RE.test(a.remindAt) ? a.remindAt : undefined;
   return {
     text: typeof a.text === 'string' ? a.text : '',
     note: typeof a.note === 'string' ? a.note : '',
@@ -276,7 +286,41 @@ function cleanAction(a: Record<string, unknown>): Action {
     ...(log ? { log } : {}),
     ...(due ? { due } : {}),
     ...(ratings ? { ratings } : {}),
+    ...(remindAt ? { remindAt } : {}),
   };
+}
+
+/** 8영역 × 8실천 — 손상된 슬롯은 기본 영역으로, 이전 원색은 연꽃 팔레트로, 모르는 아이콘은 슬롯 기본 아이콘으로 */
+export function cleanThemes(raw: unknown): Theme[] {
+  const seed = scaffoldThemes();
+  const rawThemes = Array.isArray(raw) ? raw : [];
+  return seed.map((s, i) => {
+    const t = rawThemes[i];
+    if (!isRecord(t)) return s;
+    const actions = Array.isArray(t.actions) ? t.actions : [];
+    return {
+      title: typeof t.title === 'string' ? t.title : s.title,
+      // 이전 원색 기본 팔레트였다면 연꽃 팔레트로 옮긴다(사용자가 고른 다른 색은 보존)
+      color: typeof t.color === 'string' && HEX_RE.test(t.color) ? migrateAreaColor(t.color) : s.color,
+      // 아는 아이콘만 — 'constructor' 같은 이름이 그대로 그려지면 앱이 멈춘다
+      icon: (ICON_NAMES as readonly unknown[]).includes(t.icon) ? (t.icon as Theme['icon']) : s.icon,
+      actions: s.actions.map((blank, j) => {
+        const a = actions[j];
+        return isRecord(a) ? cleanAction(a) : blank;
+      }),
+    };
+  });
+}
+
+/** 알림 — 'HH:MM'이 맞는 아침·저녁과 참인 돌아보기만. 켠 것이 없으면 undefined(필드를 두지 않는다) */
+export function cleanReminders(v: unknown): Reminders | undefined {
+  if (!isRecord(v)) return undefined;
+  const out: Reminders = {
+    ...(typeof v.morning === 'string' && TIME_RE.test(v.morning) ? { morning: v.morning } : {}),
+    ...(typeof v.evening === 'string' && TIME_RE.test(v.evening) ? { evening: v.evening } : {}),
+    ...(v.review === true ? { review: true as const } : {}),
+  };
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function cleanExtras(v: unknown): TodayExtra[] {
@@ -350,6 +394,56 @@ export function cleanClosedDays(v: unknown): string[] {
   return days.slice(-CLOSED_KEEP);
 }
 
+// ── 지난 표 ──────────────────────────────────────────────────────────────────
+/** from..to 안의 날짜 키만 남긴다 */
+function within<T>(rec: Record<string, T>, from: string, to: string): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const [k, v] of Object.entries(rec)) if (k >= from && k <= to) out[k] = v;
+  return out;
+}
+
+/** 지난 표 한 장 — 아이디·기간이 깨졌으면 버리고(null), 기록은 그 기간 안의 것만, 빈 값은 두지 않는다 */
+function cleanArchive(v: unknown): ArchivedChart | null {
+  if (!isRecord(v) || typeof v.id !== 'string' || !ID_RE.test(v.id)) return null;
+  const { from, to } = v;
+  if (typeof from !== 'string' || typeof to !== 'string' || !DATE_RE.test(from) || !DATE_RE.test(to) || from > to) return null;
+  // 돌아보기 키는 그 주 월요일 — 기간이 걸친 주(월요일이 from보다 6일까지 앞선 주)도 이 표의 주다
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const weekFrom = ymd(new Date(fy, fm - 1, fd - 6));
+  const reviews = within(cleanReviews(v.reviews), weekFrom, to);
+  const closedDays = cleanClosedDays(v.closedDays).filter((d) => d >= from && d <= to);
+  const focus = typeof v.focusMinutes === 'number' && Number.isInteger(v.focusMinutes) && v.focusMinutes >= 0 ? v.focusMinutes + 0 : 0;
+  const note = typeof v.note === 'string' ? Array.from(v.note.trim()).slice(0, ARCHIVE_NOTE_MAX).join('').trim() : '';
+  return {
+    id: v.id,
+    from,
+    to,
+    centerGoal: typeof v.centerGoal === 'string' ? v.centerGoal : '',
+    themes: cleanThemes(v.themes),
+    dayLog: within(cleanDayLog(v.dayLog), from, to),
+    dayMeta: within(cleanDayMeta(v.dayMeta), from, to),
+    ...(Object.keys(reviews).length > 0 ? { reviews } : {}),
+    ...(closedDays.length > 0 ? { closedDays } : {}),
+    focusMinutes: focus,
+    ...(note ? { note } : {}),
+  };
+}
+
+/** 지난 표들 — 아이디가 겹치면 앞의 것만, 닫은 날(to)·아이디 순서로 최근 30장까지 */
+export function cleanArchives(v: unknown): ArchivedChart[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: ArchivedChart[] = [];
+  for (const raw of v) {
+    const a = cleanArchive(raw);
+    if (!a || seen.has(a.id)) continue;
+    seen.add(a.id);
+    out.push(a);
+  }
+  out.sort((a, b) => (a.to === b.to ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : a.to < b.to ? -1 : 1));
+  return out.slice(-ARCHIVE_KEEP);
+}
+
 /**
  * 8영역을 정했다고 볼 수 있는가.
  * - 저장된 참/거짓이 있으면 그대로 — 앱을 다시 열어도 시작하기 단계가 저절로 바뀌지 않는다.
@@ -370,6 +464,8 @@ function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
  *   아이콘 키는 그대로 둔다('lotus'도 유효 — 그림만 바뀐다).
  * - areasSet은 저장된 참/거짓을 지키고, 값이 없을 때만 적힌 실천·고친 영역 이름으로 짐작한다. reviews는 월요일 키·날짜·칸 키를 검사한다.
  * - settings.lastBackupAt은 날짜 형식일 때만 남긴다. closedDays는 날짜 형식만, 겹치지 않게 최근 400일까지(없으면 필드를 두지 않는다).
+ * - 스키마 4: settings.reminders·paper, action.remindAt, archives·chartStart·focusStart — 값이 있을 때만 필드를 둔다.
+ *   chartStart·focusStart는 오늘 날짜로 짐작하지 않는다. iCloud 봉투 _sync는 문서가 아니라 버린다.
  * - 알 수 없는 필드는 버린다. 향후 스키마 변경 시 parsed.version 으로 분기해 단계적 업그레이드.
  * - 멱등이다: migrate(migrate(x))와 JSON으로 저장했다 읽은 결과가 migrate(x)와 같다(tests/invariants.test.js).
  */
@@ -379,24 +475,7 @@ export function migrate(parsed: unknown): MandaratDoc {
   const p = parsed;
 
   // themes는 항상 8개 슬롯이어야 한다. 손상된 저장본은 슬롯별로 안전하게 보정한다.
-  const seed = scaffoldThemes();
-  const rawThemes = Array.isArray(p.themes) ? p.themes : [];
-  const themes: Theme[] = seed.map((s, i) => {
-    const t = rawThemes[i];
-    if (!isRecord(t)) return s;
-    const actions = Array.isArray(t.actions) ? t.actions : [];
-    return {
-      title: typeof t.title === 'string' ? t.title : s.title,
-      // 이전 원색 기본 팔레트였다면 연꽃 팔레트로 옮긴다(사용자가 고른 다른 색은 보존)
-      color: typeof t.color === 'string' && HEX_RE.test(t.color) ? migrateAreaColor(t.color) : s.color,
-      // 아는 아이콘만 — 'constructor' 같은 이름이 그대로 그려지면 앱이 멈춘다
-      icon: (ICON_NAMES as readonly unknown[]).includes(t.icon) ? (t.icon as Theme['icon']) : s.icon,
-      actions: s.actions.map((blank, j) => {
-        const a = actions[j];
-        return isRecord(a) ? cleanAction(a) : blank;
-      }),
-    };
-  });
+  const themes = cleanThemes(p.themes);
 
   const rs = isRecord(p.settings) ? p.settings : {};
   const settings: Settings = {
@@ -407,12 +486,20 @@ export function migrate(parsed: unknown): MandaratDoc {
     cellShape: pick(rs.cellShape, SHAPE_OPTS, base.settings.cellShape),
     ...(typeof rs.lastBackupAt === 'string' && DATE_RE.test(rs.lastBackupAt) ? { lastBackupAt: rs.lastBackupAt } : {}),
   };
+  const reminders = cleanReminders(rs.reminders);
+  if (reminders) settings.reminders = reminders;
+  // 프로가 없어도 고른 무늬는 남긴다 — 잠금은 화면이 그릴 때 정한다
+  if (PAPER_OPTS.includes(rs.paper as PaperPattern)) settings.paper = rs.paper as PaperPattern;
 
   const todayKeys = Array.isArray(p.todayKeys)
     ? [...new Set(p.todayKeys.filter((k): k is string => typeof k === 'string' && ACTION_KEY_RE.test(k)))]
     : [];
   const closedDays = cleanClosedDays(p.closedDays);
   const focus = typeof p.focusMinutes === 'number' && Number.isFinite(p.focusMinutes) && p.focusMinutes > 0 ? Math.round(p.focusMinutes) : 0;
+  const archives = cleanArchives(p.archives);
+  // 오늘 날짜로 짐작하지 않는다 — 저장된 값이 맞을 때만(멱등)
+  const chartStart = typeof p.chartStart === 'string' && DATE_RE.test(p.chartStart) ? p.chartStart : undefined;
+  const focusStart = typeof p.focusStart === 'number' && Number.isInteger(p.focusStart) && p.focusStart >= 0 && p.focusStart <= focus ? p.focusStart + 0 : undefined;
 
   return {
     version: 1,
@@ -430,5 +517,8 @@ export function migrate(parsed: unknown): MandaratDoc {
     areasSet: deriveAreasSet(p.areasSet, themes),
     reviews: cleanReviews(p.reviews),
     ...(closedDays.length > 0 ? { closedDays } : {}),
+    ...(archives.length > 0 ? { archives } : {}),
+    ...(chartStart ? { chartStart } : {}),
+    ...(focusStart !== undefined ? { focusStart } : {}),
   };
 }

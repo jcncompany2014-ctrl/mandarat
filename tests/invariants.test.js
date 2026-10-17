@@ -4,6 +4,7 @@
 // 3) 칸을 비우고(기록 떼어 두기) 같은 칸에 새 습관을 쓰면 오늘 한 것으로 보이지 않는다
 // 4) 하루 정리(rolloverToday)는 멱등이다
 // 5) 기록 떼어 두기는 날마다 개수를 바꾸지 않는다
+// (스키마 4: 알림·종이 무늬·습관 알림·지난 표도 무작위로 만든다)
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -57,6 +58,7 @@ function gen(r) {
     if (chance(0.3)) a.log = record(int(4), date, num);
     if (chance(0.2)) a.due = date();
     if (chance(0.2)) a.ratings = record(int(4), monday, () => one([1, 3, 5, 0, 6, 2.5, -0]));
+    if (chance(0.2)) a.remindAt = one(['07:30', '21:05', '24:00', '7:30', '', 730, null]);
     return a;
   };
   const theme = () => (chance(0.05) ? junk() : {
@@ -78,12 +80,29 @@ function gen(r) {
     settings: chance(0.1) ? junk() : {
       mood: one(['연꽃', '다크', '네온']), accent: one(['#B0883C', '#F4793B', '#5068AB', 'blue']), mgmt: one(['칸반', '?']),
       cellShape: one(['각진', '둥근', 0]), lastBackupAt: chance(0.5) ? date() : undefined,
+      reminders: chance(0.5) ? undefined : chance(0.1) ? junk() : {
+        morning: one(['08:00', '8:00', '23:59', '', undefined, 9]), evening: one(['21:30', '25:00', undefined]), review: one([true, false, 'yes', undefined]),
+      },
+      paper: one(['grid', 'lines', 'blank', 'dots', undefined, 3]),
     },
     todayDate: chance(0.7) ? date() : junk(),
     areasSet: one([true, false, undefined, 'yes']),
     reviews: chance(0.1) ? junk() : record(int(4), () => (chance(0.8) ? monday() : date()), () => (chance(0.1) ? junk() : {
       at: date(), next: Array.from({ length: int(6) }, () => (chance(0.8) ? cellKey() : junk())), note: one([undefined, '', '  메모  ', '가'.repeat(130)]),
     })),
+    archives: chance(0.5) ? undefined : chance(0.05) ? junk() : Array.from({ length: int(4) }, () => (chance(0.1) ? junk() : {
+      id: one(['y20260901', 'y20260901', 'y20260915', '../bad', undefined]), from: date(), to: date(),
+      centerGoal: one(['지난 목표', 7, undefined]),
+      themes: chance(0.1) ? junk() : Array.from({ length: int(9) }, theme),
+      dayLog: record(int(5), date, () => Array.from({ length: int(3) }, logKey)),
+      dayMeta: record(int(3), date, () => ({ mood: one([0, 3, 9]), reflection: one(['괜찮은 날', undefined]) })),
+      reviews: record(int(3), monday, () => ({ at: date(), next: [cellKey()], note: one([undefined, '메모']) })),
+      closedDays: Array.from({ length: int(4) }, date),
+      focusMinutes: one([0, 25, -3, 2.5, '9', undefined]),
+      note: one([undefined, '', '  한 줄  ', '나'.repeat(130)]),
+    })),
+    chartStart: one([undefined, date(), 'today']),
+    focusStart: one([undefined, 0, 5, 10, 1e12, -1, 2.5]),
   };
   return { raw, int, chance, one, date, cellKey };
 }
@@ -104,7 +123,7 @@ function step(d, g) {
     case 2: return toggleCountToday(d, ti, ai, day);
     case 3: return rateWeek(d, ti, ai, g.int(7), TODAY);
     case 4: {
-      const cfg = g.one([{ kind: 'habit', days: [1, 3, 5] }, { kind: 'habit', perWeek: 3 }, { kind: 'count', goal: 5, step: 2 }, { kind: 'once', due: TK }, { kind: 'mind' }]);
+      const cfg = g.one([{ kind: 'habit', days: [1, 3, 5] }, { kind: 'habit', perWeek: 3, remindAt: '07:30' }, { kind: 'habit', days: [0], remindAt: '99:99' }, { kind: 'count', goal: 5, step: 2 }, { kind: 'once', due: TK }, { kind: 'mind' }]);
       return { ...d, themes: d.themes.map((t, i) => (i === ti ? { ...t, actions: t.actions.map((a, j) => (j === ai ? { ...applyConfig(a, cfg, TK), text: a.text || '새 실천' } : a)) } : t)) };
     }
     case 5: return {

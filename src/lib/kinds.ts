@@ -267,7 +267,12 @@ export interface KindConfig {
   count?: number;
   /** 한 번: 마감일(없으면 마감 없음) */
   due?: string;
+  /** 습관: 알림 시각 'HH:MM'(없으면 알림 없음) */
+  remindAt?: string;
 }
+
+/** 알림 시각 'HH:MM' — src/data/defaults.ts TIME_RE와 같다 */
+const REMIND_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** 지금 칸의 설정(편집 화면의 처음 값). 쌓기로 처음 바꿀 때 이미 달성한 칸은 목표만큼 채워 둔다. */
 export function configOf(a: Action): KindConfig {
@@ -283,6 +288,7 @@ export function configOf(a: Action): KindConfig {
     step: c.step,
     count: a.count !== undefined ? c.count : a.done && cleanNum(a.goal, 0.01) ? c.goal : 0,
     ...(a.due ? { due: a.due } : {}),
+    ...(a.remindAt ? { remindAt: a.remindAt } : {}),
   };
 }
 
@@ -297,6 +303,7 @@ export function sameConfig(x: KindConfig, y: KindConfig): boolean {
   if (x.kind === 'habit') {
     const dx = normalizeDays(x.days);
     const dy = normalizeDays(y.days);
+    if ((x.remindAt ?? '') !== (y.remindAt ?? '')) return false;
     if (dx.length > 0 || dy.length > 0) return dx.join() === dy.join();
     return normalizePerWeek(x.perWeek) === normalizePerWeek(y.perWeek);
   }
@@ -340,6 +347,9 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
     const schedule = keep ? nextSchedule(a, out, todayKey) : undefined;
     if (schedule) out.schedule = schedule;
     else delete out.schedule;
+    // 알림 시각은 습관에서만 정한다 — 다른 유형으로 바꿔도 남겨 둔다(되돌리면 다시 울린다)
+    if (cfg.remindAt && REMIND_RE.test(cfg.remindAt)) out.remindAt = cfg.remindAt;
+    else delete out.remindAt;
   } else if (cfg.kind === 'count') {
     const before = wasKind === 'count' ? countInfo(a) : null;
     const goal = cleanNum(cfg.goal, 0.01) ?? cleanNum(a.goal, 0.01) ?? 1;
@@ -398,7 +408,7 @@ function nextSchedule(prev: Action, next: Action, todayKey: string): HabitSchedu
 /** 첫 일정의 시작 — 습관을 정한 날(since)을 모르는 이전 칸 */
 const EPOCH = '1970-01-01';
 
-/** 칸을 비울 때 — 글과 유형별 값·달성을 모두 지우고 메모만 남긴다(다음에 쓰는 실천이 이전 숫자·기록을 이어받지 않게) */
+/** 칸을 비울 때 — 글과 유형별 값·달성·알림 시각을 모두 지우고 메모만 남긴다(다음에 쓰는 실천이 이전 숫자·기록을 이어받지 않게) */
 export function clearedAction(a: Action): Action {
   return { text: '', note: a.note, done: false };
 }
