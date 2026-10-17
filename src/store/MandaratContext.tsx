@@ -11,8 +11,10 @@ import { MOODS, withAccent, type Palette } from '../theme/moods';
 import { GOLD } from '../theme/palette';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
-import { newSyncMeta, type SyncMeta } from '../lib/syncMeta';
-import { docOnlyJson, makeSyncPort, openStored, serializeStored, stampCommit, type CommitHow, type SyncPort } from '../lib/syncEnvelope';
+import type { SyncMeta } from '../lib/syncMeta';
+// 맞추기는 손잡이(syncCommit)로만 — iOS는 syncCommit.ios.ts, 웹 · 안드로이드는 빈 것(번들에 합치기 · 도장이 없다)
+import { commitMeta, docOnlyJson, makeSyncMeta, makeSyncPort, openStored, serializeStored, stampPending, undoResetMeta } from '../lib/syncCommit';
+import type { CommitHow, ResetMark, SyncPort } from '../lib/syncEnvelope';
 import { relocalizeDoc } from '../lib/relocalize';
 import { LANGS, lang, type Lang } from '../i18n';
 import { onLangChosen } from '../i18n/react';
@@ -23,11 +25,11 @@ const SNAP_PREFIX = 'mandarat:snap:';
 /** 저장본은 최근 7일치만 */
 const SNAP_KEEP = 7;
 /**
- * iCloud 맞추기는 iOS에서만 — 저장본은 { ...doc, _sync } 봉투가 되고 바꿀 때마다 도장을 찍는다(docs/v2/V3-E.md).
- * 웹·안드로이드는 메타가 없어 지금처럼 문서만 쓴다.
+ * iCloud 맞추기는 iOS에서만 — 저장본은 { ...doc, _sync } 봉투가 되고, 바뀐 것에 도장을 찍는다(docs/v2/V3-E.md).
+ * 도장은 미뤄서 저장할 때 · 맞추기 손잡이가 읽을 때 한 번에(flushStamp, R-8 #3). 웹·안드로이드는 메타가 없어 지금처럼 문서만 쓴다.
  */
 const SYNC_ON = Platform.OS === 'ios';
-const makeMeta = SYNC_ON ? () => newSyncMeta(Math.random) : null;
+const makeMeta = SYNC_ON ? makeSyncMeta : null;
 
 /**
  * 편집 창이 적어 둔 쓰던 글을 지운다 — 문서를 통째로 바꾸면(예시·초기화·템플릿·되돌리기·백업) 그 글은 지난 칸의 것이다.
@@ -197,6 +199,11 @@ export interface Actions {
   relocalizeDefaults: (from: Lang, to: Lang) => void;
   replaceDoc: (d: MandaratDoc) => void;
   /**
+   * 처음부터 다시(resetAll)의 되돌리기 — snapshot은 resetAll 직전의 getDoc(). 새 판을 아직 올리지 않았으면
+   * 맞추기 판 · 시계까지 초기화 전으로(다른 기기의 맞추지 않은 기록을 지우지 않게), 아니면 replaceDoc과 같다
+   */
+  undoReset: (snapshot: MandaratDoc) => void;
+  /**
    * 지금 표를 지난 표로 닫고 새 표를 시작한다(archive.startNewChart) — 같은 지난 표가 이미 있거나
    * 오늘 닫고 시작한 표를 오늘 또 닫으려 하면 아무것도 바꾸지 않고 false
    */
@@ -246,13 +253,26 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
    */
   const latest = useRef(doc);
   /**
-   * 맞추기 메타(iOS) — latest와 늘 같은 순간의 짝. 바꿀 때마다 그 자리에서 함께 맞추고, 저장도 둘을 함께 쓴다.
+   * 맞추기 메타(iOS) — stampedDoc과 짝. 읽기 전에 flushStamp로 latest까지 도장을 맞추고, 저장도 둘을 함께 쓴다.
    * 저장본을 다 읽기 전·웹·안드로이드·저장소 오류에서는 null(도장을 찍지 않는다)
    */
   const metaRef = useRef<SyncMeta | null>(null);
-  // how: 보통은 바뀐 경로에 도장, 초기화는 새 판(epoch), 받은 것을 합쳐 넣을 때는 그대로(none) — 메타가 있을 때만(stampCommit)
+  /** metaRef가 마지막으로 도장을 맞춘 문서 — latest와 다르면 그 사이의 바뀜이 아직 찍히지 않았다 */
+  const stampedDoc = useRef(doc);
+  /**
+   * 밀린 도장을 찍는다 — 메타를 읽는 곳(저장 · 맞추기 손잡이 · 초기화와 그 되돌리기 · 새 판 · 받은 것 넣기)은 먼저 부른다.
+   * 여러 번 고친 것은 합(stampedDoc → latest)에 도장 하나(syncEnvelope.stampPending)
+   */
+  const flushStamp = useCallback(() => {
+    metaRef.current = stampPending(stampedDoc.current, latest.current, metaRef.current, Date.now());
+    stampedDoc.current = latest.current;
+  }, []);
+  // how: 보통은 문서만(도장은 다음 flushStamp), 초기화는 새 판(epoch), 받은 것을 합쳐 넣을 때는 그대로(none) —
+  // 앞의 둘은 밀린 도장을 먼저 찍는다(commitMeta). 누르기 한 번이 시계 전체를 베끼지 않는다
   const commit = useCallback((next: MandaratDoc, how: CommitHow = 'stamp') => {
-    metaRef.current = stampCommit(latest.current, next, metaRef.current, how, Date.now());
+    const c = commitMeta(latest.current, next, metaRef.current, stampedDoc.current, how, Date.now());
+    metaRef.current = c.meta;
+    stampedDoc.current = c.stamped;
     latest.current = next;
     setDoc(next);
   }, []);
@@ -298,9 +318,10 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     return done;
   }, []);
 
-  // 문서와 메타는 같은 순간의 짝으로 쓴다 — 부르는 곳은 모두 latest.current를 넘긴다(metaRef는 늘 그 짝)
+  // 문서와 메타는 같은 순간의 짝으로 쓴다 — 부르는 곳은 모두 latest.current를 넘기고, 밀린 도장을 먼저 찍는다(metaRef는 그 짝)
   const persist = useCallback(
     (d: MandaratDoc) => {
+      flushStamp();
       const json = serializeStored(d, metaRef.current);
       return AsyncStorage.setItem(STORAGE_KEY, json).then(
         () => {
@@ -313,7 +334,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         },
       );
     },
-    [snapshot],
+    [snapshot, flushStamp],
   );
 
   // load once
@@ -713,12 +734,24 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  /** 처음부터 다시 직전의 문서 · 편집 횟수 · 맞추기 몫 — 그 되돌리기(undoReset)가 새 판을 거두는 데 쓴다(R-1 F2) */
+  const resetUndo = useRef<{ doc: MandaratDoc; rev: number; mark: ResetMark | null } | null>(null);
+
   const resetAll = useCallback(
     () => {
+      flushStamp();
+      const before = latest.current;
+      const meta = metaRef.current;
       dropEditorDraft();
       update((d) => resetDoc(d), 'epoch'); // keep look-and-feel and past charts — a new sync epoch restamps what is kept
+      const after = metaRef.current;
+      resetUndo.current = {
+        doc: before,
+        rev: revRef.current,
+        mark: meta && after ? { before: meta, epoch: after.epoch, ...(meta.pushed ? { pushed: meta.pushed } : {}) } : null,
+      };
     },
-    [update],
+    [update, flushStamp],
   );
 
   const relocalizeDefaults = useCallback(
@@ -738,7 +771,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     for (const l of LANGS) if (l !== lang()) relocalizeDefaults(l, lang());
   }, [ready, relocalizeDefaults]);
 
-  // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로
+  // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로.
+  // 템플릿으로 온보딩하면(처음 쓰는 표) completeOnboarding처럼 지금 표는 오늘 시작이다(R-1 F7)
   const applyTemplate = useCallback(
     (centerGoal: string, themes: Theme[]) => {
       dropEditorDraft();
@@ -750,6 +784,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         todayExtra: [],
         dayLog: archiveAllCells(d.dayLog, Date.now()),
         ...withPicksDetached(d),
+        ...(d.onboarded ? {} : { chartStart: dateKey(), focusStart: d.focusMinutes ?? 0 }),
         areasSet: true,
         onboarded: true,
       }));
@@ -763,6 +798,26 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     revRef.current += 1;
     commit(rolloverToday(d, dateKey()));
   }, [commit]);
+
+  // 처음부터 다시의 되돌리기 — 그 뒤 고친 것이 없고 새 판을 아직 올리지 않았으면 판 · 시계를 초기화 전으로 되돌리고
+  // 문서를 도장 없이 넣는다(초기화가 없었던 것과 같다 — 다른 기기의 맞추지 않은 기록이 새 판에 지워지지 않는다).
+  // 아니면(올렸거나 메타가 없으면) 지금처럼 replaceDoc — 되살린 표에 새 도장
+  const undoReset = useCallback((snapshot: MandaratDoc) => {
+    const u = resetUndo.current;
+    resetUndo.current = null;
+    flushStamp();
+    const restored = u && u.doc === snapshot && u.rev === revRef.current ? undoResetMeta(u.mark, metaRef.current) : null;
+    if (!restored) {
+      replaceDoc(snapshot);
+      return;
+    }
+    dropEditorDraft();
+    revRef.current += 1;
+    metaRef.current = restored;
+    commit(snapshot, 'none');
+    // 그 사이 날짜가 바뀌었으면 하루 정리 — 그것만 이 기기 도장
+    commit(rolloverToday(snapshot, dateKey()));
+  }, [flushStamp, replaceDoc, commit]);
 
   // 지난 표로 닫고 새 표 — 먼저 계산해 보고, 같은 지난 표가 이미 있으면(오늘 시작한 표) 아무것도 바꾸지 않는다
   const startNewChart = useCallback(
@@ -816,6 +871,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       makeSyncPort({
         doc: () => latest.current,
         meta: () => metaRef.current,
+        flush: flushStamp,
         setMeta: (m) => {
           metaRef.current = m;
           setSaveTick((t) => t + 1);
@@ -829,7 +885,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         now: () => Date.now(),
         writeCopy: keepSnapshot,
       }),
-    [commit, keepSnapshot],
+    [commit, keepSnapshot, flushStamp],
   );
 
   // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
@@ -838,13 +894,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
-      relocalizeDefaults, replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      relocalizeDefaults, replaceDoc, undoReset, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     }),
     [
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
-      relocalizeDefaults, replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      relocalizeDefaults, replaceDoc, undoReset, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     ],
   );
 

@@ -4,7 +4,8 @@
 // - 끼어들기 흉내: 두·세 기기가 고치기 · 받기 시작/끝(늦게 끝남) · 되돌리기 · 초기화 · 내려감(저장 후 다시 열기) ·
 //   하루 정리 · '이 기기 기록으로'를 무작위로 섞어도, 다 맞춘 뒤 모든 경로는 그 경로에 마지막으로 낸 값을 갖는다.
 // - 오늘 저장본(keepCopy)은 부른 순간의 문서, 판이 높은 복제본을 합치기 전에 남는다.
-// - 소스 지킴: 도장은 메타가 있을 때만 commit에서, applyRemote는 기다리지 않고 그 순간의 문서를 읽는다.
+// - 소스 지킴: 도장은 메타가 있을 때만, 미뤄서(저장 · 손잡이 읽기 전 flush — R-8 #3), applyRemote는 기다리지 않고 그 순간의 문서를 읽는다.
+// - 처음부터 다시의 되돌리기: 새 판을 올리기 전이면 판까지 거둔다 — 다른 기기의 맞추지 않은 기록이 남는다(R-1 F2).
 require('./register');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -20,10 +21,14 @@ const { canon, project, isCounterPath } = require('../src/lib/syncProject');
 const { cleanSyncMeta, newSyncMeta } = require('../src/lib/syncMeta');
 const { isStamp, tagOfStamp } = require('../src/lib/syncStamp');
 const { merge, replicaOf, adoptMerged } = require('../src/lib/syncMerge');
-const { stampLocal } = require('../src/lib/syncLocal');
-const { encodeReplica, decodeReplica } = require('../src/lib/syncFile');
+const { stampLocal, epochReset, changedPaths } = require('../src/lib/syncLocal');
+const { toggleCountToday } = require('../src/lib/kinds');
+const { partsSum } = require('../src/lib/syncProject');
+const { heavyDoc } = require('./helpers/heavyDoc');
+const { encodeReplica, decodeReplica, replicaDigest } = require('../src/lib/syncFile');
 const {
   SYNC_FIELD, parseStored, serializeStored, docOnlyJson, stampCommit, openStored, joinRemote, makeSyncPort,
+  stampPending, commitMeta, undoResetMeta,
 } = require('../src/lib/syncEnvelope');
 
 const ROOT = path.join(__dirname, '..');
@@ -197,11 +202,13 @@ test('joinRemote: unchanged → the same doc object; a newer-schema replica chan
 // ── 저장소 흉내 ──────────────────────────────────────────────────────────────
 
 /**
- * 저장소(MandaratProvider) 흉내 — 같은 함수(stampCommit · makeSyncPort · openStored · serializeStored)를 같은 순서로 쓴다.
+ * 저장소(MandaratProvider) 흉내 — 같은 함수(commitMeta · stampPending · makeSyncPort · openStored · serializeStored ·
+ * undoResetMeta)를 같은 순서로 쓴다. 도장은 미뤄서: commit은 문서만, 저장 · 손잡이 읽기 전에 flush(R-8 #3).
  * issued: "경로|도장" → 그 도장을 낼 때 이 기기 문서의 값(canon, migrate 뒤) — 잃지 않음 검사에 쓴다.
+ * 다른 기기가 이 기기 복제본을 읽는 것은 올리기와 같다(publish — pushed 지문을 남긴다).
  */
 function storeSim(world, dev, doc) {
-  const s = { dev, latest: doc, meta: metaFor(dev), rev: 0, inflight: [], undo: null, copies: [] };
+  const s = { dev, latest: doc, stamped: doc, meta: metaFor(dev), rev: 0, inflight: [], undo: null, copies: [], resetUndo: null, sinceReset: null };
   const record = (oldMeta, newMeta, d) => {
     if (!newMeta || newMeta === oldMeta) return;
     let vals = null;
@@ -212,13 +219,28 @@ function storeSim(world, dev, doc) {
       if (world.issued.has(key)) continue;
       vals = vals ?? project(migrate(JSON.parse(JSON.stringify(d))));
       world.issued.set(key, canon(vals.get(p) ?? null));
+      if (s.sinceReset) s.sinceReset.push(key);
     }
+  };
+  s.flush = () => {
+    const old = s.meta;
+    s.meta = stampPending(s.stamped, s.latest, s.meta, world.now(s));
+    s.stamped = s.latest;
+    record(old, s.meta, s.latest);
   };
   s.commit = (next, how = 'stamp') => {
     const old = s.meta;
-    s.meta = stampCommit(s.latest, next, s.meta, how, world.now(s));
+    const prev = s.latest;
+    const c = commitMeta(prev, next, s.meta, s.stamped, how, world.now(s));
+    // 'epoch' · 'none'은 밀린 도장을 prev에 맞춰 먼저 찍는다 — 그 값으로 남기고, 새 판의 도장은 next 값으로
+    if (how !== 'stamp' && c.meta !== old) {
+      const flushed = stampPending(s.stamped, prev, old, world.now(s));
+      record(old, flushed, prev);
+      record(flushed, c.meta, next);
+    }
+    s.meta = c.meta;
+    s.stamped = c.stamped;
     s.latest = next;
-    record(old, s.meta, next);
   };
   s.update = (fn, how) => {
     s.rev += 1;
@@ -228,27 +250,69 @@ function storeSim(world, dev, doc) {
     s.rev += 1;
     s.commit(rolloverToday(d, world.today(s)));
   };
+  // 처음부터 다시와 그 되돌리기(MandaratContext resetAll · undoReset)
+  s.resetAll = () => {
+    s.flush();
+    const before = s.latest;
+    const meta = s.meta;
+    s.sinceReset = [];
+    s.update((d) => resetDoc(d), 'epoch');
+    s.resetUndo = { doc: before, rev: s.rev, mark: { before: meta, epoch: s.meta.epoch, ...(meta.pushed ? { pushed: meta.pushed } : {}) } };
+    return before;
+  };
+  /** 되돌리기 토스트(useResetUndo) — 그 사이 바뀐 게 없을 때만 부른다. 판까지 거두었으면 true */
+  s.undoReset = (snapshot) => {
+    const u = s.resetUndo;
+    s.resetUndo = null;
+    s.flush();
+    const restored = u && u.doc === snapshot && u.rev === s.rev ? undoResetMeta(u.mark, s.meta) : null;
+    const dropped = s.sinceReset ?? [];
+    s.sinceReset = null;
+    if (!restored) {
+      s.replaceDoc(snapshot);
+      return false;
+    }
+    // 올리지 않은 새 판의 도장은 아무도 보지 못했다 — 낸 적 없는 것으로
+    for (const k of dropped) world.issued.delete(k);
+    s.rev += 1;
+    s.meta = restored;
+    s.commit(snapshot, 'none');
+    s.commit(rolloverToday(snapshot, world.today(s)));
+    return true;
+  };
   s.port = makeSyncPort({
     doc: () => s.latest,
     meta: () => s.meta,
+    flush: () => s.flush(),
     setMeta: (m) => { record(s.meta, m, s.latest); s.meta = m; },
     putMerged: (d, m) => { record(s.meta, m, d); s.meta = m; s.rev += 1; s.commit(d, 'none'); },
     today: () => world.today(s),
     now: () => world.now(s),
     writeCopy: (d) => { s.copies.push({ json: docOnlyJson(d), epoch: s.meta.epoch }); return Promise.resolve(true); },
   });
-  /** 내려가 저장하고(늘 latest와 그 메타를 함께) 앱이 닫힌 뒤 다시 연다 — 받던 것과 되돌리기는 사라진다 */
+  /** 다른 기기가 읽을 복제본 — 올리기(엔진 push)처럼 지문을 남긴다 */
+  s.publish = () => {
+    const rep = s.port.replica();
+    s.port.updateMeta((m) => ({ ...m, pushed: replicaDigest(rep) }));
+    s.sinceReset = null;
+    return rep;
+  };
+  /** 내려가 저장하고(늘 latest와 그 메타를 함께, 밀린 도장을 먼저) 앱이 닫힌 뒤 다시 연다 — 받던 것과 되돌리기는 사라진다 */
   s.kill = () => {
+    s.flush();
     const raw = serializeStored(s.latest, s.meta);
     const old = s.meta;
     const o = openStored(raw, world.today(s), world.now(s), () => newSyncMeta(Math.random));
     assert.equal(o.meta.dev, dev, 'the meta survives a relaunch');
     s.latest = o.doc;
+    s.stamped = o.doc;
     s.meta = o.meta;
     record(old, o.meta, o.doc);
     s.rev = 0;
     s.inflight = [];
     s.undo = null;
+    s.resetUndo = null;
+    s.sinceReset = null;
   };
   return s;
 }
@@ -291,7 +355,12 @@ function makeWorld(seed, n) {
     r, issued: new Map(),
     now: (s) => wall + s.skew,
     today: (s) => ymd(new Date(wall + s.skew)),
-    tick: () => { wall += Math.floor(r() * (r() < 0.1 ? 20 * HOUR : 10 * 60 * 1000)); },
+    tick: () => {
+      // 저장소는 고친 뒤 300ms 안에 저장하며 밀린 도장을 찍는다 — 대개는 시간이 흐르기 전에 찍혀 있고,
+      // 가끔(연달아 고치는 동안) 다음 걸음까지 밀린다(R-8 #3)
+      for (const s of world.devs ?? []) if (r() < 0.8) s.flush();
+      wall += Math.floor(r() * (r() < 0.1 ? 20 * HOUR : 10 * 60 * 1000));
+    },
   };
   const base = r() < 0.3 ? migrate({ ...fuzzDoc(r), onboarded: true }) : baseDoc();
   world.devs = DEVS.slice(0, n).map((dev) => Object.assign(storeSim(world, dev, base), { skew: Math.floor((r() - 0.5) * 20000) }));
@@ -312,7 +381,7 @@ function step(world) {
   } else if (x < 0.6) {
     // 받기 시작 — 다른 기기의 파일을 그때 읽어 두고, 끝나는 것은 나중(그 사이 이 기기에서 계속 고친다)
     const o = devs[Math.floor(r() * devs.length)];
-    if (o !== s) s.inflight.push(encodeReplica({ ...o.port.replica(), at: world.now(o) }));
+    if (o !== s) s.inflight.push(encodeReplica({ ...o.publish(), at: world.now(o) }));
   } else if (x < 0.78) {
     if (s.inflight.length > 0) {
       const i = Math.floor(r() * s.inflight.length);
@@ -320,13 +389,14 @@ function step(world) {
       s.port.applyRemote(decodeReplica(json));
     }
   } else if (x < 0.83) {
-    // 처음부터 다시(resetAll) — 되돌릴 수 있다
-    const before = s.latest;
-    s.update((d) => resetDoc(d), 'epoch');
-    s.undo = { snapshot: before, rev: s.rev };
+    // 처음부터 다시(resetAll) — 되돌릴 수 있다(useResetUndo → undoReset)
+    s.undo = { snapshot: s.resetAll(), rev: s.rev, reset: true };
   } else if (x < 0.89) {
-    // 되돌리기(useSnapshotUndo): 그 사이 바뀐 게 없을 때만
-    if (s.undo && s.rev === s.undo.rev) s.replaceDoc(s.undo.snapshot);
+    // 되돌리기(useSnapshotUndo · useResetUndo): 그 사이 바뀐 게 없을 때만
+    if (s.undo && s.rev === s.undo.rev) {
+      if (s.undo.reset) s.undoReset(s.undo.snapshot);
+      else s.replaceDoc(s.undo.snapshot);
+    }
     s.undo = null;
   } else if (x < 0.94) {
     s.kill();
@@ -339,7 +409,7 @@ function step(world) {
 
 function converge(world) {
   const [hub, ...rest] = world.devs;
-  const pull = (d, o) => d.port.applyRemote(wire(o.port.replica(), world.now(o)));
+  const pull = (d, o) => d.port.applyRemote(wire(o.publish(), world.now(o)));
   for (let round = 0; round < 3; round++) {
     for (const d of rest) pull(hub, d);
     for (const d of rest) pull(d, hub);
@@ -398,8 +468,8 @@ test('a pull that finishes late never takes back an edit made after it started (
     const [A, B] = world.devs;
     for (let k = 0; k < 10; k++) { world.tick(); B.update((d) => appEdit(world.r, d, world.today(B), world.now(B))); }
     const json = encodeReplica({ ...B.port.replica(), at: world.now(B) });
-    // 받는 동안 A에서 고친다
-    const startClock = A.meta.clock;
+    // 받는 동안 A에서 고친다 — 도장은 미뤄 찍으니(R-8 #3) 손잡이로 한 번 읽어(flush) 시작 시계를 잡는다
+    const startClock = A.port.meta().clock;
     const edits = [];
     for (let k = 0; k < 5; k++) {
       world.tick();
@@ -408,6 +478,8 @@ test('a pull that finishes late never takes back an edit made after it started (
       if (A.latest !== before) edits.push(A.latest);
     }
     const mine = A.latest;
+    // 받는 동안 고친 것의 도장은 다음 저장 · 손잡이 읽기가 찍는다 — applyRemote도 먼저 그렇게 한다
+    A.port.meta();
     const typed = Object.keys(A.meta.clock).filter((p) => p.length > 0 && !isCounterPath(p) && !(p in startClock && startClock[p] === A.meta.clock[p]));
     const typedClock = A.meta.clock;
     const changed = A.port.applyRemote(decodeReplica(json));
@@ -474,6 +546,193 @@ test('reset and its undo: the restored chart reaches the device that pulled the 
     assert.equal(s.latest.themes[6].actions[6].note, '리셋 뒤 B', `${s.dev} kept B's edit after the reset`);
   }
   checkNeverLost(world, 'reset-undo');
+});
+
+test('R-1 F2: B’s unsynced edit from before A’s reset + undo survives when A pulls B and when B pulls A', () => {
+  const world = makeWorld(92, 2);
+  const [A, B] = world.devs;
+  A.update((d) => editCell(d, 1, 1, (a) => ({ ...a, text: '지킬 글' })));
+  converge(world);
+  const epoch0 = A.meta.epoch;
+  world.tick();
+  // B가 쓰고 아직 올리지 않았다
+  const day = world.today(B);
+  B.update((d) => ({ ...d, dayMeta: { ...d.dayMeta, [day]: { ...d.dayMeta[day], reflection: 'B가 아침에 쓴 글' } } }));
+  world.tick();
+  // A: 처음부터 다시 → 몇 초 뒤 되돌리기(새 판은 아직 올리지 않았다 — 토스트보다 오래 기다린다)
+  const snapshot = A.resetAll();
+  assert.ok(A.meta.epoch > epoch0, 'the reset raised the epoch');
+  world.tick();
+  assert.equal(A.undoReset(snapshot), true, 'the unpushed epoch is taken back');
+  assert.equal(A.meta.epoch, epoch0, 'A is back on the epoch from before the reset');
+  assert.equal(A.latest.themes[1].actions[1].text, '지킬 글');
+  // A가 B를 받고, B가 A를 받는다
+  A.port.applyRemote(wire(B.publish(), world.now(B)));
+  B.port.applyRemote(wire(A.publish(), world.now(A)));
+  for (const s of [A, B]) {
+    assert.equal(s.latest.dayMeta[day]?.reflection, 'B가 아침에 쓴 글', `${s.dev} kept B's unsynced edit`);
+    assert.equal(s.latest.themes[1].actions[1].text, '지킬 글', `${s.dev} has A's chart`);
+  }
+  assert.equal(B.copies.length, 0, 'no higher epoch ever reached B');
+  converge(world);
+  checkNeverLost(world, 'reset-undo before push');
+});
+
+test('R-1 F2: once the reset epoch was pushed, its undo falls back to replaceDoc (the epoch stays; the copy on B keeps the edit)', () => {
+  const world = makeWorld(93, 2);
+  const [A, B] = world.devs;
+  converge(world);
+  const day = world.today(B);
+  B.update((d) => ({ ...d, dayMeta: { ...d.dayMeta, [day]: { reflection: 'B 글' } } }));
+  world.tick();
+  const snapshot = A.resetAll();
+  const epoch = A.meta.epoch;
+  B.port.applyRemote(wire(A.publish(), world.now(A))); // 올렸다 — B가 새 판을 받았다
+  world.tick();
+  assert.equal(A.undoReset(snapshot), false, 'pushed → not taken back');
+  assert.equal(A.meta.epoch, epoch);
+  assert.deepEqual(A.latest.themes, snapshot.themes, 'the chart still comes back, restamped');
+  assert.equal(B.copies.length, 1);
+  assert.match(B.copies[0].json, /B 글/, 'B kept a copy before applying the higher epoch');
+  converge(world);
+  checkNeverLost(world, 'reset-undo after push');
+});
+
+test('R-1 probe p2 (regression): reset → undo before a push leaves B’s reflection; the old undo through replaceDoc erased it', () => {
+  const T = Date.UTC(2026, 9, 17, 9);
+  const day = '2026-10-17';
+  const base = migrate({ ...blankDoc(), onboarded: true, centerGoal: 'goal', themes: sampleThemes(new Date(2026, 9, 1)), todayDate: day });
+  const edit = (d, next, how, t) => { d.meta = stampCommit(d.doc, next, d.meta, how, t); d.doc = next; };
+  const run = (undo) => {
+    const A = { doc: base, meta: metaFor(DEVS[0]) };
+    const B = { doc: base, meta: metaFor(DEVS[1]) };
+    edit(B, { ...B.doc, dayMeta: { [day]: { reflection: 'B wrote this at 09:00' } } }, 'stamp', T);
+    const before = { doc: A.doc, meta: A.meta };
+    edit(A, resetDoc(A.doc), 'epoch', T + 60e3); // resetAll
+    undo(A, before, { before: before.meta, epoch: A.meta.epoch });
+    assert.equal(A.doc.centerGoal, 'goal');
+    return joinRemote(B.doc, B.meta, wire(replicaOf(A.doc, A.meta), T + 100e3), day, T + 120e3).doc.dayMeta[day] ?? null;
+  };
+  // undoReset: 판까지 거둔다
+  const kept = run((A, before, mark) => {
+    const restored = undoResetMeta(mark, A.meta);
+    assert.ok(restored);
+    A.meta = restored;
+    A.doc = before.doc;
+  });
+  assert.deepEqual(kept, { reflection: 'B wrote this at 09:00' });
+  // 예전 되돌리기(replaceDoc → 'stamp') — 새 판이 남아 B의 글을 지웠다(R-1 F2의 재현)
+  const lost = run((A, before) => edit(A, before.doc, 'stamp', T + 62e3));
+  assert.equal(lost, null);
+});
+
+test('undoResetMeta: only for the same unpushed epoch; restores epoch · clock · parts · seen and keeps identity, switch and the clock’s last', () => {
+  const doc = baseDoc();
+  const m0 = { ...stampLocal(doc, editCell(doc, 0, 0, (a) => ({ ...a, text: 'x' })), metaFor(DEVS[0]), T0), seen: { 'a.jsonz': 1 }, pushed: 'p0', account: 'acc' };
+  const reset = { ...epochReset(m0, T0 + 1000, resetDoc(doc)), seen: { 'a.jsonz': 1, 'b.jsonz': 2 }, pulledAt: T0 + 2000 };
+  const mark = { before: m0, epoch: reset.epoch, pushed: 'p0' };
+  const back = undoResetMeta(mark, reset);
+  assert.equal(back.epoch, m0.epoch);
+  assert.equal(back.clock, m0.clock);
+  assert.equal(back.parts, m0.parts);
+  assert.deepEqual(back.seen, m0.seen, 'files read in between are read again');
+  assert.equal(back.last, reset.last, 'the clock only moves forward');
+  assert.equal(back.pulledAt, reset.pulledAt);
+  assert.equal(back.dev, reset.dev);
+  assert.equal(undoResetMeta(mark, { ...reset, pushed: 'p1' }), null, 'pushed since → no');
+  assert.equal(undoResetMeta(mark, { ...reset, pushed: undefined }), null);
+  assert.equal(undoResetMeta(mark, { ...reset, epoch: m0.epoch }), null, 'another epoch arrived → no');
+  assert.equal(undoResetMeta(null, reset), null);
+  assert.equal(undoResetMeta(mark, null), null, 'no meta (web) → replaceDoc');
+  assert.equal(undoResetMeta({ before: m0, epoch: reset.epoch }, { ...reset, pushed: undefined }) !== null, true, 'never pushed before or after');
+  // 켜기를 그 사이 껐으면 그대로 꺼져 있다(되돌리기가 맞추기를 다시 켜지 않는다)
+  assert.equal(undoResetMeta(mark, { ...reset, enabled: false }).enabled, false);
+});
+
+// ── 미뤄 찍는 도장(R-8 #3) ───────────────────────────────────────────────────
+
+test('lazy stamp: a commit leaves the meta alone; the next persist or port read stamps the net change once', () => {
+  const world = makeWorld(41, 2);
+  const [A] = world.devs;
+  A.port.meta();
+  const m0 = A.meta;
+  const d0 = A.latest;
+  A.update((d) => editCell(d, 2, 2, (a) => ({ ...a, text: '하나' })));
+  A.update((d) => editCell(d, 3, 3, (a) => ({ ...a, note: '메모' })));
+  A.update((d) => editCell(d, 3, 3, (a) => ({ ...a, note: d0.themes[3].actions[3].note }))); // 되돌려 놓았다
+  assert.equal(A.meta, m0, 'commits do not touch the meta (no clock copy per tap)');
+  const m = A.port.meta();
+  assert.notEqual(m, m0);
+  const stamped = Object.keys(m.clock).filter((p) => m.clock[p] !== m0.clock[p]);
+  assert.deepEqual(stamped, ['c/2-2/text'], 'one stamp for the net change; the edit that was undone is not stamped');
+  assert.deepEqual(stamped, [...changedPaths(d0, A.latest).keys()]);
+  assert.equal(A.port.meta(), m, 'nothing pending → the same meta');
+  // 저장(kill = persist 뒤 다시 열기)도 먼저 찍는다
+  A.update((d) => editCell(d, 4, 4, (a) => ({ ...a, text: '저장 전' })));
+  A.kill();
+  assert.ok(A.meta.clock['c/4-4/text'] > m.clock['c/2-2/text'], 'persist flushed the pending stamp');
+});
+
+test('lazy stamp: \'epoch\' and \'none\' commits stamp what was pending first; counters keep the net delta', () => {
+  const doc = baseDoc();
+  const meta = metaFor(DEVS[0]);
+  const pending = editCell(doc, 0, 0, (a) => ({ ...a, text: '밀린 글' }));
+  const merged = editCell(pending, 7, 7, (a) => ({ ...a, note: '받은 것' }));
+  const none = commitMeta(pending, merged, meta, doc, 'none', T0);
+  assert.deepEqual(Object.keys(none.meta.clock), ['c/0-0/text'], "'none' flushed the pending edit and added nothing for the merge");
+  assert.equal(none.stamped, merged);
+  const ep = commitMeta(pending, resetDoc(pending), meta, doc, 'epoch', T0);
+  assert.ok(ep.meta.epoch > '', 'new epoch');
+  for (const s of Object.values(ep.meta.clock)) assert.ok(s > ep.meta.epoch);
+  const st = commitMeta(doc, pending, meta, doc, 'stamp', T0);
+  assert.equal(st.meta, meta);
+  assert.equal(st.stamped, doc);
+  assert.equal(stampPending(doc, doc, meta, T0), meta);
+  assert.equal(stampPending(doc, pending, null, T0), null, 'no meta (web) → nothing');
+  // 쌓기 +1, +1, −1을 한 번에: 몫은 합(+1)만큼
+  let c = editCell(doc, 1, 1, (a) => ({ ...a, text: '물', kind: 'count', goal: 8 }));
+  const start = c;
+  for (const delta of [1, 1, -1]) c = addCount(c, 1, 1, delta, doc.todayDate);
+  const flushed = stampPending(start, c, meta, T0);
+  assert.equal(partsSum(flushed.parts['c/1-1/n']), 100, 'net +1 (units of 1/100)');
+});
+
+test('R-8 #3 timing guard: 50 checkToday commits on the 3-year doc cost under 1 ms each (median) in Node, and one flush stamps them', () => {
+  const doc = heavyDoc();
+  const day = '2026-10-02';
+  let meta = epochReset(metaFor(DEVS[0]), T0, doc);
+  assert.ok(Object.keys(meta.clock).length > 20000, 'a heavy clock');
+  let latest = doc;
+  let stamped = doc;
+  const times = [];
+  for (let i = 0; i < 50; i++) {
+    // 저장소 checkToday(쌓기 칸) → update → commit. 재는 것은 commit의 몫(도장) — 바꾸기 자체(그날 기록 베끼기)는 그 앞
+    const next = toggleCountToday(latest, i % 8, (i * 3) % 8, day);
+    const t = process.hrtime.bigint();
+    const c = commitMeta(latest, next, meta, stamped, 'stamp', T0 + i);
+    meta = c.meta;
+    stamped = c.stamped;
+    latest = next;
+    times.push(Number(process.hrtime.bigint() - t) / 1e6);
+  }
+  times.sort((a, b) => a - b);
+  const median = times[25];
+  if (process.env.SYNC_TIMING) console.log(`checkToday commit median ${median.toFixed(3)} ms, max ${times[49].toFixed(3)} ms`);
+  assert.ok(median < 1, `median commit ${median.toFixed(3)} ms`);
+  // 다음 저장 · 손잡이 읽기: 처음 → 지금의 바뀜에 도장 하나, 카운터는 합만큼
+  const flushed = stampPending(stamped, latest, meta, T0 + 100);
+  const net = changedPaths(doc, latest);
+  assert.ok(net.size > 0);
+  const restamped = Object.keys(flushed.clock).filter((p) => flushed.clock[p] !== meta.clock[p]);
+  assert.deepEqual(restamped.sort(), [...net.keys()].sort());
+  let eager = epochReset(metaFor(DEVS[0]), T0, doc);
+  let d = doc;
+  for (let i = 0; i < 50; i++) {
+    const next = toggleCountToday(d, i % 8, (i * 3) % 8, day);
+    eager = stampLocal(d, next, eager, T0 + i);
+    d = next;
+  }
+  for (const p of Object.keys(eager.parts)) assert.equal(partsSum(flushed.parts[p]), partsSum(eager.parts[p]), `counter ${p} adds up the same`);
 });
 
 test('backgrounding writes the doc and its meta as one pair, so a relaunch keeps every stamp and the next pull loses nothing', () => {
@@ -551,6 +810,7 @@ test('adopt: an empty phone takes the iPad chart exactly; a phone with its own a
   I.update((d) => startNewChart(d, 'continue', new Date(world.now(I)), { goal: '', note: 'iPad', time: world.now(I) }) ?? d);
   // 빈 아이폰
   P.latest = migrate({ ...blankDoc(), todayDate: world.today(P) });
+  P.stamped = P.latest;
   P.meta = metaFor(P.dev);
   assert.equal(P.port.adopt(wire(I.port.replica(), world.now(I))), true);
   assert.deepEqual(canonArrays(withoutLocal(migrate(JSON.parse(JSON.stringify(P.latest))))), canonArrays(withoutLocal(migrate(JSON.parse(JSON.stringify(I.latest))))));
@@ -591,21 +851,39 @@ function body(s, start, end) {
   return s.slice(i, j);
 }
 
-test('source: the store stamps in commit only through stampCommit (which needs a meta), and only on iOS', () => {
+test('source: the store stamps lazily — commit only through commitMeta, every meta reader flushes first, and only on iOS', () => {
   const s = src('src/store/MandaratContext.tsx');
   assert.match(s, /const SYNC_ON = Platform\.OS === 'ios';/);
-  assert.match(s, /const makeMeta = SYNC_ON \? \(\) => newSyncMeta\(Math\.random\) : null;/);
+  assert.match(s, /const makeMeta = SYNC_ON \? makeSyncMeta : null;/);
+  // 맞추기 코드는 손잡이(syncCommit)로만 — 엔진 쪽 파일은 타입으로만
+  assert.match(s, /from '\.\.\/lib\/syncCommit';/);
+  assert.match(s, /import type \{ CommitHow, ResetMark, SyncPort \} from '\.\.\/lib\/syncEnvelope';/);
+  assert.doesNotMatch(s, /^import \{[^}]*\} from '\.\.\/lib\/sync(Envelope|Local|Merge|Engine|Meta)';/m, 'no value import from the sync code itself');
+  // R-8 #3: commit은 문서만(도장은 commitMeta가 'stamp'에서 아무것도 하지 않는다) — 눌러 바꾸는 길에 시계 베끼기가 없다
   const commit = body(s, 'const commit = useCallback(', '}, []);');
-  assert.match(commit, /metaRef\.current = stampCommit\(latest\.current, next, metaRef\.current, how, Date\.now\(\)\);\s*latest\.current = next;\s*setDoc\(next\);/);
-  assert.equal((s.match(/stampLocal|epochReset\(/g) ?? []).length, 0, 'the store never stamps outside commit and the port');
-  assert.equal((s.match(/stampCommit\(/g) ?? []).length, 1);
+  assert.match(commit, /const c = commitMeta\(latest\.current, next, metaRef\.current, stampedDoc\.current, how, Date\.now\(\)\);\s*metaRef\.current = c\.meta;\s*stampedDoc\.current = c\.stamped;\s*latest\.current = next;\s*setDoc\(next\);/);
+  const flush = body(s, 'const flushStamp = useCallback(', '}, []);');
+  assert.match(flush, /metaRef\.current = stampPending\(stampedDoc\.current, latest\.current, metaRef\.current, Date\.now\(\)\);\s*stampedDoc\.current = latest\.current;/);
+  assert.equal((s.match(/stampLocal|epochReset\(|stampCommit\(/g) ?? []).length, 0, 'the store never stamps by itself');
+  assert.equal((s.match(/commitMeta\(/g) ?? []).length, 1);
+  assert.equal((s.match(/stampPending\(/g) ?? []).length, 1);
+  // 메타를 읽는 곳은 모두 먼저 flush: 저장 · 손잡이(host.flush) · 초기화 · 그 되돌리기
+  assert.match(body(s, 'const persist = useCallback(', 'const json = serializeStored'), /flushStamp\(\);\s*$/);
+  assert.match(body(s, 'const resetAll = useCallback', 'const relocalizeDefaults = useCallback'), /flushStamp\(\);\s*const before = latest\.current;\s*const meta = metaRef\.current;/);
+  assert.match(body(s, 'const undoReset = useCallback', '}, [flushStamp, replaceDoc, commit]);'), /resetUndo\.current = null;\s*flushStamp\(\);/);
   const env = src('src/lib/syncEnvelope.ts');
   assert.match(body(env, 'export function stampCommit(', '\n}\n'), /if \(!meta \|\| next === prev \|\| how === 'none'\) return meta;/);
+  assert.match(body(env, 'export function commitMeta(', '\n}\n'), /if \(how === 'stamp'\) return \{ meta, stamped \};\s*return \{ meta: stampCommit\(prev, next, stampPending\(stamped, prev, meta, wall\), how, wall\), stamped: next \};/);
+  const port = body(env, 'export function makeSyncPort(', '\n}\n');
+  for (const m of ['    meta() {', '    updateMeta(fn) {', '    replica() {', '    applyRemote(remote) {', '    adopt(remote) {', '    epochReset() {']) {
+    assert.match(body(port, m, '\n    },\n'), /^[^\n]*\{\s*host\.flush\?\.\(\);/, `${m.trim()} flushes first`);
+  }
   // 초기화는 새 판, 받은 것을 넣을 때는 도장 없이
   assert.match(body(s, 'const resetAll = useCallback', 'const applyTemplate = useCallback'), /update\(\(d\) => resetDoc\(d\), 'epoch'\)/);
   const host = body(s, 'makeSyncPort({', '}),');
   assert.match(host, /doc: \(\) => latest\.current,/);
   assert.match(host, /meta: \(\) => metaRef\.current,/);
+  assert.match(host, /flush: flushStamp,/);
   assert.match(host, /putMerged: \(d, m\) => \{\s*metaRef\.current = m;\s*revRef\.current \+= 1;\s*commit\(d, 'none'\);/);
   assert.match(s, /<SyncPortCtx\.Provider value=\{portOn \? port : null\}>/);
   assert.match(s, /export function useSyncPort\(\): SyncPort \| null \{\s*return useContext\(SyncPortCtx\);/);
@@ -639,4 +917,32 @@ test('source: persist writes the envelope of latest.current, snapshots are doc-o
   assert.match(s, /queueMicrotask\(\(\) => \{[\s\S]{0,200}void persist\(latest\.current\);/);
   assert.match(s, /loaded = openStored\(read\.raw, dateKey\(\), Date\.now\(\), makeMeta\);/);
   assert.match(s, /if \(loaded\) commit\(loaded\.doc, 'none'\);/);
+});
+
+test('source: reset-undo wiring — Settings resets with getDoc() and useResetUndo; undoReset restores only through undoResetMeta, else replaceDoc', () => {
+  const st = src('src/screens/Settings.tsx');
+  const doReset = body(st, 'const doReset = () => {', '\n  };');
+  assert.match(doReset, /const snapshot = getDoc\(\);\s*resetAll\(\);\s*offerResetUndo\(st\.resetDone, snapshot\);/);
+  assert.match(st, /const offerResetUndo = useResetUndo\(\);/);
+  const hook = src('src/store/useSnapshotUndo.ts');
+  assert.match(hook, /export function useResetUndo\(\) \{\s*return useUndoToast\(useActions\(\)\.undoReset\);/);
+  assert.match(hook, /if \(revision\(\) === rev\) restore\(snapshot\);\s*else showToast\(m\.core\.undoStale\);/);
+  const s = src('src/store/MandaratContext.tsx');
+  const reset = body(s, 'const resetAll = useCallback', 'const relocalizeDefaults = useCallback');
+  assert.match(reset, /resetUndo\.current = \{\s*doc: before,\s*rev: revRef\.current,\s*mark: meta && after \? \{ before: meta, epoch: after\.epoch, \.\.\.\(meta\.pushed \? \{ pushed: meta\.pushed \} : \{\}\) \} : null,/);
+  const undo = body(s, 'const undoReset = useCallback', '}, [flushStamp, replaceDoc, commit]);');
+  assert.match(undo, /const restored = u && u\.doc === snapshot && u\.rev === revRef\.current \? undoResetMeta\(u\.mark, metaRef\.current\) : null;/);
+  assert.match(undo, /if \(!restored\) \{\s*replaceDoc\(snapshot\);\s*return;\s*\}/);
+  assert.match(undo, /metaRef\.current = restored;\s*commit\(snapshot, 'none'\);\s*\/\/[^\n]*\n\s*commit\(rolloverToday\(snapshot, dateKey\(\)\)\);/);
+  assert.match(undo, /dropEditorDraft\(\);\s*revRef\.current \+= 1;/);
+});
+
+test('source: applyTemplate on a chart not yet onboarded starts the chart today, like completeOnboarding (R-1 F7)', () => {
+  const s = src('src/store/MandaratContext.tsx');
+  const tpl = body(s, 'const applyTemplate = useCallback(', '[update],');
+  assert.match(tpl, /\.\.\.\(d\.onboarded \? \{\} : \{ chartStart: dateKey\(\), focusStart: d\.focusMinutes \?\? 0 \}\),\s*areasSet: true,\s*onboarded: true,/);
+  const onboard = body(s, 'const completeOnboarding = useCallback(', '[update],');
+  assert.match(onboard, /chartStart: dateKey\(\), focusStart: d\.focusMinutes \?\? 0/);
+  // 온보딩의 템플릿 길이 이 함수다 — 그래서 첫 표의 시작이 첫 기록 날이 아니라 온보딩 날
+  assert.match(src('src/screens/Onboarding.tsx'), /applyTemplate\(/);
 });
