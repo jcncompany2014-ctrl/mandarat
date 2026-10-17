@@ -92,7 +92,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
         <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, lineHeight: 24, fontWeight: '800', color: M.ink }}>
           표 이미지
         </Text>
-        <CloseBtn M={M} onPress={dismiss} />
+        <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
 
       {/* 미리보기 — 실제 한 장을 줄여서 보인다(종이 가장자리는 가는 선 하나) */}

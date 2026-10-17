@@ -368,6 +368,7 @@ function LockedLine({ M, archive }: { M: M; archive: ArchivedChart }) {
       <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 12 }}>{m.year.lockedLine}</Text>
       <Pressable
         onPress={() => { tap(); openPro('archive'); }}
+        testID={TID.yearLockedPro}
         accessibilityRole="link"
         accessibilityLabel={m.year.lockedLink}
         hitSlop={6}

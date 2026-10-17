@@ -12,6 +12,7 @@ import { useUIActions, useUIState } from '../navigation/ui';
 import { useDoc, overallStreak } from '../store/MandaratContext';
 import { fmtDateLong } from '../lib/text';
 import { announce } from '../lib/useReducedMotion';
+import { TID } from '../lib/testIds';
 
 const TITLE = '64칸을 모두 달성했어요';
 /** 왼쪽 여백 — 종이 페이지 한 장의 여백 */
@@ -89,6 +90,7 @@ function FinalePage() {
 
           <Pressable
             onPress={closeCelebrate}
+            testID={TID.celebrateClose}
             accessibilityRole="button"
             accessibilityLabel="닫기"
             hitSlop={8}

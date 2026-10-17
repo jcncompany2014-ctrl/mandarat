@@ -44,7 +44,7 @@ test('Year: memo · 나눈 컨텍스트만 · 머리는 설정과 같은 Header'
   assert.match(s, /useUIActions\(\)/);
   assert.match(s, /useDoc\(\)/);
   assert.doesNotMatch(s, /useMandarat\(|useUI\(\)/);
-  assert.match(s, /<Header M=\{M\} kr=\{viewTitle\(m, yearView\)\} onBack=\{back\} focusTitle stacked \/>/);
+  assert.match(s, /<Header M=\{M\} kr=\{viewTitle\(m, yearView\)\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.yearBack\} \/>/);
   assert.match(s, /testID=\{TID\.yearPage\}/);
   // 세 쪽을 yearView로 고른다
   assert.match(s, /yearView\.kind === 'shelf'/);

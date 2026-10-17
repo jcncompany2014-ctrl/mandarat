@@ -184,6 +184,7 @@ function YearSection({ M, m, doc, now, onOpen }: {
         accessibilityRole="button"
         accessibilityLabel={shelf}
         onPress={() => onOpen({ kind: 'shelf' })}
+        testID={TID.statsYearShelf}
       />
     </View>
   );

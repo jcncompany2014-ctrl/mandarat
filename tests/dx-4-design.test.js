@@ -25,7 +25,7 @@ test('D-14: 탭바의 지금 탭 표시는 윗 괘선 위가 아니라 탭바 �
 });
 
 test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 10주 칸은 오른쪽 끝까지', () => {
-  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr="설정" onBack=\{back\} focusTitle stacked \/>/);
+  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr="설정" onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);
   const charts = src('src/components/StatsCharts.tsx');
   assert.match(charts, /const labelW = Math\.max\(HEAT_LABEL_W, Math\.floor\(width\) - cell \* map\.cols\.length - HEAT_GAP \* \(map\.cols\.length - 1\)\);/);
   assert.doesNotMatch(charts, /width: HEAT_LABEL_W/);

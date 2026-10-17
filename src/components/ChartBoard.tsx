@@ -15,6 +15,7 @@ import { sameProps } from '../lib/sameProps';
 import { useScreenReader } from '../lib/useReducedMotion';
 import { areaLabel, cellLabel } from '../lib/chartSpeech';
 import { tap } from '../lib/haptics';
+import { TID } from '../lib/testIds';
 import type { MandaratDoc } from '../types';
 
 // 칸 안 글자 리듬 — 줄 수를 칸 높이에 맞춰 정한다(글이 칸 밖으로 넘치거나 아래 표시와 겹치지 않게)
@@ -100,6 +101,8 @@ type BoardCellProps = BoardRow & Fit & {
   readOnly: boolean;
   onPressAt: (ai: number) => void;
   onLongAt: (ai: number) => void;
+  /** 누르는 칸의 testID — TID.gridCell(ti, ai) */
+  testID?: string;
 };
 
 /**
@@ -135,7 +138,7 @@ const LONG_ACTION_HEAD = [{ name: 'longpress', label: '영역 이름 고치기' 
 
 /** 실천 칸 하나 — 값(BoardRow)과 칸 크기가 그대로면 다시 그리지 않는다. 다른 칸을 체크해도 이 칸은 그대로 */
 const BoardCell = memo(function BoardCell(p: BoardCellProps) {
-  const { M, ai, text, done, isToday, didIt, meta, week, dueSoon, countPct, label, color, canPress, canLong, readOnly, onPressAt, onLongAt } = p;
+  const { M, ai, text, done, isToday, didIt, meta, week, dueSoon, countPct, label, color, canPress, canLong, readOnly, onPressAt, onLongAt, testID } = p;
   const press = canPress ? () => onPressAt(ai) : undefined;
   const long = canLong ? () => { tap(); onLongAt(ai); } : undefined;
 
@@ -148,6 +151,7 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
         onPress={press}
         onLongPress={long}
         delayLongPress={LONG_PRESS_MS}
+        testID={testID}
         accessibilityRole="button"
         accessibilityLabel={`실천 ${ai + 1} 채우기`}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
@@ -235,6 +239,7 @@ const BoardCell = memo(function BoardCell(p: BoardCellProps) {
       onPress={press}
       onLongPress={long}
       delayLongPress={LONG_PRESS_MS}
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityActions={long ? LONG_ACTION_CELL : undefined}
@@ -491,6 +496,7 @@ export const ChartBoard = memo(function ChartBoard({
                     readOnly={readOnly}
                     onPressAt={onPressAt}
                     onLongAt={onLongAt}
+                    testID={readOnly ? undefined : TID.gridCell(ti, rows[idx].ai)}
                   />
                 ) : null}
               </View>

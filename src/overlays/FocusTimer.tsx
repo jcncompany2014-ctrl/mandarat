@@ -10,6 +10,7 @@ import { NUM } from '../theme/type';
 import { announce, useReducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pill, CloseBtn, PrimaryButton } from '../components/common';
+import { TID } from '../lib/testIds';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
@@ -248,7 +249,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
         onAccessibilityEscape={close}
       >
         <View style={{ position: 'absolute', top: insets.top + 16, right: 22 }}>
-          <CloseBtn M={M} onPress={close} light />
+          <CloseBtn M={M} onPress={close} light testID={TID.focusClose} />
         </View>
 
         <View style={{ alignSelf: 'center' }}>
@@ -293,6 +294,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           {!finished && (
             <Pressable
               onPress={toggleRun}
+              testID={TID.focusPause}
               accessibilityRole="button"
               accessibilityLabel={run ? '멈추기' : '계속'}
               style={({ pressed }) => ({
@@ -305,7 +307,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' }} numberOfLines={2}>{run ? '멈추기' : '계속'}</Text>
             </Pressable>
           )}
-          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={stack ? undefined : { flex: 1, minWidth: 124 }} />
+          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={stack ? undefined : { flex: 1, minWidth: 124 }} testID={TID.focusFinish} />
         </View>
 
         {!finished && (

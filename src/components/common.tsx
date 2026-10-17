@@ -17,6 +17,7 @@ import { readableOn } from '../theme/palette';
 import { legibleMark } from '../theme/chart';
 import { useOptionalUIActions } from '../navigation/ui';
 import { NUM, TYPE } from '../theme/type';
+import { TID } from '../lib/testIds';
 import type { M } from '../theme/usePalette';
 import type { IconName } from '../types';
 
@@ -53,10 +54,11 @@ export function RowDivider({ M, inset }: { M: M; inset: number }) {
 // ── 화면 머리(제목 + 뒤로 가기 + 오른쪽 버튼) ───────────────────────────────────
 
 /** 뒤로 가기 — 바탕 없는 44pt 버튼. 화살표가 화면 여백 선(20pt)에 맞도록 왼쪽으로 11pt 당긴다 */
-function BackBtn({ M, onPress }: { M: M; onPress: () => void }) {
+function BackBtn({ M, onPress, testID }: { M: M; onPress: () => void; testID?: string }) {
   return (
     <Pressable
       onPress={onPress}
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel="뒤로 가기"
       hitSlop={4}
@@ -72,7 +74,7 @@ function BackBtn({ M, onPress }: { M: M; onPress: () => void }) {
 }
 
 export function Header({
-  M, kr, sub, right, onBack, stacked, focusTitle,
+  M, kr, sub, right, onBack, stacked, focusTitle, backTestID,
 }: {
   M: M;
   kr: string;
@@ -90,6 +92,8 @@ export function Header({
    * 처음 한 번만 — 같은 화면 안에서 제목만 바뀔 때(이전/다음 영역)는 누르던 자리에 초점을 둔다.
    */
   focusTitle?: boolean;
+  /** 뒤로 가기 버튼의 testID(src/lib/testIds.ts) */
+  backTestID?: string;
 }) {
   const titleRef = useRef<RNText>(null);
 
@@ -113,7 +117,7 @@ export function Header({
     };
   }, []); // 처음 그려질 때만(위 설명)
 
-  const back = onBack && <BackBtn M={M} onPress={onBack} />;
+  const back = onBack && <BackBtn M={M} onPress={onBack} testID={backTestID} />;
   const title = (
     <Text
       ref={titleRef}
@@ -445,7 +449,7 @@ export function Sheet({
           {/* 손잡이 — 끌어내리거나 톡 건드리면 닫힌다 */}
           <View
             {...pan.panHandlers}
-            testID="sheet-handle"
+            testID={TID.sheetHandle}
             accessible={!ownClose}
             importantForAccessibility={ownClose ? 'no-hide-descendants' : 'auto'}
             accessibilityElementsHidden={ownClose}
@@ -485,10 +489,11 @@ export function Sheet({
  * 시트·덮개의 닫기(×) — iOS 표준처럼 작은 동그라미. 32pt + hitSlop 6 = 손끝 44pt.
  * 동그라미 바탕은 지금 먹색을 아주 옅게(종이 색과 같은 온도). light: 늘 어두운 화면(집중 타이머) 위.
  */
-export function CloseBtn({ M, onPress, light }: { M: M; onPress: () => void; light?: boolean }) {
+export function CloseBtn({ M, onPress, light, testID }: { M: M; onPress: () => void; light?: boolean; testID?: string }) {
   return (
     <Pressy
       onPress={onPress}
+      testID={testID}
       scaleTo={0.86}
       accessibilityRole="button"
       accessibilityLabel="닫기"
@@ -517,7 +522,7 @@ export type PrimaryTone = 'accent' | 'inverse' | 'quiet';
  * 글자를 크게 키우면 두 줄까지 늘어나며 버튼도 함께 커진다(잘리지 않게).
  */
 export function PrimaryButton({
-  M, label, onPress, disabled = false, tone = 'accent', accessibilityLabel, accessibilityHint, height = 52, style,
+  M, label, onPress, disabled = false, tone = 'accent', accessibilityLabel, accessibilityHint, height = 52, style, testID,
 }: {
   M: M;
   label: string;
@@ -530,6 +535,8 @@ export function PrimaryButton({
   height?: number;
   /** 바깥 배치(flex·폭·여백)만 — 색·모양은 tone이 정한다 */
   style?: StyleProp<ViewStyle>;
+  /** src/lib/testIds.ts의 이름 */
+  testID?: string;
 }) {
   const inverse = tone === 'inverse';
   let bg = 'transparent';
@@ -553,6 +560,7 @@ export function PrimaryButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
@@ -618,16 +626,18 @@ export function PaperChip({
  * 저장 값(options)과 보이는 이름(labels)을 나눠, 이름을 바꿔도 저장된 값은 그대로.
  */
 export function TextTabs<T extends string>({
-  M, options, value, onChange, labels,
+  M, options, value, onChange, labels, testID,
 }: {
   M: M;
   options: readonly T[];
   value: T;
   onChange: (v: T) => void;
   labels?: Partial<Record<T, string>>;
+  /** 탭 줄 전체의 testID(src/lib/testIds.ts) */
+  testID?: string;
 }) {
   return (
-    <View accessibilityRole={TABLIST_ROLE} style={{ flexDirection: 'row', gap: 18, minHeight: 30 }}>
+    <View accessibilityRole={TABLIST_ROLE} testID={testID} style={{ flexDirection: 'row', gap: 18, minHeight: 30 }}>
       {options.map((o) => {
         const on = o === value;
         const label = labels?.[o] ?? o;
@@ -736,7 +746,7 @@ export function IndexTabs({
  */
 export function LineRow({
   M, title, sub, right, onPress, first = false, last = false, danger = false,
-  accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState, checked, titleLines = 2, pressRef,
+  accessibilityLabel, accessibilityHint, accessibilityRole, accessibilityState, checked, titleLines = 2, pressRef, testID,
 }: {
   M: M;
   title: string;
@@ -756,6 +766,8 @@ export function LineRow({
   titleLines?: number;
   /** 누르는 줄의 ref — 이 줄이 연 시트가 닫힌 뒤 스크린리더 초점을 여기로 돌려준다(Sheet의 returnFocusRef) */
   pressRef?: React.Ref<View>;
+  /** src/lib/testIds.ts의 이름 */
+  testID?: string;
 }) {
   const a11yState =
     checked === undefined ? accessibilityState : { ...accessibilityState, checked };
@@ -791,7 +803,7 @@ export function LineRow({
 
   if (!onPress) {
     return (
-      <View style={base} accessible accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} accessibilityRole={accessibilityRole} accessibilityState={a11yState}>
+      <View style={base} testID={testID} accessible accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} accessibilityRole={accessibilityRole} accessibilityState={a11yState}>
         {content}
       </View>
     );
@@ -800,6 +812,7 @@ export function LineRow({
     <Pressable
       ref={pressRef}
       onPress={onPress}
+      testID={testID}
       accessibilityRole={accessibilityRole ?? 'button'}
       accessibilityState={a11yState}
       accessibilityLabel={accessibilityLabel}

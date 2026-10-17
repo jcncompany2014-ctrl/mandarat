@@ -10,6 +10,7 @@ import { usePalette } from '../theme/usePalette';
 import { TAB_BAR_H, useToast, useUIActions, useUIState, type Toast } from '../navigation/ui';
 import { tap } from '../lib/haptics';
 import { reducedMotion, useScreenReader } from '../lib/useReducedMotion';
+import { TID } from '../lib/testIds';
 
 /** 되돌리기 글자(골드일 때) — 토스트 바탕(M.center, 다크 #26242F) 위 8.7:1 */
 const ACTION_INK = '#E2C27F';
@@ -200,6 +201,7 @@ export function Snackbar({ placement = 'bottom', tabBar, offset = 0 }: {
             {action && (
               <Pressable
                 onPress={() => { const id = toast.id; tap(); action.onPress(); hideToast(id); }}
+                testID={TID.toastAction}
                 accessibilityRole="button"
                 accessibilityLabel={action.label}
                 hitSlop={12}
