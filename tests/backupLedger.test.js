@@ -54,3 +54,22 @@ test('지금 기록이 백업보다 최근이면 경고한다', () => {
   assert.equal(nowIsNewer({}, { lastLog: '2026-10-14' }), false);
   assert.equal(nowIsNewer({}, {}), false);
 });
+
+test('장부: 지난 표가 어느 쪽이든 있으면 지난 표 줄을 더한다(없으면 다섯 줄 그대로) (V1-D)', () => {
+  const { setLang } = require('../src/i18n');
+  const plain = ledgerRows({ ...base, archives: 0 }, { ...base, archives: 0 });
+  assert.equal(plain.length, 5);
+  const rows = ledgerRows({ ...base, archives: 2 }, { ...base, archives: 0 });
+  assert.equal(rows.length, 6);
+  assert.deepEqual(rows[5], { label: '지난 표', now: '2장', backup: '0장' });
+  assert.deepEqual(ledgerRows({ ...base, archives: 0 }, { ...base, archives: 1 })[5], { label: '지난 표', now: '0장', backup: '1장' });
+  // 글은 year 이름공간에서 — 언어를 따른다
+  try {
+    setLang('en');
+    assert.deepEqual(ledgerRows({ ...base, archives: 1 }, { ...base, archives: 3 })[5], { label: 'Past charts', now: '1 chart', backup: '3 charts' });
+    setLang('ja');
+    assert.deepEqual(ledgerRows({ ...base, archives: 1 }, { ...base, archives: 3 })[5], { label: '過去の表', now: '1枚', backup: '3枚' });
+  } finally {
+    setLang('ko');
+  }
+});

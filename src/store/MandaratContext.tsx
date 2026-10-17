@@ -10,6 +10,7 @@ import { summarize, type BackupSummary } from '../lib/backup';
 import { MOODS, withAccent, type Palette } from '../theme/moods';
 import { GOLD } from '../theme/palette';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
+import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
 
 const STORAGE_KEY = 'mandarat:doc:v1';
 /** 하루 한 번 남기는 저장본 'mandarat:snap:YYYY-MM-DD' */
@@ -158,8 +159,14 @@ export interface Actions {
   loadSample: () => void;
   /** 템플릿으로 바꾸기 — centerGoal을 ''로 넘기면 지금 목표를 그대로 둔다 */
   applyTemplate: (centerGoal: string, themes: Theme[]) => void;
+  /** 처음부터 다시 — 보기 설정과 지난 표는 남긴다(archive.resetDoc) */
   resetAll: () => void;
   replaceDoc: (d: MandaratDoc) => void;
+  /**
+   * 지금 표를 지난 표로 닫고 새 표를 시작한다(archive.startNewChart) — 같은 지난 표가 이미 있거나
+   * 오늘 닫고 시작한 표를 오늘 또 닫으려 하면 아무것도 바꾸지 않고 false
+   */
+  startNewChart: (mode: NewChartMode, opts: { goal: string; note: string }) => boolean;
   /** 편집 횟수 — 통째 되돌리기 전에 그 사이 다른 변경이 있었는지 확인하는 데 쓴다 */
   revision: () => number;
   /** 보관 안내를 닫는다(보관한 사본은 지우지 않는다) */
@@ -222,7 +229,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       const keys = await AsyncStorage.getAllKeys();
       const snaps = keys.filter((k) => k.startsWith(SNAP_PREFIX));
       const mine = `${SNAP_PREFIX}${day}`;
-      if (!snaps.includes(mine)) await AsyncStorage.setItem(mine, json);
+      // 지난 표는 저장본에 넣지 않는다(7벌 × 지난 표 30장이 저장소를 채우지 않게) — 되살릴 때 지금 것을 다시 붙인다(readSnapshot)
+      if (!snaps.includes(mine)) await AsyncStorage.setItem(mine, d.archives ? JSON.stringify({ ...d, archives: undefined }) : json);
       const keep = new Set(
         [...new Set([...snaps, mine])].filter((k) => snapDayOf(k) !== null).sort().reverse().slice(0, SNAP_KEEP),
       );
@@ -393,8 +401,10 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 지금 표는 오늘 시작 — 이 표의 집중 시간은 지금까지의 것을 빼고 센다(한 해 돌아보기 · 지난 표)
   const completeOnboarding = useCallback(
-    (goal: string) => update((d) => ({ ...d, centerGoal: goal.trim(), onboarded: true })),
+    (goal: string) =>
+      update((d) => ({ ...d, centerGoal: goal.trim(), onboarded: true, chartStart: dateKey(), focusStart: d.focusMinutes ?? 0 })),
     [update],
   );
 
@@ -640,10 +650,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const resetAll = useCallback(
     () => {
       dropEditorDraft();
-      update((d) => ({
-        ...blankDoc(),
-        settings: d.settings, // keep look-and-feel
-      }));
+      update((d) => resetDoc(d)); // keep look-and-feel and past charts
     },
     [update],
   );
@@ -674,6 +681,18 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     commit(rolloverToday(d, dateKey()));
   }, [commit]);
 
+  // 지난 표로 닫고 새 표 — 먼저 계산해 보고, 같은 지난 표가 이미 있으면(오늘 시작한 표) 아무것도 바꾸지 않는다
+  const startNewChart = useCallback(
+    (mode: NewChartMode, opts: { goal: string; note: string }): boolean => {
+      const next = nextChart(latest.current, mode, new Date(), opts);
+      if (!next) return false;
+      dropEditorDraft();
+      update(() => next);
+      return true;
+    },
+    [update],
+  );
+
   const dismissRecovered = useCallback(() => setRecoveredCopy(null), []);
 
   const listSnapshots = useCallback(async (): Promise<SnapshotInfo[]> => {
@@ -696,7 +715,10 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const readSnapshot = useCallback(async (day: string): Promise<MandaratDoc | null> => {
     if (!DATE_RE.test(day)) return null;
     try {
-      return parseSnapshot(await AsyncStorage.getItem(`${SNAP_PREFIX}${day}`));
+      const d = parseSnapshot(await AsyncStorage.getItem(`${SNAP_PREFIX}${day}`));
+      // 저장본에는 지난 표가 없다 — 지금 지난 표를 다시 붙여 되살려도 잃지 않게
+      const archives = latest.current.archives;
+      return d && archives ? { ...d, archives } : d;
     } catch (e) {
       console.warn('[store] snapshot read failed', e);
       return null;
@@ -711,13 +733,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
-      replaceDoc, revision, dismissRecovered, listSnapshots, readSnapshot,
+      replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     }),
     [
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
-      replaceDoc, revision, dismissRecovered, listSnapshots, readSnapshot,
+      replaceDoc, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
     ],
   );
 
