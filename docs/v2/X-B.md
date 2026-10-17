@@ -1,6 +1,6 @@
 # X-B — Kinds and kind detection
 
-Branch `mp/v2-x-b`. Every Korean literal in `src/lib/kinds.ts` and `src/lib/kindSuggest.ts` now comes from the `kinds` namespace or from `src/i18n/ko/kindSuggest.data.ts`. Korean output is byte-identical: the old ko tests (`kinds`, `kindSuggest`, `fx-e-sheets`) pass unchanged, and the ko web-smoke screenshots match a baseline taken before the change (production and `--dev`).
+Branch `mp/v2-x-b`. Every Korean literal in `src/lib/kinds.ts` and `src/lib/kindSuggest.ts` now comes from the `kinds` namespace or from `src/i18n/ko/kindSuggest.data.ts`. Korean output is byte-identical: the old ko tests (`kinds`, `kindSuggest`, `fx-e-sheets`) pass unchanged. The ko web-smoke screenshots match a baseline taken before the change, apart from known run-to-run noise (see Gates).
 
 ## 1. Implemented
 
@@ -20,7 +20,9 @@ Branch `mp/v2-x-b`. Every Korean literal in `src/lib/kinds.ts` and `src/lib/kind
 - `npm test`: 1009 tests, 1008 pass, 1 skipped (the existing skip).
 - `npm run prebuild-check` passes.
 - `npm run web-smoke` passes in ko, ja and en, in production and `--dev`.
-- `--compare` against the pre-change ko baseline shows no differing files, in production and `--dev`.
+- `--compare` against the pre-change ko baseline: every ko screen with kind text is byte-identical. A few screens differed, but they are run-to-run noise, not this change:
+  - **Production:** `ko-year-review-375` and `ko-year-close-done` differed by 1–2 pixels. A second run of this branch matched the baseline on `year-review`, and `year-close-done` differs between two runs of the same code.
+  - **`--dev`:** `ko-pro-settings` and `ko-v5e-icloud` differed only in the paper-dot shading, by at most 17 of 255 levels, with identical text. A second run of the base commit `da17011` also differs from the first baseline on these two screens.
 
 ## 2. Translation choices
 
