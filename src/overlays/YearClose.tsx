@@ -160,6 +160,7 @@ function ClosePages() {
               <Pressable
                 onPress={() => { tap(); onBack(); }}
                 hitSlop={6}
+                testID={TID.yearCloseBack}
                 accessibilityRole="button"
                 accessibilityLabel={m.common.back}
                 {...a11yLangProp()}
@@ -233,7 +234,7 @@ function ReviewPage({ M, m, doc, note, onNote }: { M: Palette; m: Messages; doc:
     [doc, from, to],
   );
   const rows = useMemo(() => yearCalendar(doc.dayLog, from, to), [doc.dayLog, from, to]);
-  const range = `${yearLabel(from, to)} · ${m.fmt.range({ from: dayOf(from), to: dayOf(to) })}`;
+  const range = `${yearLabel(from, to)}${m.core.dot}${m.fmt.range({ from: dayOf(from), to: dayOf(to) })}`;
   const count = Array.from(note).length;
 
   return (

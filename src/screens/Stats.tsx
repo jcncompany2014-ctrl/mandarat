@@ -127,8 +127,10 @@ export const Stats = memo(function Stats() {
       {hasKind(doc, 'mind') && <SectionHead M={M} title={m.stats.secMind} right={m.stats.last8w} />}
       <MindLedger M={M} doc={doc} onOpen={(ti, ai) => { tap(); openAction(ti, ai); }} />
 
-      {/* 8개 영역 — 내 표가 닳은 자리 */}
-      <SectionHead M={M} title={m.stats.secAreas} right={m.stats.areasRight} />
+      {/* 8개 영역 — 내 표가 닳은 자리(스토어 사진은 이 머리를 맨 위로 올려 찍는다 — tools/store-shots) */}
+      <View testID={TID.statsWear}>
+        <SectionHead M={M} title={m.stats.secAreas} right={m.stats.areasRight} />
+      </View>
       <View style={{ paddingHorizontal: 20 }}>
         <ActivityChart
           M={M}

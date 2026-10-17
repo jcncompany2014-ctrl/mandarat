@@ -67,9 +67,9 @@ test('A-6: 앱 안으로 가는 글자 링크는 button 역할', () => {
 test('A-7: 잠긴 인쇄 줄은 프로 안내가 열린다고 알려 준다', () => {
   const s = src('src/overlays/PrintSheet.tsx');
   assert.equal((s.match(/accessibilityHint=\{locked \? m\.print\.lockedHint : undefined\}/g) ?? []).length, 2);
-  assert.equal(msg('ko').print.lockedHint, '누르면 프로 안내가 열려요');
-  assert.equal(msg('ja').print.lockedHint, 'タップするとプロの案内が開きます');
-  assert.equal(msg('en').print.lockedHint, 'Opens the Pro page');
+  // 종이 결(paper.lockedHint)과 같은 말 — 잠긴 줄은 어디서나 같은 안내를 읽는다
+  for (const l of ['ko', 'ja', 'en']) assert.equal(msg(l).print.lockedHint, msg(l).paper.lockedHint, l);
+  assert.equal(msg('ko').print.lockedHint, '프로 안내를 열어요');
 });
 
 test('A-8: 한 해 닫기 — 둘째 쪽부터 "‹ 이전"(44pt, onBack)', () => {

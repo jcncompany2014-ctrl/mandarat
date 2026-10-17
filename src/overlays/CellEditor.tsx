@@ -962,7 +962,7 @@ function CountRows({ M, cfg, nums, setNum, issue, onFocus }: {
 function DueRows({ M, cfg, setCfg, onReveal }: {
   M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
-  const ed = useMsg().editor;
+  const { editor: ed, core } = useMsg();
   const now = new Date();
   const today = ymd(now);
   const presets = duePresets(now);
@@ -994,7 +994,7 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
               accessibilityLiveRegion="polite"
               accessibilityLabel={ed.dueA11y({ date: fmtDateSpeech(due, now), left: dueSpeech(days) })}
             >
-              {fmtDateLong(due)} · {fmtDue(days, 'long')}
+              {`${fmtDateLong(due)}${core.dot}${fmtDue(days, 'long')}`}
             </Text>
             <TextBtn M={M} label={ed.dueClear} color={M.sub} size={12.5} onPress={() => { tap(); set(undefined); }} />
           </View>

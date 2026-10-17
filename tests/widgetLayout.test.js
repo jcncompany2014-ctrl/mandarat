@@ -144,13 +144,16 @@ test('check:0-1을 누르면 done + 1, 그 줄이 했어요로, ops에 하나가
   assert.equal(p.ops.length, 0);
 });
 
-test('ops는 마지막 50개까지만', () => {
+test('ops는 마지막 300개까지만(앱을 열흘 넘게 안 열어도 습관 체크가 남는다)', () => {
   const p = real();
-  const ops = Array.from({ length: 50 }, (_, i) => ({ kind: 'check', k: '0-0', on: i % 2 === 0, day: '2026-10-14', at: i, t: 'x', src: 'widget' }));
+  const ops = Array.from({ length: 300 }, (_, i) => ({ kind: 'check', k: '0-0', on: i % 2 === 0, day: '2026-10-14', at: i, t: 'x', src: 'widget' }));
   const out = rt.press({ ...p, ops }, { widgetFamily: 'systemLarge' }, 'check:0-1');
-  assert.equal(out.ops.length, 50);
+  assert.equal(out.ops.length, 300);
   assert.equal(out.ops[0].at, 1);
-  assert.equal(out.ops[49].k, '0-1');
+  assert.equal(out.ops[299].k, '0-1');
+  // 50개 남짓이면 아무것도 버리지 않는다
+  const few = rt.press({ ...p, ops: ops.slice(0, 60) }, { widgetFamily: 'systemLarge' }, 'check:0-1');
+  assert.equal(few.ops.length, 61);
 });
 
 test('글은 props의 틀에서만 — 남은 수 · 다 했어요 · 비었어요', () => {

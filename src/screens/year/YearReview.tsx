@@ -104,7 +104,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
           {yearLabel(from, to)}
         </Text>
         <Text style={[{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginTop: 2 }, NUM]}>
-          {archive ? range : `${range} · ${m.year.currentChart}`}
+          {archive ? range : `${range}${m.core.dot}${m.year.currentChart}`}
         </Text>
         {!!goal.trim() && (
           <Text style={{ ...TYPE.rowTitle, color: M.ink, marginTop: 12 }}>{goal.trim()}</Text>
@@ -369,7 +369,7 @@ function LockedLine({ M, archive }: { M: M; archive: ArchivedChart }) {
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 12, paddingHorizontal: 2, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]}>{`${label} · ${range}`}</Text>
+          <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]}>{`${label}${m.core.dot}${range}`}</Text>
           {!!goal && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }} numberOfLines={2}>{goal}</Text>}
         </View>
         <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.common.proMark}</Text>

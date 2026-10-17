@@ -41,7 +41,7 @@ export default {
   /** 잠긴 줄의 화면 읽기 이름 — 'A3, 297 × 420 mm, 프로 기능' */
   lockedSay: ({ name }: { name: string }) => `${name}, 프로 기능`,
   /** 잠긴 줄의 화면 읽기 도움말 — 누르면 시트가 닫히고 프로 안내가 열린다 */
-  lockedHint: '누르면 프로 안내가 열려요',
+  lockedHint: '프로 안내를 열어요',
   layoutHead: '구성',
   layoutChart: '표 한 장',
   layoutAreas: '표지 + 영역별 8쪽',

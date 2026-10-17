@@ -287,7 +287,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
         </View>
         <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8, ...NUM }}>
           {m.sheet.countWeek({ n: weekAdded, unit: c.unit })}
-          {` · ${c.reached ? m.sheet.countReached : m.sheet.countLeft({ n: Math.max(0, c.goal - c.count), unit: c.unit })}`}
+          {`${m.core.dot}${c.reached ? m.sheet.countReached : m.sheet.countLeft({ n: Math.max(0, c.goal - c.count), unit: c.unit })}`}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
@@ -344,7 +344,7 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
             style={{ fontSize: 14, fontWeight: '700', color: due.over && !a.done ? alertInk(M) : M.ink, ...NUM }}
             accessibilityLabel={a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)}, ${dueSpeech(due.days)}`}
           >
-            {a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)} · ${fmtDue(due.days, 'long')}`}
+            {a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)}${m.core.dot}${fmtDue(due.days, 'long')}`}
           </Text>
           {late && (
             <View style={{ flexDirection: 'row', gap: 20, marginTop: 6 }}>

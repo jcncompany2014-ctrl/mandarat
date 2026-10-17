@@ -142,7 +142,8 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       return {
         items: nextItems,
         done: Math.max(0, Math.min(total, done + (on ? 1 : -1))),
-        ops: ops.concat([op]).slice(-50),
+        // 앱을 열 때까지 쌓아 둔다 — 300개(한 개 80바이트쯤, 앱 그룹에 24KB쯤). 50개면 습관 다섯 개로 열흘 만에 넘쳤다(R-1 F5)
+        ops: ops.concat([op]).slice(-300),
       };
     };
   }

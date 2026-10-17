@@ -83,6 +83,7 @@ export const TID = {
 
   // 기록 · 한 해
   statsYear: 'stats-year',
+  statsWear: 'stats-wear',
   statsYearShelf: 'stats-year-shelf',
   yearPage: 'year-page',
   yearBack: 'year-back',
@@ -95,6 +96,7 @@ export const TID = {
   yearLockedPro: 'year-locked-pro',
 
   // 한 해 닫기
+  yearCloseBack: 'year-close-back',
   yearCloseNext: 'year-close-next',
   yearCloseStart: 'year-close-start',
 

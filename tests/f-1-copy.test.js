@@ -26,13 +26,21 @@ test('R-5가 짚은 자리는 core.dot을 쓴다 — 손으로 쓴 ASCII 가운�
     'src/components/TodayRow.tsx': [/\$\{area\}\$\{m\.core\.dot\}\$\{m\.sheet\.rowWritten\}/, /\{m\.core\.dot\.trim\(\)\}/],
     'src/screens/Dashboard.tsx': [/\$\{m\.year\.homePrompt\}\$\{m\.core\.dot\}\$\{m\.year\.homePromptAction\}/],
     'src/screens/Stats.tsx': [/\$\{m\.core\.dot\}\$\{parts\.month\}/],
+    // R-5가 짚지 않았지만 같은 모양의 자리(F-1 넘겨줄 일 2)
+    'src/lib/statsView.ts': [/parts\.join\(m\.core\.dot\)[\s\S]*parts\.join\(m\.core\.dot\)/, /\$\{line\}\$\{m\.core\.dot\}\$\{s\.thisWeek\}/, /\$\{dot\}\$\{word\}/],
+    'src/lib/actionSheet.ts': [/\$\{name\}\$\{dot\}\$\{plan\}/, /\$\{name\}\$\{dot\}\$\{m\.onceAWeek\}/],
+    'src/overlays/ActionSheet.tsx': [/\$\{m\.core\.dot\}\$\{c\.reached/, /\$\{fmtDateLong\(due\.date\)\}\$\{m\.core\.dot\}/],
+    'src/overlays/CellEditor.tsx': [/\$\{fmtDateLong\(due\)\}\$\{core\.dot\}/],
+    'src/overlays/YearClose.tsx': [/\$\{yearLabel\(from, to\)\}\$\{m\.core\.dot\}/],
+    'src/screens/year/YearReview.tsx': [/\$\{range\}\$\{m\.core\.dot\}\$\{m\.year\.currentChart\}/, /\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
+    'src/screens/year/YearSheet.tsx': [/\$\{label\}\$\{m\.core\.dot\}\$\{range\}[\s\S]*\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
   };
   for (const [file, pats] of Object.entries(sites)) {
     const s = src(file);
     for (const p of pats) assert.match(s, p, `${file}: ${p}`);
     // 주석을 뺀 코드에 ' · ' 글 조각 · 따로 놓인 '·' 글이 없다
     const code = s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    assert.doesNotMatch(code, /' · '|` · |\} · \$\{|>·</, file);
+    assert.doesNotMatch(code, /' · '|` · |\} · \$\{|\} · \{|>·</, file);
   }
 });
 

@@ -76,7 +76,7 @@ function SheetPage({ M, doc, archive: a, onOpen }: { M: M; doc: MandaratDoc; arc
         </View>
       </View>
       <View style={{ paddingHorizontal: GUTTER, marginTop: 12 }}>
-        <Text style={[{ ...TYPE.caption, fontWeight: '600', color: M.sub }, NUM]}>{`${label} · ${range}`}</Text>
+        <Text style={[{ ...TYPE.caption, fontWeight: '600', color: M.sub }, NUM]}>{`${label}${m.core.dot}${range}`}</Text>
         <Text style={[{ ...TYPE.caption, color: M.sub, marginTop: 2 }, NUM]}>{m.year.shelfLine({ n: done, days: recordDays(a) })}</Text>
       </View>
 
@@ -197,7 +197,7 @@ function LockedSheet({ M, archive: a }: { M: M; archive: ArchivedChart }) {
         style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingVertical: 12, paddingHorizontal: 2, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]}>{`${label} · ${range}`}</Text>
+          <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]}>{`${label}${m.core.dot}${range}`}</Text>
           {!!goal && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }} numberOfLines={2}>{goal}</Text>}
         </View>
         <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.common.proMark}</Text>

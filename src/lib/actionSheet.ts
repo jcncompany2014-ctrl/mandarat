@@ -24,18 +24,19 @@ export function sheetSubtitle(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: n
   const a = doc.themes[ti]?.actions[ai];
   if (!a) return '';
   const kind = kindOf(a);
-  const m = msg(l).sheet;
+  const { sheet: m, core } = msg(l);
+  const dot = core.dot;
   // 유형 이름은 kinds의 이름(KIND_LABEL — 지금 언어로 읽힌다)
   const name = KIND_LABEL[kind];
   if (kind === 'habit') {
     const plan = kindLine(doc, ti, ai, today)?.plan;
-    return plan ? `${name} · ${plan}` : name;
+    return plan ? `${name}${dot}${plan}` : name;
   }
   if (kind === 'count') {
     const c = countInfo(a);
-    return `${name} · ${m.perStep({ n: c.step, unit: c.unit })}`;
+    return `${name}${dot}${m.perStep({ n: c.step, unit: c.unit })}`;
   }
-  if (kind === 'mind') return `${name} · ${m.onceAWeek}`;
+  if (kind === 'mind') return `${name}${dot}${m.onceAWeek}`;
   return name;
 }
 

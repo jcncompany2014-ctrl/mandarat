@@ -114,7 +114,7 @@ export function habitRow(
     : [missed > 0 ? s.habitMissed({ n: missed }) : '', remaining > 0 ? s.habitLeft({ n: remaining }) : ''].filter(Boolean);
   return {
     value: s.habitValue({ done: r.routineDone, total: planned }),
-    sub: parts.join(' · '),
+    sub: parts.join(m.core.dot),
     // '5/9번'은 날짜로 읽힌다 — 소리로는 '9번 중 5번'(한 주 돌아보기 장부와 같은 말), 가운뎃점은 쉼표로
     say: ledgerHabitSpeech(r.routineDone, planned, l),
     subSay: parts.join(m.core.listSep),
@@ -154,7 +154,7 @@ export function reviewRow(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'reviews'
   const parts = [m.fmt.times({ n: r.total })];
   if (r.habitCount > 0 && r.routineDue > 0) parts.push(m.stats.reviewHabit({ pct: Math.round((Math.min(r.routineDone, r.routineDue) / r.routineDue) * 100) }));
   if (r.mindRated > 0) parts.push(m.stats.reviewMind({ avg: (Math.round((r.mindSum / r.mindRated) * 10) / 10).toFixed(1) }));
-  return { week, range: fmtRange(week, l), line: parts.join(' · '), note: doc.reviews?.[week]?.note?.trim() ?? '' };
+  return { week, range: fmtRange(week, l), line: parts.join(m.core.dot), note: doc.reviews?.[week]?.note?.trim() ?? '' };
 }
 
 // ── 최근 10주 ────────────────────────────────────────────────────────────────
@@ -221,10 +221,11 @@ export function heatMap(dayLog: MandaratDoc['dayLog'], weeks: readonly { date: s
 
 /** 히트맵 머리 한 줄 — '가장 많이 한 날 10.3 (금) · 6번 · 이번 주' */
 export function bestLine(best: HeatMap['best'], l?: Lang): string {
-  const s = msg(l).stats;
+  const m = msg(l);
+  const s = m.stats;
   if (!best) return s.bestNone;
   const line = s.bestDay({ date: fmtDateShort(best.date, l), n: best.count });
-  return best.thisWeek ? `${line} · ${s.thisWeek}` : line;
+  return best.thisWeek ? `${line}${m.core.dot}${s.thisWeek}` : line;
 }
 
 /** 히트맵 전체를 한 번에 읽는 글 — 날짜는 또박또박('10.3 (토)'는 소수로 읽힌다) */
@@ -329,7 +330,7 @@ export interface ReflectionEntry {
 
 /** 최근 days일 중 한 줄을 남긴 날 — 최근 날 먼저 */
 export function reflections(dayMeta: MandaratDoc['dayMeta'], today: Date, days = 14, l?: Lang): ReflectionEntry[] {
-  const sep = msg(l).core.listSep;
+  const { listSep: sep, dot } = msg(l).core;
   const tk = ymd(today);
   const out: ReflectionEntry[] = [];
   for (let i = 0; i < days; i++) {
@@ -341,7 +342,7 @@ export function reflections(dayMeta: MandaratDoc['dayMeta'], today: Date, days =
     const word = typeof m === 'number' && m >= 0 && m <= 4 ? moodWord(m, l) : '';
     out.push({
       date,
-      head: word ? `${fmtDateShort(date, l)} · ${word}` : fmtDateShort(date, l),
+      head: word ? `${fmtDateShort(date, l)}${dot}${word}` : fmtDateShort(date, l),
       say: word ? `${fmtDateLong(date, l)}${sep}${word}` : fmtDateLong(date, l),
       text,
     });
