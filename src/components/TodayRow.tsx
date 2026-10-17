@@ -14,7 +14,7 @@ import { useDoc } from '../store/MandaratContext';
 import { reducedMotion } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { checkHintText } from '../lib/todayCheck';
-import { countInfo, fmtNum, kindLine, type KindLine } from '../lib/kinds';
+import { countInfo, kindLine, type KindLine } from '../lib/kinds';
 import { daysBetween, perWeekOf, routineWeek, routineWeekCount, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
 import { weekStripSummary, weekdayIndex } from '../lib/marks';
 import { fmtDue } from '../lib/text';
@@ -22,6 +22,8 @@ import { tap } from '../lib/haptics';
 import { TID } from '../lib/testIds';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
 import type { Action, MandaratDoc, TodayExtra } from '../types';
+import { msg } from '../i18n';
+import { useMsg } from '../i18n/react';
 
 /**
  * 오늘 할 일 한 줄 — 홈(W3-A) · 오늘 목록(W3-B) · 오늘 보기들(W3-C)이 그대로 쓴다.
@@ -88,13 +90,14 @@ const STRIKE_DELAY = 230;
  */
 export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showRight = true, onCheck, divider = false }: TodayRowProps) {
   const { doc, clock } = useDoc();
+  const m = useMsg();
   const tc = useTodayCheck();
   const [done, showDone] = useOptimistic(item.done);
   const extra = isExtra(item);
   const ti = item.ti;
   const th = doc.themes[ti];
   const color = th?.color ?? M.sub;
-  const area = th?.title.trim() || `영역 ${ti + 1}`;
+  const area = th?.title.trim() || m.sheet.areaFallback({ n: ti + 1 });
   const doneRow = variant === 'done';
 
   // 실천 줄만의 정보
@@ -157,10 +160,10 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
 
   // ── 화면 읽기 ──────────────────────────────────────────────────────────────
   // 오른쪽 '마감 D-3'과 이번 주 칸은 화면 읽기에서 숨기고 몸통 이름에 한 번만 넣는다(소리로 읽을 말로)
-  const bodyLabel = [text, area, line?.speech, info?.weekSpeech, done ? '했어요' : ''].filter(Boolean).join(', ');
+  const bodyLabel = [text, area, line?.speech, info?.weekSpeech, done ? m.sheet.rowDone : ''].filter(Boolean).join(', ');
   const toggleName = done
-    ? (count ? '오늘 더한 것 빼기' : '했어요 지우기')
-    : count ? `${fmtNum(count.step)}${count.unit} 더하기` : '했어요로 남기기';
+    ? (count ? m.sheet.rowUnlog : m.sheet.rowUndone)
+    : count ? m.sheet.countPlus({ n: count.step, unit: count.unit }) : m.sheet.rowMarkDone;
 
   return (
     <RowView
@@ -199,12 +202,12 @@ function rowInfo(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, it: TodayItem, a: 
       // 주 N회는 정한 요일이 없어 칸만으론 몇 번 남았는지 모른다 — 이번 주에 정한 횟수(첫 주는 남은 날만큼)로 읽는다
       const w = perWeekOf(a) > 0 ? routineWeekCount(doc, it.ti, it.ai, now) : null;
       const states = routineWeek(doc, it.ti, it.ai, now);
-      const summary = w ? `이번 주 ${w.planned}회 중 ${w.done}회` : undefined;
+      const summary = w ? msg().sheet.rowWeek({ count: w.done, total: w.planned }) : undefined;
       right = { kind: 'week', states, summary };
       // 주 N회는 정보 줄(line.speech)이 같은 말을 이미 한다 — 요일 습관만 요일별 상태를 덧붙인다
       if (!w) weekSpeech = weekStripSummary(states, states.indexOf('today') >= 0 ? states.indexOf('today') : weekdayIndex(now));
     } else if (count) {
-      right = { kind: 'add', step: fmtNum(count.step), unit: count.unit };
+      right = { kind: 'add', step: count.step, unit: count.unit };
     } else if (dueDays !== null && !doneRow) {
       right = { kind: 'due', text: fmtDue(dueDays, 'short'), overdue: dueDays < 0 };
     }
@@ -215,7 +218,7 @@ function rowInfo(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, it: TodayItem, a: 
 /** 오른쪽 81pt 칸 — 이번 주 칸 · '+1권' · 'D-3' · × */
 type RightCol =
   | { kind: 'week'; states: DayState[]; summary?: string }
-  | { kind: 'add'; step: string; unit: string }
+  | { kind: 'add'; step: number; unit: string }
   | { kind: 'due'; text: string; overdue: boolean }
   | { kind: 'remove' }
   | null;
@@ -250,6 +253,7 @@ interface RowViewProps {
 const RowView = memo(function RowView({
   M, extra, text, area, color, done, doneRow, seed, metaLine, right, checkLabel, hint, bodyLabel, toggleName, canOpen, divider, press,
 }: RowViewProps) {
+  const m = useMsg();
   let rightEl: React.ReactNode = null;
   if (right?.kind === 'week') {
     // 이번 주 칸은 몸통 이름이 함께 읽는다 — 따로 멈추지 않게 숨긴다
@@ -264,7 +268,7 @@ const RowView = memo(function RowView({
         onPress={press.addStep}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={`${text}, ${right.step}${right.unit} 더하기`}
+        accessibilityLabel={`${text}, ${m.sheet.countPlus({ n: right.step, unit: right.unit })}`}
         style={({ pressed }) => [
           {
             height: 30, paddingHorizontal: 10, borderRadius: 6, borderWidth: 1.2, borderColor: tint(color, 55, M.dark),
@@ -274,7 +278,7 @@ const RowView = memo(function RowView({
         ]}
       >
         <Text style={{ fontSize: 13, fontWeight: '800', color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-          +{right.step}{right.unit}
+          {m.sheet.plusShort({ n: right.step, unit: right.unit })}
         </Text>
       </Pressable>
     );
@@ -324,7 +328,7 @@ const RowView = memo(function RowView({
         accessibilityState={{ checked: done }}
         accessibilityLabel={checkLabel}
         accessibilityHint={hint}
-        accessibilityActions={extra && !done ? [{ name: 'delete', label: '지우기' }] : undefined}
+        accessibilityActions={extra && !done ? [{ name: 'delete', label: m.sheet.rowDelete }] : undefined}
         onAccessibilityAction={(e) => { if (extra && e.nativeEvent.actionName === 'delete') press.remove(); }}
       >
         <Check on={done} color={color} dark={M.dark} seed={seed} muted={doneRow} />
@@ -336,8 +340,8 @@ const RowView = memo(function RowView({
         accessible={!extra}
         accessibilityRole={extra ? undefined : 'button'}
         accessibilityLabel={extra ? undefined : bodyLabel}
-        accessibilityHint={extra ? undefined : '실천 자세히 보기'}
-        accessibilityActions={extra ? undefined : [{ name: 'activate', label: '자세히 보기' }, { name: 'toggle', label: toggleName }]}
+        accessibilityHint={extra ? undefined : m.sheet.rowOpenHint}
+        accessibilityActions={extra ? undefined : [{ name: 'activate', label: m.sheet.rowOpen }, { name: 'toggle', label: toggleName }]}
         onAccessibilityAction={extra ? undefined : (e) => {
           if (e.nativeEvent.actionName === 'activate') press.open();
           else if (e.nativeEvent.actionName === 'toggle') press.toggle();
@@ -349,7 +353,7 @@ const RowView = memo(function RowView({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
             <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>
-              {extra ? `${area} · 직접 적음` : area}
+              {extra ? `${area} · ${m.sheet.rowWritten}` : area}
             </Text>
             {metaLine && (
               <>

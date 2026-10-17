@@ -88,7 +88,7 @@ test('NEW-2: 보드 진행 중 줄 — 마감 지남 줄과 같은 여백 자리
 test("D-10: 할 일 시트 — '마감 없음' 줄은 묶음 앞 간격만큼 당겨 묶음의 윗줄을 아랫줄로 쓴다", () => {
   const s = src('src/overlays/ActionSheet.tsx');
   assert.match(s, /const ROWS_GAP = 22;/);
-  assert.match(s, /<View style=\{\{ marginTop: -1, marginBottom: -ROWS_GAP \}\}>\s*<LineRow M=\{M\} title="마감 없음"/);
+  assert.match(s, /<View style=\{\{ marginTop: -1, marginBottom: -ROWS_GAP \}\}>\s*<LineRow M=\{M\} title=\{m\.sheet\.noDue\}/);
   const rows = slice(s, 'function SheetRows(', '\n}\n');
   assert.match(rows, /<View style=\{\{ marginTop: ROWS_GAP \}\}>/);
   assert.doesNotMatch(rows, /marginTop: 22/);

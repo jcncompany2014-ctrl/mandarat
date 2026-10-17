@@ -78,7 +78,8 @@ test('NEW-2 · NEW-5(ui): 칸·영역 자리는 어디서나 고유어 서수 �
   const grid = src('src/screens/FullGrid.tsx');
   assert.match(grid, /`8개 영역 중 \$\{ORDINAL\[focus\] \?\? `\$\{focus \+ 1\}`\} 번째`/);
   const sheet = src('src/overlays/ActionSheet.tsx');
-  assert.match(sheet, /`\$\{area\} 영역, \$\{ORDINAL\[ai\] \?\? `\$\{ai \+ 1\}`\} 번째 칸, 영역 보기`/);
+  assert.match(sheet, /m\.sheet\.headA11y\(\{ area, ordinal: m\.fmt\.ordinalCell\(\{ n: ai \+ 1 \}\) \}\)/);
+  assert.equal(require('../src/i18n/ko/sheet').default.headA11y({ area: '건강', ordinal: require('../src/i18n/ko/fmt').default.ordinalCell({ n: 3 }) }), '건강 영역, 세 번째 칸, 영역 보기');
   // 앱 소스의 읽는 말에 '3번째'·'${n + 1}번째' 꼴이 남지 않는다(주석 제외)
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'src')).filter((x) => /\.tsx?$/.test(x))) {

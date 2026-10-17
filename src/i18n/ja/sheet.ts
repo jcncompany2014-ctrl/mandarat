@@ -1,5 +1,97 @@
-// 'sheet' namespace — filled by X-C (docs/v2/plan.md Appendix B).
+// 'sheet' namespace — action sheet, Today row check, 64-square finale (X-C, docs/v2/plan.md Appendix B).
+// The unit is whatever the user typed; Japanese attaches it to the number with no space.
 import type ko from '../ko/sheet';
 import type { Like } from '../types';
+import { groupNum } from '../num';
+import { tsu } from './counter';
 
-export default {} satisfies Like<typeof ko>;
+const amt = ({ n, unit }: { n: number; unit: string }) => `${groupNum(n)}${unit}`;
+
+export default {
+  areaFallback: ({ n }) => `分野${n}`,
+  headA11y: ({ area, ordinal }) => `分野「${area}」、${ordinal}、分野を開く`,
+  edit: '文と種類を直す',
+  actionFallback: '行動',
+  titleA11y: ({ text, subtitle }) => `${text}、${subtitle}、文と種類を直す`,
+  perStep: (p) => `1回に${amt(p)}`,
+  onceAWeek: '週に1回',
+
+  checkHint: 'もう一度押すと外れます',
+  doneToday: '今日できた',
+  thisWeek: '今週',
+  weekCount: ({ count, total }) => `${count}/${total}回`,
+  yesterdayToo: '昨日もできた',
+  yesterdayTooA11y: '昨日もできた、昨日の記録を残す',
+  backfillDone: ({ dow }) => `${dow}をできた日として記録しました`,
+  backfillCleared: ({ dow }) => `${dow}の記録を消しました`,
+
+  countPlus: (p) => `${amt(p)}足す`,
+  countMinus: (p) => `${amt(p)}減らす`,
+  countA11y: ({ said, pct }) => `ここまで${said}、${pct}%`,
+  countWeek: (p) => `今週 +${amt(p)}`,
+  countReached: '目標に届きました',
+  countLeft: (p) => `あと${amt(p)}`,
+  countGoal: (p) => `目標の${amt(p)}に届きました`,
+  plusShort: (p) => `+${amt(p)}`,
+
+  onceDone: 'できた',
+  dueOn: ({ date }) => `締め切り ${date}`,
+  postponeTomorrow: '明日に',
+  postponeNextWeek: '来週に',
+  postponeTomorrowA11y: '締め切りを明日に移す',
+  postponeNextWeekA11y: '締め切りを来週に移す',
+  postponeTomorrowToast: '締め切りを明日に移しました',
+  postponeNextWeekToast: '締め切りを来週に移しました',
+  noDue: '締め切りなし',
+  setDue: '決める ›',
+  noDueA11y: '締め切りなし、締め切りを決める',
+
+  mindAsk: '今週はどのくらい守れましたか？',
+  mindScore: '今週の点数',
+  mindPrompt: '直感で付けてください',
+  mindHistory: ({ n, list }) => `最近${n}週の点数 ${list}`,
+  mindPoint: ({ n }) => `${n}点`,
+  mindNone: 'なし',
+  weeksAgo: ({ n }) => `${n}週前`,
+
+  todayAlready: 'すでに「今日やること」にあります',
+  todayRemoved: '「今日やること」から外しました',
+  todayAdded: '「今日やること」に入れました',
+  todayRow: '今日に入れる',
+  todayAuto: '自動で入っています',
+  todayAutoA11y: '今日に入れる、自動で入っています',
+  todayAutoHint: '入っている理由をお知らせします',
+  focusRow: '25分集中する',
+  focusStart: '始める ›',
+  focusRowA11y: '25分集中する、始める',
+  unachieveHint: 'もう一度押すと達成を外します',
+  achieveHabitHint: '身についたら押してください',
+  achieveMindHint: '根づいたら押してください',
+  achieved: '達成したマスです',
+  achieve: 'このマスを達成にする',
+  achieveA11y: 'このマスの達成',
+  memo: 'メモ',
+
+  rowDone: 'できました',
+  rowUnlog: '今日足した分を戻す',
+  rowUndone: '「できた」を消す',
+  rowMarkDone: '「できた」にする',
+  rowWeek: ({ count, total }) => `今週${total}回中${count}回`,
+  rowDelete: '消す',
+  rowOpenHint: '行動の詳細を見る',
+  rowOpen: '詳細を見る',
+  rowWritten: '自分で追加',
+  undoAdd: (p) => `今日足した${amt(p)}を戻しました`,
+  extraRemoved: 'やることを消しました',
+  hintMark: '「できた」にします',
+  hintUnlog: '今日足した分を戻します',
+  hintUndone: '「できた」を消します',
+  checkedLeft: ({ text, n }) => `${text}、できました。今日はあと${tsu(n)}です`,
+  checked: ({ text }) => `${text}、できました`,
+  addedSpeech: ({ text, count, total, unit }) => `${text}、${amt({ n: total, unit })}のうち${amt({ n: count, unit })}`,
+
+  finaleTitle: '64マスをすべて達成しました',
+  finaleCountA11y: '64マス中64マス',
+  finaleGoal: ({ goal }) => `中心の目標・${goal}`,
+  finaleStreak: ({ n }) => `${n}日連続`,
+} satisfies Like<typeof ko>;

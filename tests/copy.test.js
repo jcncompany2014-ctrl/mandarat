@@ -22,7 +22,7 @@ const STORED = new Set([...Object.keys(MGMT_LABEL), ...Object.keys(MOOD_LABEL), 
  * - '이루다'는 핵심 목표에만 쓴다: 64칸을 다 달성한 축하의 '핵심 목표를 이뤘어요'.
  * - '완료'를 화면에 보이지 않는 저장·비교 키(보드 칸 키 등)로만 쓰게 되면 여기에 적는다.
  */
-const STORED_WORDS = new Set(['src/overlays/Celebration.tsx|핵심 목표를 이뤘어요']);
+const STORED_WORDS = new Set(['src/i18n/ko/sheet.ts|핵심 목표를 이뤘어요']);
 /** `}` 바로 뒤에 붙은 조사(뒤가 끝·띄어쓰기·문장부호일 때만 — '${n}가지'·'${n}이에요'는 조사가 아니다) */
 const JOSA_AFTER_EXPR = /^(을|를|이|가|은|는|와|과|으로|로)(?=$|[\s.,!?·:;)\]…'"’”~])/;
 
