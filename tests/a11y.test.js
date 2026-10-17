@@ -61,7 +61,8 @@ test('칸·블록 말과 고유어 서수는 chartSpeech 한 곳에 — a11y.ts�
   assert.deepEqual([...ORDINAL], ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟']);
   const src = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
   assert.match(src('src/lib/areaPage.ts'), /import \{ ORDINAL \} from '\.\/chartSpeech';/);
-  assert.match(src('src/lib/sheetSpeech.ts'), /import \{ ORDINAL \} from '\.\/chartSpeech';/);
+  // 편집 창의 읽는 말(sheetSpeech)은 바구니의 fmt.ordinalCell로 같은 서수를 쓴다(X-A)
+  assert.match(src('src/i18n/ko/editor.ts'), /fmt\.ordinalCell\(\{ n \}\)/);
   // ORDINAL을 정의하는 곳은 하나
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   const owners = walk(path.join(__dirname, '..', 'src')).filter((f) => /export const ORDINAL\b/.test(fs.readFileSync(f, 'utf8')));
