@@ -110,7 +110,9 @@ test('ICloudSyncModule.swift: 쓰는 Apple API', () => {
   assert.ok(sw.includes(`containerId = "${ICLOUD_CONTAINER}"`), 'ICLOUD_CONTAINER');
   assert.equal(REPLICA_DIR, 'Sync/v1/');
   assert.ok(sw.includes('dir = "Sync/v1"'), 'REPLICA_DIR');
-  assert.ok(sw.includes('"%K LIKE %@", NSMetadataItemPathKey, "*/\\(ICloudSyncModule.dir)/*.jsonz"'), '질의 조건 Sync/v1/*.jsonz');
+  // 질의 조건 Sync/v1/*.jsonz — 이름으로 고르고 collect가 Sync/v1 바로 아래만 남긴다
+  assert.ok(sw.includes('"%K LIKE %@", NSMetadataItemFSNameKey, "*.jsonz"'), '질의 조건 *.jsonz');
+  assert.match(sw, /parent\.lastPathComponent == "v1", parent\.deletingLastPathComponent\(\)\.lastPathComponent == "Sync"/);
   // 오류 코드는 index.ts의 ICloudErrorCode와 같다
   const swCodes = [...new Set([...sw.matchAll(/error\("(E_[A-Z_]+)"/g)].map((m) => m[1]))].sort();
   const tsCodes = [.../export type ICloudErrorCode = ([^;]+);/.exec(src(INDEX))[1].matchAll(/'(E_[A-Z_]+)'/g)].map((m) => m[1]).sort();

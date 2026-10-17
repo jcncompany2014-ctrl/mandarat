@@ -100,7 +100,7 @@ public class ICloudSyncModule: Module {
       return true
     }.runOnQueue(io)
 
-    AsyncFunction("stop") { () in
+    AsyncFunction("stop") { () -> Void in
       self.stopQuery()
     }.runOnQueue(.main)
 
@@ -140,7 +140,7 @@ public class ICloudSyncModule: Module {
 
     /// 누른 뒤 조율된 .forReplacing 쓰기(원자적). 앱이 뒤로 가도(V4-A가 background에서 밀어 올린다) 끝나도록
     /// UIApplication 배경 작업 안에서 돈다.
-    AsyncFunction("write") { (name: String, json: String) throws in
+    AsyncFunction("write") { (name: String, json: String) throws -> Void in
       try ICloudSyncModule.guarded {
         let url = try self.fileURL(name)
         let data = try ICloudSyncModule.deflate(json)
@@ -154,7 +154,7 @@ public class ICloudSyncModule: Module {
     }.runOnQueue(io)
 
     /// 조율된 지우기 — 없는 파일이면 그냥 끝난다
-    AsyncFunction("remove") { (name: String) throws in
+    AsyncFunction("remove") { (name: String) throws -> Void in
       try ICloudSyncModule.guarded {
         let url = try self.fileURL(name)
         try ICloudSyncModule.coordinatedWrite(url, options: .forDeleting) { target in
@@ -227,7 +227,8 @@ public class ICloudSyncModule: Module {
     }
     let q = NSMetadataQuery()
     q.searchScopes = [NSMetadataQueryUbiquitousDataScope]
-    q.predicate = NSPredicate(format: "%K LIKE %@", NSMetadataItemPathKey, "*/\(ICloudSyncModule.dir)/*.jsonz")
+    // 이름(*.jsonz)으로 고르고, Sync/v1 바로 아래인지는 collect가 경로로 가린다(경로 키의 LIKE는 Spotlight가 받는지 확인할 수 없다)
+    q.predicate = NSPredicate(format: "%K LIKE %@", NSMetadataItemFSNameKey, "*.jsonz")
     let handler: (Notification) -> Void = { [weak self] _ in
       self?.emitNames(q)
     }
