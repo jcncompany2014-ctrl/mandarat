@@ -1,0 +1,15 @@
+{
+  "src/lib/text.ts": 9,
+  "src/lib/routine.ts": 11,
+  "src/lib/chartSpeech.ts": 16,
+  "src/lib/marks.ts": 18,
+  "src/lib/copy.ts": 13,
+  "src/theme/chart.ts": 2,
+  "src/theme/palette.ts": 5,
+  "src/components/common.tsx": 5,
+  "src/components/ErrorBoundary.tsx": 9,
+  "src/navigation/Root.tsx": 12,
+  "src/navigation/ui.tsx": 1,
+  "src/components/DayPicker.tsx": 6,
+  "src/store/useSnapshotUndo.ts": 2
+}

@@ -547,6 +547,17 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
   const tk = ymd(today);
   const memo = todayMemo.get(doc.themes);
   if (memo && memo.dayLog === doc.dayLog && memo.todayKeys === doc.todayKeys && memo.tk === tk) return memo.items;
+  const items = computeTodayItems(doc, today);
+  todayMemo.set(doc.themes, { dayLog: doc.dayLog, todayKeys: doc.todayKeys, tk, items });
+  return items;
+}
+
+/**
+ * todayItems와 같은 목록을 기억해 두지 않고 새로 센다 — 다른 날을 미리 셀 때(알림·위젯, src/lib/dayProjection.ts)
+ * 오늘 목록의 기억을 밀어내지 않게. 결과는 얼린 배열이다.
+ */
+export function computeTodayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>, today: Date): TodayItem[] {
+  const tk = ymd(today);
   const seen = new Set<string>();
   const out: TodayItem[] = [];
   const push = (ti: number, ai: number, auto?: boolean) => {
@@ -567,9 +578,7 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
   doc.themes.forEach((t, ti) => t.actions.forEach((_, ai) => {
     if (autoToday(doc, ti, ai, today)) push(ti, ai, true);
   }));
-  const items = Object.freeze(out) as TodayItem[];
-  todayMemo.set(doc.themes, { dayLog: doc.dayLog, todayKeys: doc.todayKeys, tk, items });
-  return items;
+  return Object.freeze(out) as TodayItem[];
 }
 
 /**

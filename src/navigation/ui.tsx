@@ -2,8 +2,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { Platform } from 'react-native';
 import { announce, screenReader } from '../lib/useReducedMotion';
 import { createOverlayQueue, OVERLAY_GAP, type OverlayQueue } from '../lib/overlayQueue';
+import type { PrintTarget, ProFeature, YearView } from '../lib/contracts';
 
-export type Screen = 'dashboard' | 'grid' | 'detail' | 'today' | 'stats' | 'settings';
+export type Screen = 'dashboard' | 'grid' | 'detail' | 'today' | 'stats' | 'settings' | 'year';
 
 /** 탭바 높이(아래 안전 영역 제외) — 위 여백 8 + 탭 한 칸 44. 토스트처럼 바닥에 붙는 것은 이 위에 선다 */
 export const TAB_BAR_H = 52;
@@ -15,12 +16,12 @@ export const TAB_BAR_H = 52;
 export { OVERLAY_GAP };
 
 /** 밀려 들어오는 화면(뒤로 가기가 있는 화면) */
-function isDeep(s: Screen): boolean {
-  return s === 'detail' || s === 'settings';
+export function isDeep(s: Screen): boolean {
+  return s === 'detail' || s === 'settings' || s === 'year';
 }
-/** 어디서 왔는지 모를 때 돌아갈 곳 — 설정은 홈에서, 영역 화면은 만다라트에서 열린다 */
-function defaultFrom(s: Screen): Screen {
-  return s === 'settings' ? 'dashboard' : 'grid';
+/** 어디서 왔는지 모를 때 돌아갈 곳 — 설정은 홈에서, 한 해는 기록에서, 영역 화면은 만다라트에서 열린다 */
+export function defaultFrom(s: Screen): Screen {
+  return s === 'settings' ? 'dashboard' : s === 'year' ? 'stats' : 'grid';
 }
 
 export type EditorTarget =
@@ -74,6 +75,14 @@ export interface UIState {
   ritual: RitualTarget | null;
   /** 만다라트 표를 그림 한 장으로 공유하는 시트 */
   share: boolean;
+  /** 프로 시트 — 잠긴 기능에서 열었으면 그 기능, 설정 › 프로에서 열었으면 'menu' */
+  pro: ProFeature | 'menu' | null;
+  /** 인쇄 시트 — 지금 표({}) 또는 지난 표({ archiveId }) */
+  print: PrintTarget | null;
+  /** 한 해 닫기(여러 쪽 오버레이) */
+  yearClose: boolean;
+  /** '한 해' 화면이 보이는 것 — 돌아보기 · 보관함 · 지난 표 한 장 */
+  yearView: YearView;
   /** 오늘 할 일을 다 해서 하루를 마감한 날(YYYY-MM-DD) — 하루에 한 번만 마감한다 */
   closedDay: string | null;
   /** 마감할 때마다 1씩 오른다 — 화면이 이 값이 바뀌는 걸 보고 마감 줄을 긋는다 */
@@ -134,6 +143,27 @@ export interface UIActions {
   openShare: () => void;
   closeShare: () => void;
 
+  /** 프로 시트 — 늘 대기열을 거친다. feature가 없으면 설정 › 프로('menu') */
+  openPro: (feature?: ProFeature) => void;
+  closePro: () => void;
+
+  /** 인쇄 시트 — 늘 대기열을 거친다. target이 없으면 지금 표 */
+  openPrint: (target?: PrintTarget) => void;
+  closePrint: () => void;
+
+  /** 한 해 닫기 — 늘 대기열을 거친다 */
+  openYearClose: () => void;
+  closeYearClose: () => void;
+
+  /** '한 해' 화면으로 — view가 없으면 지금 표의 돌아보기 */
+  openYear: (view?: YearView) => void;
+  setYearView: (view: YearView) => void;
+  /**
+   * 뒤로 가기 앞에 먼저 물어볼 함수 — 참을 돌려주면 그 화면이 스스로 처리한 것(한 해 화면의 안쪽 쪽 넘기기).
+   * null이면 지운다. 한 번에 하나만.
+   */
+  setBackGuard: (fn: (() => boolean) | null) => void;
+
   markDayClosed: (day: string) => void;
 
   showToast: (message: string, action?: ToastAction, opts?: ToastOptions) => void;
@@ -160,8 +190,15 @@ function nextToastId(): number {
   return lastToastId;
 }
 
-export function UIProvider({ children }: { children: React.ReactNode }) {
-  const [screen, setScreen] = useState<Screen>('dashboard');
+/** 지금 표의 돌아보기 — '한 해' 화면을 처음 열 때 */
+const YEAR_REVIEW: YearView = { kind: 'review', id: null };
+
+/**
+ * initialScreen: 처음 보일 화면 — 언어를 바꿔 UI를 다시 그린 뒤 설정으로 돌아올 때(src/i18n/react.tsx takeResumeHint).
+ * 탭이 아닌 화면이면 그 화면을 연 탭은 기본값(defaultFrom)이다.
+ */
+export function UIProvider({ children, initialScreen }: { children: React.ReactNode; initialScreen?: Screen }) {
+  const [screen, setScreen] = useState<Screen>(initialScreen ?? 'dashboard');
   const [ti, setTi] = useState(0);
   const [fromState, setFromState] = useState<Screen | null>(null);
   const [sheet, setSheet] = useState<{ ti: number; ai: number } | null>(null);
@@ -174,13 +211,19 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const [ritual, setRitual] = useState<RitualTarget | null>(null);
   const [share, setShare] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [pro, setPro] = useState<ProFeature | 'menu' | null>(null);
+  const [print, setPrint] = useState<PrintTarget | null>(null);
+  const [yearClose, setYearClose] = useState(false);
+  const [yearView, setYearViewState] = useState<YearView>(YEAR_REVIEW);
   const [closedDay, setClosedDay] = useState<string | null>(null);
   const [dayCloseTick, setDayCloseTick] = useState(0);
 
   // ── 화면 이동 ──────────────────────────────────────────────────────────────
   // 같은 틱에 go가 두 번 불려도 맞게 — 지금 화면·출발 탭은 ref로 바로 갱신한다
-  const screenRef = useRef<Screen>('dashboard');
+  const screenRef = useRef<Screen>(initialScreen ?? 'dashboard');
   const fromRef = useRef<Screen | null>(null);
+  // 뒤로 가기 앞에 먼저 묻는다 — 한 해 화면이 안쪽 쪽(지난 표 한 장 → 보관함)을 스스로 넘길 때
+  const backGuardRef = useRef<(() => boolean) | null>(null);
 
   const go = useCallback((s: Screen, nextTi = 0) => {
     const cur = screenRef.current;
@@ -197,13 +240,17 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const back = useCallback(() => {
     const cur = screenRef.current;
     if (!isDeep(cur)) return;
+    if (backGuardRef.current?.()) return;
     go(fromRef.current ?? defaultFrom(cur));
   }, [go]);
+  const setBackGuard = useCallback((fn: (() => boolean) | null) => {
+    backGuardRef.current = fn;
+  }, []);
 
   // ── 겹치지 않는 시트(오버레이 대기열) ──────────────────────────────────────
   // 새 오버레이를 추가하는 패키지는 아래 anyOpen에 자기 상태를 더한다(Sheet로 그리면 registerOverlay가 저절로 센다).
   const [mounted, setMounted] = useState(0);
-  const anyOpen = !!(sheet || focus || editor || pick || quick || celebrate || ritual || share) || mounted > 0;
+  const anyOpen = !!(sheet || focus || editor || pick || quick || celebrate || ritual || share || pro || print || yearClose) || mounted > 0;
   // 한 차례가 끝날 때마다 1씩 — 다음 렌더 뒤 그때의 anyOpen으로 대기열을 다시 본다
   const [pass, setPass] = useState(0);
   const queueRef = useRef<OverlayQueue | null>(null);
@@ -270,12 +317,34 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   }, [afterOverlays]);
   const closeShare = useCallback(() => setShare(false), []);
 
-  // 웹 미리보기·화면 캡처용 손잡이 — window.__ui.openRitual('YYYY-MM-DD')
+  const openPro = useCallback((feature?: ProFeature) => {
+    afterOverlays(() => setPro(feature ?? 'menu'));
+  }, [afterOverlays]);
+  const closePro = useCallback(() => setPro(null), []);
+
+  const openPrint = useCallback((target?: PrintTarget) => {
+    const t: PrintTarget = target?.archiveId ? { archiveId: target.archiveId } : {};
+    afterOverlays(() => setPrint(t));
+  }, [afterOverlays]);
+  const closePrint = useCallback(() => setPrint(null), []);
+
+  const openYearClose = useCallback(() => {
+    afterOverlays(() => setYearClose(true));
+  }, [afterOverlays]);
+  const closeYearClose = useCallback(() => setYearClose(false), []);
+
+  const setYearView = useCallback((view: YearView) => setYearViewState(view), []);
+  const openYear = useCallback((view?: YearView) => {
+    setYearViewState(view ?? YEAR_REVIEW);
+    go('year');
+  }, [go]);
+
+  // 웹 미리보기·화면 캡처용 손잡이 — window.__ui.openRitual('YYYY-MM-DD') · go('settings') · openPro() · openPrint() · openYearClose() · openYear()
   useEffect(() => {
     if (Platform.OS !== 'web' || !__DEV__) return;
     const g = globalThis as { __ui?: Record<string, unknown> };
-    g.__ui = { ...(g.__ui ?? {}), openRitual, closeRitual };
-  }, [openRitual, closeRitual]);
+    g.__ui = { ...(g.__ui ?? {}), openRitual, closeRitual, go, openPro, openPrint, openYearClose, openYear };
+  }, [openRitual, closeRitual, go, openPro, openPrint, openYearClose, openYear]);
 
   // ── 하루 마감 ────────────────────────────────────────────────────────────
   const closedRef = useRef<string | null>(null);
@@ -303,8 +372,8 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
   const from = fromState ?? defaultFrom(screen);
 
   const state = useMemo<UIState>(
-    () => ({ screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick, anyOpen }),
-    [screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, closedDay, dayCloseTick, anyOpen],
+    () => ({ screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, pro, print, yearClose, yearView, closedDay, dayCloseTick, anyOpen }),
+    [screen, ti, from, sheet, focus, quick, quickTi, pick, celebrate, editor, ritual, share, pro, print, yearClose, yearView, closedDay, dayCloseTick, anyOpen],
   );
 
   // 함수는 모두 고정 — 이 객체도 처음 한 번만 만들어진다
@@ -315,11 +384,13 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
       openQuick, closeQuick, openPick, closePick,
       fireCelebrate, closeCelebrate, openEditor, closeEditor,
       openRitual, closeRitual, openShare, closeShare,
+      openPro, closePro, openPrint, closePrint, openYearClose, closeYearClose, openYear, setYearView, setBackGuard,
       markDayClosed, showToast, hideToast, getToast,
     }),
     [
       go, back, afterOverlays, registerOverlay, openAction, closeSheet, startFocus, closeFocus, openQuick, closeQuick, openPick, closePick,
       fireCelebrate, closeCelebrate, openEditor, closeEditor, openRitual, closeRitual, openShare, closeShare,
+      openPro, closePro, openPrint, closePrint, openYearClose, closeYearClose, openYear, setYearView, setBackGuard,
       markDayClosed, showToast, hideToast, getToast,
     ],
   );

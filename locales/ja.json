@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "マンダラート",
+    "NSPhotoLibraryAddUsageDescription": "マンダラートの表の画像を「写真」に保存するには許可が必要です。"
+  }
+}

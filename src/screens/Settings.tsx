@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, View, type ViewStyle } from 'react-native';
+import { Linking, Platform, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
-import { Check } from '../components/Check';
-import { Header, LineRow, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { Header, LineRow, RowDivider, Sheet, pressedRow, useSheetDismiss } from '../components/common';
 import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
 import { SheetHead, TemplateSheet } from '../components/TemplateSheet';
@@ -20,10 +19,18 @@ import { useMandarat, type SnapshotInfo } from '../store/MandaratContext';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { MOODS } from '../theme/moods';
 import { ACCENTS, GOLD, readableOn } from '../theme/palette';
-import { NUM, TYPE } from '../theme/type';
+import { TYPE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import type { CellShape, Mood } from '../types';
+import { ColophonRow, RadioRow, Section, SubHead, TextLink, ask, rowBase } from './settings/rows';
+import { PaperRows } from './settings/PaperRows';
+import { LanguageSection } from './settings/LanguageSection';
+import { NotifySection } from './settings/NotifySection';
+import { SyncSection } from './settings/SyncSection';
+import { YearRows } from './settings/YearRows';
+import { ProSection } from './settings/ProSection';
+import { CrashRow } from './settings/CrashRow';
 
 const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
@@ -33,46 +40,6 @@ const STORAGE_NOTE = IOS
   ? '기록은 이 iPhone과 iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.'
   : '기록은 이 기기에 저장돼요. 기기를 바꾸기 전에 백업을 내보내 두세요.';
 const STORAGE_PLACE = IOS ? '이 iPhone과 iCloud 백업' : '이 기기';
-
-/** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
-function ask(title: string, message: string, ok: string, onOk: () => void, destructive = false) {
-  if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
-    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) onOk();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: '취소', style: 'cancel' },
-    { text: ok, style: destructive ? 'destructive' : 'default', onPress: onOk },
-  ]);
-}
-
-/** 구역 제목 — 종이 위 굵은 글씨 한 줄 */
-function Section({ M, label }: { M: M; label: string }) {
-  return (
-    <Text accessibilityRole="header" style={{ ...TYPE.section, color: M.ink, paddingTop: 28, paddingBottom: 8 }}>
-      {label}
-    </Text>
-  );
-}
-
-/** 구역 안의 작은 머리(종이 · 칸 모서리 · 포인트 컬러) */
-function SubHead({ M, label, first = false }: { M: M; label: string; first?: boolean }) {
-  return (
-    <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, paddingTop: first ? 4 : 20, paddingBottom: 6 }}>
-      {label}
-    </Text>
-  );
-}
-
-/** 괘선 위 한 줄 — 누르면 종이가 살짝 어두워진다(크기 변화 없음) */
-function rowBase(M: M, first: boolean, last: boolean): ViewStyle {
-  return {
-    ...groupEdge(M, first, last),
-    minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10, paddingHorizontal: 2,
-  };
-}
 
 /** 종이 견본 — 그 종이의 바탕 · 점 여섯 개 · 먹색 '가' */
 function PaperSwatch({ M, mood }: { M: M; mood: Mood }) {
@@ -92,37 +59,6 @@ function PaperSwatch({ M, mood }: { M: M; mood: Mood }) {
       </View>
       <Text style={{ fontSize: 15, lineHeight: 18, fontWeight: '700', color: p.ink }} maxFontSizeMultiplier={1}>가</Text>
     </View>
-  );
-}
-
-/** 하나만 고르는 괘선 목록의 한 줄 — 왼쪽 견본(있으면) · 이름 · 오른쪽 네모 체크 */
-function RadioRow({
-  M, label, on, first, last, onPress, a11yLabel, lead,
-}: {
-  M: M;
-  label: string;
-  on: boolean;
-  first: boolean;
-  last: boolean;
-  onPress: () => void;
-  a11yLabel: string;
-  lead?: React.ReactNode;
-}) {
-  return (
-    <Pressable
-      onPress={() => { if (!on) onPress(); }}
-      accessibilityRole="radio"
-      accessibilityLabel={a11yLabel}
-      accessibilityState={{ checked: on, selected: on }}
-      style={({ pressed }) => [rowBase(M, first, last), pressed && !on ? pressedRow(M) : null]}
-    >
-      {!first && <RowDivider M={M} inset={0} />}
-      {lead}
-      <Text style={{ flex: 1, fontSize: 16, lineHeight: 21, fontWeight: '600', color: M.ink }} numberOfLines={1}>
-        {label}
-      </Text>
-      <Check on={on} color={M.ink} dark={M.dark} size={22} />
-    </Pressable>
   );
 }
 
@@ -160,36 +96,6 @@ function AccentRow({ M, value, onChange }: { M: M; value: string; onChange: (c: 
         );
       })}
     </View>
-  );
-}
-
-/** 정보 표의 한 줄 — 왼쪽 이름표(12.5 보조) · 오른쪽 값(13 먹색) */
-function ColophonRow({ M, label, value, first }: { M: M; label: string; value: string; first?: boolean }) {
-  return (
-    <View
-      accessible
-      accessibilityLabel={`${label}, ${value}`}
-      style={{ flexDirection: 'row', alignItems: 'baseline', paddingVertical: 9, borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line }}
-    >
-      <Text style={{ width: 52, fontSize: 12.5, lineHeight: 18, color: M.sub }}>{label}</Text>
-      <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: M.ink, ...NUM }}>{value}</Text>
-    </View>
-  );
-}
-
-/** 밑줄 글자 링크 */
-function TextLink({ M, label, onPress, hint }: { M: M; label: string; onPress: () => void; hint?: string }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="link"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
-      style={({ pressed }) => ({ minHeight: 24, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-    >
-      <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -429,6 +335,11 @@ export function Settings() {
             />
           ))}
         </View>
+        <PaperRows M={M} />
+
+        <LanguageSection M={M} />
+        <NotifySection M={M} />
+        <SyncSection M={M} />
 
         {/* 기록 — 안전한 백업 줄과 통째로 새로 쓰는 줄을 떼어 둔다. 저장 위치 안내는 백업 바로 아래에 */}
         <Section M={M} label="기록" />
@@ -446,11 +357,14 @@ export function Settings() {
         <Text style={{ marginTop: 10, fontSize: 12.5, lineHeight: 18, color: M.sub }}>
           {STORAGE_NOTE}
         </Text>
+        <YearRows M={M} />
 
         <SubHead M={M} label="새로 시작" />
         <LineRow M={M} first title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
         <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
         <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
+
+        <ProSection M={M} />
 
         <Section M={M} label="정보" />
         <ColophonRow M={M} first label="이름" value="만다라트" />
@@ -462,6 +376,7 @@ export function Settings() {
           {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label="문의하기" hint="메일 앱이 열려요" onPress={() => openLink(mailto)} />}
           <TextLink M={M} label="오픈소스 라이선스" onPress={() => { tap(); setLicensesOpen(true); }} />
         </View>
+        <CrashRow M={M} />
         {/* 판권면 아래 작은 인쇄소 표 — 타일·가운데 영웅 없이 왼쪽 아래에 */}
         <View style={{ marginTop: 24, marginBottom: 8 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <GridMark size={16} color={GOLD} />

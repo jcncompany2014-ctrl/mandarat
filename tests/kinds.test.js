@@ -440,3 +440,19 @@ test('KIND_HINT: 유형마다 한두 문장, 달성과 헷갈리는 "채워져�
   assert.equal(K.KIND_HINT.mind, '한 주에 한 번 1~5점으로 돌아봐요');
   for (const h of Object.values(K.KIND_HINT)) assert.equal(h.includes('채워져요'), false, h);
 });
+
+test('remindAt: configOf·sameConfig·applyConfig가 습관 알림 시각을 나르고, clearedAction은 지운다', () => {
+  const a = { text: '걷기', note: '', done: false, kind: 'habit', days: [1, 3], since: '2026-10-01', remindAt: '07:30' };
+  assert.equal(K.configOf(a).remindAt, '07:30');
+  assert.equal('remindAt' in K.configOf({ text: '걷기', note: '', done: false }), false);
+  assert.equal(K.sameConfig({ kind: 'habit', days: [1], remindAt: '07:30' }, { kind: 'habit', days: [1], remindAt: '08:00' }), false);
+  assert.equal(K.sameConfig({ kind: 'habit', days: [1], remindAt: '07:30' }, { kind: 'habit', days: [1], remindAt: '07:30' }), true);
+  assert.equal(K.sameConfig({ kind: 'habit', days: [1] }, { kind: 'habit', days: [1], remindAt: '07:30' }), false);
+  // 습관: 정하면 남기고, 비우거나 틀린 형식이면 지운다
+  assert.equal(K.applyConfig(a, { kind: 'habit', days: [1, 3], remindAt: '21:00' }, '2026-10-14').remindAt, '21:00');
+  assert.equal('remindAt' in K.applyConfig(a, { kind: 'habit', days: [1, 3] }, '2026-10-14'), false);
+  assert.equal('remindAt' in K.applyConfig(a, { kind: 'habit', days: [1, 3], remindAt: '7:30' }, '2026-10-14'), false);
+  // 다른 유형으로 바꿔도 값은 남겨 둔다(되돌리면 다시 울린다)
+  assert.equal(K.applyConfig(a, { kind: 'once' }, '2026-10-14').remindAt, '07:30');
+  assert.equal('remindAt' in K.clearedAction(a), false);
+});

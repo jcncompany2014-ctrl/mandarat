@@ -11,7 +11,8 @@ export const BACKUP_APP = 'mandarat';
 // 2: 실천 유형 값(kind·count·log·ratings·due …)이 생긴 문서 — 이전 앱은 '새 버전 백업'으로 알아보고 값을 조용히 잃지 않는다
 // 3: 한 주 돌아보기(reviews)·영역을 정했는지(areasSet)·마지막 백업 날(settings.lastBackupAt)이 생긴 문서.
 //    이전 앱은 더 새로운 백업을 거절한다(불러오면 이 값들을 조용히 잃으므로).
-export const BACKUP_SCHEMA = 3;
+// 4: 알림(settings.reminders · action.remindAt) · 종이 무늬(settings.paper) · 지난 표(archives · chartStart · focusStart). 이전 앱은 거절한다
+export const BACKUP_SCHEMA = 4;
 
 export interface BackupSummary {
   goal: string;
@@ -27,6 +28,8 @@ export interface BackupSummary {
   exportedAt?: string;
   /** 마지막 실천 기록이 있는 날 'YYYY-MM-DD' — 기록이 없으면 없다 */
   lastLog?: string;
+  /** 지난 표 수 — 없으면 0 */
+  archives: number;
 }
 
 export type ParseResult =
@@ -65,7 +68,7 @@ export function summarize(doc: MandaratDoc): BackupSummary {
     days++;
     if (!lastLog || day > lastLog) lastLog = day;
   }
-  return { goal: doc.centerGoal.trim(), filled, done, days, routines, ...(lastLog ? { lastLog } : {}) };
+  return { goal: doc.centerGoal.trim(), filled, done, days, routines, ...(lastLog ? { lastLog } : {}), archives: doc.archives?.length ?? 0 };
 }
 
 const MAX_STEPS = 2_000_000; // 글자 훑기 상한 — 아주 긴·이상한 입력에도 멈추지 않게

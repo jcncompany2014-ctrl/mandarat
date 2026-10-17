@@ -6,6 +6,7 @@ import { Text } from './AppText';
 import { GridMark } from './GridMark';
 import { releaseNativeSplash } from './Splash';
 import { ymd } from '../lib/routine';
+import { crash } from '../lib/crash';
 
 interface Props { children: React.ReactNode }
 interface State {
@@ -61,10 +62,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return { error };
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     // 실행 중 오류가 나면 네이티브 시작 화면을 바로 걷어 안내 화면이 보이게 한다.
     releaseNativeSplash();
     console.warn('Mandarat crashed', error);
+    // 오류 수집(기기에서만, 끈 사람은 보내지 않는다) — 컴포넌트 위치만, 기록 내용은 보내지 않는다
+    crash.report(error, { componentStack: info.componentStack ?? '' });
   }
 
   reset = () => this.setState({ error: null, exportNote: null });
