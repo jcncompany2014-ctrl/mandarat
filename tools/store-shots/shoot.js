@@ -100,6 +100,17 @@ function zonedEpoch(wall, timeZone) {
   return ms;
 }
 
+/**
+ * 앱을 찍는 창 — 보통은 기기 크기(높이 − 설명 띠) 그대로. 아이패드에서 장면이 padWidth를 두면 그 폭의 창으로 찍고
+ * 배율을 기기 폭/padWidth만큼 올린다: 찍힌 PNG는 기기 크기 그대로이고, 늘인 그림이 아니라 그 배율로 새로 그린 글자다.
+ */
+function viewOf(device, scene) {
+  const appH = device.height - device.band;
+  if (!scene.padWidth || device.width < 700 || scene.padWidth >= device.width) return { width: device.width, height: appH, scale: device.scale };
+  const zoom = device.width / scene.padWidth;
+  return { width: scene.padWidth, height: Math.round(appH / zoom), scale: device.scale * zoom };
+}
+
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon', '.otf': 'font/otf', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
 /** .web을 띄운다 — 없는 경로는 index.html(SPA), /__font/<이름>은 Pretendard 파일 */
@@ -195,9 +206,10 @@ async function main() {
           const nn = String(all.indexOf(scene) + 1).padStart(2, '0');
           const tag = `[${lang} ${device.id} ${scene.id}]`;
           const doc = JSON.stringify(scene.prepare ? scene.prepare(fixture) : fixture);
+          const view = viewOf(device, scene);
           const context = await browser.newContext({
-            viewport: { width: device.width, height: device.height - device.band },
-            deviceScaleFactor: device.scale, locale, timezoneId, reducedMotion: 'reduce',
+            viewport: { width: view.width, height: view.height },
+            deviceScaleFactor: view.scale, locale, timezoneId, reducedMotion: 'reduce',
           });
           await context.addInitScript(([d, l]) => {
             try {
@@ -323,4 +335,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { zonedEpoch, composeHtml, LOCALES, CLOCK };
+module.exports = { zonedEpoch, composeHtml, viewOf, LOCALES, CLOCK };

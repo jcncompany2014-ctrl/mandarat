@@ -16,7 +16,7 @@ Options for `shoot.js`:
 | `--no-export` | export | Reuse `tools/store-shots/.web` instead of running `npx expo export --platform web` again. |
 | `--locales` | `ko,ja,en` | Languages. Each one has a hand-written fixture (`fixtures/<l>.js`) and captions (`captions.json`). |
 | `--devices` | `all` | `iphone-6.9`, `iphone-6.3`, `iphone-6.5`, `ipad-13` (see `devices.js`). |
-| `--scenes` | `all` | `chart`, `today`, `home`, `stats`, `ritual`, `year` (see `scenes.js`). |
+| `--scenes` | `all` | `chart`, `today`, `home`, `stats`, `ritual`, `year` (see `scenes.js`). On the iPad, `ritual` is shot in a 704-pt window (`padWidth`, see `docs/v2/store-shots.md`). |
 | `--out` | `tools/store-shots/out` | Output folder (git-ignored). |
 
 Output: `out/<locale>/<device>/<nn>-<scene>.png`, where `nn` is the scene's place in the full set of six, so the numbering stays the same when you pick fewer scenes.
