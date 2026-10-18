@@ -1,6 +1,7 @@
 // 연꽃 팔레트 — 8영역·포인트·의미 색의 단일 출처.
 // 영역 색은 천연 염료 톤으로, 흰 글씨 대비 WCAG AA(≥4.5)와 다크 카드 대비(≥3.1)를 모두 만족한다.
 // RN 의존이 없는 순수 모듈이라 단위 테스트에서 그대로 쓸 수 있다.
+import { msg } from '../i18n';
 
 /** 8영역 슬롯 색 (쑥·쪽빛·황토·연지·청자·오디·비색·주홍) */
 export const PILLAR_COLORS = [
@@ -13,12 +14,13 @@ export const GOLD = '#B0883C';
  * 포인트 컬러 선택지 — 기본 골드가 항상 첫 번째.
  * 버튼 바탕으로 쓰면 readableOn() 글씨가 AA, 글씨로 쓸 때는 accentInk(M)(moods.ts)를 쓴다.
  */
-export const ACCENTS: { color: string; name: string }[] = [
-  { color: GOLD, name: '골드' },
-  { color: '#B35A72', name: '연지' },
-  { color: '#478058', name: '쑥' },
-  { color: '#5068AB', name: '쪽빛' },
-  { color: '#7E60A8', name: '오디' },
+export const ACCENTS: { readonly color: string; readonly name: string }[] = [
+  // 이름은 읽을 때마다 지금 언어로(core.accent*)
+  { color: GOLD, get name() { return msg().core.accentGold; } },
+  { color: '#B35A72', get name() { return msg().core.accentRouge; } },
+  { color: '#478058', get name() { return msg().core.accentMugwort; } },
+  { color: '#5068AB', get name() { return msg().core.accentIndigo; } },
+  { color: '#7E60A8', get name() { return msg().core.accentMulberry; } },
 ];
 
 /** 상태 의미 색 */

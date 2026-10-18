@@ -130,7 +130,8 @@ test('되돌리기 토스트는 보이는 시간을 넘길 수 있고, 백업 �
   assert.match(src('src/store/useSnapshotUndo.ts'), /\(message: string, snapshot: MandaratDoc, opts\?: ToastOptions\)/);
   assert.match(src('src/store/useSnapshotUndo.ts'), /\}, opts\);/);
   const backup = src('src/overlays/BackupImport.tsx');
-  assert.match(backup, /offerUndo\('백업을 불러왔어요', snapshot, \{ duration: UNDO_MS \}\)/);
+  assert.match(backup, /offerUndo\(b\.applied, snapshot, \{ duration: UNDO_MS \}\)/);
+  assert.equal(require('../src/i18n/ko/backup').default.applied, '백업을 불러왔어요');
   assert.match(backup, /const UNDO_MS = 10000;/);
   assert.doesNotMatch(backup, /revision\(\)/);
 });

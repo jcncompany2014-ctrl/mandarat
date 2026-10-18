@@ -4,5 +4,6 @@
   "installCommand": "npm ci",
   "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
+  "cleanUrls": true,
   "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }

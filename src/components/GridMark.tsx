@@ -7,6 +7,7 @@ import {
 } from '../theme/chart';
 import { usePalette } from '../theme/usePalette';
 import { useReducedMotion } from '../lib/useReducedMotion';
+import { useMsg } from '../i18n/react';
 import type { CellShape, MandaratDoc, Theme } from '../types';
 
 // 3×3 배치: 바깥 8칸 = 8영역(왼쪽 위부터 시계 방향이 아닌 읽는 순서), 가운데 = 핵심 목표
@@ -166,6 +167,7 @@ export const MiniChart = memo(function MiniChart({
   accessibilityHint?: string;
 }) {
   const M = usePalette();
+  const m = useMsg();
   const reduced = useReducedMotion();
   const themes = themesProp ?? doc?.themes ?? NO_THEMES;
   const shape = cellShape ?? doc?.settings.cellShape;
@@ -269,11 +271,11 @@ export const MiniChart = memo(function MiniChart({
   const slotOf = (b: number | 'c' | null) => (b == null ? null : b === 'c' ? 4 : CHART_POS[b]);
   const target = (x: number | undefined, y: number | undefined) => blockAt(x == null ? x : x - frame, y == null ? y : y - frame, inner);
 
-  const label = `내 만다라트 81칸, 64칸 중 ${total}칸 달성${todayN > 0 ? `, 오늘 할 일 ${todayN}개 중 ${todayDid}개 했어요` : ''}`;
+  const label = `${m.chart.markSay({ done: total })}${todayN > 0 ? m.chart.markTodaySay({ total: todayN, done: todayDid }) : ''}`;
   // 화면 읽기 동작 목록 — 영역 이름이 바뀔 때만 새로
   const a11yActions = useMemo(
-    () => [{ name: 'activate' }, ...themes.map((th, ti) => ({ name: `area-${ti}`, label: `${th.title.trim() || `영역 ${ti + 1}`} 보기` }))],
-    [themes],
+    () => [{ name: 'activate' }, ...themes.map((th, ti) => ({ name: `area-${ti}`, label: m.chart.areaView({ name: th.title.trim() || m.chart.areaN({ n: ti + 1 }) }) }))],
+    [themes, m],
   );
   const pressRef = useRef(onPressBlock);
   pressRef.current = onPressBlock;

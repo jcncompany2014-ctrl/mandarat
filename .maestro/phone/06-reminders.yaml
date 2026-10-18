@@ -1,0 +1,34 @@
+appId: com.jcncompany.mandarat
+name: "06 알림"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 설정 › 아침 알림 켜기 → (처음 한 번 OS 허용 창) → 시간 줄이 보인다 → 끄기
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-notify-morning"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-notify-morning"
+# 알림 권한은 처음 켤 때만 묻는다(앱을 열 때 묻지 않는다). 시뮬레이터에 따라 창이 안 뜰 수도 있다.
+- tapOn:
+    text: "허용|Allow"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "set-notify-morning-time"
+    timeout: 10000
+- tapOn:
+    id: "set-notify-morning"
+- extendedWaitUntil:
+    notVisible:
+      id: "set-notify-morning-time"
+    timeout: 10000

@@ -56,11 +56,18 @@ const webQuery = (q: string) =>
   isWeb && typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(q).matches;
 
 // ── 동작 줄이기(Reduce Motion) ───────────────────────────────────────────────
+/**
+ * 기기 테스트(Maestro) 빌드 — eas.json e2e 프로필이 EXPO_PUBLIC_E2E=1을 넣는다(빌드할 때 글자로 박힌다).
+ * 이 빌드에서는 동작 줄이기가 늘 켜져 있다: 애니메이션이 끝나기를 기다리다 흐름이 흔들리지 않게. OS 값도 묻지 않는다.
+ */
+const E2E = process.env.EXPO_PUBLIC_E2E === '1';
+
 /** true이면 장식용 애니메이션을 생략해 멀미·산만함을 줄인다. */
 const motion = systemFlag(
   () => AccessibilityInfo.isReduceMotionEnabled(),
   'reduceMotionChanged',
-  webQuery('(prefers-reduced-motion: reduce)'),
+  E2E || webQuery('(prefers-reduced-motion: reduce)'),
+  !E2E,
 );
 
 /** 훅 밖(애니메이션 헬퍼)에서 쓰는 현재 값 */

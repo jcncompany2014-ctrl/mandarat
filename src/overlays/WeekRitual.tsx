@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
-import { WebColumn } from '../components/WebColumn';
+import { PaperColumn } from '../components/WebColumn';
+import { MODAL_ORIENTATIONS } from '../lib/screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput } from '../components/AppText';
 import { Check } from '../components/Check';
 import { RatingBoxes } from '../components/KindBits';
 import { PaperDots } from '../components/PaperDots';
 import { PrimaryButton } from '../components/common';
+import { TID } from '../lib/testIds';
 import { Snackbar } from './Snackbar';
 import { DUR, EASE } from '../theme/motion';
 import { NUM, RHYTHM, TYPE } from '../theme/type';
@@ -24,12 +26,14 @@ import {
   MAX_PICKS, NOTE_MAX, addedLine, addedSpeech, deltaLine, finishToast, focusGroups, habitLine, mindItems, mindLine,
   ritualPages, togglePick, type RitualPage,
 } from '../lib/ritualView';
+import { useMsg } from '../i18n/react';
+import type { Messages } from '../i18n';
 import type { MandaratDoc } from '../types';
 
 const GUTTER = RHYTHM.gutter;
 /** 위 막대(닫기 · 쪽 번호) 높이 — 안전 영역 아래 */
 const TOP_BAR_H = 48;
-const PAGE_TITLE: Record<RitualPage, string> = { week: '한 주', mind: '마음가짐', next: '다음 주 중점' };
+const PAGE_TITLE = { week: 'pageWeek', mind: 'pageMind', next: 'pageNext' } as const satisfies Record<RitualPage, keyof Messages['ritual']>;
 
 /**
  * 한 주 돌아보기 — 일요일 저녁(또는 월·화요일)에 지난 한 주를 닫는 세 쪽.
@@ -51,6 +55,8 @@ function RitualPages({ target }: { target: RitualTarget }) {
   const reduce = useReducedMotion();
   const { closeRitual, showToast } = useUIActions();
   const { doc, rateMind, saveReview } = useMandarat();
+  const m = useMsg();
+  const t = m.ritual;
   const { week, readOnly = false } = target;
   const saved = doc.reviews?.[week];
 
@@ -72,7 +78,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    if (screenReader()) announce(`${PAGE_TITLE[page]}, ${pageSpeech(index, pages.length)}`);
+    if (screenReader()) announce(t.pageSay({ title: t[PAGE_TITLE[page]], page: pageSpeech(index, pages.length) }));
     if (reduce) { enter.setValue(1); return; }
     enter.setValue(0);
     const a = Animated.timing(enter, { toValue: 1, duration: DUR.base, easing: EASE.out, useNativeDriver: true });
@@ -88,7 +94,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
     const next = togglePick(picks, key);
     if (!next) {
       warn();
-      showToast(`${MAX_PICKS}개까지 고를 수 있어요`);
+      showToast(t.pickMax({ n: MAX_PICKS }));
       return;
     }
     tap();
@@ -122,10 +128,11 @@ function RitualPages({ target }: { target: RitualTarget }) {
       visible
       animationType={reduce ? 'none' : 'slide'}
       presentationStyle="fullScreen"
+      supportedOrientations={MODAL_ORIENTATIONS}
       onRequestClose={onBack}
       statusBarTranslucent
     >
-      <WebColumn bg={M.bg} edge={M.line}>
+      <PaperColumn bg={M.bg} edge={M.line}>
       <View
         style={{ flex: 1, backgroundColor: M.bg }}
         accessibilityViewIsModal
@@ -142,12 +149,13 @@ function RitualPages({ target }: { target: RitualTarget }) {
         >
           <Pressable
             onPress={closeRitual}
+            testID={TID.ritualClose}
             hitSlop={6}
             accessibilityRole="button"
-            accessibilityLabel="닫기"
+            accessibilityLabel={m.common.close}
             style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 8, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
           >
-            <Text style={{ fontSize: 16, fontWeight: '600', color: M.ink }}>닫기</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: M.ink }}>{m.common.close}</Text>
           </Pressable>
           {pages.length > 1 && (
             <Text
@@ -169,7 +177,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
           <Animated.View style={slide}>
-            <Text style={{ ...TYPE.title, color: M.ink }} accessibilityRole="header">{PAGE_TITLE[page]}</Text>
+            <Text style={{ ...TYPE.title, color: M.ink }} accessibilityRole="header">{t[PAGE_TITLE[page]]}</Text>
             {page === 'week' && <WeekPage M={M} doc={doc} week={week} readOnly={readOnly} />}
             {page === 'mind' && <MindPage M={M} doc={doc} week={week} onRate={rateMind} />}
             {page === 'next' && (
@@ -184,9 +192,10 @@ function RitualPages({ target }: { target: RitualTarget }) {
             <PrimaryButton
               M={M}
               // 고른 수가 위 'n/3'과 함께 스크롤돼 사라지므로 버튼에도 적는다(오늘 고르기 바닥처럼)
-              label={page === 'next' && picks.length > 0 ? `중점 ${picks.length}칸 · 마치기` : last ? '마치기' : '다음'}
-              accessibilityLabel={page === 'next' && picks.length > 0 ? `중점 ${picks.length}칸 골랐어요, 마치기` : undefined}
+              label={page === 'next' && picks.length > 0 ? t.finishWith({ n: picks.length }) : last ? t.finish : t.next}
+              accessibilityLabel={page === 'next' && picks.length > 0 ? t.finishWithSay({ n: picks.length }) : undefined}
               onPress={onNext}
+              testID={last ? TID.ritualDone : TID.ritualNext}
             />
           </View>
         )}
@@ -194,7 +203,7 @@ function RitualPages({ target }: { target: RitualTarget }) {
         {/* 모달 위에서도 '3개까지' 같은 안내가 보이게 — 닫기가 있는 위 막대(48) 아래로 내려 닫기를 가리지 않는다 */}
         <Snackbar placement="top" offset={TOP_BAR_H} />
       </View>
-      </WebColumn>
+      </PaperColumn>
     </Modal>
   );
 }
@@ -211,11 +220,12 @@ function DoubleRule({ M }: { M: Palette }) {
 
 /** 장부 한 줄 — 왼쪽 이름, 오른쪽 값(숫자 폭 고정). speech는 읽을 말('5/7번'을 날짜로 읽지 않게) */
 function LedgerRow({ M, label, value, speech, first = false }: { M: Palette; label: string; value: string; speech?: string; first?: boolean }) {
+  const t = useMsg().ritual;
   const empty = value === '—';
   return (
     <View
       accessible
-      accessibilityLabel={`${label} ${empty ? '없음' : speech ?? value}`}
+      accessibilityLabel={t.rowSay({ label, value: empty ? t.rowNone : speech ?? value })}
       style={{
         minHeight: RHYTHM.row, flexDirection: 'row', alignItems: 'center', gap: 12,
         borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line,
@@ -229,12 +239,13 @@ function LedgerRow({ M, label, value, speech, first = false }: { M: Palette; lab
   );
 }
 
-function areaName(doc: MandaratDoc, ti: number): string {
-  return doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
+function areaName(doc: MandaratDoc, ti: number, t: Messages['ritual']): string {
+  return doc.themes[ti]?.title.trim() || t.areaN({ n: ti + 1 });
 }
 
 /** 1쪽 — 그 주의 숫자 */
 function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; week: string; readOnly: boolean }) {
+  const t = useMsg().ritual;
   const r = useMemo(() => weekReview(doc, sundayOf(week), { closed: true }), [doc, week]);
   const sentence = weekSentence(r, doc);
   const range = fmtRange(week);
@@ -251,9 +262,9 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
     <View>
       <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.sub, marginTop: 4 }}>{range}</Text>
 
-      <View style={{ alignSelf: 'flex-start', marginTop: 28 }} accessible accessibilityLabel={`${range} 모두 ${r.total}번`}>
+      <View style={{ alignSelf: 'flex-start', marginTop: 28 }} accessible accessibilityLabel={t.totalSay({ range, n: r.total })}>
         <Text maxFontSizeMultiplier={1.2} style={{ fontSize: 64, lineHeight: 70, fontWeight: '800', letterSpacing: -1.5, color: M.ink, ...NUM }}>
-          {`${r.total}번`}
+          {t.total({ n: r.total })}
         </Text>
         <DoubleRule M={M} />
       </View>
@@ -262,14 +273,14 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
       </Text>
 
       <View style={{ marginTop: 28 }}>
-        <LedgerRow M={M} label="습관" value={habitLine(r)} speech={ledgerHabitSpeech(r.routineDone, r.routineDue)} first />
+        <LedgerRow M={M} label={t.rowHabit} value={habitLine(r)} speech={ledgerHabitSpeech(r.routineDone, r.routineDue)} first />
         <LedgerRow
           M={M}
-          label="쌓은 것"
+          label={t.rowAdded}
           value={addedLine(r.added)}
           speech={addedSpeech(r.added)}
         />
-        <LedgerRow M={M} label="마음가짐" value={mindLine(r)} />
+        <LedgerRow M={M} label={t.rowMind} value={mindLine(r)} />
       </View>
 
       {!!sentence && (
@@ -278,12 +289,12 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
 
       {readOnly && (savedPicks.length > 0 || !!saved?.note) && (
         <View style={{ marginTop: RHYTHM.sectionTop + 8 }}>
-          <Text style={{ ...TYPE.section, color: M.ink, marginBottom: 8 }} accessibilityRole="header">다음 주 중점</Text>
+          <Text style={{ ...TYPE.section, color: M.ink, marginBottom: 8 }} accessibilityRole="header">{t.pageNext}</Text>
           {savedPicks.map((p, i) => (
             <View
               key={p.key}
               accessible
-              accessibilityLabel={`${areaName(doc, p.ti)}, ${p.text}`}
+              accessibilityLabel={t.pickSay({ area: areaName(doc, p.ti, t), text: p.text })}
               style={{
                 minHeight: RHYTHM.row - 6, flexDirection: 'row', alignItems: 'center', gap: 12,
                 borderTopWidth: i === 0 ? 1 : 0, borderBottomWidth: 1, borderColor: M.line,
@@ -296,7 +307,7 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
           {!!saved?.note && (
             <Text
               style={{ ...TYPE.body, color: M.ink, paddingVertical: 12, borderBottomWidth: 1, borderColor: M.line, borderTopWidth: savedPicks.length ? 0 : 1 }}
-              accessibilityLabel={`한 줄 메모, ${saved.note}`}
+              accessibilityLabel={t.noteSay({ note: saved.note })}
             >
               {saved.note}
             </Text>
@@ -314,11 +325,12 @@ function MindPage({ M, doc, week, onRate }: {
   week: string;
   onRate: (ti: number, ai: number, score: number, on?: Date) => void;
 }) {
+  const t = useMsg().ritual;
   const items = mindItems(doc, week);
   const sunday = sundayOf(week);
   return (
     <View>
-      <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 6 }}>그 주를 떠올리며 1~5점</Text>
+      <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 6 }}>{t.mindHint}</Text>
       <View style={{ marginTop: 20 }}>
         {items.map(({ ti, ai }, i) => {
           const a = doc.themes[ti].actions[ai];
@@ -358,12 +370,13 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
   note: string;
   onNote: (t: string) => void;
 }) {
+  const rt = useMsg().ritual;
   const groups = focusGroups(doc);
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, marginTop: 6 }}>
-        <Text style={{ ...TYPE.caption, color: M.sub, flex: 1 }}>{`다음 주에 힘쓸 칸을 ${MAX_PICKS}개까지 골라요`}</Text>
-        <Text style={{ ...TYPE.caption, ...NUM, color: M.sub }} accessibilityLabel={`${picks.length}개 골랐어요`}>
+        <Text style={{ ...TYPE.caption, color: M.sub, flex: 1 }}>{rt.nextHint({ n: MAX_PICKS })}</Text>
+        <Text style={{ ...TYPE.caption, ...NUM, color: M.sub }} accessibilityLabel={rt.pickedSay({ n: picks.length })}>
           {`${picks.length}/${MAX_PICKS}`}
         </Text>
       </View>
@@ -373,10 +386,10 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
         value={note}
         onChangeText={onNote}
         maxLength={NOTE_MAX}
-        placeholder="한 줄 메모"
+        placeholder={rt.note}
         placeholderTextColor={M.sub}
         returnKeyType="done"
-        accessibilityLabel="한 줄 메모"
+        accessibilityLabel={rt.note}
         style={{
           ...TYPE.body, color: M.ink, marginTop: 16, paddingVertical: 10, paddingHorizontal: 0,
           borderBottomWidth: 1, borderColor: M.line,
@@ -391,10 +404,10 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
               style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingBottom: 6 }}
               accessible
               accessibilityRole="header"
-              accessibilityLabel={areaName(doc, g.ti)}
+              accessibilityLabel={areaName(doc, g.ti, rt)}
             >
               <AreaSquare color={t.color} />
-              <Text style={{ fontSize: 13.5, lineHeight: 18, fontWeight: '800', color: M.ink }}>{areaName(doc, g.ti)}</Text>
+              <Text style={{ fontSize: 13.5, lineHeight: 18, fontWeight: '800', color: M.ink }}>{areaName(doc, g.ti, rt)}</Text>
             </View>
             {g.ais.map((ai, i) => {
               const key = `${g.ti}-${ai}`;

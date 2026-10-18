@@ -10,7 +10,7 @@ import { IconBtn } from '../components/common';
 import { ChartBoard } from '../components/ChartBoard';
 import { tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useScreenReader } from '../lib/useReducedMotion';
-import { ORDINAL, areaLabel, areaTodayCounts, cellLabel } from '../lib/chartSpeech';
+import { areaLabel, areaTodayCounts, cellLabel } from '../lib/chartSpeech';
 import { DUE_SOON, daysBetween, doneToday as didToday, kindOf, routineWeekCount, todayItems, ymd } from '../lib/routine';
 import { countInfo, kindLine } from '../lib/kinds';
 import { cellBreak, longestWord, noOrphan } from '../lib/text';
@@ -24,8 +24,12 @@ import type { M } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useDoc, themeProgress, totalDone } from '../store/MandaratContext';
 import { sameProps } from '../lib/sameProps';
+import { fitTableW } from '../lib/spread';
 import type { MandaratDoc } from '../types';
 import { gridMemory, stepArea, swipeStep, takeFreshDone, type GridFocus } from './gridMemory';
+import { TID } from '../lib/testIds';
+import { msg } from '../i18n';
+import { useMsg } from '../i18n/react';
 
 type Focus = GridFocus;
 
@@ -37,11 +41,14 @@ const BLOCKS: Focus[] = SLOT_INDEX.map((ti) => (ti == null ? 'c' : ti));
 const INK_MS = 420;
 const INK_STAGGER = 60;
 
-const areaName = (doc: MandaratDoc, ti: number) => doc.themes[ti]?.title.trim() || `영역 ${ti + 1}`;
+const areaName = (doc: MandaratDoc, ti: number) => doc.themes[ti]?.title.trim() || msg().chart.areaN({ n: ti + 1 });
 const written = (doc: MandaratDoc, ti: number, ai: number) => !!doc.themes[ti]?.actions[ai]?.text.trim();
 const isDone = (doc: MandaratDoc, ti: number, ai: number) => written(doc, ti, ai) && !!doc.themes[ti].actions[ai].done;
 const complete = (doc: MandaratDoc, ti: number) => doc.themes[ti].actions.every((a, ai) => isDone(doc, ti, ai));
 const tabular = { fontVariant: ['tabular-nums' as const] };
+
+/** 표 위아래의 글 높이 — 핵심 목표(≈52) · 둘째 줄(44) · 범례(24) · 처음 안내(25) */
+const GRID_CHROME = 145;
 
 /** 표 안 글이 쪽 가장자리(20pt)에 맞도록 들이는 폭 — 표는 GridScreen이 11pt만 들여 9pt 내민다 */
 const EDGE = 9;
@@ -106,6 +113,7 @@ type CellData = Omit<CellProps, 'textW'>;
 
 /** 값이 같으면 다시 그리지 않는다 — 다른 칸을 체크해도 이 칸은 그대로 */
 const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, finished, today, dueSoon, edgePct, inkIndex, fullText, textW, lastCol, lastRow }: CellProps) {
+  const m = useMsg();
   const gold = legibleMark(M.gold, M.bg, M);
   const head = kind === 'head';
   const core = kind === 'core';
@@ -114,10 +122,12 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
   // 이름을 아직 안 지은 '영역 n'은 가는 먹 글씨 — 옅은 보조 글씨는 이름표 바탕 위 4.5:1이 안 된다
   const ink = core ? coreInk(M) : solid ? DONE_INK : M.ink;
   const weight = head && unnamed ? '500' : head || core ? '800' : solid ? '700' : '600';
-  // 칸 폭보다 긴 어절('포트폴리오')은 가운데서 끊기지 않게 0.5pt씩, 2pt까지 작게(Pretendard 글자 폭으로 잰다)
-  const base = head || core ? 9.5 : 9;
+  // 넓은 표(아이패드 펼침면 · 칸 글 폭 52pt 넘게)는 칸 폭만큼 글도 키운다(1.35배까지). 휴대폰 칸(글 폭 ≈ 35~41pt)은 k = 1 그대로
+  const k = Math.min(1.35, Math.max(1, textW / 52));
+  // 칸 폭보다 긴 어절('포트폴리오')은 가운데서 끊기지 않게 0.5pt씩, 2pt(× k)까지 작게(Pretendard 글자 폭으로 잰다)
+  const base = (head || core ? 9.5 : 9) * k;
   let fs = base;
-  while (fs > base - 2 && longestWord(text, fs, PRETENDARD_GLYPHS) > textW) fs -= 0.5;
+  while (fs > base - 2 * k && longestWord(text, fs, PRETENDARD_GLYPHS) > textW) fs -= 0.5;
   // 어절을 붙일지(cellBreak)는 넉넉한 SVG 폭으로 잰다 — Pretendard 표는 숫자·'%'를 작게 잡아 '수입 20 / %'처럼 붙인 어절이 끊긴다
   return (
     <View
@@ -134,7 +144,7 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
       ) : (
         <View style={dueSoon && !done ? { borderBottomWidth: 1.5, borderBottomColor: gold, maxWidth: '100%' } : { maxWidth: '100%' }}>
           <Text
-            style={{ fontSize: fs, lineHeight: 10.5, fontWeight: weight, color: ink, textAlign: 'center' }}
+            style={{ fontSize: fs, lineHeight: 10.5 * k, fontWeight: weight, color: ink, textAlign: 'center' }}
             numberOfLines={core ? 4 : 3}
             ellipsizeMode="tail"
             maxFontSizeMultiplier={1}
@@ -144,7 +154,7 @@ const Cell = memo(function Cell({ M, text, kind, color, done, unnamed, headPct, 
         </View>
       )}
       {finished && (
-        <Text style={{ fontSize: 8, lineHeight: 9.5, fontWeight: '800', color: legibleMark(M.gold, bg, M, 4.5), marginTop: 1 }} maxFontSizeMultiplier={1}>달성</Text>
+        <Text style={{ fontSize: 8, lineHeight: 9.5, fontWeight: '800', color: legibleMark(M.gold, bg, M, 4.5), marginTop: 1 }} maxFontSizeMultiplier={1}>{m.chart.done}</Text>
       )}
       {head && headPct != null && <Bar pct={headPct} color={color} track={alpha(color, 0.25)} height={2.5} />}
       {edgePct != null && edgePct > 0 && <Bar pct={edgePct} color={solid ? alpha(DONE_INK, 0.75) : color} height={2} />}
@@ -176,6 +186,7 @@ function blockData(
   M: M, doc: MandaratDoc, b: Focus, now: Date, todaySet: ReadonlySet<string>, todayN: readonly number[],
   inkOrder: ReadonlyMap<string, number>, sr: boolean,
 ): BlockData {
+  const c = msg().chart;
   const today = ymd(now);
   const center = b === 'c';
   const themeOf = (ti: number) => {
@@ -191,8 +202,8 @@ function blockData(
     if (center) {
       if (idx == null) {
         const goal = doc.centerGoal.trim();
-        cells.push({ M, kind: 'core', text: goal || '핵심 목표', color: M.ink, fullText: goal || '핵심 목표', ...last });
-        if (sr) speech.push(goal ? `핵심 목표, ${goal}` : '핵심 목표를 아직 정하지 않았어요');
+        cells.push({ M, kind: 'core', text: goal || c.coreGoal, color: M.ink, fullText: goal || c.coreGoal, ...last });
+        if (sr) speech.push(goal ? c.coreSay({ goal }) : c.coreUnsetSay);
         continue;
       }
       const t = themeOf(idx);
@@ -216,7 +227,7 @@ function blockData(
     const a = th.actions[idx];
     const key = `${b}-${idx}`;
     if (!a?.text.trim()) {
-      cells.push({ M, kind: 'empty', text: '', color: th.color, fullText: `실천 ${idx + 1} 채우기`, ...last });
+      cells.push({ M, kind: 'empty', text: '', color: th.color, fullText: c.fillAction({ n: idx + 1 }), ...last });
       if (sr) speech.push(cellLabel({ ai: idx, text: '', meta: null, isToday: false, didIt: false, done: false }));
       continue;
     }
@@ -242,7 +253,7 @@ function blockData(
   }
   return {
     cells,
-    label: center ? '가운데 블록, 핵심 목표와 8개 영역' : `${areaName(doc, b)} 블록`,
+    label: center ? c.centerBlockSay : c.blockSay({ name: areaName(doc, b) }),
     speech: sr ? speech : null,
     finished: !center && complete(doc, b),
   };
@@ -316,6 +327,7 @@ interface BlockViewProps {
 }
 
 const BlockView = memo(function BlockView({ M, cells, cellH, textW, edges, label, speech, finished, onOpen, onAction, blockRef }: BlockViewProps) {
+  const m = useMsg();
   const gold = legibleMark(M.gold, M.bg, M);
   return (
     <Pressable
@@ -326,7 +338,7 @@ const BlockView = memo(function BlockView({ M, cells, cellH, textW, edges, label
       accessibilityRole="adjustable"
       accessibilityLabel={label}
       accessibilityValue={{ text: speech }}
-      accessibilityHint="위아래로 쓸어 칸을 하나씩 읽어요. 두 번 누르면 크게 봐요"
+      accessibilityHint={m.chart.blockHint}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }, { name: 'activate' }]}
       onAccessibilityAction={onAction}
       style={({ pressed }) => ({
@@ -370,6 +382,7 @@ function CoreBoard({ M, doc, todayN, onPick, onGoal, goalRef }: {
   /** 크게 볼 때 화면 읽기 초점을 옮길 가운데 칸 */
   goalRef?: React.Ref<View>;
 }) {
+  const m = useMsg();
   const cellRule = ruleColor(M, 'cell');
   const pct = Math.round((totalDone(doc) / 64) * 100);
   const goal = doc.centerGoal.trim();
@@ -381,13 +394,13 @@ function CoreBoard({ M, doc, todayN, onPick, onGoal, goalRef }: {
           ref={goalRef}
           onPress={() => { tap(); onGoal(); }}
           accessibilityRole="button"
-          accessibilityLabel={`핵심 목표, ${goal || '아직 정하지 않았어요'}, 64칸 중 ${totalDone(doc)}칸 달성, 고치기`}
+          accessibilityLabel={m.chart.coreCellSay({ goal, done: totalDone(doc) })}
           accessibilityShowsLargeContentViewer
-          accessibilityLargeContentTitle={goal || '핵심 목표를 정해 주세요'}
+          accessibilityLargeContentTitle={goal || m.chart.goalPrompt}
           style={({ pressed }) => ({ flex: 1, padding: 10, gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: coreBg(M), opacity: pressed ? 0.85 : 1 })}
         >
           <Text style={{ fontSize: 15.5, lineHeight: 20, fontWeight: '800', color: coreInk(M), textAlign: 'center' }} numberOfLines={4} maxFontSizeMultiplier={1.3}>
-            {goal ? noOrphan(goal) : '핵심 목표를 정해 주세요'}
+            {goal ? noOrphan(goal) : m.chart.goalPrompt}
           </Text>
           <Text style={[{ fontSize: 12, fontWeight: '700', color: coreInk(M) }, tabular]} maxFontSizeMultiplier={1.3}>{pct}%</Text>
         </Pressable>
@@ -401,7 +414,7 @@ function CoreBoard({ M, doc, todayN, onPick, onGoal, goalRef }: {
       <Pressable
         onPress={() => onPick(ti)}
         accessibilityRole="button"
-        accessibilityLabel={`${areaLabel(areaName(doc, ti), written.length, written.filter((a) => a.done).length, todayN[ti] ?? 0)}, 블록 크게 보기`}
+        accessibilityLabel={m.chart.zoomHeadSay({ label: areaLabel(areaName(doc, ti), written.length, written.filter((a) => a.done).length, todayN[ti] ?? 0) })}
         accessibilityShowsLargeContentViewer
         accessibilityLargeContentTitle={areaName(doc, ti)}
         style={({ pressed }) => ({ flex: 1, backgroundColor: headBg(th.color, M), opacity: pressed ? 0.8 : 1 })}
@@ -453,8 +466,16 @@ function edgesFor(M: M, row: number, col: number): Edges {
  * 81칸 — 인쇄된 만다라트 표 한 장. 블록을 누르면 그 블록이 제자리에서 커져 9칸을 크게 보여 준다.
  * 크게 본 칸은 바로 눌러 실천을 열고(길게 누르면 글자 고치기), 빈 칸은 바로 채운다. 옆으로 밀면 이웃 영역으로.
  */
-export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onFocusChange?: (zoomed: boolean) => void }) {
+export const FullGrid = memo(function FullGrid({ M, onFocusChange, onFocusArea, availH }: {
+  M: M;
+  onFocusChange?: (zoomed: boolean) => void;
+  /** 크게 보는 영역 블록(가운데 블록이거나 접으면 null) — 펼침의 오른쪽 쪽이 그 영역 화면을 연다(V5-A) */
+  onFocusArea?: (ti: number | null) => void;
+  /** 이 표 묶음(머리·표·범례)이 쓸 수 있는 높이 — 주면 표가 그 안에 들어가게 폭을 줄인다(펼침). 없으면 폭 그대로 */
+  availH?: number;
+}) {
   const { doc, clock } = useDoc();
+  const m = useMsg();
   const sr = useScreenReader();
   const { go, openAction, openEditor } = useUIActions();
   const { width: winW } = useWindowDimensions();
@@ -462,7 +483,10 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
   const t = useRef(new Animated.Value(gridMemory.focus != null ? 1 : 0)).current;
   const slide = useRef(new Animated.Value(0)).current;
   // 표의 폭·높이 — 재기 전에는 화면 폭(좌우 여백 11씩)으로 어림한다
-  const [tableW, setTableW] = useState(Math.max(0, winW - 22));
+  // 펼침(availH)에서는 표 높이(폭 / 0.84)가 쪽 높이에 들어가게 폭을 줄여 가운데에 — 폰·한 단은 그대로
+  const fullW = Math.max(0, winW - 22);
+  const fitW = availH != null ? fitTableW(fullW, availH - GRID_CHROME) : fullW;
+  const [tableW, setTableW] = useState(fitW);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
 
   const now = new Date();
@@ -490,9 +514,12 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
     for (const k of keys) gridMemory.seenDone.add(k);
   }, [doc]);
 
-  useEffect(() => { onFocusChange?.(focus != null); }, [focus]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onFocusChange?.(focus != null);
+    onFocusArea?.(typeof focus === 'number' ? focus : null);
+  }, [focus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const say = (f: Focus) => announce(f === 'c' ? '가운데 블록을 크게 봐요' : `${areaName(doc, f)} 블록을 크게 봐요`);
+  const say = (f: Focus) => announce(f === 'c' ? m.chart.zoomCenterSay : m.chart.zoomBlockSay({ name: areaName(doc, f) }));
 
   // 화면 읽기 초점 — 크게 보면 그 판의 이름표(가운데 블록이면 핵심 목표 칸)로, 접으면 왔던 블록으로.
   // 숨긴 표 안에 있던 초점이 갈 곳을 잃고 화면 맨 위로 튀지 않게, 새 판이 자리 잡은 뒤(150ms) 옮긴다.
@@ -527,7 +554,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
   const close = () => {
     tap();
     gridMemory.focus = null;
-    announce('81칸 전체를 봐요');
+    announce(m.chart.wholeSay);
     // 보던 블록 — 표가 다시 보이면 그 블록으로 초점을 돌려준다
     const from = focusRef.current == null ? -1 : BLOCKS.indexOf(focusRef.current);
     const back = () => { if (from >= 0) focusLater(() => blockRefs.current[from] ?? null); };
@@ -658,13 +685,13 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
       <Pressable
         onPress={() => { tap(); openEditor({ kind: 'center' }); }}
         accessibilityRole="button"
-        accessibilityLabel={goal ? `핵심 목표, ${goal}, 고치기` : '핵심 목표를 정해 주세요'}
+        accessibilityLabel={goal ? m.chart.editGoalSay({ goal }) : m.chart.goalPrompt}
         style={({ pressed }) => ({ paddingHorizontal: EDGE, paddingTop: 2, opacity: pressed ? 0.6 : 1 })}
       >
-        <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>핵심 목표</Text>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>{m.chart.coreGoal}</Text>
         <View style={{ borderBottomWidth: 0.75, borderBottomColor: alpha(M.ink, 0.35), paddingTop: 4, paddingBottom: 6 }}>
           <Text style={{ fontSize: 17, lineHeight: 23, fontWeight: '800', color: goal ? M.ink : M.sub }} numberOfLines={2}>
-            {goal ? noOrphan(goal) : '핵심 목표를 정해 주세요'}
+            {goal ? noOrphan(goal) : m.chart.goalPrompt}
           </Text>
         </View>
       </Pressable>
@@ -674,8 +701,8 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
         {focus == null ? (
           <>
             <Text style={[{ flex: 1, fontSize: 13, fontWeight: '600', color: M.sub }, tabular]}>{now.getFullYear()}</Text>
-            <Text style={[{ fontSize: 13, fontWeight: '700', color: M.ink }, tabular]} accessibilityLabel={`64칸 중 ${done}칸 달성`}>
-              {`${done} / 64칸`}
+            <Text style={[{ fontSize: 13, fontWeight: '700', color: M.ink }, tabular]} accessibilityLabel={m.chart.doneOf64Say({ done })}>
+              {m.chart.doneOf64({ done })}
             </Text>
           </>
         ) : (
@@ -683,24 +710,24 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
             <Pressable
               onPress={close}
               accessibilityRole="button"
-              accessibilityLabel="81칸 전체 보기"
+              accessibilityLabel={m.chart.wholeBtnSay}
               hitSlop={6}
               style={({ pressed }) => ({ height: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 8, opacity: pressed ? 0.5 : 1 })}
             >
               <Icon name="grid" size={16} color={M.ink} sw={1.8} />
-              <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>81칸 전체</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{m.chart.wholeBtn}</Text>
             </Pressable>
             <Text
               style={[{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: '600', color: M.sub }, tabular]}
               numberOfLines={1}
-              accessibilityLabel={focus === 'c' ? '가운데 블록' : `8개 영역 중 ${ORDINAL[focus] ?? `${focus + 1}`} 번째`}
+              accessibilityLabel={focus === 'c' ? m.chart.centerBlock : m.chart.areaOrdinalSay({ n: focus + 1 })}
             >
-              {focus === 'c' ? '가운데 블록' : `${focus + 1} / 8`}
+              {focus === 'c' ? m.chart.centerBlock : `${focus + 1} / 8`}
             </Text>
             {focus !== 'c' ? (
               <View style={{ flexDirection: 'row' }}>
-                <IconBtn M={M} name="chevL" label="이전 영역" onPress={() => step(-1)} />
-                <IconBtn M={M} name="chevR" label="다음 영역" onPress={() => step(1)} />
+                <IconBtn M={M} name="chevL" label={m.chart.prevArea} onPress={() => step(-1)} />
+                <IconBtn M={M} name="chevR" label={m.chart.nextArea} onPress={() => step(1)} />
               </View>
             ) : <View style={{ width: 88 }} />}
           </>
@@ -708,7 +735,7 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
       </View>
 
       {/* 표 — 종이 위에 바로 인쇄된 한 장(흰 카드 없이) */}
-      <View onLayout={onTable}>
+      <View testID={TID.gridTable} onLayout={onTable} style={fitW < fullW ? { width: fitW, alignSelf: 'center' } : null}>
         <Animated.View
           pointerEvents={focus == null ? 'auto' : 'none'}
           accessibilityElementsHidden={focus != null}
@@ -783,13 +810,13 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
       {focus == null && (
         <View
           accessible
-          accessibilityLabel="칠한 칸은 달성, 옅게 깔린 칸은 영역 이름, 작은 색 네모는 오늘 할 일"
+          accessibilityLabel={m.chart.legendSay}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: EDGE, marginTop: 10 }}
         >
           {/* 범례 네모는 표의 칸 그대로 — 달성: 영역 색으로 칠한 칸 · 영역 이름: 옅게 깔리고 맨 아래 진행 막대(테두리 네모는 빈 체크 칸으로 읽힌다) */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View style={{ width: 10, height: 10, backgroundColor: keyColor }} />
-            <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>달성</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>{m.chart.done}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View style={{ width: 10, height: 10, backgroundColor: headBg(keyColor, M), overflow: 'hidden' }}>
@@ -797,16 +824,16 @@ export const FullGrid = memo(function FullGrid({ M, onFocusChange }: { M: M; onF
                 <View style={{ width: '60%', height: '100%', backgroundColor: keyColor }} />
               </View>
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>영역 이름</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>{m.chart.legendArea}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
             <View style={{ width: 4, height: 4, backgroundColor: gold }} />
-            <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>오늘</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: M.sub }}>{m.chart.today}</Text>
           </View>
         </View>
       )}
       {focus == null && !gridMemory.zoomedOnce && (
-        <Text style={{ fontSize: 12.5, fontWeight: '500', color: M.sub, paddingHorizontal: EDGE, marginTop: 8 }}>블록을 누르면 크게 볼 수 있어요</Text>
+        <Text style={{ fontSize: 12.5, fontWeight: '500', color: M.sub, paddingHorizontal: EDGE, marginTop: 8 }}>{m.chart.firstHint}</Text>
       )}
     </View>
   );

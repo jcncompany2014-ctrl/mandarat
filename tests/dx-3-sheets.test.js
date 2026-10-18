@@ -52,19 +52,23 @@ test('D-9: 마음가짐 점수는 고른 한 칸만 먹으로 — 쌓아 칠하�
 
 test("D-10 · D-26 · D-29: 할 일 시트 — '마감 없음' 줄 한 겹 · 위치 표 빈 칸은 시트 바탕 · 힌트가 부제를 되풀이하지 않는다", () => {
   const s = src('src/overlays/ActionSheet.tsx');
-  assert.match(s, /<LineRow M=\{M\} title="마감 없음"/);
-  assert.doesNotMatch(s, /LineRow M=\{M\} first last title="마감 없음"/);
+  assert.match(s, /<LineRow M=\{M\} title=\{m\.sheet\.noDue\}/);
+  assert.equal(require('../src/i18n/ko/sheet').default.noDue, '마감 없음');
+  assert.doesNotMatch(s, /LineRow M=\{M\} first last title=/);
   assert.match(s, /bg: sheetBg\(M\), current: false/);
   assert.doesNotMatch(s, /bg: M\.bg/);
   assert.doesNotMatch(s, /한 주에 한 번, 떠오르는/);
-  assert.match(s, /'떠오르는 대로 매겨요'/);
+  assert.match(s, /m\.sheet\.mindPrompt/);
+  assert.equal(require('../src/i18n/ko/sheet').default.mindPrompt, '떠오르는 대로 매겨요');
 });
 
 test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 바닥 괘선, 메모는 목록 위, 7×7 영역 표시, 토스트는 닫기 아래', () => {
   const s = src('src/overlays/WeekRitual.tsx');
-  assert.match(s, /`중점 \$\{picks\.length\}칸 · 마치기`/);
+  assert.match(s, /t\.finishWith\(\{ n: picks\.length \}\)/);
+  assert.equal(require('../src/i18n/ko/ritual').default.finishWith({ n: 2 }), '중점 2칸 · 마치기');
   assert.match(s, /borderTopWidth: 1, borderColor: M\.line \}\}>\s*<PrimaryButton/);
-  assert.ok(s.indexOf('placeholder="한 줄 메모"') < s.indexOf('{groups.map('), '메모가 영역 묶음보다 위');
+  assert.ok(s.indexOf('placeholder={rt.note}') > 0 && s.indexOf('placeholder={rt.note}') < s.indexOf('{groups.map('), '메모가 영역 묶음보다 위');
+  assert.equal(require('../src/i18n/ko/ritual').default.note, '한 줄 메모');
   assert.match(s, /width: 7, height: 7, borderRadius: 1\.5/);
   assert.match(s, /<Snackbar placement="top" offset=\{TOP_BAR_H\} \/>/);
   assert.match(src('src/overlays/Snackbar.tsx'), /top: insets\.top \+ 8 \+ offset/);
@@ -72,14 +76,17 @@ test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 바닥 괘
 
 test('D-15 · D-28: 편집 창 — 바닥 첫 글자 버튼을 가장자리에, 빈 칸 안내가 아래 고르기 줄을 되풀이하지 않는다', () => {
   const s = src('src/overlays/CellEditor.tsx');
-  assert.match(s, /label="칸 비우기"[^\n]*style=\{EDGE\}/);
-  assert.match(s, /label="저장"[^\n]*style=\{filledAction \? undefined : EDGE\}/);
-  assert.match(s, /placeholder=\{help\.length > 0 \? '직접 적거나 아래에서 골라요' : m\.placeholder\}/);
+  assert.match(s, /label=\{ed\.clearCell\}[^\n]*style=\{EDGE\}/);
+  assert.match(s, /label=\{ed\.save\}[^\n]*style=\{filledAction \? undefined : EDGE\}/);
+  assert.match(s, /placeholder=\{help\.length > 0 \? ed\.helpPlaceholder : m\.placeholder\}/);
+  const ed = require('../src/i18n/ko/editor').default;
+  assert.deepEqual([ed.clearCell, ed.save, ed.helpPlaceholder], ['칸 비우기', '저장', '직접 적거나 아래에서 골라요']);
 });
 
 test("D-19: 오늘 고르기 — 아무것도 없으면 '오늘 0개 · 다 골랐어요' 대신 조용한 닫기", () => {
   const s = src('src/overlays/PickToday.tsx');
-  assert.match(s, /if \(total === 0\) return <PrimaryButton M=\{M\} tone="quiet" label="닫기"/);
+  assert.match(s, /if \(total === 0\) return <PrimaryButton M=\{M\} tone="quiet" label=\{m\.common\.close\}/);
+  assert.equal(require('../src/i18n/ko/common').default.close, '닫기');
 });
 
 test('D-22: 집중 타이머 — 멈추면 숫자가 흐려지고(4.5:1 이상) 움직임 없이도 다르게 보인다', () => {

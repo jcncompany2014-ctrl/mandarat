@@ -14,6 +14,30 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- 앱이 뜨기 전에 <html lang>을 정한다 — ?lang= → 저장된 고르기 → 브라우저 언어에서 처음 나오는 ko·ja·en → ko (src/i18n resolveLang과 같은 순서).
+         서체와 줄바꿈이 첫 그림부터 그 언어를 따른다. 앱이 뜨면 LangBoot가 같은 값을 다시 적는다. -->
+    <script>
+      (function () {
+        var ok = { ko: 1, ja: 1, en: 1 };
+        var l = null;
+        try {
+          var q = /[?&]lang=([^&#]*)/.exec(location.search);
+          if (q) l = decodeURIComponent(q[1]).toLowerCase();
+          if (!ok[l]) {
+            var p = localStorage.getItem('mandarat:lang:v1');
+            l = ok[p] ? p : null;
+          }
+          if (!l) {
+            var list = navigator.languages || [navigator.language];
+            for (var i = 0; i < list.length && !l; i++) {
+              var c = String(list[i] || '').slice(0, 2).toLowerCase();
+              if (ok[c]) l = c;
+            }
+          }
+        } catch (e) {}
+        if (ok[l]) document.documentElement.lang = l;
+      })();
+    </script>
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
       /* These styles make the body full-height */
@@ -36,7 +60,7 @@
   </head>
 
   <body>
-    <noscript>만다라트를 쓰려면 자바스크립트를 켜 주세요.</noscript>
+    <noscript>만다라트를 쓰려면 자바스크립트를 켜 주세요. · JavaScriptをオンにしてください。 · Turn on JavaScript to use this app.</noscript>
     <div id="root"></div>
   </body>
 </html>

@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, AppState, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { WebColumn } from '../components/WebColumn';
+import { PaperColumn } from '../components/WebColumn';
 import { useWindowDimensions } from '../lib/screen';
+import { MODAL_ORIENTATIONS } from '../lib/screen';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '../components/AppText';
 import { EASE } from '../theme/motion';
@@ -9,6 +10,7 @@ import { NUM } from '../theme/type';
 import { announce, useReducedMotion } from '../lib/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pill, CloseBtn, PrimaryButton } from '../components/common';
+import { TID } from '../lib/testIds';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useMandarat, dateKey } from '../store/MandaratContext';
@@ -17,6 +19,10 @@ import { doneOn, kindOf } from '../lib/routine';
 import {
   FOCUS_TOTAL, TALLY_BOXES, elapsedOf, filledBoxes, finishLabel, fmtClock, focusOutcome, leftOfMs, minutesToRecord,
 } from '../lib/focusClock';
+import { FOCUS_DONE_LINGER_MS, focusProps, focusStartOf } from '../lib/focusActivity';
+import { notifier } from '../lib/notifier';
+import { focusLive } from '../widgets/focusLive';
+import { useLang, useMsg } from '../i18n/react';
 
 /** 화면을 켜 두는 표시 — 다른 곳의 켜 두기와 섞이지 않게 이름을 붙인다 */
 const KEEP_AWAKE_TAG = 'focus';
@@ -32,6 +38,12 @@ const STACK_SCALE = 1.35;
 
 export function FocusTimer() {
   const { focus } = useUIState();
+  // 앱이 꺼지며 잠금 화면에 남은 Live Activity를 처음 한 번 치운다(세션이 열려 있으면 그 세션 것이다)
+  const openRef = useRef(!!focus);
+  openRef.current = !!focus;
+  useEffect(() => {
+    if (!openRef.current) focusLive.endAll();
+  }, []);
   if (!focus) return null;
   // 세션마다 새로 그려 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
   return <FocusSession ti={focus.ti} ai={focus.ai} />;
@@ -55,6 +67,16 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const stack = fontScale >= STACK_SCALE;
   const { doc, toggleDone, toggleRoutineToday, addFocusMinutes } = useMandarat();
   const reduce = useReducedMotion();
+  const m = useMsg();
+  const lang = useLang();
+  const th0 = doc.themes[ti];
+  const a0 = th0?.actions[ai];
+  const areaName = th0 ? th0.title || m.sheet.areaFallback({ n: ti + 1 }) : '';
+  // 알림·Live Activity가 읽는 지금 값 — 효과는 run·finished가 바뀔 때만 돌므로 ref로 넘긴다
+  const textRef = useRef('');
+  textRef.current = a0?.text.trim() ?? '';
+  const msgRef = useRef(m);
+  msgRef.current = m;
 
   const [left, setLeft] = useState(FOCUS_TOTAL);
   const [run, setRun] = useState(true);
@@ -81,13 +103,21 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     };
     tick();
     const id = setInterval(tick, 500);
-    // 잠금을 풀고 돌아오면 다음 박자를 기다리지 않고 바로 맞춘다
+    // 잠금을 풀고 돌아오면 다음 박자를 기다리지 않고 바로 맞춘다.
+    // 도는 채로 앱을 떠나면 끝날 시각에 알림을 걸어 두고(허락이 있을 때만, 묻지 않는다), 돌아오면 거둔다.
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') tick();
+      if (s === 'active') {
+        notifier.focusEnd(null).catch(() => {});
+        tick();
+      } else if (s === 'background') {
+        notifier.focusEnd(endAtRef.current, msgRef.current.live.doneTitle, textRef.current).catch(() => {});
+      }
     });
     return () => {
       clearInterval(id);
       sub.remove();
+      // 멈춤·끝·닫기 — 걸어 둔 알림은 거둔다
+      notifier.focusEnd(null).catch(() => {});
       // 멈추는 순간까지 흐른 시간을 남긴다(다음 박자 전에 멈춰도 잃지 않게)
       remainingMsRef.current = Math.max(0, endAtRef.current - Date.now());
     };
@@ -99,6 +129,40 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     keepAwake(true);
     return () => keepAwake(false);
   }, [run, finished]);
+
+  // ── 잠금 화면·다이내믹 아일랜드(Live Activity) ─────────────────────────────────
+  // 세션마다 한 번 띄우고(start) 한 번 끝낸다(end): 25분을 채우면 '마쳤어요'를 5분 남기고, 닫기·언마운트면 바로 지운다.
+  // 'idle' 아직 · 'live' 떠 있음 · 'none' 기기가 못 띄움 · 'ended' 끝냄
+  const liveRef = useRef<'idle' | 'live' | 'none' | 'ended'>('idle');
+  const liveInfo = useRef({ area: areaName, color: '', mood: doc.settings.mood, accent: doc.settings.accent, lang });
+  liveInfo.current = { area: areaName, color: th0?.color ?? '', mood: doc.settings.mood, accent: doc.settings.accent, lang };
+  useEffect(() => {
+    const st = liveRef.current;
+    if (st === 'none' || st === 'ended') return;
+    const info = liveInfo.current;
+    const endAt = finished ? Date.now() : run ? endAtRef.current : Date.now() + remainingMsRef.current;
+    const props = focusProps({
+      text: textRef.current, area: info.area, color: info.color, mood: info.mood, accent: info.accent, lang: info.lang,
+      startAt: focusStartOf(endAt), endAt, pausedLeft: run || finished ? null : remainingMsRef.current, done: finished,
+    });
+    if (finished) {
+      if (st === 'live') focusLive.end(props, FOCUS_DONE_LINGER_MS);
+      liveRef.current = 'ended';
+      return;
+    }
+    if (st === 'idle') {
+      if (run) liveRef.current = focusLive.start(props) ? 'live' : 'none';
+      return;
+    }
+    focusLive.update(props);
+  }, [run, finished]);
+  // 닫기·언마운트 — 아직 떠 있으면 바로 지운다(개발 모드의 두 번 마운트는 다시 띄울 수 있게 'idle'로)
+  useEffect(() => () => {
+    if (liveRef.current === 'live') {
+      focusLive.end();
+      liveRef.current = 'idle';
+    }
+  }, []);
 
   // ── 기록: 어떻게 나가든 집중한 분은 남긴다(한 번만) ──────────────────────────
   const recordedRef = useRef(false);
@@ -120,7 +184,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     if (!finished || firedRef.current) return;
     firedRef.current = true;
     success();
-    announce('25분 집중을 마쳤어요');
+    announce(msgRef.current.focus.finished);
   }, [finished]);
 
   // ── 지금 채우는 칸의 숨 ─────────────────────────────────────────────────────
@@ -148,7 +212,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
 
   const kind = kindOf(a);
   const outcome = focusOutcome(kind, { done: a.done, checkedToday: doneOn(doc.dayLog, `${ti}-${ai}`, dateKey()) });
-  const label = finishLabel(outcome, finished);
+  const label = finishLabel(outcome, finished, lang);
   const elapsed = elapsedOf(left);
   const filled = finished ? TALLY_BOXES : filledBoxes(elapsed);
 
@@ -169,16 +233,18 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     if (finished) return;
     tap();
     // VoiceOver에는 바뀐 결과를 읽어 준다(안드로이드는 아래 상태 글의 live region이 읽는다)
-    if (Platform.OS === 'ios') announce(run ? '잠시 멈췄어요' : '다시 집중해요');
+    if (Platform.OS === 'ios') announce(run ? m.focus.cuePaused : m.focus.resumed);
     setRun((r) => !r);
   };
 
-  const cue = finished ? '끝났어요' : run ? '집중하는 중' : '잠시 멈췄어요';
-  const areaName = th.title || `영역 ${ti + 1}`;
+  const cue = finished ? m.focus.cueDone : run ? m.focus.cueRunning : m.focus.cuePaused;
+  const clockA11y = finished
+    ? m.focus.fullClockA11y
+    : (run ? m.focus.timerLeft : m.focus.timerLeftPaused)({ mins: Math.floor(left / 60), secs: left % 60 });
 
   return (
-    <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent>
-      <WebColumn bg={M.center}>
+    <Modal visible animationType="fade" onRequestClose={close} statusBarTranslucent supportedOrientations={MODAL_ORIENTATIONS}>
+      <PaperColumn bg={M.center}>
       <View
         style={{ flex: 1, backgroundColor: M.center, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 }}
         // 두 손가락 두 번 톡톡 — 멈춤·계속, 문지르기 — 닫기(기록은 남긴다)
@@ -186,7 +252,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
         onAccessibilityEscape={close}
       >
         <View style={{ position: 'absolute', top: insets.top + 16, right: 22 }}>
-          <CloseBtn M={M} onPress={close} light />
+          <CloseBtn M={M} onPress={close} light testID={TID.focusClose} />
         </View>
 
         <View style={{ alignSelf: 'center' }}>
@@ -200,18 +266,18 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           adjustsFontSizeToFit
           maxFontSizeMultiplier={1.2}
           accessibilityRole="timer"
-          accessibilityLabel={finished ? '25분' : `${run ? '' : '멈춤, '}남은 시간 ${Math.floor(left / 60)}분 ${left % 60}초`}
+          accessibilityLabel={clockA11y}
         >
-          {finished ? '25분' : fmtClock(left)}
+          {finished ? m.focus.fullClock : fmtClock(left)}
         </Text>
 
-        <Tally filled={filled} current={finished ? -1 : filled} color={th.color} breath={breath} reduce={reduce} />
+        <Tally filled={filled} current={finished ? -1 : filled} color={th.color} breath={breath} reduce={reduce} label={m.focus.tallyA11y({ n: filled })} />
 
         <Text
           style={{ marginTop: 20, fontSize: 17, lineHeight: 24, fontWeight: '700', color: '#fff', textAlign: 'center', maxWidth: 280 }}
           numberOfLines={2}
         >
-          {a.text || '집중'}
+          {a.text || m.focus.textFallback}
         </Text>
         <Text
           // 안드로이드: 멈춤·계속·끝남이 바뀔 때 읽는다(이 글은 그때만 바뀐다)
@@ -231,8 +297,9 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
           {!finished && (
             <Pressable
               onPress={toggleRun}
+              testID={TID.focusPause}
               accessibilityRole="button"
-              accessibilityLabel={run ? '멈추기' : '계속'}
+              accessibilityLabel={run ? m.focus.pause : m.focus.resume}
               style={({ pressed }) => ({
                 flex: stack ? undefined : 1, minWidth: 124, minHeight: 52, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
                 borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
@@ -240,17 +307,17 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' }} numberOfLines={2}>{run ? '멈추기' : '계속'}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' }} numberOfLines={2}>{run ? m.focus.pause : m.focus.resume}</Text>
             </Pressable>
           )}
-          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={stack ? undefined : { flex: 1, minWidth: 124 }} />
+          <PrimaryButton M={M} tone="inverse" label={label} onPress={finish} style={stack ? undefined : { flex: 1, minWidth: 124 }} testID={TID.focusFinish} />
         </View>
 
         {!finished && (
-          <Text style={{ marginTop: 16, fontSize: 12.5, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>25분 동안 한 가지에만</Text>
+          <Text style={{ marginTop: 16, fontSize: 12.5, fontWeight: '500', color: 'rgba(255,255,255,0.6)' }}>{m.focus.footnote}</Text>
         )}
       </View>
-      </WebColumn>
+      </PaperColumn>
     </Modal>
   );
 }
@@ -260,7 +327,7 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
  * 시계는 0.5초마다 다시 그려지지만 표는 칸이 바뀔 때(1분에 한 번)만 다시 그린다.
  */
 const Tally = memo(function Tally({
-  filled, current, color, breath, reduce,
+  filled, current, color, breath, reduce, label,
 }: {
   filled: number;
   /** 지금 채우는 칸(-1이면 없음) */
@@ -268,11 +335,13 @@ const Tally = memo(function Tally({
   color: string;
   breath: Animated.Value;
   reduce: boolean;
+  /** 화면 읽기 이름 — '25분 중 7분' */
+  label: string;
 }) {
   return (
     <View
       accessible
-      accessibilityLabel={`25분 중 ${filled}분`}
+      accessibilityLabel={label}
       style={{
         marginTop: 18, width: BOX * 5 + StyleSheet.hairlineWidth, flexDirection: 'row', flexWrap: 'wrap',
         borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: StyleSheet.hairlineWidth, borderColor: RULE,

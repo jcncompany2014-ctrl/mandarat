@@ -1,82 +1,69 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, View, type ViewStyle } from 'react-native';
+import { Linking, Platform, Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
-import { Check } from '../components/Check';
-import { Header, LineRow, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { Header, LineRow, RowDivider, Sheet, pressedRow, useSheetDismiss } from '../components/common';
 import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
 import { SheetHead, TemplateSheet } from '../components/TemplateSheet';
 import { TEMPLATES, templateThemes, type Template } from '../data/templates';
-import { APP_VERSION, LICENSES, PRIVACY_URL, SUPPORT_EMAIL, supportMailto } from '../lib/appInfo';
+import { APP_VERSION, LICENSES, PRIVACY_URL, SUPPORT_EMAIL, privacyLink, supportMailto } from '../lib/appInfo';
 import { summarize } from '../lib/backup';
 import { backupAgeLabel } from '../lib/backupNote';
-import { MOOD_LABEL, SHAPE_LABEL } from '../lib/copy';
 import { select, tap } from '../lib/haptics';
 import { exportBackup } from '../lib/shareFile';
+import { useSyncEnabled } from '../lib/syncStatus';
 import { fmtDateLong } from '../lib/text';
+import { useMsg } from '../i18n/react';
+import { lang, type Messages } from '../i18n';
 import { useUIActions } from '../navigation/ui';
 import { BackupImport } from '../overlays/BackupImport';
 import { useMandarat, type SnapshotInfo } from '../store/MandaratContext';
-import { useSnapshotUndo } from '../store/useSnapshotUndo';
+import { useResetUndo, useSnapshotUndo } from '../store/useSnapshotUndo';
 import { MOODS } from '../theme/moods';
 import { ACCENTS, GOLD, readableOn } from '../theme/palette';
-import { NUM, TYPE } from '../theme/type';
+import { TYPE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import type { CellShape, Mood } from '../types';
+import { ColophonRow, RadioRow, Section, SubHead, TextLink, ask, rowBase } from './settings/rows';
+import { PaperRows } from './settings/PaperRows';
+import { LanguageSection } from './settings/LanguageSection';
+import { NotifySection } from './settings/NotifySection';
+import { SyncSection } from './settings/SyncSection';
+import { YearRows } from './settings/YearRows';
+import { ProSection } from './settings/ProSection';
+import { CrashRow } from './settings/CrashRow';
+import { TID } from '../lib/testIds';
 
-const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
-const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
-/** 기록이 저장되는 곳 — iCloud 기기 백업은 iPhone에만 있다(안드로이드·웹에서는 이 기기에만) */
+type Core = Messages['core'];
+/** 종이 — 저장값과 그 이름(core.paper*) */
+const MOOD_OPTS: readonly { mood: Mood; name: (c: Core) => string }[] = [
+  { mood: '연꽃', name: (c) => c.paperIvory },
+  { mood: '크림', name: (c) => c.paperCream },
+  { mood: '화이트', name: (c) => c.paperGray },
+  { mood: '파스텔', name: (c) => c.paperLavender },
+  { mood: '다크', name: (c) => c.paperDark },
+];
+/** 칸 모서리 — 저장값과 그 이름(core.shape*) */
+const SHAPE_OPTS: readonly { shape: CellShape; name: (c: Core) => string }[] = [
+  { shape: '둥근', name: (c) => c.shapeRound },
+  { shape: '각진', name: (c) => c.shapeSquare },
+];
+/** 기록이 저장되는 곳 — iCloud 기기 백업은 iPhone·iPad에만 있다(안드로이드·웹에서는 이 기기에만) */
 const IOS = Platform.OS === 'ios';
-const STORAGE_NOTE = IOS
-  ? '기록은 이 iPhone과 iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.'
-  : '기록은 이 기기에 저장돼요. 기기를 바꾸기 전에 백업을 내보내 두세요.';
-const STORAGE_PLACE = IOS ? '이 iPhone과 iCloud 백업' : '이 기기';
+const DEVICE = IOS && (Platform as { isPad?: boolean }).isPad === true ? 'iPad' : 'iPhone';
 
-/** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert */
-function ask(title: string, message: string, ok: string, onOk: () => void, destructive = false) {
-  if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
-    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) onOk();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: '취소', style: 'cancel' },
-    { text: ok, style: destructive ? 'destructive' : 'default', onPress: onOk },
-  ]);
-}
-
-/** 구역 제목 — 종이 위 굵은 글씨 한 줄 */
-function Section({ M, label }: { M: M; label: string }) {
-  return (
-    <Text accessibilityRole="header" style={{ ...TYPE.section, color: M.ink, paddingTop: 28, paddingBottom: 8 }}>
-      {label}
-    </Text>
-  );
-}
-
-/** 구역 안의 작은 머리(종이 · 칸 모서리 · 포인트 컬러) */
-function SubHead({ M, label, first = false }: { M: M; label: string; first?: boolean }) {
-  return (
-    <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, paddingTop: first ? 4 : 20, paddingBottom: 6 }}>
-      {label}
-    </Text>
-  );
-}
-
-/** 괘선 위 한 줄 — 누르면 종이가 살짝 어두워진다(크기 변화 없음) */
-function rowBase(M: M, first: boolean, last: boolean): ViewStyle {
-  return {
-    ...groupEdge(M, first, last),
-    minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10, paddingHorizontal: 2,
-  };
+/** 백업 줄 아래 안내와 판권면의 저장 위치 — iCloud로 맞추기가 켜져 있으면 iCloud도 적는다(켜기는 iOS에만 있다) */
+function storageText(st: Messages['settings'], synced: boolean): { note: string; place: string } {
+  if (!IOS) return { note: st.storageNoteLocal, place: st.storagePlaceLocal };
+  if (synced) return { note: st.storageNoteSync({ device: DEVICE }), place: st.storagePlaceSync({ device: DEVICE }) };
+  return { note: st.storageNoteBackup({ device: DEVICE }), place: st.storagePlaceBackup({ device: DEVICE }) };
 }
 
 /** 종이 견본 — 그 종이의 바탕 · 점 여섯 개 · 먹색 '가' */
 function PaperSwatch({ M, mood }: { M: M; mood: Mood }) {
   const p = MOODS[mood];
+  const glyph = useMsg().settings.swatchGlyph;
   return (
     <View
       style={{
@@ -90,39 +77,8 @@ function PaperSwatch({ M, mood }: { M: M; mood: Mood }) {
           <View key={i} style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: p.faint }} />
         ))}
       </View>
-      <Text style={{ fontSize: 15, lineHeight: 18, fontWeight: '700', color: p.ink }} maxFontSizeMultiplier={1}>가</Text>
+      <Text style={{ fontSize: 15, lineHeight: 18, fontWeight: '700', color: p.ink }} maxFontSizeMultiplier={1}>{glyph}</Text>
     </View>
-  );
-}
-
-/** 하나만 고르는 괘선 목록의 한 줄 — 왼쪽 견본(있으면) · 이름 · 오른쪽 네모 체크 */
-function RadioRow({
-  M, label, on, first, last, onPress, a11yLabel, lead,
-}: {
-  M: M;
-  label: string;
-  on: boolean;
-  first: boolean;
-  last: boolean;
-  onPress: () => void;
-  a11yLabel: string;
-  lead?: React.ReactNode;
-}) {
-  return (
-    <Pressable
-      onPress={() => { if (!on) onPress(); }}
-      accessibilityRole="radio"
-      accessibilityLabel={a11yLabel}
-      accessibilityState={{ checked: on, selected: on }}
-      style={({ pressed }) => [rowBase(M, first, last), pressed && !on ? pressedRow(M) : null]}
-    >
-      {!first && <RowDivider M={M} inset={0} />}
-      {lead}
-      <Text style={{ flex: 1, fontSize: 16, lineHeight: 21, fontWeight: '600', color: M.ink }} numberOfLines={1}>
-        {label}
-      </Text>
-      <Check on={on} color={M.ink} dark={M.dark} size={22} />
-    </Pressable>
   );
 }
 
@@ -132,6 +88,7 @@ function RadioRow({
  */
 function AccentRow({ M, value, onChange }: { M: M; value: string; onChange: (c: string) => void }) {
   const cur = value.toLowerCase();
+  const st = useMsg().settings;
   return (
     <View
       accessibilityRole="radiogroup"
@@ -144,7 +101,7 @@ function AccentRow({ M, value, onChange }: { M: M; value: string; onChange: (c: 
             key={color}
             onPress={() => { if (!on) onChange(color); }}
             accessibilityRole="radio"
-            accessibilityLabel={`포인트 컬러 ${name}`}
+            accessibilityLabel={st.accentLabel({ name })}
             accessibilityState={{ checked: on, selected: on }}
             style={({ pressed }) => ({ minWidth: 52, alignItems: 'center', gap: 6, opacity: pressed && !on ? 0.6 : 1 })}
           >
@@ -163,52 +120,23 @@ function AccentRow({ M, value, onChange }: { M: M; value: string; onChange: (c: 
   );
 }
 
-/** 정보 표의 한 줄 — 왼쪽 이름표(12.5 보조) · 오른쪽 값(13 먹색) */
-function ColophonRow({ M, label, value, first }: { M: M; label: string; value: string; first?: boolean }) {
-  return (
-    <View
-      accessible
-      accessibilityLabel={`${label}, ${value}`}
-      style={{ flexDirection: 'row', alignItems: 'baseline', paddingVertical: 9, borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line }}
-    >
-      <Text style={{ width: 52, fontSize: 12.5, lineHeight: 18, color: M.sub }}>{label}</Text>
-      <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: M.ink, ...NUM }}>{value}</Text>
-    </View>
-  );
-}
-
-/** 밑줄 글자 링크 */
-function TextLink({ M, label, onPress, hint }: { M: M; label: string; onPress: () => void; hint?: string }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="link"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
-      style={({ pressed }) => ({ minHeight: 24, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-    >
-      <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>{label}</Text>
-    </Pressable>
-  );
-}
-
 /** 저장본 목록 — 고르면 묻고, 되돌리기로 했으면 시트가 내려간 뒤 onRestore(day) */
 function SnapshotList({ M, list, onPick }: { M: M; list: SnapshotInfo[] | null; onPick: (day: string, close: () => void) => void }) {
   const dismiss = useSheetDismiss();
+  const st = useMsg().settings;
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-      <SheetHead M={M} title="저장본" body="최근 7일, 하루 한 번 저절로 남겨요. 고르면 그날의 기록으로 되돌려요." />
+      <SheetHead M={M} title={st.snapTitle} body={st.snapBody} />
       {list === null ? (
-        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, paddingVertical: 14 }}>저장본을 찾는 중이에요</Text>
+        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, paddingVertical: 14 }}>{st.snapLoading}</Text>
       ) : list.length === 0 ? (
         <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, paddingVertical: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
-          아직 남은 저장본이 없어요. 하루 중 처음 기록할 때 한 벌씩 남겨요.
+          {st.snapEmpty}
         </Text>
       ) : (
         list.map((s, i) => {
-          const title = `${fmtDateLong(s.day)} 저장본`;
-          const sub = `채운 칸 ${s.summary.filled} · 기록 ${s.summary.days}일`;
+          const title = st.snapRow({ date: fmtDateLong(s.day) });
+          const sub = st.snapRowSub({ n: s.summary.filled, days: s.summary.days });
           return (
             <LineRow
               key={s.day}
@@ -219,7 +147,7 @@ function SnapshotList({ M, list, onPick }: { M: M; list: SnapshotInfo[] | null; 
               sub={sub}
               right="chevron"
               accessibilityLabel={`${title}, ${sub}`}
-              accessibilityHint="이 저장본으로 되돌리기"
+              accessibilityHint={st.snapHint}
               onPress={() => onPick(s.day, () => dismiss(true))}
             />
           );
@@ -230,9 +158,10 @@ function SnapshotList({ M, list, onPick }: { M: M; list: SnapshotInfo[] | null; 
 }
 
 function LicenseList({ M }: { M: M }) {
+  const st = useMsg().settings;
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-      <SheetHead M={M} title="오픈소스 라이선스" body="이 앱은 아래 오픈소스를 쓰고 있어요." />
+      <SheetHead M={M} title={st.licenses} body={st.licensesBody} />
       {LICENSES.map((l, i) => (
         <LineRow key={l.name} M={M} first={i === 0} last={i === LICENSES.length - 1} title={l.name} right={l.license} accessibilityLabel={`${l.name}, ${l.license}`} />
       ))}
@@ -243,8 +172,13 @@ function LicenseList({ M }: { M: M }) {
 export function Settings() {
   const M = usePalette();
   const { go, back, openEditor, showToast } = useUIActions();
-  const { doc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, listSnapshots, readSnapshot } = useMandarat();
+  const { doc, getDoc, setSetting, loadSample, applyTemplate, resetAll, replaceDoc, listSnapshots, readSnapshot } = useMandarat();
   const offerUndo = useSnapshotUndo();
+  const offerResetUndo = useResetUndo();
+  const m = useMsg();
+  const st = m.settings;
+  // 켜짐만 본다 — 맞추기 단계가 바뀔 때마다 설정 화면 전체가 다시 그려지지 않게(R-8 #9)
+  const storage = storageText(st, useSyncEnabled());
 
   const [importing, setImporting] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -271,19 +205,15 @@ export function Settings() {
     // 템플릿은 영역·실천만 바꾸고, 적어 둔 핵심 목표는 그대로 둔다(비어 있을 때만 템플릿 목표)
     applyTemplate(d.centerGoal.trim() ? '' : t.centerGoal, templateThemes(t));
     go('grid');
-    offerUndo(`‘${t.name}’ 템플릿으로 바꿨어요`, snapshot);
-  }, [applyTemplate, go, offerUndo]);
+    offerUndo(st.templateDone({ name: t.name }), snapshot);
+  }, [applyTemplate, go, offerUndo, st]);
 
   const pickTemplate = (t: Template, close: () => void) => {
     tap();
     const proceed = () => { pendingTemplate.current = t; close(); };
     const { filled } = summarize(doc);
     if (filled > 0 || goal) {
-      ask(
-        '템플릿으로 바꿀까요?',
-        `지금 적어 둔 실천 ${filled}개와 오늘 할 일이 지워지고, 영역 8개가 ‘${t.name}’ 영역으로 바뀌어요. 핵심 목표와 지난 기록은 그대로예요. 바꾼 직후에는 되돌릴 수 있어요.`,
-        '바꾸기', proceed, true,
-      );
+      ask(st.templateAskTitle, st.templateAskBody({ n: filled, name: t.name }), st.templateAskOk, proceed, true);
     } else proceed();
   };
 
@@ -305,26 +235,20 @@ export function Settings() {
 
   const pickSnapshot = (day: string, close: () => void) => {
     tap();
-    ask(
-      '이 저장본으로 되돌릴까요?',
-      '지금 기록이 이 저장본으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.',
-      '되돌리기',
-      () => { pendingSnap.current = day; close(); },
-      true,
-    );
+    ask(st.snapAskTitle, st.snapAskBody, st.snapAskOk, () => { pendingSnap.current = day; close(); }, true);
   };
 
   const restoreSnapshot = useCallback(async (day: string) => {
     const saved = await readSnapshot(day);
     if (!saved) {
-      showToast('저장본을 읽지 못했어요');
+      showToast(st.snapReadFail);
       return;
     }
     const snapshot = docRef.current; // 되돌리기용
     // 보기 설정(종이·포인트 컬러·마지막 백업 날)은 지금 것을 그대로 둔다 — 되돌리는 건 기록이다
     replaceDoc({ ...saved, settings: snapshot.settings });
-    offerUndo(`${fmtDateLong(day)} 저장본으로 되돌렸어요`, snapshot);
-  }, [readSnapshot, replaceDoc, offerUndo, showToast]);
+    offerUndo(st.snapRestored({ date: fmtDateLong(day) }), snapshot);
+  }, [readSnapshot, replaceDoc, offerUndo, showToast, st]);
 
   const onSnapSheetClosed = () => {
     setSnapsOpen(false);
@@ -337,22 +261,23 @@ export function Settings() {
   const doSample = () => {
     const snapshot = doc;
     loadSample();
-    offerUndo('예시로 채웠어요', snapshot);
+    offerUndo(st.sampleDone, snapshot);
   };
   const confirmSample = () => {
     tap();
     if (summarize(doc).filled === 0) { doSample(); return; }
-    ask('예시로 채울까요?', '지금 적어 둔 영역과 실천이 예시로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.', '채우기', doSample);
+    ask(st.sampleAskTitle, st.sampleAskBody, st.sampleAskOk, doSample);
   };
 
   const doReset = () => {
-    const snapshot = doc; // 되돌리기용 직전 상태
+    // 되돌리기용 직전 상태 — 저장소의 지금 문서(초기화가 기억한 것과 같은 객체여야 맞추기 판까지 거둔다)
+    const snapshot = getDoc();
     resetAll();
-    offerUndo('모든 기록을 지웠어요', snapshot);
+    offerResetUndo(st.resetDone, snapshot);
   };
   const confirmReset = () => {
     tap();
-    ask('모든 기록을 지울까요?', '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.', '지우기', doReset, true);
+    ask(st.resetAskTitle, st.resetAskBody, st.resetAskOk, doReset, true);
   };
 
   // ── 백업 ──
@@ -362,106 +287,119 @@ export function Settings() {
     setExporting(true);
     const ok = await exportBackup(doc, new Date(), (day) => setSetting('lastBackupAt', day));
     setExporting(false);
-    if (Platform.OS === 'web') showToast(ok ? '백업 파일을 저장했어요' : '이 브라우저에서는 저장할 수 없어요');
+    if (Platform.OS === 'web') showToast(ok ? st.exportSaved : st.exportWebFail);
     // 안드로이드는 공유 창을 닫아도 '공유됨'으로 알려 오므로 iOS에서만 완료를 알린다
-    else if (Platform.OS === 'ios' && ok) showToast('백업을 내보냈어요');
+    else if (Platform.OS === 'ios' && ok) showToast(st.exportDone);
   };
 
   const openLink = (url: string) => {
     tap();
-    Linking.openURL(url).catch(() => showToast('열 수 없어요'));
+    Linking.openURL(url).catch(() => showToast(st.openFail));
   };
   const mailto = supportMailto();
 
   return (
     <View onAccessibilityEscape={back}>
       {/* 제목은 뒤로 가기 아래 줄에 — 다른 화면처럼 20pt 왼쪽 끝에서 시작한다 */}
-      <Header M={M} kr="설정" onBack={back} focusTitle stacked />
+      <Header M={M} kr={st.screenTitle} onBack={back} focusTitle stacked backTestID={TID.setBack} />
 
       <View style={{ paddingHorizontal: 20 }}>
-        <Section M={M} label="핵심 목표" />
+        <Section M={M} label={st.secGoal} />
         <Pressable
           onPress={() => { tap(); openEditor({ kind: 'center' }); }}
+          testID={TID.setGoal}
           accessibilityRole="button"
-          accessibilityLabel={goal ? `핵심 목표, ${goal}` : '핵심 목표를 정해 주세요'}
-          accessibilityHint="고치기"
+          accessibilityLabel={goal ? st.goalLabel({ goal }) : st.goalEmpty}
+          accessibilityHint={st.goalHint}
           style={({ pressed }) => [rowBase(M, true, true), pressed ? pressedRow(M) : null]}
         >
           <Text style={{ flex: 1, ...TYPE.rowTitle, color: goal ? M.ink : M.sub }} numberOfLines={2}>
-            {goal || '핵심 목표를 정해 주세요'}
+            {goal || st.goalEmpty}
           </Text>
           <Icon name="chevR" size={16} color={M.faint} />
         </Pressable>
 
-        <Section M={M} label="보기" />
-        <SubHead M={M} label="종이" first />
+        <Section M={M} label={st.secView} />
+        <SubHead M={M} label={st.subPaper} first />
         <View accessibilityRole="radiogroup">
-          {MOOD_OPTS.map((mood, i) => (
+          {MOOD_OPTS.map(({ mood, name }, i) => (
             <RadioRow
               key={mood}
               M={M}
-              label={MOOD_LABEL[mood]}
-              a11yLabel={`종이 ${MOOD_LABEL[mood]}`}
+              label={name(m.core)}
+              a11yLabel={st.paperLabel({ name: name(m.core) })}
               on={doc.settings.mood === mood}
               first={i === 0}
               last={i === MOOD_OPTS.length - 1}
               onPress={() => { select(); setSetting('mood', mood); }}
               lead={<PaperSwatch M={M} mood={mood} />}
+              testID={TID.setMood(mood)}
             />
           ))}
         </View>
 
-        <SubHead M={M} label="포인트 컬러" />
+        <SubHead M={M} label={st.subAccent} />
         <AccentRow M={M} value={doc.settings.accent} onChange={(c) => { select(); setSetting('accent', c); }} />
 
-        <SubHead M={M} label="칸 모서리" />
+        <SubHead M={M} label={st.subShape} />
         <View accessibilityRole="radiogroup">
-          {SHAPE_OPTS.map((shape, i) => (
+          {SHAPE_OPTS.map(({ shape, name }, i) => (
             <RadioRow
               key={shape}
               M={M}
-              label={SHAPE_LABEL[shape]}
-              a11yLabel={`칸 모서리 ${SHAPE_LABEL[shape]}`}
+              label={name(m.core)}
+              a11yLabel={st.shapeLabel({ name: name(m.core) })}
               on={doc.settings.cellShape === shape}
               first={i === 0}
               last={i === SHAPE_OPTS.length - 1}
               onPress={() => { select(); setSetting('cellShape', shape); }}
+              testID={TID.setShape(shape)}
             />
           ))}
         </View>
+        <PaperRows M={M} />
+
+        <LanguageSection M={M} />
+        <NotifySection M={M} />
+        <SyncSection M={M} />
 
         {/* 기록 — 안전한 백업 줄과 통째로 새로 쓰는 줄을 떼어 둔다. 저장 위치 안내는 백업 바로 아래에 */}
-        <Section M={M} label="기록" />
-        <SubHead M={M} label="백업" first />
+        <Section M={M} label={st.secRecords} />
+        <SubHead M={M} label={st.subBackup} first />
         <LineRow
-          M={M} first title="백업 내보내기"
+          M={M} first title={st.exportTitle}
           sub={backupAgeLabel(doc.settings.lastBackupAt, new Date())}
           right="chevron"
-          accessibilityLabel="백업 내보내기"
-          accessibilityHint={`${backupAgeLabel(doc.settings.lastBackupAt, new Date())}. 기록을 파일로 내보내요`}
+          accessibilityLabel={st.exportTitle}
+          accessibilityHint={st.exportHint({ age: backupAgeLabel(doc.settings.lastBackupAt, new Date()) })}
           onPress={onExport}
+          testID={TID.setExport}
         />
-        <LineRow M={M} title="백업 불러오기" sub="내보낸 백업으로 기록을 되살려요" right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel="백업 불러오기" pressRef={importRow} />
-        <LineRow M={M} last title="저장본" sub="최근 7일, 하루 한 번 저절로 남겨요" right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel="저장본" accessibilityHint="최근 7일, 하루 한 번 저절로 남겨요" />
+        <LineRow M={M} title={st.importTitle} sub={st.importSub} right="chevron" onPress={() => { tap(); setImporting(true); }} accessibilityLabel={st.importTitle} pressRef={importRow} testID={TID.setImport} />
+        <LineRow M={M} last title={st.snapTitle} sub={st.snapSub} right="chevron" onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel={st.snapTitle} accessibilityHint={st.snapSub} testID={TID.setSnapshots} />
         <Text style={{ marginTop: 10, fontSize: 12.5, lineHeight: 18, color: M.sub }}>
-          {STORAGE_NOTE}
+          {storage.note}
         </Text>
+        <YearRows M={M} />
 
-        <SubHead M={M} label="새로 시작" />
-        <LineRow M={M} first title="템플릿으로 새로 쓰기" sub={`템플릿 ${TEMPLATES.length}가지 중에서 골라요`} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel="템플릿으로 새로 쓰기" pressRef={templateRow} />
-        <LineRow M={M} title="예시로 채우기" sub="8개 영역 · 64칸 실천 예시를 채워요" right="chevron" onPress={confirmSample} accessibilityLabel="예시로 채우기" />
-        <LineRow M={M} last danger title="전체 초기화" sub="모든 목표와 기록을 지워요" onPress={confirmReset} accessibilityLabel="전체 초기화" accessibilityHint="모든 목표와 기록을 지워요" />
+        <SubHead M={M} label={st.subRestart} />
+        <LineRow M={M} first title={st.templateRow} sub={st.templateRowSub({ n: TEMPLATES.length })} right="chevron" onPress={() => { tap(); setPicking(true); }} accessibilityLabel={st.templateRow} pressRef={templateRow} testID={TID.setTemplate} />
+        <LineRow M={M} title={st.sampleRow} sub={st.sampleRowSub} right="chevron" onPress={confirmSample} accessibilityLabel={st.sampleRow} testID={TID.setSample} />
+        <LineRow M={M} last danger title={st.resetRow} sub={st.resetRowSub} onPress={confirmReset} accessibilityLabel={st.resetRow} accessibilityHint={st.resetRowSub} testID={TID.setReset} />
 
-        <Section M={M} label="정보" />
-        <ColophonRow M={M} first label="이름" value="만다라트" />
-        <ColophonRow M={M} label="판" value={APP_VERSION} />
-        <ColophonRow M={M} label="서체" value="Pretendard · SIL OFL 1.1" />
-        <ColophonRow M={M} label="저장 위치" value={STORAGE_PLACE} />
+        <ProSection M={M} />
+
+        <Section M={M} label={st.secInfo} />
+        <ColophonRow M={M} first label={st.colName} value={st.appName} />
+        <ColophonRow M={M} label={st.colVersion} value={APP_VERSION} />
+        <ColophonRow M={M} label={st.colFont} value={st.colFontValue} />
+        <ColophonRow M={M} label={st.colPlace} value={storage.place} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 8, marginTop: 14 }}>
-          {!!PRIVACY_URL && <TextLink M={M} label="개인정보 처리방침" onPress={() => openLink(PRIVACY_URL)} />}
-          {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label="문의하기" hint="메일 앱이 열려요" onPress={() => openLink(mailto)} />}
-          <TextLink M={M} label="오픈소스 라이선스" onPress={() => { tap(); setLicensesOpen(true); }} />
+          {!!PRIVACY_URL && <TextLink M={M} label={st.privacy} onPress={() => openLink(privacyLink(lang()))} />}
+          {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label={st.contact} hint={st.contactHint} onPress={() => openLink(mailto)} />}
+          <TextLink M={M} label={st.licenses} onPress={() => { tap(); setLicensesOpen(true); }} />
         </View>
+        <CrashRow M={M} />
         {/* 판권면 아래 작은 인쇄소 표 — 타일·가운데 영웅 없이 왼쪽 아래에 */}
         <View style={{ marginTop: 24, marginBottom: 8 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <GridMark size={16} color={GOLD} />

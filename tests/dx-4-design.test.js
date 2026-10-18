@@ -25,7 +25,7 @@ test('D-14: 탭바의 지금 탭 표시는 윗 괘선 위가 아니라 탭바 �
 });
 
 test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 10주 칸은 오른쪽 끝까지', () => {
-  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr="설정" onBack=\{back\} focusTitle stacked \/>/);
+  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr=\{st\.screenTitle\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);
   const charts = src('src/components/StatsCharts.tsx');
   assert.match(charts, /const labelW = Math\.max\(HEAT_LABEL_W, Math\.floor\(width\) - cell \* map\.cols\.length - HEAT_GAP \* \(map\.cols\.length - 1\)\);/);
   assert.doesNotMatch(charts, /width: HEAT_LABEL_W/);
@@ -44,7 +44,7 @@ test('D-20: 달성한 칸이 없으면 닳은 자리 표에 0%를 찍지 않는�
   assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 2, '영역 이름표 % · 가운데 %');
   assert.match(charts, /accessibilityLabel=\{`\$\{name\} \$\{p\.pct\}%/);
   const stats = src('src/screens/Stats.tsx');
-  assert.match(stats, /caption=\{hasData \? streakCaption\(streak, todayHas\) : ''\}/);
+  assert.match(stats, /caption=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);
 });
 
 test('D-24: 닳은 자리 범례 견본의 밝기가 실제 칸(영역 색) 범위에 든다 — 다크의 5+가 흰 가운데 칸처럼 보이지 않는다', () => {
@@ -74,9 +74,9 @@ test('D-31: 설정 › 기록 — 백업 묶음(+저장 위치 안내)과 새로
     return i;
   };
   const order = [
-    '<Section M={M} label="기록" />', '<SubHead M={M} label="백업" first />', 'title="백업 내보내기"', 'title="백업 불러오기"',
-    'last title="저장본"', '{STORAGE_NOTE}', '<SubHead M={M} label="새로 시작" />', 'first title="템플릿으로 새로 쓰기"',
-    'title="예시로 채우기"', 'last danger title="전체 초기화"', '<Section M={M} label="정보" />',
+    '<Section M={M} label={st.secRecords} />', '<SubHead M={M} label={st.subBackup} first />', 'title={st.exportTitle}', 'title={st.importTitle}',
+    'last title={st.snapTitle}', '{storage.note}', '<SubHead M={M} label={st.subRestart} />', 'first title={st.templateRow}',
+    'title={st.sampleRow}', 'last danger title={st.resetRow}', '<Section M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
 });
@@ -85,13 +85,17 @@ test('D-32: 백업 불러오기 — 파일에서 읽으면 붙여 넣기 칸 대
   const s = src('src/overlays/BackupImport.tsx');
   assert.match(s, /\{fromFile \? \(\s*<FileRow M=\{M\} name=\{fromFile\.name\} onPaste=\{toPaste\} \/>/);
   assert.match(s, /takeFile\(await picked\.result\.text\(\), picked\.result\.name\)/);
-  assert.match(s, /<SheetHead M=\{M\} title="백업 불러오기" body="지금 기록이 백업 내용으로 바뀌어요\. 바꾼 직후에는 되돌릴 수 있어요\." \/>/);
+  assert.match(s, /<SheetHead M=\{M\} title=\{b\.sheetTitle\} body=\{b\.sheetBody\} \/>/);
+  const kb = require('../src/i18n/ko/backup').default;
+  assert.equal(kb.sheetTitle, '백업 불러오기');
+  assert.equal(kb.sheetBody, '지금 기록이 백업 내용으로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.');
   assert.doesNotMatch(s, /fontSize: 20, lineHeight: 26/);
   // 붙여 넣기로 돌아가면 읽은 글을 비운다
   assert.match(s, /const toPaste = useCallback\(\(\) => \{[\s\S]{0,120}setFromFile\(null\);\s*setText\(''\);\s*setSettled\(''\);/);
   // 같은 머리를 템플릿 고르기·설정 시트가 함께 쓴다
   const sheet = src('src/components/TemplateSheet.tsx');
   assert.match(sheet, /export function SheetHead\(/);
-  assert.match(sheet, /<SheetHead M=\{M\} title="템플릿 고르기"/);
+  assert.match(sheet, /<SheetHead M=\{M\} title=\{ed\.templateTitle\} body=\{ed\.templateBody\} \/>/);
+  assert.equal(require('../src/i18n/ko/editor').default.templateTitle, '템플릿 고르기');
   assert.match(src('src/screens/Settings.tsx'), /import \{ SheetHead, TemplateSheet \} from '\.\.\/components\/TemplateSheet';/);
 });

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { WebColumn } from '../components/WebColumn';
+import { PaperColumn } from '../components/WebColumn';
+import { MODAL_ORIENTATIONS } from '../lib/screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../components/AppText';
 import { PaperDots } from '../components/PaperDots';
@@ -11,8 +12,9 @@ import { useUIActions, useUIState } from '../navigation/ui';
 import { useDoc, overallStreak } from '../store/MandaratContext';
 import { fmtDateLong } from '../lib/text';
 import { announce } from '../lib/useReducedMotion';
+import { TID } from '../lib/testIds';
+import { useMsg } from '../i18n/react';
 
-const TITLE = '64칸을 모두 달성했어요';
 /** 왼쪽 여백 — 종이 페이지 한 장의 여백 */
 const GUTTER = 24;
 
@@ -32,16 +34,18 @@ function FinalePage() {
   const insets = useSafeAreaInsets();
   const { closeCelebrate } = useUIActions();
   const { doc } = useDoc();
+  const m = useMsg();
+  const title = m.sheet.finaleTitle;
   const streak = overallStreak(doc);
   const goal = doc.centerGoal.trim();
 
   useEffect(() => {
-    announce(TITLE);
-  }, []);
+    announce(title);
+  }, [title]);
 
   return (
-    <Modal visible animationType="fade" onRequestClose={closeCelebrate} statusBarTranslucent>
-      <WebColumn bg={M.bg} edge={M.line}>
+    <Modal visible animationType="fade" onRequestClose={closeCelebrate} statusBarTranslucent supportedOrientations={MODAL_ORIENTATIONS}>
+      <PaperColumn bg={M.bg} edge={M.line}>
       <View style={{ flex: 1, backgroundColor: M.bg }}>
         <PaperDots M={M} offsetY={insets.top} />
         {/* 어디를 눌러도 닫힌다 — 화면 읽기는 아래 '닫기' 버튼으로 */}
@@ -60,16 +64,16 @@ function FinalePage() {
               numberOfLines={1}
               adjustsFontSizeToFit
               maxFontSizeMultiplier={1.2}
-              accessibilityLabel="64칸 중 64칸"
+              accessibilityLabel={m.sheet.finaleCountA11y}
             >
               64/64
             </Text>
             <Text accessibilityRole="header" style={{ marginTop: 10, fontSize: 22, lineHeight: 30, fontWeight: '800', color: M.ink }}>
-              {TITLE}
+              {title}
             </Text>
             {!!goal && (
               <Text style={{ marginTop: 6, fontSize: 15, lineHeight: 22, color: M.sub }} numberOfLines={3}>
-                {`핵심 목표 · ${goal}`}
+                {m.sheet.finaleGoal({ goal })}
               </Text>
             )}
 
@@ -79,7 +83,7 @@ function FinalePage() {
 
             {streak > 0 && (
               <Text style={{ marginTop: 16, fontSize: 14, lineHeight: 20, fontWeight: '600', color: M.sub, ...NUM }}>
-                {`연속 ${streak}일째`}
+                {m.sheet.finaleStreak({ n: streak })}
               </Text>
             )}
           </View>
@@ -88,16 +92,17 @@ function FinalePage() {
 
           <Pressable
             onPress={closeCelebrate}
+            testID={TID.celebrateClose}
             accessibilityRole="button"
-            accessibilityLabel="닫기"
+            accessibilityLabel={m.common.close}
             hitSlop={8}
             style={({ pressed }) => ({ alignSelf: 'flex-start', minHeight: 44, minWidth: 44, justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: M.ink }}>닫기</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: M.ink }}>{m.common.close}</Text>
           </Pressable>
         </View>
       </View>
-      </WebColumn>
+      </PaperColumn>
     </Modal>
   );
 }

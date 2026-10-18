@@ -1,129 +1,175 @@
 // Default scaffold + an optional rich sample (loadable from Settings).
 import {
-  ICON_NAMES, type Action, type ActionKind, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood, type Settings, type Theme, type TodayExtra,
-  type WeekReviewEntry,
+  ICON_NAMES, type Action, type ActionKind, type ArchivedChart, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood,
+  type PaperPattern, type Reminders, type Settings, type Theme, type TodayExtra, type WeekReviewEntry,
 } from '../types';
 import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 import { KINDS, normalizeDays, normalizePerWeek, ymd } from '../lib/routine';
 import { MAX_NUM, cleanNum, cleanUnit } from '../lib/kinds';
+import { LANGS, lang, msg, type Lang, type Messages } from '../i18n';
 
 export const CENTER_EN = 'My Best Self';
 
-interface ThemeSeed {
-  title: string;
+/** 비상금 칸 — 원 · 엔 · 달러로 자연스러운 목표 */
+const MONEY = { ko: 300, ja: 30, en: 2000 } as const;
+
+/** 한 영역 자리 — 색과 아이콘은 자리마다 고정, 이름과 예시 글은 언어마다(msg().seeds) */
+interface SlotSeed {
   color: string;
   icon: Theme['icon'];
   sample: SampleAction[];
 }
 
-/** 예시 칸 — 유형별 값과, 마감은 오늘부터 며칠 뒤(dueIn)로 */
+/** 언어마다 다른 수 — 비상금처럼 돈의 단위가 바뀌면 목표 수도 바뀐다 */
+type PerLang = number | Readonly<Record<Lang, number>>;
+
+/** 예시 칸 — 유형별 값과, 마감은 오늘부터 며칠 뒤(dueIn)로. 글과 단위는 seeds.s<영역><칸> · seeds.unit<영역><칸> */
 interface SampleAction {
-  kr: string;
   done?: boolean;
   kind?: ActionKind;
   days?: number[];
   perWeek?: number;
-  goal?: number;
-  unit?: string;
-  count?: number;
+  goal?: PerLang;
+  count?: PerLang;
   dueIn?: number;
   /** 마음가짐: 지난 몇 주의 점수(오래된 주 → 지난주) */
   rated?: number[];
 }
 
-// The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable.
-export const THEME_SEEDS: ThemeSeed[] = [
+const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6];
+
+// The 8 pillars: positional color + icon are fixed per slot; titles & actions are editable (text: msg().seeds).
+const SLOTS: readonly SlotSeed[] = [
   {
-    title: '건강', color: PILLAR_COLORS[0], icon: 'heart',
+    color: PILLAR_COLORS[0], icon: 'heart',
     sample: [
-      { kr: '주 3회 운동', kind: 'habit', perWeek: 3 }, { kr: '하루 물 2L', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '11시 취침', kind: 'habit', days: [0, 1, 2, 3, 4] },
-      { kr: '1만보 걷기', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '단 음식 줄이기' }, { kr: '정기 건강검진', done: true },
-      { kr: '스트레칭 10분', done: true, days: [1, 2, 3, 4, 5] }, { kr: '야식 끊기' },
+      { kind: 'habit', perWeek: 3 }, { done: true, days: EVERY_DAY }, { kind: 'habit', days: [0, 1, 2, 3, 4] },
+      { done: true, days: EVERY_DAY }, {}, { done: true },
+      { done: true, days: [1, 2, 3, 4, 5] }, {},
     ],
   },
   {
-    title: '커리어', color: PILLAR_COLORS[1], icon: 'briefcase',
+    color: PILLAR_COLORS[1], icon: 'briefcase',
     sample: [
-      { kr: '사이드 프로젝트', done: true }, { kr: '발표 1회' }, { kr: '멘토 찾기', done: true },
-      { kr: '이력서 갱신', dueIn: 2 }, { kr: '새 기술 1개', done: true }, { kr: '업계 네트워킹' },
-      { kr: '성과 기록' }, { kr: '자격증 취득', dueIn: 45 },
+      { done: true }, {}, { done: true },
+      { dueIn: 2 }, { done: true }, {},
+      {}, { dueIn: 45 },
     ],
   },
   {
-    title: '자기계발', color: PILLAR_COLORS[2], icon: 'book',
+    color: PILLAR_COLORS[2], icon: 'book',
     sample: [
-      { kr: '책 12권 읽기', kind: 'count', goal: 12, unit: '권', count: 7 }, { kr: '온라인 강의', done: true }, { kr: '영어 회화', kind: 'habit', perWeek: 2 },
-      { kr: '아침 글쓰기', done: true, days: [1, 3, 5] }, { kr: '새 언어 배우기' }, { kr: '다큐 시청', done: true },
-      { kr: '메모 정리' }, { kr: '강연 참석' },
+      { kind: 'count', goal: 12, count: 7 }, { done: true }, { kind: 'habit', perWeek: 2 },
+      { done: true, days: [1, 3, 5] }, {}, { done: true },
+      {}, {},
     ],
   },
   {
-    title: '관계', color: PILLAR_COLORS[3], icon: 'people',
+    color: PILLAR_COLORS[3], icon: 'people',
     sample: [
-      { kr: '부모님 주 1통화', done: true, kind: 'habit', perWeek: 1 }, { kr: '친구 모임' }, { kr: '감사 표현하기', kind: 'mind', rated: [2, 3, 3, 4] },
-      { kr: '데이트 나이트' }, { kr: '새 친구 사귀기' }, { kr: '손편지 쓰기' },
-      { kr: '경청 연습', kind: 'mind', rated: [3, 2, 4] }, { kr: '봉사활동' },
+      { done: true, kind: 'habit', perWeek: 1 }, {}, { kind: 'mind', rated: [2, 3, 3, 4] },
+      {}, {}, {},
+      { kind: 'mind', rated: [3, 2, 4] }, {},
     ],
   },
   {
-    title: '재정', color: PILLAR_COLORS[4], icon: 'coin',
+    color: PILLAR_COLORS[4], icon: 'coin',
     sample: [
-      { kr: '가계부 쓰기', done: true, days: [0] }, { kr: '비상금 300만 원', done: true, kind: 'count', goal: 300, unit: '만 원', count: 300 }, { kr: '투자 공부' },
-      { kr: '구독 정리', done: true }, { kr: '수입 20% 저축' }, { kr: '부수입 만들기' },
-      { kr: '소비 점검' }, { kr: '연금 점검' },
+      { done: true, days: [0] }, { done: true, kind: 'count', goal: MONEY, count: MONEY }, {},
+      { done: true }, {}, {},
+      {}, {},
     ],
   },
   {
-    title: '취미', color: PILLAR_COLORS[5], icon: 'palette',
+    color: PILLAR_COLORS[5], icon: 'palette',
     sample: [
-      { kr: '사진 찍기', done: true }, { kr: '요리 10가지', done: true, kind: 'count', goal: 10, unit: '가지', count: 10 }, { kr: '악기 배우기' },
-      { kr: '그림 그리기', done: true }, { kr: '등산 가기' }, { kr: '식물 키우기', done: true },
-      { kr: '보드게임' }, { kr: '캠핑 가기' },
+      { done: true }, { done: true, kind: 'count', goal: 10, count: 10 }, {},
+      { done: true }, {}, { done: true },
+      {}, {},
     ],
   },
   {
-    title: '마음챙김', color: PILLAR_COLORS[6], icon: 'lotus',
+    color: PILLAR_COLORS[6], icon: 'lotus',
     sample: [
-      { kr: '명상 10분', done: true, days: [0, 1, 2, 3, 4, 5, 6] }, { kr: '감사일기', done: true }, { kr: '디지털 디톡스' },
-      { kr: '호흡 연습', done: true }, { kr: '산책하기', done: true }, { kr: '일기 쓰기' },
-      { kr: '요가', done: true }, { kr: '감정 체크', kind: 'mind' },
+      { done: true, days: EVERY_DAY }, { done: true }, {},
+      { done: true }, { done: true }, {},
+      { done: true }, { kind: 'mind' },
     ],
   },
   {
-    title: '모험', color: PILLAR_COLORS[7], icon: 'compass',
+    color: PILLAR_COLORS[7], icon: 'compass',
     sample: [
-      { kr: '새 도시 3곳', done: true, kind: 'count', goal: 3, unit: '곳', count: 3 }, { kr: '혼자 여행' }, { kr: '번지점프' },
-      { kr: '콘서트 가기' }, { kr: '새 음식 도전' }, { kr: '일출 보기' },
-      { kr: '외국어 대화' }, { kr: '별 보기 캠핑' },
+      { done: true, kind: 'count', goal: 3, count: 3 }, {}, {},
+      {}, {}, {},
+      {}, {},
     ],
   },
 ];
+
+const perLang = (v: PerLang | undefined, l: Lang): number | undefined => (typeof v === 'object' ? v[l] : v);
+const seedText = (s: Messages['seeds'], key: string): string => (s as Readonly<Record<string, string>>)[key] ?? '';
+
+/** 그 언어의 기본 영역 이름 8개 */
+export function seedTitles(l: Lang = lang()): string[] {
+  const s = msg(l).seeds;
+  return SLOTS.map((_, i) => seedText(s, `area${i}`));
+}
+
+/** 그 언어의 '예시로 채우기' 목표 */
+export function sampleGoal(l: Lang = lang()): string {
+  return msg(l).seeds.sampleGoal;
+}
+
+/** 예시 칸 하나의 그 언어 글 · 쌓기 단위 · 목표 · 지금 수 — 언어를 바꿀 때(relocalize) 견주는 값 */
+export interface SampleCell { text: string; unit?: string; goal?: number; count?: number }
+
+export function sampleCell(ti: number, ai: number, l: Lang = lang()): SampleCell | undefined {
+  const a = SLOTS[ti]?.sample[ai];
+  if (!a) return undefined;
+  const s = msg(l).seeds;
+  const text = seedText(s, `s${ti}${ai}`);
+  if (a.kind !== 'count') return { text };
+  const unit = seedText(s, `unit${ti}${ai}`);
+  return { text, ...(unit ? { unit } : {}), goal: perLang(a.goal, l), count: perLang(a.count, l) ?? 0 };
+}
+
+/** 자리별 색 · 아이콘과 지금 언어의 기본 이름 — tools/store-shots가 색과 아이콘을 읽는다 */
+export const THEME_SEEDS: readonly { readonly title: string; readonly color: string; readonly icon: Theme['icon'] }[] = SLOTS.map((s, i) => ({
+  get title() { return seedTitles()[i]; },
+  color: s.color,
+  icon: s.icon,
+}));
 
 function emptyActions(): Action[] {
   return Array.from({ length: 8 }, () => ({ text: '', note: '', done: false }));
 }
 
-/** Themes with the 8-pillar names filled in but actions left blank for the user. */
-export function scaffoldThemes(): Theme[] {
-  return THEME_SEEDS.map((s) => ({
-    title: s.title, color: s.color, icon: s.icon, actions: emptyActions(),
+/** Themes with the 8-pillar names filled in (in the app language) but actions left blank for the user. */
+export function scaffoldThemes(l: Lang = lang()): Theme[] {
+  const titles = seedTitles(l);
+  return SLOTS.map((s, i) => ({
+    title: titles[i], color: s.color, icon: s.icon, actions: emptyActions(),
   }));
 }
 
-/** Themes fully populated from the sample (for "예시로 채우기"). 마감은 today 기준으로 정한다. */
-export function sampleThemes(today = new Date()): Theme[] {
-  return THEME_SEEDS.map((s) => ({
-    title: s.title, color: s.color, icon: s.icon,
-    actions: s.sample.map((a): Action => ({
-      text: a.kr, note: '', done: !!a.done,
-      ...(a.kind ? { kind: a.kind } : {}),
-      ...(a.days ? { days: a.days } : {}),
-      ...(a.perWeek ? { perWeek: a.perWeek } : {}),
-      ...(a.kind === 'count' ? { goal: a.goal, count: a.count ?? 0, ...(a.unit ? { unit: a.unit } : {}) } : {}),
-      ...(a.dueIn !== undefined ? { due: ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + a.dueIn)) } : {}),
-      ...(a.rated ? { ratings: pastWeeks(today, a.rated) } : {}),
-    })),
+/** Themes fully populated from the sample (for "예시로 채우기") in the app language. 마감은 today 기준으로 정한다. */
+export function sampleThemes(today = new Date(), l: Lang = lang()): Theme[] {
+  const titles = seedTitles(l);
+  return SLOTS.map((s, ti) => ({
+    title: titles[ti], color: s.color, icon: s.icon,
+    actions: s.sample.map((a, ai): Action => {
+      const cell = sampleCell(ti, ai, l) as SampleCell;
+      return {
+        text: cell.text, note: '', done: !!a.done,
+        ...(a.kind ? { kind: a.kind } : {}),
+        ...(a.days ? { days: a.days } : {}),
+        ...(a.perWeek ? { perWeek: a.perWeek } : {}),
+        ...(a.kind === 'count' ? { goal: cell.goal, count: cell.count ?? 0, ...(cell.unit ? { unit: cell.unit } : {}) } : {}),
+        ...(a.dueIn !== undefined ? { due: ymd(new Date(today.getFullYear(), today.getMonth(), today.getDate() + a.dueIn)) } : {}),
+        ...(a.rated ? { ratings: pastWeeks(today, a.rated) } : {}),
+      };
+    }),
   }));
 }
 
@@ -165,6 +211,18 @@ export const ACTION_KEY_RE = /^[0-7]-[0-7]$/;
  */
 const LOG_KEY_RE = /^[0-7]-(?:[0-7]|x[A-Za-z0-9_-]{1,40})$/;
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+/** 알림 시각 'HH:MM' (24시간) */
+export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** 종이 무늬(프로) — 없으면 점 종이 */
+export const PAPER_OPTS: readonly PaperPattern[] = ['grid', 'lines', 'blank'];
+/**
+ * 지난 표의 상한 — 깨진 저장본이 끝없이 커지지 않게 막는 안전장치일 뿐, 평소에는 닿지 않는다.
+ * 지난 표는 사용자가 남긴 기념물이라 조용히 버리지 않는다: 표를 닫을 때(startNewChart)도,
+ * 다른 기기·백업과 합칠 때(cleanArchives · iCloud union)도 이 수까지 모두 남긴다(1년에 한 장이면 수백 년).
+ */
+export const ARCHIVE_KEEP = 200;
+/** 지난 표를 닫으며 적는 한 줄 메모의 글자 수 상한 */
+export const ARCHIVE_NOTE_MAX = 120;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
 const MOOD_OPTS = Object.keys(MOODS) as Mood[];
 const MGMT_OPTS: readonly Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
@@ -259,6 +317,8 @@ function cleanAction(a: Record<string, unknown>): Action {
   const log = cleanDateNums(a.log, (n) => cleanNum(n, 0.01));
   const due = typeof a.due === 'string' && DATE_RE.test(a.due) ? a.due : undefined;
   const ratings = cleanDateNums(a.ratings, (n) => (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 5 ? (n as number) : undefined));
+  // 습관 알림 시각 — 유형과 상관없이 형식이 맞으면 남긴다(다른 유형 값은 남겨 둔다)
+  const remindAt = typeof a.remindAt === 'string' && TIME_RE.test(a.remindAt) ? a.remindAt : undefined;
   return {
     text: typeof a.text === 'string' ? a.text : '',
     note: typeof a.note === 'string' ? a.note : '',
@@ -276,7 +336,41 @@ function cleanAction(a: Record<string, unknown>): Action {
     ...(log ? { log } : {}),
     ...(due ? { due } : {}),
     ...(ratings ? { ratings } : {}),
+    ...(remindAt ? { remindAt } : {}),
   };
+}
+
+/** 8영역 × 8실천 — 손상된 슬롯은 기본 영역으로, 이전 원색은 연꽃 팔레트로, 모르는 아이콘은 슬롯 기본 아이콘으로 */
+export function cleanThemes(raw: unknown): Theme[] {
+  const seed = scaffoldThemes();
+  const rawThemes = Array.isArray(raw) ? raw : [];
+  return seed.map((s, i) => {
+    const t = rawThemes[i];
+    if (!isRecord(t)) return s;
+    const actions = Array.isArray(t.actions) ? t.actions : [];
+    return {
+      title: typeof t.title === 'string' ? t.title : s.title,
+      // 이전 원색 기본 팔레트였다면 연꽃 팔레트로 옮긴다(사용자가 고른 다른 색은 보존)
+      color: typeof t.color === 'string' && HEX_RE.test(t.color) ? migrateAreaColor(t.color) : s.color,
+      // 아는 아이콘만 — 'constructor' 같은 이름이 그대로 그려지면 앱이 멈춘다
+      icon: (ICON_NAMES as readonly unknown[]).includes(t.icon) ? (t.icon as Theme['icon']) : s.icon,
+      actions: s.actions.map((blank, j) => {
+        const a = actions[j];
+        return isRecord(a) ? cleanAction(a) : blank;
+      }),
+    };
+  });
+}
+
+/** 알림 — 'HH:MM'이 맞는 아침·저녁과 참인 돌아보기만. 켠 것이 없으면 undefined(필드를 두지 않는다) */
+export function cleanReminders(v: unknown): Reminders | undefined {
+  if (!isRecord(v)) return undefined;
+  const out: Reminders = {
+    ...(typeof v.morning === 'string' && TIME_RE.test(v.morning) ? { morning: v.morning } : {}),
+    ...(typeof v.evening === 'string' && TIME_RE.test(v.evening) ? { evening: v.evening } : {}),
+    ...(v.review === true ? { review: true as const } : {}),
+  };
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function cleanExtras(v: unknown): TodayExtra[] {
@@ -350,16 +444,67 @@ export function cleanClosedDays(v: unknown): string[] {
   return days.slice(-CLOSED_KEEP);
 }
 
+// ── 지난 표 ──────────────────────────────────────────────────────────────────
+/** from..to 안의 날짜 키만 남긴다 */
+function within<T>(rec: Record<string, T>, from: string, to: string): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const [k, v] of Object.entries(rec)) if (k >= from && k <= to) out[k] = v;
+  return out;
+}
+
+/** 지난 표 한 장 — 아이디·기간이 깨졌으면 버리고(null), 기록은 그 기간 안의 것만, 빈 값은 두지 않는다 */
+function cleanArchive(v: unknown): ArchivedChart | null {
+  if (!isRecord(v) || typeof v.id !== 'string' || !ID_RE.test(v.id)) return null;
+  const { from, to } = v;
+  if (typeof from !== 'string' || typeof to !== 'string' || !DATE_RE.test(from) || !DATE_RE.test(to) || from > to) return null;
+  // 돌아보기 키는 그 주 월요일 — 기간이 걸친 주(월요일이 from보다 6일까지 앞선 주)도 이 표의 주다
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const weekFrom = ymd(new Date(fy, fm - 1, fd - 6));
+  const reviews = within(cleanReviews(v.reviews), weekFrom, to);
+  const closedDays = cleanClosedDays(v.closedDays).filter((d) => d >= from && d <= to);
+  const focus = typeof v.focusMinutes === 'number' && Number.isInteger(v.focusMinutes) && v.focusMinutes >= 0 ? v.focusMinutes + 0 : 0;
+  const note = typeof v.note === 'string' ? Array.from(v.note.trim()).slice(0, ARCHIVE_NOTE_MAX).join('').trim() : '';
+  return {
+    id: v.id,
+    from,
+    to,
+    centerGoal: typeof v.centerGoal === 'string' ? v.centerGoal : '',
+    themes: cleanThemes(v.themes),
+    dayLog: within(cleanDayLog(v.dayLog), from, to),
+    dayMeta: within(cleanDayMeta(v.dayMeta), from, to),
+    ...(Object.keys(reviews).length > 0 ? { reviews } : {}),
+    ...(closedDays.length > 0 ? { closedDays } : {}),
+    focusMinutes: focus,
+    ...(note ? { note } : {}),
+  };
+}
+
+/** 지난 표들 — 아이디가 겹치면 앞의 것만, 닫은 날(to)·아이디 순서로(상한 ARCHIVE_KEEP은 깨진 저장본 대비) */
+export function cleanArchives(v: unknown): ArchivedChart[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: ArchivedChart[] = [];
+  for (const raw of v) {
+    const a = cleanArchive(raw);
+    if (!a || seen.has(a.id)) continue;
+    seen.add(a.id);
+    out.push(a);
+  }
+  out.sort((a, b) => (a.to === b.to ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : a.to < b.to ? -1 : 1));
+  return out.slice(-ARCHIVE_KEEP);
+}
+
 /**
  * 8영역을 정했다고 볼 수 있는가.
  * - 저장된 참/거짓이 있으면 그대로 — 앱을 다시 열어도 시작하기 단계가 저절로 바뀌지 않는다.
  * - 값이 없는 이전 저장본·백업만 짐작한다: 실천이 하나라도 적혀 있거나, 기본 이름과 다른 영역 이름이 있으면(사용자가 고친 것) 참.
+ *   기본 이름은 어느 언어의 것이든(ko · ja · en) 같은 자리의 기본 이름이면 고치지 않은 것으로 본다.
  */
 function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
   if (typeof flag === 'boolean') return flag;
   return themes.some((t, i) => {
     const title = t.title.trim();
-    return (title !== '' && title !== THEME_SEEDS[i]?.title) || t.actions.some((a) => a.text.trim() !== '');
+    return (title !== '' && !LANGS.some((l) => title === seedTitles(l)[i])) || t.actions.some((a) => a.text.trim() !== '');
   });
 }
 
@@ -370,6 +515,8 @@ function deriveAreasSet(flag: unknown, themes: Theme[]): boolean {
  *   아이콘 키는 그대로 둔다('lotus'도 유효 — 그림만 바뀐다).
  * - areasSet은 저장된 참/거짓을 지키고, 값이 없을 때만 적힌 실천·고친 영역 이름으로 짐작한다. reviews는 월요일 키·날짜·칸 키를 검사한다.
  * - settings.lastBackupAt은 날짜 형식일 때만 남긴다. closedDays는 날짜 형식만, 겹치지 않게 최근 400일까지(없으면 필드를 두지 않는다).
+ * - 스키마 4: settings.reminders·paper, action.remindAt, archives·chartStart·focusStart — 값이 있을 때만 필드를 둔다.
+ *   chartStart·focusStart는 오늘 날짜로 짐작하지 않는다. iCloud 봉투 _sync는 문서가 아니라 버린다.
  * - 알 수 없는 필드는 버린다. 향후 스키마 변경 시 parsed.version 으로 분기해 단계적 업그레이드.
  * - 멱등이다: migrate(migrate(x))와 JSON으로 저장했다 읽은 결과가 migrate(x)와 같다(tests/invariants.test.js).
  */
@@ -379,24 +526,7 @@ export function migrate(parsed: unknown): MandaratDoc {
   const p = parsed;
 
   // themes는 항상 8개 슬롯이어야 한다. 손상된 저장본은 슬롯별로 안전하게 보정한다.
-  const seed = scaffoldThemes();
-  const rawThemes = Array.isArray(p.themes) ? p.themes : [];
-  const themes: Theme[] = seed.map((s, i) => {
-    const t = rawThemes[i];
-    if (!isRecord(t)) return s;
-    const actions = Array.isArray(t.actions) ? t.actions : [];
-    return {
-      title: typeof t.title === 'string' ? t.title : s.title,
-      // 이전 원색 기본 팔레트였다면 연꽃 팔레트로 옮긴다(사용자가 고른 다른 색은 보존)
-      color: typeof t.color === 'string' && HEX_RE.test(t.color) ? migrateAreaColor(t.color) : s.color,
-      // 아는 아이콘만 — 'constructor' 같은 이름이 그대로 그려지면 앱이 멈춘다
-      icon: (ICON_NAMES as readonly unknown[]).includes(t.icon) ? (t.icon as Theme['icon']) : s.icon,
-      actions: s.actions.map((blank, j) => {
-        const a = actions[j];
-        return isRecord(a) ? cleanAction(a) : blank;
-      }),
-    };
-  });
+  const themes = cleanThemes(p.themes);
 
   const rs = isRecord(p.settings) ? p.settings : {};
   const settings: Settings = {
@@ -407,12 +537,20 @@ export function migrate(parsed: unknown): MandaratDoc {
     cellShape: pick(rs.cellShape, SHAPE_OPTS, base.settings.cellShape),
     ...(typeof rs.lastBackupAt === 'string' && DATE_RE.test(rs.lastBackupAt) ? { lastBackupAt: rs.lastBackupAt } : {}),
   };
+  const reminders = cleanReminders(rs.reminders);
+  if (reminders) settings.reminders = reminders;
+  // 프로가 없어도 고른 무늬는 남긴다 — 잠금은 화면이 그릴 때 정한다
+  if (PAPER_OPTS.includes(rs.paper as PaperPattern)) settings.paper = rs.paper as PaperPattern;
 
   const todayKeys = Array.isArray(p.todayKeys)
     ? [...new Set(p.todayKeys.filter((k): k is string => typeof k === 'string' && ACTION_KEY_RE.test(k)))]
     : [];
   const closedDays = cleanClosedDays(p.closedDays);
   const focus = typeof p.focusMinutes === 'number' && Number.isFinite(p.focusMinutes) && p.focusMinutes > 0 ? Math.round(p.focusMinutes) : 0;
+  const archives = cleanArchives(p.archives);
+  // 오늘 날짜로 짐작하지 않는다 — 저장된 값이 맞을 때만(멱등)
+  const chartStart = typeof p.chartStart === 'string' && DATE_RE.test(p.chartStart) ? p.chartStart : undefined;
+  const focusStart = typeof p.focusStart === 'number' && Number.isInteger(p.focusStart) && p.focusStart >= 0 && p.focusStart <= focus ? p.focusStart + 0 : undefined;
 
   return {
     version: 1,
@@ -430,5 +568,8 @@ export function migrate(parsed: unknown): MandaratDoc {
     areasSet: deriveAreasSet(p.areasSet, themes),
     reviews: cleanReviews(p.reviews),
     ...(closedDays.length > 0 ? { closedDays } : {}),
+    ...(archives.length > 0 ? { archives } : {}),
+    ...(chartStart ? { chartStart } : {}),
+    ...(focusStart !== undefined ? { focusStart } : {}),
   };
 }

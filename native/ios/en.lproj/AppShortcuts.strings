@@ -1,0 +1,10 @@
+/* Shortcuts and Siri (V3-B) phrases: keys are the English phrases in AppIntents.swift; every value contains ${applicationName}. */
+
+"Show Today in ${applicationName}" = "Show Today in ${applicationName}";
+"Open Today in ${applicationName}" = "Open Today in ${applicationName}";
+"Check off the next one in ${applicationName}" = "Check off the next one in ${applicationName}";
+"Mark the next one done in ${applicationName}" = "Mark the next one done in ${applicationName}";
+"What's left today in ${applicationName}" = "What's left today in ${applicationName}";
+"How many are left in ${applicationName}" = "How many are left in ${applicationName}";
+"Start focus in ${applicationName}" = "Start focus in ${applicationName}";
+"Start a focus timer in ${applicationName}" = "Start a focus timer in ${applicationName}";

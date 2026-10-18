@@ -6,7 +6,8 @@ import { animateLayout } from './layoutAnim';
 import { announce, screenReader } from './useReducedMotion';
 import { MAX_NUM, countInfo, round2 } from './kinds';
 import { doneOn, doneToday, extraLogKey, kindOf, type TodayItem } from './routine';
-import { EXTRA_REMOVED, addedSpeech, checkLabelText, checkedSpeech, goalText, leftToday, reachesGoal, undoAddText } from './todayCheck';
+import { addedSpeech, checkLabelText, checkedSpeech, extraRemovedText, goalText, leftToday, reachesGoal, undoAddText } from './todayCheck';
+import { msg } from '../i18n';
 import type { TodayExtra } from '../types';
 
 /**
@@ -59,7 +60,7 @@ export function useTodayCheck(): TodayCheck {
         // 체크를 풀면 그날 더한 것을 한꺼번에 빼므로, 잘못 눌렀을 때 살릴 수 있게
         if (done && c.today > 0) {
           const amount = c.today;
-          showToast(undoAddText(amount, c.unit), { label: '되돌리기', onPress: () => addCount(it.ti, it.ai, amount) });
+          showToast(undoAddText(amount, c.unit), { label: msg().common.undo, onPress: () => addCount(it.ti, it.ai, amount) });
         }
       }
       checkToday(it.ti, it.ai);
@@ -101,7 +102,7 @@ export function useTodayCheck(): TodayCheck {
       tap();
       animateLayout();
       dropExtra(cur.id);
-      showToast(EXTRA_REMOVED, { label: '되돌리기', onPress: () => { animateLayout(); restoreExtra(cur, index, logged, day); } });
+      showToast(extraRemovedText(), { label: msg().common.undo, onPress: () => { animateLayout(); restoreExtra(cur, index, logged, day); } });
     };
 
     const checkLabel = (it: TodayItem) => {

@@ -3,6 +3,7 @@ import { Animated, Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
 import { IconBtn, LineRow, RowDivider, RuledNotice, groupEdge, pressedRow } from '../components/common';
+import { TID } from '../lib/testIds';
 import { Icon } from '../components/Icon';
 import { Check, checkEdge } from '../components/Check';
 import { MiniChart } from '../components/GridMark';
@@ -15,10 +16,12 @@ import type { M } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { readableOn } from '../theme/palette';
 import { useDoc, themeProgress, totalDone, dateKey } from '../store/MandaratContext';
-import { DOW_KR, orderedTodayItems, todayItems, todayProgress, weekCounts } from '../lib/routine';
+import { orderedTodayItems, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { GUIDE_FILL_TARGET, GUIDE_STEP_COUNT, canPickAny, firstAreaWithEmpty, guideSteps, type GuideKey } from '../lib/pick';
 import { ritualTarget, weekPriority } from '../lib/ritual';
 import { homeSummary } from '../lib/a11y';
+import { yearClosePrompt } from '../lib/archive';
+import { useMsg } from '../i18n/react';
 import { areaLine, headerMeta, homeGate } from '../lib/home';
 import { fmtDateLong, fmtRange, noOrphan } from '../lib/text';
 import { useIncreaseContrast, useReducedMotion } from '../lib/useReducedMotion';
@@ -62,7 +65,8 @@ const SectionHead = memo(function SectionHead({ M, title, right, rightSpeech, on
  */
 export const Dashboard = memo(function Dashboard() {
   const M = usePalette();
-  const { go, openEditor, openRitual, openAction } = useUIActions();
+  const m = useMsg();
+  const { go, openEditor, openRitual, openAction, openYearClose } = useUIActions();
   const { doc, storageError, saveFailed, clock } = useDoc();
   const { width, fontScale } = useWindowDimensions();
 
@@ -77,6 +81,9 @@ export const Dashboard = memo(function Dashboard() {
   const ritualWeek = ritualTarget(doc, now);
   const priority = weekPriority(doc, now).slice(0, 3);
   const meta = headerMeta(now);
+  // 12월 15일 ~ 1월 31일, 아직 마무리하지 않은 표 — clock이 바뀌면(자정) 다시 본다
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const yearPrompt = useMemo(() => yearClosePrompt(doc, new Date()), [doc.onboarded, doc.chartStart, doc.dayLog, doc.archives, clock]);
 
   // 81칸 위 오늘 표시 — 오늘 할 일인 칸과 그중 오늘 한 칸.
   // 문서는 체크마다 바뀌지만 Set은 서명(칸 키 + 했는지)이 같으면 그대로 둔다 — 81칸이 칸 값을 다시 세지 않게
@@ -122,8 +129,8 @@ export const Dashboard = memo(function Dashboard() {
               {dayComplete && <View style={{ height: 3, backgroundColor: legibleMark(M.gold, M.bg, M), marginTop: 1 }} />}
             </View>
             <View style={{ paddingBottom: dayComplete ? 12 : 8 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{now.getMonth() + 1}월</Text>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub, marginTop: 1 }}>{DOW_KR[now.getDay()]}요일</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{m.home.month({ n: now.getMonth() + 1 })}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub, marginTop: 1 }}>{m.fmt.dowLong({ i: now.getDay() })}</Text>
             </View>
           </View>
           <View style={{ alignItems: 'flex-end', paddingTop: 12 }}>
@@ -132,7 +139,7 @@ export const Dashboard = memo(function Dashboard() {
           </View>
         </View>
         <View style={{ paddingTop: 2, marginLeft: 4 }}>
-          <IconBtn M={M} name="settings" label="설정" onPress={() => go('settings')} />
+          <IconBtn M={M} name="settings" label={m.home.settings} testID={TID.homeSettings} onPress={() => go('settings')} />
         </View>
       </View>
       {/* 인쇄된 두 줄 — 굵은 줄 1.5 · 가는 줄 0.5, 3pt 사이 */}
@@ -140,6 +147,25 @@ export const Dashboard = memo(function Dashboard() {
         <View style={{ height: 1.5, backgroundColor: M.ink }} />
         <View style={{ height: 0.5, backgroundColor: M.ink, marginTop: 3 }} />
       </View>
+
+      {/* 한 해 마무리 안내 — 머리 아래 괘선 한 줄(카드 없이) */}
+      {yearPrompt && (
+        <Pressable
+          testID={TID.homeYearPrompt}
+          onPress={() => { tap(); openYearClose(); }}
+          accessibilityRole="button"
+          accessibilityLabel={`${m.year.homePrompt}, ${m.year.homePromptAction}`}
+          style={({ pressed }) => [
+            { marginHorizontal: GUTTER, minHeight: 48, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderColor: M.line },
+            pressed ? pressedRow(M) : null,
+          ]}
+        >
+          <Text style={{ flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '600', color: M.ink }} numberOfLines={2}>
+            {`${m.year.homePrompt}${m.core.dot}${m.year.homePromptAction}`}
+          </Text>
+          <Icon name="chevR" size={16} color={M.sub} />
+        </Pressable>
+      )}
 
       {/* 핵심 목표 + 내 81칸 */}
       <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', gap: big ? 16 : 18, paddingHorizontal: GUTTER, marginTop: 20 }}>
@@ -150,10 +176,10 @@ export const Dashboard = memo(function Dashboard() {
           todayKeys={todayKeys}
           doneToday={doneToday}
           onPressBlock={onChartBlock}
-          accessibilityHint="만다라트를 펼쳐요"
+          accessibilityHint={m.home.chartHint}
         />
         <View style={{ flex: big ? undefined : 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>핵심 목표</Text>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.home.coreGoal}</Text>
           {goal ? (
             <Text style={{ fontSize: 21, lineHeight: 28, fontWeight: '800', color: M.ink, marginTop: 4 }} numberOfLines={4}>
               {noOrphan(doc.centerGoal)}
@@ -162,17 +188,17 @@ export const Dashboard = memo(function Dashboard() {
             <Pressable
               onPress={() => { tap(); openEditor({ kind: 'center' }); }}
               accessibilityRole="button"
-              accessibilityLabel="핵심 목표를 정해 주세요"
-              accessibilityHint="핵심 목표 정하기"
+              accessibilityLabel={m.home.setGoal}
+              accessibilityHint={m.home.setGoalHint}
               hitSlop={8}
               style={({ pressed }) => ({ marginTop: 4, opacity: pressed ? 0.6 : 1 })}
             >
-              <Text style={{ fontSize: 21, lineHeight: 28, fontWeight: '800', color: M.sub }}>{'핵심 목표를\n정해 주세요'}</Text>
+              <Text style={{ fontSize: 21, lineHeight: 28, fontWeight: '800', color: M.sub }}>{m.home.setGoalText}</Text>
             </Pressable>
           )}
           {done > 0 && (
             <Text style={{ fontSize: 13, color: M.sub, marginTop: 8, fontWeight: '500' }}>
-              64칸 중 <Text style={{ color: M.ink, fontWeight: '800', ...NUM }}>{done}칸</Text> 달성했어요
+              {m.home.doneBefore}<Text style={{ color: M.ink, fontWeight: '800', ...NUM }}>{m.home.doneCount({ n: done })}</Text>{m.home.doneAfter}
             </Text>
           )}
         </View>
@@ -185,9 +211,9 @@ export const Dashboard = memo(function Dashboard() {
         <View style={{ marginHorizontal: GUTTER, marginTop: 24 }} accessibilityRole="alert">
           <RuledNotice
             M={M}
-            title="기록을 저장하지 못했어요"
-            body="기기 저장 공간을 확인해 주세요. 바꾸는 대로 다시 저장해 볼게요."
-            action={{ label: '백업 내보내기', onPress: () => { tap(); go('settings'); } }}
+            title={m.home.saveFailTitle}
+            body={m.home.saveFailBody}
+            action={{ label: m.home.saveFailAction, onPress: () => { tap(); go('settings'); } }}
           />
         </View>
       )}
@@ -199,10 +225,11 @@ export const Dashboard = memo(function Dashboard() {
             M={M}
             first
             last
-            title="한 주 돌아보기"
-            sub={`${fmtRange(ritualWeek)} · 3분이면 돼요`}
+            title={m.home.ritualTitle}
+            sub={m.home.ritualSub({ range: fmtRange(ritualWeek) })}
             right="chevron"
             onPress={() => { tap(); openRitual(ritualWeek); }}
+            testID={TID.homeRitual}
           />
         </View>
       )}
@@ -210,20 +237,20 @@ export const Dashboard = memo(function Dashboard() {
       {/* 이번 주 중점 — 지난주를 닫으며 고른 칸 */}
       {priority.length > 0 && (
         <>
-          <SectionHead M={M} title="이번 주 중점" />
+          <SectionHead M={M} title={m.home.priorityTitle} />
           <View style={{ paddingHorizontal: GUTTER }}>
             {priority.map((k, i) => {
               const [ti, ai] = k.split('-').map(Number);
               const th = doc.themes[ti];
               const text = th?.actions[ai]?.text.trim() ?? '';
-              const area = th?.title.trim() || `영역 ${ti + 1}`;
+              const area = th?.title.trim() || m.home.areaFallback({ n: ti + 1 });
               return (
                 <Pressable
                   key={k}
                   onPress={() => { tap(); openAction(ti, ai); }}
                   accessibilityRole="button"
-                  accessibilityLabel={`${text}, ${area}`}
-                  accessibilityHint="실천 자세히 보기"
+                  accessibilityLabel={`${text}${m.core.listSep}${area}`}
+                  accessibilityHint={m.home.actionHint}
                   style={({ pressed }) => [
                     groupEdge(M, i === 0, i === priority.length - 1),
                     { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8, paddingHorizontal: 0 },
@@ -249,7 +276,7 @@ export const Dashboard = memo(function Dashboard() {
       {/* 이번 주 — 날마다 正 한 자 */}
       {gate.week && (
         <>
-          <SectionHead M={M} title="이번 주" right={`${weekTotal}번`} />
+          <SectionHead M={M} title={m.home.weekTitle} right={m.fmt.times({ n: weekTotal })} />
           <WeekTally M={M} cells={weekCells} />
         </>
       )}
@@ -257,7 +284,7 @@ export const Dashboard = memo(function Dashboard() {
       {/* 8개 영역 — 장부처럼 한 줄씩: 이름 · 다음 할 칸 · n/8 */}
       {gate.areas && (
         <>
-          <SectionHead M={M} title="8개 영역" />
+          <SectionHead M={M} title={m.home.areasTitle} />
           <View style={{ paddingHorizontal: GUTTER }}>
             {doc.themes.map((th, ti) => (
               <AreaRow key={ti} M={M} th={th} ti={ti} last={ti === doc.themes.length - 1} onPress={onArea} />
@@ -273,6 +300,7 @@ type WeekCell = ReturnType<typeof weekCounts>[number] & { closed: boolean };
 
 /** 이번 주 일곱 칸 — 날마다 正 한 자와 요일, 할 일을 다 한(마감한) 날은 요일 아래 작은 먹 네모 */
 const WeekTally = memo(function WeekTally({ M, cells }: { M: M; cells: WeekCell[] }) {
+  const m = useMsg();
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: GUTTER }}>
       {cells.map((d) => (
@@ -280,7 +308,7 @@ const WeekTally = memo(function WeekTally({ M, cells }: { M: M; cells: WeekCell[
           key={d.date}
           style={{ alignItems: 'center', gap: 6 }}
           accessible
-          accessibilityLabel={`${DOW_KR[d.dow]}요일 ${d.count}번${d.isToday ? ', 오늘' : ''}`}
+          accessibilityLabel={(d.isToday ? m.home.weekDayToday : m.home.weekDay)({ day: m.fmt.dowLong({ i: d.dow }), n: d.count })}
         >
           <View
             style={{
@@ -291,7 +319,7 @@ const WeekTally = memo(function WeekTally({ M, cells }: { M: M; cells: WeekCell[
             <Tally n={d.count} color={M.ink} subColor={M.sub} grow={d.isToday} />
           </View>
           <Text style={{ fontSize: 11, lineHeight: 14, fontWeight: d.isToday ? '800' : '600', color: d.isToday ? M.ink : M.sub }}>
-            {DOW_KR[d.dow]}
+            {m.fmt.dowNarrow({ i: d.dow })}
           </Text>
           {/* 할 일을 다 한 날 — 요일 아래 작은 먹 네모 */}
           <View style={{ width: 4, height: 4, backgroundColor: d.closed ? M.ink : 'transparent' }} />
@@ -305,15 +333,16 @@ const WeekTally = memo(function WeekTally({ M, cells }: { M: M; cells: WeekCell[
 const AreaRow = memo(function AreaRow({ M, th, ti, last, onPress }: {
   M: M; th: Theme; ti: number; last: boolean; onPress: (ti: number) => void;
 }) {
+  const m = useMsg();
   const p = themeProgress(th);
-  const name = th.title.trim() || `영역 ${ti + 1}`;
+  const name = th.title.trim() || m.home.areaFallback({ n: ti + 1 });
   const line = areaLine(th);
   const first = ti === 0;
   return (
     <Pressable
       onPress={() => onPress(ti)}
       accessibilityRole="button"
-      accessibilityLabel={`${name}, ${line}, 8칸 중 ${p.done}칸 달성`}
+      accessibilityLabel={m.home.areaRowLabel({ name, line, n: p.done })}
       style={({ pressed }) => [
         groupEdge(M, first, last),
         { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 9, paddingHorizontal: 0 },
@@ -339,6 +368,7 @@ const AreaRow = memo(function AreaRow({ M, th, ti, last, onPress }: {
  * 다 하면 장부처럼 두 줄을 긋고 '10월 14일 수요일 마감 · 10 / 10'.
  */
 function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDoc; todayDone: number; todayTotal: number }) {
+  const m = useMsg();
   const { go, openAction, openQuick, openPick } = useUIActions();
   const { dayCloseTick, closedDay } = useUIState();
   const { clock } = useDoc();
@@ -386,18 +416,18 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
         key="more"
         onPress={() => { tap(); go('today'); }}
         accessibilityRole="button"
-        accessibilityLabel={`${more}개 더 있어요, 오늘 화면 열기`}
+        accessibilityLabel={m.home.moreLabel({ n: more })}
         style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center', paddingLeft: TODAY_ROW_INSET }, pressed ? pressedRow(M) : null]}
       >
         {lines.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{more}개 더 있어요</Text>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.home.more({ n: more })}</Text>
       </Pressable>,
     );
   }
   // 다 한 날엔 이 줄을 숫자와 마감 두 줄 사이에 두지 않는다 — 마감 아래 조용한 '더 고르기'로
   if (!complete && (canPick || todayTotal === 0)) {
     // 만다라트에 고를 실천이 있으면 거기서 고르고, 없으면 오늘만 할 일을 바로 적는다
-    const label = canPick ? '실천에서 더 고르기' : '오늘 할 일 담기';
+    const label = canPick ? m.home.pickMore : m.home.addToday;
     lines.push(
       <Pressable
         key="pick"
@@ -419,10 +449,10 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
     <>
       <SectionHead
         M={M}
-        title="오늘 할 일"
+        title={m.home.todayTitle}
         right={todayTotal > 0 ? `${todayDone}/${todayTotal}` : undefined}
         onPress={() => { tap(); go('today'); }}
-        a11y={todayTotal > 0 ? `오늘 할 일 ${todayTotal}개 중 ${todayDone}개 했어요, 오늘 화면 열기` : '오늘 화면 열기'}
+        a11y={todayTotal > 0 ? m.home.todayHeadLabel({ total: todayTotal, done: todayDone }) : m.home.openToday}
       />
       <View style={{ paddingHorizontal: GUTTER }}>
         {lines.length > 0 && (
@@ -435,10 +465,10 @@ function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDo
           <Pressable
             onPress={() => { tap(); openPick(); }}
             accessibilityRole="button"
-            accessibilityLabel="실천에서 더 고르기"
+            accessibilityLabel={m.home.pickMore}
             style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center', paddingTop: 8, alignSelf: 'flex-start' }, pressed ? { opacity: 0.5 } : null]}
           >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>실천에서 더 고르기 ›</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.home.pickMoreLink}</Text>
           </Pressable>
         )}
       </View>
@@ -456,6 +486,7 @@ const CLOSE_DELAY = 230;
  * fresh: 방금 이 화면에서 마지막 하나를 체크했다 — 마감 신호를 기다리며 빈 줄에서 시작한다(오지 않으면 곧 그대로 보인다).
  */
 function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boolean; fresh: boolean }) {
+  const m = useMsg();
   const reduced = useReducedMotion();
   const scale = useRef(new Animated.Value(fresh && !reduced ? 0 : 1)).current;
   const ran = useRef(false);
@@ -480,11 +511,11 @@ function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boo
   const rule = useMemo(() => ({ height: 1, backgroundColor: M.ink, transform: [{ scaleX: scale }], transformOrigin: 'left' as const }), [M.ink, scale]);
   const rule2 = useMemo(() => [rule, { marginTop: 2 }], [rule]);
   return (
-    <View accessible accessibilityLabel={`${fmtDateLong(dateKey())} 마감, ${total}개 중 ${total}개 했어요`}>
+    <View accessible accessibilityLabel={m.home.closeLabel({ day: fmtDateLong(dateKey()), n: total })}>
       <Animated.View style={rule} />
       <Animated.View style={rule2} />
       <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingTop: 10 }}>
-        <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: M.sub }}>{fmtDateLong(dateKey())} 마감</Text>
+        <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: M.sub }}>{m.today.closeLeft({ day: fmtDateLong(dateKey()) })}</Text>
         <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, ...NUM }}>{total} / {total}</Text>
       </View>
     </View>
@@ -492,13 +523,14 @@ function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boo
 }
 
 // 마지막 단계(하나 체크하기)는 바로 아래 오늘 할 일에서 하므로 버튼이 없다 — 가리키는 줄 위에 '오늘 보기'를 두지 않는다
-const GUIDE_CTA: Record<GuideKey, string | null> = { goal: '정하기', areas: '정하기', fill: '채우기', today: '고르기', check: null };
+const GUIDE_CTA: Record<GuideKey, 'ctaSet' | 'ctaFill' | 'ctaPick' | null> = { goal: 'ctaSet', areas: 'ctaSet', fill: 'ctaFill', today: 'ctaPick', check: null };
 
 /**
  * 시작하기 — 핵심 목표 → 영역 8개 → 실천 칸 → 오늘 할 일 → 첫 체크.
  * 다음 단계에만 버튼을 달아 지금 할 일 하나만 보이게 하고, 다섯 단계를 다 하면 사라진다.
  */
 function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeof guideSteps> }) {
+  const m = useMsg();
   const { openEditor, openPick, go } = useUIActions();
   if (g.next < 0) return null;
   const doneCount = g.steps.filter((st) => st.done).length;
@@ -516,21 +548,23 @@ function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeo
   };
   return (
     <>
-      <SectionHead M={M} title="시작하기" right={`${doneCount}/${GUIDE_STEP_COUNT}`} rightSpeech={`${GUIDE_STEP_COUNT}단계 중 ${doneCount}단계`} />
+      <SectionHead M={M} title={m.home.guideTitle} right={`${doneCount}/${GUIDE_STEP_COUNT}`} rightSpeech={m.home.guideProgress({ total: GUIDE_STEP_COUNT, done: doneCount })} />
       <View style={{ paddingHorizontal: GUTTER }}>
         {g.steps.map((st, i) => {
           const isNext = i === g.next;
           const filled = Math.min(g.filled, GUIDE_FILL_TARGET);
-          const label = st.key === 'fill' ? `${st.label} · ${filled}/${GUIDE_FILL_TARGET}` : st.label;
+          const label = st.key === 'fill' ? m.home.guideFillLabel({ label: st.label, done: filled, total: GUIDE_FILL_TARGET }) : st.label;
           // 소리로는 '3/8' 대신 '8칸 중 3칸'
-          const speech = st.key === 'fill' ? `${st.label}, ${GUIDE_FILL_TARGET}칸 중 ${filled}칸` : st.label;
-          const cta = isNext ? GUIDE_CTA[st.key] : null;
+          const speech = st.key === 'fill' ? m.home.guideFillSpeech({ label: st.label, done: filled, total: GUIDE_FILL_TARGET }) : st.label;
+          const ctaKey = isNext ? GUIDE_CTA[st.key] : null;
+          const cta = ctaKey ? m.home[ctaKey] : null;
           const first = i === 0;
           // 버튼이 달린 단계만 누를 수 있다 — 끝낸 단계·아직 먼 단계는 누르는 것이 아닌 글 줄(View).
           // Pressable에 onPress만 빼면 눌림 색이 비치고(RN) 웹에서는 Tab으로 멈춘다. disabled는 화면 읽기가
           // '흐리게 표시됨'이라 읽으므로 쓰지 않는다
           const pressable = !!cta;
-          const a11yLabel = `${i + 1}단계 ${speech}${st.done ? ', 끝냄' : isNext ? ', 다음에 할 일' : ''}${cta ? `, ${cta}` : ''}`;
+          const sep = m.core.listSep;
+          const a11yLabel = `${m.home.guideStep({ n: i + 1, text: speech })}${st.done ? sep + m.home.guideDone : isNext ? sep + m.home.guideNext : ''}${cta ? sep + cta : ''}`;
           const rowStyle = [
             groupEdge(M, first, i === g.steps.length - 1),
             { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, minHeight: 54, paddingVertical: 8 },

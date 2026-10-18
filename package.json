@@ -4,23 +4,34 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "node --stack-size=8000 node_modules/typescript/lib/tsc.js --noEmit",
     "test": "node --test tests/*.test.js",
-    "release-check": "node scripts/releaseCheck.js"
+    "privacy-page": "node scripts/privacy-page.js",
+    "release-check": "node scripts/releaseCheck.js",
+    "web-smoke": "node scripts/web-smoke.js",
+    "prebuild-check": "node scripts/prebuild-check.js",
+    "store-shots": "npm --prefix tools/store-shots run shots --"
   },
   "dependencies": {
+    "@expo/ui": "~56.0.26",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@sentry/react-native": "~7.11.0",
     "expo": "~56.0.23",
+    "expo-asset": "~56.0.25",
     "expo-file-system": "~56.0.11",
     "expo-font": "~56.0.7",
     "expo-haptics": "~56.0.3",
     "expo-keep-awake": "~56.0.3",
+    "expo-localization": "~56.0.6",
+    "expo-notifications": "~56.0.26",
+    "expo-print": "~56.0.4",
     "expo-splash-screen": "~56.0.15",
     "expo-status-bar": "~56.0.4",
     "expo-system-ui": "~56.0.5",
+    "expo-widgets": "~56.0.27",
     "pretendard": "1.3.9",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -33,6 +44,16 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": [
+          "expo-widgets",
+          "@expo/ui"
+        ]
+      }
+    }
   },
   "private": true
 }

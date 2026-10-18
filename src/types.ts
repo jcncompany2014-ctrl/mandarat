@@ -61,6 +61,8 @@ export interface Action {
   due?: string;
   /** 마음가짐: 주(그 주 월요일 'YYYY-MM-DD')별 점수 1~5 */
   ratings?: Record<string, number>;
+  /** 습관 알림 시각 'HH:MM' — 그 습관을 하는 날 */
+  remindAt?: string;
 }
 
 /** 습관 일정 한 토막 — from 'YYYY-MM-DD'부터(다음 토막의 from 전날까지) 쓴 요일 또는 주 N회 */
@@ -87,6 +89,19 @@ export interface TodayExtra {
   done: boolean;
 }
 
+/** 종이 무늬(프로) — 없으면 점 종이(지금 모양, 무료) */
+export type PaperPattern = 'grid' | 'lines' | 'blank';
+
+/** 알림 — 켠 것만 값이 있다(모두 끄면 필드가 없다). 이 기기가 울릴지는 기기마다의 허락과 'mandarat:notify:v1'이 정한다 */
+export interface Reminders {
+  /** 아침 알림 'HH:MM' */
+  morning?: string;
+  /** 저녁 알림 'HH:MM' */
+  evening?: string;
+  /** 한 주 돌아보기 알림 */
+  review?: true;
+}
+
 export interface Settings {
   mood: Mood;
   accent: string;
@@ -94,6 +109,10 @@ export interface Settings {
   cellShape: CellShape;
   /** 마지막으로 백업을 내보낸 날 'YYYY-MM-DD' — 한 번도 안 했으면 없다 */
   lastBackupAt?: string;
+  /** 알림 시각 — 켠 것이 없으면 없다 */
+  reminders?: Reminders;
+  /** 종이 무늬(프로) — 없으면 점 종이. 프로가 없어도 값은 남기고, 그릴 때 잠근다 */
+  paper?: PaperPattern;
 }
 
 /**
@@ -106,6 +125,31 @@ export interface WeekReviewEntry {
   /** 다음 주 중점 칸 "ti-ai" (3개까지) */
   next: string[];
   /** 한 줄 메모 (120자까지, 비면 없다) */
+  note?: string;
+}
+
+/** 지난 표 한 장 — 닫을 때 모습 그대로, 그 기간 기록과 함께 */
+export interface ArchivedChart {
+  /** 'y' + from에서 '-'를 뺀 것, 예: 'y20260101' — 같은 표를 두 기기에서 닫아도 지난 표 하나로 남는다 */
+  id: string;
+  /** 이 표를 시작한 날 'YYYY-MM-DD' */
+  from: string;
+  /** 닫은 날 'YYYY-MM-DD' (from ≤ to) */
+  to: string;
+  centerGoal: string;
+  /** 8영역 × 8실천 — done·count·log·ratings 그대로 */
+  themes: Theme[];
+  /** from..to, 키는 원래 "ti-ai" */
+  dayLog: Record<string, string[]>;
+  /** from..to */
+  dayMeta: Record<string, { mood?: number; reflection?: string }>;
+  /** from..to의 주 */
+  reviews?: Record<string, WeekReviewEntry>;
+  /** from..to */
+  closedDays?: string[];
+  /** 이 표를 쓰는 동안 집중한 분 */
+  focusMinutes: number;
+  /** 닫으며 적은 한 줄(120자) */
   note?: string;
 }
 
@@ -136,4 +180,10 @@ export interface MandaratDoc {
   reviews?: Record<string, WeekReviewEntry>;
   /** 오늘 할 일을 다 해 마감한 날 'YYYY-MM-DD' — 오래된 날부터, 최근 400일까지 */
   closedDays?: string[];
+  /** 지난 표 — 닫은 날(to) 순서로. 기념물이라 버리지 않는다(상한 ARCHIVE_KEEP은 깨진 저장본 대비) */
+  archives?: ArchivedChart[];
+  /** 지금 표를 시작한 날 'YYYY-MM-DD' */
+  chartStart?: string;
+  /** 지금 표를 시작할 때의 누적 집중 시간(분) — 이 표의 집중 시간 = focusMinutes − focusStart */
+  focusStart?: number;
 }

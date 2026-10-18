@@ -11,7 +11,8 @@ export const BACKUP_APP = 'mandarat';
 // 2: 실천 유형 값(kind·count·log·ratings·due …)이 생긴 문서 — 이전 앱은 '새 버전 백업'으로 알아보고 값을 조용히 잃지 않는다
 // 3: 한 주 돌아보기(reviews)·영역을 정했는지(areasSet)·마지막 백업 날(settings.lastBackupAt)이 생긴 문서.
 //    이전 앱은 더 새로운 백업을 거절한다(불러오면 이 값들을 조용히 잃으므로).
-export const BACKUP_SCHEMA = 3;
+// 4: 알림(settings.reminders · action.remindAt) · 종이 무늬(settings.paper) · 지난 표(archives · chartStart · focusStart). 이전 앱은 거절한다
+export const BACKUP_SCHEMA = 4;
 
 export interface BackupSummary {
   goal: string;
@@ -27,11 +28,19 @@ export interface BackupSummary {
   exportedAt?: string;
   /** 마지막 실천 기록이 있는 날 'YYYY-MM-DD' — 기록이 없으면 없다 */
   lastLog?: string;
+  /** 지난 표 수 — 없으면 0 */
+  archives: number;
 }
+
+/**
+ * 읽지 못한 까닭 — 글은 화면이 m.backup.err*로 고른다(이 모듈은 언어를 모른다).
+ * empty: 빈 글 · notFound: 백업 덩어리가 없다 · broken: 잘렸거나 손상 · notOurs: 다른 JSON · newer: 더 새 앱의 백업
+ */
+export type BackupError = 'empty' | 'notFound' | 'broken' | 'notOurs' | 'newer';
 
 export type ParseResult =
   | { ok: true; doc: MandaratDoc; summary: BackupSummary }
-  | { ok: false; error: string };
+  | { ok: false; error: BackupError };
 
 export function makeBackup(doc: MandaratDoc, now = new Date(), pretty = false): string {
   const data = { app: BACKUP_APP, schema: BACKUP_SCHEMA, exportedAt: now.toISOString(), doc };
@@ -65,7 +74,7 @@ export function summarize(doc: MandaratDoc): BackupSummary {
     days++;
     if (!lastLog || day > lastLog) lastLog = day;
   }
-  return { goal: doc.centerGoal.trim(), filled, done, days, routines, ...(lastLog ? { lastLog } : {}) };
+  return { goal: doc.centerGoal.trim(), filled, done, days, routines, ...(lastLog ? { lastLog } : {}), archives: doc.archives?.length ?? 0 };
 }
 
 const MAX_STEPS = 2_000_000; // 글자 훑기 상한 — 아주 긴·이상한 입력에도 멈추지 않게
@@ -116,13 +125,9 @@ function blocks(t: string): { spans: [number, number][]; unclosed: boolean } {
   return { spans, unclosed };
 }
 
-const NOT_FOUND = '백업 내용을 찾지 못했어요. 내보낸 글 전체를 붙여넣어 주세요';
-const BROKEN = '백업 내용이 잘렸거나 손상됐어요. 처음부터 끝까지 다시 복사해 주세요';
-const NOT_OURS = '만다라트 백업 형식이 아니에요';
-
 export function parseBackup(text: string): ParseResult {
   const t = text.trim();
-  if (!t) return { ok: false, error: '붙여넣은 내용이 없어요' };
+  if (!t) return { ok: false, error: 'empty' };
   const { spans, unclosed } = blocks(t);
   let found: Record<string, unknown> | undefined;
   let parsedAny = false;
@@ -140,17 +145,17 @@ export function parseBackup(text: string): ParseResult {
   }
   if (!found) {
     // 우리 백업의 흔적이 있는데 읽지 못했다면 잘린 것, 다른 JSON이면 형식이 다른 것
-    if (/"app"\s*:\s*"mandarat"|"themes"\s*:/.test(t) || (unclosed && !parsedAny)) return { ok: false, error: BROKEN };
-    return { ok: false, error: parsedAny ? NOT_OURS : NOT_FOUND };
+    if (/"app"\s*:\s*"mandarat"|"themes"\s*:/.test(t) || (unclosed && !parsedAny)) return { ok: false, error: 'broken' };
+    return { ok: false, error: parsedAny ? 'notOurs' : 'notFound' };
   }
   const r = found;
   const wrapped = r.app === BACKUP_APP;
   if (wrapped && typeof r.schema === 'number' && r.schema > BACKUP_SCHEMA) {
-    return { ok: false, error: '더 새로운 버전의 앱에서 만든 백업이에요. 앱을 업데이트한 뒤 불러와 주세요' };
+    return { ok: false, error: 'newer' };
   }
   const candidate = wrapped ? r.doc : r;
   if (!candidate || typeof candidate !== 'object' || !Array.isArray((candidate as { themes?: unknown }).themes)) {
-    return { ok: false, error: NOT_OURS };
+    return { ok: false, error: 'notOurs' };
   }
   // 불러온 문서는 이미 시작한 사용자의 것이므로 온보딩을 다시 띄우지 않는다
   const doc: MandaratDoc = { ...migrate(candidate), onboarded: true };

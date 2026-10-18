@@ -1,7 +1,7 @@
 // 글자 다듬기 — 줄바꿈, 조사, 날짜·마감·횟수 표기 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 날짜 표기는 앱 전체에서 이 함수들로만 만든다(같은 날짜가 화면마다 다르게 적히지 않게). 연도는 적지 않는다.
-import { DOW_KR } from './routine';
-import { textWidth, type Glyphs } from './labelFit';
+import { breakUnits, isCjk, textWidth, type Glyphs } from './labelFit';
+import { lang, msg, type Lang } from '../i18n';
 import { estimateLines } from '../theme/chart';
 
 const NBSP = ' ';
@@ -25,25 +25,28 @@ export function noOrphan(s: string, maxTail = 2): string {
  * - 앞에 남는 것이 한두 글자 어절 하나뿐이면 그 어절이 첫 줄에 홀로 남는다('주 / 3회 운동').
  *   그때는 앞 어절을 뒤 어절에 붙인다('주 3회 / 운동') — 두 어절이 칸에 들어갈 때만.
  * g는 실제보다 넓게 어림하는 표여야 한다 — '들어간다'고 잘못 보면 붙인 어절이 가운데서 끊긴다(기본 SVG 폭).
+ * l: 일본어·영어에서 가나·한자가 든 글은 한 글자씩 끊을 수 있어(breakUnits) 어절을 붙여도 지켜 주는 것이 없다 — 그대로 둔다.
  */
-export function cellBreak(text: string, width: number, fs: number, g?: Glyphs): string {
+export function cellBreak(text: string, width: number, fs: number, g?: Glyphs, l: Lang = lang()): string {
   const t = text.trim();
+  if (l !== 'ko' && Array.from(t).some(isCjk)) return t;
   const joined = noOrphan(t);
   if (joined === t) return t;
   const words = t.split(/\s+/);
   const head = words.slice(0, -2);
   if (head.length === 1 && Array.from(head[0]).length <= 2) {
-    return textWidth(`${head[0]} ${words[1]}`, fs, g) <= width ? `${head[0]}${NBSP}${words.slice(1).join(' ')}` : t;
+    return textWidth(`${head[0]} ${words[1]}`, fs, g, l) <= width ? `${head[0]}${NBSP}${words.slice(1).join(' ')}` : t;
   }
-  return textWidth(words.slice(-2).join(' '), fs, g) <= width ? joined : t;
+  return textWidth(words.slice(-2).join(' '), fs, g, l) <= width ? joined : t;
 }
 
 /**
  * 가장 긴 어절의 폭 — 이보다 좁은 칸에서는 어절 가운데서 글자 단위로 끊긴다.
  * g: 글자 폭 표(앱 화면의 Pretendard는 PRETENDARD_GLYPHS — 없으면 SVG 기본값)
+ * l: 일본어·영어는 가나·한자를 한 글자씩(금칙을 지켜) 끊을 수 있는 단위로 본다(breakUnits).
  */
-export function longestWord(text: string, fs: number, g?: Glyphs): number {
-  return text.split(/\s+/).filter(Boolean).reduce((w, word) => Math.max(w, textWidth(word, fs, g)), 0);
+export function longestWord(text: string, fs: number, g?: Glyphs, l: Lang = lang()): number {
+  return text.split('\n').flatMap((p) => breakUnits(p, l)).reduce((w, u) => Math.max(w, textWidth(u.t, fs, g, l)), 0);
 }
 
 /**
@@ -52,7 +55,7 @@ export function longestWord(text: string, fs: number, g?: Glyphs): number {
  * 어느 크기도 안 맞으면 가장 작은 크기(넘치는 줄은 말줄임표).
  */
 export function fitBox(
-  text: string, width: number, height: number, sizes: readonly number[], maxLines: number, lineRatio = 1.25, g?: Glyphs,
+  text: string, width: number, height: number, sizes: readonly number[], maxLines: number, lineRatio = 1.25, g?: Glyphs, l: Lang = lang(),
 ): { fs: number; lh: number; lines: number } {
   const at = (fs: number) => {
     const lh = Math.round(fs * lineRatio);
@@ -61,44 +64,13 @@ export function fitBox(
   const t = text.trim();
   for (const fs of sizes) {
     const f = at(fs);
-    if (!t || (longestWord(t, fs, g) <= width && estimateLines(t, width, fs, g) <= f.lines)) return f;
+    if (!t || (longestWord(t, fs, g, l) <= width && estimateLines(t, width, fs, g, l) <= f.lines)) return f;
   }
   return at(sizes[sizes.length - 1]);
 }
 
-type JosaPair = '을/를' | '이/가' | '은/는' | '와/과' | '으로/로';
-
-// 숫자를 읽을 때 끝소리: 영(ㅇ) 일(ㄹ) 이 삼(ㅁ) 사 오 육(ㄱ) 칠(ㄹ) 팔(ㄹ) 구
-const DIGIT_FINAL = ['ng', 'l', '', 'm', '', '', 'k', 'l', 'l', ''];
-// 자주 쓰는 영문 단위를 읽을 때 끝소리: km(킬로미터) kg(킬로그램 ㅁ) l(리터)
-const LATIN_FINAL: Record<string, string> = { km: '', kg: 'm', l: '', ml: '', cm: '', m: '' };
-
-/** 마지막 글자의 끝소리 — '' 받침 없음, 'l' ㄹ 받침, 그 밖의 받침은 그 소리 */
-function finalSound(word: string): string {
-  const t = word.trim();
-  if (!t) return '';
-  const last = t[t.length - 1];
-  const code = last.charCodeAt(0);
-  if (code >= 0xac00 && code <= 0xd7a3) {
-    const jong = (code - 0xac00) % 28;
-    return jong === 0 ? '' : jong === 8 ? 'l' : 'x';
-  }
-  if (/\d/.test(last)) return DIGIT_FINAL[Number(last)];
-  const latin = t.match(/[a-z]+$/i)?.[0]?.toLowerCase();
-  if (latin && latin in LATIN_FINAL) return LATIN_FINAL[latin];
-  return '';
-}
-
-/**
- * 낱말 뒤에 알맞은 조사를 붙인다 — '주 3회 습관' + 으로/로 → '주 3회 습관으로', '2권' + 을/를 → '2권을'.
- * 받침이 ㄹ이면 '으로' 대신 '로'(서울로). 숫자는 읽는 소리로(3 → 삼 → '을').
- */
-export function josa(word: string, pair: JosaPair): string {
-  const f = finalSound(word);
-  const [withFinal, noFinal] = pair.split('/');
-  if (pair === '으로/로') return word + (f === '' || f === 'l' ? noFinal : withFinal);
-  return word + (f === '' ? noFinal : withFinal);
-}
+// 조사 붙이기는 src/i18n/ko/josa.ts로 옮겼다 — 이 이름으로 그대로 쓴다
+export { josa, type JosaPair } from '../i18n/ko/josa';
 
 // ── 날짜·마감·횟수 ───────────────────────────────────────────────────────────
 
@@ -109,43 +81,37 @@ function toDate(d: string | Date): Date {
   return new Date(y, m - 1, day);
 }
 
-/** '10월 14일 수요일' — 머리말·마감·저장본처럼 날짜 하나를 또박또박 읽을 때 */
-export function fmtDateLong(d: string | Date): string {
-  const t = toDate(d);
-  return `${t.getMonth() + 1}월 ${t.getDate()}일 ${DOW_KR[t.getDay()]}요일`;
+/** '10월 14일 수요일' — 머리말·마감·저장본처럼 날짜 하나를 또박또박 읽을 때 (fmt.dateLong) */
+export function fmtDateLong(d: string | Date, l: Lang = lang()): string {
+  return msg(l).fmt.dateLong({ d: toDate(d) });
 }
 
 /**
- * 화면 읽기가 말할 날짜 — fmtDateLong에 해가 다르면 해까지: '2027년 1월 14일 목요일'.
+ * 화면 읽기가 말할 날짜 — fmtDateLong에 해가 다르면 해까지: '2027년 1월 14일 목요일' (fmt.dateSpeech).
  * '10.14 (수)'처럼 점 찍은 짧은 표기는 소수로 읽히므로 화면 읽기 이름에는 이것을 쓴다.
  */
-export function fmtDateSpeech(d: string | Date, today = new Date()): string {
-  const t = toDate(d);
-  return `${t.getFullYear() !== today.getFullYear() ? `${t.getFullYear()}년 ` : ''}${fmtDateLong(t)}`;
+export function fmtDateSpeech(d: string | Date, today = new Date(), l: Lang = lang()): string {
+  return msg(l).fmt.dateSpeech({ d: toDate(d), today });
 }
 
-/** '10.14 (수)' — 표·기록처럼 좁은 자리 */
-export function fmtDateShort(d: string | Date): string {
-  const t = toDate(d);
-  return `${t.getMonth() + 1}.${t.getDate()} (${DOW_KR[t.getDay()]})`;
+/** '10.14 (수)' — 표·기록처럼 좁은 자리 (fmt.dateShort) */
+export function fmtDateShort(d: string | Date, l: Lang = lang()): string {
+  return msg(l).fmt.dateShort({ d: toDate(d) });
 }
 
-/** 한 주(월요일 키) → '10월 12일 – 18일', 달이 바뀌면 '9월 28일 – 10월 4일' */
-export function fmtRange(monday: string | Date): string {
+/** 한 주(월요일 키) → '10월 12일 – 18일', 달이 바뀌면 '9월 28일 – 10월 4일' (fmt.range) */
+export function fmtRange(monday: string | Date, l: Lang = lang()): string {
   const s = toDate(monday);
-  const e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6);
-  const end = e.getMonth() === s.getMonth() ? `${e.getDate()}일` : `${e.getMonth() + 1}월 ${e.getDate()}일`;
-  return `${s.getMonth() + 1}월 ${s.getDate()}일 – ${end}`;
+  return msg(l).fmt.range({ from: s, to: new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6) });
 }
 
 /**
- * 마감까지 남은 날(지났으면 음수) → 짧게 'D-2' · 'D-day' · 'D+3', 길게 '마감 D-2' · '오늘 마감' · '마감 3일 지남'.
- * 남은 날은 routine.daysBetween(오늘, 마감)으로 센다.
+ * 마감까지 남은 날(지났으면 음수) → 짧게 'D-2' · 'D-day' · 'D+3', 길게 '마감 D-2' · '오늘 마감' · '마감 3일 지남'
+ * (fmt.dueShort · fmt.dueLong). 남은 날은 routine.daysBetween(오늘, 마감)으로 센다.
  */
-export function fmtDue(days: number, form: 'short' | 'long' = 'short'): string {
-  const n = Math.round(days);
-  if (form === 'short') return n > 0 ? `D-${n}` : n === 0 ? 'D-day' : `D+${-n}`;
-  return n > 0 ? `마감 D-${n}` : n === 0 ? '오늘 마감' : `마감 ${-n}일 지남`;
+export function fmtDue(days: number, form: 'short' | 'long' = 'short', l: Lang = lang()): string {
+  const f = msg(l).fmt;
+  return form === 'short' ? f.dueShort({ days }) : f.dueLong({ days });
 }
 
 /** 1234.5 → '1,234.5' (소수 둘째 자리까지, 소수는 있을 때만) */
@@ -156,7 +122,8 @@ export function fmtNum(n: number): string {
   return `${r < 0 ? '-' : ''}${int}${f ? `.${f}` : ''}`;
 }
 
-/** 횟수·양 — '3번' · '1,200권' · '50만 원' (단위는 숫자에 붙여 쓴다) */
-export function fmtCount(n: number, unit = '번'): string {
-  return `${fmtNum(n)}${unit}`;
+/** 횟수·양 — '3번'(fmt.times) · '1,200권' · '50만 원'(fmt.count — 단위는 그 언어의 말로 넘긴다) */
+export function fmtCount(n: number, unit?: string, l: Lang = lang()): string {
+  const f = msg(l).fmt;
+  return unit === undefined ? f.times({ n }) : f.count({ n, unit });
 }

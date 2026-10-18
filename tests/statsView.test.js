@@ -31,10 +31,10 @@ test('기록 줄 — 지금이 최고 기록이면 그렇게, 기록이 없으�
 });
 
 test('이번 주 첫 줄 — 기록 없음 · 달성 0 · 한 문장', () => {
-  assert.equal(sv.weekLead(0, 5, ''), sv.EMPTY_LINE);
+  assert.equal(sv.weekLead(0, 5, ''), sv.emptyLine());
   assert.match(sv.weekLead(3, 0, '건강은 3번 챙겼어요'), /^이번 주 3번 했어요\. 칸은/);
   assert.equal(sv.weekLead(3, 2, '건강은 3번 챙겼어요'), '건강은 3번 챙겼어요');
-  assert.ok(!sv.EMPTY_LINE.includes('채워져요'));
+  assert.ok(!sv.emptyLine().includes('채워져요'));
 });
 
 test('지난주 이맘때와 견주기 — 번 단위, 둘 다 0이면 빈 글', () => {

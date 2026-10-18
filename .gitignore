@@ -31,6 +31,8 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
 .env*.local
 
 # local machine config / agent settings
@@ -43,3 +45,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# v2 tooling output
+/tools/store-shots/out
+/tools/store-shots/.web
+/dist-dev
+/.maestro/out

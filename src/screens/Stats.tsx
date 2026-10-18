@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
-import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
+import { Header, LineRow, RowDivider, groupEdge, pressedRow } from '../components/common';
 import { ActivityChart, MoodStrip, TenWeeks, WearLegend, WeekBars } from '../components/StatsCharts';
 import { alpha } from '../theme/moods';
 import { NUM, TYPE } from '../theme/type';
@@ -16,13 +16,18 @@ import { sameProps } from '../lib/sameProps';
 import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { fmtDateLong, fmtDateShort, fmtDateSpeech } from '../lib/text';
+import { chartRange, yearLabel } from '../lib/archive';
+import { TID } from '../lib/testIds';
+import { useLang, useMsg } from '../i18n/react';
+import type { Lang, Messages } from '../i18n';
+import type { YearView } from '../lib/contracts';
 import { addedLine, addedSpeech, mindLine } from '../lib/ritualView';
 import { reviewWeeks, ritualTarget } from '../lib/ritual';
 import type { HeatMap } from '../lib/statsView';
 import { calendarWeeks, cellActivity, doneThisMonth, longestStreak, weekReview, weekSentence } from '../lib/review';
 import {
-  EMPTY_LINE, bestLine, compareCounts, fmtMinutes, habitRow, heatMap, heatSpeech, ledgerLabel, moodSpeech, moodStrip, pickedLine, pickedSpeech,
-  recordParts, reflections, reviewRow, streakCaption, streakSpeech, weekAddedText, weekDelta, weekLead,
+  bestLine, compareCounts, fmtMinutes, habitRow, heatMap, heatSpeech, ledgerLabel, moodSpeech, moodStrip, pickedLine, pickedSpeech,
+  recordParts, reflections, reviewRow, streakCaption, streakSpeech, weekAddedText, weekDelta, weekLead, emptyLine,
 } from '../lib/statsView';
 
 /** 돌아본 주·한 줄 회고를 처음에 몇 줄까지 보여 줄지 */
@@ -39,7 +44,9 @@ const STACK_SCALE = 1.35;
 export const Stats = memo(function Stats() {
   const M = usePalette();
   const { doc, clock } = useDoc();
-  const { go, openAction, openRitual } = useUIActions();
+  const m = useMsg();
+  const l = useLang();
+  const { go, openAction, openRitual, openYear } = useUIActions();
   const { width: winW, fontScale } = useWindowDimensions();
   const contentW = Math.max(0, winW - 40);
 
@@ -55,40 +62,40 @@ export const Stats = memo(function Stats() {
   /* eslint-disable react-hooks/exhaustive-deps */
   const streak = useMemo(() => overallStreak(doc), [doc.dayLog, day, clock]);
   const review = useMemo(() => weekReview(doc, new Date()), [doc, day, clock]);
-  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date()), [doc.dayLog, day, clock]);
+  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date(), l), [doc.dayLog, day, clock, l]);
   const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc, day, clock]);
-  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, new Date())), [doc, streak, day, clock]);
+  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, new Date()), l), [doc, streak, day, clock, l]);
   const ritual = useMemo(() => ritualTarget(doc, new Date()), [doc, day, clock]);
   /* eslint-enable react-hooks/exhaustive-deps */
   const weeks = reviewWeeks(doc);
 
   return (
     <View style={{ paddingBottom: 24 }}>
-      <Header M={M} kr="통계" />
+      <Header M={M} kr={m.stats.screenTitle} />
 
       {!hasData && (
-        <Text style={{ ...TYPE.body, color: M.ink, paddingHorizontal: 20, paddingBottom: 18 }}>{EMPTY_LINE}</Text>
+        <Text style={{ ...TYPE.body, color: M.ink, paddingHorizontal: 20, paddingBottom: 18 }}>{emptyLine(l)}</Text>
       )}
 
-      <Hero M={M} streak={streak} todayHas={todayHas} done={done} hasData={hasData} stacked={fontScale >= STACK_SCALE} />
+      <Hero M={M} m={m} l={l} streak={streak} todayHas={todayHas} done={done} hasData={hasData} stacked={fontScale >= STACK_SCALE} />
       <RecordLine M={M} parts={records} />
 
       {/* 이번 주 */}
       <SectionHead
         M={M}
-        title="이번 주"
-        right={ritual ? '돌아보기 ›' : undefined}
+        title={m.stats.secWeek}
+        right={ritual ? m.stats.reviewLink : undefined}
         onRight={ritual ? () => { tap(); openRitual(ritual); } : undefined}
-        rightLabel="한 주 돌아보기"
+        rightLabel={m.stats.reviewLinkSay}
       />
       <View style={{ paddingHorizontal: 20 }}>
         {hasData && (
           <Text style={{ fontSize: 17, lineHeight: 24, fontWeight: '700', color: M.ink }}>
-            {weekLead(review.total, done, weekSentence(review, doc))}
+            {weekLead(review.total, done, weekSentence(review, doc), l)}
           </Text>
         )}
-        {!!weekDelta(review.total, review.prev) && (
-          <Text style={[{ ...TYPE.caption, color: M.sub, marginTop: 4 }, NUM]}>{weekDelta(review.total, review.prev)}</Text>
+        {!!weekDelta(review.total, review.prev, l) && (
+          <Text style={[{ ...TYPE.caption, color: M.sub, marginTop: 4 }, NUM]}>{weekDelta(review.total, review.prev, l)}</Text>
         )}
         <View style={{ marginTop: 18 }}>
           <WeekBars M={M} days={review.days} />
@@ -99,7 +106,7 @@ export const Stats = memo(function Stats() {
       {/* 돌아본 주 — 돌아본 기록이 있을 때만 */}
       {weeks.length > 0 && (
         <>
-          <SectionHead M={M} title="돌아본 주" right={`${weeks.length}주`} />
+          <SectionHead M={M} title={m.stats.secReviewed} right={m.stats.weeksN({ n: weeks.length })} />
           <ReviewList M={M} doc={doc} weeks={weeks} onOpen={(w) => { tap(); openRitual(w, true); }} />
         </>
       )}
@@ -107,21 +114,23 @@ export const Stats = memo(function Stats() {
       {/* 최근 10주 */}
       <SectionHead
         M={M}
-        title="최근 10주"
-        right={map.since ? `${fmtDateShort(map.since)}부터` : undefined}
+        title={m.stats.secTenWeeks}
+        right={map.since ? m.stats.since({ date: fmtDateShort(map.since, l) }) : undefined}
         // 소리로는 '10월 3일 토요일부터' — '10.3 (토)'는 소수로 읽힌다
-        rightLabel={map.since ? `${fmtDateLong(map.since)}부터` : undefined}
+        rightLabel={map.since ? m.stats.since({ date: fmtDateLong(map.since, l) }) : undefined}
       />
       <HeatSection M={M} doc={doc} map={map} width={contentW} hasData={hasData} />
 
       {/* 숫자 목표 · 마음가짐 */}
-      {hasKind(doc, 'count') && <SectionHead M={M} title="숫자 목표" right="지금까지 / 목표" />}
+      {hasKind(doc, 'count') && <SectionHead M={M} title={m.stats.secCount} right={m.stats.countRight} />}
       <CountLedger M={M} doc={doc} onOpen={(ti, ai) => { tap(); openAction(ti, ai); }} />
-      {hasKind(doc, 'mind') && <SectionHead M={M} title="마음가짐" right="최근 8주" />}
+      {hasKind(doc, 'mind') && <SectionHead M={M} title={m.stats.secMind} right={m.stats.last8w} />}
       <MindLedger M={M} doc={doc} onOpen={(ti, ai) => { tap(); openAction(ti, ai); }} />
 
-      {/* 8개 영역 — 내 표가 닳은 자리 */}
-      <SectionHead M={M} title="8개 영역" right="최근 4주 실천" />
+      {/* 8개 영역 — 내 표가 닳은 자리(스토어 사진은 이 머리를 맨 위로 올려 찍는다 — tools/store-shots) */}
+      <View testID={TID.statsWear}>
+        <SectionHead M={M} title={m.stats.secAreas} right={m.stats.areasRight} />
+      </View>
       <View style={{ paddingHorizontal: 20 }}>
         <ActivityChart
           M={M}
@@ -135,11 +144,54 @@ export const Stats = memo(function Stats() {
       </View>
 
       {/* 회고 */}
-      <SectionHead M={M} title="회고" right="최근 14일" />
+      <SectionHead M={M} title={m.stats.secReflect} right={m.stats.last14d} />
       <Reflections M={M} doc={doc} now={now} />
+
+      {/* 한 해 — 지금 표의 한 해 돌아보기 · 지난 표 보관함 */}
+      <SectionHead M={M} title={m.year.settingsHead} />
+      <YearSection M={M} m={m} doc={doc} now={now} onOpen={(v) => { tap(); openYear(v); }} />
     </View>
   );
 });
+
+/** 한 해 — '한 해 돌아보기 ›'(지금 쓰는 표) · '보관함 n장 ›' */
+function YearSection({ M, m, doc, now, onOpen }: {
+  M: M;
+  m: Messages;
+  doc: MandaratDoc;
+  now: Date;
+  onOpen: (v: YearView) => void;
+}) {
+  const { from, to } = chartRange(doc, now);
+  const label = yearLabel(from, to);
+  const shelf = m.year.statsShelf({ n: doc.archives?.length ?? 0 });
+  return (
+    <View style={{ paddingHorizontal: 20 }}>
+      <View testID={TID.statsYear}>
+        <LineRow
+          M={M}
+          first
+          title={m.year.pageReview}
+          sub={label}
+          right="chevron"
+          accessibilityRole="button"
+          accessibilityLabel={`${m.year.pageReview}${m.core.listSep}${label}`}
+          onPress={() => onOpen({ kind: 'review', id: null })}
+        />
+      </View>
+      <LineRow
+        M={M}
+        last
+        title={shelf}
+        right="chevron"
+        accessibilityRole="button"
+        accessibilityLabel={shelf}
+        onPress={() => onOpen({ kind: 'shelf' })}
+        testID={TID.statsYearShelf}
+      />
+    </View>
+  );
+}
 
 function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
   return doc.themes.some((th) => th.actions.some((a) => a.text.trim() && kindOf(a) === kind));
@@ -177,7 +229,7 @@ const SectionHead = memo(function SectionHead({ M, title, right, onRight, rightL
 
 // ── 큰 숫자 둘 ───────────────────────────────────────────────────────────────
 
-function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
+function BigNumber({ M, label, value, unit, caption, captionStrong, speech, sep }: {
   M: M;
   label: string;
   value: string;
@@ -185,9 +237,11 @@ function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
   caption: string;
   captionStrong?: boolean;
   speech: string;
+  /** 읽기 글을 잇는 쉼표(core.listSep) */
+  sep: string;
 }) {
   return (
-    <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={`${label}, ${speech}${caption ? `, ${caption}` : ''}`}>
+    <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={[label, speech, caption].filter(Boolean).join(sep)}>
       <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={STACK_SCALE}>{label}</Text>
       <Text
         style={[{ fontSize: 46, lineHeight: 52, fontWeight: '800', color: M.ink, letterSpacing: -1.5 }, NUM]}
@@ -209,41 +263,53 @@ function BigNumber({ M, label, value, unit, caption, captionStrong, speech }: {
 }
 
 /** 연속 · 달성한 칸 — 큰 글자에서는 위아래로 쌓고 사이에 가로 괘선 */
-/** 기록이 없으면 연속 아래 줄은 비운다 — 맨 위 EMPTY_LINE과 같은 말을 두 번 하지 않게(줄 자리는 남겨 두 칸 높이를 맞춘다) */
-const Hero = memo(function Hero({ M, streak, todayHas, done, hasData, stacked }: { M: M; streak: number; todayHas: boolean; done: number; hasData: boolean; stacked: boolean }) {
+/** 기록이 없으면 연속 아래 줄은 비운다 — 맨 위 emptyLine()과 같은 말을 두 번 하지 않게(줄 자리는 남겨 두 칸 높이를 맞춘다) */
+const Hero = memo(function Hero({ M, m, l, streak, todayHas, done, hasData, stacked }: {
+  M: M;
+  m: Messages;
+  l: Lang;
+  streak: number;
+  todayHas: boolean;
+  done: number;
+  hasData: boolean;
+  stacked: boolean;
+}) {
   return (
     <View style={{ flexDirection: stacked ? 'column' : 'row', paddingHorizontal: 20, paddingTop: 2 }}>
       <BigNumber
         M={M}
-        label="연속"
+        label={m.stats.heroStreak}
         value={`${streak}`}
-        unit="일"
-        caption={hasData ? streakCaption(streak, todayHas) : ''}
+        unit={m.stats.heroDays({ n: streak })}
+        caption={hasData ? streakCaption(streak, todayHas, l) : ''}
         captionStrong={streak > 0 && !todayHas}
-        speech={streakSpeech(streak, todayHas)}
+        speech={streakSpeech(streak, todayHas, l)}
+        sep={m.core.listSep}
       />
       {stacked
         ? <View style={{ height: 1, backgroundColor: M.line, marginVertical: 14 }} />
         : <View style={{ width: 1, backgroundColor: M.line, marginHorizontal: 18 }} />}
       <BigNumber
         M={M}
-        label="달성한 칸"
+        label={m.stats.heroDone}
         value={`${done}`}
         unit="/64"
-        caption="64칸 중"
-        speech={`64칸 중 ${done}칸 달성`}
+        caption={m.stats.heroOf64}
+        speech={m.chart.doneOf64Say({ done })}
+        sep={m.core.listSep}
       />
     </View>
   );
 });
 
 const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnType<typeof recordParts> }) {
+  const m = useMsg();
   return (
     <Text style={[{ ...TYPE.caption, color: M.sub, paddingHorizontal: 20, marginTop: 14 }, NUM]}>
       {!!parts.lead && (
         <Text style={parts.best ? { color: M.ink, fontWeight: '700' } : undefined}>{parts.lead}</Text>
       )}
-      {parts.lead ? ` · ${parts.month}` : parts.month}
+      {parts.lead ? `${m.core.dot}${parts.month}` : parts.month}
     </Text>
   );
 }, sameProps);
@@ -252,19 +318,21 @@ const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnT
 
 /** 습관 · 쌓은 것 · 마음가짐 · 집중 — 있는 것만 한 줄씩 */
 function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: ReturnType<typeof weekReview> }) {
+  const m = useMsg();
+  const l = useLang();
   // say: 화면 읽기가 말할 값 — '5/7번'·'+2권 · +50만 원'을 날짜·기호로 읽지 않게(한 주 돌아보기 장부와 같은 말)
   const rows: { label: string; value: string; sub?: string; say?: string; subSay?: string }[] = [];
-  const habit = habitRow(review);
-  if (habit) rows.push({ label: '습관', ...habit });
-  if (review.added.length > 0) rows.push({ label: '쌓은 것', value: addedLine(review.added), say: addedSpeech(review.added) });
+  const habit = habitRow(review, l);
+  if (habit) rows.push({ label: m.kinds.labelHabit, ...habit });
+  if (review.added.length > 0) rows.push({ label: m.stats.ledgerAdded, value: addedLine(review.added), say: addedSpeech(review.added) });
   if (review.mindTotal > 0) {
     rows.push({
-      label: '마음가짐',
+      label: m.kinds.labelMind,
       value: mindLine(review),
-      sub: review.mindRated > 0 ? `${review.mindTotal}개 중 ${review.mindRated}개 매겼어요` : '이번 주는 아직 매기지 않았어요',
+      sub: review.mindRated > 0 ? m.stats.mindRatedOf({ total: review.mindTotal, done: review.mindRated }) : m.stats.mindNotYet,
     });
   }
-  if ((doc.focusMinutes ?? 0) > 0) rows.push({ label: '집중', value: fmtMinutes(doc.focusMinutes), sub: '지금까지' });
+  if ((doc.focusMinutes ?? 0) > 0) rows.push({ label: m.stats.ledgerFocus, value: fmtMinutes(doc.focusMinutes, l), sub: m.stats.soFar });
   if (rows.length === 0) return null;
   return (
     <View style={{ marginTop: 22 }}>
@@ -272,7 +340,7 @@ function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: Return
         <View
           key={r.label}
           accessible
-          accessibilityLabel={ledgerLabel(r)}
+          accessibilityLabel={ledgerLabel(r, l)}
           style={[groupEdge(M, i === 0, i === rows.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 2, minHeight: 48 }]}
         >
           {i > 0 && <RowDivider M={M} inset={0} />}
@@ -290,10 +358,12 @@ function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: Return
 // ── 돌아본 주 ────────────────────────────────────────────────────────────────
 
 function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: string[]; onOpen: (week: string) => void }) {
+  const m = useMsg();
+  const l = useLang();
   const [all, setAll] = useState(false);
   const shown = all ? weeks : weeks.slice(0, REVIEW_ROWS);
   const more = !all && weeks.length > REVIEW_ROWS;
-  const rows = shown.map((w) => reviewRow(doc, w));
+  const rows = shown.map((w) => reviewRow(doc, w, l));
   return (
     <View style={{ paddingHorizontal: 20 }}>
       {rows.map((r, i) => (
@@ -301,7 +371,7 @@ function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: 
           key={r.week}
           onPress={() => onOpen(r.week)}
           accessibilityRole="button"
-          accessibilityLabel={`${r.range}, ${r.line}${r.note ? `, ${r.note}` : ''}, 돌아본 기록 보기`}
+          accessibilityLabel={[r.range, r.line, r.note, m.stats.openReview].filter(Boolean).join(m.core.listSep)}
           style={({ pressed }) => [
             groupEdge(M, i === 0, i === rows.length - 1 && !more),
             { paddingVertical: 12, paddingHorizontal: 2, minHeight: 48, justifyContent: 'center' },
@@ -316,13 +386,14 @@ function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: 
           {!!r.note && <Text style={{ fontSize: 13, lineHeight: 19, color: M.ink, marginTop: 4 }} numberOfLines={2}>{r.note}</Text>}
         </Pressable>
       ))}
-      {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={`돌아본 주 ${weeks.length - REVIEW_ROWS}개 더 보기`} />}
+      {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={m.stats.moreWeeks({ n: weeks.length - REVIEW_ROWS })} />}
     </View>
   );
 }
 
 /** 목록 끝 '더 보기' — 그 자리에서 펼친다(진한 아랫줄로 묶음을 닫는다) */
 function MoreRow({ M, onPress, label }: { M: M; onPress: () => void; label: string }) {
+  const m = useMsg();
   return (
     <Pressable
       onPress={onPress}
@@ -331,7 +402,7 @@ function MoreRow({ M, onPress, label }: { M: M; onPress: () => void; label: stri
       style={({ pressed }) => [groupEdge(M, false, true), { minHeight: 44, paddingHorizontal: 2, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
     >
       <RowDivider M={M} inset={0} />
-      <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>더 보기</Text>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{m.stats.more}</Text>
     </Pressable>
   );
 }
@@ -349,8 +420,10 @@ const HeatSection = memo(function HeatSection({ M, doc, map, width, hasData }: {
   width: number;
   hasData: boolean;
 }) {
+  const m = useMsg();
+  const l = useLang();
   const [picked, setPicked] = useState<string | null>(null);
-  const line = picked ? pickedLine(doc, picked) : bestLine(map.best);
+  const line = picked ? pickedLine(doc, picked, l) : bestLine(map.best, l);
   return (
     <View style={{ paddingHorizontal: 20 }}>
       {hasData && (
@@ -370,9 +443,9 @@ const HeatSection = memo(function HeatSection({ M, doc, map, width, hasData }: {
         width={width}
         picked={picked}
         onPick={setPicked}
-        speech={heatSpeech(map)}
+        speech={heatSpeech(map, l)}
         // 고른 날 값(소리) — 보이는 줄(pickedLine)과 같은 내용을 '10월 3일 토요일, 4번, …'으로
-        pickedText={picked ? pickedSpeech(doc, picked) : '고른 날 없음'}
+        pickedText={picked ? pickedSpeech(doc, picked, l) : m.stats.noPick}
       />
     </View>
   );
@@ -397,6 +470,8 @@ function monthAdded(log: Record<string, number> | undefined, today: Date): numbe
  * 이번 주 더한 수, 이 속도면 언제 닿는지.
  */
 function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: number, ai: number) => void }) {
+  const m = useMsg();
+  const l = useLang();
   const now = new Date();
   const items = doc.themes
     .flatMap((th, ti) => th.actions.map((a, ai) => ({ a, ti, ai, th, c: countInfo(a) })))
@@ -412,27 +487,27 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
         const paceText = c.reached
           ? ''
           : pace.eta
-            ? `이 속도면 ${dateText(pace.eta, now)}`
-            : monthAdded(a.log, now) > 0 ? '' : `이번 달 아직 0${c.unit}`;
+            ? m.stats.pace({ date: dateText(pace.eta, now, l) })
+            : monthAdded(a.log, now) > 0 ? '' : m.stats.monthZero({ unit: c.unit });
         // 소리로는 날짜를 또박또박(해가 다르면 해까지) — '10.20 (화)'·'2028년 3.4 (토)'가 섞여 읽히지 않게
-        const paceSay = c.reached ? '' : pace.eta ? `이 속도면 ${fmtDateSpeech(pace.eta, now)}` : paceText;
-        const right = c.reached ? '목표 달성' : weekAddedText(week, c.unit);
-        const area = th.title.trim() || `영역 ${ti + 1}`;
+        const paceSay = c.reached ? '' : pace.eta ? m.stats.pace({ date: fmtDateSpeech(pace.eta, now, l) }) : paceText;
+        const right = c.reached ? m.stats.goalReached : weekAddedText(week, c.unit, l);
+        const area = th.title.trim() || m.chart.areaN({ n: ti + 1 });
         // '6/12권'은 날짜처럼 읽힌다 — 소리로 읽을 말('12권 중 6권')로
-        const said = kindLine(doc, ti, ai, now)?.speech ?? countText(c);
+        const said = kindLine(doc, ti, ai, now, l)?.speech ?? countText(c, l);
         return (
           <Pressable
             key={`${ti}-${ai}`}
             onPress={() => onOpen(ti, ai)}
             accessibilityRole="button"
-            accessibilityLabel={`${area}, ${a.text.trim()}, ${said}, ${c.pct}%, ${right}${paceSay ? `, ${paceSay}` : ''}`}
+            accessibilityLabel={[area, a.text.trim(), said, `${c.pct}%`, right, paceSay].filter(Boolean).join(m.core.listSep)}
             style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <AreaChip color={th.color} />
               <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{a.text.trim()}</Text>
-              <Text style={[{ minWidth: 96, textAlign: 'right', fontSize: 13, fontWeight: '800', color: M.ink }, NUM]} numberOfLines={1}>{countText(c)}</Text>
+              <Text style={[{ minWidth: 96, textAlign: 'right', fontSize: 13, fontWeight: '800', color: M.ink }, NUM]} numberOfLines={1}>{countText(c, l)}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, paddingLeft: 17 }}>
               <View style={{ flex: 1, height: 8, justifyContent: 'center' }}>
@@ -457,6 +532,7 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
 
 /** 마음가짐 — 칸마다 최근 8주 점수 막대(0부터 점수 × 5pt), 매기지 않은 주는 3pt 눈금 */
 function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: number, ai: number) => void }) {
+  const m = useMsg();
   const now = new Date();
   const items = doc.themes.flatMap((th, ti) => th.actions.map((a, ai) => ({ a, ti, ai, th })))
     .filter(({ a }) => a.text.trim() && kindOf(a) === 'mind');
@@ -468,14 +544,19 @@ function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: n
         const score = ratingOf(a, now);
         const rated = hist.filter((h) => h.score > 0);
         const avg = rated.length ? rated.reduce((s, h) => s + h.score, 0) / rated.length : 0;
-        const sub = rated.length ? `매긴 ${rated.length}주 평균 ${avg.toFixed(1)}점` : '아직 매긴 주가 없어요';
-        const area = th.title.trim() || `영역 ${ti + 1}`;
+        const sub = rated.length ? m.stats.mindAvg({ n: rated.length, avg: avg.toFixed(1) }) : m.stats.mindNoWeeks;
+        const area = th.title.trim() || m.chart.areaN({ n: ti + 1 });
         return (
           <Pressable
             key={`${ti}-${ai}`}
             onPress={() => onOpen(ti, ai)}
             accessibilityRole="button"
-            accessibilityLabel={`${area}, ${a.text.trim()}, 이번 주 ${score ? `${score}점` : '점수 없음'}, ${rated.length ? `최근 8주 중 ${sub}` : sub}`}
+            accessibilityLabel={[
+              area,
+              a.text.trim(),
+              score ? m.stats.mindWeekSay({ n: score }) : m.stats.mindWeekNone,
+              rated.length ? m.stats.mindOf8Say({ sub }) : sub,
+            ].join(m.core.listSep)}
             style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
@@ -499,7 +580,7 @@ function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: n
               ))}
             </View>
             <Text style={[{ width: 32, textAlign: 'right', fontSize: 13, fontWeight: '800', color: score ? M.ink : M.sub }, NUM]}>
-              {score ? `${score}점` : '—'}
+              {score ? m.chart.points({ n: score }) : '—'}
             </Text>
           </Pressable>
         );
@@ -512,15 +593,17 @@ function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: n
 
 /** 최근 14일 기분 줄 + 한 줄 회고(앞 셋, '더 보기'로 펼침). 아무것도 없으면 줄 하나 */
 function Reflections({ M, doc, now }: { M: M; doc: MandaratDoc; now: Date }) {
+  const m = useMsg();
+  const l = useLang();
   const [all, setAll] = useState(false);
-  const strip = moodStrip(doc.dayMeta, now, 14);
-  const entries = reflections(doc.dayMeta, now, 14);
+  const strip = moodStrip(doc.dayMeta, now, 14, l);
+  const entries = reflections(doc.dayMeta, now, 14, l);
   const anyMood = strip.some((d) => d.mood !== null);
   if (!anyMood && entries.length === 0) {
     return (
       <View style={{ paddingHorizontal: 20 }}>
         <View style={[groupEdge(M, true, true), { minHeight: 48, justifyContent: 'center', paddingHorizontal: 2 }]}>
-          <Text style={{ ...TYPE.caption, color: M.sub }}>오늘 화면에서 한 줄 남기면 여기에 모여요</Text>
+          <Text style={{ ...TYPE.caption, color: M.sub }}>{m.stats.reflectEmpty}</Text>
         </View>
       </View>
     );
@@ -529,14 +612,14 @@ function Reflections({ M, doc, now }: { M: M; doc: MandaratDoc; now: Date }) {
   const more = !all && entries.length > NOTE_ROWS;
   return (
     <View style={{ paddingHorizontal: 20 }}>
-      <MoodStrip M={M} days={strip} speech={moodSpeech(strip)} />
+      <MoodStrip M={M} days={strip} speech={moodSpeech(strip, l)} />
       {shown.length > 0 && (
         <View style={{ marginTop: 18 }}>
           {shown.map((e, i) => (
             <View
               key={e.date}
               accessible
-              accessibilityLabel={`${e.say}, ${e.text}`}
+              accessibilityLabel={`${e.say}${m.core.listSep}${e.text}`}
               style={[groupEdge(M, i === 0, i === shown.length - 1 && !more), { paddingVertical: 12, paddingHorizontal: 2 }]}
             >
               {i > 0 && <RowDivider M={M} inset={0} />}
@@ -544,7 +627,7 @@ function Reflections({ M, doc, now }: { M: M; doc: MandaratDoc; now: Date }) {
               <Text style={{ fontSize: 14, lineHeight: 20, color: M.ink, marginTop: 3 }}>{e.text}</Text>
             </View>
           ))}
-          {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={`한 줄 회고 ${entries.length - NOTE_ROWS}개 더 보기`} />}
+          {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={m.stats.moreNotes({ n: entries.length - NOTE_ROWS })} />}
         </View>
       )}
     </View>

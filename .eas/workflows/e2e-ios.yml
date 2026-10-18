@@ -1,0 +1,50 @@
+# 기기 테스트(Maestro) — iPhone과 13인치 iPad 시뮬레이터에서 주요 흐름을 돌린다.
+# 돌리기: npx eas-cli workflow:run .eas/workflows/e2e-ios.yml   (자세한 것은 docs/v2/device-tests.md)
+#
+# 단계 이름과 입력은 @expo/build-tools 25.1.1(dist/steps/functions)에서 확인했다:
+#   eas/checkout · eas/download_build(build_id, extensions → artifact_path) ·
+#   eas/start_ios_simulator(device_identifier) · eas/install_maestro ·
+#   eas/install_build(artifact_path) · eas/maestro_tests(flow_path, platform)
+name: E2E iOS
+
+jobs:
+  # e2e 프로필(eas.json): 시뮬레이터용 .app, EXPO_PUBLIC_E2E=1(동작 줄이기 늘 켬), Sentry 올리기 끔
+  build:
+    name: Build iOS simulator app (e2e)
+    type: build
+    params:
+      platform: ios
+      profile: e2e
+
+  # iPhone — EAS가 준비한 Maestro 작업(기본 iPhone 시뮬레이터)
+  iphone:
+    name: Maestro on iPhone
+    needs: [build]
+    type: maestro
+    params:
+      build_id: ${{ needs.build.outputs.build_id }}
+      flow_path: ['.maestro/phone']
+
+  # iPad — 기기를 골라야 해서 단계를 직접 적는다
+  ipad:
+    name: Maestro on iPad Pro 13-inch
+    needs: [build]
+    runs_on: macos-medium
+    steps:
+      - uses: eas/checkout
+      - id: download
+        uses: eas/download_build
+        with:
+          build_id: ${{ needs.build.outputs.build_id }}
+          extensions: ['app']
+      - uses: eas/start_ios_simulator
+        with:
+          device_identifier: 'iPad Pro 13-inch (M4)'
+      - uses: eas/install_maestro
+      - uses: eas/install_build
+        with:
+          artifact_path: ${{ steps.download.outputs.artifact_path }}
+      - uses: eas/maestro_tests
+        with:
+          platform: ios
+          flow_path: ['.maestro/ipad']

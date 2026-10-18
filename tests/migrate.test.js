@@ -270,3 +270,126 @@ test('-0 같은 값도 저장·불러오기 뒤 같은 문서가 되도록 0으�
   });
   assert.deepEqual(JSON.parse(JSON.stringify(d)), d);
 });
+
+// ── 스키마 4: 알림 · 종이 무늬 · 습관 알림 · 지난 표 ────────────────────────────
+const { TIME_RE, PAPER_OPTS, ARCHIVE_KEEP, ARCHIVE_NOTE_MAX, cleanReminders, cleanThemes } = require('../src/data/defaults');
+
+test('settings.reminders: HH:MM이 맞는 아침·저녁과 참인 돌아보기만, 비면 필드가 없다', () => {
+  assert.ok(TIME_RE.test('00:00') && TIME_RE.test('23:59'));
+  for (const bad of ['24:00', '7:30', '07:60', '0730', '']) assert.equal(TIME_RE.test(bad), false, bad);
+  const d = migrate({ settings: { reminders: { morning: '08:00', evening: '25:00', review: true, extra: 1 } } });
+  assert.deepEqual(d.settings.reminders, { morning: '08:00', review: true });
+  assert.deepEqual(migrate({ settings: { reminders: { evening: '21:30', review: 'yes' } } }).settings.reminders, { evening: '21:30' });
+  for (const empty of [{}, { review: false }, { morning: '8:00' }, 'x', null, []]) {
+    assert.equal('reminders' in migrate({ settings: { reminders: empty } }).settings, false, JSON.stringify(empty));
+  }
+  assert.equal(cleanReminders(undefined), undefined);
+  assert.equal('reminders' in blankDoc().settings, false);
+});
+
+test('settings.paper: 고를 수 있는 무늬만 남고, 아니면 필드가 없다(점 종이)', () => {
+  assert.deepEqual([...PAPER_OPTS], ['grid', 'lines', 'blank']);
+  for (const p of PAPER_OPTS) assert.equal(migrate({ settings: { paper: p } }).settings.paper, p);
+  for (const bad of ['dots', '', 3, null, '__proto__']) assert.equal('paper' in migrate({ settings: { paper: bad } }).settings, false);
+});
+
+test('action.remindAt: 유형과 상관없이 HH:MM일 때만 남는다', () => {
+  const d = migrate({ themes: [{ actions: [
+    { text: '걷기', kind: 'habit', days: [1], remindAt: '07:30' },
+    { text: '책', kind: 'once', remindAt: '21:00' },
+    { text: '물', kind: 'habit', days: [1], remindAt: '7:30' },
+    { text: '명상', remindAt: 730 },
+  ] }] });
+  const [a, b, c, e] = d.themes[0].actions;
+  assert.equal(a.remindAt, '07:30');
+  assert.equal(b.remindAt, '21:00', '다른 유형 값은 남겨 둔다');
+  assert.equal('remindAt' in c, false);
+  assert.equal('remindAt' in e, false);
+});
+
+function arch(over = {}) {
+  return {
+    id: 'y20260101', from: '2026-01-01', to: '2026-06-30', centerGoal: '지난 목표', themes: [{ title: '건강', actions: [{ text: '걷기', done: true }] }],
+    dayLog: { '2025-12-31': ['0-0'], '2026-01-05': ['0-0', '9-9'], '2026-07-01': ['0-1'] },
+    dayMeta: { '2026-02-01': { mood: 3 }, '2026-08-01': { mood: 1 } },
+    reviews: { '2025-12-29': { at: '2026-01-04', next: ['0-0'] }, '2026-01-05': { at: '2026-01-11', next: [] }, '2026-07-06': { at: '2026-07-12', next: [] } },
+    closedDays: ['2026-01-05', '2026-07-01', 'x'],
+    focusMinutes: 90,
+    note: '  잘 버텼다  ',
+    ...over,
+  };
+}
+
+test('archives: 기간 안의 기록만, 깨진 값은 버리고, 빈 값은 두지 않는다', () => {
+  const d = migrate({ archives: [arch()] });
+  assert.equal(d.archives.length, 1);
+  const a = d.archives[0];
+  assert.equal(a.id, 'y20260101');
+  assert.equal(a.centerGoal, '지난 목표');
+  assert.equal(a.themes.length, 8);
+  for (const t of a.themes) assert.equal(t.actions.length, 8);
+  assert.deepEqual(a.themes, cleanThemes([{ title: '건강', actions: [{ text: '걷기', done: true }] }]));
+  assert.deepEqual(a.dayLog, { '2026-01-05': ['0-0'] });
+  assert.deepEqual(a.dayMeta, { '2026-02-01': { mood: 3 } });
+  // 기간이 걸친 주(월요일이 from 앞)는 이 표의 주다
+  assert.deepEqual(Object.keys(a.reviews), ['2025-12-29', '2026-01-05']);
+  assert.deepEqual(a.closedDays, ['2026-01-05']);
+  assert.equal(a.focusMinutes, 90);
+  assert.equal(a.note, '잘 버텼다');
+  const bare = migrate({ archives: [arch({ reviews: undefined, closedDays: [], note: '   ', focusMinutes: -1 })] }).archives[0];
+  assert.equal('reviews' in bare, false);
+  assert.equal('closedDays' in bare, false);
+  assert.equal('note' in bare, false);
+  assert.equal(bare.focusMinutes, 0);
+  assert.equal(migrate({ archives: [arch({ note: '가'.repeat(200) })] }).archives[0].note.length, ARCHIVE_NOTE_MAX);
+});
+
+test('archives: 아이디·기간이 깨진 표와 겹치는 아이디는 버리고, (to, id) 순서로 최근 30장', () => {
+  const bad = [
+    arch({ id: '../x' }), arch({ id: undefined }), arch({ from: '2026-13-01' }), arch({ to: 'today' }), arch({ from: '2026-07-01', to: '2026-06-30' }), null, 'x',
+  ];
+  assert.equal('archives' in migrate({ archives: bad }), false, '남는 표가 없으면 필드가 없다');
+  assert.equal('archives' in migrate({ archives: [] }), false);
+  assert.equal('archives' in migrate({ archives: 'x' }), false);
+  const dup = migrate({ archives: [arch({ centerGoal: '처음' }), arch({ centerGoal: '나중' })] }).archives;
+  assert.deepEqual(dup.map((a) => a.centerGoal), ['처음']);
+  // 35장 — 닫은 날이 겹치는 표(i와 i+28)는 아이디 순서로
+  const many = Array.from({ length: 35 }, (_, i) => arch({ id: `a${String(i).padStart(2, '0')}`, from: '2025-01-01', to: `2026-01-${String((i % 28) + 1).padStart(2, '0')}` }));
+  const kept = migrate({ archives: many }).archives;
+  // 30장을 넘어도 버리지 않는다 — 여러 기기·백업을 합친 지난 표가 조용히 사라지지 않게
+  assert.equal(kept.length, 35);
+  assert.ok(ARCHIVE_KEEP >= 200, '상한은 깨진 저장본 대비일 뿐 — 평소에는 닿지 않는다');
+  const huge = Array.from({ length: ARCHIVE_KEEP + 5 }, (_, i) => arch({ id: `b${String(i).padStart(4, '0')}`, from: '2025-01-01', to: '2026-01-01' }));
+  assert.equal(migrate({ archives: huge }).archives.length, ARCHIVE_KEEP);
+  for (let i = 1; i < kept.length; i++) {
+    const p = kept[i - 1], c = kept[i];
+    assert.ok(p.to < c.to || (p.to === c.to && p.id < c.id), `${p.id} → ${c.id}`);
+  }
+});
+
+test('chartStart·focusStart: 형식이 맞을 때만, 오늘 날짜로 짐작하지 않는다', () => {
+  const d = migrate({ chartStart: '2026-10-01', focusStart: 30, focusMinutes: 50 });
+  assert.equal(d.chartStart, '2026-10-01');
+  assert.equal(d.focusStart, 30);
+  assert.equal(migrate({ focusStart: 0, focusMinutes: 0 }).focusStart, 0);
+  for (const bad of [{ chartStart: 'today' }, {}, { chartStart: 7 }]) assert.equal('chartStart' in migrate(bad), false);
+  for (const bad of [{ focusStart: 60, focusMinutes: 50 }, { focusStart: -1, focusMinutes: 50 }, { focusStart: 2.5, focusMinutes: 50 }, { focusStart: '3', focusMinutes: 50 }]) {
+    assert.equal('focusStart' in migrate(bad), false, JSON.stringify(bad));
+  }
+  const blank = migrate({});
+  for (const k of ['archives', 'chartStart', 'focusStart']) assert.equal(k in blank, false);
+});
+
+test('스키마 4 값이 있는 문서도 migrate는 멱등이고 JSON 왕복에 같다', () => {
+  const raw = {
+    settings: { reminders: { morning: '08:00', review: true }, paper: 'lines' },
+    themes: [{ actions: [{ text: '걷기', kind: 'habit', days: [1], remindAt: '07:30' }] }],
+    archives: [arch(), arch({ id: 'y20250101', from: '2025-01-01', to: '2025-12-31' })],
+    chartStart: '2026-07-01', focusStart: 10, focusMinutes: 20,
+    _sync: { hlc: 'x' },
+  };
+  const m = migrate(raw);
+  assert.equal('_sync' in m, false, 'iCloud 봉투는 문서가 아니다');
+  assert.deepEqual(migrate(JSON.parse(JSON.stringify(m))), m);
+  assert.deepEqual(m.archives.map((a) => a.id), ['y20250101', 'y20260101']);
+});

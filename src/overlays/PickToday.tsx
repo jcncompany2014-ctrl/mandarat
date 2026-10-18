@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '../components/AppText';
 import { Check } from '../components/Check';
 import { CloseBtn, PrimaryButton, RowDivider, Sheet, groupEdge, pressedRow, useSheetDismiss } from '../components/common';
+import { TID } from '../lib/testIds';
 import { EmptyState } from '../components/EmptyState';
 import { NUM } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
@@ -15,6 +16,7 @@ import { weekPriority } from '../lib/ritual';
 import { todayProgress } from '../lib/routine';
 import { showGridAt } from '../screens/gridMemory';
 import { check, tap, uncheck } from '../lib/haptics';
+import { useMsg } from '../i18n/react';
 
 /** 체크 칸 한 변 · 칸과 글 사이 */
 const BOX = 24;
@@ -49,20 +51,22 @@ function PickSheet() {
 }
 
 function PickFooter({ M, total }: { M: M; total: number }) {
+  const m = useMsg();
   const dismiss = useSheetDismiss();
   // 아직 하나도 담지 않았으면 '오늘 0개 · 다 골랐어요'라고 말하지 않는다 — 조용한 닫기(첫 칸을 고르면 바로 금빛으로)
-  if (total === 0) return <PrimaryButton M={M} tone="quiet" label="닫기" onPress={() => { tap(); dismiss(); }} />;
+  if (total === 0) return <PrimaryButton M={M} tone="quiet" label={m.common.close} onPress={() => { tap(); dismiss(); }} />;
   return (
     <PrimaryButton
       M={M}
-      label={`오늘 ${total}개 · 다 골랐어요`}
-      accessibilityLabel={`오늘 ${total}개, 다 골랐어요`}
+      label={m.today.pickDone({ n: total })}
+      accessibilityLabel={m.today.pickDoneLabel({ n: total })}
       onPress={() => { tap(); dismiss(); }}
     />
   );
 }
 
 function PickBody({ M }: { M: M }) {
+  const m = useMsg();
   const { doc, toggleToday } = useMandarat();
   const { go, afterOverlays } = useUIActions();
   const dismiss = useSheetDismiss();
@@ -86,11 +90,11 @@ function PickBody({ M }: { M: M }) {
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text accessibilityRole="header" style={{ fontSize: 17, lineHeight: 24, fontWeight: '800', color: M.ink }}>
-            오늘 할 일 고르기
+            {m.today.pickTitle}
           </Text>
-          <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>고르는 대로 오늘 목록에 담겨요</Text>
+          <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{m.today.pickSub}</Text>
         </View>
-        <CloseBtn M={M} onPress={dismiss} />
+        <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
 
       {sections.length === 0 ? (
@@ -98,14 +102,14 @@ function PickBody({ M }: { M: M }) {
           <EmptyState
             M={M}
             variant="paper"
-            lines={[filled ? '고를 실천이 남아 있지 않아요' : '아직 채운 실천이 없어요']}
-            action={emptyArea >= 0 ? { label: '만다라트 채우기', onPress: fill } : undefined}
+            lines={[filled ? m.today.pickNoneLeft : m.today.pickNoneFilled]}
+            action={emptyArea >= 0 ? { label: m.today.fillChart, onPress: fill } : undefined}
           />
         </View>
       ) : (
         sections.map((sec) => {
           const th = doc.themes[sec.ti];
-          const name = th.title.trim() || `영역 ${sec.ti + 1}`;
+          const name = th.title.trim() || m.today.areaFallback({ n: sec.ti + 1 });
           const rows = choosableRows(sec, priority);
           const auto = autoLine(sec);
           return (
@@ -113,12 +117,12 @@ function PickBody({ M }: { M: M }) {
               <View
                 accessible
                 accessibilityRole="header"
-                accessibilityLabel={`${name}, 오늘 ${sec.inToday}개`}
+                accessibilityLabel={m.today.pickSectionLabel({ name, n: sec.inToday })}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 }}
               >
                 <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: th.color }} />
                 <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '800', color: M.ink }} numberOfLines={1}>{name}</Text>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, ...NUM }}>{`오늘 ${sec.inToday}`}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, ...NUM }}>{m.today.pickSectionCount({ n: sec.inToday })}</Text>
               </View>
               {rows.map((r, i) => (
                 <PickRowView
@@ -139,7 +143,7 @@ function PickBody({ M }: { M: M }) {
                 <Text
                   style={{ marginTop: rows.length ? 8 : 0, fontSize: 12, lineHeight: 17, fontWeight: '600', color: M.sub }}
                   numberOfLines={1}
-                  accessibilityLabel={`${auto}. 반복이나 마감으로 오늘 할 일에 이미 있어요`}
+                  accessibilityLabel={m.today.autoLineLabel({ line: auto })}
                 >
                   {auto}
                 </Text>
@@ -162,9 +166,10 @@ function PickRowView({
   last: boolean;
   onToggle: () => void;
 }) {
+  const m = useMsg();
   const on = r.state === 'on';
   // 유형 한 줄은 소리 말(r.say) — '6/12권'·'마감 D-3'을 날짜·글자로 읽지 않게
-  const label = [r.text, r.focus ? '이번 주 중점' : '', r.say].filter(Boolean).join(', ');
+  const label = [r.text, r.focus ? m.today.weekFocus : '', r.say].filter(Boolean).join(m.today.listSep);
   return (
     <Pressable
       onPress={onToggle}
@@ -185,7 +190,7 @@ function PickRowView({
         <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: M.ink }} numberOfLines={2}>{r.text}</Text>
         {(r.focus || !!r.hint) && (
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-            {r.focus && <Text style={{ fontSize: 11, fontWeight: '700', color: M.goldInk }}>중점</Text>}
+            {r.focus && <Text style={{ fontSize: 11, fontWeight: '700', color: M.goldInk }}>{m.today.weekFocusMark}</Text>}
             {!!r.hint && (
               <Text style={{ flexShrink: 1, fontSize: 13, lineHeight: 18, color: M.sub }} numberOfLines={1}>{r.hint}</Text>
             )}

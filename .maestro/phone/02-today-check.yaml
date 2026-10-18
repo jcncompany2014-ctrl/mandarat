@@ -1,0 +1,21 @@
+appId: com.jcncompany.mandarat
+name: "02 오늘 할 일 체크"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 오늘 → 첫 줄 체크 → 체크됨
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/sample.yaml
+- tapOn:
+    id: "today-check-.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "today-check-.*"
+      checked: true
+    timeout: 5000

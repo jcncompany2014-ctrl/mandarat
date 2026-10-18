@@ -6,6 +6,8 @@ import { Text } from './AppText';
 import { GridMark } from './GridMark';
 import { releaseNativeSplash } from './Splash';
 import { ymd } from '../lib/routine';
+import { crash } from '../lib/crash';
+import { msg } from '../i18n';
 
 interface Props { children: React.ReactNode }
 interface State {
@@ -61,10 +63,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return { error };
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     // 실행 중 오류가 나면 네이티브 시작 화면을 바로 걷어 안내 화면이 보이게 한다.
     releaseNativeSplash();
     console.warn('Mandarat crashed', error);
+    // 오류 수집(기기에서만, 끈 사람은 보내지 않는다) — 컴포넌트 위치만, 기록 내용은 보내지 않는다
+    crash.report(error, { componentStack: info.componentStack ?? '' });
   }
 
   reset = () => this.setState({ error: null, exportNote: null });
@@ -72,36 +76,38 @@ export class ErrorBoundary extends React.Component<Props, State> {
   exportDoc = async () => {
     try {
       const r = await exportStoredDoc();
-      this.setState({ exportNote: r === 'empty' ? { text: '저장된 기록이 아직 없어요', alert: false } : null });
+      this.setState({ exportNote: r === 'empty' ? { text: msg().core.crashExportEmpty, alert: false } : null });
     } catch {
-      this.setState({ exportNote: { text: '기록을 내보내지 못했어요. 한 번 더 눌러 주세요', alert: true } });
+      this.setState({ exportNote: { text: msg().core.crashExportFailed, alert: true } });
     }
   };
 
   render() {
     if (!this.state.error) return this.props.children;
     const { exportNote } = this.state;
+    // 공급자(LangRoot) 바깥에서도 그려지므로 훅 대신 지금 언어의 바구니를 바로 읽는다
+    const m = msg();
     return (
       <View style={{ flex: 1, backgroundColor: PAPER, justifyContent: 'center', paddingHorizontal: 28 }}>
         <GridMark size={32} color={GOLD} />
         <Text accessibilityRole="header" style={{ marginTop: 20, fontSize: 19, lineHeight: 26, fontWeight: '700', color: INK }}>
-          화면을 열지 못했어요
+          {m.core.crashTitle}
         </Text>
         <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 21, color: SUB }}>
-          저장된 기록은 그대로 있어요.{'\n'}다시 시도해 주세요. 같은 화면이 또 나오면 먼저 기록을 내보내 두세요.
+          {m.core.crashBody}
         </Text>
 
         <Pressable
           onPress={this.reset}
           accessibilityRole="button"
-          accessibilityLabel="다시 시도"
+          accessibilityLabel={m.common.retry}
           style={({ pressed }) => ({
             marginTop: 28, height: 48, minWidth: 160, alignSelf: 'flex-start', paddingHorizontal: 24,
             borderRadius: 10, backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center',
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: '700', color: INK }}>다시 시도</Text>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: INK }}>{m.common.retry}</Text>
         </Pressable>
 
         {Platform.OS !== 'web' && (
@@ -109,12 +115,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <Pressable
               onPress={this.exportDoc}
               accessibilityRole="button"
-              accessibilityLabel="기록 내보내기"
+              accessibilityLabel={m.core.crashExport}
               style={({ pressed }) => ({
                 minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Text style={{ fontSize: 15, fontWeight: '700', color: INK, textDecorationLine: 'underline' }}>기록 내보내기</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: INK, textDecorationLine: 'underline' }}>{m.core.crashExport}</Text>
             </Pressable>
             {!!exportNote && (
               <Text accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 18, color: exportNote.alert ? ALERT : SUB }}>

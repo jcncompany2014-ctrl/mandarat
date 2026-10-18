@@ -76,9 +76,11 @@ test('HANDOFF-B1: 준비됐는지만 읽는 useReady — 문지기(Gate)는 문�
 
 test('NEW-2 · NEW-5(ui): 칸·영역 자리는 어디서나 고유어 서수 — 81칸 줌 머리 · 실천 시트 머리', () => {
   const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /`8개 영역 중 \$\{ORDINAL\[focus\] \?\? `\$\{focus \+ 1\}`\} 번째`/);
+  assert.match(grid, /m\.chart\.areaOrdinalSay\(\{ n: focus \+ 1 \}\)/);
+  assert.equal(require('../src/i18n').msg('ko').chart.areaOrdinalSay({ n: 3 }), '8개 영역 중 세 번째');
   const sheet = src('src/overlays/ActionSheet.tsx');
-  assert.match(sheet, /`\$\{area\} 영역, \$\{ORDINAL\[ai\] \?\? `\$\{ai \+ 1\}`\} 번째 칸, 영역 보기`/);
+  assert.match(sheet, /m\.sheet\.headA11y\(\{ area, ordinal: m\.fmt\.ordinalCell\(\{ n: ai \+ 1 \}\) \}\)/);
+  assert.equal(require('../src/i18n/ko/sheet').default.headA11y({ area: '건강', ordinal: require('../src/i18n/ko/fmt').default.ordinalCell({ n: 3 }) }), '건강 영역, 세 번째 칸, 영역 보기');
   // 앱 소스의 읽는 말에 '3번째'·'${n + 1}번째' 꼴이 남지 않는다(주석 제외)
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'src')).filter((x) => /\.tsx?$/.test(x))) {
@@ -91,7 +93,9 @@ test('NEW-3(a11y): 연속 기록 줄은 체크 · 몸통 두 번만 멈추고, �
   const s = src('src/screens/TodayModes.tsx');
   const line = slice(s, 'const StreakLine = memo(', '// ── 보드');
   assert.match(line, /const week = summary \?\? weekStripSummary\(states, today >= 0 \? today : weekdayIndex\(new Date\(\)\)\);/);
-  assert.match(line, /const bodyLabel = \[text, area, plan, week, run\.a11y, done \? '오늘 했어요' : ''\]/);
+  // 정한 것은 소리 말(planSay — en '3x a week'를 '3 times a week'로)
+  assert.match(line, /const bodyLabel = \[text, area, planSay, week, run\.a11y, done \? m\.today\.doneToday : ''\]/);
+  assert.equal(require('../src/i18n/ko/today').default.doneToday, '오늘 했어요');
   assert.match(line, /<View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">\s*<WeekStrip /);
 });
 
@@ -112,27 +116,33 @@ test('NEW-2(ui): 연속 기록 칸은 모든 줄 · 머리글이 같은 폭(가�
 
 test('NEW-4(a11y): 반복 안 함 칩은 보이는 글 그대로 읽는다', () => {
   const s = src('src/components/DayPicker.tsx');
-  assert.match(s, /<PaperChip M=\{M\} label="반복 안 함" onPress=\{\(\) => pick\(\[\]\)\} \/>/);
+  assert.match(s, /<PaperChip M=\{M\} label=\{m\.core\.noRepeat\} onPress=\{\(\) => pick\(\[\]\)\} \/>/);
+  assert.equal(require('../src/i18n').msg('ko').core.noRepeat, '반복 안 함');
   assert.doesNotMatch(s, /반복 해제/);
 });
 
 test('A-1(1): 오늘 할 일 고르기 줄은 소리 말(say)을 읽는다', () => {
   const s = src('src/overlays/PickToday.tsx');
-  assert.match(s, /\[r\.text, r\.focus \? '이번 주 중점' : '', r\.say\]/);
-  assert.doesNotMatch(s, /r\.focus \? '이번 주 중점' : '', r\.hint\]/);
+  assert.match(s, /\[r\.text, r\.focus \? m\.today\.weekFocus : '', r\.say\]/);
+  assert.doesNotMatch(s, /r\.focus \? m\.today\.weekFocus : '', r\.hint\]/);
+  assert.equal(require('../src/i18n/ko/today').default.weekFocus, '이번 주 중점');
 });
 
 test('HANDOFF-A9 · NEW-1: 통계는 날짜를 또박또박 읽는다(속도 · 고른 날 · 회고 · 머리 오른쪽)', () => {
   const s = src('src/screens/Stats.tsx');
-  assert.match(s, /const paceSay = c\.reached \? '' : pace\.eta \? `이 속도면 \$\{fmtDateSpeech\(pace\.eta, now\)\}` : paceText;/);
-  assert.match(s, /\$\{paceSay \? `, \$\{paceSay\}` : ''\}/);
-  assert.doesNotMatch(s, /\$\{paceText \? `, \$\{paceText\}` : ''\}/);
-  assert.match(s, /pickedText=\{picked \? pickedSpeech\(doc, picked\) : '고른 날 없음'\}/);
-  assert.match(s, /accessibilityLabel=\{`\$\{e\.say\}, \$\{e\.text\}`\}/);
-  assert.match(s, /rightLabel=\{map\.since \? `\$\{fmtDateLong\(map\.since\)\}부터` : undefined\}/);
+  assert.match(s, /const paceSay = c\.reached \? '' : pace\.eta \? m\.stats\.pace\(\{ date: fmtDateSpeech\(pace\.eta, now, l\) \}\) : paceText;/);
+  assert.match(s, /\[area, a\.text\.trim\(\), said, `\$\{c\.pct\}%`, right, paceSay\]\.filter\(Boolean\)/);
+  assert.doesNotMatch(s, /right, paceText\]/);
+  assert.match(s, /pickedText=\{picked \? pickedSpeech\(doc, picked, l\) : m\.stats\.noPick\}/);
+  assert.match(s, /accessibilityLabel=\{`\$\{e\.say\}\$\{m\.core\.listSep\}\$\{e\.text\}`\}/);
+  assert.match(s, /rightLabel=\{map\.since \? m\.stats\.since\(\{ date: fmtDateLong\(map\.since, l\) \}\) : undefined\}/);
+  const ko = require('../src/i18n/ko/stats').default;
+  assert.equal(ko.pace({ date: '10월 20일 화요일' }), '이 속도면 10월 20일 화요일');
+  assert.equal(ko.noPick, '고른 날 없음');
+  assert.equal(ko.since({ date: '10월 3일 토요일' }), '10월 3일 토요일부터');
   const head = slice(s, 'const SectionHead = memo(', '// ── 큰 숫자 둘');
   assert.match(head, /NUM\]\} accessibilityLabel=\{rightLabel \?\? right\}>\{right\}<\/Text>/);
-  assert.match(s, /accessibilityLabel=\{ledgerLabel\(r\)\}/);
+  assert.match(s, /accessibilityLabel=\{ledgerLabel\(r, l\)\}/);
 });
 
 // ── 누르기 · 표시 ─────────────────────────────────────────────────────────────

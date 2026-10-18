@@ -24,7 +24,7 @@ test('iOS: 아이클라우드 백업에 기록이 들어가고, 번들은 한국
   // undefined면 AsyncStorage 기본값(백업 제외)이 되어 복원한 아이폰이 빈 앱으로 열린다
   assert.equal(plist.RCTAsyncStorageExcludeFromBackup, false);
   assert.equal(plist.CFBundleDevelopmentRegion, 'ko');
-  assert.deepEqual(plist.CFBundleLocalizations, ['ko']);
+  assert.deepEqual(plist.CFBundleLocalizations, ['ko', 'ja', 'en']);
   assert.equal(plist.UIStatusBarStyle, 'UIStatusBarStyleDarkContent');
   assert.equal(plist.CFBundleDisplayName, '만다라트');
   assert.equal(plist.ITSAppUsesNonExemptEncryption, false);
@@ -35,7 +35,7 @@ test('사진 저장 권한 문구는 한국어로, Info.plist와 ko.lproj가 같
   assert.ok(typeof text === 'string' && /[가-힣]/.test(text), '사진 앱 저장 권한 문구가 없으면 이미지 저장에서 앱이 종료된다');
   assert.equal(app.locales.ko, './locales/ko.json');
   const ko = JSON.parse(read('locales/ko.json'));
-  assert.deepEqual(Object.keys(ko), ['ios'], 'iOS 키는 ios 아래에 둔다(getResolvedLocalesAsync)');
+  assert.deepEqual(Object.keys(ko), ['ios', 'android'], 'iOS 키는 ios, Android 런처 이름은 android 아래에 둔다(getResolvedLocalesAsync)');
   assert.equal(ko.ios.CFBundleDisplayName, plist.CFBundleDisplayName);
   assert.equal(ko.ios.NSPhotoLibraryAddUsageDescription, text);
 });
@@ -103,8 +103,91 @@ test('의존성: 안 쓰는 네이티브·서체 패키지는 빼고, 출시에 
   for (const gone of ['@expo-google-fonts/gowun-batang', '@expo-google-fonts/space-grotesk', 'expo-linear-gradient']) {
     assert.equal(gone in deps, false, `${gone}는 지웠다`);
   }
-  for (const need of ['expo-splash-screen', 'expo-system-ui', 'expo-keep-awake', 'expo-file-system', 'react-native-view-shot']) {
+  for (const need of [
+    'expo-splash-screen', 'expo-system-ui', 'expo-keep-awake', 'expo-file-system', 'react-native-view-shot',
+    // v2: 알림 · 위젯 · 인쇄 · 서체 파일 · 언어 · 오류 수집
+    'expo-notifications', 'expo-widgets', '@expo/ui', 'expo-print', 'expo-asset', 'expo-localization', '@sentry/react-native',
+  ]) {
     assert.ok(need in deps, `${need}가 필요하다`);
   }
   assert.match(deps.expo, /^~56\.0\.(2[3-9]|[3-9]\d)$/);
+});
+
+// ── v2 (Wave 0) ──────────────────────────────────────────────────────────────
+
+test('v2 언어: 번들은 ko · ja · en, ja.json · en.json은 이름과 사진 권한 문구만', () => {
+  assert.deepEqual(app.locales, { ko: './locales/ko.json', ja: './locales/ja.json', en: './locales/en.json' });
+  // Android 런처 이름 — Locales.js는 android 블록만 values-b+<언어>/strings.xml에 쓴다(R2-1). app.json name(Xcode 대상 이름)은 그대로
+  assert.equal(app.name, 'Mandarat');
+  for (const [l, name] of [['ko', '만다라트'], ['ja', 'マンダラート'], ['en', 'Mandalart']]) {
+    assert.deepEqual(JSON.parse(read(`locales/${l}.json`)).android, { app_name: name }, l);
+  }
+  for (const l of ['ja', 'en']) {
+    const j = JSON.parse(read(`locales/${l}.json`));
+    assert.deepEqual(Object.keys(j), ['ios', 'android']);
+    assert.deepEqual(Object.keys(j.ios).sort(), ['CFBundleDisplayName', 'NSPhotoLibraryAddUsageDescription']);
+    for (const v of Object.values(j.ios)) {
+      assert.ok(typeof v === 'string' && v.length > 0);
+      assert.equal(v.includes('"'), false, 'Locales.js가 따옴표를 그대로 쓴다');
+      assert.equal(/[가-힣]/.test(v), false, `${l}에 한글이 없다`);
+    }
+  }
+  assert.equal(JSON.parse(read('locales/ja.json')).ios.CFBundleDisplayName, 'マンダラート');
+  assert.equal(JSON.parse(read('locales/en.json')).ios.CFBundleDisplayName, 'Mandalart');
+});
+
+test('v2 아이패드: supportsTablet', () => {
+  assert.equal(app.ios.supportsTablet, true);
+});
+
+test('v2 플러그인: 순서대로 — withWidgetStrings는 expo-widgets보다 앞', () => {
+  const names = app.plugins.map((p) => (Array.isArray(p) ? p[0] : p));
+  assert.deepEqual(names, [
+    'expo-font', 'expo-splash-screen', 'expo-localization', 'expo-notifications', './plugins/withWidgetStrings', 'expo-widgets', '@sentry/react-native/expo',
+  ]);
+  const opt = (name) => app.plugins.find((p) => Array.isArray(p) && p[0] === name)[1];
+  assert.deepEqual(opt('expo-localization'), { supportedLocales: { ios: ['ko', 'ja', 'en'], android: ['ko', 'ja', 'en'] } });
+  const w = opt('expo-widgets');
+  assert.equal(w.bundleIdentifier, 'com.jcncompany.mandarat.widgets');
+  assert.equal(w.groupIdentifier, 'group.com.jcncompany.mandarat');
+  assert.equal(w.enablePushNotifications, false);
+  assert.equal(w.frequentUpdates, false);
+  assert.equal('enableAndroid' in w, false, '안드로이드 위젯은 켜지 않는다(package.json에서 자동 연결도 뺐다)');
+  assert.equal(w.widgets.length, 1);
+  assert.equal(w.widgets[0].name, 'TodayWidget');
+  assert.deepEqual(w.widgets[0].ios.supportedFamilies, ['systemSmall', 'systemMedium', 'systemLarge', 'accessoryInline', 'accessoryCircular', 'accessoryRectangular']);
+  assert.deepEqual(opt('@sentry/react-native/expo'), { organization: 'farmerstail', project: 'mandarat', url: 'https://sentry.io/' });
+  const pkg = JSON.parse(read('package.json'));
+  assert.deepEqual(pkg.expo.autolinking.android.exclude, ['expo-widgets', '@expo/ui']);
+  assert.equal(pkg.scripts.ios, 'expo run:ios');
+  assert.equal(pkg.scripts.android, 'expo run:android');
+});
+
+test('v2 권한(entitlements): iCloud 문서 컨테이너', () => {
+  assert.deepEqual(app.ios.entitlements, {
+    'com.apple.developer.icloud-container-identifiers': ['iCloud.com.jcncompany.mandarat'],
+    'com.apple.developer.ubiquity-container-identifiers': ['iCloud.com.jcncompany.mandarat'],
+    'com.apple.developer.icloud-services': ['CloudDocuments'],
+  });
+  const pm = app.ios.privacyManifests;
+  assert.equal(pm.NSPrivacyTracking, false);
+  // Sentry(sentry-cocoa)의 매니페스트와 같은 셋 — 강제 종료 · 멈춤(hang) · 발자국과 기기 모델(R-8 #1). 모두 연결 안 함 · 추적 안 함 · 앱 기능
+  assert.deepEqual(pm.NSPrivacyCollectedDataTypes.map((t) => [t.NSPrivacyCollectedDataType, t.NSPrivacyCollectedDataTypeLinked, t.NSPrivacyCollectedDataTypeTracking, t.NSPrivacyCollectedDataTypePurposes]), [
+    ['NSPrivacyCollectedDataTypeCrashData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
+    ['NSPrivacyCollectedDataTypePerformanceData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
+    ['NSPrivacyCollectedDataTypeOtherDiagnosticData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
+  ]);
+});
+
+test('Android: 템플릿 기본 권한은 막는다(R2-4)', () => {
+  assert.deepEqual(app.android.blockedPermissions, [
+    'android.permission.SYSTEM_ALERT_WINDOW',
+    'android.permission.READ_EXTERNAL_STORAGE',
+    'android.permission.WRITE_EXTERNAL_STORAGE',
+  ]);
+});
+
+test('v2 inline modules: native/ios를 본 앱 대상에 넣는다', () => {
+  assert.deepEqual(app.experiments, { inlineModules: { watchedDirectories: ['native/ios'] } });
+  assert.ok(fs.existsSync(path.join(ROOT, 'native/ios/AppIntents.swift')));
 });

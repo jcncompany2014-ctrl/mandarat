@@ -1,0 +1,33 @@
+appId: com.jcncompany.mandarat
+name: "07 프로 시트"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 설정 › 프로 → 시트가 열리고 되살리기가 보인다 → 닫기.
+# 샌드박스에서도 결제 창을 띄우지 않는다: pro-buy와 pro-restore는 보이기만 확인하고 누르지 않는다.
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-pro"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-pro"
+- extendedWaitUntil:
+    visible:
+      id: "pro-restore"
+    timeout: 10000
+- assertVisible:
+    id: "pro-buy"
+- tapOn:
+    id: "pro-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "pro-restore"
+    timeout: 10000

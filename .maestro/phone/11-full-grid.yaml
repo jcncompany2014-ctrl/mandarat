@@ -1,0 +1,37 @@
+appId: com.jcncompany.mandarat
+name: "11 81칸 표"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 만다라트 탭 → 81칸 표 → 영역 하나를 크게 → 표 전체로 돌아온다
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/sample.yaml
+- tapOn:
+    id: "tab-grid"
+- extendedWaitUntil:
+    visible:
+      id: "grid-table"
+    timeout: 10000
+- assertVisible:
+    id: "grid-cell-0-0"
+- assertVisible:
+    id: "grid-cell-7-7"
+- tapOn:
+    id: "grid-cell-3-3"
+- waitForAnimationToEnd:
+    timeout: 3000
+# 칸을 누르면 영역이 크게 보이거나(줌) 실천 시트가 뜬다 — 둘 중 하나면 된다
+- assertVisible:
+    id: "grid-cell-3-3|sheet-edit"
+- tapOn:
+    id: "tab-grid"
+- extendedWaitUntil:
+    visible:
+      id: "grid-table"
+    timeout: 10000
+- takeScreenshot: "phone-grid"

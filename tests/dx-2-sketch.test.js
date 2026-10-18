@@ -29,9 +29,13 @@ test('D-5 · D-6: 스케치는 높이까지 보고 크기를 고르고, 예시�
   assert.match(sketch, /numberOfLines=\{fit\.lines\}/);
   assert.doesNotMatch(sketch, /fitFontSize/);
   const onb = src('src/screens/Onboarding.tsx');
-  const ex = onb.match(/const EXAMPLES = \[([^\]]*)\]/)[1];
-  const placeholder = onb.match(/placeholder="예\) ([^"]+)"/)[1];
-  assert.ok(!ex.includes(placeholder), '입력칸 안내와 같은 예시를 두 번 보이지 않는다');
+  assert.match(onb, /const examples = \[o\.ex1, o\.ex2, o\.ex3\]/);
+  assert.match(onb, /placeholder=\{o\.goalPlaceholder\}/);
+  for (const l of ['ko', 'ja', 'en']) {
+    const o = require('../src/i18n').msg(l).onboarding;
+    const placeholder = o.goalPlaceholder.replace(o.exampleMark, '').trim();
+    assert.ok(![o.ex1, o.ex2, o.ex3].some((e) => e.includes(placeholder) || placeholder.includes(e)), `${l}: 입력칸 안내와 같은 예시를 두 번 보이지 않는다`);
+  }
   assert.doesNotMatch(onb, />\s*·\s*</, '예시 사이 구분점 글자가 없다');
   assert.match(onb, /minHeight: 32/);
 });
@@ -40,13 +44,14 @@ test('D-13: 8칸 다 달성한 블록은 크게 보기·영역 화면에서도 �
   const b = src('src/components/ChartBoard.tsx');
   assert.match(b, /const finished = th\.actions\.every\(\(a\) => !!a\?\.text\.trim\(\) && !!a\.done\)/);
   assert.match(b, /finished=\{finished\}/);
-  assert.match(b, /\{finished && \(\s*<Text[^>]*>\s*달성/);
+  assert.match(b, /\{finished && \(\s*<Text[^>]*>\s*\{m\.chart\.done\}/);
+  assert.equal(require('../src/i18n').msg('ko').chart.done, '달성');
   assert.match(b, /borderWidth: 2, borderColor: legibleMark\(M\.gold, M\.bg, M\)/);
   const g = src('src/components/GridMark.tsx');
   assert.match(g, /base\.dot = a\?\.done \? DONE_INK : legibleMark\(M\.gold, base\.bg \?\? M\.bg, M\);/);
   // 81칸 표의 '달성'도 크게 보기와 같은 꼴 — 이름표 바탕(bg = headBg) 위 4.5:1, 포인트 색(최종 점검 NEW-1)
   const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /color: legibleMark\(M\.gold, bg, M, 4\.5\), marginTop: 1 \}\} maxFontSizeMultiplier=\{1\}>달성/);
+  assert.match(grid, /color: legibleMark\(M\.gold, bg, M, 4\.5\), marginTop: 1 \}\} maxFontSizeMultiplier=\{1\}>\{m\.chart\.done\}/);
   assert.doesNotMatch(grid, /color: M\.goldInk/);
   assert.match(b, /legibleMark\(M\.gold, headBg\(color, M\), M, 4\.5\)/);
 });
@@ -70,5 +75,5 @@ test('D-8 · D-15: 81칸 범례는 실제 칸 모양, 글은 20pt 쪽 가장자�
   assert.match(src('src/screens/GridScreen.tsx'), /marginHorizontal: 9/);
   // 81칸과 공유 이미지는 같은 줄바꿈 도우미
   assert.match(f, /cellBreak\(text, textW/);
-  assert.match(src('src/components/ChartPoster.tsx'), /cellBreak\(c\.text, TEXT_W, fs\)/);
+  assert.match(src('src/components/ChartPoster.tsx'), /cellBreak\(c\.text, k\.textW, fs\)/);
 });

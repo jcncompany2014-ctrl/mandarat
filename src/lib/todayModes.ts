@@ -3,6 +3,7 @@ import type { MandaratDoc } from '../types';
 import { autoToday, doneToday, habitStreak, kindOf, weekKey, ymd, type HabitStreak, type TodayItem } from './routine';
 import { addDays, ratingOf } from './kinds';
 import { ritualTarget } from './ritual';
+import { msg, type Lang } from '../i18n';
 
 type Doc = Pick<MandaratDoc, 'themes' | 'dayLog'>;
 
@@ -38,14 +39,17 @@ export function streakRows(doc: Doc, now: Date): StreakRow[] {
 }
 
 /** 단위가 붙은 기록 — 요일 습관은 '일', 주 N회는 '주' */
-export function runText(n: number, unit: HabitStreak['unit']): string {
-  return `${n}${unit === 'week' ? '주' : '일'}`;
+export function runText(n: number, unit: HabitStreak['unit'], l?: Lang): string {
+  const t = msg(l).today;
+  return unit === 'week' ? t.runWeeks({ n }) : t.runDays({ n });
 }
 
-/** 줄 오른쪽 기록 — 이어 가는 기록이 없으면 '—'(화면 읽기 '아직 없음') */
-export function streakCell(s: HabitStreak): { text: string; a11y: string } {
-  if (s.cur <= 0) return { text: '—', a11y: '연속 기록 아직 없음' };
-  return { text: runText(s.cur, s.unit), a11y: `연속 ${runText(s.cur, s.unit)}` };
+/** 줄 오른쪽 기록 — 이어 가는 기록이 없으면 '—'(화면 읽기 '아직 없음'). 칸이 좁아 보이는 글은 짧은 꼴(ko는 같다) */
+export function streakCell(s: HabitStreak, l?: Lang): { text: string; a11y: string } {
+  const t = msg(l).today;
+  if (s.cur <= 0) return { text: '—', a11y: t.runNone };
+  const n = s.cur;
+  return { text: s.unit === 'week' ? t.runWeeksShort({ n }) : t.runDaysShort({ n }), a11y: t.runLabel({ run: runText(n, s.unit, l) }) };
 }
 
 /** 주 N회 기록 한 주를 날로 견줄 때 — 이어 온 길이를 비교하는 데만 쓴다 */
@@ -72,20 +76,21 @@ export function streakSummary(rows: readonly StreakRow[]): StreakSummary {
 }
 
 /** 큰 숫자 묶음의 화면 읽기 한 마디 — 보이는 머리 글('지금 연속')과 같은 말로 시작한다 */
-export function streakSummaryLabel(s: StreakSummary): string {
-  if (!s.lead) return '아직 이어 가는 기록이 없어요. 오늘 하나 하면 시작돼요';
+export function streakSummaryLabel(s: StreakSummary, l?: Lang): string {
+  const t = msg(l).today;
+  if (!s.lead) return t.streakNone;
   const { text, cur, unit, best } = s.lead;
-  return `지금 연속 ${runText(cur, unit)}, ${text}. 최고 ${runText(best, unit)}`;
+  return t.streakLabel({ run: runText(cur, unit, l), text, bestRun: runText(best, unit, l) });
 }
 
 /** 보드 칸 머리 — '진행 중 2개' */
-export function columnHead(label: string, count: number): string {
-  return `${label} ${count}개`;
+export function columnHead(label: string, count: number, l?: Lang): string {
+  return msg(l).today.columnHead({ label, n: count });
 }
 
 /** 이번 주 마음가짐 머리 오른쪽 — '4개 중 1개 매겼어요' */
-export function mindProgress(total: number, rated: number): string {
-  return `${total}개 중 ${rated}개 매겼어요`;
+export function mindProgress(total: number, rated: number, l?: Lang): string {
+  return msg(l).today.mindProgress({ total, done: rated });
 }
 
 /**

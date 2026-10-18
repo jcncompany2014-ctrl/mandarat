@@ -1,0 +1,98 @@
+// 'sheet' namespace — action sheet, Today row check, 64-square finale (X-C, docs/v2/plan.md Appendix B).
+// The unit is whatever the user typed; English puts a space before it, and drops it when empty.
+import type ko from '../ko/sheet';
+import type { Like } from '../types';
+import { groupNum } from '../num';
+import { plural } from './plural';
+
+const amt = ({ n, unit }: { n: number; unit: string }) => (unit ? `${groupNum(n)} ${unit}` : groupNum(n));
+
+export default {
+  areaFallback: ({ n }) => `Area ${n}`,
+  headA11y: ({ area, ordinal }) => `${area} area, ${ordinal}, open area`,
+  edit: 'Edit text and type',
+  actionFallback: 'Action',
+  titleA11y: ({ text, subtitle }) => `${text}, ${subtitle}, edit text and type`,
+  perStep: (p) => `${amt(p)} at a time`,
+  onceAWeek: 'Once a week',
+  kindPlan: ({ name, plan }) => `${name} · ${plan}`,
+
+  checkHint: 'Tap again to undo',
+  doneToday: 'Done today',
+  thisWeek: 'This week',
+  weekCount: ({ count, total }) => `${count} of ${total}`,
+  yesterdayToo: 'Did it yesterday too',
+  yesterdayTooA11y: 'Did it yesterday too, log yesterday',
+  backfillDone: ({ dow }) => `Logged ${dow} as done`,
+  backfillCleared: ({ dow }) => `Cleared ${dow}`,
+
+  countPlus: (p) => `Log ${amt(p)}`,
+  countMinus: (p) => `Remove ${amt(p)}`,
+  countA11y: ({ said, pct }) => `So far ${said}, ${pct}%`,
+  countWeek: (p) => `This week +${amt(p)}`,
+  countReached: 'Goal reached',
+  countLeft: (p) => `${amt(p)} to go`,
+  countGoal: (p) => `Reached your goal of ${amt(p)}`,
+  plusShort: (p) => `+${amt(p)}`,
+
+  onceDone: 'Done',
+  dueOn: ({ date }) => `Due ${date}`,
+  postponeTomorrow: 'Tomorrow',
+  postponeNextWeek: 'Next week',
+  postponeTomorrowA11y: 'Move due date to tomorrow',
+  postponeNextWeekA11y: 'Move due date to next week',
+  postponeTomorrowToast: 'Moved the due date to tomorrow',
+  postponeNextWeekToast: 'Moved the due date to next week',
+  noDue: 'No due date',
+  setDue: 'Set ›',
+  noDueA11y: 'No due date, set a due date',
+
+  mindAsk: 'How well did you keep it this week?',
+  mindScore: "This week's score",
+  mindPrompt: 'Go with your first instinct',
+  mindHistory: ({ n, list }) => `Scores for the last ${n} ${plural(n, 'week', 'weeks')}: ${list}`,
+  mindPoint: ({ n }) => `${n} of 5`,
+  mindNone: 'none',
+  weeksAgo: ({ n }) => `${n} ${plural(n, 'week', 'weeks')} ago`,
+
+  todayAlready: "Already on Today's list",
+  todayRemoved: "Removed from Today's list",
+  todayAdded: "Added to Today's list",
+  todayRow: 'Add to Today',
+  todayAuto: 'Added automatically',
+  todayAutoA11y: 'Add to Today, added automatically',
+  todayAutoHint: 'Tells you why it was added',
+  focusRow: 'Focus for 25 min',
+  focusStart: 'Start ›',
+  focusRowA11y: 'Focus for 25 min, start',
+  unachieveHint: 'Tap again to mark not achieved',
+  achieveHabitHint: 'Tap once it has become second nature',
+  achieveMindHint: 'Tap once it feels settled',
+  achieved: 'Square achieved',
+  achieve: 'Mark this square achieved',
+  achieveA11y: 'Square achieved',
+  memo: 'Note',
+
+  rowDone: 'Done',
+  rowUnlog: "Remove today's log",
+  rowUndone: 'Clear Done',
+  rowMarkDone: 'Mark done',
+  rowWeek: ({ count, total }) => `${count} of ${total} this week`,
+  rowDelete: 'Delete',
+  rowOpenHint: 'Shows action details',
+  rowOpen: 'Details',
+  rowWritten: 'Added by you',
+  undoAdd: (p) => `Removed today's ${amt(p)}`,
+  extraRemoved: 'To-do deleted',
+  hintMark: 'Marks it done',
+  hintUnlog: "Removes today's log",
+  hintUndone: 'Clears Done',
+  checkedLeft: ({ text, n }) => `${text}, done. ${n} left today`,
+  checked: ({ text }) => `${text}, done`,
+  addedSpeech: ({ text, count, total, unit }) => `${text}, ${groupNum(count)} of ${amt({ n: total, unit })}`,
+
+  finaleTitle: 'All 64 squares achieved',
+  finaleCountA11y: '64 of 64 squares',
+  finaleGoal: ({ goal }) => `Core goal · ${goal}`,
+  finaleStreak: ({ n }) => `${n}-day streak`,
+} satisfies Like<typeof ko>;

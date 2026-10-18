@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated, Appearance, PanResponder, Platform, Pressable, View,
-  type AccessibilityRole, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView,
+  Animated, Appearance, PanResponder, Platform, Pressable, View, useWindowDimensions as useRNWindowDimensions,
+  type AccessibilityRole, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView, type ViewProps,
 } from 'react-native';
 import { Text } from '../components/AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
@@ -12,9 +12,19 @@ import { Icon } from '../components/Icon';
 import { select, success, tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
-import { TAB_BAR_H, useUIActions, useUIState, type Screen } from './ui';
+import { SyncChoiceHost } from '../screens/settings/SyncChoiceSheet';
+import { TAB_BAR_H, isDeep, useUIActions, useUIState, type Screen } from './ui';
+import { TID } from '../lib/testIds';
 import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
 import { todayProgress } from '../lib/routine';
+import { PageSize, useLayout } from '../lib/screen';
+import { BINDING, BINDING_W, SPREAD_TABS_W, companionFor, companionKey, modeFor, spreadPageW, type Companion } from '../lib/spread';
+import { crash } from '../lib/crash';
+import { gridMemory } from '../screens/gridMemory';
+import { mix } from '../theme/moods';
+import { msg } from '../i18n';
+import { useMsg } from '../i18n/react';
+import type { M as Palette } from '../theme/usePalette';
 
 import { Onboarding } from '../screens/Onboarding';
 import { Dashboard } from '../screens/Dashboard';
@@ -23,6 +33,7 @@ import { Detail } from '../screens/Detail';
 import { Today } from '../screens/Today';
 import { Stats } from '../screens/Stats';
 import { Settings } from '../screens/Settings';
+import { Year } from '../screens/Year';
 
 import { ActionSheet } from '../overlays/ActionSheet';
 import { FocusTimer } from '../overlays/FocusTimer';
@@ -34,6 +45,13 @@ import { CellEditor } from '../overlays/CellEditor';
 import { WeekRitual } from '../overlays/WeekRitual';
 import { ShareChart } from '../overlays/ShareChart';
 import { Snackbar } from '../overlays/Snackbar';
+import { PrintSheet } from '../overlays/PrintSheet';
+import { ProSheet } from '../overlays/ProSheet';
+import { YearClose } from '../overlays/YearClose';
+import { ReminderSync } from '../hosts/ReminderSync';
+import { WidgetSync } from '../hosts/WidgetSync';
+import { ICloudSync } from '../hosts/ICloudSync';
+import { Inbound } from '../hosts/Inbound';
 
 // 화면과 시트는 props가 없거나 값이 같으면 다시 그리지 않는다 — Root는 체크마다(문서가 바뀔 때마다) 다시 그려지지만,
 // 각 화면·시트는 자기가 읽는 문서·화면 상태가 바뀔 때만 다시 그려진다.
@@ -47,19 +65,24 @@ const PickTodayPure = memo(PickToday);
 const CellEditorPure = memo(CellEditor);
 const WeekRitualPure = memo(WeekRitual);
 const ShareChartPure = memo(ShareChart);
+const PrintSheetPure = memo(PrintSheet);
+const ProSheetPure = memo(ProSheet);
+const YearClosePure = memo(YearClose);
+const YearPure = memo(Year);
 const CelebrationPure = memo(Celebration);
 const SnackbarPure = memo(Snackbar);
 const PaperDotsPure = memo(PaperDots);
+const DetailPure = memo(Detail);
 
 type TabId = 'dashboard' | 'grid' | 'today' | 'stats';
 type IconName = Parameters<typeof Icon>[0]['name'];
 
 /** 탭바 다섯 칸 — 홈 · 만다라트 · 담기 · 오늘 · 통계 (가운데 칸이 오늘 할 일 담기) */
-const TABS: { id: TabId; icon: IconName; label: string; slot: number }[] = [
-  { id: 'dashboard', icon: 'home', label: '홈', slot: 0 },
-  { id: 'grid', icon: 'grid', label: '만다라트', slot: 1 },
-  { id: 'today', icon: 'checkCircle', label: '오늘', slot: 3 },
-  { id: 'stats', icon: 'chart', label: '통계', slot: 4 },
+const TABS: { id: TabId; icon: IconName; msgKey: 'tabHome' | 'tabGrid' | 'tabToday' | 'tabStats'; slot: number }[] = [
+  { id: 'dashboard', icon: 'home', msgKey: 'tabHome', slot: 0 },
+  { id: 'grid', icon: 'grid', msgKey: 'tabGrid', slot: 1 },
+  { id: 'today', icon: 'checkCircle', msgKey: 'tabToday', slot: 3 },
+  { id: 'stats', icon: 'chart', msgKey: 'tabStats', slot: 4 },
 ];
 const SLOTS = 5;
 const ADD_SLOT = 2;
@@ -77,7 +100,6 @@ const IND_W = 20;
 const BAR_ROLE: AccessibilityRole = Platform.OS === 'web' ? 'tablist' : 'tabbar';
 const TAB_ROLE: AccessibilityRole = Platform.OS === 'ios' ? 'button' : 'tab';
 
-const isDeep = (s: Screen) => s === 'detail' || s === 'settings';
 
 /** 이정표 촉감(성공)은 한 번에 한 번만 — 영역 8/8과 하루 마감이 한 번의 체크로 같이 와도 한 번 울린다 */
 let lastMilestone = 0;
@@ -94,9 +116,16 @@ function milestone() {
  */
 export function Root() {
   const { doc } = useDoc();
+  const M = usePalette();
   return (
     <>
       <Milestones />
+      {/* 그리지 않는 손잡이 — 알림·위젯·iCloud를 문서에 맞춘다 */}
+      <ReminderSync />
+      <WidgetSync />
+      <ICloudSync />
+      {/* iCloud 처음 고르기 — 어느 화면에 있든 묻는다(설정 안에만 두면 설정을 열어야 보인다) */}
+      <SyncChoiceHost M={M} />
       <RootView onboarded={doc.onboarded} />
     </>
   );
@@ -140,11 +169,11 @@ function Milestones() {
       timers.current.delete(t);
       milestone();
       const cur = uiRef.current;
-      const msg = '오늘 할 일을 다 했어요';
+      const text = msg().core.todayAllDone;
       // 되돌리기가 달린 안내나 방금 띄운 영역 8칸 안내는 덮지 않는다
       const busy = !!cur.getToast()?.action || Date.now() - milestoneToastAt.current < 1500;
-      if (!onPage && !busy) cur.showToast(msg);
-      else if (screenReader()) announce(msg);
+      if (!onPage && !busy) cur.showToast(text);
+      else if (screenReader()) announce(text);
     }, 650);
     timers.current.add(t);
   }, [todayDone, todayTotal]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -177,7 +206,7 @@ function Milestones() {
     const th = doc.themes[ti];
     milestone();
     milestoneToastAt.current = Date.now();
-    ui.showToast(`${th.title ? `${th.title} 영역` : `영역 ${ti + 1}`} 8칸을 모두 달성했어요`);
+    ui.showToast(msg().core.areaAllDone({ name: th.title, n: ti + 1 }));
   }, [areaDone]); // eslint-disable-line react-hooks/exhaustive-deps
   // 마무리 페이지가 실제로 뜨는 순간 한 번 울린다(대기열에서 기다렸다 떠도 그때)
   useEffect(() => {
@@ -203,6 +232,31 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   // 최신 값을 PanResponder·타이머 같은 오래 사는 콜백에서 읽는다
   const uiRef = useRef(ui);
   uiRef.current = ui;
+
+  // ── 배치: 폰 · 한 단 · 두 쪽 펼침(V5-A) ─────────────────────────────────────
+  // 펼침이면 왼쪽 쪽은 지금 화면, 오른쪽 쪽은 곁들인 화면(companionFor). 오류 기록에 배치를 태그로 남긴다
+  const mode = modeFor(useLayout().kind);
+  const spread = mode === 'spread';
+  useEffect(() => { crash.tag('layout', mode); }, [mode]);
+  const { width: winW, height: winH } = useRNWindowDimensions();
+  // 감싼 단(PaperColumn)의 실제 폭 — 펼침은 그 단 밖으로 창 폭만큼 넓힌다(처음엔 단 폭으로 어림하고 재서 맞춘다)
+  const column = useContext(PageSize);
+  const [hostW, setHostW] = useState(column?.width ?? winW);
+  const onHost = useCallback((e: LayoutChangeEvent) => setHostW(e.nativeEvent.layout.width), []);
+  const out = Math.max(0, (winW - hostW) / 2);
+  const pageW = spreadPageW(winW);
+  const margin = Math.max(0, (winW - pageW * 2 - BINDING_W) / 2);
+  const leftSize = useMemo(() => ({ width: pageW }), [pageW]);
+  // 쪽이 창에서 시작하는 x — 가장자리 쓸기(뒤로)는 이 쪽의 왼쪽 가장자리에서 잰다
+  const edgeX = useRef(0);
+  edgeX.current = spread ? margin : out;
+  // 만다라트 탭이 크게 보는 영역 — 펼침의 오른쪽 쪽이 그 영역 화면을 연다
+  const [focusTi, setFocusTi] = useState<number | null>(null);
+  useEffect(() => {
+    if (spread) setFocusTi(typeof gridMemory.focus === 'number' ? gridMemory.focus : null);
+  }, [spread]);
+  // 쪽 하나가 스크롤 없이 보여 줄 수 있는 높이(탭바를 뺀) — 81칸 표가 이 안에 들어가게 줄인다
+  const pageH = winH - insets.top - TAB_CLEARANCE - Math.max(10, insets.bottom);
 
   // ── 종이가 글과 함께 움직인다 ────────────────────────────────────────────
   // 스크롤 y를 네이티브에서 바로 받아 점 무늬를 (y % 18)만큼 올린다 — 무늬는 18마다 되풀이되므로 한 장으로 끝없이 이어진다
@@ -284,7 +338,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
       ]).start();
     };
     const wants = (_: unknown, g: { x0: number; dx: number; dy: number }) =>
-      isDeep(uiRef.current.screen) && g.x0 < EDGE && g.dx > 8 && Math.abs(g.dy) < 12;
+      isDeep(uiRef.current.screen) && g.x0 - edgeX.current < EDGE && g.dx > 8 && Math.abs(g.dy) < 12;
     return PanResponder.create({
       // 가장자리에서 시작한 가로 끌기는 화면 안의 가로 제스처(영역 넘기기 등)보다 먼저 잡는다
       onMoveShouldSetPanResponderCapture: wants,
@@ -345,18 +399,18 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
 
   let screen: React.ReactNode = null;
   if (ui.screen === 'dashboard') screen = <Dashboard />;
-  else if (ui.screen === 'grid') screen = <GridScreenPure />;
+  else if (ui.screen === 'grid') screen = spread ? <GridScreenPure availH={pageH} onFocusArea={setFocusTi} /> : <GridScreenPure />;
   else if (ui.screen === 'detail') screen = <Detail key={ui.ti} ti={ui.ti} />;
   else if (ui.screen === 'today') screen = <Today />;
   else if (ui.screen === 'stats') screen = <Stats />;
   else if (ui.screen === 'settings') screen = <SettingsPure />;
+  else if (ui.screen === 'year') screen = <YearPure />;
 
   const deep = isDeep(ui.screen);
   const showTabs = ui.screen !== 'settings';
 
-  return (
-    <View style={{ flex: 1, backgroundColor: M.bg }}>
-      <StatusBar style={M.dark ? 'light' : 'dark'} />
+  const page = (
+    <>
       {/* 도트 종이는 스크롤 뒤에 화면 크기로 한 장만 — 내용 높이만큼 그리면 긴 화면에서 메모리를 크게 쓴다.
           한 칸(18)만큼 더 길게 두고 스크롤을 따라 올린다. 더 긴 그 한 칸은 화면 틀에서 잘라 낸다 —
           안 자르면 웹에서는 문서가 18만큼 길어져 창이 스크롤되고, 탭바가 따라 올라가며 아래에 흰 띠가 남는다 */}
@@ -390,12 +444,20 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
           {screen}
         </Animated.View>
       </Animated.ScrollView>
-
-      {showTabs && (
-        <TabBar active={activeTab} onTab={onTab} onAdd={onAdd} bottomInset={insets.bottom} />
-      )}
-
-      {/* overlays */}
+    </>
+  );
+  const bottomPad = showTabs ? TAB_CLEARANCE + Math.max(10, insets.bottom) : 24 + insets.bottom;
+  const tabs = showTabs && (
+    <TabBar
+      active={activeTab}
+      onTab={onTab}
+      onAdd={onAdd}
+      bottomInset={insets.bottom}
+      padX={spread ? Math.max(0, (winW - SPREAD_TABS_W) / 2) : 0}
+    />
+  );
+  const overlays = (
+    <>
       <ActionSheetPure />
       <FocusTimerPure />
       <QuickAddPure />
@@ -403,9 +465,148 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
       <CellEditorPure />
       <WeekRitualPure />
       <ShareChartPure />
+      <PrintSheetPure />
+      <ProSheetPure />
+      <YearClosePure />
       <CelebrationPure />
       <SnackbarPure />
+      {/* 들어오는 링크 — 시작하기를 마친 뒤에만 */}
+      <Inbound />
+    </>
+  );
+
+  if (!spread) {
+    return (
+      <View style={{ flex: 1, backgroundColor: M.bg }}>
+        <StatusBar style={M.dark ? 'light' : 'dark'} />
+        {page}
+        {tabs}
+        {overlays}
+      </View>
+    );
+  }
+
+  // ── 두 쪽 펼침 — 펼친 수첩: 책상 위에 종이 두 쪽, 가운데 제본(1·4·1pt 두 줄 괘선), 그림자 없이 ──
+  // 감싼 단 밖으로 창 폭만큼 넓혀(out) 그 위에 그린다. 탭바는 창 폭 그대로, 다섯 칸은 가운데 560에 모인다.
+  // 81칸 표는 늘 한 장 — companionFor가 왼쪽이 만다라트면 오른쪽에 표를 두지 않는다.
+  const companion = companionFor(ui.screen, focusTi);
+  return (
+    <View style={{ flex: 1 }} onLayout={onHost}>
+      <StatusBar style={M.dark ? 'light' : 'dark'} />
+      <View style={{ position: 'absolute', top: 0, bottom: 0, left: -out, width: winW, backgroundColor: mix(M.bg, M.ink, 0.05) }}>
+        {/* 화면 읽기 순서 — 왼쪽 쪽을 다 읽은 뒤 오른쪽 쪽으로(같은 높이의 줄이 두 쪽을 오가며 섞이지 않게).
+            탭바·겹쳐 뜨는 것은 이 줄 밖이라 순서 목록에 매이지 않는다. 웹(react-native-web)은 이 속성을 버리고 DOM 순서 그대로 읽는다 */}
+        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center' }} {...SPREAD_A11Y}>
+          <View
+            id={SPREAD_LEFT_ID}
+            testID={TID.spreadLeft}
+            style={{ width: pageW, backgroundColor: M.bg, borderLeftWidth: margin > 0 ? 1 : 0, borderColor: M.line }}
+          >
+            <PageSize.Provider value={leftSize}>{page}</PageSize.Provider>
+          </View>
+          <Binding M={M} />
+          <View
+            id={SPREAD_RIGHT_ID}
+            testID={TID.spreadRight}
+            style={{ width: pageW, backgroundColor: M.bg, borderRightWidth: margin > 0 ? 1 : 0, borderColor: M.line }}
+          >
+            <PageSize.Provider value={leftSize}>
+              <CompanionPage
+                key={companionKey(companion)}
+                M={M}
+                companion={companion}
+                topInset={insets.top}
+                bottomPad={bottomPad}
+                availH={pageH}
+                onFocusArea={setFocusTi}
+              />
+            </PageSize.Provider>
+          </View>
+        </View>
+        {tabs}
+        {overlays}
+      </View>
     </View>
+  );
+});
+
+/** 두 쪽 펼침의 화면 읽기 순서 — 쪽마다 id(네이티브의 nativeID)를 달고 그 순서대로 */
+const SPREAD_LEFT_ID = 'spread-left';
+const SPREAD_RIGHT_ID = 'spread-right';
+// 프로젝트가 읽는 RN 타입(Libraries/…/ViewPropTypes.d.ts)에는 아직 없는 속성이라 ViewProps로 맞춘다 — RN 0.85 View가 받는 이름 그대로
+const SPREAD_A11Y = { experimental_accessibilityOrder: [SPREAD_LEFT_ID, SPREAD_RIGHT_ID] } as ViewProps;
+
+/** 두 쪽 사이 제본 — 1pt 괘선 · 4pt 틈(책상 빛) · 1pt 괘선. 그림자·둥근 모서리 없이 */
+const Binding = memo(function Binding({ M }: { M: Palette }) {
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: BINDING.rule * 2 + BINDING.gap,
+        borderLeftWidth: BINDING.rule, borderRightWidth: BINDING.rule, borderColor: M.line,
+        backgroundColor: mix(M.bg, M.ink, 0.05),
+      }}
+    />
+  );
+});
+
+/**
+ * 펼침의 오른쪽 쪽 — 왼쪽 화면에 곁들인 화면(81칸 표 · 영역 화면 · 홈).
+ * 쪽마다 스크롤과 도트 종이가 따로다. 곁들인 화면이 바뀌면(key) 새로 그려 맨 위에서 시작한다.
+ * 스크롤 기억과 가장자리 쓸기(뒤로)는 왼쪽 쪽 몫이다.
+ */
+const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bottomPad, availH, onFocusArea }: {
+  M: Palette;
+  companion: Companion;
+  topInset: number;
+  bottomPad: number;
+  availH: number;
+  onFocusArea: (ti: number | null) => void;
+}) {
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const dotsStyle = useMemo(() => {
+    const y = Animated.modulo(scrollY, DOT).interpolate({ inputRange: [0, DOT], outputRange: [0, -DOT] });
+    return { position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: y }] };
+  }, [scrollY]);
+  const onScroll = useMemo(
+    () => Animated.event<NativeScrollEvent>([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }),
+    [scrollY],
+  );
+  // 바뀐 곁들인 화면은 살짝 떠오른다(동작 줄이기에서는 그대로)
+  const fade = useRef(new Animated.Value(reducedMotion() ? 1 : 0)).current;
+  useEffect(() => {
+    if (reducedMotion()) { fade.setValue(1); return; }
+    Animated.timing(fade, { toValue: 1, duration: DUR.base, easing: EASE.out, useNativeDriver: true }).start();
+  }, [fade]);
+  const bodyStyle = useMemo(() => ({ flexGrow: 1, opacity: fade }), [fade]);
+
+  let body: React.ReactNode;
+  if (companion.screen === 'grid') body = <GridScreenPure availH={availH} onFocusArea={onFocusArea} />;
+  else if (companion.screen === 'detail') body = <DetailPure ti={companion.ti} embedded />;
+  else body = <Dashboard />;
+
+  return (
+    <>
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}>
+        <Animated.View style={dotsStyle}>
+          <PaperDotsPure M={M} gap={DOT} offsetY={topInset % DOT} />
+        </Animated.View>
+      </View>
+      <Animated.ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingTop: topInset, paddingBottom: bottomPad }}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : Platform.OS === 'android' ? 'on-drag' : 'none'}
+      >
+        <Animated.View style={bodyStyle}>{body}</Animated.View>
+      </Animated.ScrollView>
+    </>
   );
 });
 
@@ -431,18 +632,22 @@ function navOffset(prev: { screen: Screen; ti: number }, next: { screen: Screen;
  * 지금 탭 위에 짧은 먹선(2×20)이 미끄러져 따라간다.
  * 탭 글자는 시스템 글자 크기를 따라 커지지 않는다(높이가 정해진 막대) — 대신 길게 누르면 큰 글자 보기(iOS)가 뜬다.
  */
-const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }: {
+const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset, padX = 0 }: {
   active: Screen;
   onTab: (id: Screen) => void;
   onAdd: () => void;
   bottomInset: number;
+  /** 좌우 안쪽 여백 — 펼침에서 탭바는 창 폭 그대로 두고 다섯 칸을 가운데(560)에 모은다 */
+  padX?: number;
 }) {
   const M = usePalette();
+  const m = useMsg();
   const [width, setWidth] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
   const placed = useRef(false);
   const slot = TABS.find((t) => t.id === active)?.slot ?? 0;
-  const cx = width > 0 ? (width / SLOTS) * (slot + 0.5) : null;
+  const inner = width - padX * 2;
+  const cx = inner > 0 ? padX + (inner / SLOTS) * (slot + 0.5) : null;
 
   useEffect(() => {
     if (cx == null) return;
@@ -459,7 +664,7 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }:
   );
 
   const items = TABS.map((t) => (
-    <TabItem key={t.id} id={t.id} icon={t.icon} label={t.label} on={active === t.id} onTab={onTab} />
+    <TabItem key={t.id} id={t.id} icon={t.icon} label={m.core[t.msgKey]} on={active === t.id} onTab={onTab} />
   ));
   items.splice(ADD_SLOT, 0, <AddSlot key="add" onPress={onAdd} />);
 
@@ -469,7 +674,7 @@ const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }:
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,
-        paddingTop: 8, paddingBottom: Math.max(10, bottomInset),
+        paddingTop: 8, paddingBottom: Math.max(10, bottomInset), paddingHorizontal: padX,
         backgroundColor: M.tabBg, borderTopWidth: 1, borderTopColor: M.line,
         flexDirection: 'row',
       }}
@@ -494,6 +699,7 @@ const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
   return (
     <Pressable
       onPress={() => onTab(id)}
+      testID={TID.tab(id)}
       accessibilityRole={TAB_ROLE}
       accessibilityLabel={label}
       accessibilityState={{ selected: on }}
@@ -518,14 +724,16 @@ const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
 /** 가운데 '담기' 칸 — 점선 네모 안의 ＋(오늘 할 일 담기). 손으로 그린 빈칸처럼, 탭들과 같은 줄에 앉는다 */
 function AddSlot({ onPress }: { onPress: () => void }) {
   const M = usePalette();
+  const m = useMsg();
   return (
     <Pressable
       onPress={onPress}
+      testID={TID.tabAdd}
       accessibilityRole="button"
-      accessibilityLabel="담기"
-      accessibilityHint="오늘 할 일을 적어 담아요"
+      accessibilityLabel={m.core.tabAdd}
+      accessibilityHint={m.core.tabAddHint}
       accessibilityShowsLargeContentViewer
-      accessibilityLargeContentTitle="담기"
+      accessibilityLargeContentTitle={m.core.tabAdd}
       style={({ pressed }) => ({ flex: 1, height: TAB_BAR_H - 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
     >
       <View
@@ -541,7 +749,7 @@ function AddSlot({ onPress }: { onPress: () => void }) {
         numberOfLines={1}
         style={{ marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }}
       >
-        담기
+        {m.core.tabAdd}
       </Text>
     </Pressable>
   );

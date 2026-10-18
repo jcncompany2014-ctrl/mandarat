@@ -82,7 +82,8 @@ test('쓰던 글 — 적어 둘 때의 저장된 글(base)을 함께 남기고, 
   // 편집 창: 칸 비우기도 적어 둔 글을 지우고, 다시 열 때 base를 따진다. 적어 둘 때 base를 함께 남긴다
   const ed = fs.readFileSync(path.join(ROOT, 'src/overlays/CellEditor.tsx'), 'utf8');
   const clearCell = ed.slice(ed.indexOf('const clearCell = () =>'), ed.indexOf('// ── 닫기 전 확인'));
-  assert.match(clearCell, /undoable\('칸을 비웠어요', snapshot\);[\s\S]*clearDraft\(key\);[\s\S]*close\(\);/);
+  assert.match(clearCell, /undoable\(ed\.cleared, snapshot\);[\s\S]*clearDraft\(key\);[\s\S]*close\(\);/);
+  assert.equal(require('../src/i18n/ko/editor').default.cleared, '칸을 비웠어요');
   assert.match(ed, /live\.current = \{ key, text, cfg, nums, base: m\.initial \}/);
   assert.match(ed, /draftFits\(d, savedText\) && draftDiffers\(/);
   // 문서를 통째로 바꾸는 저장소 함수(예시·초기화·템플릿·바꾸기)는 적어 둔 글을 지운다
@@ -105,7 +106,8 @@ test('편집 창 — 비우는 저장이면 리턴 키·버튼 모두 다음 칸
 
 test('마감 고르기 칩은 해까지 또박또박 읽는다(점 찍은 짧은 표기 없이) (FX-VERIFY HANDOFF-A6)', () => {
   const ed = fs.readFileSync(path.join(ROOT, 'src/overlays/CellEditor.tsx'), 'utf8');
-  assert.match(ed, /accessibilityLabel=\{`마감 \$\{p\.label\}, \$\{fmtDateSpeech\(p\.date, now\)\}`\}/);
+  assert.match(ed, /accessibilityLabel=\{ed\.dueChipA11y\(\{ label: p\.label, date: fmtDateSpeech\(p\.date, now\) \}\)\}/);
+  assert.equal(require('../src/i18n/ko/editor').default.dueChipA11y({ label: 'L', date: 'D' }), '마감 L, D');
   assert.doesNotMatch(ed, /\bdateText\(/);
   const { duePresets } = require('../src/lib/kinds');
   const { fmtDateSpeech } = require('../src/lib/text');

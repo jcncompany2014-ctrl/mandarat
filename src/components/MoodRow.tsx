@@ -8,6 +8,7 @@ import { select } from '../lib/haptics';
 import { ellipseLength, ellipsePath } from '../lib/marks';
 import { MOOD_WORDS } from '../lib/copy';
 import type { M } from '../theme/usePalette';
+import { useMsg } from '../i18n/react';
 
 const APath = Animated.createAnimatedComponent(Path);
 
@@ -29,6 +30,7 @@ type Box = { w: number; h: number };
  * 화면 읽기: '오늘 기분' 라디오 묶음 안의 라디오 다섯 개. 고를 때 짧은 딸깍(select).
  */
 export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i: number) => void }) {
+  const m = useMsg();
   const [boxes, setBoxes] = useState<(Box | undefined)[]>([]);
   // 이 화면에서 방금 고른 낱말만 동그라미를 그어 보인다(처음 열 때 이미 고른 기분은 그려진 채로)
   const [drawn, setDrawn] = useState<number | null>(null);
@@ -46,7 +48,7 @@ export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i
   return (
     <View
       accessibilityRole="radiogroup"
-      accessibilityLabel="오늘 기분"
+      accessibilityLabel={m.today.moodTitle}
       style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 2 }}
     >
       {MOOD_WORDS.map((word, i) => {

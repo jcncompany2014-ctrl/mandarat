@@ -9,12 +9,18 @@
 // - 한 번은 done(영구 달성)이 곧 오늘 완료 여부다. 마감이 다가오면 '오늘'에 저절로 담긴다.
 // - 마음가짐은 날마다 체크하지 않아 '오늘' 목록에 넣지 않는다(한 주에 한 번 점수).
 import type { Action, ActionKind, HabitSchedule, MandaratDoc } from '../types';
+import { lang, msg, type Lang } from '../i18n';
+import { liveList } from '../i18n/live';
 
 export const KINDS: readonly ActionKind[] = ['once', 'habit', 'count', 'mind'];
 /** 마감 D-3부터(지난 것 포함) '오늘'에 저절로 담긴다 */
 export const DUE_SOON = 3;
 
-export const DOW_KR = ['일', '월', '화', '수', '목', '금', '토'] as const;
+/**
+ * 요일 머리글자(0 = 일요일) — 지금 언어의 fmt.dowNarrow.
+ * @deprecated msg().fmt.dowNarrow · dowShort · dowLong({ i })를 쓴다(V8-A가 지운다).
+ */
+export const DOW_KR: readonly string[] = liveList(() => [0, 1, 2, 3, 4, 5, 6].map((i) => msg().fmt.dowNarrow({ i })));
 /** 월요일 시작 표시 순서 */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 
@@ -116,14 +122,8 @@ export function scheduledOn(a: Pick<Action, 'kind' | 'days' | 'perWeek' | 'since
 }
 
 /** 반복 요일 라벨: 매일 · 평일 · 주말 · 월·수·금 · 일요일(하루면 '요일'까지) (없으면 빈 문자열) */
-export function daysLabel(days: unknown): string {
-  const d = normalizeDays(days);
-  if (d.length === 0) return '';
-  if (d.length === 7) return '매일';
-  if (d.length === 1) return `${DOW_KR[d[0]]}요일`;
-  if (d.join() === '1,2,3,4,5') return '평일';
-  if (d.join() === '0,6') return '주말';
-  return WEEK_ORDER.filter((x) => d.includes(x)).map((x) => DOW_KR[x]).join('·');
+export function daysLabel(days: unknown, l: Lang = lang()): string {
+  return msg(l).fmt.daysLabel({ dows: normalizeDays(days) });
 }
 
 /** today가 속한 주의 월~일 날짜 */
@@ -547,6 +547,17 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
   const tk = ymd(today);
   const memo = todayMemo.get(doc.themes);
   if (memo && memo.dayLog === doc.dayLog && memo.todayKeys === doc.todayKeys && memo.tk === tk) return memo.items;
+  const items = computeTodayItems(doc, today);
+  todayMemo.set(doc.themes, { dayLog: doc.dayLog, todayKeys: doc.todayKeys, tk, items });
+  return items;
+}
+
+/**
+ * todayItems와 같은 목록을 기억해 두지 않고 새로 센다 — 다른 날을 미리 셀 때(알림·위젯, src/lib/dayProjection.ts)
+ * 오늘 목록의 기억을 밀어내지 않게. 결과는 얼린 배열이다.
+ */
+export function computeTodayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>, today: Date): TodayItem[] {
+  const tk = ymd(today);
   const seen = new Set<string>();
   const out: TodayItem[] = [];
   const push = (ti: number, ai: number, auto?: boolean) => {
@@ -567,9 +578,7 @@ export function todayItems(doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKe
   doc.themes.forEach((t, ti) => t.actions.forEach((_, ai) => {
     if (autoToday(doc, ti, ai, today)) push(ti, ai, true);
   }));
-  const items = Object.freeze(out) as TodayItem[];
-  todayMemo.set(doc.themes, { dayLog: doc.dayLog, todayKeys: doc.todayKeys, tk, items });
-  return items;
+  return Object.freeze(out) as TodayItem[];
 }
 
 /**

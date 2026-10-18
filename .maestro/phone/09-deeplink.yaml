@@ -1,0 +1,31 @@
+appId: com.jcncompany.mandarat
+name: "09 딥링크"
+tags:
+  - phone
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# mandarat://stats → 통계 화면, mandarat://today → 오늘
+- runFlow: ../common/onboard.yaml
+- openLink: "mandarat://stats"
+# 시뮬레이터가 '열기'를 물으면 누른다
+- tapOn:
+    text: "열기|Open"
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: "stats-year"
+    direction: DOWN
+    timeout: 15000
+- openLink: "mandarat://today"
+- tapOn:
+    text: "열기|Open"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "tab-today"
+      selected: true
+    timeout: 10000

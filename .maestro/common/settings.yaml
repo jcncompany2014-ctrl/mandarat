@@ -1,0 +1,13 @@
+# 홈 › 설정을 연다.
+appId: com.jcncompany.mandarat
+---
+- tapOn:
+    id: "tab-dashboard"
+- extendedWaitUntil:
+    visible:
+      id: "home-settings"
+    timeout: 10000
+- tapOn:
+    id: "home-settings"
+- waitForAnimationToEnd:
+    timeout: 3000

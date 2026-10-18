@@ -1,29 +1,47 @@
 // 영역 제목의 키워드로 구체적인 실천 예시를 보여 준다 (룰 기반, AI 호출 없음).
 // 칸 편집 창에서 빈 칸에 무엇을 적을지 막막할 때 쓰는 '적는 예시'다 — 오늘 할 일 추천이 아니다.
+// 무리(id)는 세 언어가 같다. 키워드는 세 언어를 모두 합쳐 맞추고(일본어 화면에서 '건강'이라고 적어도 맞는다),
+// 예시는 앱 언어로 보인다. 말 무리는 src/i18n/<언어>/examples.data.ts에 있다.
+import { lang, type Lang } from '../i18n';
+import * as KO from '../i18n/ko/examples.data';
+import * as JA from '../i18n/ja/examples.data';
+import * as EN from '../i18n/en/examples.data';
+import type { ExampleGroupId } from '../i18n/ko/examples.data';
 
-interface Group {
-  keys: string[];
-  items: string[];
+const DATA: Readonly<Record<Lang, typeof KO>> = { ko: KO, ja: JA, en: EN };
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** 영어 키워드는 낱말 단위로(뒤에 s · es는 붙어도 된다) — 'work'가 'workout'에, 'rest'가 'restaurant'에 맞지 않게 */
+const enWord = (k: string) => new RegExp(`(?<![a-z])${escapeRe(k.toLowerCase())}(?:s|es)?(?![a-z])`);
+
+let matchers: { id: ExampleGroupId; test: (t: string, n: string) => boolean }[] | null = null;
+
+/** 무리마다 세 언어 키워드를 합친 검사 — 한국어 키워드는 v1 그대로(소문자 글에 부분 일치) */
+function groupMatchers() {
+  if (matchers) return matchers;
+  matchers = KO.GROUPS.map((g, i) => {
+    const ko = g.keys.map((k) => k.toLowerCase());
+    const ja = JA.GROUPS[i].keys.map((k) => k.normalize('NFKC').toLowerCase());
+    const en = EN.GROUPS[i].keys.map(enWord);
+    return {
+      id: g.id,
+      test: (t: string, n: string) => ko.some((k) => t.includes(k)) || ja.some((k) => n.includes(k)) || en.some((re) => re.test(n)),
+    };
+  });
+  return matchers;
 }
 
-const LIB: Group[] = [
-  { keys: ['건강', '운동', '체력', '다이어트', '헬스', '러닝'], items: ['주 3회 30분 유산소', '매일 물 8잔 마시기', '자기 전 스트레칭 10분', '엘리베이터 대신 계단'] },
-  { keys: ['공부', '학습', '자기계발', '독서', '책', 'study'], items: ['하루 30분 책 읽기', '온라인 강의 1개 완강', '매일 영단어 20개', '주 1회 배운 것 정리'] },
-  { keys: ['커리어', '일', '업무', '직무', '프로젝트', '성장'], items: ['아침에 오늘 할 일 3개 정하기', '주 1회 포트폴리오 정리', '매일 한 가지 개선점 기록'] },
-  { keys: ['재정', '돈', '저축', '가계부', '투자', '머니'], items: ['매일 지출 기록하기', '주 1회 가계부 결산', '자동 저축 설정', '안 쓰는 구독 점검'] },
-  { keys: ['관계', '가족', '친구', '사람', '소통'], items: ['주 1회 안부 연락', '하루 한 번 감사 표현', '함께 식사 약속 잡기'] },
-  { keys: ['취미', '여가', '즐거움', '재미'], items: ['주 1회 좋아하는 활동', '새로운 것 하나 배우기', '한 달 한 권 취미 책'] },
-  { keys: ['마음', '멘탈', '명상', '감정', '마음챙김', '휴식'], items: ['아침 5분 명상', '감사 일기 세 줄', '하루 한 번 깊은 호흡'] },
-  { keys: ['모험', '도전', '경험', '여행'], items: ['가보지 않은 곳 한 곳', '버킷리스트 하나 실행', '월 1회 새로운 시도'] },
-];
-
-const GENERIC = ['매일 10분 투자하기', '주 3회 실천하기', '10분만 해 보기'];
-
-/** 영역 제목에 어울리는 실천 예시 3~4개. 매칭이 없으면 범용 예시. */
-export function suggestActions(title: string): string[] {
+/** 영역 제목이 맞는 예시 무리의 id — 없으면 null(범용 예시) */
+export function exampleGroup(title: string): ExampleGroupId | null {
   const t = (title || '').toLowerCase();
-  for (const g of LIB) {
-    if (g.keys.some((k) => t.includes(k.toLowerCase()))) return g.items;
-  }
-  return GENERIC;
+  const n = t.normalize('NFKC');
+  return groupMatchers().find((m) => m.test(t, n))?.id ?? null;
+}
+
+/** 영역 제목에 어울리는 실천 예시 3~4개(l: 기본은 지금 언어). 매칭이 없으면 범용 예시. */
+export function suggestActions(title: string, l: Lang = lang()): string[] {
+  const d = DATA[l] ?? KO;
+  const id = exampleGroup(title);
+  const g = id ? d.GROUPS.find((x) => x.id === id) : undefined;
+  return [...(g ? g.items : d.GENERIC)];
 }

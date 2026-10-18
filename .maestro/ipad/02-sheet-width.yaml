@@ -1,0 +1,48 @@
+appId: com.jcncompany.mandarat
+name: "iPad 02 시트 폭"
+tags:
+  - ipad
+---
+- launchApp:
+    clearState: true
+    arguments:
+      "-AppleLanguages": "(ko)"
+      "-AppleLocale": "ko_KR"
+# 아이패드에서도 시트는 560pt로 묶인다. 폭은 Maestro로 잴 수 없어 스크린샷으로 남기고, 열고 닫히는지만 본다.
+- runFlow: ../common/onboard.yaml
+- runFlow: ../common/settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "set-pro"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "set-pro"
+- extendedWaitUntil:
+    visible:
+      id: "pro-restore"
+    timeout: 10000
+- takeScreenshot: "ipad-pro-sheet"
+- tapOn:
+    id: "pro-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "pro-restore"
+    timeout: 10000
+- openLink: "mandarat://print"
+- tapOn:
+    text: "열기|Open"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "print-go"
+    timeout: 10000
+- takeScreenshot: "ipad-print-sheet"
+- swipe:
+    from:
+      id: "sheet-handle"
+    direction: DOWN
+- extendedWaitUntil:
+    notVisible:
+      id: "print-go"
+    timeout: 10000

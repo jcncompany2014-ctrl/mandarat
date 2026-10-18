@@ -20,13 +20,14 @@ import { RATING_TEXT, configOf, countInfo, countWeekAdded, dueInfo, fmtNum, kind
 import { whyAuto } from '../lib/pick';
 import { fmtDateLong, fmtDue } from '../lib/text';
 import { countNowSpeech, dueSpeech, weekCountSpeech } from '../lib/sheetSpeech';
-import { ORDINAL } from '../lib/chartSpeech';
 import { announce } from '../lib/useReducedMotion';
 import {
-  POSTPONE, backfillToast, canBackfill, canPostpone, goalToast, historyStartLabel, memoRules, noteChanged, postponedDue,
+  backfillToast, canBackfill, canPostpone, goalToast, historyStartLabel, memoRules, noteChanged, postponeCopy, postponedDue,
   sheetSubtitle, weekDayKey, yesterdayOffer, type Postpone,
 } from '../lib/actionSheet';
+import { useMsg } from '../i18n/react';
 import { check as checkHaptic, uncheck as uncheckHaptic, success } from '../lib/haptics';
+import { TID } from '../lib/testIds';
 import type { Action, Theme } from '../types';
 
 /** 메모 괘선 — 줄 간격 · 첫 줄 위 여백 · 처음 높이(세 줄) */
@@ -54,12 +55,15 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
   const { openEditor, afterOverlays, go } = useUIActions();
   const dismiss = useSheetDismiss();
   const { doc } = useMandarat();
+  const m = useMsg();
   const th = doc.themes[ti];
   const a = th.actions[ai];
   const now = new Date();
   const kind = kindOf(a);
-  const area = th.title || `영역 ${ti + 1}`;
+  const area = th.title || m.sheet.areaFallback({ n: ti + 1 });
+  const text = a.text || m.sheet.actionFallback;
   const subtitle = sheetSubtitle(doc, ti, ai, now);
+  const subtitleSay = sheetSubtitle(doc, ti, ai, now, undefined, true);
 
   // iOS는 시트 위에 시트를 띄우지 못한다 — 이 시트가 다 내려간 뒤에 연다(한 번에 한 장)
   const edit = () => { dismiss(); afterOverlays(() => openEditor({ kind: 'action', ti, ai })); };
@@ -73,19 +77,19 @@ function ActionSheetBody({ ti, ai }: { ti: number; ai: number }) {
           onPress={toArea}
           accessibilityRole="button"
           // 차트 칸·편집 창과 같은 고유어 서수 — '세 번째 칸'
-          accessibilityLabel={`${area} 영역, ${ORDINAL[ai] ?? `${ai + 1}`} 번째 칸, 영역 보기`}
+          accessibilityLabel={m.sheet.headA11y({ area, ordinal: m.fmt.ordinalCell({ n: ai + 1 }) })}
           style={({ pressed }) => ({ flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 10, opacity: pressed ? 0.6 : 1 })}
         >
           <Locator M={M} th={th} ai={ai} />
           <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '700', color: M.ink }} numberOfLines={1}>{area}</Text>
         </Pressable>
-        <IconBtn M={M} name="pencil" label="글과 유형 고치기" onPress={edit} />
-        <CloseBtn M={M} onPress={dismiss} />
+        <IconBtn M={M} name="pencil" label={m.sheet.edit} onPress={edit} testID={TID.sheetEdit} />
+        <CloseBtn M={M} onPress={dismiss} testID={TID.sheetClose} />
       </View>
 
       {/* 글 — 눌러도 고친다 */}
-      <Pressable onPress={edit} accessibilityRole="button" accessibilityLabel={`${a.text || '실천'}, ${subtitle}, 글과 유형 고치기`}>
-        <Text style={{ fontSize: 20, fontWeight: '800', color: M.ink }}>{a.text || '실천'}</Text>
+      <Pressable onPress={edit} accessibilityRole="button" accessibilityLabel={m.sheet.titleA11y({ text, subtitle: subtitleSay })}>
+        <Text style={{ fontSize: 20, fontWeight: '800', color: M.ink }}>{text}</Text>
         <Text style={{ fontSize: 12.5, fontWeight: '700', color: M.sub, marginTop: 4 }}>{subtitle}</Text>
       </Pressable>
 
@@ -156,13 +160,15 @@ function TextBtn({ M, label, onPress, a11y }: { M: M; label: string; onPress: ()
 
 /** 체크 한 줄(56pt) — 습관 '오늘 했어요' · 한 번 '다 했어요'. 보이는 글이 곧 읽는 이름 */
 function CheckLine({ M, color, on, label, onPress, seed }: { M: M; color: string; on: boolean; label: string; onPress: () => void; seed: string }) {
+  const m = useMsg();
   return (
     <Pressable
       onPress={onPress}
+      testID={TID.sheetCheck}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
       accessibilityLabel={label}
-      accessibilityHint="다시 누르면 해제돼요"
+      accessibilityHint={m.sheet.checkHint}
       style={({ pressed }) => [
         { marginTop: 14, minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, paddingHorizontal: 2 },
         pressed ? pressedRow(M) : null,
@@ -192,12 +198,16 @@ function BlockHead({ M, left, right, rightSpeech }: { M: M; left: string; right?
 
 type BlockProps = { M: M; th: Theme; ti: number; ai: number };
 
+/** 마감 미루기 버튼의 차례 — 내일로 · 다음 주로 */
+const POSTPONES: readonly Postpone[] = ['tomorrow', 'nextWeek'];
+
 // ── 습관 ─────────────────────────────────────────────────────────────────────
 
 /** 습관 — 오늘 했어요 한 줄 + 이번 주 일곱 칸(지난 날은 눌러서 남기기) + 어제도 했어요 */
 function HabitBlock({ M, th, ti, ai }: BlockProps) {
   const { doc, toggleRoutineToday, toggleHabitOn } = useMandarat();
   const { showToast } = useUIActions();
+  const m = useMsg();
   const now = new Date();
   const a = th.actions[ai];
   const key = `${ti}-${ai}`;
@@ -210,8 +220,8 @@ function HabitBlock({ M, th, ti, ai }: BlockProps) {
   const flip = useCallback((day: string, wasDone: boolean) => {
     if (wasDone) uncheckHaptic(); else checkHaptic();
     toggleHabitOn(ti, ai, day);
-    showToast(backfillToast(day, !wasDone), { label: '되돌리기', onPress: () => toggleHabitOn(ti, ai, day) });
-  }, [ti, ai, toggleHabitOn, showToast]);
+    showToast(backfillToast(day, !wasDone), { label: m.common.undo, onPress: () => toggleHabitOn(ti, ai, day) });
+  }, [ti, ai, toggleHabitOn, showToast, m]);
 
   const statesRef = useRef(states);
   statesRef.current = states;
@@ -224,16 +234,16 @@ function HabitBlock({ M, th, ti, ai }: BlockProps) {
         M={M}
         color={th.color}
         on={today}
-        label="오늘 했어요"
+        label={m.sheet.doneToday}
         seed={key}
         onPress={() => { if (today) uncheckHaptic(); else checkHaptic(); toggleRoutineToday(ti, ai); }}
       />
       <View style={{ marginTop: 18 }}>
-        <BlockHead M={M} left="이번 주" right={`${week.done}/${week.planned}회`} rightSpeech={weekCountSpeech(week.done, week.planned)} />
+        <BlockHead M={M} left={m.sheet.thisWeek} right={m.sheet.weekCount({ count: week.done, total: week.planned })} rightSpeech={weekCountSpeech(week.done, week.planned)} />
         <WeekStrip M={M} states={states} color={th.color} variant="sheet" canPress={canPress} onPressDay={onPressDay} />
         {yesterday && (
           <View style={{ marginTop: 8, alignItems: 'flex-start' }}>
-            <TextBtn M={M} label="어제도 했어요" a11y="어제도 했어요, 어제 기록 남기기" onPress={() => flip(yesterday, false)} />
+            <TextBtn M={M} label={m.sheet.yesterdayToo} a11y={m.sheet.yesterdayTooA11y} onPress={() => flip(yesterday, false)} />
           </View>
         )}
       </View>
@@ -247,6 +257,7 @@ function HabitBlock({ M, th, ti, ai }: BlockProps) {
 function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   const { doc, addCount } = useMandarat();
   const { showToast } = useUIActions();
+  const m = useMsg();
   const now = new Date();
   const c = countInfo(a, dateKey(now));
   const said = kindLine(doc, ti, ai, now)?.speech ?? countNowSpeech(fmtNum(c.goal), fmtNum(c.count), c.unit);
@@ -264,10 +275,10 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
     // 눌러도 화면 읽기 초점은 버튼에 있다 — 바뀐 수를 한 번 읽어 준다
     announce(countNowSpeech(fmtNum(c.goal), fmtNum(next), c.unit));
   };
-  const plus = `${fmtNum(c.step)}${c.unit} 더하기`;
+  const plus = m.sheet.countPlus({ n: c.step, unit: c.unit });
   return (
     <View style={{ marginTop: 18 }}>
-      <View accessible accessibilityLabel={`지금까지 ${said}, ${c.pct}%`}>
+      <View accessible accessibilityLabel={m.sheet.countA11y({ said, pct: c.pct })}>
         <Text style={{ fontSize: 34, lineHeight: 40, fontWeight: '800', color: M.ink, ...NUM }}>
           {fmtNum(c.count)}
           <Text style={{ fontSize: 17, fontWeight: '600', color: M.sub }}> / {fmtNum(c.goal)}{c.unit}</Text>
@@ -276,8 +287,8 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
           <CountBar M={M} pct={c.pct} color={th.color} height={4} />
         </View>
         <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8, ...NUM }}>
-          {`이번 주 +${fmtNum(weekAdded)}${c.unit}`}
-          {c.reached ? ' · 목표에 닿았어요' : ` · ${fmtNum(Math.max(0, c.goal - c.count))}${c.unit} 남았어요`}
+          {m.sheet.countWeek({ n: weekAdded, unit: c.unit })}
+          {`${m.core.dot}${c.reached ? m.sheet.countReached : m.sheet.countLeft({ n: Math.max(0, c.goal - c.count), unit: c.unit })}`}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
@@ -285,7 +296,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
           onPress={() => add(-c.step)}
           disabled={c.count <= 0}
           accessibilityRole="button"
-          accessibilityLabel={`${fmtNum(c.step)}${c.unit} 빼기`}
+          accessibilityLabel={m.sheet.countMinus({ n: c.step, unit: c.unit })}
           accessibilityState={{ disabled: c.count <= 0 }}
           style={({ pressed }) => ({
             width: 52, height: 52, borderRadius: 12, borderWidth: 1, borderColor: M.line,
@@ -294,7 +305,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
         >
           <Icon name="minus" size={20} color={M.ink} sw={2.2} />
         </Pressable>
-        <PrimaryButton M={M} label={plus} onPress={() => add(c.step)} style={{ flex: 1 }} />
+        <PrimaryButton M={M} label={plus} onPress={() => add(c.step)} style={{ flex: 1 }} testID={TID.sheetCheck} />
       </View>
     </View>
   );
@@ -306,6 +317,7 @@ function CountBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
 function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdit: () => void }) {
   const { toggleDone, setActionConfig } = useMandarat();
   const { showToast } = useUIActions();
+  const m = useMsg();
   const now = new Date();
   const due = dueInfo(a, now);
   const late = canPostpone(a, now);
@@ -314,7 +326,7 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
     const before = configOf(a);
     checkHaptic();
     setActionConfig(ti, ai, { ...before, due: postponedDue(new Date(), which) });
-    showToast(POSTPONE[which].toast, { label: '되돌리기', onPress: () => setActionConfig(ti, ai, before) });
+    showToast(postponeCopy(which).toast, { label: m.common.undo, onPress: () => setActionConfig(ti, ai, before) });
   };
 
   return (
@@ -323,7 +335,7 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
         M={M}
         color={th.color}
         on={a.done}
-        label="다 했어요"
+        label={m.sheet.onceDone}
         seed={`${ti}-${ai}`}
         onPress={() => { if (a.done) uncheckHaptic(); else checkHaptic(); toggleDone(ti, ai); }}
       />
@@ -331,15 +343,16 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
         <View style={{ marginTop: 14 }}>
           <Text
             style={{ fontSize: 14, fontWeight: '700', color: due.over && !a.done ? alertInk(M) : M.ink, ...NUM }}
-            accessibilityLabel={a.done ? `마감 ${fmtDateLong(due.date)}` : `${fmtDateLong(due.date)}, ${dueSpeech(due.days)}`}
+            accessibilityLabel={a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)}, ${dueSpeech(due.days)}`}
           >
-            {a.done ? `마감 ${fmtDateLong(due.date)}` : `${fmtDateLong(due.date)} · ${fmtDue(due.days, 'long')}`}
+            {a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)}${m.core.dot}${fmtDue(due.days, 'long')}`}
           </Text>
           {late && (
             <View style={{ flexDirection: 'row', gap: 20, marginTop: 6 }}>
-              {(Object.keys(POSTPONE) as Postpone[]).map((w) => (
-                <TextBtn key={w} M={M} label={POSTPONE[w].label} a11y={`마감 ${POSTPONE[w].label} 옮기기`} onPress={() => postpone(w)} />
-              ))}
+              {POSTPONES.map((w) => {
+                const t = postponeCopy(w);
+                return <TextBtn key={w} M={M} label={t.label} a11y={t.a11y} onPress={() => postpone(w)} />;
+              })}
             </View>
           )}
         </View>
@@ -347,7 +360,7 @@ function OnceBlock({ M, a, th, ti, ai, onEdit }: BlockProps & { a: Action; onEdi
         // 다 했어요 줄의 아랫줄을 이 줄의 윗줄로 함께 쓴다(1pt 겹쳐). 아랫줄은 바로 아래 묶음(SheetRows)의 윗줄을 빌린다 —
         // 묶음 앞 간격(ROWS_GAP)만큼 당겨 그 윗줄이 이 줄 바로 밑에 오게(빈 종이 띠 없이 한 장부로 읽힌다). once면 묶음은 늘 있다
         <View style={{ marginTop: -1, marginBottom: -ROWS_GAP }}>
-          <LineRow M={M} title="마감 없음" right={<RightText M={M}>정하기 ›</RightText>} accessibilityLabel="마감 없음, 마감 정하기" onPress={onEdit} />
+          <LineRow M={M} title={m.sheet.noDue} right={<RightText M={M}>{m.sheet.setDue}</RightText>} accessibilityLabel={m.sheet.noDueA11y} onPress={onEdit} />
         </View>
       )}
     </View>
@@ -361,16 +374,17 @@ const MIND_WEEKS = 8;
 /** 마음가짐 — 이번 주 점수 다섯 칸과 지난 8주 막대 */
 function MindBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   const { rateMind } = useMandarat();
+  const m = useMsg();
   const now = new Date();
   const score = ratingOf(a, now);
   const hist = ratingHistory(a, now, MIND_WEEKS);
   return (
     <View style={{ marginTop: 18 }}>
-      <BlockHead M={M} left="이번 주 얼마나 지켰나요?" />
-      <RatingBoxes M={M} value={score} color={th.color} label="이번 주 점수" onRate={(s) => rateMind(ti, ai, s)} fill />
-      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8 }}>{score ? RATING_TEXT[score] : '떠오르는 대로 매겨요'}</Text>
+      <BlockHead M={M} left={m.sheet.mindAsk} />
+      <RatingBoxes M={M} value={score} color={th.color} label={m.sheet.mindScore} onRate={(s) => rateMind(ti, ai, s)} fill />
+      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, marginTop: 8 }}>{score ? RATING_TEXT[score] : m.sheet.mindPrompt}</Text>
       {/* 지난 8주 — 점수만큼 높이를 채운 작은 막대 */}
-      <View style={{ marginTop: 18 }} accessible accessibilityLabel={`최근 ${MIND_WEEKS}주 점수 ${hist.map((h) => (h.score ? `${h.score}점` : '없음')).join(', ')}`}>
+      <View style={{ marginTop: 18 }} accessible accessibilityLabel={m.sheet.mindHistory({ n: MIND_WEEKS, list: hist.map((h) => (h.score ? m.sheet.mindPoint({ n: h.score }) : m.sheet.mindNone)).join(', ') })}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 40, borderBottomWidth: 1, borderBottomColor: M.line }}>
           {hist.map((h, i) => (
             <View key={h.week} style={{ flex: 1, height: '100%', justifyContent: 'flex-end' }}>
@@ -382,7 +396,7 @@ function MindBlock({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 }}>
           <Text style={{ fontSize: 12, color: M.sub, fontWeight: '600' }}>{historyStartLabel(MIND_WEEKS)}</Text>
-          <Text style={{ fontSize: 12, color: M.sub, fontWeight: '600' }}>이번 주</Text>
+          <Text style={{ fontSize: 12, color: M.sub, fontWeight: '600' }}>{m.sheet.thisWeek}</Text>
         </View>
       </View>
     </View>
@@ -398,6 +412,7 @@ const ROWS_GAP = 22;
 function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
   const { doc, toggleToday, inToday, toggleDone } = useMandarat();
   const { showToast, startFocus } = useUIActions();
+  const m = useMsg();
   const now = new Date();
   const kind = kindOf(a);
   const key = `${ti}-${ai}`;
@@ -408,38 +423,38 @@ function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
 
   const handleToday = () => {
     if (auto) {
-      showToast(whyAuto(doc, ti, ai, now) || '오늘 할 일에 이미 있어요');
+      showToast(whyAuto(doc, ti, ai, now) || m.sheet.todayAlready);
       return;
     }
     if (onToday) uncheckHaptic(); else checkHaptic();
     toggleToday(key);
-    showToast(onToday ? '오늘 할 일에서 뺐어요' : '오늘 할 일에 담았어요', { label: '되돌리기', onPress: () => toggleToday(key) });
+    showToast(onToday ? m.sheet.todayRemoved : m.sheet.todayAdded, { label: m.common.undo, onPress: () => toggleToday(key) });
   };
 
   const rows: React.ReactElement[] = [];
   if (daily) {
     rows.push(
       auto ? (
-        <LineRow key="today" M={M} title="오늘 할 일에 담기" right={<RightText M={M}>저절로 담겨 있어요</RightText>} accessibilityLabel="오늘 할 일에 담기, 저절로 담겨 있어요" accessibilityHint="왜 담겼는지 알려 줘요" onPress={handleToday} />
+        <LineRow key="today" M={M} title={m.sheet.todayRow} right={<RightText M={M}>{m.sheet.todayAuto}</RightText>} accessibilityLabel={m.sheet.todayAutoA11y} accessibilityHint={m.sheet.todayAutoHint} onPress={handleToday} />
       ) : (
-        <LineRow key="today" M={M} title="오늘 할 일에 담기" accessibilityLabel="오늘 할 일에 담기" accessibilityRole="checkbox" checked={onToday} right={<Check on={onToday} color={th.color} dark={M.dark} size={22} seed={`${key}-today`} />} onPress={handleToday} />
+        <LineRow key="today" M={M} title={m.sheet.todayRow} accessibilityLabel={m.sheet.todayRow} accessibilityRole="checkbox" checked={onToday} right={<Check on={onToday} color={th.color} dark={M.dark} size={22} seed={`${key}-today`} />} onPress={handleToday} />
       ),
     );
     rows.push(
-      <LineRow key="focus" M={M} title="25분 집중하기" right={<RightText M={M}>시작 ›</RightText>} accessibilityLabel="25분 집중하기, 시작" onPress={() => { checkHaptic(); startFocus(ti, ai); }} />,
+      <LineRow key="focus" M={M} title={m.sheet.focusRow} right={<RightText M={M}>{m.sheet.focusStart}</RightText>} accessibilityLabel={m.sheet.focusRowA11y} onPress={() => { checkHaptic(); startFocus(ti, ai); }} testID={TID.sheetFocus} />,
     );
   }
   if (achievable) {
-    const sub = a.done ? '다시 누르면 달성을 풀어요' : kind === 'habit' ? '몸에 뱄다면 눌러 주세요' : '자리 잡았다면 눌러 주세요';
+    const sub = a.done ? m.sheet.unachieveHint : kind === 'habit' ? m.sheet.achieveHabitHint : m.sheet.achieveMindHint;
     rows.push(
       <LineRow
         key="done"
         M={M}
-        title={a.done ? '달성한 칸이에요' : '이 칸 달성하기'}
+        title={a.done ? m.sheet.achieved : m.sheet.achieve}
         sub={sub}
         accessibilityRole="checkbox"
         checked={a.done}
-        accessibilityLabel="이 칸 달성"
+        accessibilityLabel={m.sheet.achieveA11y}
         accessibilityHint={sub}
         right={<Check on={a.done} color={th.color} dark={M.dark} size={22} seed={`${key}-done`} />}
         onPress={() => { if (a.done) uncheckHaptic(); else checkHaptic(); toggleDone(ti, ai); }}
@@ -463,6 +478,7 @@ function SheetRows({ M, a, th, ti, ai }: BlockProps & { a: Action }) {
  */
 function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: string }) {
   const { setActionNote } = useMandarat();
+  const m = useMsg();
   // 글자 크기를 키우면 줄 높이도 커진다 — 괘선도 같은 간격으로(2배까지, AppText와 같은 상한)
   const { fontScale } = useWindowDimensions();
   const line = MEMO_LINE * Math.min(fontScale || 1, 2);
@@ -505,8 +521,8 @@ function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: strin
         onChangeText={onChange}
         onBlur={commit}
         onContentSizeChange={(e) => setRules(memoRules(e.nativeEvent.contentSize.height, line, MEMO_PAD))}
-        accessibilityLabel="메모"
-        placeholder="메모"
+        accessibilityLabel={m.sheet.memo}
+        placeholder={m.sheet.memo}
         placeholderTextColor={M.sub}
         multiline
         maxLength={300}

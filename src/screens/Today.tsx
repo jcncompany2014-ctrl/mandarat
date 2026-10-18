@@ -27,10 +27,11 @@ import { weekdayIndex } from '../lib/marks';
 import { checkEdge } from '../components/Check';
 import { todaySummary } from '../lib/a11y';
 import { MGMT_LABEL } from '../lib/copy';
-import { fmtDateLong } from '../lib/text';
+import { useMsg } from '../i18n/react';
 import { dayCloseText, effectiveArea, isOverdue, tallyShape, todayAreaTabs, todayEmptyKind } from '../lib/todayList';
 import type { Mgmt, TodayExtra } from '../types';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
+import { TID } from '../lib/testIds';
 import { showGridAt } from './gridMemory';
 import { MindWeek, TodayKanban, TodayStreak } from './TodayModes';
 
@@ -56,6 +57,7 @@ const PureIndexTabs = memo(IndexTabs, (a, b) => {
  */
 export const Today = memo(function Today() {
   const M = usePalette();
+  const m = useMsg();
   const { doc, clock } = useDoc();
   const { setSetting } = useActions();
   const tc = useTodayCheck();
@@ -77,9 +79,9 @@ export const Today = memo(function Today() {
 
   return (
     <View onMagicTap={onMagicTap}>
-      <PureHeader M={M} sub={fmtDateLong(now)} kr="오늘" />
+      <PureHeader M={M} sub={m.fmt.dateLong({ d: now })} kr={m.today.screenTitle} />
       <View style={{ paddingHorizontal: 20, paddingBottom: 6 }}>
-        <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} />
+        <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} testID={TID.todayModes} />
       </View>
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} />}
       <DayBlock M={M} day={day} mood={meta?.mood} reflection={meta?.reflection ?? ''} />
@@ -92,6 +94,7 @@ export const Today = memo(function Today() {
 type Row = { key: string; done: boolean; it?: TodayItem; x?: TodayExtra };
 
 function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
+  const m = useMsg();
   const { doc, clock } = useDoc();
   const { openAction, openPick } = useUIActions();
   const now = new Date();
@@ -137,8 +140,8 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
 
   const onPick = () => { tap(); openPick(); };
   const tabItems: IndexTabItem[] = [
-    { key: 'all', label: '전체', count: total },
-    ...tabs.map((t) => ({ key: String(t.ti), label: doc.themes[t.ti]?.title.trim() || `영역 ${t.ti + 1}`, color: doc.themes[t.ti]?.color, count: t.count })),
+    { key: 'all', label: m.today.all, count: total },
+    ...tabs.map((t) => ({ key: String(t.ti), label: doc.themes[t.ti]?.title.trim() || m.today.areaFallback({ n: t.ti + 1 }), color: doc.themes[t.ti]?.color, count: t.count })),
   ];
 
   const renderRow = (r: Row, variant: 'list' | 'done', divider: boolean) => {
@@ -182,7 +185,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
 
       {rows.length === 0 && (
         <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, minHeight: 54, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>이 영역은 오늘 할 일이 없어요</Text>
+          <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.today.areaEmpty}</Text>
         </View>
       )}
 
@@ -199,7 +202,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
                   key="pick"
                   onPress={() => { tap(); openPick(); }}
                   accessibilityRole="button"
-                  accessibilityLabel="실천에서 더 고르기"
+                  accessibilityLabel={m.today.pickMore}
                   style={({ pressed }) => [
                     { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
                     pressed ? pressedRow(M) : null,
@@ -214,7 +217,7 @@ function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
                   >
                     <Icon name="plus" size={13} color={M.sub} sw={2} />
                   </View>
-                  <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: M.sub }} numberOfLines={1}>실천에서 더 고르기</Text>
+                  <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: M.sub }} numberOfLines={1}>{m.today.pickMore}</Text>
                 </Pressable>,
               ]
             : []),
@@ -258,18 +261,19 @@ const FOLD_MIN = 3;
 const DoneHead = memo(function DoneHead({ M, count, gapAbove, fold, onToggle }: {
   M: M; count: number; gapAbove: boolean; fold?: boolean; onToggle: () => void;
 }) {
+  const m = useMsg();
   const toggle = useRef(onToggle);
   toggle.current = onToggle;
   const head = (
     <>
-      <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>했어요 {count}</Text>
+      <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>{m.today.doneHead({ n: count })}</Text>
       <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
     </>
   );
   const row = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginTop: gapAbove ? 22 : 0 };
   if (fold === undefined) {
     return (
-      <View accessible accessibilityRole="header" accessibilityLabel={`했어요 ${count}개`} style={[row, { marginBottom: 2 }]}>
+      <View accessible accessibilityRole="header" accessibilityLabel={m.today.doneHeadLabel({ n: count })} style={[row, { marginBottom: 2 }]}>
         {head}
       </View>
     );
@@ -278,13 +282,13 @@ const DoneHead = memo(function DoneHead({ M, count, gapAbove, fold, onToggle }: 
     <Pressable
       onPress={() => toggle.current()}
       accessibilityRole="button"
-      accessibilityLabel={`했어요 ${count}개`}
+      accessibilityLabel={m.today.doneHeadLabel({ n: count })}
       accessibilityState={{ expanded: !fold }}
       hitSlop={{ top: 8, bottom: 8 }}
       style={({ pressed }) => [row, { minHeight: 44 }, pressed ? { opacity: 0.5 } : null]}
     >
       {head}
-      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{fold ? '펼치기' : '접기'}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{fold ? m.today.expand : m.today.collapse}</Text>
     </Pressable>
   );
 }, (a, b) => a.M === b.M && a.count === b.count && a.gapAbove === b.gapAbove && a.fold === b.fold);
@@ -331,6 +335,7 @@ const TALLY_GAP = 3;
 const Counter = memo(function Counter({ M, done, total, complete, canPick, summary, onPick }: {
   M: M; done: number; total: number; complete: boolean; canPick: boolean; summary: string; onPick: () => void;
 }) {
+  const m = useMsg();
   const pick = useRef(onPick);
   pick.current = onPick;
   const shape = tallyShape(total);
@@ -357,11 +362,11 @@ const Counter = memo(function Counter({ M, done, total, complete, canPick, summa
             onPress={() => pick.current()}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel="고르기"
-            accessibilityHint="만다라트 실천에서 오늘 할 일을 골라요"
+            accessibilityLabel={m.today.pick}
+            accessibilityHint={m.today.pickHint}
             style={({ pressed }) => ({ minHeight: 32, justifyContent: 'center', marginBottom: 2, opacity: pressed ? 0.5 : 1 })}
           >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>고르기</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.today.pick}</Text>
           </Pressable>
         )}
       </View>
@@ -383,7 +388,7 @@ const Counter = memo(function Counter({ M, done, total, complete, canPick, summa
           <ProgressBar pct={(done / total) * 100} height={3} radius={1.5} color={M.ink} track={pendingBorder} />
         )}
         {complete && (
-          <Text style={{ fontSize: 13, fontWeight: '600', color: M.ink, marginTop: 8 }}>오늘 다 했어요</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: M.ink, marginTop: 8 }}>{m.today.allDone}</Text>
         )}
       </View>
     </View>
@@ -397,6 +402,7 @@ const Counter = memo(function Counter({ M, done, total, complete, canPick, summa
 // ── 빈 목록 ───────────────────────────────────────────────────────────────────
 
 function TodayEmpty({ M, canPick }: { M: M; canPick: boolean }) {
+  const m = useMsg();
   const { doc } = useDoc();
   const { openPick, go } = useUIActions();
   const kind = todayEmptyKind(doc, canPick);
@@ -406,9 +412,9 @@ function TodayEmpty({ M, canPick }: { M: M; canPick: boolean }) {
         <EmptyState
           variant="paper"
           M={M}
-          lines={['만다라트 칸을 채우면 여기 담겨요']}
+          lines={[m.today.emptyFill]}
           action={{
-            label: '만다라트 채우기',
+            label: m.today.fillChart,
             onPress: () => {
               tap();
               const ti = firstAreaWithEmpty(doc);
@@ -422,11 +428,11 @@ function TodayEmpty({ M, canPick }: { M: M; canPick: boolean }) {
         <EmptyState
           variant="paper"
           M={M}
-          lines={['오늘 할 일을 아직 담지 않았어요']}
-          action={{ label: '실천에서 고르기', onPress: () => { tap(); openPick(); } }}
+          lines={[m.today.emptyPick]}
+          action={{ label: m.today.pickFromActions, onPress: () => { tap(); openPick(); } }}
         />
       )}
-      {kind === 'allIn' && <EmptyState variant="paper" M={M} lines={['오늘 할 일을 다 담았어요']} />}
+      {kind === 'allIn' && <EmptyState variant="paper" M={M} lines={[m.today.emptyAllIn]} />}
     </View>
   );
 }
@@ -507,17 +513,18 @@ const DayClose = memo(function DayClose({ M, complete, total }: { M: M; complete
 
 /** 오늘 기분과 한 줄은 값으로 받는다 — 체크로 문서가 바뀌어도 이 묶음은 다시 그리지 않는다(마음가짐은 MindWeek가 따로 본다) */
 const DayBlock = memo(function DayBlock({ M, day, mood, reflection }: { M: M; day: string; mood?: number; reflection: string }) {
+  const m = useMsg();
   const { setDayMood } = useActions();
   const onMood = useCallback((i: number) => setDayMood(i, day), [setDayMood, day]);
   return (
     <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
       <MindWeek M={M} />
       <View style={{ marginTop: 28 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 10 }} accessibilityRole="header">오늘 기분</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 10 }} accessibilityRole="header">{m.today.moodTitle}</Text>
         <PureMoodRow M={M} value={mood} onPick={onMood} />
       </View>
       <View style={{ marginTop: 24 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 2 }} accessibilityRole="header">한 줄</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 2 }} accessibilityRole="header">{m.today.lineTitle}</Text>
         <Reflection key={day} M={M} stored={reflection} />
       </View>
     </View>
@@ -534,6 +541,7 @@ const IDLE_MS = 400;
  * 쓰고 있지 않을 때만 저장된 글(백업 불러오기 등)로 다시 맞춘다.
  */
 const Reflection = memo(function Reflection({ M, stored }: { M: M; stored: string }) {
+  const m = useMsg();
   const { setDayReflection } = useActions();
   const [draft, setDraft] = useState(stored);
   const draftRef = useRef(stored);
@@ -574,8 +582,8 @@ const Reflection = memo(function Reflection({ M, stored }: { M: M; stored: strin
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(commit, IDLE_MS);
       }}
-      accessibilityLabel="오늘 한 줄"
-      placeholder="오늘 한 줄"
+      accessibilityLabel={m.today.linePlaceholder}
+      placeholder={m.today.linePlaceholder}
       placeholderTextColor={M.sub}
       maxLength={120}
       returnKeyType="done"

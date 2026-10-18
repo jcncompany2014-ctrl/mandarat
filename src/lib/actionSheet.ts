@@ -1,7 +1,9 @@
 // 실천 시트(ActionSheet)의 판단과 글 — RN 의존 없는 순수 모듈(단위 테스트 대상).
 import type { Action, MandaratDoc } from '../types';
-import { DOW_KR, doneOn, kindOf, perWeekOf, scheduledOn, weekDates, ymd } from './routine';
-import { addDays, countInfo, fmtNum, kindLine } from './kinds';
+import { doneOn, kindOf, perWeekOf, scheduledOn, weekDates, ymd } from './routine';
+import { KIND_LABEL, addDays, countInfo, kindLine } from './kinds';
+import { msg, type Lang } from '../i18n';
+import { liveRecord } from '../i18n/live';
 
 /** 'YYYY-MM-DD' → 로컬 날짜 */
 function toDate(key: string): Date {
@@ -10,28 +12,36 @@ function toDate(key: string): Date {
 }
 
 /** '수' — 그 날의 요일 한 글자 */
-export function dowOf(key: string): string {
-  return DOW_KR[toDate(key).getDay()];
+export function dowOf(key: string, l?: Lang): string {
+  return msg(l).fmt.dowNarrow({ i: toDate(key).getDay() });
 }
 
 /**
  * 제목 아래 한 줄 — 아래 블록이 이미 보여 주는 것(이번 주 n/m회, 7/12권, 마감)은 되풀이하지 않고 정한 것만.
  * 습관 '습관 · 월·수·금 반복' / '습관 · 주 3회' · 쌓기 '쌓기 · 한 번에 1권' · 한 번 '한 번' · 마음가짐 '마음가짐 · 한 주에 한 번'
  */
-export function sheetSubtitle(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): string {
+export function sheetSubtitle(
+  doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date, l?: Lang, spoken = false,
+): string {
   const a = doc.themes[ti]?.actions[ai];
   if (!a) return '';
   const kind = kindOf(a);
+  const m = msg(l).sheet;
+  // 유형 이름은 kinds의 이름(KIND_LABEL — 지금 언어로 읽힌다). 이름과 정한 것은 sheet.kindPlan으로 잇는다
+  // (ja는 괄호 — 요일 목록의 '・'와 같은 점으로 이으면 '習慣・月・水・金'이 한 목록으로 읽힌다)
+  const name = KIND_LABEL[kind];
   if (kind === 'habit') {
-    const plan = kindLine(doc, ti, ai, today)?.plan;
-    return plan ? `습관 · ${plan}` : '습관';
+    const line = kindLine(doc, ti, ai, today, l);
+    // spoken: 화면 읽기 라벨용 — en '3x a week'를 '3 times a week'로
+    const plan = spoken ? line?.planSpeech : line?.plan;
+    return plan ? m.kindPlan({ name, plan }) : name;
   }
   if (kind === 'count') {
     const c = countInfo(a);
-    return `쌓기 · 한 번에 ${fmtNum(c.step)}${c.unit}`;
+    return m.kindPlan({ name, plan: m.perStep({ n: c.step, unit: c.unit }) });
   }
-  if (kind === 'mind') return '마음가짐 · 한 주에 한 번';
-  return '한 번';
+  if (kind === 'mind') return m.kindPlan({ name, plan: m.onceAWeek });
+  return name;
 }
 
 /** 이번 주 i번째 날(월 0 … 일 6)의 날짜 키 */
@@ -50,8 +60,10 @@ export function canBackfill(a: Action | undefined, today: Date, i: number): bool
 }
 
 /** 지난 날 기록을 남기거나 지운 뒤의 알림 — '화요일에 한 걸로 남겼어요' / '화요일 기록을 지웠어요' */
-export function backfillToast(day: string, nowDone: boolean): string {
-  return nowDone ? `${dowOf(day)}요일에 한 걸로 남겼어요` : `${dowOf(day)}요일 기록을 지웠어요`;
+export function backfillToast(day: string, nowDone: boolean, l?: Lang): string {
+  const { sheet, fmt } = msg(l);
+  const dow = fmt.dowLong({ i: toDate(day).getDay() });
+  return nowDone ? sheet.backfillDone({ dow }) : sheet.backfillCleared({ dow });
 }
 
 /**
@@ -71,11 +83,25 @@ export function yesterdayOffer(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: 
 
 export type Postpone = 'tomorrow' | 'nextWeek';
 
-/** 마감을 미루는 글자 버튼 — 이름 · 며칠 뒤 · 옮긴 뒤 알림 */
-export const POSTPONE: Record<Postpone, { label: string; days: number; toast: string }> = {
-  tomorrow: { label: '내일로', days: 1, toast: '마감을 내일로 옮겼어요' },
-  nextWeek: { label: '다음 주로', days: 7, toast: '마감을 다음 주로 옮겼어요' },
-};
+/** 마감을 미루는 날수 */
+export const POSTPONE_DAYS: Record<Postpone, number> = { tomorrow: 1, nextWeek: 7 };
+
+/** 마감을 미루는 글자 버튼의 글 — 이름 · 화면 읽기 이름 · 옮긴 뒤 알림 */
+export function postponeCopy(which: Postpone, l?: Lang): { label: string; a11y: string; toast: string } {
+  const m = msg(l).sheet;
+  return which === 'tomorrow'
+    ? { label: m.postponeTomorrow, a11y: m.postponeTomorrowA11y, toast: m.postponeTomorrowToast }
+    : { label: m.postponeNextWeek, a11y: m.postponeNextWeekA11y, toast: m.postponeNextWeekToast };
+}
+
+/**
+ * 마감을 미루는 글자 버튼 — 이름 · 며칠 뒤 · 옮긴 뒤 알림(지금 언어로 읽히는 보기).
+ * @deprecated POSTPONE_DAYS와 postponeCopy()를 쓴다 — V8-A가 지운다.
+ */
+export const POSTPONE: Readonly<Record<Postpone, { label: string; days: number; toast: string }>> = liveRecord(() => ({
+  tomorrow: { label: postponeCopy('tomorrow').label, days: POSTPONE_DAYS.tomorrow, toast: postponeCopy('tomorrow').toast },
+  nextWeek: { label: postponeCopy('nextWeek').label, days: POSTPONE_DAYS.nextWeek, toast: postponeCopy('nextWeek').toast },
+}));
 
 /** 마감 미루기를 보일까 — 다 하지 않은 한 번 칸의 마감이 오늘이거나 지났을 때 */
 export function canPostpone(a: Action | undefined, today: Date): boolean {
@@ -85,12 +111,12 @@ export function canPostpone(a: Action | undefined, today: Date): boolean {
 
 /** 미룬 마감 — 원래 마감이 아니라 오늘부터 센다(이미 지난 마감을 '내일'로 옮기면 정말 내일) */
 export function postponedDue(today: Date, which: Postpone): string {
-  return addDays(ymd(today), POSTPONE[which].days);
+  return addDays(ymd(today), POSTPONE_DAYS[which]);
 }
 
 /** 쌓기 목표에 닿은 순간의 알림 — '12권 목표에 닿았어요' */
-export function goalToast(goal: number, unit: string): string {
-  return `${fmtNum(goal)}${unit} 목표에 닿았어요`;
+export function goalToast(goal: number, unit: string, l?: Lang): string {
+  return msg(l).sheet.countGoal({ n: goal, unit });
 }
 
 /** 메모를 저장해야 하나 — 쓰던 글이 저장된 글과 다를 때만(같으면 문서를 건드리지 않는다) */
@@ -105,6 +131,6 @@ export function memoRules(contentHeight: number, lineHeight: number, padTop: num
 }
 
 /** 마음가짐 지난 점수 막대의 첫 이름표 — 8주를 보이면 '7주 전'(이번 주가 0주 전) */
-export function historyStartLabel(weeks: number): string {
-  return `${Math.max(1, weeks - 1)}주 전`;
+export function historyStartLabel(weeks: number, l?: Lang): string {
+  return msg(l).sheet.weeksAgo({ n: Math.max(1, weeks - 1) });
 }

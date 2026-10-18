@@ -1,0 +1,83 @@
+// 'year' namespace — filled by V1-D · V2-E · V3-D · V4-B (docs/v2/plan.md Appendix B).
+import type ko from '../ko/year';
+import type { Like } from '../types';
+
+const MONTH_JA = (m: number) => `${m}月`;
+
+export default {
+  // V1-D — backup import ledger row for past charts
+  ledgerArchives: '過去の表',
+  archiveCount: ({ n }) => `${n}枚`,
+
+  // V2-E — year close (overlay · settings rows · home prompt)
+  pageReview: '一年のふりかえり',
+  pageNew: '新しい表',
+  pageStart: '締めくくり',
+  pageSpeech: ({ n, total }) => `${total}ページ中${n}ページ目`,
+  next: '次へ',
+  statDays: '記録した日',
+  statLongest: 'いちばん長く続いた日数',
+  statAchieved: '達成',
+  statFocus: '集中',
+  achievedSpeech: ({ n }) => `64マス中${n}マス`,
+  ledgerTitle: '月ごとの記録した日',
+  monthShort: ({ m }) => MONTH_JA(m),
+  monthLong: ({ y, m }) => `${y}年${MONTH_JA(m)}`,
+  monthSpeech: ({ label, n }) => (n > 0 ? `${label}、記録した日${n}日` : `${label}、記録なし`),
+  noteLabel: '一年をひとことで',
+  noteCount: ({ n, max }) => `${max}文字中${n}文字`,
+  modeContinue: '行動はそのまま',
+  modeContinueSub: '達成と記録は空にします',
+  modeAreas: '分野だけ残す',
+  modeAreasSub: '行動のマスは空にします',
+  modeBlank: '白紙の表',
+  modeBlankSub: '分野から決め直します',
+  goalLabel: '新しい表の中心の目標',
+  goalHint: '空のままなら今の目標をそのまま使います',
+  keepNote: '今の表は保管庫にそのまま残ります',
+  keepSub: '記録もいっしょに残るので、いつでも見返せます',
+  start: '新しい表を始める',
+  started: '新しい表を始めました',
+  sameDay: '今日始めた表は、明日から締めくくれます',
+  settingsHead: '一年',
+  shelf: '過去の表の保管庫',
+  shelfEmpty: 'まだありません',
+  homePrompt: '今年の表を締めくくる時期です',
+  homePromptAction: '一年のふりかえり',
+
+  // V3-D — year screen (review · Stats section)
+  sheetTitle: '過去の表',
+  loading: 'まだ準備中です',
+  currentChart: '今使っている表',
+  statStreak: '最長の連続',
+  calendarTitle: '一年のカレンダー',
+  framesTitle: '表が埋まっていった様子',
+  frameSpeech: ({ label, n }) => `${label}まで、64マス中${n}マス達成`,
+  wearTitle: 'よく使ったところ',
+  wearRight: '4週の平均',
+  wearLegend: '4週の平均・',
+  weeksTitle: 'ふりかえった週',
+  notesTitle: 'ふりかえり',
+  notesEmpty: 'この表を使っていた間に残したひとことはありません',
+  notesMore: ({ n }) => `ふりかえりをあと${n}件見る`,
+  more: 'もっと見る',
+  printLink: '印刷用PDF',
+  lockedLine: '過去の表の一年のふりかえりはプロで見られます',
+  lockedLink: 'プロについて',
+  statsShelf: ({ n }) => `保管庫 ${n}枚`,
+
+  // V4-B — archive shelf · one past chart
+  shelfNone: 'まだ保管した表はありません',
+  shelfNoneSub: '一年を締めくくると、その表がここに残ります',
+  shelfLine: ({ n, days }) => `64マス中${n}マス達成・${days}日記録`,
+  shelfMore: ({ n }) => `過去の表をあと${n}枚見る`,
+  shelfLockedHint: 'プロで開けます',
+  sheetSpeech: ({ label, goal, n }) => (goal ? `${label}の表、${goal}、64マス中${n}マス達成` : `${label}の表、64マス中${n}マス達成`),
+  areasTitle: '分野ごとに見る',
+  areaUnnamed: ({ n }) => `分野${n}`,
+  areaLine: ({ n, of }) => `${of}マス中${n}マス達成`,
+  areaOpenHint: 'この分野の9マスを広げます',
+  areaCloseHint: '9マスを閉じます',
+  sheetReview: 'この年をふりかえる',
+  sheetLocked: '過去の表を広げて見るのはプロでできます',
+} satisfies Like<typeof ko>;

@@ -4,13 +4,15 @@ import { Text } from './AppText';
 import { PaperChip } from './common';
 import type { M } from '../theme/usePalette';
 import { readableOn } from '../theme/palette';
-import { DOW_KR, WEEK_ORDER, normalizeDays } from '../lib/routine';
+import { WEEK_ORDER, normalizeDays } from '../lib/routine';
+import { useMsg } from '../i18n/react';
 import { tap } from '../lib/haptics';
 
-const PRESETS: { label: string; days: number[] }[] = [
-  { label: '매일', days: [0, 1, 2, 3, 4, 5, 6] },
-  { label: '평일', days: [1, 2, 3, 4, 5] },
-  { label: '주말', days: [0, 6] },
+/** 매일 · 평일 · 주말 — 이름은 fmt.daysLabel이 그 언어로 붙인다 */
+const PRESETS: readonly (readonly number[])[] = [
+  [0, 1, 2, 3, 4, 5, 6],
+  [1, 2, 3, 4, 5],
+  [0, 6],
 ];
 
 /**
@@ -25,6 +27,7 @@ export function DayPicker({ M, days, color, onChange, hideClear = false }: {
   onChange: (days: number[]) => void;
   hideClear?: boolean;
 }) {
+  const m = useMsg();
   const cur = normalizeDays(days);
   const set = new Set(cur);
   const toggle = (d: number) => {
@@ -53,7 +56,7 @@ export function DayPicker({ M, days, color, onChange, hideClear = false }: {
               // 요일 칸 사이 6pt 틈을 반씩 나눠 손끝 폭을 넓힌다(좁은 화면에서도 44pt 가까이)
               hitSlop={{ left: 3, right: 3 }}
               accessibilityRole="checkbox"
-              accessibilityLabel={`${DOW_KR[d]}요일 반복`}
+              accessibilityLabel={m.core.repeatDow({ i: d })}
               accessibilityState={{ checked: on }}
               style={({ pressed }) => ({
                 flex: 1, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center',
@@ -63,26 +66,29 @@ export function DayPicker({ M, days, color, onChange, hideClear = false }: {
               })}
             >
               <Text maxFontSizeMultiplier={1.4} style={{ fontSize: 13, fontWeight: on ? '800' : '700', color: on ? onInk : M.ink }}>
-                {DOW_KR[d]}
+                {m.fmt.dowShort({ i: d })}
               </Text>
             </Pressable>
           );
         })}
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {PRESETS.map((p) => (
-          <PaperChip
-            key={p.label}
-            M={M}
-            label={p.label}
-            on={cur.join() === p.days.join()}
-            onPress={() => pick(p.days)}
-            accessibilityLabel={`${p.label} 반복`}
-          />
-        ))}
+        {PRESETS.map((p) => {
+          const label = m.fmt.daysLabel({ dows: p });
+          return (
+            <PaperChip
+              key={p.join()}
+              M={M}
+              label={label}
+              on={cur.join() === p.join()}
+              onPress={() => pick([...p])}
+              accessibilityLabel={m.core.repeatLabel({ label })}
+            />
+          );
+        })}
         {cur.length > 0 && !hideClear && (
           // 이름은 보이는 글 그대로('반복 안 함') — 음성 제어로 보이는 말을 불러 누를 수 있게
-          <PaperChip M={M} label="반복 안 함" onPress={() => pick([])} />
+          <PaperChip M={M} label={m.core.noRepeat} onPress={() => pick([])} />
         )}
       </View>
     </View>

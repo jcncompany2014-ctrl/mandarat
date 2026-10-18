@@ -1,20 +1,30 @@
 // 실천 유형별 값 다루기 — 쌓기 숫자, 한 번의 마감, 마음가짐 점수, 유형 설정 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 import type { Action, ActionKind, HabitSchedule, IconName, MandaratDoc } from '../types';
 import {
-  KINDS, daysBetween, daysLabel, habitDays, kindOf, normalizeDays, normalizePerWeek, perWeekOf, routineWeekCount,
+  KINDS, daysBetween, habitDays, kindOf, normalizeDays, normalizePerWeek, perWeekOf, routineWeekCount,
   setDayLog, weekDates, weekKey, ymd,
 } from './routine';
-import { fmtDateShort, fmtDue, fmtNum } from './text';
+import { fmtNum } from './text';
+import { msg, type Lang } from '../i18n';
+import { liveList, liveRecord } from '../i18n/live';
+import { MONEY_SPACE } from '../i18n/ko/kindSuggest.data';
 
-export const KIND_LABEL: Record<ActionKind, string> = { once: '한 번', habit: '습관', count: '쌓기', mind: '마음가짐' };
+/** 유형 이름 — 말은 msg().kinds.label*에 있다 */
+export function kindLabels(l?: Lang): Record<ActionKind, string> {
+  const k = msg(l).kinds;
+  return { once: k.labelOnce, habit: k.labelHabit, count: k.labelCount, mind: k.labelMind };
+}
 
-/** 유형 고르기 아래 한 줄 설명 — 짧게, 그 유형이 '오늘'과 칸에 어떻게 이어지는지만 */
-export const KIND_HINT: Record<ActionKind, string> = {
-  once: '마감 사흘 전부터 ‘오늘’에 담겨요',
-  habit: '정한 요일마다 ‘오늘’에 담겨요. 주 N회로 정하면 횟수를 다 할 때까지 매일 담겨요.',
-  count: '숫자를 쌓아 가는 실천이에요. 목표 수에 닿으면 칸이 달성돼요.',
-  mind: '한 주에 한 번 1~5점으로 돌아봐요',
-};
+/** 유형 고르기 아래 한 줄 설명 — 짧게, 그 유형이 '오늘'과 칸에 어떻게 이어지는지만(msg().kinds.hint*) */
+export function kindHints(l?: Lang): Record<ActionKind, string> {
+  const k = msg(l).kinds;
+  return { once: k.hintOnce, habit: k.hintHabit, count: k.hintCount, mind: k.hintMind };
+}
+
+/** @deprecated kindLabels() — 지금 언어로 읽히는 보기(V8-A가 쓰는 곳이 없어지면 지운다) */
+export const KIND_LABEL: Record<ActionKind, string> = liveRecord(() => kindLabels());
+/** @deprecated kindHints() — 지금 언어로 읽히는 보기(V8-A가 쓰는 곳이 없어지면 지운다) */
+export const KIND_HINT: Record<ActionKind, string> = liveRecord(() => kindHints());
 
 // ── 숫자 ─────────────────────────────────────────────────────────────────────
 export const MAX_NUM = 1_000_000_000;
@@ -47,7 +57,8 @@ export { fmtNum };
 /** 단위 정리 — 앞뒤 공백, 8글자까지. '만원'은 읽기 쉽게 '만 원'으로 */
 export function cleanUnit(v: unknown): string {
   if (typeof v !== 'string') return '';
-  return v.trim().replace(/^만원$/, '만 원').replace(/^천원$/, '천 원').slice(0, 8);
+  const t = v.trim();
+  return (MONEY_SPACE.get(t) ?? t).slice(0, 8);
 }
 
 // ── 쌓기 ─────────────────────────────────────────────────────────────────────
@@ -76,9 +87,9 @@ export function countInfo(a: Action, todayKey?: string): CountInfo {
   };
 }
 
-/** '6/12권' */
-export function countText(c: Pick<CountInfo, 'count' | 'goal' | 'unit'>): string {
-  return `${fmtNum(c.count)}/${fmtNum(c.goal)}${c.unit}`;
+/** '6/12권' · '6/12冊' · '6/12 books' */
+export function countText(c: Pick<CountInfo, 'count' | 'goal' | 'unit'>, l?: Lang): string {
+  return msg(l).kinds.countText({ count: c.count, total: c.goal, unit: c.unit });
 }
 
 function editAction<T extends Pick<MandaratDoc, 'themes'>>(doc: T, ti: number, ai: number, fn: (a: Action) => Action): T {
@@ -181,16 +192,24 @@ export interface DueInfo {
   over: boolean;
 }
 
-export function dueInfo(a: Action, today: Date): DueInfo | null {
+export function dueInfo(a: Action, today: Date, l?: Lang): DueInfo | null {
   if (kindOf(a) !== 'once' || !a.due) return null;
   const days = daysBetween(ymd(today), a.due);
-  return { date: a.due, days, label: fmtDue(days, 'short'), long: fmtDue(days, 'long'), over: days < 0 };
+  const f = msg(l).fmt;
+  return { date: a.due, days, label: f.dueShort({ days }), long: f.dueLong({ days }), over: days < 0 };
 }
 
-/** '10.20 (월)' (text.fmtDateShort) — 올해가 아니면 앞에 연도('2027년 1.4 (월)') */
-export function dateText(key: string, today = new Date()): string {
-  const y = Number(key.slice(0, 4));
-  return `${y !== today.getFullYear() ? `${y}년 ` : ''}${fmtDateShort(key)}`;
+/** 'YYYY-MM-DD' → 그날 0시 */
+function keyDate(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** '10.20 (월)' (fmt.dateShort) — 올해가 아니면 연도까지('2027년 1.4 (월)') */
+export function dateText(key: string, today = new Date(), l?: Lang): string {
+  const d = keyDate(key);
+  const m = msg(l);
+  return d.getFullYear() !== today.getFullYear() ? m.kinds.dateOtherYear({ d, y: d.getFullYear() }) : m.fmt.dateShort({ d });
 }
 
 /** 'YYYY-MM-DD'에 n일 더하기 */
@@ -204,23 +223,31 @@ export function addDays(key: string, n: number): string {
  * '3개월 뒤'는 그달에 없는 날이면 그달 마지막 날로(11월 30일 → 2월 28일).
  * 날짜가 겹치면(달 끝이 일요일, 12월 31일) 앞의 것만 남긴다.
  */
-export function duePresets(today: Date): { label: string; date: string }[] {
+export function duePresets(today: Date, l?: Lang): { label: string; date: string }[] {
   const y = today.getFullYear();
   const m = today.getMonth();
   const d = today.getDate();
   const sun = ymd(weekDates(today)[6]);
+  const k = msg(l).kinds;
   const all = [
-    { label: '이번 주', date: sun },
-    { label: '이번 달', date: ymd(new Date(y, m + 1, 0)) },
-    { label: '3개월 뒤', date: ymd(new Date(y, m + 3, Math.min(d, new Date(y, m + 4, 0).getDate()))) },
-    { label: '올해 안', date: `${y}-12-31` },
+    { label: k.presetWeek, date: sun },
+    { label: k.presetMonth, date: ymd(new Date(y, m + 1, 0)) },
+    { label: k.preset3Months, date: ymd(new Date(y, m + 3, Math.min(d, new Date(y, m + 4, 0).getDate()))) },
+    { label: k.presetYear, date: `${y}-12-31` },
   ];
   const seen = new Set<string>();
   return all.filter((p) => (seen.has(p.date) ? false : (seen.add(p.date), true)));
 }
 
 // ── 마음가짐: 한 주 점수 ──────────────────────────────────────────────────────
-export const RATING_TEXT = ['', '거의 못 지켰어요', '조금 지켰어요', '반쯤 지켰어요', '잘 지켰어요', '아주 잘 지켰어요'] as const;
+/** 점수(1~5) 아래 한 줄 — 0은 빈 글 */
+export function ratingTexts(l?: Lang): readonly string[] {
+  const k = msg(l).kinds;
+  return ['', k.rating1, k.rating2, k.rating3, k.rating4, k.rating5];
+}
+
+/** @deprecated ratingTexts() — 지금 언어로 읽히는 보기(V8-A가 쓰는 곳이 없어지면 지운다) */
+export const RATING_TEXT: readonly string[] = liveList(() => ratingTexts());
 
 /** 이번 주 점수(1~5), 아직이면 0 */
 export function ratingOf(a: Action, today: Date): number {
@@ -267,7 +294,12 @@ export interface KindConfig {
   count?: number;
   /** 한 번: 마감일(없으면 마감 없음) */
   due?: string;
+  /** 습관: 알림 시각 'HH:MM'(없으면 알림 없음) */
+  remindAt?: string;
 }
+
+/** 알림 시각 'HH:MM' — src/data/defaults.ts TIME_RE와 같다 */
+const REMIND_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** 지금 칸의 설정(편집 화면의 처음 값). 쌓기로 처음 바꿀 때 이미 달성한 칸은 목표만큼 채워 둔다. */
 export function configOf(a: Action): KindConfig {
@@ -283,6 +315,7 @@ export function configOf(a: Action): KindConfig {
     step: c.step,
     count: a.count !== undefined ? c.count : a.done && cleanNum(a.goal, 0.01) ? c.goal : 0,
     ...(a.due ? { due: a.due } : {}),
+    ...(a.remindAt ? { remindAt: a.remindAt } : {}),
   };
 }
 
@@ -297,6 +330,7 @@ export function sameConfig(x: KindConfig, y: KindConfig): boolean {
   if (x.kind === 'habit') {
     const dx = normalizeDays(x.days);
     const dy = normalizeDays(y.days);
+    if ((x.remindAt ?? '') !== (y.remindAt ?? '')) return false;
     if (dx.length > 0 || dy.length > 0) return dx.join() === dy.join();
     return normalizePerWeek(x.perWeek) === normalizePerWeek(y.perWeek);
   }
@@ -340,6 +374,9 @@ export function applyConfig(a: Action, cfg: KindConfig, todayKey: string): Actio
     const schedule = keep ? nextSchedule(a, out, todayKey) : undefined;
     if (schedule) out.schedule = schedule;
     else delete out.schedule;
+    // 알림 시각은 습관에서만 정한다 — 다른 유형으로 바꿔도 남겨 둔다(되돌리면 다시 울린다)
+    if (cfg.remindAt && REMIND_RE.test(cfg.remindAt)) out.remindAt = cfg.remindAt;
+    else delete out.remindAt;
   } else if (cfg.kind === 'count') {
     const before = wasKind === 'count' ? countInfo(a) : null;
     const goal = cleanNum(cfg.goal, 0.01) ?? cleanNum(a.goal, 0.01) ?? 1;
@@ -398,7 +435,7 @@ function nextSchedule(prev: Action, next: Action, todayKey: string): HabitSchedu
 /** 첫 일정의 시작 — 습관을 정한 날(since)을 모르는 이전 칸 */
 const EPOCH = '1970-01-01';
 
-/** 칸을 비울 때 — 글과 유형별 값·달성을 모두 지우고 메모만 남긴다(다음에 쓰는 실천이 이전 숫자·기록을 이어받지 않게) */
+/** 칸을 비울 때 — 글과 유형별 값·달성·알림 시각을 모두 지우고 메모만 남긴다(다음에 쓰는 실천이 이전 숫자·기록을 이어받지 않게) */
 export function clearedAction(a: Action): Action {
   return { text: '', note: a.note, done: false };
 }
@@ -412,6 +449,8 @@ export interface KindLine {
   long: string;
   /** 정한 것(계획) — '월·수·금 반복' · '주 3회' · '6/12권' · '마감 D-3' · '마음가짐' */
   plan: string;
+  /** plan을 소리로 — '12권 중 6권' · '마감 3일 남음' · en '3 times a week'(보이는 말은 '3x a week') */
+  planSpeech: string;
   /**
    * 소리로 읽을 말(long과 같은 내용) — '이번 주 3회 중 2회' · '12권 중 6권, 오늘 1권 더함' · '마감 3일 남음' · '마음가짐, 이번 주 4점'.
    * '6/12권'·'D-3'은 VoiceOver가 날짜·'디 마이너스'로 읽으므로 화면 읽기 라벨에는 long 대신 이것을 쓴다.
@@ -424,51 +463,51 @@ export interface KindLine {
 }
 
 /** 마감을 소리로 — '마감 3일 남음' · '오늘 마감' · '마감 2일 지남' ('D-3'은 '디 마이너스 삼'으로 읽힌다). KindLine.speech가 쓴다 */
-export function dueSpeech(days: number): string {
-  return days > 0 ? `마감 ${days}일 남음` : days === 0 ? '오늘 마감' : `마감 ${-days}일 지남`;
+export function dueSpeech(days: number, l?: Lang): string {
+  return msg(l).kinds.dueSpeech({ days });
 }
 
 /** 쌓기를 소리로 — '12권 중 6권' ('6/12권'은 날짜로 읽힌다). KindLine.speech가 쓴다 */
-export function countSpeech(c: Pick<CountInfo, 'count' | 'goal' | 'unit'>): string {
-  return `${fmtNum(c.goal)}${c.unit} 중 ${fmtNum(c.count)}${c.unit}`;
+export function countSpeech(c: Pick<CountInfo, 'count' | 'goal' | 'unit'>, l?: Lang): string {
+  return msg(l).kinds.countSpeech({ count: c.count, total: c.goal, unit: c.unit });
 }
 
-/** 유형별 보조 정보 — 붙일 게 없으면(마감 없는 한 번) null */
-export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): KindLine | null {
+/** 유형별 보조 정보 — 붙일 게 없으면(마감 없는 한 번) null. 말은 msg(l).kinds */
+export function kindLine(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date, l?: Lang): KindLine | null {
   const a = doc.themes[ti]?.actions[ai];
   if (!a) return null;
+  const k = msg(l).kinds;
   const kind = kindOf(a);
   if (kind === 'habit') {
     const n = perWeekOf(a);
     if (n > 0) {
       const w = routineWeekCount(doc, ti, ai, today);
-      return {
-        icon: 'repeat', short: `이번 주 ${w.done}/${w.planned}`, long: `이번 주 ${w.done}/${w.planned}회`, plan: `주 ${n}회`,
-        speech: `이번 주 ${w.planned}회 중 ${w.done}회`,
-      };
+      const p = { done: w.done, total: w.planned };
+      return { icon: 'repeat', short: k.weekShort(p), long: k.weekLong(p), plan: k.weekPlan({ n }), planSpeech: k.weekPlanSay({ n }), speech: k.weekSpeech(p) };
     }
-    const label = `${daysLabel(habitDays(a))} 반복`;
-    return { icon: 'repeat', short: daysLabel(habitDays(a)), long: label, plan: label, speech: label };
+    const dows = habitDays(a);
+    const label = k.daysLong({ dows });
+    return { icon: 'repeat', short: k.daysShort({ dows }), long: label, plan: label, planSpeech: label, speech: label };
   }
   if (kind === 'count') {
     const c = countInfo(a, ymd(today));
-    const text = countText(c);
-    const said = countSpeech(c);
+    const text = countText(c, l);
+    const said = countSpeech(c, l);
     return {
-      short: text, long: c.today > 0 ? `${text} · 오늘 +${fmtNum(c.today)}` : text, plan: text, pct: c.pct,
-      speech: c.today > 0 ? `${said}, 오늘 ${fmtNum(c.today)}${c.unit} 더함` : said,
+      short: text, long: c.today > 0 ? k.countToday({ text, n: c.today }) : text, plan: text, planSpeech: said, pct: c.pct,
+      speech: c.today > 0 ? k.countTodaySpeech({ said, n: c.today, unit: c.unit }) : said,
     };
   }
   if (kind === 'once') {
-    const d = dueInfo(a, today);
+    const d = dueInfo(a, today, l);
     if (!d || a.done) return null;
     const label = d.long;
-    const said = dueSpeech(d.days);
-    return { icon: 'calendar', short: d.label, long: label, plan: label, speech: said, alert: d.over };
+    const said = dueSpeech(d.days, l);
+    return { icon: 'calendar', short: d.label, long: label, plan: label, planSpeech: said, speech: said, alert: d.over };
   }
   const r = ratingOf(a, today);
   return {
-    short: r ? `마음가짐 ${r}점` : '마음가짐', long: r ? `마음가짐 · 이번 주 ${r}점` : '마음가짐', plan: '마음가짐',
-    speech: r ? `마음가짐, 이번 주 ${r}점` : '마음가짐',
+    short: r ? k.mindShort({ n: r }) : k.labelMind, long: r ? k.mindLong({ n: r }) : k.labelMind, plan: k.labelMind, planSpeech: k.labelMind,
+    speech: r ? k.mindSpeech({ n: r }) : k.labelMind,
   };
 }

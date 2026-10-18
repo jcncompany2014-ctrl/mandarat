@@ -87,3 +87,32 @@ test('메모 — 바뀐 때만 저장, 줄 수는 글 높이를 덮게', () => {
 test('마음가짐 막대 첫 이름표', () => {
   assert.equal(historyStartLabel(8), '7주 전');
 });
+
+test('제목 아래 한 줄 — ja는 괄호로(요일 목록의 ・와 섞이지 않게), en 화면 읽기는 \'3 times a week\'', () => {
+  const { setLang } = require('../src/i18n');
+  try {
+    setLang('ja');
+    assert.equal(sheetSubtitle(doc({ text: '散歩', kind: 'habit', days: [1, 3, 5] }), 0, 0, WED), '習慣（月・水・金）');
+    assert.equal(sheetSubtitle(doc({ text: '感謝', kind: 'mind' }), 0, 0, WED), '心がけ（週に1回）');
+    setLang('en');
+    assert.equal(sheetSubtitle(doc({ text: 'Gym', kind: 'habit', perWeek: 3 }), 0, 0, WED), 'Habit · 3x a week');
+    assert.equal(sheetSubtitle(doc({ text: 'Gym', kind: 'habit', perWeek: 3 }), 0, 0, WED, undefined, true), 'Habit · 3 times a week');
+  } finally {
+    setLang('ko');
+  }
+  // ko는 그대로
+  assert.equal(sheetSubtitle(doc({ text: '산책', kind: 'habit', perWeek: 3 }), 0, 0, WED, undefined, true), '습관 · 주 3회');
+});
+
+test('기호 꼴(3x)은 화면에만 — 고르기 · 연속 기록 줄 · 편집기 · 시트 제목의 소리 말은 planSpeech / perWeekSay', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  const { msg } = require('../src/i18n');
+  assert.equal(msg('en').kinds.weekPlanSay({ n: 3 }), '3 times a week');
+  assert.equal(msg('en').editor.perWeekSay({ n: 1 }), 'Once a week');
+  assert.match(src('src/lib/pick.ts'), /kind === 'habit' \? line\?\.planSpeech/);
+  assert.match(src('src/screens/TodayModes.tsx'), /const bodyLabel = \[text, area, planSay,/);
+  assert.match(src('src/overlays/CellEditor.tsx'), /accessibilityValue=\{\{ text: ed\.perWeekSay\(\{ n \}\) \}\}/);
+  assert.match(src('src/overlays/ActionSheet.tsx'), /titleA11y\(\{ text, subtitle: subtitleSay \}\)/);
+});

@@ -13,7 +13,8 @@ const ts = require('typescript');
 const { BANNED_COPY, BANNED_COPY_RE, MGMT_LABEL, MOOD_LABEL, SHAPE_LABEL } = require('../src/lib/copy');
 
 const ROOT = path.join(__dirname, '..');
-const SKIP = new Set(['src/lib/copy.ts', 'src/types.ts']);
+// glossary.ts는 금지어 목록 자체('완료' · '2026' …)를, names.ts는 언어 이름을 제 글자로 담는다
+const SKIP = new Set(['src/lib/copy.ts', 'src/types.ts', 'src/i18n/glossary.ts', 'src/i18n/names.ts']);
 /** 저장값(Mood · Mgmt · CellShape) — 화면에는 copy.ts의 이름으로 보이고, 이 글자 그대로는 저장·비교에만 쓰인다 */
 const STORED = new Set([...Object.keys(MGMT_LABEL), ...Object.keys(MOOD_LABEL), ...Object.keys(SHAPE_LABEL)]);
 /**
@@ -21,7 +22,7 @@ const STORED = new Set([...Object.keys(MGMT_LABEL), ...Object.keys(MOOD_LABEL), 
  * - '이루다'는 핵심 목표에만 쓴다: 64칸을 다 달성한 축하의 '핵심 목표를 이뤘어요'.
  * - '완료'를 화면에 보이지 않는 저장·비교 키(보드 칸 키 등)로만 쓰게 되면 여기에 적는다.
  */
-const STORED_WORDS = new Set(['src/overlays/Celebration.tsx|핵심 목표를 이뤘어요']);
+const STORED_WORDS = new Set(['src/i18n/ko/sheet.ts|핵심 목표를 이뤘어요']);
 /** `}` 바로 뒤에 붙은 조사(뒤가 끝·띄어쓰기·문장부호일 때만 — '${n}가지'·'${n}이에요'는 조사가 아니다) */
 const JOSA_AFTER_EXPR = /^(을|를|이|가|은|는|와|과|으로|로)(?=$|[\s.,!?·:;)\]…'"’”~])/;
 
@@ -170,4 +171,69 @@ test('화면 글에 금지어와 끝소리를 모르는 조사가 없다', () =>
   console.log(text);
   if (process.env.COPY_LINT_OUT) fs.writeFileSync(process.env.COPY_LINT_OUT, `${text}\n`);
   assert.equal(total, 0, '위 목록의 글을 낱말장(src/lib/copy.ts)대로 고치고, 조사는 josa()로 붙인다');
+});
+
+// ── 말 바구니(src/i18n) — 경로로 언어를 골라 그 언어의 규칙으로 ─────────────────────
+// ko: 위의 금지어 · 조사 규칙. ja: 한글 없음 · BANNED_JA · 반각 가타카나 없음 · 'である' · '…だ。' 없음.
+// en: 한글 · 가나 · 한자 없음 · BANNED_EN · plural() 없이 붙인 `${n} days` 없음. 모든 언어: 이모지 없음.
+// *.data.ts(말이 아닌 언어 자료)는 글자 검사만.
+const { catalogSourceProblems, textProblems } = require('./i18nLint');
+
+function i18nFiles() {
+  const out = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(e.name)) out.push(path.relative(ROOT, p).split(path.sep).join('/'));
+    }
+  };
+  walk(path.join(ROOT, 'src', 'i18n'));
+  return out.filter((r) => !SKIP.has(r)).sort();
+}
+
+const langOf = (rel) => /^src\/i18n\/(ko|ja|en)\//.exec(rel)?.[1] ?? 'ko';
+
+test('검사기: 일본어 · 영어 규칙', () => {
+  assert.deepEqual(textProblems('ja', 'キャンセル'), []);
+  assert.ok(textProblems('ja', 'セルを選ぶ').length > 0);
+  assert.ok(textProblems('ja', 'データを消す').includes('データ'));
+  assert.ok(textProblems('ja', '完了しました！').length >= 2);
+  assert.ok(textProblems('ja', 'ﾏｽ').includes('half-width katakana'));
+  assert.ok(textProblems('ja', '目標である').includes('である'));
+  assert.ok(textProblems('ja', '今日は休みだ。').includes('だ。'));
+  assert.ok(textProblems('ja', '한글').includes('hangul'));
+  assert.ok(textProblems('en', 'Tap a cell').length > 0);
+  assert.ok(textProblems('en', 'Task completed').length >= 2);
+  assert.ok(textProblems('en', 'Great job!').includes('!'));
+  assert.ok(textProblems('en', '2026 goals').length > 0);
+  assert.ok(textProblems('en', '今日').includes('kana/kanji'));
+  assert.ok(textProblems('ko', '좋아요 \u{1F389}').includes('emoji'));
+  assert.deepEqual(textProblems('en', 'Cancel · Done'), []);
+  const probs = catalogSourceProblems('en', 'probe.ts', "const a = (n) => `${n} days left`; const b = (n) => `${n} ${plural(n, 'day', 'days')} left`;");
+  assert.equal(probs.length, 1);
+  assert.match(probs[0], /without plural/);
+});
+
+test('검사 범위: src/i18n의 세 언어 바구니를 모두 본다', () => {
+  const files = i18nFiles();
+  for (const l of ['ko', 'ja', 'en']) {
+    assert.ok(files.includes(`src/i18n/${l}/common.ts`), l);
+    assert.ok(files.includes(`src/i18n/${l}/fmt.ts`), l);
+  }
+  assert.equal(files.includes('src/i18n/glossary.ts'), false);
+  assert.equal(files.includes('src/i18n/names.ts'), false);
+});
+
+test('말 바구니의 글이 그 언어의 규칙을 지킨다', () => {
+  const byFile = {};
+  for (const f of i18nFiles()) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const lang = langOf(f);
+    // 한국어는 위의 소스 검사(금지어 · 조사)도 함께
+    const hits = lang === 'ko' ? lintSource(f, src).map((h) => `${h.line}: ${h.rule} — ${h.text}`) : [];
+    hits.push(...catalogSourceProblems(lang, f, src));
+    if (hits.length > 0) byFile[f] = hits;
+  }
+  assert.deepEqual(byFile, {});
 });

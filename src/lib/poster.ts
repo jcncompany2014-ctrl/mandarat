@@ -4,6 +4,7 @@ import type { MandaratDoc } from '../types';
 import { chartCell } from '../theme/chart';
 import { countInfo } from './kinds';
 import { kindOf } from './routine';
+import { msg, type Lang } from '../i18n';
 
 /** 공유 이미지 한 장의 크기(pt) — 1080×1350으로 3배 찍는다(인스타그램 세로 4:5) */
 export const POSTER_W = 360;
@@ -33,12 +34,12 @@ export interface PosterCell {
 }
 
 /** '2026. 10. 13.' — 인쇄물 머리의 날짜(연도는 오늘에서 계산한다) */
-export function posterDate(d: Date): string {
-  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+export function posterDate(d: Date, l?: Lang): string {
+  return msg(l).chart.posterDate({ y: d.getFullYear(), m: d.getMonth() + 1, n: d.getDate() });
 }
 
 /** 81칸을 읽는 순서(줄마다 왼쪽에서 오른쪽)로. blank: 글만 남기고 칠·막대를 모두 뺀다(손으로 채우는 빈 표) */
-export function posterCells(doc: Pick<MandaratDoc, 'centerGoal' | 'themes'>, blank: boolean): PosterCell[] {
+export function posterCells(doc: Pick<MandaratDoc, 'centerGoal' | 'themes'>, blank: boolean, l?: Lang): PosterCell[] {
   const out: PosterCell[] = [];
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
@@ -54,7 +55,7 @@ export function posterCells(doc: Pick<MandaratDoc, 'centerGoal' | 'themes'>, bla
         const written = th ? th.actions.filter((a) => a.text.trim()) : [];
         const done = written.filter((a) => a.done).length;
         out.push({
-          row, col, ti: c.ti, kind: 'head', text: name || `영역 ${c.ti + 1}`, color: th?.color ?? '', done: false, barPct: null,
+          row, col, ti: c.ti, kind: 'head', text: name || msg(l).chart.areaN({ n: c.ti + 1 }), color: th?.color ?? '', done: false, barPct: null,
           headPct: blank ? null : Math.round((done / 8) * 100), unnamed: !name,
         });
         continue;
