@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text, TextInput } from '../components/AppText';
 import { Sheet, CloseBtn, IconBtn, LineRow, PrimaryButton, pressedRow, sheetBg, useSheetDismiss } from '../components/common';
@@ -527,6 +527,8 @@ function Memo({ M, ti, ai, saved }: { M: M; ti: number; ai: number; saved: strin
         multiline
         maxLength={300}
         scrollEnabled={false}
+        // 웹: 괘선 종이 위의 칸이라 포커스 밑줄(lib/webStyle)을 긋지 않는다 — 맨 아래 괘선과 겹쳐 두 줄로 보인다
+        {...(Platform.OS === 'web' ? ({ dataSet: { ruled: '1' } } as object) : null)}
         style={{
           minHeight: Math.max(MEMO_MIN_H, line * 3), paddingTop: MEMO_PAD, paddingBottom: 0, paddingHorizontal: 2,
           fontSize: 15, lineHeight: MEMO_LINE, color: M.ink, textAlignVertical: 'top', backgroundColor: 'transparent',
