@@ -1,4 +1,4 @@
-import React, { createContext, forwardRef, useContext } from 'react';
+import React, { createContext, forwardRef, useCallback, useContext, useLayoutEffect, useRef } from 'react';
 import {
   Animated, Platform, StyleSheet, Text as RNText, TextInput as RNTextInput,
   type TextInputProps, type TextProps, type TextStyle,
@@ -6,6 +6,7 @@ import {
 import { getLocales } from 'expo-localization';
 import { faceFor, heavierFace, isPretendard, PRETENDARD } from '../theme/fonts';
 import { useBoldText } from '../lib/useReducedMotion';
+import { fitTextarea } from '../lib/webInput';
 import { lang, type Lang } from '../i18n';
 
 /**
@@ -182,10 +183,31 @@ export const TextInput = forwardRef<RNTextInput, TextInputProps>(function TextIn
   const l = lang();
   // 입력 칸은 무엇을 쓸지 모른다 — 일본어 앱이면 일본어 서체로(한자가 한국식 글자로 그려지지 않게)
   const extra = typeset(style as TextProps['style'], false, bold, l === 'ko' ? KO_CTX : { lang: l, os: Platform.OS, latin: false });
+  // 웹의 여러 줄 칸은 처음부터 두 줄 높이(textarea 기본 rows=2)라 한 줄만 써도 아래가 비고, 쓴 만큼 늘지도 않는다 —
+  // 기기처럼 한 줄에서 시작해 글만큼 자라게 한다. 높이를 정해 둔 칸(height · rows)은 그대로
+  // rows는 react-native-web만 아는 값(RN 타입에는 없다)
+  const grow = Platform.OS === 'web' && !!rest.multiline && (rest as { rows?: number }).rows == null && rest.numberOfLines == null
+    && StyleSheet.flatten(style)?.height == null;
+  const node = useRef<RNTextInput | null>(null);
+  const setRef = useCallback((n: RNTextInput | null) => {
+    node.current = n;
+    if (typeof ref === 'function') ref(n);
+    else if (ref) ref.current = n;
+  }, [ref]);
+  const el = () => node.current as unknown as Parameters<typeof fitTextarea>[0];
+  useLayoutEffect(() => {
+    if (grow) fitTextarea(el());
+  }, [grow, rest.value]);
+  const onChangeText = rest.onChangeText;
+  const onGrowChange = useCallback((t: string) => {
+    onChangeText?.(t);
+    fitTextarea(el());
+  }, [onChangeText]);
   return (
     <RNTextInput
-      ref={ref}
+      ref={setRef}
       {...rest}
+      {...(grow ? ({ rows: 1, onChangeText: onGrowChange } as Partial<TextInputProps>) : null)}
       accessibilityLanguage={accessibilityLanguage ?? a11yLang(l)}
       maxFontSizeMultiplier={maxFontSizeMultiplier}
       style={extra ? [style, extra] : style}
