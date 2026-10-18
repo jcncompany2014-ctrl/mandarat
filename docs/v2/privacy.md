@@ -3,6 +3,8 @@
 > **DRAFT — not legal advice. The owner and a legal reviewer must check this text before it is published.**
 > Package V8-C. Publish one page per language, or one page with all three, at an https address, then put that address in `PRIVACY_URL` in `src/lib/appInfo.ts`. App Store Connect also takes it under App Information › Privacy Policy URL for each localization (ko, ja, en-US).
 >
+> **Published:** https://mandarat-delta.vercel.app/privacy (`?lang=ko|ja|en`). The page `public/privacy.html` is generated from the three sections below by `npm run privacy-page` (`scripts/privacy-page.js`), which fills the contact from `SUPPORT_EMAIL`, sets the effective date, leaves out the operator line until the seller name is set, and leaves out the Sentry IP sentence until the owner turns that setting on. Edit this file, then regenerate; `tests/privacyPage.test.js` fails if the page is stale.
+>
 > Fill in before publishing:
 > - `<SUPPORT_EMAIL>`: the same address as `SUPPORT_EMAIL` in `src/lib/appInfo.ts`.
 > - `<OPERATOR>`: the person or company that publishes the app. This is the App Store seller name.

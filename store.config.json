@@ -26,8 +26,8 @@
           "연간계획"
         ],
         "releaseNotes": "버전 2.0\n• 일본어와 영어를 더했어요.\n• iPad에서도 써요. 넓은 화면에서는 두 쪽을 펼쳐 보여 줘요.\n• 홈 화면 · 잠금 화면 위젯과 알림이 생겼어요.\n• 한 해 돌아보기와 지난 표 보관함이 생겼어요.\n• 81칸 표를 PDF로 인쇄해요.\n• 같은 Apple 계정의 iPhone·iPad끼리 iCloud로 기록을 맞춰요.\n• 집중 타이머가 잠금 화면에 남은 시간을 보여 줘요.\n• Siri와 단축어로 오늘 할 일을 열어요.",
-        "privacyPolicyUrl": "https://TODO.invalid/privacy",
-        "supportUrl": "https://TODO.invalid/support",
+        "privacyPolicyUrl": "https://mandarat-delta.vercel.app/privacy?lang=ko",
+        "supportUrl": "https://mandarat-delta.vercel.app/privacy?lang=ko",
         "screenshots": {
           "APP_IPHONE_67": [
             "./store/screenshots/ko/APP_IPHONE_67/01-chart.png",
@@ -67,8 +67,8 @@
           "年間計画"
         ],
         "releaseNotes": "バージョン2.0\n・日本語と英語に対応しました。\n・iPadに対応しました。広い画面では2ページを開いて表示します。\n・ホーム画面とロック画面のウィジェット、通知が加わりました。\n・一年のふりかえりと過去の表の保管庫が加わりました。\n・81マスの表をPDFで印刷できます。\n・同じApple AccountのiPhoneとiPadのあいだで、iCloudで記録を同期します。\n・集中タイマーの残り時間をロック画面に表示します。\n・Siriとショートカットで今日やることを開けます。",
-        "privacyPolicyUrl": "https://TODO.invalid/privacy",
-        "supportUrl": "https://TODO.invalid/support",
+        "privacyPolicyUrl": "https://mandarat-delta.vercel.app/privacy?lang=ja",
+        "supportUrl": "https://mandarat-delta.vercel.app/privacy?lang=ja",
         "screenshots": {
           "APP_IPHONE_67": [
             "./store/screenshots/ja/APP_IPHONE_67/01-chart.png",
@@ -107,8 +107,8 @@
           "widget"
         ],
         "releaseNotes": "Version 2.0\n• Now in Japanese and English.\n• Works on iPad, with a two-page spread on wide screens.\n• Home Screen and Lock Screen widgets, and reminders.\n• A year review, and an archive for past charts.\n• Print the 81-square chart as a PDF.\n• iCloud sync between iPhone and iPad on the same Apple Account.\n• The focus timer shows the time left on the Lock Screen.\n• Open Today’s list with Siri and Shortcuts.",
-        "privacyPolicyUrl": "https://TODO.invalid/privacy",
-        "supportUrl": "https://TODO.invalid/support",
+        "privacyPolicyUrl": "https://mandarat-delta.vercel.app/privacy?lang=en",
+        "supportUrl": "https://mandarat-delta.vercel.app/privacy?lang=en",
         "screenshots": {
           "APP_IPHONE_67": [
             "./store/screenshots/en/APP_IPHONE_67/01-chart.png",

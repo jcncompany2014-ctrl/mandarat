@@ -6,7 +6,7 @@ import { GridMark } from '../components/GridMark';
 import { Icon } from '../components/Icon';
 import { SheetHead, TemplateSheet } from '../components/TemplateSheet';
 import { TEMPLATES, templateThemes, type Template } from '../data/templates';
-import { APP_VERSION, LICENSES, PRIVACY_URL, SUPPORT_EMAIL, supportMailto } from '../lib/appInfo';
+import { APP_VERSION, LICENSES, PRIVACY_URL, SUPPORT_EMAIL, privacyLink, supportMailto } from '../lib/appInfo';
 import { summarize } from '../lib/backup';
 import { backupAgeLabel } from '../lib/backupNote';
 import { select, tap } from '../lib/haptics';
@@ -14,7 +14,7 @@ import { exportBackup } from '../lib/shareFile';
 import { useSyncEnabled } from '../lib/syncStatus';
 import { fmtDateLong } from '../lib/text';
 import { useMsg } from '../i18n/react';
-import type { Messages } from '../i18n';
+import { lang, type Messages } from '../i18n';
 import { useUIActions } from '../navigation/ui';
 import { BackupImport } from '../overlays/BackupImport';
 import { useMandarat, type SnapshotInfo } from '../store/MandaratContext';
@@ -395,7 +395,7 @@ export function Settings() {
         <ColophonRow M={M} label={st.colFont} value={st.colFontValue} />
         <ColophonRow M={M} label={st.colPlace} value={storage.place} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 18, rowGap: 8, marginTop: 14 }}>
-          {!!PRIVACY_URL && <TextLink M={M} label={st.privacy} onPress={() => openLink(PRIVACY_URL)} />}
+          {!!PRIVACY_URL && <TextLink M={M} label={st.privacy} onPress={() => openLink(privacyLink(lang()))} />}
           {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label={st.contact} hint={st.contactHint} onPress={() => openLink(mailto)} />}
           <TextLink M={M} label={st.licenses} onPress={() => { tap(); setLicensesOpen(true); }} />
         </View>

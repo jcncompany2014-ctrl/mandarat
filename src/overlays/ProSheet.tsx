@@ -7,8 +7,8 @@ import { Linking, Platform, View } from 'react-native';
 import { Text, a11yLangProp } from '../components/AppText';
 import { CloseBtn, PrimaryButton, RuledNotice, Sheet, useSheetDismiss } from '../components/common';
 import { useMsg } from '../i18n/react';
-import type { Messages } from '../i18n';
-import { PRIVACY_URL } from '../lib/appInfo';
+import { lang, type Messages } from '../i18n';
+import { PRIVACY_URL, privacyLink } from '../lib/appInfo';
 import { PRO_FEATURES, type ProFeature } from '../lib/contracts';
 import { success, tap } from '../lib/haptics';
 import { proNoteText } from '../lib/pro';
@@ -103,7 +103,7 @@ function ProBody({ M, from }: { M: M; from: ProFeature | 'menu' }) {
     void restore();
   };
   const openPrivacy = () => {
-    Linking.openURL(PRIVACY_URL).catch(() => showToast(m.pro.linkFailed));
+    Linking.openURL(privacyLink(lang())).catch(() => showToast(m.pro.linkFailed));
   };
 
   const busy = phase === 'buying' || phase === 'restoring';

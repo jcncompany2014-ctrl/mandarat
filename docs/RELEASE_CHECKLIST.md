@@ -17,8 +17,8 @@ The owner works top to bottom: each step needs the ones above it.
 
 | # | Item | Status | Where it goes |
 |---|---|---|---|
-| V1 | **Privacy policy** in ko, ja and en. The draft is `docs/v2/privacy.md`; legal review is needed. Publish it at an https address and set `PRIVACY_URL`. The v1 one-line text in §2 of v1 below is **out of date**: it does not mention iCloud, Sentry or the purchase. | **OPEN — `PRIVACY_URL = ''`** | `src/lib/appInfo.ts`; App Store Connect › App Information › Privacy Policy URL, per locale; `store.config.json` `privacyPolicyUrl` (V8-B placeholder) |
-| V2 | **Support contact** `SUPPORT_EMAIL`, plus a Support URL (it can be the privacy page). | **OPEN — `SUPPORT_EMAIL = ''`** | `src/lib/appInfo.ts`; App Store Connect › Support URL; `store.config.json` `supportUrl` |
+| V1 | **Privacy policy** in ko, ja and en. The draft is `docs/v2/privacy.md`; legal review is needed. Publish it at an https address and set `PRIVACY_URL`. The v1 one-line text in §2 of v1 below is **out of date**: it does not mention iCloud, Sentry or the purchase. | **DONE (web)** — https://mandarat-delta.vercel.app/privacy, generated from `docs/v2/privacy.md` (`npm run privacy-page`); legal review still advised | `src/lib/appInfo.ts`; App Store Connect › App Information › Privacy Policy URL, per locale; `store.config.json` `privacyPolicyUrl` (V8-B placeholder) |
+| V2 | **Support contact** `SUPPORT_EMAIL`, plus a Support URL (it can be the privacy page). | **DONE** — `SUPPORT_EMAIL` set; Support URL = the privacy page (it carries the contact) | `src/lib/appInfo.ts`; App Store Connect › Support URL; `store.config.json` `supportUrl` |
 | V3 | **Sentry DSN** (v2-3 below). | **OPEN — `SENTRY_DSN = ''`** | `src/lib/crash.native.ts` (`export const SENTRY_DSN = '…';`, one line, single quotes) |
 | V4 | **Store names.** ko: '만다라트' is taken (id6444119494; see v1 B3). ja `マンダラート` and en `Mandalart`: check the trademark first (owner confirmation 1, plan §1.3). If a name changes, also update the Siri phrase list in `docs/v2/review-notes.md`. | **OPEN** | `locales/*.json` (lead), `store.config.json` (V8-B) |
 | V5 | **Owner confirmations 2–5** (plan §1.3): the pro list; fallback language ko; reminders per device; year-archive gating. To keep the latest archive's review free, change `archiveAccess` in `src/lib/archive.ts`. | **OPEN — defaults are implemented** | — |
@@ -300,8 +300,8 @@ Status key: **OPEN** = the owner still has to decide or do this · done = alread
 
 | # | Item | Status | Where it goes |
 |---|---|---|---|
-| B1 | **Privacy policy URL.** Publish a one-page 개인정보 처리방침 (text in §2), then set `PRIVACY_URL` (https) in `src/lib/appInfo.ts`. | **OPEN — `PRIVACY_URL = ''`** | `src/lib/appInfo.ts`, App Store Connect › App 정보 › 개인정보 처리방침 URL |
-| B2 | **Support contact.** Set `SUPPORT_EMAIL` in `src/lib/appInfo.ts`. App Store Connect also needs a **Support URL**: use the same page as B1 (it carries the 문의 address), or a separate page. | **OPEN — `SUPPORT_EMAIL = ''`** | `src/lib/appInfo.ts`, App Store Connect › 지원 URL |
+| B1 | **Privacy policy URL.** Publish a one-page 개인정보 처리방침 (text in §2), then set `PRIVACY_URL` (https) in `src/lib/appInfo.ts`. | **DONE** — `PRIVACY_URL` = https://mandarat-delta.vercel.app/privacy (ko · ja · en, `?lang=`) | `src/lib/appInfo.ts`, App Store Connect › App 정보 › 개인정보 처리방침 URL |
+| B2 | **Support contact.** Set `SUPPORT_EMAIL` in `src/lib/appInfo.ts`. App Store Connect also needs a **Support URL**: use the same page as B1 (it carries the 문의 address), or a separate page. | **DONE** — `SUPPORT_EMAIL` set; Support URL = the privacy page | `src/lib/appInfo.ts`, App Store Connect › 지원 URL |
 | B3 | **App Store name.** '만다라트' is **already taken** on the App Store (id6444119494), so it cannot be the store name. Pick one. Candidate: **'만다라트 노트 - 81칸 목표 계획표'** (≤ 30 chars). Before you commit to it, run a KIPRIS trademark search (kipris.or.kr) for the name. | **OPEN — owner must pick** | App Store Connect › 이름 |
 | B4 | **Copyright holder** (person or company name), e.g. `© 2026 <holder>`. | **OPEN** | App Store Connect › 저작권 |
 

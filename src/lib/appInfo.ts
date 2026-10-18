@@ -6,11 +6,17 @@ import { msg } from '../i18n';
 /** 판 — app.json의 expo.version */
 export const APP_VERSION: string = appJson.expo.version;
 
-// TODO(owner): 출시 전에 개인정보 처리방침 주소를 넣는다(App Review 필수). 비어 있는 동안 설정의 링크는 숨는다.
-export const PRIVACY_URL = '';
+// 개인정보 처리방침 — 웹 미리보기와 같은 곳에 올린 페이지(public/privacy.html, docs/v2/privacy.md에서 만든다). App Review 필수.
+// 비어 있으면 설정의 링크는 숨는다
+export const PRIVACY_URL = 'https://mandarat-delta.vercel.app/privacy';
 
-// TODO(owner): 출시 전에 문의 받을 메일 주소를 넣는다. 비어 있는 동안 설정의 '문의하기'는 숨는다.
-export const SUPPORT_EMAIL = '';
+// 문의 받을 메일 — 처리방침 페이지의 문의 줄도 이 값으로 만든다(scripts/privacy-page.js). 비어 있으면 설정의 '문의하기'는 숨는다
+export const SUPPORT_EMAIL = 'ian020529@gmail.com';
+
+/** 처리방침을 앱 언어로 연다 — 페이지가 ?lang=으로 그 언어 쪽만 보인다 */
+export function privacyLink(l: string, url = PRIVACY_URL): string {
+  return url ? `${url}?lang=${l}` : '';
+}
 
 export interface License {
   name: string;
