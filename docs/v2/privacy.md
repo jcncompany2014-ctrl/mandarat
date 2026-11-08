@@ -32,8 +32,8 @@
 **3. 오류 기록을 보내지 않아요**
 앱이 멈추거나 오류가 나도, 이 앱은 오류 기록을 따로 보내지 않아요. iPhone 설정 › 개인정보 보호 및 보안 › 분석 및 향상에서 '앱 개발자와 공유'를 켜 두었다면, Apple이 이름 없는 충돌 기록을 우리에게 전해 줄 수 있어요. 이 기록은 Apple이 모으고 전하며, 내가 적은 글은 들어가지 않아요.
 
-**4. 프로 구입은 Apple이 처리해요**
-'프로'는 한 번 결제하는 앱 내 구입이에요. 결제와 결제 정보는 모두 Apple(App Store)이 처리해요. 우리는 카드 정보나 Apple 계정 정보를 받지 않아요. 앱은 이 기기에서 프로가 열려 있는지만 기억해요.
+**4. 결제가 없어요**
+이 앱에는 앱 내 구입이 없고, 모든 기능이 무료예요. 나중에 앱 내 구입이 생기면 결제는 Apple(App Store)이 처리하고, 이 방침을 먼저 고쳐 알려 드려요.
 
 **5. 알림은 기기 안에서만**
 알림(아침, 저녁, 습관, 한 주 돌아보기, 집중 끝)은 이 기기가 스스로 예약하는 로컬 알림이에요. 서버에서 보내는 푸시 알림은 없어요. 알림 권한은 알림을 켤 때만 물어요.
@@ -78,8 +78,8 @@
 **3. エラー記録は送りません**
 アプリが停止したりエラーが起きたりしても、本アプリがエラー記録を独自に送ることはありません。iPhoneの設定 › プライバシーとセキュリティ › 解析および改善で「App デベロッパと共有」をオンにしている場合は、Appleが匿名のクラッシュレポートを運営者に提供することがあります。この記録はAppleが収集・提供するもので、ご自身が書いた文は含まれません。
 
-**4. プロの購入はAppleが処理します**
-「プロ」は一度だけ支払うアプリ内課金です。決済と支払い情報はすべてApple(App Store)が処理します。運営者がカード情報やAppleアカウントの情報を受け取ることはありません。本アプリは、この端末でプロが開いているかどうかだけを記録します。
+**4. 課金はありません**
+本アプリにはアプリ内課金がなく、すべての機能を無料で使えます。今後アプリ内課金を加える場合、決済はApple(App Store)が行い、このポリシーを事前に改めてお知らせします。
 
 **5. 通知は端末の中だけで**
 通知(朝、夜、習慣、週のふり返り、集中の終了)は、この端末が自分で予約するローカル通知です。サーバーから送るプッシュ通知はありません。通知の許可は、通知をオンにしたときにだけ求めます。
@@ -124,8 +124,8 @@ If you turn on sync in Settings › iCloud, your iPhone and iPad on the same App
 **3. No error reports from the app**
 The app does not send crash or error reports of its own. If you turned on Share With App Developers in iPhone Settings › Privacy & Security › Analytics & Improvements, Apple may give us anonymous crash reports. Apple collects and delivers those reports, and they do not include anything you write.
 
-**4. Pro is bought through Apple**
-"Pro" is a one-time in-app purchase. Apple (the App Store) handles the payment and your payment details. We never receive card details or your Apple Account details. The app only remembers, on this device, whether Pro is unlocked.
+**4. No purchases**
+The app has no in-app purchases; every feature is free. If purchases are added later, Apple (the App Store) will handle payment, and this policy will be updated first.
 
 **5. Notifications are local only**
 Reminders (morning, evening, habit, weekly review and focus end) are local notifications that this device schedules itself. There are no push notifications from a server. The app asks for notification permission only when you turn a reminder on.
@@ -159,10 +159,10 @@ If this policy changes, the new version is posted on this page with a new effect
 | Local storage: the doc, daily copies, and per-device preferences | AsyncStorage keys `mandarat:doc:v1`, `mandarat:doc:v1:corrupt:<ms>` (a copy of an unreadable doc, kept for recovery), `mandarat:snap:YYYY-MM-DD` (7 days), `mandarat:lang:v1`, `mandarat:pro:v1`, `mandarat:notify:v1`, `mandarat:crash:v1`, `mandarat:print:v1`, `mandarat.editorDraft.v1`. They are included in iCloud device backup (`RCTAsyncStorageExcludeFromBackup: false`). |
 | iCloud: the user's own container, no server, off by default | `modules/icloud-sync`: container `iCloud.com.jcncompany.mandarat`, one file per device at `Sync/v1/<device>.jsonz` in the hidden Data scope, not visible in Files. Sync is opt-in in Settings › iCloud (V5-E). No iCloud call is made while sync is off, except the onboarding "가져오기" probe (V4-A). The device key is a random UUID excluded from backup; the account check uses a 16-hex hash of `ubiquityIdentityToken` that stays on the device. |
 | No crash-reporting SDK | 1.0 ships without Sentry (owner decision, 2026-11): `@sentry/react-native` is not a dependency, `app.json` has no Sentry plugin, and `src/lib/crash.ts` is a no-op on every platform. Crash reports, if any, come only from Apple's opt-in "Share With App Developers", which Apple collects and does not need to be declared. To bring Sentry back, restore the V4-F files (`crash.native.ts`, `CrashRow.tsx`, `crashPrefs.ts`) and the Sentry wording of this policy from git history. |
-| IAP is handled by Apple | `modules/pro-store` (StoreKit 2). Non-Consumable `com.jcncompany.mandarat.pro`. Only the entitlement cache `mandarat:pro:v1` is stored. |
+| No purchases in 1.0 | `STORE_OPEN = false` in `src/lib/pro.ts` (owner decision, 2026-11): every Pro feature is open, `ProContext` never calls StoreKit, and the Settings › 프로 section and Pro sheet never show. `modules/pro-store` is still compiled but unused. When sales open, restore the Apple-handles-payment wording here and in section 4. |
 | Local notifications only | `src/lib/notifier.native.ts`: `expo-notifications` local schedule, at most 60 pending, ids `mandarat.*`. Permission is asked only from a user gesture (tests). There is no push server; `aps-environment` is present only because the plugins write it. |
 | Widget, Siri, App Group | `group.com.jcncompany.mandarat`, key `__expo_widgets_TodayWidget_timeline`: an 8-entry timeline holding today's items. `native/ios/TodayStore.swift` reads it and appends ops there. Nothing leaves the device. |
 | No tracking | No analytics, ad or crash-reporting SDK in `package.json`. The privacy manifest has `NSPrivacyTracking: false` and no collected data types. The widget extension has its own manifest with no collected data (`plugins/withWidgetStrings.js`). |
 | Photos are add-only | `NSPhotoLibraryAddUsageDescription` only. |
 
-**App Store Connect › App Privacy answer that matches this policy:** **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics, ads or crash-reporting SDK; records stay on the device, in the user's own iCloud and in their device backup, which are not "collected" in Apple's sense. Purchases are Apple's own data and are not declared. If Sentry is added back, the answer becomes Diagnostics › Crash Data, Performance Data and Other Diagnostic Data (not linked, not tracking, App Functionality).
+**App Store Connect › App Privacy answer that matches this policy:** **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics, ads or crash-reporting SDK; records stay on the device, in the user's own iCloud and in their device backup, which are not "collected" in Apple's sense. 1.0 has no purchases. If Sentry is added back, the answer becomes Diagnostics › Crash Data, Performance Data and Other Diagnostic Data (not linked, not tracking, App Functionality).

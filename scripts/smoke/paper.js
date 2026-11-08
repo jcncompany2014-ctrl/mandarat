@@ -1,11 +1,13 @@
 // V4-C — 설정 › 보기 › 종이 무늬. 웹 스크린샷용으로 EXPO_PUBLIC_PRO_PREVIEW=1로 내보낸 번들이면
 // 네 무늬(점 · 모눈 · 줄 · 무지)를 하나씩 골라 설정 화면을 찍고, 끝에 점으로 되돌린다(다음 장면의 화면이 그대로이게).
 // 프로가 없으면 잠긴 줄을 누를 때 프로 시트가 열리고 저장값은 그대로인지 본다.
+// 판매를 끈 1.0(src/lib/pro.ts STORE_OPEN = false)은 가진 것과 같다 — 네 무늬를 모두 고를 수 있고 '프로' 표시가 없다.
 require('../../tests/register');
+const { PREVIEW, STORE_OPEN } = require('../../src/lib/pro');
 
 module.exports = async (page, h) => {
   const paper = require(`../../src/i18n/${h.lang}/paper`).default;
-  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV; // 앱(src/lib/pro.ts)과 같은 규칙
+  const owned = PREVIEW || !STORE_OPEN; // 앱(src/store/ProContext.tsx)과 같은 규칙 — 판매를 끈 1.0은 모두 열려 있다
   await page.goto(h.url);
   await page.waitForSelector(`[data-testid="${h.TID.tab('dashboard')}"]`, { timeout: 30000 });
   await h.settle();
@@ -34,6 +36,9 @@ module.exports = async (page, h) => {
     return;
   }
 
+  for (const p of ['grid', 'lines', 'blank']) {
+    if ((await row(p).getByText(paper.pro, { exact: true }).count()) > 0) throw new Error(`열려 있는데 '${paper[p]}' 줄에 프로가 보여요`);
+  }
   for (const p of ['grid', 'lines', 'blank', 'dots']) {
     await row(p).click();
     await h.settle();

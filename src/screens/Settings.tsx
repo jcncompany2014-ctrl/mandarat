@@ -32,6 +32,7 @@ import { NotifySection } from './settings/NotifySection';
 import { SyncSection } from './settings/SyncSection';
 import { YearRows } from './settings/YearRows';
 import { ProSection } from './settings/ProSection';
+import { STORE_OPEN } from '../lib/pro';
 import { TID } from '../lib/testIds';
 
 type Core = Messages['core'];
@@ -386,7 +387,8 @@ export function Settings() {
         <LineRow M={M} title={st.sampleRow} sub={st.sampleRowSub} right="chevron" onPress={confirmSample} accessibilityLabel={st.sampleRow} testID={TID.setSample} />
         <LineRow M={M} last danger title={st.resetRow} sub={st.resetRowSub} onPress={confirmReset} accessibilityLabel={st.resetRow} accessibilityHint={st.resetRowSub} testID={TID.setReset} />
 
-        <ProSection M={M} />
+        {/* 프로 판매를 켰을 때만(lib/pro STORE_OPEN) — 1.0은 모든 기능이 무료라 이 구역이 없다 */}
+        {STORE_OPEN && <ProSection M={M} />}
 
         <Section M={M} label={st.secInfo} />
         <ColophonRow M={M} first label={st.colName} value={st.appName} />

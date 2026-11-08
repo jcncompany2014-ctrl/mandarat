@@ -34,7 +34,7 @@ EAS can do most of this on the **first interactive** build (v2-5), signed in wit
   - **App Groups**: `group.com.jcncompany.mandarat`;
   - **iCloud**: iCloud Documents, container `iCloud.com.jcncompany.mandarat`;
   - **Push Notifications**: needed only because expo-notifications and expo-widgets write `aps-environment`; no push is sent;
-  - **In-App Purchase**: on by default.
+  - **In-App Purchase**: on by default (1.0 sells nothing: `STORE_OPEN = false`).
 - [ ] App ID `com.jcncompany.mandarat.widgets` (the widget extension) with the same App Group.
 - [ ] Re-create the provisioning profiles for both targets (`eas credentials`, or let the first build do it).
 - [ ] Register test devices for internal distribution: `eas device:create`. Register an iPhone **and** an iPad on the same Apple ID for the iCloud QA.
@@ -63,27 +63,20 @@ To bring Sentry back in an update:
 
 ## v2-4. App Store Connect
 
-- [ ] **Paid Apps Agreement**, banking and tax. Without it, products do not load in the app.
-- [ ] **App record** for `com.jcncompany.mandarat` (My Apps › +), if it does not exist. The in-app purchase can be created only inside an existing record. The first `eas submit` can also create the record.
-- [ ] **In-app purchase**, Non-Consumable, `com.jcncompany.mandarat.pro`:
-  - [ ] price (the owner's choice);
-  - [ ] display name and description in ko, ja and en;
-  - [ ] review screenshot of the 프로 sheet (preview build: 설정 › 프로);
-  - [ ] review notes: the IAP block in `docs/v2/review-notes.md`.
-- [ ] **Family Sharing** for the product: decide. Once turned on, it cannot be turned off.
-- [ ] **Sandbox testers**: two Apple IDs, so restore can be tested on a second device.
+- **No in-app purchase in 1.0** (owner decision, 2026-11). `STORE_OPEN = false` in `src/lib/pro.ts` opens every Pro feature for free and hides Settings › 프로. Not needed for 1.0: the Paid Apps Agreement, banking and tax, the `com.jcncompany.mandarat.pro` product, Family Sharing, sandbox testers. The free-apps agreement that every account accepts is enough. **When sales open later:** add new Pro features first (what is free in 1.0 stays free), set `STORE_OPEN = true`, restore the Pro parts of `docs/v2/review-notes.md`, `docs/v2/privacy.md` §4 and `store.config.json` from git history, then do the Paid Apps Agreement, the product (price, ko/ja/en name and description, review screenshot of the 프로 sheet), Family Sharing (cannot be turned off) and two sandbox testers.
+- [ ] **App record** for `com.jcncompany.mandarat` (My Apps › +), if it does not exist. The first `eas submit` can also create the record.
+- [ ] **Price**: Free (tier 0).
 - [ ] **Localizations** ja and en-US in addition to ko. For each: name, subtitle, description, keywords, promotional text, What's New, support URL and privacy policy URL. The drafts are in `store.config.json` (V8-B, `docs/v2/store-metadata.md`).
 - [ ] **Screenshots**: 6.9" iPhone (`APP_IPHONE_67`) and 13" iPad (`APP_IPAD_PRO_3GEN_129`) in each locale.
   - Source: `store/screenshots/<locale>/<display>/` (V8-B), regenerated with `npm --prefix tools/store-shots ci && npm run store-shots -- --locales ko,ja,en --devices all` (`docs/v2/store-shots.md`).
   - Re-shoot ja on macOS so it uses Hiragino.
   - Push them with `npx eas-cli metadata:push` (after v2-2), or upload by hand.
   - `supportsTablet` is now true, so the iPad set is **required**.
-- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음). 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; purchases are Apple's data. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
+- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음). 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; there are no purchases. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
 - [ ] **Age rating** questionnaire: no change from v1 (lowest rating).
 - [ ] **Availability**: v1 launched in 대한민국 only. With ja and en, decide whether to add Japan and other regions. Adding EU countries needs the DSA trader-status disclosure.
 - [ ] **Category**: Productivity, then Lifestyle (as in `store.config.json`).
 - [ ] **App Review Information** › Notes: paste the English block of `docs/v2/review-notes.md`. Contact details. No demo account (no login).
-- [ ] The **first v2 submission includes the in-app purchase**: attach it on the version page.
 
 ## v2-5. Builds — profiles, build and submit
 
@@ -202,31 +195,26 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
 - [ ] Sync never prompts by itself, and makes no iCloud call while it is off.
 - [ ] Heavy doc: typing stays smooth and a merge takes under 0.5 s. No main-thread hang. The background push finishes.
 
-### Pro (sandbox) [V1-E, V3-C, V4-C, V2-D]
-- [ ] The price is in the local currency and nothing is hard-coded. An unregistered product shows 가격을 불러오는 중이에요 without crashing.
-- [ ] Buy: the toast 프로를 열었어요. 고마워요. and 설정 › 프로 reads 열려 있어요. Cancel is silent.
-- [ ] Kill the app mid-purchase: it is delivered on relaunch with no double charge.
-- [ ] Ask to Buy shows 승인을 기다리고 있어요.
-- [ ] Restore on a second device (구입 복원). With no purchase it shows 이 Apple 계정으로 산 프로가 없어요.
-- [ ] Refund: pro closes, saved choices stay, and the pattern note 프로를 열면 이 무늬로 그려져요 appears.
-- [ ] Screen Time block: 결제가 막혀 있어요. Airplane-mode launch keeps pro.
-- [ ] Locked options (모눈 · 줄 · 무지, A3 · A5 · B5, 표지 + 영역별, archives) open the sheet. Free features never lock.
-- [ ] VoiceOver reads "{price}에 프로 열기" and "종이 무늬 모눈, 프로". At font scale 1.35 the button wraps. Check on iPad.
+### Pro features, free in 1.0 [V1-E, V3-C, V4-C, V2-D]
+- [ ] Settings has no 프로 section, and no 구입 복원 row. Nothing opens the Pro sheet.
+- [ ] Nothing is locked: 모눈 · 줄 · 무지, the widget's paper pattern, A3 · A5 · B5, 표지 + 영역별, and the past charts on the shelf all open with no lock mark. VoiceOver reads "종이 무늬 모눈" with no "프로".
+- [ ] Airplane-mode launch: still nothing locked (no StoreKit call is made).
+- (The sandbox purchase QA — buy, cancel, Ask to Buy, restore, refund, Screen Time — comes back when `STORE_OPEN` is turned on; see git history.)
 
 ### Print [V1-B, V2-D]
 - [ ] AirPrint A4 and Letter from 표 이미지 › 인쇄용 PDF › 인쇄하기; cancel is silent. US and Canada regions default to 레터.
 - [ ] An A4 chart is exactly 1 page; the areas set gives 9 pages.
 - [ ] PDF export file name `mandarat-chart-YYYY-MM-DD.pdf`, with the right page size.
-- [ ] A3, A5 and B5 page sizes are correct, and lock or unlock correctly. A refunded A3 is drawn as A4 or Letter.
+- [ ] A3, A5 and B5 page sizes are correct and not locked.
 - [ ] Hangul in Pretendard and kanji in Hiragino, with no tofu. Colours print.
-- [ ] Printing an archived chart (pro). The second print is instant.
+- [ ] Printing an archived chart. The second print is instant.
 
 ### Year [V1-D, V2-E, V3-D, V4-B]
 - [ ] Close a year in all three modes, then 되돌리기. The shelf goes back to n−1.
 - [ ] 새로 시작 (reset), restoring a 저장본, and importing an old v1 backup all keep the 보관함 (지난 표 n장).
 - [ ] Closing a chart that started today shows "오늘 시작한 표는 내일부터 마무리할 수 있어요" and changes nothing.
 - [ ] Stats › 한 해 돌아보기: the review of the current chart is free. VoiceOver headings. 2×2 at large text. Check SE width.
-- [ ] The shelf; an archived sheet and its review (pro), crisp on iPad (capped at 720 pt); 60 archives with 더 보기.
+- [ ] The shelf; an archived sheet and its review (free in 1.0), crisp on iPad (capped at 720 pt); 60 archives with 더 보기.
 - [ ] The Home prompt in its date window (Dec 15 or later; set the device date). No prompt for a chart started after Dec 1.
 
 ### i18n [V4-E, V8-A, X-*]
@@ -255,7 +243,6 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
 
 ### Store [V5-D, V8-B]
 - [ ] `eas metadata:push`. The screenshots look right in App Store Connect for ko, ja and en; compare `03-home` 6.9" with a real build. App Store Connect accepts the RGB PNGs.
-- [ ] The IAP review screenshot is uploaded.
 
 ## v2-8. Human string review (X-0 … X-L)
 

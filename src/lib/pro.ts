@@ -7,6 +7,13 @@
 import { PRO_FEATURES, type ProFeature } from './contracts';
 import { msg, type Lang, type Messages } from '../i18n';
 
+/**
+ * 프로 판매 스위치 — 1.0은 꺼 둔다(owner 결정 2026-11): 결제를 하지 않고 프로 기능을 모두 무료로 연다.
+ * 꺼져 있으면 StoreKit에 묻지 않고(ProContext), 설정의 '프로' 구역과 프로 안내가 보이지 않으며, 잠긴 것이 없다.
+ * 나중에 판매를 켤 때는 true로 — 그때 프로에는 새 기능을 넣는다(지금 무료인 기능은 계속 무료, owner-decisions).
+ */
+export const STORE_OPEN = false;
+
 /** 웹 스크린샷 전용 — 늘 프로를 가진 것으로(vercel.json · eas.json은 이 값을 두지 않는다; tests/contracts.test.js).
  *  EAS 빌드는 모든 프로필이 EXPO_PUBLIC_APP_ENV를 두므로, expo.dev 대시보드 변수로 들어와도 거기서는 꺼진다 */
 export const PREVIEW = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV;

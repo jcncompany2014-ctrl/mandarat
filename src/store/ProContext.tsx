@@ -10,6 +10,7 @@ import { crash } from '../lib/crash';
 import {
   INITIAL_PRO,
   PREVIEW,
+  STORE_OPEN,
   errorKind,
   isLocked,
   parseProCache,
@@ -45,7 +46,7 @@ export interface ProActions {
   clearNote(): void;
 }
 
-const PRO_NONE: ProState = { owned: PREVIEW, phase: 'boot', price: null, canBuy: false, note: null };
+const PRO_NONE: ProState = { owned: PREVIEW || !STORE_OPEN, phase: 'boot', price: null, canBuy: false, note: null };
 const noop = async () => {};
 const ACTIONS_NONE: ProActions = { buy: noop, restore: noop, refresh: noop, clearNote: () => {} };
 
@@ -70,7 +71,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const check = useCallback(async () => {
-    if (!proStore) return;
+    if (!proStore || !STORE_OPEN) return;
     lastAsk.current = Date.now();
     try {
       const owned = await proStore.owned(PRO_PRODUCT_ID);
@@ -81,7 +82,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
   }, [send]);
 
   const loadStore = useCallback(async () => {
-    if (!proStore) return;
+    if (!proStore || !STORE_OPEN) return;
     let canPay = false;
     try {
       canPay = proStore.canPay();
@@ -102,7 +103,8 @@ export function ProProvider({ children }: { children: ReactNode }) {
       (raw) => send({ type: 'cache', cache: parseProCache(raw) }),
       () => send({ type: 'cache', cache: null }),
     );
-    if (!proStore) return;
+    // 판매를 꺼 두었으면(STORE_OPEN) StoreKit에 아무것도 묻지 않는다 — 모두 열려 있다
+    if (!proStore || !STORE_OPEN) return;
     const store = proStore;
     void check();
     void loadStore();
@@ -160,7 +162,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
     },
   }), [check, loadStore, send]);
 
-  const owned = PREVIEW || s.owned;
+  const owned = PREVIEW || !STORE_OPEN || s.owned;
   const value = useMemo<ProState>(
     () => ({ owned, phase: s.phase, price: s.price, canBuy: s.canBuy, note: s.note }),
     [owned, s.phase, s.price, s.canBuy, s.note],

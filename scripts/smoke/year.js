@@ -1,6 +1,9 @@
 // 한 해 화면(V3-D) — 지난 표 한 장을 넣은 문서로 통계 › 한 해 › 한 해 돌아보기를 375 · 390 폭에서 연다.
 // 돌아보기 맨 아래(인쇄용 PDF 링크)까지 내려 찍고, 보관함 줄도 연다. 개발 번들이면 잠긴 지난 표의 돌아보기도 찍는다.
 // 끝나면 예시 문서와 원래 폭으로 되돌려 다음 장면이 같은 문서로 시작하게 한다.
+// 판매를 끈 1.0(src/lib/pro.ts STORE_OPEN = false)은 지난 표의 돌아보기도 잠기지 않고 끝까지 열린다.
+require('../../tests/register');
+const { PREVIEW, STORE_OPEN } = require('../../src/lib/pro');
 const { demoDoc } = require('./demoDoc');
 const { makeArchive } = require('../../src/lib/archive');
 const { msg } = require('../../src/i18n');
@@ -70,13 +73,21 @@ module.exports = async (page, h) => {
       await h.shot(`year-shelf-${width}`);
     }
 
-    // 지난 표의 돌아보기 — 프로가 없으면 보관함 줄 하나와 '프로 알아보기'
+    // 지난 표의 돌아보기 — 프로가 없으면 보관함 줄 하나와 '프로 알아보기', 있으면(1.0은 늘) 끝까지 열린다
+    const owned = PREVIEW || !STORE_OPEN; // 앱(src/store/ProContext.tsx)과 같은 규칙
     const hasUi = await page.evaluate(() => !!(window.__ui && window.__ui.openYear));
     if (hasUi) {
       await page.evaluate((x) => window.__ui.openYear({ kind: 'review', id: x }), id);
       await h.settle();
-      await page.locator(`[aria-label="${m.lockedLink}"]`).first().waitFor({ state: 'visible', timeout: 10000 });
-      await h.shot('year-review-locked');
+      if (owned) {
+        await h.tid(h.TID.yearPage).last().waitFor({ state: 'visible', timeout: 10000 });
+        if ((await page.locator(`[aria-label="${m.lockedLink}"]`).count()) > 0) throw new Error(`열려 있는데 지난 표 돌아보기에 '${m.lockedLink}'가 보여요`);
+        if ((await h.tid(h.TID.yearPrint).count()) === 0) throw new Error('지난 표 돌아보기에 인쇄용 PDF 링크가 없어요');
+        await h.shot('year-review-archived');
+      } else {
+        await page.locator(`[aria-label="${m.lockedLink}"]`).first().waitFor({ state: 'visible', timeout: 10000 });
+        await h.shot('year-review-locked');
+      }
     }
   } finally {
     await page.setViewportSize({ width: h.width, height: 844 });
