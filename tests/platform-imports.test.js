@@ -72,8 +72,6 @@ test('기기 전용 모듈은 *.native · *.ios 파일에서만, 꼬리표 경�
   assert.deepEqual(found, []);
 });
 
-test('metro.config.js는 Sentry의 metro 도우미만 쓴다(앱 번들에 들어가지 않는다)', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'metro.config.js'), 'utf8');
-  assert.match(src, /require\('@sentry\/react-native\/metro'\)/);
-  assert.match(src, /module\.exports = getSentryExpoConfig\(__dirname\);/);
+test('metro.config.js가 없다 — Expo 기본 설정(Sentry metro 도우미를 뺐다)', () => {
+  assert.equal(fs.existsSync(path.join(ROOT, 'metro.config.js')), false);
 });

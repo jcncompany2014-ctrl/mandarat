@@ -1,4 +1,4 @@
-// Wave 0 기본 검사 — 언어 · 링크 · 아이패드 · Live Activity · App Group · iCloud · 알림 권한 · 위젯 대상 · inline modules · Sentry.
+// Wave 0 기본 검사 — 언어 · 링크 · 아이패드 · Live Activity · App Group · iCloud · 알림 권한 · 위젯 대상 · inline modules · (Sentry 없음).
 module.exports = (ctx, assert) => {
   const p = ctx.infoPlist;
   // Info.plist
@@ -30,7 +30,8 @@ module.exports = (ctx, assert) => {
   const main = /\/\* Mandarat \*\/ = \{\s*isa = PBXNativeTarget;[\s\S]*?\n\t\t\};/.exec(pbx);
   assert.ok(main, 'native target Mandarat');
   assert.match(main[0], new RegExp(`fileSystemSynchronizedGroups = \\(\\s*${group[1]} `), 'native/ios는 Mandarat 대상에');
-  assert.match(pbx, /name = "Upload Debug Symbols to Sentry";/, 'Sentry dSYM 업로드 단계');
+  // 1.0은 오류 수집(Sentry) 없이 낸다 — 기호 올리기 단계가 없다(다시 켜면 V4-F의 prebuild-checks/sentry.js를 되살린다)
+  assert.doesNotMatch(pbx, /Upload Debug Symbols to Sentry|sentry-xcode/, 'Sentry 빌드 단계가 없다');
   assert.ok(ctx.exists('Mandarat/Supporting/ja.lproj/InfoPlist.strings'), 'ja.lproj/InfoPlist.strings');
   assert.ok(ctx.exists('Mandarat/Supporting/en.lproj/InfoPlist.strings'), 'en.lproj/InfoPlist.strings');
 

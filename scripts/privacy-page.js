@@ -3,7 +3,6 @@
 // 문서가 하나뿐이라 페이지와 문서가 어긋나지 않는다: 고칠 때는 privacy.md를 고치고 `npm run privacy-page`로 다시 만든다
 // (tests/privacyPage.test.js가 커밋된 페이지와 지금 만든 결과가 같은지 본다).
 // - 문의 메일은 src/lib/appInfo.ts의 SUPPORT_EMAIL, 시행일은 아래 EFFECTIVE, 운영자 줄은 판매자 이름을 정하기 전까지 뺀다.
-// - Sentry의 'IP 주소를 저장하지 않음' 문장은 owner가 Sentry에서 그 설정을 켠 뒤에만 싣는다(SENTRY_IP_OFF — privacy.md 검토표).
 // 쓰는 법: npm run privacy-page  (--check: 다시 만들 필요가 있으면 종료 코드 1)
 const fs = require('fs');
 const path = require('path');
@@ -13,9 +12,7 @@ const DOC = path.join(ROOT, 'docs/v2/privacy.md');
 const OUT = path.join(ROOT, 'public/privacy.html');
 
 /** 이 방침이 시작되는 날 — 바꾸면 페이지에 새 시행일로 올린다(11. 바뀌면 알려요) */
-const EFFECTIVE = '2026-10-18';
-/** owner가 Sentry › Security & Privacy › Prevent Storing of IP Addresses를 켰으면 true */
-const SENTRY_IP_OFF = false;
+const EFFECTIVE = '2026-11-08';
 
 const LANGS = [
   { code: 'ko', head: '한국어', name: '한국어', title: '개인정보 처리방침' },
@@ -80,7 +77,6 @@ function render(text, lang, email) {
       out.push(`<p class="contact"><strong>${esc(label)}</strong> <a href="mailto:${esc(email)}">${esc(email)}</a></p>`);
       continue;
     }
-    if (!SENTRY_IP_OFF && /IP ?(주소|アドレス|address)/.test(line)) continue;
     const h = /^\*\*(\d+\..+)\*\*$/.exec(line);
     if (h) { flush(); out.push(`<h3>${inline(h[1])}</h3>`); continue; }
     if (line.startsWith('- ')) {
@@ -199,4 +195,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { build, render, section, EFFECTIVE, SENTRY_IP_OFF };
+module.exports = { build, render, section, EFFECTIVE };

@@ -1,5 +1,5 @@
-// V4-F — 웹에는 오류 수집이 없다: 내려받은 JS 번들에 Sentry SDK 글자(__SENTRY__ · sentry.javascript.react-native)가 없고,
-// 설정 › 정보에 '오류 기록 보내기' 줄이 없다(iOS 앱에서만).
+// V4-F — 오류 수집이 없다(1.0은 Sentry를 빼고 낸다): 내려받은 JS 번들에 Sentry SDK 글자(__SENTRY__ · sentry.javascript.react-native)가
+// 없고, 설정을 열어도 그런 줄이 없다.
 module.exports = async (page, h) => {
   const urls = await page.evaluate(() => [...document.querySelectorAll('script[src]')].map((s) => s.src));
   if (urls.length === 0) throw new Error('JS 번들을 찾지 못했어요');
@@ -15,5 +15,5 @@ module.exports = async (page, h) => {
   await h.settle();
   await h.tap(h.TID.homeSettings);
   await h.settle();
-  if ((await h.tid(h.TID.setCrash).count()) > 0) throw new Error("웹에 '오류 기록 보내기' 줄이 보여요");
+  if ((await page.getByText('오류 기록 보내기').count()) > 0) throw new Error("설정에 '오류 기록 보내기' 줄이 보여요");
 };

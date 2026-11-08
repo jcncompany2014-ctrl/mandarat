@@ -21,7 +21,7 @@ test('설정: v2 구역 자리가 정해진 순서로 있다', () => {
     '<LanguageSection M={M} />', '<NotifySection M={M} />', '<SyncSection M={M} />',
     '<Section M={M} label={st.secRecords} />', 'last title={st.snapTitle}', '{storage.note}', '<YearRows M={M} />', '<SubHead M={M} label={st.subRestart} />',
     'last danger title={st.resetRow}', '<ProSection M={M} />',
-    '<Section M={M} label={st.secInfo} />', '<CrashRow M={M} />',
+    '<Section M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
   // 줄 모양은 settings/rows.tsx 한 곳에
@@ -95,16 +95,16 @@ test('뒤 꾸러미가 채울 빈 파일이 모두 있다', () => {
   const stubs = [
     'src/overlays/ProSheet.tsx', 'src/overlays/PrintSheet.tsx', 'src/overlays/YearClose.tsx',
     'src/screens/Year.tsx',
-    ...['PaperRows', 'LanguageSection', 'NotifySection', 'SyncSection', 'YearRows', 'ProSection', 'CrashRow'].map((n) => `src/screens/settings/${n}.tsx`),
+    ...['PaperRows', 'LanguageSection', 'NotifySection', 'SyncSection', 'YearRows', 'ProSection'].map((n) => `src/screens/settings/${n}.tsx`),
     ...['ReminderSync', 'WidgetSync', 'ICloudSync', 'Inbound'].map((n) => `src/hosts/${n}.tsx`),
     'src/store/ProContext.tsx',
-    'src/lib/notifier.ts', 'src/lib/notifier.native.ts', 'src/lib/crash.ts', 'src/lib/crash.native.ts',
+    'src/lib/notifier.ts', 'src/lib/notifier.native.ts', 'src/lib/crash.ts',
     'src/widgets/bridge.ts', 'src/widgets/bridge.ios.ts', 'src/widgets/focusLive.ts', 'src/widgets/focusLive.ios.ts',
     'plugins/withWidgetStrings.js', 'native/ios/AppIntents.swift',
   ];
   for (const f of stubs) assert.ok(fs.existsSync(path.join(ROOT, f)), f);
   // 설정 구역은 { M }을 받는 함수
-  for (const n of ['PaperRows', 'LanguageSection', 'NotifySection', 'SyncSection', 'YearRows', 'ProSection', 'CrashRow']) {
+  for (const n of ['PaperRows', 'LanguageSection', 'NotifySection', 'SyncSection', 'YearRows', 'ProSection']) {
     assert.match(src(`src/screens/settings/${n}.tsx`), new RegExp(`export function ${n}\\(\\{ M \\}: \\{ M: M \\}\\)`), n);
   }
   // 위젯 문자열 플러그인은 설정 플러그인(V2-C) — 자세한 것은 tests/widgetStrings.test.js

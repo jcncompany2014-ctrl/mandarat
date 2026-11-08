@@ -16,7 +16,7 @@ import { crash } from './src/lib/crash';
 import { ProProvider } from './src/store/ProContext';
 import { LangBoot, LangRoot, prefetchLangPref, takeResumeHint } from './src/i18n/react';
 
-// 오류 수집은 가장 먼저 — 기기에서만 Sentry(src/lib/crash.native.ts), 웹·Node는 아무것도 하지 않는다
+// 오류 수집 자리(src/lib/crash.ts) — 1.0은 아무것도 보내지 않는다. 다시 켜면 가장 먼저 시작해야 해서 여기서 부른다
 crash.init();
 // 저장된 언어도 지금 읽기 시작한다 — 서체를 불러오는 동안 같이 돌고, LangBoot는 같은 읽기를 기다린다
 void prefetchLangPref();

@@ -4,6 +4,7 @@
 //    EXPO_PUBLIC_PRO_PREVIEW=1 번들이면 지난 표 한 장 → 영역 줄을 펼친 읽기 전용 보드 → 맨 아래 링크.
 // 3. 개발 번들이면 잠긴 지난 표 한 장(openYear sheet)도 찍는다. 끝나면 예시 문서로 되돌린다.
 require('../../tests/register');
+const { PREVIEW, STORE_OPEN } = require('../../src/lib/pro');
 const { demoDoc } = require('./demoDoc');
 const { makeArchive } = require('../../src/lib/archive');
 
@@ -26,7 +27,7 @@ function seededDoc() {
 }
 
 module.exports = async (page, h) => {
-  const owned = process.env.EXPO_PUBLIC_PRO_PREVIEW === '1' && !process.env.EXPO_PUBLIC_APP_ENV; // 앱(src/lib/pro.ts)과 같은 규칙
+  const owned = PREVIEW || !STORE_OPEN; // 앱(src/store/ProContext.tsx)과 같은 규칙 — 판매를 끈 1.0은 모두 열려 있다
   const load = async (d) => {
     await page.goto(new URL('/favicon.ico', h.url).href);
     await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, JSON.stringify(d)]);

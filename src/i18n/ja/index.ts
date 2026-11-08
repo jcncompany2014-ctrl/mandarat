@@ -10,7 +10,6 @@ import pro from './pro';
 import paper from './paper';
 import sync from './sync';
 import lang from './lang';
-import crash from './crash';
 import ipad from './ipad';
 import core from './core';
 import editor from './editor';
@@ -40,7 +39,6 @@ export default {
   paper,
   sync,
   lang,
-  crash,
   ipad,
   core,
   editor,

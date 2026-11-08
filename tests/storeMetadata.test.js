@@ -69,13 +69,22 @@ for (const [l, v] of Object.entries(INFO)) {
   test(`기능 설명이 실제 기능과 맞다(${l})`, () => {
     const d = v.description;
     const want = {
-      ko: ['81칸', 'iCloud', '위젯', '알림', '인쇄', 'Siri', '한 해 돌아보기', '프로', '한 번 결제'],
-      ja: ['81マス', 'iCloud', 'ウィジェット', '通知', '印刷', 'Siri', '一年のふりかえり', 'プロ', '一度の購入'],
-      'en-US': ['81 squares', 'iCloud', 'Widgets', 'Reminders', 'Print', 'Siri', 'The year in review', 'Pro', 'one-time purchase'],
+      ko: ['81칸', 'iCloud', '위젯', '알림', '인쇄', 'Siri', '한 해 돌아보기', '종이 무늬', 'A3'],
+      ja: ['81マス', 'iCloud', 'ウィジェット', '通知', '印刷', 'Siri', '一年のふりかえり', '紙の柄', 'A3'],
+      'en-US': ['81 squares', 'iCloud', 'Widgets', 'Reminders', 'Print', 'Siri', 'The year in review', 'Paper', 'A3'],
     }[l];
     for (const w of want) assert.ok(d.includes(w), `${l}.description에 '${w}'가 없어요`);
     // 지금 무료인 것은 계속 무료(owner 결정 3) — 설명이 이를 밝힌다
     assert.match(d, { ko: /모두 무료/, ja: /すべて無料/, 'en-US': /is free/ }[l]);
+  });
+
+  // 1.0은 결제가 없다(owner 결정 3, 2026-11 변경 · src/lib/pro.ts STORE_OPEN) — 스토어 글에 프로 · 구입이 나오면 안 된다
+  test(`판매를 끈 동안 스토어 글에 프로 · 한 번 결제가 없다(${l})`, () => {
+    const open = /export const STORE_OPEN = true;/.test(fs.readFileSync(path.join(ROOT, 'src/lib/pro.ts'), 'utf8'));
+    if (open) return;
+    const pro = { ko: /프로|한 번 결제/, ja: /プロ|一度の購入/, 'en-US': /\bPro\b|one-time purchase/ }[l];
+    assert.doesNotMatch(allText(v), pro);
+    assert.match(v.description, { ko: /결제도 광고도 없어요/, ja: /課金も広告もありません/, 'en-US': /no purchases and no ads/ }[l]);
   });
 
   test(`주소: 255자 이하, https, 아직 없는 것은 TODO 자리(${l})`, () => {

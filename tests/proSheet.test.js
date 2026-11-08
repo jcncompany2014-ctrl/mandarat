@@ -198,7 +198,10 @@ test('웹 스모크 장면: 설정 › 프로 → 시트를 세 언어로 찍고
   const s = src('scripts/smoke/pro.js');
   assert.match(s, /h\.TID\.setPro/);
   assert.match(s, /h\.TID\.proClose/);
-  assert.match(s, /EXPO_PUBLIC_PRO_PREVIEW === '1' && !process\.env\.EXPO_PUBLIC_APP_ENV/);
+  // 앱과 같은 규칙을 앱에서 가져다 쓴다(src/lib/pro.ts) — 판매를 끈 동안은 프로 구역이 없는지만 본다
+  assert.match(s, /require\('\.\.\/\.\.\/src\/lib\/pro'\)/);
+  assert.match(s, /const owned = PREVIEW \|\| !STORE_OPEN;/);
+  assert.match(s, /if \(!STORE_OPEN\) \{[\s\S]{0,600}h\.TID\.setPro\)\.count\(\)\) > 0\) throw/);
   assert.match(s, /h\.shot\(owned \? 'pro-owned' : 'pro'\)/);
   assert.match(s, /h\.TID\.proBuy[\s\S]{0,40}count\(\)\) > 0\) throw/);
   assert.equal(s.includes('needsDev'), false, '장면은 개발 번들 없이도 돈다(세 언어 모두)');

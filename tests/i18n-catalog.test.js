@@ -32,8 +32,8 @@ function params(lang) {
 
 const namespaces = Object.keys(msg('ko'));
 
-test('이름공간 28개 — 세 언어가 같은 이름공간 · 같은 키', () => {
-  assert.equal(namespaces.length, 28);
+test('이름공간 27개 — 세 언어가 같은 이름공간 · 같은 키(1.0은 오류 수집 crash 이름공간이 없다)', () => {
+  assert.equal(namespaces.length, 27);
   for (const l of LANGS) assert.deepEqual(Object.keys(msg(l)), namespaces, l);
   for (const ns of namespaces) {
     const keys = Object.keys(msg('ko')[ns]).sort();

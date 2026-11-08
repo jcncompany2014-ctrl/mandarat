@@ -67,12 +67,10 @@ test('EXPO_PUBLIC_PRO_PREVIEW는 빌드·배포 설정과 .env에 없다(웹 스
   }
 });
 
-test('eas.json: 미리보기 · e2e · 출시 — 출시는 Sentry 업로드 실패를 넘기지 않는다', () => {
+test('eas.json: 미리보기 · e2e · 출시 — 1.0은 Sentry가 없어 그 환경 변수도 없다', () => {
   const eas = JSON.parse(read('eas.json'));
   assert.deepEqual(Object.keys(eas.build), ['preview', 'e2e', 'production']);
-  assert.equal(eas.build.preview.env.SENTRY_ALLOW_FAILURE, 'true');
   assert.equal(eas.build.e2e.ios.simulator, true);
-  assert.equal(eas.build.e2e.env.SENTRY_DISABLE_AUTO_UPLOAD, 'true');
-  assert.equal('SENTRY_ALLOW_FAILURE' in eas.build.production.env, false);
+  for (const p of Object.values(eas.build)) assert.equal(Object.keys(p.env ?? {}).some((k) => k.startsWith('SENTRY_')), false);
   assert.equal(eas.build.production.autoIncrement, true);
 });
