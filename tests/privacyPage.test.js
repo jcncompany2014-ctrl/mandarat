@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { build, SENTRY_IP_OFF } = require('../scripts/privacy-page');
+const { build } = require('../scripts/privacy-page');
 const { PRIVACY_URL, SUPPORT_EMAIL, privacyLink } = require('../src/lib/appInfo');
 
 const ROOT = path.join(__dirname, '..');
@@ -19,8 +19,9 @@ test('세 언어 · 11개 항목 · 문의 메일 — 틀 자리(<…>)나 검�
   assert.equal((page.match(/<h3>/g) ?? []).length, 33);
   assert.equal((page.match(new RegExp(`href="mailto:${SUPPORT_EMAIL.replace(/[.]/g, '\\.')}"`, 'g')) ?? []).length, 3);
   assert.doesNotMatch(page, /<(SUPPORT_EMAIL|EFFECTIVE_DATE|OPERATOR)>|DRAFT|For the reviewer/);
-  // Sentry의 IP 설정은 owner가 켠 뒤에만 싣는다
-  if (!SENTRY_IP_OFF) assert.doesNotMatch(page, /IP ?(주소|アドレス|address)/);
+  // 1.0은 오류 기록을 보내지 않는다 — Sentry · 끄기 줄이 없다
+  assert.doesNotMatch(page, /Sentry|오류 기록 보내기|Send error reports/);
+  assert.match(page, /오류 기록을 보내지 않아요/);
   // 바깥 글꼴 · 스크립트를 부르지 않는다
   assert.doesNotMatch(page, /<script[^>]+src=|<link[^>]+stylesheet/);
 });

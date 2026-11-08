@@ -69,7 +69,6 @@ export const TID = {
   setYearClose: 'set-year-close',
   setYearShelf: 'set-year-shelf',
   setPaper: (p: string) => `set-paper-${p}`,
-  setCrash: 'set-crash',
   setExport: 'set-export',
   setBack: 'set-back',
   setGoal: 'set-goal',

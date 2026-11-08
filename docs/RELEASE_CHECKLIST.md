@@ -11,7 +11,7 @@
 The owner works top to bottom: each step needs the ones above it.
 - **Sources:** plan §1.2 and §8 (`docs/v2/plan.md`), `docs/v2/owner-decisions.md`, and every package note in `docs/v2/*.md`, merged here by V8-C. Each package note keeps the full detail of its own items.
 - **Status key:** **OPEN** means the owner still has to decide or do it; **done** means it is already in the repo.
-- **Release gate:** `npm run release-check` blocks the release (exit code 1) while `PRIVACY_URL`, `SUPPORT_EMAIL` or `SENTRY_DSN` is empty or malformed. Run it right before the production build.
+- **Release gate:** `npm run release-check` blocks the release (exit code 1) while `PRIVACY_URL` or `SUPPORT_EMAIL` is empty or malformed, or `EXPO_PUBLIC_PRO_PREVIEW` is set. Run it right before the production build.
 
 ## v2-0. Blocking owner inputs
 
@@ -19,7 +19,7 @@ The owner works top to bottom: each step needs the ones above it.
 |---|---|---|---|
 | V1 | **Privacy policy** in ko, ja and en. The draft is `docs/v2/privacy.md`; legal review is needed. Publish it at an https address and set `PRIVACY_URL`. The v1 one-line text in §2 of v1 below is **out of date**: it does not mention iCloud, Sentry or the purchase. | **DONE (web)** — https://mandarat-delta.vercel.app/privacy, generated from `docs/v2/privacy.md` (`npm run privacy-page`); legal review still advised | `src/lib/appInfo.ts`; App Store Connect › App Information › Privacy Policy URL, per locale; `store.config.json` `privacyPolicyUrl` (V8-B placeholder) |
 | V2 | **Support contact** `SUPPORT_EMAIL`, plus a Support URL (it can be the privacy page). | **DONE** — `SUPPORT_EMAIL` set; Support URL = the privacy page (it carries the contact) | `src/lib/appInfo.ts`; App Store Connect › Support URL; `store.config.json` `supportUrl` |
-| V3 | **Sentry DSN** (v2-3 below). | **OPEN — `SENTRY_DSN = ''`** | `src/lib/crash.native.ts` (`export const SENTRY_DSN = '…';`, one line, single quotes) |
+| V3 | **Sentry.** | **DEFERRED** — 1.0 ships without crash reporting (owner, 2026-11). Sentry is removed from the build; see v2-3 for how to bring it back. | — |
 | V4 | **Store names.** ko: '만다라트' is taken (id6444119494; see v1 B3). ja `マンダラート` and en `Mandalart`: check the trademark first (owner confirmation 1, plan §1.3). If a name changes, also update the Siri phrase list in `docs/v2/review-notes.md`. | **OPEN** | `locales/*.json` (lead), `store.config.json` (V8-B) |
 | V5 | **Owner confirmations 2–5** (plan §1.3): the pro list; fallback language ko; reminders per device; year-archive gating. To keep the latest archive's review free, change `archiveAccess` in `src/lib/archive.ts`. | **OPEN — defaults are implemented** | — |
 | V6 | **Release version.** The lead bumps `app.json` `version` (proposed `2.0.0`). | **OPEN** | `app.json` (lead only) |
@@ -48,23 +48,18 @@ EAS can do most of this on the **first interactive** build (v2-5), signed in wit
 - [ ] `npx eas-cli@latest init`. It writes `extra.eas.projectId` and `owner` into `app.json`. Send the diff to the lead, because `app.json` is lead-only.
 - [ ] Check the Expo plan's allowance for iOS builds, simulator builds and Workflows. The plan uses a `preview` build after waves 2, 4 and 5, one `e2e` build per Maestro run, and the fix-wave builds.
 - [ ] Link the GitHub repository to the EAS project, so EAS Workflows can run `.eas/workflows/e2e-ios.yml`.
-- [ ] `SENTRY_AUTH_TOKEN` as an EAS **secret**, in both environments (token from v2-3):
-  `eas env:create --name SENTRY_AUTH_TOKEN --value sntrys_… --visibility secret --environment production --environment preview`
-  Never put it in `app.json`, `eas.json` or the repo.
-- [ ] `eas env:list --environment production` shows `SENTRY_AUTH_TOKEN` (secret). **`SENTRY_ALLOW_FAILURE` is never set for production**; only the `preview` profile carries it.
 - [ ] Optional: an App Store Connect API key in EAS, for `eas submit` and `eas metadata`.
 
-## v2-3. Sentry — project and DSN
+## v2-3. Sentry — deferred
 
-The connected account is org **`farmerstail`**, US region `https://us.sentry.io`.
+1.0 ships without crash reporting (owner decision, 2026-11). `@sentry/react-native`, its config plugin, the Metro wrapper, the 오류 기록 보내기 row and the Sentry build phases are removed; `src/lib/crash.ts` stays as a no-op that every caller still uses. Crash reports for 1.0 come only from Apple: App Store Connect › TestFlight/App Analytics and Xcode › Organizer › Crashes, for users who share analytics with developers.
 
-1. [ ] Create the project. sentry.io › Projects › Create Project › **React Native** › name exactly **`mandarat`**. An org owner or manager has to do this.
-2. [ ] Copy the DSN into `src/lib/crash.native.ts` (`SENTRY_DSN`), or give it to the lead. It is public by design. Until it is set, `crash.init()` does nothing and `npm run release-check` fails (`crashProblems`).
-3. [ ] Create an **Organization Auth Token**: Settings › Developer Settings › Organization Tokens, default `org:ci` scope. It is used for the source map and dSYM upload. Store it as in v2-2.
-4. [ ] Project settings › Security & Privacy:
-   - turn on **"Prevent Storing of IP Addresses"** (the privacy policy relies on it);
-   - keep the default data scrubbing.
-5. [ ] Alerts: an e-mail alert for new issues.
+To bring Sentry back in an update:
+1. An org owner or manager creates the project in sentry.io (org **`farmerstail`**, US region): **React Native**, name **`mandarat`**. Members cannot create projects in this org.
+2. Restore the V4-F files and wiring from git history (the commit that removed Sentry lists them): `src/lib/crash.native.ts`, `src/lib/crashPrefs.ts`, `src/screens/settings/CrashRow.tsx`, the `crash` i18n namespace, `metro.config.js`, the plugin entry in `app.json`, `scripts/prebuild-checks/sentry.js`, the `SENTRY_*` entries in `eas.json`, and the V4-F tests. Then set `SENTRY_DSN`.
+3. Organization Auth Token as the EAS secret `SENTRY_AUTH_TOKEN` (`eas env:create … --visibility secret --environment production --environment preview`).
+4. Project settings › Security & Privacy › "Prevent Storing of IP Addresses".
+5. Update `docs/v2/privacy.md` (section 3) and `app.json` `NSPrivacyCollectedDataTypes`, regenerate the page (`npm run privacy-page`), and change App Privacy to Diagnostics › Crash Data, Performance Data and Other Diagnostic Data.
 
 ## v2-4. App Store Connect
 
@@ -83,10 +78,7 @@ The connected account is org **`farmerstail`**, US region `https://us.sentry.io`
   - Re-shoot ja on macOS so it uses Hiragino.
   - Push them with `npx eas-cli metadata:push` (after v2-2), or upload by hand.
   - `supportsTablet` is now true, so the iPad set is **required**.
-- [ ] **App Privacy questionnaire** (this replaces v1's "Data Not Collected"):
-  - **Diagnostics › Crash Data, Performance Data and Other Diagnostic Data**: each collected; not linked to the user; not used for tracking; purpose App Functionality. Sentry's native SDK (sentry-cocoa) reports app hangs and attaches breadcrumbs, the device model and the OS, and its own privacy manifest declares all three (R-8 #1).
-  - Everything else: not collected. Purchases are handled by Apple.
-  - This matches the privacy manifest in `app.json` (CrashData, PerformanceData and OtherDiagnosticData; `NSPrivacyTracking` false) and `docs/v2/privacy.md`.
+- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음). 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; purchases are Apple's data. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
 - [ ] **Age rating** questionnaire: no change from v1 (lowest rating).
 - [ ] **Availability**: v1 launched in 대한민국 only. With ja and en, decide whether to add Japan and other regions. Adding EU countries needs the DSA trader-status disclosure.
 - [ ] **Category**: Productivity, then Lifestyle (as in `store.config.json`).
@@ -99,14 +91,13 @@ The connected account is org **`farmerstail`**, US region `https://us.sentry.io`
 
 | Profile | Use | Notes |
 |---|---|---|
-| `preview` | Internal device builds for QA | `EXPO_PUBLIC_APP_ENV=preview`, `SENTRY_ALLOW_FAILURE=true`. The 정보 row long-press sends a Sentry test event. |
-| `e2e` | iOS **simulator** build for Maestro | `EXPO_PUBLIC_E2E=1` (Sentry off, reduced motion forced), `SENTRY_DISABLE_AUTO_UPLOAD=true` |
-| `production` | App Store | `autoIncrement` with the remote app version, `EXPO_PUBLIC_APP_ENV=production`. The Sentry upload **must** succeed. |
+| `preview` | Internal device builds for QA | `EXPO_PUBLIC_APP_ENV=preview`. |
+| `e2e` | iOS **simulator** build for Maestro | `EXPO_PUBLIC_E2E=1` (reduced motion forced) |
+| `production` | App Store | `autoIncrement` with the remote app version, `EXPO_PUBLIC_APP_ENV=production`. |
 
 - [ ] Before any build: `npm ci`, `npm run typecheck`, `npm test`, `npm run web-smoke`, `npm run prebuild-check`, `npx expo-doctor`. Re-run `npx expo install --check` and the React Native Directory check on a networked machine; they could not run in the build sandbox (W0).
 - [ ] **First iOS build is interactive**: `eas build -p ios --profile preview`. EAS syncs the App Group, the iCloud container and the widget extension. Later builds can run non-interactively.
 - [ ] The build compiles the Swift that could not be compiled in the sandbox: `native/ios` (App Intents, `AppIntents.swift` and `TodayStore.swift` in target `Mandarat`), `modules/pro-store` and `modules/icloud-sync`. If `native/ios` fails to compile, the lead adds the fallback `plugins/withShortcuts.js` (V3-B handoff 2, plan §9).
-- [ ] The build log shows the Sentry phase passing with the token set.
 - [ ] **Siri shortcuts compile (R3-3).** The inline-modules group (`../native/ios`) sits in an `objectVersion = 54` project. In the first `preview` build log, check that `AppIntents.swift` and `TodayStore.swift` compile, and on the device check that the Shortcuts app lists the 4 App Shortcuts. If either fails, a fix package adds `plugins/withObjectVersion.js` (sets `objectVersion` and `preferredProjectObjectVersion` to 77, after the inline-modules step).
 - [ ] **Widget version matches the app (R3-4).** Unzip the first `preview` IPA and compare `CFBundleVersion` and `CFBundleShortVersionString` in `Payload/Mandarat.app/Info.plist` with `Payload/Mandarat.app/PlugIns/ExpoWidgetsTarget.appex/Info.plist`. expo-widgets writes literal `1` / `1.0.0`; EAS uses the remote build number. If they differ, a fix package sets the two keys in `ios/ExpoWidgetsTarget/Info.plist` to `$(CURRENT_PROJECT_VERSION)` and `$(MARKETING_VERSION)` in `plugins/withWidgetStrings.js`.
 - [ ] **Widget privacy manifest (R3-1).** The IPA has `PlugIns/ExpoWidgetsTarget.appex/PrivacyInfo.xcprivacy`. After the first TestFlight upload, read the App Store Connect e-mail; if it still names a missing reason (ITMS-91053) for the `.appex`, add that reason to `PRIVACY_API` in `plugins/withWidgetStrings.js`.
@@ -125,7 +116,6 @@ The connected account is org **`farmerstail`**, US region `https://us.sentry.io`
   npm run release-check && eas build -p ios --profile production
   eas submit -p ios --latest
   ```
-  The build must fail without `SENTRY_AUTH_TOKEN` and succeed with it.
 - [ ] Never commit `ios/`, `android/` or `dist*/` (CNG).
 
 ## v2-6. Maestro runs (V5-C, `docs/v2/device-tests.md`)
@@ -177,7 +167,6 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
 - [ ] Pro pattern draws, and the widget is plain again after a refund.
 - [ ] A tap outside a row button opens 오늘. No blank widget after a reboot.
 - [ ] **Widget added on a fresh install before the first launch.** Record what the release build shows. If it shows the red "No layout found" box, keep the "open the app once" line in `docs/v2/review-notes.md`, and a fix package adds a placeholder.
-- [ ] The Sentry `widget` breadcrumb `ops n` appears.
 
 ### Live Activity [V2-B]
 - [ ] The lock screen and the Dynamic Island (compact, minimal, expanded) show the area square, the text, `집중하는 중`, a countdown and a bar. The `ProgressView` label is not doubled.
@@ -212,7 +201,6 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
 - [ ] The Files app shows **no** 만다라트 folder. The app is listed under iCloud › Manage Storage.
 - [ ] Sync never prompts by itself, and makes no iCloud call while it is off.
 - [ ] Heavy doc: typing stays smooth and a merge takes under 0.5 s. No main-thread hang. The background push finishes.
-- [ ] Sentry breadcrumbs `sync: checking → syncing → idle`.
 
 ### Pro (sandbox) [V1-E, V3-C, V4-C, V2-D]
 - [ ] The price is in the local currency and nothing is hard-coded. An unregistered product shows 가격을 불러오는 중이에요 without crashing.
@@ -255,19 +243,9 @@ Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iP
 - [ ] Spread: the keyboard, hit testing, zoom driving the right page, edge swipe, and VoiceOver order across the pages.
 - [ ] The iPhone layout is unchanged.
 
-### Sentry [V4-F]
-- [ ] 설정 › 정보 shows 오류 기록 보내기, checked by default.
-- [ ] Long-press on the row (preview build only) shows 시험 오류를 보냈어요. The `qa-test` event has:
-  - environment `preview`;
-  - a symbolicated stack;
-  - tags `lang`, `pro` and `layout`;
-  - no user, no device name and no chart text.
-- [ ] A render error carries `componentStack`. A native crash is symbolicated: on a preview build tap 네이티브 오류 시험 under the row (preview only), relaunch, and check the event.
-- [ ] Breadcrumbs carry no chart text. Kept console crumbs (for example `Mandarat crashed …` from the ErrorBoundary) show `"…"` in place of chart text and have no `data`.
-- [ ] **Installation ID and sessions (R-8 #1).** On a preview build, tap 네이티브 오류 시험 under Settings › 정보 › 오류 기록 보내기 (the app closes) and relaunch. In Sentry the event shows `user.id` set to a UUID (the random per-install ID that the policy declares) and no name, e-mail or IP address. Open and close the app a few times: no sessions arrive in Sentry › Releases › Sessions (`enableAutoSessionTracking: false`).
-- [ ] The opt-out stops all events, including native crashes after a relaunch.
-- [ ] The release and dist match the build.
-- [ ] No row on web or Android.
+### Crash reporting
+- [ ] 설정 › 정보 has no 오류 기록 보내기 row (1.0 ships without Sentry, v2-3).
+- [ ] After TestFlight testers use the build, Xcode › Organizer › Crashes (and App Store Connect › TestFlight › Crashes) show any crashes from testers who share analytics.
 
 ### Deep links [V3-A]
 - [ ] Every route from Safari and from `simctl openurl`: `mandarat://today`, `stats`, `year`, `add`, `share`, `print`, `grid`, `area/3`, `focus`, `focus/2-5` (filled and empty cells), and `ritual` (try Monday and Wednesday).

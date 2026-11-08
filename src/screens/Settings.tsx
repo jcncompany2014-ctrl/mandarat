@@ -32,7 +32,6 @@ import { NotifySection } from './settings/NotifySection';
 import { SyncSection } from './settings/SyncSection';
 import { YearRows } from './settings/YearRows';
 import { ProSection } from './settings/ProSection';
-import { CrashRow } from './settings/CrashRow';
 import { TID } from '../lib/testIds';
 
 type Core = Messages['core'];
@@ -399,7 +398,6 @@ export function Settings() {
           {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label={st.contact} hint={st.contactHint} onPress={() => openLink(mailto)} />}
           <TextLink M={M} label={st.licenses} onPress={() => { tap(); setLicensesOpen(true); }} />
         </View>
-        <CrashRow M={M} />
         {/* 판권면 아래 작은 인쇄소 표 — 타일·가운데 영웅 없이 왼쪽 아래에 */}
         <View style={{ marginTop: 24, marginBottom: 8 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <GridMark size={16} color={GOLD} />

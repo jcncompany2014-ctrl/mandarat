@@ -106,7 +106,7 @@ test('의존성: 안 쓰는 네이티브·서체 패키지는 빼고, 출시에 
   for (const need of [
     'expo-splash-screen', 'expo-system-ui', 'expo-keep-awake', 'expo-file-system', 'react-native-view-shot',
     // v2: 알림 · 위젯 · 인쇄 · 서체 파일 · 언어 · 오류 수집
-    'expo-notifications', 'expo-widgets', '@expo/ui', 'expo-print', 'expo-asset', 'expo-localization', '@sentry/react-native',
+    'expo-notifications', 'expo-widgets', '@expo/ui', 'expo-print', 'expo-asset', 'expo-localization',
   ]) {
     assert.ok(need in deps, `${need}가 필요하다`);
   }
@@ -143,7 +143,7 @@ test('v2 아이패드: supportsTablet', () => {
 test('v2 플러그인: 순서대로 — withWidgetStrings는 expo-widgets보다 앞', () => {
   const names = app.plugins.map((p) => (Array.isArray(p) ? p[0] : p));
   assert.deepEqual(names, [
-    'expo-font', 'expo-splash-screen', 'expo-localization', 'expo-notifications', './plugins/withWidgetStrings', 'expo-widgets', '@sentry/react-native/expo',
+    'expo-font', 'expo-splash-screen', 'expo-localization', 'expo-notifications', './plugins/withWidgetStrings', 'expo-widgets',
   ]);
   const opt = (name) => app.plugins.find((p) => Array.isArray(p) && p[0] === name)[1];
   assert.deepEqual(opt('expo-localization'), { supportedLocales: { ios: ['ko', 'ja', 'en'], android: ['ko', 'ja', 'en'] } });
@@ -156,7 +156,6 @@ test('v2 플러그인: 순서대로 — withWidgetStrings는 expo-widgets보다 
   assert.equal(w.widgets.length, 1);
   assert.equal(w.widgets[0].name, 'TodayWidget');
   assert.deepEqual(w.widgets[0].ios.supportedFamilies, ['systemSmall', 'systemMedium', 'systemLarge', 'accessoryInline', 'accessoryCircular', 'accessoryRectangular']);
-  assert.deepEqual(opt('@sentry/react-native/expo'), { organization: 'farmerstail', project: 'mandarat', url: 'https://sentry.io/' });
   const pkg = JSON.parse(read('package.json'));
   assert.deepEqual(pkg.expo.autolinking.android.exclude, ['expo-widgets', '@expo/ui']);
   assert.equal(pkg.scripts.ios, 'expo run:ios');
@@ -171,12 +170,8 @@ test('v2 권한(entitlements): iCloud 문서 컨테이너', () => {
   });
   const pm = app.ios.privacyManifests;
   assert.equal(pm.NSPrivacyTracking, false);
-  // Sentry(sentry-cocoa)의 매니페스트와 같은 셋 — 강제 종료 · 멈춤(hang) · 발자국과 기기 모델(R-8 #1). 모두 연결 안 함 · 추적 안 함 · 앱 기능
-  assert.deepEqual(pm.NSPrivacyCollectedDataTypes.map((t) => [t.NSPrivacyCollectedDataType, t.NSPrivacyCollectedDataTypeLinked, t.NSPrivacyCollectedDataTypeTracking, t.NSPrivacyCollectedDataTypePurposes]), [
-    ['NSPrivacyCollectedDataTypeCrashData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
-    ['NSPrivacyCollectedDataTypePerformanceData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
-    ['NSPrivacyCollectedDataTypeOtherDiagnosticData', false, false, ['NSPrivacyCollectedDataTypePurposeAppFunctionality']],
-  ]);
+  // 1.0은 오류 수집(Sentry)이 없어 모으는 것이 없다 — App Privacy 답 '데이터를 수집하지 않음'
+  assert.deepEqual(pm.NSPrivacyCollectedDataTypes, []);
 });
 
 test('Android: 템플릿 기본 권한은 막는다(R2-4)', () => {

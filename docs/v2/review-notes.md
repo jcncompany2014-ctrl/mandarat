@@ -54,7 +54,7 @@ ICLOUD SYNC (optional, off by default)
 Settings › iCloud › "Sync devices with iCloud". Syncing needs two devices signed in to the same Apple Account (for example an iPhone and an iPad). With one device, the switch and its status can still be seen. Data goes to the app's hidden iCloud container and never to a server of ours.
 
 PRIVACY
-Crash reports are sent to Sentry with no personal data and no user text. They can be turned off in Settings › About › "Send error reports". There is no tracking, no analytics and no ads.
+The app collects no data: it has no server, no crash-reporting or analytics SDK, no tracking and no ads. Records stay on the device and, if the user turns on iCloud sync, in their own iCloud.
 
 Languages: Korean (primary), Japanese, English. iPhone and iPad.
 Contact: <SUPPORT_EMAIL>
@@ -94,7 +94,7 @@ Non-Consumable "Pro" (com.jcncompany.mandarat.pro). Where: Home › Settings ›
   - 만다라트 집중 시작
   - 일본어와 영어 문장은 위 영어 블록과 같아요.
 - **iCloud.** 처음에는 꺼져 있어요. 확인하려면 같은 Apple 계정의 기기 두 대가 필요해요.
-- **개인정보.** Sentry 오류 기록에는 개인정보와 적은 글이 들어가지 않아요. 설정 › 정보 › 오류 기록 보내기에서 끌 수 있어요. 추적, 분석, 광고는 없어요.
+- **개인정보.** 앱은 아무것도 모으지 않아요. 서버, 오류 수집, 분석, 추적, 광고가 없어요. 기록은 기기와(켜면) 내 iCloud에만 있어요.
 
 ## Facts behind the notes (for the owner; do not paste)
 

@@ -1,7 +1,7 @@
 // v2 공통 약속 — 여러 꾸러미(알림·위젯·Live Activity·인쇄·연도·프로·iCloud·오류 수집)가 함께 쓰는 키와 모양.
 // Wave 0이 정하고 리드만 고친다(docs/v2/plan.md §2.7). app.json·expo-widgets와 맞는지는 tests/contracts.test.js가 지킨다.
 
-export const STORE_KEYS = { lang: 'mandarat:lang:v1', pro: 'mandarat:pro:v1', notify: 'mandarat:notify:v1', crash: 'mandarat:crash:v1', print: 'mandarat:print:v1' } as const;
+export const STORE_KEYS = { lang: 'mandarat:lang:v1', pro: 'mandarat:pro:v1', notify: 'mandarat:notify:v1', print: 'mandarat:print:v1' } as const;
 export const LINK_SCHEME = 'mandarat';
 export const APP_GROUP = 'group.com.jcncompany.mandarat';
 export const ICLOUD_CONTAINER = 'iCloud.com.jcncompany.mandarat';
