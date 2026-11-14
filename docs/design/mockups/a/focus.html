@@ -8,26 +8,29 @@
 <link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <style>
-  /* 25분 집중: a full-screen page of the same notebook (no tab bar; it covers the app).
-     Header anatomy as on every tab: eyebrow = the area and "25분 집중", title = the action in
-     writing ink, one action = minimise (the session keeps running in a bar and the Live Activity).
-     Hero: the 25-minute form, one soft tile per minute, 315pt on the left gutter with a printed minute
-     ruler to its right. Under it one filled-in field: the time left in MaruBuri, no rules round it
-     (space groups it). Controls sit in the thumb zone. */
-  #minutes { margin: 48px 0 0; }  /* 315pt on the gutter; the minute ruler takes the 27pt to its right */
+  /* 25분 집중: a full-screen page (no tab bar; it covers the app). The header anatomy of every tab:
+     eyebrow = the area and "25분 집중", title = the action in writing ink, one action = minimise (the
+     session keeps running in a bar and the Live Activity).
+     Hero: the 25 minutes as 5 × 5 soft tiles across the 342pt measure, finished minutes in the area's
+     wash, the current one filling. Under it one filled-in field: the time left, large, Pretendard Bold
+     with tabular figures. The controls sit in the thumb zone; the paper between is the pause it asks for. */
+  #minutes { margin-top: 64px; }   /* the grid, clock and note sit centred between the header and the controls */
 
-  .field { margin-top: 30px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .field { margin-top: 32px; display: flex; align-items: flex-end; justify-content: space-between; }
   .field-main { display: flex; flex-direction: column; gap: 2px; }
-  .clock { font: 400 48px/54px var(--serif); letter-spacing: -0.01em; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .field-side { text-align: right; padding-bottom: 6px; }
-  .field-side .t-figure { font-size: 22px; line-height: 30px; }
+  .clock { font: 700 52px/60px var(--sans); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .field-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-bottom: 6px; }
+  .field-side .t-figure small { margin: 0 4px 0 0; }
 
-  .note { margin: 12px 0 0; }
-  .controls { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 40px; }
-  .btns { display: flex; gap: 12px; }
+  .note { margin-top: 10px; }
+  .controls { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 30px; }
+  .btns { display: flex; gap: 10px; }
   .btns .a-btn { flex: 1; padding: 0; gap: 8px; }
-  .end { display: flex; justify-content: center; margin-top: 8px; }
-  .end span { display: inline-flex; align-items: center; height: 44px; padding: 0 16px; font: 600 14px/18px var(--sans); color: var(--ink); }
+  /* KIT REQUEST: .a-btn.is-tint, the second button without an outline: --tile fill, ink word
+     (the clean round's "no outlines where a tint will do"). */
+  .a-btn.is-tint { background: var(--tile); color: var(--ink); box-shadow: none; }
+  .end { display: flex; justify-content: center; margin-top: 10px; }
+  .end span { display: inline-flex; align-items: center; height: 44px; padding: 0 16px; font: 600 14px/20px var(--sans); color: var(--ink-2); }
 </style>
 </head>
 <body>
@@ -38,12 +41,12 @@
 
     <div class="field">
       <div class="field-main">
-        <span class="t-label"><i class="a-today"></i>남은 시간</span>
+        <span class="t-label">남은 시간</span>
         <span class="clock" id="clock"></span>
       </div>
       <div class="field-side">
-        <div class="t-label">끝나는 시각</div>
-        <div class="t-figure" id="ends"></div>
+        <span class="t-label">끝나는 시각</span>
+        <span class="t-figure is-field" id="ends"></span>
       </div>
     </div>
     <p class="t-note note">25분 동안 한 가지에만. 화면을 접어 두어도 시간은 흘러가요.</p>
@@ -51,7 +54,7 @@
 
   <div class="controls">
     <div class="btns">
-      <div class="a-btn is-secondary" id="pause"></div>
+      <div class="a-btn is-tint" id="pause"></div>
       <div class="a-btn" id="finish">끝내고 했어요</div>
     </div>
     <div class="end"><span>그만하기</span></div>
@@ -71,11 +74,11 @@ A.ready().then((doc) => {
   h.firstElementChild.innerHTML = `<i class="a-dye" style="--d:var(--dye-${area + 1})"></i>${row.area} · 25분 집중`;
   h.insertAdjacentHTML('beforeend', `<div class="a-header-action" aria-label="접어 두기">${A.glyph('down')}</div>`);
 
-  A.minutes('#minutes', { cell: 59, gap: 5, area, done: Math.floor(run / 60), frac: (run % 60) / 60 });
+  A.minutes('#minutes', { area, done: Math.floor(run / 60), frac: (run % 60) / 60 });
 
   const mm = Math.floor(left / 60), ss = String(left % 60).padStart(2, '0');
   document.querySelector('#clock').textContent = `${mm}:${ss}`;
-  document.querySelector('#ends').innerHTML = `<small style="margin:0 4px 0 0">오후</small>2:35`; // invented clock time: started 2:10
+  document.querySelector('#ends').innerHTML = `<small>오후</small>2:35`; // invented clock time: started 2:10
   document.querySelector('#pause').innerHTML = `${A.glyph('pause', 20)}<span>멈추기</span>`;
 });
 </script>

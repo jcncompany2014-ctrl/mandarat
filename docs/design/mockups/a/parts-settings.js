@@ -1,7 +1,7 @@
 /* 방향 A · parts that settings.html needs and the kit (shared.js) does not have yet.
    Each one is listed in the round-2 report as a kit request. They are built from tokens.css and from
-   the shared.js calls (A.check, A.icon, A.row's classes); nothing here sets a colour of its own except
-   the night swatch, which needs the dark stock's values while the page itself is light (see S.swatch).
+   the shared.js calls (A.check, A.icon, A.row's classes); nothing here sets a colour of its own (the
+   night swatch is drawn with the light tokens, inks swapped: see S.swatch).
 
      S.check(on)      the check box as a switch: printed box, the owner's tick when on.
      S.toggleRow(o)   an on/off setting: leading check box (CI-02 "check = independent yes/no"),
@@ -12,7 +12,7 @@
                       title, meta, trailing chevron in ink (CI-10: one chevron, 16pt, never grey).
      S.choiceRow(o)   one of many (CI-02): no box. The chosen row has a heavier title and a trailing
                       pen tick in writing ink; the others show nothing on the right.
-     S.swatch(o)      an appearance option drawn as a tiny page of the notebook in that stock.
+     S.swatch(o)      an appearance option drawn as a tiny page in that stock, on a --tile well.
      S.glyph(name)    printed glyphs for the backup rows: 'export', 'import', 'copies'.
      S.tick(size)     the pen tick alone (the same stroke as the tick in the check box). */
 (function (global) {
@@ -63,13 +63,14 @@
   };
 
   /* S.swatch({ mode: 'auto' | 'day' | 'night', label, on })
-     A tiny page: the stock, the goal's first syllable in writing ink (MaruBuri) and two soft printed
-     lines of text, round-ended. 'auto' is the day page and the night page side by side. The chosen
-     swatch gets the ink selection ring (selection is always ink) and a heavier label. */
+     A tiny page rising from a --tile well: the stock, one syllable in Pretendard Bold and two soft
+     printed lines, round-ended. 'auto' is the day page and the night page side by side. The night
+     page is --ink with --paper words (tokens only, no hex). The chosen swatch gets the ink selection
+     ring (selection is always ink) and a bolder label. */
   S.swatch = function (o) {
     const page = (night) => `<div class="s-page${night ? ' is-night' : ''}"><b class="s-page-word">가</b><i class="s-page-line"></i><i class="s-page-line is-short"></i></div>`;
     const body = o.mode === 'auto' ? `<div class="s-split">${page(false)}${page(true)}</div>` : page(o.mode === 'night');
-    return `<div class="s-swatch${o.on ? ' is-on' : ''}"><div class="s-swatch-frame">${body}</div><div class="s-swatch-label">${esc(o.label)}</div></div>`;
+    return `<div class="s-swatch${o.on ? ' is-on' : ''}"><div class="s-swatch-frame"><div class="s-well">${body}</div></div><div class="s-swatch-label">${esc(o.label)}</div></div>`;
   };
 
   global.S = S;

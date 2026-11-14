@@ -6,11 +6,11 @@
    parts-widgets.css), the same way dark mode does, so the kit functions draw in greys.
 
    KIT REQUESTS (each part below should move into shared.js / tokens.css):
-     W.small()     small widget: the L1 sheet and 오늘 n/m
-     W.medium()    medium widget: three rows with 20pt check boxes
+     W.small()     small widget: the L1 colour map and 오늘 n/m
+     W.medium()    medium widget: three rows with 20pt check boxes, head says what is left (n개 남음)
      W.wRow()      the compact row (34pt) used in widgets
-     W.lockRect()  Lock Screen rectangular: leading check box + next action
-     W.lockTally() Lock Screen circular: the 正 of today's done count + n/m
+     W.lockRect()  Lock Screen rectangular: leading check box + next action (no count: the gauge has it)
+     W.lockGauge() Lock Screen circular: today's done share as a ring + n/m in figures (no 正)
      W.lockAdd()   Lock Screen circular: 담기
      W.minutes()   the 5×5 minute grid as soft tiles (one tile per minute of a 25-minute focus)
      W.live()      the focus Live Activity on the Lock Screen
@@ -31,19 +31,21 @@
     return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="display:block;flex:none" aria-hidden="true">${body}</svg>`;
   };
 
-  /* the head line every widget shares: a printed label with the today dot, the written figure right */
-  const head = (label, figure) =>
-    `<div class="w-head"><span class="t-label"><i class="a-today"></i>${esc(label)}</span><span class="w-fig">${esc(figure)}</span></div>`;
+  /* the head line every widget shares: a printed label with the today dot, the written figure right
+     (Pretendard Bold; pass unit to set a small unit after the figure, as .t-figure small) */
+  const head = (label, figure, unit) =>
+    `<div class="w-head"><span class="t-label"><i class="a-today"></i>${esc(label)}</span><span class="w-fig">${esc(figure)}${unit ? `<small>${esc(unit)}</small>` : ''}</span></div>`;
 
-  /* W.small(target, doc) — 158 × 158. The sheet in miniature (A.chart L1, cell 10 = 94pt) under one
-     head line: • 오늘 … 1/10. The column is the sheet's width, so label, figure and sheet share
-     two edges. At L1 the sheet shows no today dots (A's L1 rule); the dot beside 오늘 carries today. */
+  /* W.small(target, doc) — 158 × 158. The colour map in miniature (A.chart L1: solid dye for the 16
+     area cells, wash = done, pale tint = written, --tile = empty; 96pt) under one head line:
+     • 오늘 … 1/10. The column is the map's width, so label, figure and map share two edges. At L1
+     the map shows no today dots (A's L1 rule); the dot beside 오늘 carries today. */
   W.small = function (target, doc) {
     const t = doc.view.today;
     const host = el(target);
     host.classList.add('w', 'w-small');
     host.innerHTML = `<div class="w-col">${head('오늘', `${t.done}/${t.of}`)}<div class="w-sheet"></div></div>`;
-    A.chart(host.querySelector('.w-sheet'), doc, { level: 'L1', cell: 10 });
+    A.chart(host.querySelector('.w-sheet'), doc, { level: 'L1', cell: 11, width: 96 });
     return host;
   };
 
@@ -59,37 +61,45 @@
   };
 
   /* W.medium(target, doc, rows) — 338 × 158. Head line, then three rows (no rule on top of the list).
-     rows = array of W.wRow inputs. Not the small widget scaled up: this one is for ticking. */
+     rows = array of W.wRow inputs. Not the small widget scaled up: this one is for ticking, so its
+     head says what is left (9개 남음) while the small one says 오늘 1/10 (no duplicate counts side by
+     side, art director's decision 4). */
   W.medium = function (target, doc, rows) {
     const t = doc.view.today;
     const host = el(target);
     host.classList.add('w', 'w-medium');
-    host.innerHTML = `${head('오늘 할 일', `${t.done}/${t.of}`)}<div class="w-list">${rows.map((r) => W.wRow(doc, r)).join('')}</div>`;
+    host.innerHTML = `${head('오늘 할 일', `${t.of - t.done}`, '개 남음')}<div class="w-list">${rows.map((r) => W.wRow(doc, r)).join('')}</div>`;
     return host;
   };
 
   /* Lock Screen (vibrant rendering). The system draws these in opaque greys of one hue-less ramp;
      the container .lock sets --ink / --ink-2 / --print / --print-rule / --print-edge to those greys,
-     so A.check and A.tally draw themselves in grey. Meaning never rests on colour: today is the
-     dot, done is the tick. */
+     so A.check draws itself in grey. Meaning never rests on colour: today is the dot, done is the
+     tick, a count is a number. */
 
-  /* W.lockRect(target, doc) — 156 × 72. Leading check box (tap = done), the next action, its fact. */
+  /* W.lockRect(target, doc) — 156 × 72. Leading check box (tap = done), the next action, its fact.
+     The label says what this is (다음 할 일); the count lives once, in the gauge beside it. */
   W.lockRect = function (target, doc) {
     const t = doc.view.today, n = doc.view.nextStep;
     const row = t.rows.find((r) => r.text === n.text) || {};
     const host = el(target);
     host.classList.add('lock-rect');
-    host.innerHTML = `${A.check({ size: 20 })}<div class="lock-rect-main"><div class="lock-k"><i class="a-today"></i>오늘 ${t.done}/${t.of}</div><div class="lock-t">${esc(n.text)}</div><div class="lock-m">${esc(n.area)}${row.right ? ' · ' + esc(row.right) : ''}</div></div>`;
+    host.innerHTML = `${A.check({ size: 20 })}<div class="lock-rect-main"><div class="lock-k"><i class="a-today"></i>다음 할 일</div><div class="lock-t">${esc(n.text)}</div><div class="lock-m">${esc(n.area)}${row.right ? ' · ' + esc(row.right) : ''}</div></div>`;
     return host;
   };
 
-  /* W.lockTally(target, doc) — 72 circle. Today's done count as the 正 (ghost printed, strokes inked
-     over it, A.tally) and the count in figures under it. */
-  W.lockTally = function (target, doc) {
+  /* W.lockGauge(target, doc) — 72 circle (accessoryCircular as a Gauge). A ring of today's done
+     share (round caps, the empty track one step down the grey ramp) round 오늘 and n/m in figures.
+     Replaces the 正 tally: a count is a number. */
+  W.lockGauge = function (target, doc) {
     const t = doc.view.today;
     const host = el(target);
-    host.classList.add('lock-circ');
-    host.innerHTML = `${A.tally(t.done, { size: 26 })}<span class="lock-circ-n">${t.done}/${t.of}</span>`;
+    host.classList.add('lock-circ', 'lock-gauge');
+    const S = 72, r = 30, w = 4, c = 2 * Math.PI * r;
+    // the ring opens at the bottom (a 300° arc, as the system's gauge), so it reads as a dial
+    const arc = 300 / 360, track = c * arc, on = track * Math.min(1, t.done / Math.max(1, t.of));
+    const ring = (len, col) => `<circle cx="${S / 2}" cy="${S / 2}" r="${r}" fill="none" style="stroke:${col}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="${len.toFixed(2)} ${c.toFixed(2)}" transform="rotate(120 ${S / 2} ${S / 2})"/>`;
+    host.innerHTML = `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" aria-hidden="true">${ring(track, 'var(--lock-3)')}${ring(on, 'var(--lock-1)')}</svg><span class="lock-gauge-k">오늘</span><span class="lock-gauge-n">${t.done}<small>/${t.of}</small></span>`;
     return host;
   };
 
@@ -156,9 +166,9 @@
     return { task: doc.view.nextStep.text, area: A.areaIndex(doc, doc.view.nextStep.area), areaName: doc.view.nextStep.area, left: '12:41', elapsed: Math.floor(gone / 60), part: (gone % 60) / 60 };
   };
 
-  /* W.live(target, doc) — the focus Live Activity on the Lock Screen, 358 wide. A paper ground
+  /* W.live(target, doc) — the focus Live Activity on the Lock Screen, 358 wide. A white ground
      (activityBackgroundTint), 14pt margins. The minute grid is the picture; beside it the printed
-     label, the task in writing ink, the time left in MaruBuri, and one control (pause). */
+     label, the task in writing ink, the time left in Pretendard Bold, and one control (pause). */
   W.live = function (target, doc) {
     const f = W.focus(doc);
     const host = el(target);

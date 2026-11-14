@@ -8,61 +8,60 @@
 <link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <style>
-  /* 오늘, all ten done, the day closed. Read as the foot of a ledger page:
-     the entries (folded to one line) → the double rule → what the day came to, written under it.
-     Then one small module for the evening (mood + one line). Nothing asks for more. */
-  .sec { margin-top: 30px; }
+  /* 오늘, all ten done, the day closed. One hero: what the day came to (the count, set large, and one
+     calm sentence). The header's 1/10 moves into it, so the count is shown once. Under it the list,
+     folded to one line; then one small module for the evening (mood + one line); then the week.
+     Nothing asks for more. Space groups; no rules. */
 
-  /* the folded list: one row, the same anatomy as a task row */
-  .fold .a-row-title { white-space: normal; }
-  .fold .a-row-meta { display: flex; gap: 0; }
-  .fold .a-row-meta span + span { margin-left: 7px; }
-  .fold .a-row-meta .a-dye { margin-right: 3px; }
-  .fold .a-row-meta b { font-weight: 400; margin-left: 3px; }
+  /* the day's count: the same figure as the header's 1/10, grown to the hero. Pretendard 700, tabular. */
+  .close { margin-top: 30px; }
+  .close-fig { font: 700 48px/56px var(--sans); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .close .t-prompt { margin-top: 4px; }
+  .close .t-note { margin-top: 2px; }
+
+  .sec { margin-top: 36px; }
+  .sec .a-section { margin-bottom: 0; }
+
+  /* the folded list: one row, the same anatomy as a task row; the areas as dye marks + names */
+  .fold .a-row-meta { display: flex; }
+  .fold .a-row-meta span { display: inline-flex; align-items: center; }
+  .fold .a-row-meta span + span { margin-left: 10px; }
+  .fold .a-row-meta .a-dye { margin-right: 4px; }
   .fold-open { display: flex; align-items: center; gap: 2px; font: 700 13px/18px var(--sans); color: var(--ink); }
   .fold-open svg { margin-right: -4px; }
 
-  /* KIT REQUEST: the ledger double rule (close of a page). Softened: two 1pt rules in the pale
-     closing grey (--print-mid), 2pt of paper between, starting at the text like a row hairline. */
-  .a-double { height: 4px; margin-left: 38px; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--rule) solid var(--print-mid); }
-
-  /* the day's total under the rule: the 正 of the day, written large, with the closing sentence */
-  .close { display: flex; align-items: center; gap: 20px; padding: 32px 0 36px; }
-  .close-mark { flex: none; }
-  .close-text { display: flex; flex-direction: column; gap: 2px; }
-
-  /* KIT REQUEST: mood choices as soft tiles (the chart's empty tint, 10pt corners, 6pt gaps), no
-     rules. The chosen one is filled with ink, its word in paper, as the chosen cell of a segment (S.segment). */
+  /* KIT REQUEST: a segment as soft tiles (--tile, 12pt corners, 6pt gaps), no outline.
+     The chosen one is filled with ink, its word in paper (selection is always ink). */
   .a-seg { display: flex; gap: 6px; }
   .a-seg-cell { flex: 1; height: 44px; display: flex; align-items: center; justify-content: center;
-                border-radius: 10px; background: var(--tile); font: 500 14px/18px var(--sans); color: var(--ink); }
-  .a-seg-cell.is-on { font-weight: 600; background: var(--ink); color: var(--paper); }
+                border-radius: 12px; background: var(--tile); font: 500 14px/18px var(--sans); color: var(--ink); }
+  .a-seg-cell.is-on { font-weight: 700; background: var(--ink); color: var(--paper); }
 
-  /* KIT REQUEST: one input line, softened: a tile with 10pt corners instead of a ruled line to write on.
-     Placeholder = printed, so print ink. */
-  .a-line { display: flex; align-items: center; height: 48px; padding: 0 16px; border-radius: 10px; background: var(--tile); }
+  /* KIT REQUEST: the text field, as on onboarding (a --tile field, 12pt corners). Placeholder in print ink. */
+  .a-line { display: flex; align-items: center; height: 52px; padding: 0 16px; border-radius: 12px; background: var(--tile); }
   .a-line .ph { font: 400 16px/24px var(--sans); color: var(--print); }
 
+  .module { margin-top: 28px; }
+  .module .t-label { font-weight: 600; }
   .module .t-label + .a-seg, .module .t-label + .a-line { margin-top: 8px; }
-  .module .gap { height: 24px; }
-  .week { margin-top: 36px; }
+  .module .gap { height: 20px; }
+  .week { margin-top: 32px; }
+  .week .a-section { margin-bottom: 6px; }
 </style>
 </head>
 <body>
 <div class="a-page">
   <div id="header"></div>
   <div class="a-body">
+    <section class="close">
+      <div class="close-fig" id="count"></div>
+      <div class="t-prompt">오늘은 여기까지예요.</div>
+      <div class="t-note" id="closed"></div>
+    </section>
+
     <section class="sec">
       <div class="a-section"><span class="t-label is-section">오늘 할 일</span><span class="fold-open" id="open"></span></div>
       <div class="a-list fold" id="fold"></div>
-      <div class="a-double"></div>
-      <div class="close">
-        <div class="close-mark" id="mark"></div>
-        <div class="close-text">
-          <div class="t-prompt">오늘은 여기까지예요.</div>
-          <div class="t-note" id="closed"></div>
-        </div>
-      </div>
     </section>
 
     <section class="module">
@@ -73,7 +72,7 @@
       <div class="a-line"><span class="ph">오늘 한 줄</span></div>
     </section>
 
-    <section class="sec week">
+    <section class="week">
       <div class="a-section"><span class="t-label is-section">이번 주</span><span class="t-meta" id="week-total" style="color:var(--ink)"></span></div>
       <div id="week"></div>
     </section>
@@ -86,22 +85,23 @@
 A.ready().then((doc) => {
   const v = doc.view, d = v.date;
   const n = v.today.rows.length; // all ten done today
-  A.header('#header', { eyebrow: `${d.month} ${d.day}일 ${d.weekday}`, title: '오늘', figure: `${n}/${n}`, action: 'more' });
+  A.header('#header', { eyebrow: `${d.month} ${d.day}일 ${d.weekday}`, title: '오늘', action: 'more' });
 
-  // the folded list: one row. Leading box ticked (no single area, so it takes ink), the count as the title,
-  // the areas as the one meta line (from the record's filter counts), one control on the right.
-  const areas = v.today.filters.slice(1).map(([name, k]) => `<span><i class="a-dye" style="--d:var(--dye-${A.areaIndex(doc, name) + 1})"></i>${name}<b>${k}</b></span>`).join('');
+  // the hero: the day's count, large, and one sentence. Closing time invented (listed in the report).
+  document.querySelector('#count').textContent = `${n}/${n}`;
+  document.querySelector('#closed').textContent = '열 가지를 모두 했어요 · 오후 9:40 마감';
+
+  // the folded list: one row. Leading box ticked (no single area, so it takes ink), the first two
+  // entries as the title, the areas as the meta line (from the record's filter counts).
+  const areas = v.today.filters.slice(1).map(([name]) => `<span><i class="a-dye" style="--d:var(--dye-${A.areaIndex(doc, name) + 1})"></i>${name}</span>`).join('');
   document.querySelector('#fold').innerHTML =
     `<div class="a-row">${A.check({ done: true })}<div class="a-row-main"><div class="a-row-title">${v.today.rows[0].text}, ${v.today.rows[1].text} 외 ${n - 2}개</div><div class="a-row-meta">${areas}</div></div></div>`;
   document.querySelector('#open').innerHTML = `펼치기${A.glyph('down', 16)}`;
 
-  document.querySelector('#mark').innerHTML = A.tally(n, { size: 64 });
-  document.querySelector('#closed').textContent = `${d.month} ${d.day}일 마감 · 오후 9:40`;
-
   const moods = ['힘듦', '별로', '보통', '좋음', '최고'];
   document.querySelector('#mood').innerHTML = moods.map((m, i) => `<div class="a-seg-cell${i === 3 ? ' is-on' : ''}">${m}</div>`).join('');
 
-  // the week with today closed: 수 now carries the day's ten strokes (two 正), the total moves 7 → 16
+  // the week with today closed: 수 now carries the day's ten, the total moves 7 → 16
   const week = Object.assign({}, v.week, { days: v.week.days.map((x) => (x[2] === 'today' ? [x[0], n, 'today'] : x)) });
   A.weekStrip('#week', week);
   const total = week.days.reduce((t, x) => t + (x[1] || 0), 0);

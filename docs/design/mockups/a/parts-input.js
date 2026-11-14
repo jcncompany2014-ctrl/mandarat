@@ -8,9 +8,9 @@
      <script src="/docs/design/mockups/a/parts-input.js"></script>
 
      AP.keyboard(target)                the system keyboard, 336pt, as a plain grey block (not ours to draw)
-     AP.field(target, opts)             the one text field: a soft tile (10pt corners), the ink caret
+     AP.field(target, opts)             the one text field: a --tile field (12pt corners), the ink caret
      AP.areaPicker(target, doc, opts)   the eight areas as 4 × 2 soft tiles: dye mark + name,
-                                        the chosen one filled with ink (as a segment's chosen cell)
+                                        the chosen one in its pale tint with the name in its dye
      AP.caret()                         the text caret (ink, or paper on an ink cell)
      .ap-grabber                        the grabber at the top of an inset sheet (CSS only)
    ─────────────────────────────────────────────────────────────────────────── */
@@ -28,10 +28,10 @@
   /* the caret: a 2pt bar in the colour of the text it follows */
   .ap-caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -0.14em; background: currentColor; border-radius: 1px; }
 
-  /* the text field: softened from a ruled line to a tile (the chart's empty tint, 10pt corners).
-     Placeholder = printed example (print ink), typed text = writing ink. Focus is the ink caret;
-     no outline. The small button sits inside the tile's right end. */
-  .ap-field { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 8px 0 16px; border-radius: 10px; background: var(--tile); }
+  /* the text field, as on onboarding: a --tile field with 12pt corners, no outline.
+     Placeholder = printed example (print ink), typed text = writing ink. Focus is the ink caret.
+     The small button sits inside the field's right end. */
+  .ap-field { display: flex; align-items: center; gap: 12px; height: 54px; padding: 0 8px 0 16px; border-radius: 12px; background: var(--tile); }
   .ap-field-text { flex: 1; min-width: 0; font: 500 17px/24px var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; }
   .ap-field-text.is-empty { color: var(--print); font-weight: 400; }
   .ap-field-text.is-empty .ap-caret { background: var(--ink); margin: 0 3px 0 0; }
@@ -41,16 +41,18 @@
   /* the grabber of an inset sheet: a printed bar, "pull down to close" */
   .ap-grabber { width: 36px; height: 4px; margin: 0 auto; border-radius: 2px; background: var(--print-mid); }
 
-  /* area picker: eight soft tiles, 4 × 2, 6pt gaps, 10pt corners, no rules. Each is a 44pt target:
-     dye mark + name. The chosen area is filled with ink, its name in paper (as S.segment's chosen cell). */
+  /* area picker: eight soft tiles, 4 × 2, 6pt gaps, 12pt corners, no rules. Each is a 44pt target:
+     dye mark + name on the neutral --tile. The chosen area takes its own pale tint (A.tint) with the
+     name in its dye and Bold, as the areas on onboarding: one colour on the sheet, never a solid block.
+     The mark stays, so the choice does not rest on colour alone (CI-05). */
   .ap-areas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .ap-area {
     height: 44px; display: flex; align-items: center; justify-content: center; gap: 0; padding: 0 4px;
-    border-radius: 10px; background: var(--tile);
+    border-radius: 12px; background: var(--tile);
     font: 500 14px/18px var(--sans); color: var(--ink); letter-spacing: -0.01em; white-space: nowrap;
   }
-  .ap-area .a-dye { width: 9px; height: 9px; margin-right: 6px; }
-  .ap-area.is-on { font-weight: 600; background: var(--ink); color: var(--paper); }
+  .ap-area .a-dye { width: 8px; height: 8px; margin-right: 6px; }
+  .ap-area.is-on { font-weight: 700; }
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -83,13 +85,16 @@
   };
 
   /* AP.areaPicker(target, doc, opts)
-     opts.selected  area index 0..7 (the chosen one; selection = ink fill, paper text). */
+     opts.selected  area index 0..7 (the chosen one: its pale tint, the name in its dye, Bold). */
   AP.areaPicker = function (target, doc, opts) {
     opts = opts || {};
     const host = el(target);
     host.classList.add('ap-areas');
-    host.innerHTML = doc.areas.map((a, i) =>
-      `<div class="ap-area${i === opts.selected ? ' is-on' : ''}"><i class="a-dye" style="--d:var(--dye-${i + 1})"></i>${esc(a.title)}</div>`).join('');
+    host.innerHTML = doc.areas.map((a, i) => {
+      const on = i === opts.selected;
+      const style = on ? ` style="background:${global.A.tint(i)};color:var(--dye-${i + 1})"` : '';
+      return `<div class="ap-area${on ? ' is-on' : ''}"${style}><i class="a-dye" style="--d:var(--dye-${i + 1})"></i>${esc(a.title)}</div>`;
+    }).join('');
     return host;
   };
 

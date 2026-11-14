@@ -12,8 +12,10 @@
      S.memo(n, placeholder)             the memo as a soft tinted field
      S.icon(name)                       two glyphs the kit lacks: 'focus' (the minute tiles), 'bell'
 
-   Softened with the kit (owner: "너무 딱딱해 보여"): no frames, rules or dividers in any part; tiles
-   with small gaps and round corners; inputs and segments are tinted fields with 10pt corners.
+   Clean round (white paper, Pretendard only): no frames, rules or dividers in any part; tiles with
+   small gaps and round corners; inputs and segments are --tile fields with 12pt corners. The locator
+   is the colour map in miniature: solid dye only for the area's own cell, pale tint = written,
+   wash = done, --tile = empty.
 
    The three selection controls, one job each (CI-02):
      check box  independent yes/no. Two filled states, never confused:
@@ -30,9 +32,10 @@
   const dpr = () => global.devicePixelRatio || 2;
 
   /* S.locator(doc, area, index, opts) → SVG string.
-     The area's block as a 3×3 at mark size (default 36pt), drawn as the chart is: soft tiles with a
-     small gap and round corners, no frame and no rules. head = solid dye, done = wash, empty = the
-     tile tint, this cell = an ink ring (selection is ink). */
+     The area's block as a 3×3 at mark size (default 36pt), drawn as the colour map is: soft tiles
+     with a small gap and round corners, no frame and no rules. head = solid dye (one of the chart's
+     16 area cells), done = the L1 wash, written = the pale tint (A.tint), empty = --tile, this cell
+     = an ink ring (selection is ink). */
   S.locator = function (doc, area, index, opts) {
     opts = opts || {};
     const d = dpr();
@@ -50,7 +53,8 @@
       const col = i % 3, row = Math.floor(i / 3);
       const x = xs[col], y = xs[row], w = cw[col], h = cw[row];
       const k = i < 4 ? i : i - 1;
-      const fill = i === 4 ? `var(--dye-${area + 1})` : a.actions[k] && a.actions[k].done ? `var(--wash-l1-${area + 1})` : 'var(--tile)';
+      const act = a.actions[k] || {};
+      const fill = i === 4 ? `var(--dye-${area + 1})` : act.done ? `var(--wash-l1-${area + 1})` : act.text ? A.tint(area) : 'var(--tile)';
       out += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" style="fill:${fill}"/>`;
       if (i !== 4 && k === index) {
         const t = Math.round(1.5 * d);

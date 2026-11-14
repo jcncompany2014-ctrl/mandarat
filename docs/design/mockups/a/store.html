@@ -5,61 +5,59 @@
 <meta name="mock:size" content="1290x932">
 <title>A · 앱 스토어 스크린숏 1–3</title>
 <link rel="stylesheet" href="/tools/design-mockups/kit.css">
-<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/parts-widgets.css">
 <style>
   /* Three 6.9" frames (1320 × 2868 px = 440 × 956pt), drawn here at 430 × 932 each.
-     Posters, not captures. One system for all three: the caption zone is the top 300pt (a printed
-     caption, then a two-line MaruBuri headline at 2.8× the caption); below it, one picture cropped to
-     its best part. What changes per frame is the ground and the crop:
-       1 paper   the sheet itself, cropped full-bleed to the five middle columns (text legible)
-       2 ink     today's page as a paper sheet laid on the core's ink, bleeding off the bottom
-       3 wall    the Home Screen: our two widgets and the island, on the grey wallpaper
-     Grounds are the app's own: paper, the core's ink, and a phone. No dye ground: a dye means an area.
-     Softened with the kit: plain (untracked) captions, the sheet as soft tiles, today's page with the
-     sheet's round corners, the phone's wallpaper a neutral grey with no blue in it. */
+     Posters, not captures. Clean round: white and pale grounds, Pretendard only, the colour map.
+     One system for all three: a printed caption (16) and a two-line headline in Pretendard Bold
+     (40/52, 2.5× the caption) at the same place; below it one picture, cropped to its best part.
+     What changes per frame is the ground and the picture:
+       1 paper   the whole colour map, as the 만다라트 tab draws it, with its folio line; the mark and
+                 wordmark at the foot (the one brand mark, decision 3)
+       2 tile    today's page, a white sheet rising from the bottom on the --tile ground
+       3 wall    the Home Screen on a pale wallpaper: our two white widgets and the icon; other apps
+                 are frosted blanks with no labels (the large-icon layout), so only ours has colour
+     Grounds are the app's own greys. No dye ground: a dye means an area. */
   html, body { width: 1290px; height: 932px; background: var(--paper); }
   .frame { position: absolute; top: 0; width: 430px; height: 932px; overflow: hidden; }
   .f1 { left: 0; background: var(--paper); }
-  .f2 { left: 430px; background: var(--core); }
-  .f3 { left: 860px; background: #5F5F5F; }
+  .f2 { left: 430px; background: var(--tile); }
+  .f3 { left: 860px; background: var(--print-mid); }
 
-  .cap { position: absolute; left: 32px; top: 76px; font: 500 16px/22px var(--sans); color: var(--print); }
-  .head { position: absolute; left: 32px; right: 24px; top: 106px; font: 600 44px/58px var(--serif); letter-spacing: -0.02em; color: var(--ink); }
-  .f2 .cap { color: var(--print-mid); }
-  .f2 .head { color: var(--on-core); }
-  .f3 .cap { color: #CDCDCD; }
-  .f3 .head { color: var(--paper); }
+  .cap { position: absolute; left: 32px; top: 84px; font: 600 16px/22px var(--sans); color: var(--print); }
+  .head { position: absolute; left: 32px; right: 24px; top: 114px; font: 700 40px/52px var(--sans); letter-spacing: -0.03em; color: var(--ink); }
+  .f3 .cap { color: var(--print-strong); }
 
-  /* 1: a window on the L2 sheet, columns 3–7 from row 2 down, cut in the gaps at the sides so no word
-     is cut, and running off the bottom. Its sides sit on the caption's 32pt margin, so the tiles float
-     on the paper instead of being cropped hard by the frame. */
-  .win { position: absolute; left: 32px; width: 366px; top: 334px; bottom: 0; overflow: hidden; }
-  .win > div { position: absolute; transform-origin: 0 0; }
+  /* 1: the whole map on the 32pt margins, its folio line above, the brand at the foot */
+  .folio1 { position: absolute; left: 32px; right: 32px; top: 300px; height: 22px; display: flex; justify-content: space-between; align-items: baseline;
+    font: 500 15px/22px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
+  .folio1 b { font: 700 16px/22px var(--sans); color: var(--ink); margin-left: 4px; }
+  #map1 { position: absolute; left: 32px; top: 336px; }
+  .brand1 { position: absolute; left: 0; right: 0; bottom: 64px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+  .brand1 span { font: 700 15px/20px var(--sans); letter-spacing: -0.01em; color: var(--print-strong); }
+  .brand1 #mark1 { display: block; }
 
-  .folio { position: absolute; left: 32px; right: 32px; top: 292px; display: flex; justify-content: space-between; align-items: baseline; font: 500 16px/22px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
-  .folio b { font: 600 17px/20px var(--sans); letter-spacing: 0; color: var(--ink); margin-left: 6px; }
+  /* 2: today's page, a white sheet with the inset sheet's round top corners, off the bottom */
+  .page2 { position: absolute; left: 24px; top: 300px; width: 340px; height: 600px; transform-origin: 0 0; background: var(--paper);
+    padding: 16px 0 0; border-radius: 28px 28px 0 0; }
+  .page2 .a-header { margin: 0 22px; }
+  .page2 .a-list { margin: 10px 22px 0; }
 
-  /* 2: today's page */
-    /* the page has the inset sheet's round top corners (22 here × the 1.32 scale ≈ the 28pt sheet radius)
-     and runs off the bottom of the frame */
-  .page2 { position: absolute; left: 24px; top: 330px; width: 290px; height: 520px; transform-origin: 0 0; background: var(--paper); padding: 12px 0 0; border-radius: 22px 22px 0 0; }
-  .page2 .a-header { margin: 0 18px; }
-  .page2 .a-list { margin: 6px 18px 0; }
-
-  /* 3: the Home Screen */
+  /* 3: the Home Screen, scaled 1.12 and centred on the frame */
   .home3 { position: absolute; left: 0; top: 0; width: 364px; height: 440px; transform-origin: 0 0; }
-  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7B7B7B; overflow: hidden; }
-  .app-label { position: absolute; width: 76px; text-align: center; font: 500 11px/14px var(--sans); color: #F2F2F2; }
+  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; overflow: hidden;
+    background: color-mix(in oklab, var(--paper) 42%, transparent); }
+  .app-ours { box-shadow: var(--float-shadow); }
 </style>
 </head>
 <body>
 <section class="frame f1">
   <div class="cap">만다라트 계획표</div>
   <div class="head">한 해 목표를<br>한 장에 채워요</div>
-  <div class="folio"><span>2026 만다라트</span><span>달성<b id="prog1"></b></span></div>
-  <div class="win" id="win1"><div id="sheet1"></div></div>
+  <div class="folio1"><span id="form1"></span><span>달성<b id="prog1"></b></span></div>
+  <div id="map1"></div>
+  <div class="brand1"><span id="mark1"></span><span>만다라트</span></div>
 </section>
 
 <section class="frame f2">
@@ -73,8 +71,7 @@
   <div class="head">홈 화면에서<br>바로 체크해요</div>
   <div class="home3" id="home3">
     <div id="small3" style="position:absolute;left:26px;top:0"></div>
-    <div class="app" id="icon3" style="left:212px;top:6px"></div>
-    <div class="app-label" style="left:204px;top:70px">만다라트</div>
+    <div class="app app-ours" id="icon3" style="left:212px;top:6px"></div>
     <div class="app" style="left:304px;top:6px"></div>
     <div class="app" style="left:212px;top:98px"></div>
     <div class="app" style="left:304px;top:98px"></div>
@@ -84,7 +81,6 @@
     <div class="app" style="left:212px;top:380px"></div>
     <div class="app" style="left:304px;top:380px"></div>
   </div>
-  <div id="island3"></div>
 </section>
 
 <script src="/docs/design/mockups/a/shared.js"></script>
@@ -95,22 +91,13 @@ A.ready().then((doc) => {
   const v = doc.view, rows = v.today.rows;
   const find = (t) => rows.find((r) => r.text === t);
 
-  /* 1 ─ the sheet, cropped. Draw the L2 sheet as the app does, then show only the cells from column 2
-     to 6 and from row 1 down (0-based), scaled to the 366pt measure inside the 32pt margins. */
-  const ch = A.chart('#sheet1', doc, {});
-  const cells = ch.cells, xs = [];
-  ch.el.querySelectorAll('.a-cell').forEach((n) => { const [r, c] = n.dataset.rc.split('-').map(Number); if (r === 0) xs[c] = parseFloat(n.style.left); });
+  /* 1 ─ the whole colour map (names and the goal only), as chart.html draws it, at the 366pt measure */
+  document.querySelector('#form1').textContent = `${v.date.year} 만다라트`;
   document.querySelector('#prog1').textContent = `${v.progress.done}/${v.progress.of}칸`;
-  const cs = ch.cellSize, x0 = xs[2], x1 = xs[6] + cs;
-  const ys = xs; // the sheet is square: row starts = column starts
-  const s = 366 / (x1 - x0);
-  const win = document.querySelector('#win1');
-  const inner = win.firstElementChild;
-  inner.style.left = (-x0 * s) + 'px';
-  inner.style.top = (-ys[1] * s) + 'px';
-  inner.style.transform = `scale(${s})`;
+  A.chart('#map1', doc, { level: 'L2', map: true, width: 366 });
+  AI.app('#mark1', { size: 22, pad: 0, gap: 0.06 });
 
-  /* 2 ─ today's page, laid on ink */
+  /* 2 ─ today's page on the tile ground */
   A.header('#h2', { eyebrow: `${v.date.month} ${v.date.day}일 ${v.date.weekday}`, title: '오늘', figure: `${v.today.done}/${v.today.of}` });
   document.querySelector('#rows2').innerHTML = [
     A.todayRow(doc, find(v.weekFocus[0].text), { rightPrint: '중점' }),
@@ -119,9 +106,9 @@ A.ready().then((doc) => {
     A.todayRow(doc, rows[3]),
     A.todayRow(doc, rows[4]),
     A.todayRow(doc, find('하루 물 2L')),
+    A.todayRow(doc, rows[6]),
   ].join('');
-  const p2 = document.querySelector('#page2');
-  p2.style.transform = `scale(${382 / 290})`;
+  document.querySelector('#page2').style.transform = `scale(${382 / 340})`;
 
   /* 3 ─ the Home Screen widgets */
   W.small('#small3', doc);
@@ -130,13 +117,11 @@ A.ready().then((doc) => {
     { text: rows[0].text, area: rows[0].area, right: rows[0].right },
     Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
   ]);
-  AI.crop('#icon3', { size: 60 });
+  AI.app('#icon3', { size: 60 });
   const k = 1.12, h3 = document.querySelector('#home3');
   h3.style.transform = `scale(${k})`;
   h3.style.left = ((430 - 338 * k) / 2 - 26 * k) + 'px';
-  h3.style.top = '330px';
-  const isl = W.island('#island3', doc);
-  isl.style.left = '97px'; isl.style.top = '11px'; isl.style.width = '236px';
+  h3.style.top = '300px';
 });
 </script>
 </body>

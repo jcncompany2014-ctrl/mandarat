@@ -5,7 +5,6 @@
 <meta name="mock:size" content="390x844">
 <title>A · 설정</title>
 <link rel="stylesheet" href="/tools/design-mockups/kit.css">
-<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <style>
   /* 설정, top of the page. A pushed page outside the four places: no tab bar; the header is pinned
@@ -15,13 +14,15 @@
        swatch      = an appearance option, one of three (보기)
        choice row  = one of many in words (언어)
      Rows that open something end in the one ink chevron (CI-10).
-     Softened with the kit: no rule over the goal or a list or the swatches; space between sections
-     does the grouping; a reminder's time sits in a soft tinted field (an input: 10pt corners). */
+     Clean round: white paper, Pretendard only, section names as on Home (.t-label.is-section); no
+     rule over the goal or a list or the swatches; space between sections does the grouping; a
+     reminder's time sits in a --tile field. Every colour is a token: the night swatch is drawn in
+     --ink with --paper words, so nothing here is hard-coded. */
   .pin { position: absolute; left: 0; right: 0; top: 0; z-index: 5; background: var(--paper); }
   .scroll { position: absolute; left: 0; right: 0; top: 72px; bottom: 0; overflow: hidden; }
-  .sec { margin-top: 24px; }
-  .sec:first-child { margin-top: 12px; }
-  .sec > .a-section { margin-bottom: 2px; }
+  .sec { margin-top: 30px; }
+  .sec:first-child { margin-top: 18px; }
+  .sec > .a-section { margin-bottom: 0; }
 
   /* the goal: the owner's words, the largest and darkest thing on the page */
   .goal { display: flex; align-items: center; gap: 12px; height: 46px; }
@@ -43,25 +44,28 @@
   .s-row:not(.is-on) .a-row-right.s-time { color: var(--ink-2); }   /* the time of a reminder that is off */
   .note { margin-top: 6px; }
 
-  /* swatches: three tiny pages, one row. Each page has a soft edge and round corners; the chosen one
-     gets the ink ring (selection is always ink), 3pt outside it. */
-  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 0 0; }
-  .s-swatch-frame { padding: 3px; border-radius: 12px; }
+  /* swatches: three tiny pages, one row, on --tile (the field colour: they are the control). Each
+     page is the stock it names: 밝게 = paper, 어둡게 = ink, 자동 = both halves. The chosen one gets
+     the ink ring (selection is always ink), 3pt outside it, and a bolder label. */
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 10px 0 0; }
+  .s-swatch-frame { padding: 3px; border-radius: 15px; }
   .s-swatch.is-on .s-swatch-frame { box-shadow: inset 0 0 0 1.5px var(--ink); }
-  .s-page, .s-split { height: 50px; border-radius: 9px; overflow: hidden; }
-  .s-split { display: flex; box-shadow: inset 0 0 0 1px var(--print-mid); }
-  .s-split .s-page { flex: 1; border-radius: 0; box-shadow: none; }
-  .s-page { position: relative; background: var(--paper); box-shadow: inset 0 0 0 1px var(--print-mid); padding: 29px 10px 0; }
-  .s-page-word { position: absolute; left: 10px; top: 5px; font: 600 15px/22px var(--serif); color: var(--ink); }
+  .s-well { padding: 8px 8px 0; border-radius: 12px; background: var(--tile); overflow: hidden; }
+  .s-page, .s-split { height: 46px; border-radius: 7px 7px 0 0; overflow: hidden; }
+  .s-split { display: flex; }
+  .s-split .s-page { flex: 1; border-radius: 0; }
+  .s-page { position: relative; background: var(--paper); padding: 27px 9px 0; }
+  .s-page-word { position: absolute; left: 9px; top: 5px; font: 700 14px/20px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
   .s-page-line { display: block; height: 3px; border-radius: 1.5px; background: var(--print-mid); }
   .s-page-line + .s-page-line { margin-top: 5px; }
   .s-page-line.is-short { width: 55%; }
-  /* the night stock, shown on a day page. Values are the dark set of tokens.css (kit request:
-     expose them as --night-* so a swatch need not repeat them). */
-  .s-page.is-night { --paper: #171411; --ink: #ECE6D8; --print-mid: #3A342D; --print-rule: #2C2722; }
-  .s-split .s-page.is-night { box-shadow: none; }
-  .s-swatch-label { margin-top: 6px; text-align: center; font: 500 14px/18px var(--sans); color: var(--ink); }
-  .s-swatch.is-on .s-swatch-label { font-weight: 600; }
+  /* the night stock, drawn from the light tokens with the inks swapped: the page is --ink, the word
+     --paper, the lines --ink-2. No hex values (the old swatch repeated the warm dark set). */
+  .s-page.is-night { background: var(--ink); }
+  .s-page.is-night .s-page-word { color: var(--paper); }
+  .s-page.is-night .s-page-line { background: var(--ink-2); }
+  .s-swatch-label { margin-top: 8px; text-align: center; font: 500 14px/18px var(--sans); color: var(--ink-2); }
+  .s-swatch.is-on .s-swatch-label { font-weight: 700; color: var(--ink); }
 </style>
 </head>
 <body>
@@ -74,7 +78,7 @@
 <script>
 A.ready().then((doc) => {
   A.header('#header', { back: '홈', title: '설정' });
-  const sec = (label, inner, right) => `<section class="sec"><div class="a-section"><span class="t-label">${label}</span>${right || ''}</div>${inner}</section>`;
+  const sec = (label, inner, right) => `<section class="sec"><div class="a-section"><span class="t-label is-section">${label}</span>${right || ''}</div>${inner}</section>`;
 
   const goal = `<div class="goal"><div class="t-title is-written">${doc.coreGoal}</div><span class="s-chev">${A.icon('chevron', { size: 16 })}</span></div>`;
 

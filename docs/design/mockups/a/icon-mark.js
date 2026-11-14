@@ -1,8 +1,19 @@
 /* 방향 A · the app-icon drawing of the L0 mark. Only icon.html, widgets.html, store.html (and
    _icon-study.html) use it. Needs shared.js loaded first (for nothing but the dye variables in tokens.css).
 
-   Softened with the chart (owner: "너무 딱딱해 보여"): the mark is drawn as the sheet now is, soft
-   tiles with small gaps and gentle corners on paper. No print-ink frame and no cell rules.
+   Clean round (owner: "어어 훨 낫다 좋다"): the icon is AI.app — the heart alone, the ink core and the
+   eight dyes as soft tiles, centred on white with a wide margin. No ring of empty tiles, no crop, no
+   frame, no rules. AI.printed and AI.crop are the earlier drawings, kept only for _icon-study.html.
+
+   AI.app(target, opts) — the app icon.
+     opts.size   outer size in pt (default 512). iOS masks the corners, so the white fills the square.
+     opts.pad    white margin each side, as a fraction of size (default 0.215: the 3×3 is 57% of the
+                 icon, inside the mask's safe area with air to spare).
+     opts.gap    white between tiles, as a fraction of size (default 0.03; never under 1pt, so the
+                 tiles stay apart at 29pt).
+     opts.r      tile corner radius as a fraction of a tile (default 0.24: soft, the same family as the
+                 iOS mask, rounder than the chart's 0.16 because there are only nine tiles).
+   Proportions are fractions of the size, so the same drawing works from 1024 down to 29.
 
    AI.printed(target, opts) — the heart of the sheet (the core in ink, the eight areas round it in their
    dyes) as a 3×3 of soft tiles on paper.
@@ -13,6 +24,26 @@
 (function (global) {
   'use strict';
   const AI = {};
+  AI.app = function (target, opts) {
+    opts = opts || {};
+    const S = opts.size || 512;
+    const pad = S * (opts.pad !== undefined ? opts.pad : 0.215);
+    const g = S - 2 * pad;
+    const gap = Math.max(1, S * (opts.gap !== undefined ? opts.gap : 0.03));
+    const t = (g - 2 * gap) / 3;
+    const rx = t * (opts.r !== undefined ? opts.r : 0.24);
+    let out = '';
+    for (let i = 0; i < 9; i++) {
+      const a = i < 4 ? i : i - 1;
+      const x = pad + (i % 3) * (t + gap), y = pad + Math.floor(i / 3) * (t + gap);
+      out += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${t.toFixed(2)}" height="${t.toFixed(2)}" rx="${rx.toFixed(2)}" style="fill:${i === 4 ? 'var(--core)' : `var(--dye-${a + 1})`}"/>`;
+    }
+    const host = typeof target === 'string' ? document.querySelector(target) : target;
+    host.style.width = S + 'px';
+    host.style.height = S + 'px';
+    host.innerHTML = `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="display:block" aria-hidden="true"><rect width="${S}" height="${S}" style="fill:var(--paper)"/>${out}</svg>`;
+    return { el: host, size: S };
+  };
   AI.printed = function (target, opts) {
     opts = opts || {};
     const S = opts.size || 512;

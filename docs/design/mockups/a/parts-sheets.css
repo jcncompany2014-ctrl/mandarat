@@ -1,7 +1,8 @@
 /* 방향 A · styles for parts-sheets.js (editor.html, sheet.html). Every rule here is a KIT REQUEST:
    it uses only tokens.css variables and can move into tokens.css section 4 as it stands.
-   Softened with the kit: no rules round groups, no dividers inside controls, inputs and segments
-   are soft tinted fields with 10pt corners, today is the vermilion dot. Space does the grouping. */
+   Clean round (owner: "어어 훨 낫다 좋다"): white paper, Pretendard only, no rules round groups, no
+   dividers inside controls. Fields and tracks are --tile with 12pt corners (as the goal field on
+   onboarding.html); space does the grouping. */
 
 /* the sheet's inner layout. .a-sheet supplies the inset, radius, soft shadow and paper. */
 .a-sheet.s-sheet { padding: 6px 24px 24px; z-index: 21; }
@@ -15,31 +16,32 @@
 .s-head-where .t-label:first-child { color: var(--ink); font-weight: 600; }
 .s-head-close { width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
 
-/* a field: the owner's words in a soft tinted field (10pt corners, no edge, no underline);
-   the count printed at its end */
+/* a field: the owner's words in a --tile field, 56pt tall, 12pt corners, no edge (the same field as
+   the goal on onboarding.html); the count printed at its end */
 .s-field {
-  position: relative; margin-top: 4px;
-  padding: 6px 60px 6px 14px; border-radius: 10px; background: var(--tile);
+  position: relative; margin-top: 6px;
+  display: flex; align-items: center; min-height: 56px;
+  padding: 0 64px 0 16px; border-radius: 12px; background: var(--tile);
 }
-.s-field-text { font: 600 26px/36px var(--serif); letter-spacing: -0.01em; color: var(--ink); }
-.s-field-count { position: absolute; right: 14px; bottom: 10px; }
-.s-field + .t-note { display: block; margin-top: 6px; }
+.s-field-text { font: 600 19px/26px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+.s-field-count { position: absolute; right: 16px; top: 50%; margin-top: -9px; }
+.s-field + .t-note { display: block; margin-top: 8px; }
 
 /* group: a printed label above every control (labels above, always: HL-10). Space, not a rule,
    separates one group from the next. */
-.s-group { margin-top: 22px; }
-.s-group > .a-section { margin-bottom: 6px; }
-.s-group > .t-note { display: block; margin-top: 6px; }
+.s-group { margin-top: 24px; }
+.s-group > .a-section { margin-bottom: 8px; }
+.s-group > .t-note { display: block; margin-top: 8px; }
 
-/* segment: a soft tinted track, equal cells, no edge and no dividers; the chosen cell is an ink
-   fill with 8pt corners sitting 3pt inside the track's 10 */
+/* segment: a --tile track (12pt corners), equal cells, no edge and no dividers; the chosen cell is
+   an ink fill with 9pt corners sitting 3pt inside the track */
 .s-seg {
   display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 2px;
-  height: 38px; padding: 3px; border-radius: 10px; background: var(--tile);
+  height: 40px; padding: 3px; border-radius: 12px; background: var(--tile);
 }
 .s-seg > span {
   display: flex; align-items: center; justify-content: center;
-  border-radius: 8px;
+  border-radius: 9px;
   font: 500 14px/18px var(--sans); color: var(--ink);
 }
 .s-seg > span.is-on { background: var(--ink); color: var(--paper); font-weight: 600; }
@@ -76,11 +78,11 @@
 .s-link .s-link-glyph { width: 24px; height: 24px; color: var(--ink); }
 .s-link > svg:last-child { color: var(--ink); margin-right: -3px; }
 
-/* memo: the same soft field as the editor's text, three lines tall, the placeholder printed in it */
-.s-memo { min-height: 84px; padding: 12px 14px; border-radius: 10px; background: var(--tile); }
-.s-memo .t-note { font-size: 13px; }
+/* memo: the same --tile field as the editor's text (12pt corners), the placeholder printed in it */
+.s-memo { min-height: 84px; padding: 14px 16px; border-radius: 12px; background: var(--tile); }
+.s-memo .t-note { font-size: 14px; line-height: 20px; }
 
 /* footer: one quiet destructive word, one ink primary button */
-.s-foot { display: flex; align-items: center; gap: 24px; margin-top: 22px; }
+.s-foot { display: flex; align-items: center; gap: 24px; margin-top: 24px; }
 .s-foot .a-btn { flex: 1; }
 .s-foot .s-quiet { height: 44px; display: flex; align-items: center; font-size: 14px; }

@@ -13,30 +13,31 @@
 
   /* A.minutes(target, opts) → { el, size, cellSize }
      One tile per minute, read like text (left to right, top to bottom). The same drawing as the
-     chart, softened: no frame and no rules, tiles on paper with a small gap and round corners. An
-     empty minute is the chart's empty tint (--tile), a finished one the area's wash, and the "now"
-     tile carries the vermilion dot (the signal's job is today and now).
-     opts.cell     tile size in pt (default 59: 5 × 59 + 4 gaps of 5 = 315pt).
-     opts.gap      gap between tiles in pt (default 5).
+     colour map: no frame and no rules, tiles on paper with a small gap and round corners. An
+     empty minute is the map's empty tile (--tile), a finished one the area's wash (done, as on the
+     map), and the "now" tile carries the vermilion dot (the signal's job is today and now).
+     opts.cell     tile size in pt (default 64: 5 × 64 + 4 gaps of 5.5 = 342pt, the content measure).
+     opts.gap      gap between tiles in pt (default 5.5).
      opts.area     area index 0..7: the focused action's area. Its wash fills a finished minute.
      opts.done     whole minutes finished (0..25).
      opts.frac     how far the current minute has run, 0..1. The current tile fills from the bottom,
                    clipped to the tile's round corners (in the app: one native scaleY over 60 s).
      opts.marks    true = print the minute count (5, 10, 15, 20, 25) as a ruler 8pt to the
-                   right of the tiles, left-aligned (outside the returned size), bottom-aligned with each row. Default true. */
+                   right of the tiles (outside the returned size). Default false: the clock under
+                   the grid already says the time, and a printed ruler is furniture. */
   A.minutes = function (target, opts) {
     opts = opts || {};
     const d = dpr();
-    const cellPt = opts.cell || 59;
+    const cellPt = opts.cell || 64;
     const c = Math.round(cellPt * d);
-    const gap = Math.round((opts.gap === undefined ? 5 : opts.gap) * d);
-    const rx = 6 * d;
+    const gap = Math.round((opts.gap === undefined ? 5.5 : opts.gap) * d);
+    const rx = 8 * d;
     const xs = [];
     for (let i = 0; i < 5; i++) xs.push(i * (c + gap));
     const total = 5 * c + 4 * gap;
     const area = opts.area >= 0 ? opts.area : 1;
-    // finished minutes take the stronger wash (--wash-l1): 25 tiles of 34% read as grey at this size
-    const wash = `var(--wash-l1-${area + 1})`;
+    // finished minutes take the area's wash, the map's "done": pale on white, never a solid dye block
+    const wash = `var(--wash-${area + 1})`;
 
     let defs = '', fills = '', marks = '';
     const done = opts.done || 0;
@@ -54,8 +55,8 @@
           defs += `<clipPath id="a-min-now"><rect x="${bx}" y="${by}" width="${c}" height="${c}" rx="${rx}"/></clipPath>`;
           fills += `<rect x="${bx}" y="${by + c - h}" width="${c}" height="${h}" clip-path="url(#a-min-now)" style="fill:${wash}"/>`;
         }
-        // now: the 6pt vermilion dot, top-left, as on a today cell
-        marks += `<circle cx="${bx + 11 * d}" cy="${by + 11 * d}" r="${3 * d}" style="fill:var(--signal)"/>`;
+        // now: the 6pt vermilion dot, top-left, as on a today cell of the zoomed block
+        marks += `<circle cx="${bx + 12 * d}" cy="${by + 12 * d}" r="${3 * d}" style="fill:var(--signal)"/>`;
       }
     }
 
@@ -66,7 +67,7 @@
     host.style.height = size + 'px';
     let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" aria-hidden="true"><defs>${defs}</defs>${fills}<g>${marks}</g></svg>`;
     // the ruler is printed outside the tiles, on paper, so it keeps its contrast against any fill
-    if (opts.marks !== false) {
+    if (opts.marks) {
       for (let r = 0; r < 5; r++) {
         html += `<span class="t-label" style="position:absolute;left:${size + 8}px;width:24px;top:${(xs[r] + c) / d - 16}px;text-align:left;line-height:12px">${(r + 1) * 5}</span>`;
       }

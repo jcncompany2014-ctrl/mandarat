@@ -5,14 +5,15 @@
 <meta name="mock:size" content="780x844">
 <title>A · 위젯과 잠금 화면</title>
 <link rel="stylesheet" href="/tools/design-mockups/kit.css">
-<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/parts-widgets.css">
 <style>
   /* two 390 × 844 phones on plain grey wallpaper. The phone furniture (dock, island, clock, buttons)
      is the system's, drawn in neutral greys with no hue at all (not the blue-tinted greys of a cool
      wallpaper) so only our widgets carry colour. Other apps are blank squircles: Apple allows a Home
-     Screen in marketing only to show your own widget. Our surfaces float on the soft warm shadow. */
+     Screen in marketing only to show your own widget. Our surfaces are white and float on the soft
+     shadow. Clean round: Pretendard only, figures in Bold, the small widget is the L1 colour map,
+     the Lock Screen count is a ring gauge (no 正), the app icon is AI.app (the mark on white). */
   html, body { width: 780px; height: 844px; background: #4B4B4B; }
   .phone { position: absolute; top: 0; width: 390px; height: 844px; overflow: hidden; background: var(--wall); --wall: #5F5F5F; }
   .phone + .phone { left: 390px; box-shadow: inset 1px 0 0 #4B4B4B; }
@@ -59,7 +60,7 @@
 <div class="phone lockscreen" id="lock">
   <div class="lock-date" id="lock-date"></div>
   <div class="lock-time">9:30</div>
-  <div class="lock-row lock"><div id="lock-rect"></div><div id="lock-tally"></div><div id="lock-add"></div></div>
+  <div class="lock-row lock"><div id="lock-rect"></div><div id="lock-gauge"></div><div id="lock-add"></div></div>
   <div id="live" style="position:absolute;left:16px;top:598px"></div>
   <div class="qbtn" style="left:46px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3.75h8v3.5l-2 3v10h-4v-10l-2-3z"/><path d="M12 13v2.5"/></svg></div>
   <div class="qbtn" style="right:46px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.75 7.75h4l1.5-2.5h5.5l1.5 2.5h4v11h-16.5z"/><circle cx="12" cy="13" r="3.25"/></svg></div>
@@ -74,21 +75,23 @@ A.ready().then((doc) => {
   const v = doc.view, rows = v.today.rows;
   const find = (t) => rows.find((r) => r.text === t);
 
-  // Home Screen: small (the sheet + 오늘 1/10), medium (three rows to tick), the app icon, the island
+  // Home Screen: small (the colour map + 오늘 1/10), medium (three rows to tick, 9개 남음), the app
+  // icon, the island
   W.small('#small', doc);
   W.medium('#medium', doc, [
     { text: v.weekFocus[0].text, area: v.weekFocus[0].area, rightPrint: '중점' },
     { text: rows[0].text, area: rows[0].area, right: rows[0].right },
     Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
   ]);
-  AI.crop('#our-icon', { size: 60 });
+  AI.app('#our-icon', { size: 60 });
   const isl = W.island('#island', doc);
   isl.style.left = '77px'; isl.style.top = '11px'; isl.style.width = '236px';
 
-  // Lock Screen: rectangular (next action), circular (today's 正), circular (담기), the Live Activity
+  // Lock Screen: rectangular (the next action), circular (today's gauge, 1/10), circular (담기), the
+  // Live Activity
   document.querySelector('#lock-date').textContent = `${v.date.month} ${v.date.day}일 ${v.date.weekday}`;
   W.lockRect('#lock-rect', doc);
-  W.lockTally('#lock-tally', doc);
+  W.lockGauge('#lock-gauge', doc);
   W.lockAdd('#lock-add');
   W.live('#live', doc);
 });

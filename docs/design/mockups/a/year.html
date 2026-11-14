@@ -8,28 +8,28 @@
 <link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <style>
-  /* An archived year is the sheet itself, laid on the page exactly as on the 만다라트 tab
-     (CH-17: no box round it, no second header, its dates printed once as the folio line).
-     Under it, how it filled: four thumbnails at the L1 level, then four figures at one size. */
-  .sheet { display: flex; flex-direction: column; align-items: center; margin-top: 12px; }
-  .sheet-line { align-self: stretch; height: 18px; margin: 0 var(--gutter); display: flex; justify-content: space-between; align-items: baseline; }
-  #chart { margin: 6px 0; }
+  /* An archived year is the sheet itself, laid on the page exactly as on the 만다라트 tab: the colour
+     map on the gutter, its name and dates printed once above it (CH-17: no box, no second header).
+     Under it, how it filled (four thumbnails that really differ), then four figures at one size. */
+  .sheet { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+  .sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+  #chart { margin: 12px 0 0; }
 
-  .sec { margin-top: 24px; }
-  .sec + .sec { margin-top: 30px; }
+  .sec { margin-top: 30px; }
+  .sec .a-section { margin-bottom: 10px; }
 
-  /* 표가 채워진 모습: four frames of the same sheet, L1 (solid structure, wash for done, paper),
-     on one baseline, the date under each in print ink. The last one is the year as it closed. */
+  /* 표가 채워진 모습: four frames of the same sheet at the L1 level, on one baseline, the date under each.
+     The last one is the year as it closed, its date in ink. */
   .frames { display: flex; justify-content: space-between; }
-  .frame { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-  .frame.is-last .t-label { color: var(--ink); }
+  .frame { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .frame .t-label { line-height: 16px; }
+  .frame.is-last .t-label { color: var(--ink); font-weight: 600; }
 
-  /* four figures, one size (TY-10): four filled-in fields in a row, no rules and no boxes; the space
-     above groups them. Label printed, figure written: MaruBuri 22 with the unit in Pretendard. */
-  .figs { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 12px; }
+  /* four figures, one size (TY-10): filled-in fields in a row, as on Home's hero. No rules, no boxes. */
+  .figs { display: flex; justify-content: space-between; margin-top: 28px; }
   .fig { display: flex; flex-direction: column; gap: 2px; }
-  .fig .t-figure { font-size: 22px; line-height: 30px; white-space: nowrap; }
-  .fig .t-figure small { font-size: 11px; margin-left: 1px; margin-right: 2px; }
+  .fig .t-figure { white-space: nowrap; }
+  .fig .t-figure small { margin-left: 1px; }
 </style>
 </head>
 <body>
@@ -44,9 +44,7 @@
       <div class="a-section"><span class="t-label is-section">표가 채워진 모습</span></div>
       <div class="frames" id="frames"></div>
     </section>
-    <section class="sec">
-      <div class="figs" id="figs"></div>
-    </section>
+    <div class="figs" id="figs"></div>
   </div>
   <div id="bar"></div>
 </div>
@@ -55,36 +53,40 @@
 A.ready().then((doc) => {
   // The archived 2025 sheet. The demo record has one sheet; the current app's archive screens draw
   // that same sheet as 2025 (ko-year-sheet.png), so this does too: 24 of 64, 1월 6일 – 12월 31일, 120일 기록.
-  A.header('#header', { back: '통계', title: doc.coreGoal, written: true, figure: '2025', action: 'share' });
-  document.querySelector('#form-name').textContent = '한 해 돌아보기 · 지난 표';
+  A.header('#header', { back: '통계', title: doc.coreGoal, written: true, action: 'share' });
+  document.querySelector('#form-name').textContent = '2025 한 해 돌아보기';
   document.querySelector('#dates').textContent = '1월 6일 – 12월 31일';
-  // read-only: no today corners on a closed year
-  A.chart('#chart', doc, { level: 'L2', cell: 41, today: false });
+  // the whole sheet is the colour map: names and the goal only; read-only, so no today marks
+  A.chart('#chart', doc, { level: 'L2', map: true, width: 342 });
 
   // ── how it filled ──────────────────────────────────────────────────────────
-  // The record has no completion dates, so the order is invented (listed in the report):
-  // the daily habits first, then the one-off cells through the year. Each frame is cumulative.
-  const by = [
+  // The record has no dates, so the order is invented (listed in the report). Cells are written
+  // through the year (the first n of each area by each quarter) and ticked: the daily habits first,
+  // then the one-off cells. Each frame is cumulative; a ticked cell is always a written one.
+  const doneBy = [
     ['하루 물 2L', '가계부 쓰기', '명상 10분', '구독 정리', '다큐 시청'],
     ['1만보 걷기', '정기 건강검진', '온라인 강의', '감사일기', '사진 찍기', '식물 키우기', '부모님 주 1통화'],
     ['사이드 프로젝트', '새 기술 1개', '요리 10가지', '호흡 연습', '산책하기', '아침 글쓰기'],
   ];
+  const writtenBy = [3, 5, 7];        // of each area's eight, by 3월, 6월, 9월 (12월 = the record: all)
   const dates = ['3월 31일', '6월 30일', '9월 30일', '12월 31일'];
   const upTo = (k) => {
-    if (k === 3) return null; // the year as it closed: the record itself
-    const set = new Set(by.slice(0, k + 1).flat());
+    if (k === 3) return doc;          // the year as it closed: the record itself
+    const done = new Set(doneBy.slice(0, k + 1).flat());
     const d = JSON.parse(JSON.stringify(doc));
-    d.areas.forEach((a) => a.actions.forEach((x) => { x.done = x.done && set.has(x.text); }));
+    d.areas.forEach((a) => a.actions.forEach((x, i) => {
+      x.done = x.done && done.has(x.text);
+      if (!x.done && i >= writtenBy[k]) x.text = '';
+    }));
     return d;
   };
   const host = document.querySelector('#frames');
   dates.forEach((date, k) => {
-    const d = upTo(k) || doc;
     const f = document.createElement('div');
     f.className = 'frame' + (k === 3 ? ' is-last' : '');
     f.innerHTML = `<div class="th"></div><span class="t-label">${date}</span>`;
     host.appendChild(f);
-    A.chart(f.querySelector('.th'), d, { level: 'L1', cell: 8, today: false });
+    A.chart(f.querySelector('.th'), upTo(k), { level: 'L1', cell: 8 });
   });
 
   // ── four figures at one size ───────────────────────────────────────────────
@@ -92,7 +94,7 @@ A.ready().then((doc) => {
   // 가장 긴 연속 is invented for a closed year (the live record only knows this week's 3일).
   const u = (t) => t.replace(/(\d+)([^\d/\s]+)/g, '$1<small>$2</small>');
   const figs = [['기록한 날', '120일'], ['가장 긴 연속', '12일'], ['달성', '24/64칸'], ['집중', '2시간 5분']];
-  document.querySelector('#figs').innerHTML = figs.map(([l, f]) => `<div class="fig"><span class="t-label">${l}</span><span class="t-figure">${u(f)}</span></div>`).join('');
+  document.querySelector('#figs').innerHTML = figs.map(([l, f]) => `<div class="fig"><span class="t-label">${l}</span><span class="t-figure is-field">${u(f)}</span></div>`).join('');
 
   A.tabBar('#bar', { active: 'stats' });
 });
