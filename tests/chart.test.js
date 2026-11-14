@@ -242,7 +242,7 @@ test('fitFontSize: 세 줄 안에 드는 가장 큰 크기, 어느 것도 안 �
 });
 
 test('표 파일에는 하드코딩한 먹색(#23211C · rgba(43,38,32,…))이 없다 — 색은 chart.ts에서', () => {
-  const files = ['src/theme/chart.ts', 'src/components/GridMark.tsx', 'src/components/ChartBoard.tsx', 'src/components/ChartSketch.tsx'];
+  const files = ['src/theme/chart.ts', 'src/components/GridMark.tsx', 'src/components/ChartBoard.tsx'];
   for (const f of files) {
     const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     assert.ok(!/#23211C/i.test(src), `${f}: #23211C`);

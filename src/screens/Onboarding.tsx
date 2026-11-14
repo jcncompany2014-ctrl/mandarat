@@ -55,8 +55,8 @@ const TILE_TEXT = {
   tracking: -0.02,
 } as const;
 
-/** 아래 막대 — 위 8, 단추와 글 링크 사이 14, 아래 24(홈 표시줄이 있으면 그 높이 · 작은 화면 20 · 키보드 위 12) */
-const BAR = { top: 8, gap: 14, bottom: 24, bottomShort: 20, onKeyboard: 12 } as const;
+/** 아래 막대 — 위 8, 단추와 글 링크 사이 14, 아래 24(홈 표시줄이 있으면 그 높이 · 작은 화면 16 · 키보드 위 12) */
+const BAR = { top: 8, gap: 14, bottom: 24, bottomShort: 16, onKeyboard: 12 } as const;
 
 /** 키보드가 올라와 목표 칸을 가릴 때 — 칸 아래(예시 줄까지)에서 이만큼 더 보이게 스크롤 */
 const KEYBOARD_ROOM = 8;

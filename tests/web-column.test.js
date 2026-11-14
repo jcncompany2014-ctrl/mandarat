@@ -7,15 +7,6 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const src = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
-test('온보딩: 3×3 표는 화면 가운데에, 폭에 맞춰 크게(작은 화면 228 · 그 밖 300)', () => {
-  const onb = src('src/screens/Onboarding.tsx');
-  assert.match(onb, /const sketchSize = Math\.round\(Math\.min\(winW - GUTTER \* 2, winH < 700 \? 228 : 300\)\)/);
-  assert.match(onb, /<View style=\{\{ marginTop: 24, alignItems: 'center' \}\}>\s*<ChartSketch M=\{M\} size=\{sketchSize\}/);
-  assert.doesNotMatch(onb, /alignItems: 'flex-start' \}\}>\s*<ChartSketch/);
-  // 큰 표에서는 영역 이름도 한 단계 크게
-  assert.match(src('src/components/ChartSketch.tsx'), /size >= 240 \? AREA_SIZES_LARGE : AREA_SIZES/);
-});
-
 test('웹: 폭에 맞춰 크기를 정하는 화면은 묶인 폭(lib/screen)을 쓴다', () => {
   const files = [
     'src/components/kit/Row.tsx', 'src/components/ChartBoard.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/FocusTimer.tsx',

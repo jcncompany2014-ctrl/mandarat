@@ -1,4 +1,4 @@
-// X-I — 첫 화면(시작하기)을 언어마다: 빈 표가 그 언어의 기본 영역 8개로 열리고, 예시를 누르면 목표 칸이 차고,
+// X-I — 첫 화면(시작하기)을 언어마다: 미리보기가 그 언어의 기본 영역 8개로 열리고, 예시를 누르면 목표 칸이 차고,
 // '목표는 나중에'로 시작하면 홈으로 간다. 개발 번들(언어 줄이 있을 때)에서는 다른 언어를 고르면 기본 영역 이름이 그 언어로 바뀐다.
 // 예시 문서는 지우지 않고 따로 들고 있다가 끝나면 그대로 되돌린다(다음 장면이 그대로 돈다). --width 375로도 돌린다.
 require('../../tests/register');
@@ -18,6 +18,13 @@ module.exports = async (page, h) => {
   const seen = async (text, what) => {
     if (!(await page.getByText(text, { exact: true }).first().isVisible())) throw new Error(`${what}이 없어요: '${text}'`);
   };
+  // 3×3 미리보기는 그림 하나(role img) — 칸 글은 줄을 나눠 그릴 수 있어(Relation-/ships) 화면 읽기 이름으로 본다
+  const previewSays = async (names, what) => {
+    const preview = page.locator(`[role="img"][aria-label*="${names[0]}"]`).first();
+    if (!(await preview.isVisible())) throw new Error(`${what} 미리보기가 없어요: '${names[0]}'`);
+    const label = (await preview.getAttribute('aria-label')) ?? '';
+    for (const n of names) if (!label.includes(n)) throw new Error(`${what}이 없어요: '${n}' (${label})`);
+  };
   const saved = await offApp(([d, l]) => {
     const keep = { doc: localStorage.getItem(d), lang: localStorage.getItem(l) };
     localStorage.removeItem(d);
@@ -27,16 +34,18 @@ module.exports = async (page, h) => {
     await page.goto(h.url);
     await page.waitForSelector(`[data-testid="${h.TID.onbGoal}"]`, { timeout: 30000 });
     await h.settle();
+    await seen(o.brand, '브랜드 줄');
     await seen(o.later, '목표는 나중에 버튼');
     await seen(o.defaultCaption, '기본 영역 안내');
-    await seen(o.fromTemplate, '템플릿 버튼');
-    for (const t of seedTitles(h.lang)) await seen(t, '기본 영역');
+    await seen(o.fromTemplate, '템플릿 링크');
+    await previewSays(seedTitles(h.lang), '기본 영역');
     await h.shot('xi-onboarding');
 
     await h.tap(h.TID.onbSample);
     await h.settle();
     if ((await h.tid(h.TID.onbGoal).inputValue()) !== o.ex1) throw new Error(`예시가 목표 칸에 들어가지 않았어요: ${o.ex1}`);
     await seen(o.start, '시작하기 버튼');
+    await previewSays([o.ex1], '가운데 칸 목표');
     await h.shot('xi-onboarding-example');
 
     await h.tid(h.TID.onbGoal).fill('');

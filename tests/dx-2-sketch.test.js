@@ -3,31 +3,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { fitBox, longestWord } = require('../src/lib/text');
-const { estimateLines } = require('../src/theme/chart');
-const { TEMPLATES } = require('../src/data/templates');
 
 const src = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 
-test('D-5: 처음 화면 스케치(180pt) — 템플릿 영역 이름은 어절 가운데서 끊기지 않고 칸 안에 든다', () => {
-  const cell = (180 - 2) / 3;
-  const inner = cell - 8; // 둘레 칸 안쪽 여백 4
-  const names = [...TEMPLATES.flatMap((t) => t.areas.map((a) => a.title)), '사이드 프로젝트', '포트폴리오'];
-  for (const n of names) {
-    const f = fitBox(n, inner, inner, [11, 10, 9], 3, 14 / 11);
-    assert.ok(longestWord(n, f.fs) <= inner, `${n}: ${f.fs}pt 어절 폭 ${longestWord(n, f.fs)} > ${inner}`);
-    assert.ok(estimateLines(n, inner, f.fs) <= f.lines, `${n}: 줄 수`);
-    assert.ok(f.lh * f.lines <= inner, `${n}: 높이`);
-  }
-});
-
-test('D-5 · D-6: 스케치는 높이까지 보고 크기를 고르고, 예시는 구분점 없이 겹치지 않는다', () => {
-  const sketch = src('src/components/ChartSketch.tsx');
-  assert.match(sketch, /fitBox\(goal, inner, inner, CENTER_SIZES, CENTER_LINES[,)]/);
-  // 화면 글자(Pretendard) 폭으로 잰다 — SVG 기본값(한글 1em)으로 재면 실제보다 좁게 맞춘다
-  assert.match(sketch, /PRETENDARD_GLYPHS\)/);
-  assert.match(sketch, /numberOfLines=\{fit\.lines\}/);
-  assert.doesNotMatch(sketch, /fitFontSize/);
+test('D-6: 처음 화면 예시는 입력칸 안내와 겹치지 않는다(미리보기 칸 글 맞추기는 tests/a-s5)', () => {
   const onb = src('src/screens/Onboarding.tsx');
   assert.match(onb, /const examples = \[o\.ex1, o\.ex2, o\.ex3\]/);
   assert.match(onb, /placeholder=\{o\.goalPlaceholder\}/);
@@ -36,8 +15,6 @@ test('D-5 · D-6: 스케치는 높이까지 보고 크기를 고르고, 예시�
     const placeholder = o.goalPlaceholder.replace(o.exampleMark, '').trim();
     assert.ok(![o.ex1, o.ex2, o.ex3].some((e) => e.includes(placeholder) || placeholder.includes(e)), `${l}: 입력칸 안내와 같은 예시를 두 번 보이지 않는다`);
   }
-  assert.doesNotMatch(onb, />\s*·\s*</, '예시 사이 구분점 글자가 없다');
-  assert.match(onb, /minHeight: 32/);
 });
 
 test('D-13: 8칸 다 달성한 블록은 크게 보기·영역 화면에서도 테두리와 달성', () => {

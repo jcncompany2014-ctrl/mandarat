@@ -24,9 +24,10 @@ test('81칸 표: 칸보다 긴 어절은 가운데서 끊기지 않게 글자를
   assert.doesNotMatch(grid, /cellBreak\([^)]*PRETENDARD_GLYPHS/);
 });
 
-test('온보딩 스케치: 영역 이름 칸도 Pretendard 폭으로 맞춘다', () => {
-  const sketch = src('src/components/ChartSketch.tsx');
-  assert.equal((sketch.match(/PRETENDARD_GLYPHS\)/g) ?? []).length, 2);
+test('온보딩 미리보기: 영역 이름 칸도 Pretendard 폭으로 맞춘다', () => {
+  // 처음 화면의 3×3 미리보기(Onboarding.tsx tileLabel) — 크기 고르기(fitBox)와 어절 폭(longestWord) 둘 다 Pretendard 폭
+  const onb = src('src/screens/Onboarding.tsx');
+  assert.equal((onb.match(/PRETENDARD_GLYPHS, l\)/g) ?? []).length, 2);
   // 같은 상자에서 Pretendard 폭은 SVG 기본값보다 큰 글자를 허락한다(한글 0.864em < 1em)
   const svg = fitBox('포트폴리오', 46, 46, [11, 10, 9], 3, 14 / 11);
   const pre = fitBox('포트폴리오', 46, 46, [11, 10, 9], 3, 14 / 11, PRETENDARD_GLYPHS);

@@ -17,6 +17,9 @@ import type { M } from '../../theme/usePalette';
 import { SET } from './rows';
 import { problemLine, statusLine, syncSupported } from './syncView';
 
+/** 이 기기에 iCloud 줄이 있는가 — 없으면(웹 · 안드로이드 · Expo Go) 안내 한 장이고, 설정 화면의 백업 줄이 그 아래 첫 줄이 된다 */
+export const SYNC_ROWS = syncSupported(Platform.OS, icloud);
+
 export function SyncSection({ M }: { M: M }) {
   const t = useMsg();
   if (!syncSupported(Platform.OS, icloud)) {
