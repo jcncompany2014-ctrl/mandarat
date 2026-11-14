@@ -229,7 +229,8 @@ function HeaderBody({
         )}
         <Text
           ref={titleRef}
-          accessibilityRole="header"
+          // 덩어리가 이미 머리(header)면 제목은 머리를 겹쳐 달지 않는다 — 웹에서 h1 안의 h1이 된다
+          accessibilityRole={grouped ? undefined : 'header'}
           style={{ ...(headline ? ROLE.headline : ROLE.title), color: M.ink, paddingRight: padRight }}
           numberOfLines={headline ? 3 : 2}
         >

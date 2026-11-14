@@ -26,3 +26,9 @@ test('checked 상태를 가진 칸은 모두 aria-checked도 단다', () => {
   }
   assert.deepEqual(missing, []);
 });
+
+test('Header: 덩어리가 머리(header)일 때 제목은 머리를 겹쳐 달지 않는다(웹에서 h1 안의 h1)', () => {
+  const s = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'common.tsx'), 'utf8');
+  assert.match(s, /accessibilityRole=\{grouped \? 'header' : undefined\}/);
+  assert.match(s, /ref=\{titleRef\}[\s\S]{0,200}accessibilityRole=\{grouped \? undefined : 'header'\}/);
+});
