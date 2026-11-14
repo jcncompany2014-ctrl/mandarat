@@ -10,13 +10,14 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
-const { BANNED_COPY, BANNED_COPY_RE, MGMT_LABEL, MOOD_LABEL, SHAPE_LABEL } = require('../src/lib/copy');
+const { BANNED_COPY, BANNED_COPY_RE, MGMT_LABEL } = require('../src/lib/copy');
+const { MOOD_OPTS } = require('../src/data/defaults');
 
 const ROOT = path.join(__dirname, '..');
 // glossary.ts는 금지어 목록 자체('완료' · '2026' …)를, names.ts는 언어 이름을 제 글자로 담는다
 const SKIP = new Set(['src/lib/copy.ts', 'src/types.ts', 'src/i18n/glossary.ts', 'src/i18n/names.ts']);
 /** 저장값(Mood · Mgmt · CellShape) — 화면에는 copy.ts의 이름으로 보이고, 이 글자 그대로는 저장·비교에만 쓰인다 */
-const STORED = new Set([...Object.keys(MGMT_LABEL), ...Object.keys(MOOD_LABEL), ...Object.keys(SHAPE_LABEL)]);
+const STORED = new Set([...Object.keys(MGMT_LABEL), ...MOOD_OPTS, '둥근', '각진']);
 /**
  * 금지어 줄기가 들어 있어도 낱말장대로인 글 — '파일|글' 그대로.
  * - '이루다'는 핵심 목표에만 쓴다: 64칸을 다 달성한 축하의 '핵심 목표를 이뤘어요'.

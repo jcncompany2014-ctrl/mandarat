@@ -14,6 +14,11 @@ module.exports = async (page, h) => {
   const seen = async (text) => {
     if (!(await page.getByText(text, { exact: true }).first().isVisible())) throw new Error(`'${text}'이 보이지 않아요`);
   };
+  // 지도의 영역 이름은 칸 폭에 맞춰 줄을 나눠 그린다('자기\n계발') — 블록 단추의 읽는 이름(전체 이름으로 시작)으로 본다
+  const onMap = async (ti, title) => {
+    const label = await h.tid(h.TID.gridBlock(ti)).getAttribute('aria-label');
+    if (!label || !label.startsWith(title)) throw new Error(`지도에 '${title}' 영역이 없어요 (${label})`);
+  };
 
   try {
     for (const id of ['career', 'learn']) {
@@ -32,7 +37,7 @@ module.exports = async (page, h) => {
       await h.settle();
       await page.waitForSelector(`[data-testid="${h.TID.gridTable}"]`, { timeout: 10000 });
       await h.settle();
-      for (const a of t.areas) await seen(a.title);
+      for (const [ti, a] of t.areas.entries()) await onMap(ti, a.title);
       await h.shot(`xj-grid-${id}`);
     }
   } finally {

@@ -5,7 +5,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { MOODS, contrastEdition, toHex } = require('../src/theme/moods');
 const { contrast } = require('../src/theme/palette');
 const { rolloverToday } = require('../src/lib/routine');
 
@@ -75,12 +74,13 @@ test('HANDOFF-B1: 준비됐는지만 읽는 useReady — 문지기(Gate)는 문�
 // ── 화면 읽기 ─────────────────────────────────────────────────────────────────
 
 test('NEW-2 · NEW-5(ui): 칸·영역 자리는 어디서나 고유어 서수 — 81칸 줌 머리 · 실천 시트 머리', () => {
-  const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /m\.chart\.areaOrdinalSay\(\{ n: focus \+ 1 \}\)/);
+  // 크게 본 영역의 넘기기 줄(디자인 A, S2: 영역 화면 AreaPage의 Pager)
+  const grid = src('src/screens/area/AreaPage.tsx');
+  assert.match(grid, /m\.chart\.areaOrdinalSay\(\{ n: ti \+ 1 \}\)/);
   assert.equal(require('../src/i18n').msg('ko').chart.areaOrdinalSay({ n: 3 }), '8개 영역 중 세 번째');
   const sheet = src('src/overlays/ActionSheet.tsx');
   assert.match(sheet, /m\.sheet\.headA11y\(\{ area, ordinal: m\.fmt\.ordinalCell\(\{ n: ai \+ 1 \}\) \}\)/);
-  assert.equal(require('../src/i18n/ko/sheet').default.headA11y({ area: '건강', ordinal: require('../src/i18n/ko/fmt').default.ordinalCell({ n: 3 }) }), '건강 영역, 세 번째 칸, 영역 보기');
+  assert.equal(require('../src/i18n/ko/sheet').default.headA11y({ area: '건강', ordinal: require('../src/i18n/ko/fmt').default.ordinalCell({ n: 3 }) }), '건강 영역, 실천 8칸 중 세 번째 칸, 영역 보기');
   // 앱 소스의 읽는 말에 '3번째'·'${n + 1}번째' 꼴이 남지 않는다(주석 제외)
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
   for (const f of walk(path.join(ROOT, 'src')).filter((x) => /\.tsx?$/.test(x))) {
@@ -96,30 +96,16 @@ test('NEW-3(a11y): 연속 기록 줄은 체크 · 몸통 두 번만 멈추고, �
   // 정한 것은 소리 말(planSay — en '3x a week'를 '3 times a week'로)
   assert.match(line, /const bodyLabel = \[text, area, planSay, week, run\.a11y, done \? m\.today\.doneToday : ''\]/);
   assert.equal(require('../src/i18n/ko/today').default.doneToday, '오늘 했어요');
-  assert.match(line, /<View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">\s*<WeekStrip /);
+  // 이번 주 요일 칸(디자인 A: kit DayBoxes, 누를 수 없음)은 화면 읽기에서 숨기고 몸통 이름이 말한다
+  assert.match(line, /<View style=\{\{ marginLeft: daysInset \}\} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">\s*<DayBoxes /);
+  assert.doesNotMatch(line, /<DayBoxes [^>]*onPressDay/);
 });
 
-test('NEW-2(ui): 연속 기록 칸은 모든 줄 · 머리글이 같은 폭(가장 긴 기록 글에 맞춤) — 이번 주 칸이 요일 머리글 아래 그대로', () => {
-  const s = src('src/screens/TodayModes.tsx');
-  assert.doesNotMatch(s, /minWidth: RUN_W/);
-  assert.match(s, /const runW = useMemo\(\s*\(\) => Math\.ceil\(Math\.max\(RUN_W, \.\.\.rows\.map\(\(r\) => textWidth\(streakCell\(r\.streak\)\.text, RUN_FS \* Math\.min\(fontScale, RUN_SCALE_MAX\)\) \+ 2\)\)\)/);
-  assert.equal((s.match(/\{ width: runW, flexShrink: 0, textAlign: 'right'/g) ?? []).length, 2, '머리글 · 줄');
-  assert.match(s, /runW=\{runW\}/);
-  // 폭은 가장 긴 글을 덮는다 — 1.3배에서 '136일'(17pt)이 잘리지 않는다
-  const { textWidth } = require('../src/lib/labelFit');
-  const w = Math.ceil(Math.max(40, ...['3일', '136일'].map((t) => textWidth(t, 17 * 1.3) + 2)));
-  assert.ok(w >= textWidth('136일', 17 * 1.3), `${w}`);
-  // runW를 세는 훅은 빈 목록에서 일찍 돌아가기 전에 있다(훅 순서)
-  const body = slice(s, 'export function TodayStreak(', 'if (rows.length === 0) {');
-  assert.match(body, /const runW = useMemo/);
-});
+// NEW-2(ui) '연속 기록 칸은 모든 줄 · 머리글이 같은 폭(runW)'은 디자인 A(S3)에서 지웠다 — 기록은 제목 줄 위의 오른쪽 글(kit RowRight)이고,
+// 이번 주는 줄 아래 요일 칸(DayBoxes)이라 맞출 머리글 열이 없다. 훅 순서는 tests/a-s3.test.js가 본다
 
-test('NEW-4(a11y): 반복 안 함 칩은 보이는 글 그대로 읽는다', () => {
-  const s = src('src/components/DayPicker.tsx');
-  assert.match(s, /<PaperChip M=\{M\} label=\{m\.core\.noRepeat\} onPress=\{\(\) => pick\(\[\]\)\} \/>/);
-  assert.equal(require('../src/i18n').msg('ko').core.noRepeat, '반복 안 함');
-  assert.doesNotMatch(s, /반복 해제/);
-});
+// NEW-4(a11y) '반복 안 함 칩'은 O1에서 지웠다 — 칩을 쓰던 곳(편집 창)은 늘 hideClear였고, 디자인 A의 반복 요일(DayPicker)에는
+// 해제가 없다(습관은 요일이 하나는 있어야 한다). 빠른 고르기의 읽는 말은 tests/a-o1.test.js가 본다
 
 test('A-1(1): 오늘 할 일 고르기 줄은 소리 말(say)을 읽는다', () => {
   const s = src('src/overlays/PickToday.tsx');
@@ -135,47 +121,51 @@ test('HANDOFF-A9 · NEW-1: 통계는 날짜를 또박또박 읽는다(속도 · 
   assert.doesNotMatch(s, /right, paceText\]/);
   assert.match(s, /pickedText=\{picked \? pickedSpeech\(doc, picked, l\) : m\.stats\.noPick\}/);
   assert.match(s, /accessibilityLabel=\{`\$\{e\.say\}\$\{m\.core\.listSep\}\$\{e\.text\}`\}/);
-  assert.match(s, /rightLabel=\{map\.since \? m\.stats\.since\(\{ date: fmtDateLong\(map\.since, l\) \}\) : undefined\}/);
+  // 범위 줄 오른쪽(10주) — 기록이 그 안에서 시작했으면 '…부터', 소리로는 긴 날짜(디자인 A S4)
+  assert.match(s, /say: m\.stats\.since\(\{ date: fmtDateLong\(map\.since, l\) \}\)/);
   const ko = require('../src/i18n/ko/stats').default;
   assert.equal(ko.pace({ date: '10월 20일 화요일' }), '이 속도면 10월 20일 화요일');
   assert.equal(ko.noPick, '고른 날 없음');
   assert.equal(ko.since({ date: '10월 3일 토요일' }), '10월 3일 토요일부터');
-  const head = slice(s, 'const SectionHead = memo(', '// ── 큰 숫자 둘');
-  assert.match(head, /NUM\]\} accessibilityLabel=\{rightLabel \?\? right\}>\{right\}<\/Text>/);
-  assert.match(s, /accessibilityLabel=\{ledgerLabel\(r, l\)\}/);
+  assert.match(s, /accessibilityLabel=\{range\.say \?\? range\.text\}/);
+  // 유형 줄 — 숫자가 있으면 장부 소리 말(ledgerLabel), 기록이 없는 줄은 이름 · 한 줄
+  assert.match(s, /const said = r\.value != null \? ledgerLabel\(\{ \.\.\.r, value: r\.value \}, l\) : \[r\.label, r\.sub\]/);
+  assert.match(s, /accessibilityLabel=\{said\}/);
 });
 
 // ── 누르기 · 표시 ─────────────────────────────────────────────────────────────
 
 test('NEW-3(ui): 시작하기의 끝낸 단계 · 아직 먼 단계는 누르는 것이 아니다(눌림 색 · 웹 Tab 멈춤 없음, disabled 없음)', () => {
   const s = src('src/screens/Dashboard.tsx');
-  const guide = slice(s, 'g.steps.map((st, i) => {', '        })}');
-  assert.match(guide, /if \(!pressable\) \{\s*return \(\s*<View key=\{st\.key\} accessible accessibilityRole="text" accessibilityLabel=\{a11yLabel\} style=\{rowStyle\}>/);
-  assert.match(guide, /<Pressable\s+key=\{st\.key\}\s+onPress=\{\(\) => run\(st\.key\)\}\s+accessibilityRole="button"/);
+  // 디자인 A(S1): 글 줄은 onPress 없는 kit Row(읽기만 하는 View 한 덩어리, role text), 누르는 단계만 kit LinkRow(role button)
+  const guide = slice(s, 'g.steps.map((st, i) => {', '\n      })}');
+  const still = guide.slice(guide.indexOf('if (!pressable) {'), guide.indexOf('return (\n          <LinkRow'));
+  assert.match(still, /<Row\s+key=\{st\.key\}/);
+  assert.match(still, /accessibilityRole="text"\s+accessibilityLabel=\{a11yLabel\}/);
+  assert.doesNotMatch(still, /onPress/);
+  assert.match(guide, /<LinkRow\s+key=\{st\.key\}[\s\S]*?onPress=\{\(\) => run\(st\.key\)\}[\s\S]*?accessibilityLabel=\{a11yLabel\}/);
+  assert.match(src('src/components/kit/LinkRow.tsx'), /accessibilityRole="button"/);
+  assert.match(src('src/components/kit/Row.tsx'), /if \(!onPress\) \{\s*return \(\s*<View/);
   assert.doesNotMatch(guide, /onPress=\{pressable \?/);
   assert.doesNotMatch(guide, /\bdisabled=/);
 });
 
 test('NEW-4(ui): + 점선 네모(홈 · 오늘 · 빈 양식)는 빈 체크 칸과 같은 테두리 — 대비 증가에서 더 진하게', () => {
-  for (const f of ['src/screens/Dashboard.tsx', 'src/screens/Today.tsx', 'src/components/EmptyState.tsx']) {
-    const s = src(f);
-    assert.match(s, /const edge = checkEdge\(M\.dark, useIncreaseContrast\(\)\);/, f);
-    assert.match(s, /borderWidth: edge\.width > 1\.6 \? 2 : 1\.4, borderStyle: 'dashed', borderColor: edge\.color/, f);
-    assert.doesNotMatch(s, /checkBorder\(/, f);
-  }
-  // 대비 증가의 진한 테두리(Check.tsx STRONG_BORDER)는 대비 증가 팔레트 종이 위 4.5:1 이상
+  // 홈(디자인 A, S1)의 고르기 줄은 점선 네모 없이 체크 칸 자리의 + 글리프(목업 today.html '.more': never a dashed box)
+  assert.doesNotMatch(src('src/screens/Dashboard.tsx'), /borderStyle: 'dashed'/);
+  // 오늘(디자인 A, S3)도 같다 — '실천에서 더 고르기'는 체크 칸 자리의 + 글리프 줄(점선 네모 없음)
+  assert.doesNotMatch(src('src/screens/Today.tsx'), /borderStyle: 'dashed'|checkBorder\(/);
+  // 빈 양식(EmptyState, 디자인 A): 빈 체크 칸과 같은 가장자리 토큰 printEdge — usePalette가 대비 증가에서 ink2로 진하게 한다
+  const empty = src('src/components/EmptyState.tsx');
+  assert.match(empty, /borderWidth: 1\.5, borderStyle: 'dashed', borderColor: M\.printEdge/);
+  assert.doesNotMatch(empty, /checkBorder\(/);
+  // 테두리는 토큰(패키지 K) — 평소 printEdge(종이 위 3:1 이상), 대비 증가에서는 ink2(4.5:1 이상)
   const check = src('src/components/Check.tsx');
-  const m = /STRONG_BORDER = \{ light: '([^']+)', dark: '([^']+)' \}/.exec(check);
-  assert.ok(m);
-  const over = (rgba, bg) => {
-    const [r, g, b, a] = rgba.match(/[\d.]+/g).map(Number);
-    const base = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
-    return toHex(`rgb(${[r, g, b].map((c, i) => Math.round(c * a + base[i] * (1 - a))).join(', ')})`);
-  };
-  for (const [name, mood] of Object.entries(MOODS)) {
-    const M = contrastEdition(mood);
-    const k = contrast(over(M.dark ? m[2] : m[1], M.bg), M.bg);
-    assert.ok(k >= 4.5, `${name}: ${k.toFixed(2)}`);
+  assert.match(check, /return \{ color: more \? T\.ink2 : T\.printEdge, width: 1\.5 \};/);
+  const { LIGHT, DARK } = require('../src/theme/tokens');
+  for (const T of [LIGHT, DARK]) {
+    assert.ok(contrast(T.printEdge, T.paper) >= 3, `printEdge ${contrast(T.printEdge, T.paper).toFixed(2)}`);
+    assert.ok(contrast(T.ink2, T.paper) >= 4.5, `ink2 ${contrast(T.ink2, T.paper).toFixed(2)}`);
   }
 });
 

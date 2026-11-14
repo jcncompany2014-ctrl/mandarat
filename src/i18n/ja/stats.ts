@@ -10,8 +10,7 @@ export default {
 
   heroStreak: '連続',
   heroDays: () => '日',
-  heroDone: '達成したマス',
-  heroOf64: '64マス中',
+  heroDone: '達成',
   streakStart: 'ひとつやれば始まります',
   streakKept: '今日まで続いています',
   streakNext: ({ n }) => `今日ひとつやれば${n}日目`,
@@ -21,8 +20,6 @@ export default {
   recordBest: ({ n }) => `最高記録 ${n}日`,
   recordMonth: ({ n }) => `今月の達成 ${n}マス`,
 
-  secWeek: '今週',
-  reviewLink: 'ふりかえる ›',
   reviewLinkSay: '週のふりかえり',
   weekDid: ({ n }) => `今週は${n}回やりました`,
   weekNoDone: ({ n }) => `今週は${n}回やりました。マスは、一度きりの行動を終えるか、目標の数に届くと達成になります。`,
@@ -33,7 +30,6 @@ export default {
   barTodaySay: ({ i, n }) => `${fmt.dowLong({ i })}（今日） ${n}回`,
   barFutureSay: ({ i }) => `${fmt.dowLong({ i })}からはまだ`,
 
-  ledgerAdded: '積み上げた分',
   ledgerFocus: '集中',
   ledgerNone: 'なし',
   ledgerSay: ({ label, value }) => `${label} ${value}`,
@@ -54,7 +50,6 @@ export default {
   moreWeeks: ({ n }) => `ふりかえった週をあと${n}件見る`,
   more: 'もっと見る',
 
-  secTenWeeks: '最近10週',
   since: ({ date }) => `${date}から`,
   monthLabel: ({ n }) => `${n}月`,
   bestNone: 'まだ記録がありません',
@@ -98,4 +93,29 @@ export default {
   moodNoneSay: ({ days }) => `最近${days}日は気分の記録なし`,
   moodSay: ({ days, n }) => `最近${days}日のうち気分を残した日は${n}日`,
   moodDaySay: ({ date, word }) => `${date} ${word}`,
+
+  eyebrow: ({ y, w, days }) => `${fmt.weekNo({ y, w })}・${fmt.dueShort({ days })}`,
+  heroCells: ({ done }) => `${done}/64マス`,
+  monthCells: ({ n }) => `今月 ${n}マス`,
+  scopeWeek: '今週',
+  scopeTen: '10週',
+  scopeYear: '今年',
+  reading: ({ top, n, low, lowN }) => {
+    if (!low) return `「${top}」に${n}回取り組みました`;
+    if (!(lowN > 0)) return `「${top}」に${n}回取り組み、「${low}」はまだです`;
+    return `「${top}」に${n}回、「${low}」に${lowN}回取り組みました`;
+  },
+  readingEven: ({ k, n }) => `${k}つの分野に${n}回ずつ取り組みました`,
+  weekAll: ({ n }) => `合計${n}回`,
+  doneHint: 'マスは、一度きりの行動を終えるか、目標の数に届くと達成になります。',
+  areaCountSay: ({ name, n }) => `${name} ${n}回`,
+  habitNone: '決めた習慣はありません',
+  mindNone: '心がけのマスはありません',
+  focusNone: 'まだ集中した時間はありません',
+  linkSet: '決める',
+  linkSetHint: 'マンダラートでマスの種類を決めます',
+  linkRate: '評価する',
+  linkRateHint: '今週の点数をつけるマスを開きます',
+  linkToday: '今日を見る',
+  linkTodayHint: '今日のやることから25分の集中を始められます',
 } satisfies Like<typeof ko>;

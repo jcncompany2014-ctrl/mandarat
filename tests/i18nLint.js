@@ -3,14 +3,15 @@
 require('./register');
 const ts = require('typescript');
 const { BANNED_COPY, BANNED_COPY_RE, BANNED_JA, BANNED_EN } = require('../src/i18n/glossary');
-const { MGMT_LABEL, MOOD_LABEL, SHAPE_LABEL } = require('../src/lib/copy');
+const { MGMT_LABEL } = require('../src/lib/copy');
+const { MOOD_OPTS } = require('../src/data/defaults');
 
 const HANGUL = /[ᄀ-ᇿ㄰-㆏가-힯]/;
 const KANA_KANJI = /[぀-ヿ㐀-䶿一-鿿豈-﫿]/;
 const HALF_KATAKANA = /[｡-ﾟ]/;
 const EMOJI = /\p{Extended_Pictographic}/u;
 /** 저장값(Mood · Mgmt · CellShape) — 화면 글이 아니라 세지 않는다 */
-const STORED = new Set([...Object.keys(MGMT_LABEL), ...Object.keys(MOOD_LABEL), ...Object.keys(SHAPE_LABEL)]);
+const STORED = new Set([...Object.keys(MGMT_LABEL), ...MOOD_OPTS, '둥근', '각진']);
 
 const hit = (list, text) => list.filter((w) => (typeof w === 'string' ? text.includes(w) : w.test(text))).map(String);
 

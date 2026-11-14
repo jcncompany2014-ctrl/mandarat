@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 만다라트 (지도)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* the overview is a colour map on the 24pt gutter: area names and the goal only.
+     Tap a block to read and write its eight actions. */
+  .sheet { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+  .sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+  .sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #chart { margin: 12px 0 10px; }
+  .next { margin-top: 26px; }
+  .next .a-row { height: 60px; }
+  .next .a-row-title { font-size: 17px; line-height: 24px; }
+  .next .a-row-meta { line-height: 18px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="sheet">
+    <div class="sheet-line"><span class="t-label" id="form-name"></span><span class="t-label">달성 <b id="count"></b></span></div>
+    <div id="chart"></div>
+    <div class="sheet-line"><span class="t-note">영역을 누르면 실천 여덟 칸이 보여요</span></div>
+  </div>
+  <div class="a-body next">
+    <div class="a-section"><span class="t-label is-section">다음 할 일</span></div>
+    <div class="a-list" id="next"></div>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view;
+  A.header('#header', { eyebrow: '핵심 목표', title: doc.coreGoal, written: true, action: 'share' });
+  document.querySelector('#form-name').textContent = `${v.date.year} 만다라트`;
+  document.querySelector('#count').textContent = `${v.progress.done}/${v.progress.of}칸`;
+  A.chart('#chart', doc, { level: 'L2', map: true, width: 342 });
+  const n = v.nextStep;
+  const a = A.areaIndex(doc, n.area);
+  document.querySelector('#next').innerHTML =
+    `<div class="a-row"><div class="a-row-main"><div class="a-row-title">${n.text}</div><div class="a-row-meta"><i class="a-dye" style="--d:var(--dye-${a + 1})"></i>${n.area}</div></div><div class="a-row-right">${A.icon('chevron', { size: 20 })}</div></div>`;
+  A.tabBar('#bar', { active: 'chart' });
+});
+</script>
+</body>
+</html>

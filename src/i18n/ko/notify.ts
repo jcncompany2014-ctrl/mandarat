@@ -51,5 +51,4 @@ export default {
   editorPick: '시각 정하기',
   editorNoneA11y: '알림 없음',
   editorPickA11y: '알림 시각 정하기',
-  habitHint: '이 습관을 하는 날에만 울려요',
 } satisfies Namespace;

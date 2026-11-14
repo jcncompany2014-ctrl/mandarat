@@ -35,5 +35,4 @@ export default {
   editorPick: '時刻を決める',
   editorNoneA11y: '通知なし',
   editorPickA11y: '通知の時刻を決める',
-  habitHint: 'この習慣をする日だけ届きます',
 } satisfies Like<typeof ko>;

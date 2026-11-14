@@ -1,8 +1,8 @@
-// 만다라트 탭의 기억 — 크게 볼 블록, 처음 한 번 안내, 새로 달성한 칸 칠하기, 옆으로 밀기
+// 만다라트 탭의 기억 — 크게 볼 블록, 옆으로 밀기(처음 한 번 안내 · 새로 달성한 칸 칠하기는 옛 보드와 함께 R2가 지웠다)
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { gridMemory, showGridAt, takeFreshDone, resetGridMemory, swipeStep, stepArea } = require('../src/screens/gridMemory');
+const { gridMemory, showGridAt, resetGridMemory, swipeStep, stepArea } = require('../src/screens/gridMemory');
 
 test('showGridAt은 크게 볼 블록만 정한다(보기 전환은 없다)', () => {
   resetGridMemory();
@@ -12,24 +12,7 @@ test('showGridAt은 크게 볼 블록만 정한다(보기 전환은 없다)', ()
   assert.equal(gridMemory.focus, 'c');
   showGridAt(null);
   assert.equal(gridMemory.focus, null);
-  assert.equal('view' in gridMemory, false);
-  assert.equal(gridMemory.zoomedOnce, false);
-});
-
-test('처음 본 표는 칠하지 않고, 그 뒤 새로 달성한 칸만 한 번 칠한다', () => {
-  resetGridMemory();
-  assert.deepEqual(takeFreshDone(['0-0', '1-2']), []);
-  assert.deepEqual(takeFreshDone(['0-0', '1-2']), []);
-  assert.deepEqual(takeFreshDone(['0-0', '1-2', '4-5']), ['4-5']);
-  assert.deepEqual(takeFreshDone(['0-0', '1-2', '4-5']), []);
-});
-
-test('달성을 풀었다가 다시 달성하면 또 칠한다', () => {
-  resetGridMemory();
-  takeFreshDone(['0-0', '2-3']);
-  assert.deepEqual(takeFreshDone(['0-0']), []);
-  assert.equal(gridMemory.seenDone.has('2-3'), false);
-  assert.deepEqual(takeFreshDone(['0-0', '2-3']), ['2-3']);
+  assert.deepEqual(Object.keys(gridMemory), ['focus']);
 });
 
 test('가로로 민 거리·속도로 이웃 영역을 고른다', () => {

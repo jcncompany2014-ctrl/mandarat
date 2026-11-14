@@ -105,6 +105,23 @@ export function canPickAny(doc: Pick<MandaratDoc, 'themes' | 'todayKeys' | 'dayL
   return false;
 }
 
+/** 고르기 시트의 거르기 — 'all'(모든 영역) 또는 영역 번호의 글('3') */
+export type PickFilter = 'all' | `${number}`;
+
+/**
+ * 고르기 시트를 열 때의 거르기 — 원하는 영역(담기 시트의 '커리어 실천에서 고르기')에 고를 줄이 있으면 그 영역, 아니면 'all'.
+ */
+export function pickFilterStart(sections: readonly Pick<PickSection, 'ti'>[], want: number | null | undefined): PickFilter {
+  return want != null && sections.some((s) => s.ti === want) ? `${want}` : 'all';
+}
+
+/** 거르기에 맞는 영역 묶음 — 'all'이면 모두, 영역이면 그 영역 하나(없으면 모두로 돌아간다) */
+export function pickShown<T extends Pick<PickSection, 'ti'>>(sections: readonly T[], filter: PickFilter): T[] {
+  if (filter === 'all') return [...sections];
+  const one = sections.filter((s) => `${s.ti}` === filter);
+  return one.length > 0 ? one : [...sections];
+}
+
 /** 아직 글자가 없는 칸이 있는 첫 영역(없으면 -1) — '칸 채우기'로 바로 데려갈 곳 */
 export function firstAreaWithEmpty(doc: Pick<MandaratDoc, 'themes'>): number {
   return doc.themes.findIndex((th) => th.actions.some((a) => !a.text.trim()));

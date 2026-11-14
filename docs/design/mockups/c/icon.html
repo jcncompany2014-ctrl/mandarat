@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>앱 아이콘 — C. 먹과 주홍</title>
+<meta name="mock:size" content="512x512">
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/c/tokens.css">
+<style>
+  html, body { width: 512px; height: 512px; }
+  body { background: var(--ink); }
+  #icon { position: absolute; inset: 0; }
+</style>
+</head>
+<body class="c-screen">
+<div id="icon"></div>
+<script src="/docs/design/mockups/c/shared.js"></script>
+<script>
+C.load().then(function (d) {
+  // L0 표지를 캔버스 끝까지: 먹 격자, 먹 가운데, 여덟 물빛. 모서리는 iOS가 깎는다.
+  document.getElementById('icon').append(C.chartL0({ size: 512, colors: d.areas.map(function (a) { return a.color; }), frame: 0, rule: 20 }));
+});
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-// 'home' namespace — Home (the notebook's today page), the Home strings of lib/home and lib/a11y, and the GuideChips check line (X-H).
+// 'home' namespace — Home (the notebook's today page), and the Home strings of lib/home and lib/a11y (X-H).
 import type ko from '../ko/home';
 import type { Like } from '../types';
 import { plural } from './plural';
@@ -6,17 +6,19 @@ import { plural } from './plural';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default {
-  month: ({ n }) => MONTHS[n - 1] ?? '',
   settings: 'Settings',
+  eyebrow: ({ day, w }) => `${day} · Week ${w}`,
+
+  heroToday: 'Today',
+  heroDone: 'Achieved',
+  heroLeft: 'Left this year',
+  unitCells: 'squares',
+  unitDays: ({ n }) => plural(n, 'day', 'days'),
 
   chartHint: 'Opens the chart',
-  coreGoal: 'Core goal',
   setGoal: 'Set your core goal',
   setGoalHint: 'Sets the core goal',
   setGoalText: 'Set your\ncore goal',
-  doneBefore: '',
-  doneCount: ({ n }) => `${n}`,
-  doneAfter: ' of 64 squares achieved',
 
   saveFailTitle: "Couldn't save your chart",
   saveFailBody: "Check your device's free space. We'll try again with each change.",
@@ -24,17 +26,14 @@ export default {
 
   ritualTitle: 'Weekly review',
   ritualSub: ({ range }) => `${range} · Takes 3 minutes`,
-  priorityTitle: "This week's focus",
   areaFallback: ({ n }) => `Area ${n}`,
   actionHint: 'Shows the action',
 
   todayTitle: "Today's list",
+  seeAll: 'See all',
   openToday: 'Open Today',
   todayHeadLabel: ({ total, done }) => `Today's list: ${done} of ${total} done, open Today`,
-  more: ({ n }) => `${n} more`,
-  moreLabel: ({ n }) => `${n} more, open Today`,
   pickMore: 'Pick more from your actions',
-  pickMoreLink: 'Pick more from your actions ›',
   addToday: 'Add to Today',
   closeLabel: ({ day, n }) => (n === 1
     ? `${day}, day closed. You did the one thing on Today's list`
@@ -43,6 +42,7 @@ export default {
   weekTitle: 'This week',
   weekDay: ({ day, n }) => `${day}: ${n} ${plural(n, 'time', 'times')}`,
   weekDayToday: ({ day, n }) => `${day}: ${n} ${plural(n, 'time', 'times')}, today`,
+  weekClosed: 'day closed',
 
   areasTitle: '8 areas',
   areaRowLabel: ({ name, line, n }) => `${name}, ${line}, ${n} of 8 squares achieved`,
@@ -73,11 +73,4 @@ export default {
   todayAll: ({ total }) => (total === 1 ? "Today's list: 1 of 1 done" : `Today's list: all ${total} done`),
   todayOf: ({ total, done }) => `Today's list: ${done} of ${total} done`,
 
-  chipWhat: 'What',
-  chipHowMuch: 'How much',
-  chipWhen: 'When · where',
-  chipHint: 'The more specific, the easier it is to do',
-  chipHas: ({ label }) => `${label}: yes`,
-  chipMissing: ({ label }) => `${label}: missing`,
-  chipSpeech: ({ spoken, hint }) => `${spoken}. ${hint}`,
 } satisfies Like<typeof ko>;

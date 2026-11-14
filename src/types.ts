@@ -89,8 +89,11 @@ export interface TodayExtra {
   done: boolean;
 }
 
-/** 종이 무늬(프로) — 없으면 점 종이(지금 모양, 무료) */
-export type PaperPattern = 'grid' | 'lines' | 'blank';
+/**
+ * 종이 무늬 — 점 · 모눈 · 줄 · 무지. 없으면 무지(디자인 A의 기본, build-plan §2.6).
+ * 고른 것은 무지 · 점까지 그대로 적는다. 예전 앱은 'dots'를 모르는 값으로 버리고 점으로 그린다(같은 그림).
+ */
+export type PaperPattern = 'dots' | 'grid' | 'lines' | 'blank';
 
 /** 알림 — 켠 것만 값이 있다(모두 끄면 필드가 없다). 이 기기가 울릴지는 기기마다의 허락과 'mandarat:notify:v1'이 정한다 */
 export interface Reminders {
@@ -111,7 +114,7 @@ export interface Settings {
   lastBackupAt?: string;
   /** 알림 시각 — 켠 것이 없으면 없다 */
   reminders?: Reminders;
-  /** 종이 무늬(프로) — 없으면 점 종이. 프로가 없어도 값은 남기고, 그릴 때 잠근다 */
+  /** 종이 무늬 — 없으면 무지. 모눈 · 줄은 프로(1.0은 판매를 꺼서 모두 열림) — 프로가 없어도 값은 남기고, 그릴 때 잠근다 */
   paper?: PaperPattern;
 }
 

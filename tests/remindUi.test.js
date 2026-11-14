@@ -51,7 +51,7 @@ test('설정 › 알림은 바구니 글(m.notify · m.common · m.fmt)만 쓴�
   // 편집 창 · 시각 줄도 한글 글자를 늘리지 않는다
   assert.doesNotMatch(code(REMIND), /[가-힣]/);
   const ed = code(EDITOR);
-  const rows = ed.slice(ed.indexOf('function RemindRows('), ed.indexOf('function ChoiceRow('));
+  const rows = ed.slice(ed.indexOf('function RemindRows('), ed.indexOf('function StepBtn('));
   assert.doesNotMatch(rows, /[가-힣]/);
 });
 
@@ -59,8 +59,10 @@ test('처음 켤 때는 아침 08:00 · 저녁 21:00, 돌아보기는 일요일 
   const s = code(NOTIFY);
   assert.match(s, /DEFAULT_TIME: Record<TimedKind, string> = \{ morning: '08:00', evening: '21:00' \}/);
   assert.match(s, /t\.fmt\.dowLong\(\{ i: 0 \}\), time: t\.fmt\.time\(\{ h: REVIEW_HOUR, m: 0 \}\)/);
-  // 켠 줄 아래에만 시각 고르기
-  assert.match(s, /\{on && k !== 'review' && timeLabel && \(/);
+  // 켠 줄 아래에만 시각 고르기 — 시각 칩을 눌러 열었을 때(S6), 칩은 켠 아침 · 저녁 줄에서만 누른다
+  assert.match(s, /\{on && k !== 'review' && timeLabel && shown && \(/);
+  assert.match(s, /const timed = k !== 'review' && on && !!timeLabel;\s*const shown = timed && open === k;/);
+  assert.match(s, /onPress: timed \? \(\) => onChip\(k as TimedKind\) : undefined/);
   assert.match(s, /<RemindRow M=\{M\} value=\{rem\[k\] as string\}/);
 });
 
@@ -103,8 +105,8 @@ test('notifier.request(는 설정 › 알림과 편집 창의 누름 처리에�
     assert.ok(calls.length > 0, `${f}: ${name}을 부르는 곳`);
   }
   const n = code(NOTIFY);
-  assert.match(n, /onPress=\{\(\) => onToggle\(k\)\}/);
-  assert.match(n, /onPress=\{onDevice\}/);
+  assert.match(n, /onToggle=\{\(\) => onToggle\(k\)\}/);
+  assert.match(n, /onToggle=\{onDevice\}/);
   assert.match(n, /onPress: onAllow/);
   for (const fn of ['onToggle', 'onDevice', 'onAllow']) {
     const body = n.slice(n.indexOf(`const ${fn} = `), n.indexOf(`const ${fn} = `) + 500);
@@ -119,7 +121,7 @@ test('편집 창: 습관 줄에 알림(없음 / 시각 정하기 — 괘선 고�
   const s = code(EDITOR);
   const habit = s.slice(s.indexOf('function HabitRows('), s.indexOf('function RemindRows('));
   assert.match(habit, /<RemindRows M=\{M\} cfg=\{cfg\} setCfg=\{setCfg\} onReveal=\{onReveal\} \/>/);
-  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function ChoiceRow('));
+  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function StepBtn('));
   assert.match(rows, /<RemindRow M=\{M\} value=\{cfg\.remindAt\}/);
   assert.match(rows, /testID=\{TID\.editorRemind\}/);
   assert.match(rows, /accessibilityRole="radiogroup"/);
@@ -127,14 +129,17 @@ test('편집 창: 습관 줄에 알림(없음 / 시각 정하기 — 괘선 고�
   assert.match(rows, /t\.notify\.editorPick/);
   // 칩이 아니라 괘선 줄
   assert.doesNotMatch(rows, /PaperChip|SegmentedControl/);
-  assert.match(s.slice(s.indexOf('function ChoiceRow(')), /accessibilityRole="radio"/);
+  // 고르기 줄은 부품 상자의 ChoiceRow(O1) — 라디오로 읽힌다
+  assert.match(rows, /<ChoiceRow M=\{M\} title=\{t\.notify\.editorNone\}/);
+  assert.match(s, /import \{[^}]*\bChoiceRow\b[^}]*\} from '\.\.\/components\/kit';/);
+  assert.match(src('src/components/kit/ChoiceRow.tsx'), /accessibilityRole="radio"/);
   // 습관 유형에서만 그린다
   assert.match(s, /\{cfg\.kind === 'habit' && <HabitRows /);
 });
 
 test('remindAt은 편집 창의 설정(cfg)을 거쳐 setActionConfig로 저장된다', () => {
   const s = code(EDITOR);
-  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function ChoiceRow('));
+  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function StepBtn('));
   assert.match(rows, /setCfg\(\(c\) => \(\{ \.\.\.c, remindAt: last\.current \}\)\)/);
   assert.match(rows, /setCfg\(\(c\) => \(\{ \.\.\.c, remindAt: v \}\)\)/);
   assert.match(rows, /setCfg\(\(c\) => \(\{ \.\.\.c, remindAt: undefined \}\)\)/);
@@ -172,6 +177,8 @@ test('testID: 설정 줄 · 이 기기 줄 · 편집 창 시각', () => {
   const n = code(NOTIFY);
   assert.match(n, /testID=\{TID\.setNotify\(k\)\}/);
   assert.match(n, /testID=\{TID\.setNotifyDevice\}/);
+  // 시각 칩은 켠 아침 · 저녁 줄에서만 set-notify-<k>-time(.maestro/phone/06-reminders.yaml: 켜면 보이고 끄면 사라진다)
+  assert.match(n, /testID: timed \? TID\.setNotify\(`\$\{k\}-time`\) : undefined/);
   assert.match(code(EDITOR), /TID\.editorRemind/);
 });
 

@@ -1,9 +1,10 @@
 // 아이콘 — 앱 안으로 옮긴 선 아이콘(LineIcons)과 영역 아이콘(AreaIcons), 그리고 둘을 고르는 Icon.
 // react-native-svg 대신 가짜 요소를 만들어 그린 결과(요소 나무)를 확인한다. 화면은 띄우지 않는다.
 // 1) src 어디에서도 lucide 패키지를 import하지 않는다(번들 크기)
-// 2) 옮긴 24개는 원본 lucide 모양과 좌표가 같다(패키지가 남아 있는 동안만 비교)
+// 2) 옮긴 lucide 아이콘(디자인 A 글리프로 다시 그리지 않은 10개)은 원본 lucide 모양과 좌표가 같다(패키지가 남아 있는 동안만 비교)
 // 3) 모든 획은 같은 펜 선 — 기본 1.9, 둥근 끝·둥근 이음, 채움 없음
 // 4) 저장된 아이콘 키는 모두 그대로 그려지고, 'lotus'·'heart'는 꽃·잎이 아닌 숨·맥박으로 그린다
+//    (탭 · 머리 · 시트의 글리프는 디자인 A로 다시 그렸다 — 그 모양은 tests/a-chrome.test.js가 본다)
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -73,15 +74,14 @@ const IconMod = load(path.join(COMP, 'Icon.tsx'), {
   './AreaIcons': Area,
 });
 
-/** 옮긴 이름 → lucide 파일 이름 */
+/** 옮긴 이름 → lucide 파일 이름(디자인 A 글리프로 다시 그린 13개는 지웠다: docs/design/build-plan.md §3 C) */
 const VENDORED = {
-  Grid3x3: 'grid-3x3', House: 'house', Check: 'check', CircleCheck: 'circle-check',
-  ChartColumnBig: 'chart-column-big', Plus: 'plus', Minus: 'minus', ChevronRight: 'chevron-right',
-  ChevronLeft: 'chevron-left', Flame: 'flame', Sparkles: 'sparkles', Target: 'target', Pencil: 'pencil',
-  Ellipsis: 'ellipsis', Calendar: 'calendar', Bell: 'bell', SlidersHorizontal: 'sliders-horizontal',
-  X: 'x', RotateCcw: 'rotate-ccw', Trash2: 'trash-2', Share2: 'share-2', Repeat: 'repeat',
+  Check: 'check', Flame: 'flame', Sparkles: 'sparkles', Target: 'target', Calendar: 'calendar',
+  RotateCcw: 'rotate-ccw', Trash2: 'trash-2', Repeat: 'repeat',
   Download: 'download', ArchiveRestore: 'archive-restore',
 };
+/** 디자인 A 글리프로 그리는 저장 이름 — 펜 선 1.9 규칙 대신 글리프의 획(1.5 · 2)과 칠을 쓴다 */
+const REDRAWN = new Set(['home', 'grid', 'checkCircle', 'chart', 'plus', 'minus', 'settings', 'share', 'pencil', 'dots', 'chevR', 'chevL', 'close', 'bell']);
 const GEOMETRY = ['d', 'cx', 'cy', 'r', 'x', 'y', 'width', 'height', 'rx', 'x1', 'y1', 'x2', 'y2'];
 const geometry = (props) => {
   const o = {};
@@ -103,9 +103,10 @@ test('src 어디에서도 lucide 패키지를 불러오지 않는다', () => {
   assert.deepEqual(hits, []);
 });
 
-test('옮긴 선 아이콘은 정확히 24개이고 라이선스 고지를 지닌다', () => {
-  const exported = Object.keys(Line).filter((k) => typeof Line[k] === 'function').sort();
+test('옮긴 선 아이콘은 정확히 10개(+ 디자인 A 글리프 Glyph)이고 라이선스 고지를 지닌다', () => {
+  const exported = Object.keys(Line).filter((k) => typeof Line[k] === 'function' && k !== 'Glyph').sort();
   assert.deepEqual(exported, Object.keys(VENDORED).sort());
+  assert.equal(typeof Line.Glyph, 'function');
   const src = fs.readFileSync(path.join(COMP, 'LineIcons.tsx'), 'utf8');
   assert.match(src, /ISC License/);
   assert.match(src, /Copyright \(c\) \d{4} Lucide Icons and Contributors/);
@@ -177,9 +178,11 @@ test('Icon — 저장된 키는 모두 그려지고, 모르는 이름은 과녁�
     const tree = render(React.createElement(Icon, { name, color: '#333' }));
     assert.equal(tree.type, 'Svg', name);
     assert.equal(tree.props.width, 22, `${name} 기본 크기`);
+    assert.equal(tree.props.viewBox, '0 0 24 24', `${name} 24 격자`);
+    if (name !== 'target') assert.notDeepEqual(shapes(tree), target, `${name}이 과녁으로 빠지지 않는다`);
+    if (REDRAWN.has(name)) continue; // 글리프 — 획 · 칠은 tests/a-chrome.test.js
     assert.ok(tree.children.every((s) => s.props.fill === 'none'), `${name}은 채우지 않는다`);
     assert.ok(tree.children.every((s) => s.props.strokeWidth === 1.9), `${name} 기본 굵기`);
-    if (name !== 'target') assert.notDeepEqual(shapes(tree), target, `${name}이 과녁으로 빠지지 않는다`);
   }
   for (const bad of ['constructor', '__proto__', 'toString', 'nope']) {
     assert.deepEqual(shapes(render(React.createElement(Icon, { name: bad }))), target, bad);

@@ -214,8 +214,11 @@ test('WidgetSync — writeTimeline( 앞에는 늘 같은 사슬의 readOps(', ()
   assert.ok(skip >= 0 && skip < writes[0].index, 'readOps가 null이면 writeTimeline 전에 돌아간다');
   assert.match(code, /cmd\.kind === 'addCountOn'\) actions\.addCountOn\(cmd\.ti, cmd\.ai, cmd\.delta, cmd\.day\)/);
   assert.match(code, /crash\.crumb\('widget', `ops \$\{ops\.length\}`\)/);
-  // 무늬는 프로일 때만
-  assert.match(code, /proValue<WidgetPattern>\(doc\.settings\.paper \?\? 'dots', 'dots', \(p\) => p !== 'dots', owned\)/);
+  // 무늬는 화면과 같이 — 고르지 않았으면 무지, 모눈 · 줄은 프로일 때만(lib/paper drawnPattern)
+  assert.match(code, /const pat: WidgetPattern = drawnPattern\(doc\.settings\.paper, owned\);/);
+  const { drawnPattern } = require('../src/lib/paper');
+  assert.equal(drawnPattern(undefined, false), 'blank');
+  assert.equal(drawnPattern('dots', false), 'dots');
 });
 
 test('위젯 다리 — readOps는 읽지 못하면 빈 배열이 아니라 null(R-1 F5)', () => {

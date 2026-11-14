@@ -1,4 +1,4 @@
-// 'settings' namespace — Settings rows, paper and accent choosers, template confirm, backup rows, saved copies, colophon and alerts (X-G).
+// 'settings' namespace — Settings rows, reminder row notes, theme, template confirm, backup rows, saved copies, colophon and alerts (X-G).
 import type ko from '../ko/settings';
 import type { Like } from '../types';
 import { plural } from './plural';
@@ -14,17 +14,20 @@ export default {
   goalLabel: ({ goal }) => `Core goal, ${goal}`,
   goalHint: 'Edit',
 
-  secView: 'Appearance',
-  subPaper: 'Paper',
-  paperLabel: ({ name }) => `Paper, ${name}`,
-  swatchGlyph: 'A',
-  subAccent: 'Accent color',
-  accentLabel: ({ name }) => `Accent color, ${name}`,
-  subShape: 'Square corners',
-  shapeLabel: ({ name }) => `Square corners, ${name}`,
+  notifyMorningMeta: 'Only on days with something planned',
+  notifyEveningMeta: 'Only when something is left',
+  notifyReviewMeta: ({ dow }) => `Every ${dow}`,
+  notifyTimeHint: 'Opens the time controls',
 
-  secRecords: 'Records',
-  subBackup: 'Backup',
+  secCloud: 'iCloud and backup',
+
+  secView: 'Appearance',
+  subLook: 'Theme',
+  lookAuto: 'Auto',
+  lookLight: 'Light',
+  lookDark: 'Dark',
+  lookLabel: ({ name }) => `Theme, ${name}`,
+
   exportTitle: 'Export backup',
   exportHint: ({ age }) => `${age}. Saves your records to a file`,
   exportSaved: 'Backup file saved',

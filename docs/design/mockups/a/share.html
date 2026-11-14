@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="540x675">
+<title>A · 공유 이미지 4:5</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* The share image, 4:5 (540 × 675 pt = 1080 × 1350 px). Not a capture of the screen: the owner's goal
+     as the title and the sheet as a colour map, large, on white. The 64 actions are colour only (written,
+     done, empty), so the post shows the shape of a year without printing anyone's private list.
+     The mark and the wordmark at the foot (CH-12, FI-09). No today marks: "today" means nothing to the
+     person who sees the post. Legible at feed size: at a 360pt-wide feed the area names are still 9pt. */
+  body { width: 540px; height: 675px; background: var(--paper); }
+  .poster { position: absolute; inset: 0; padding: 0 36px; display: flex; flex-direction: column; }
+  .top { padding-top: 34px; }
+  .eyebrow { font: 600 15px/20px var(--sans); color: var(--print); }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 4px; }
+  .goal { font: 700 44px/54px var(--sans); letter-spacing: -0.035em; color: var(--ink); white-space: nowrap; }
+  .fig { font: 700 24px/30px var(--sans); letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .fig small { font: 600 14px/18px var(--sans); color: var(--ink-2); margin-left: 3px; letter-spacing: 0; }
+  #sheet { margin-top: 22px; }
+  /* the map's names are set for a 41pt cell; at this cell (46pt) and for a feed, they go up by the same
+     step as the cell, so "자기 / 계발" breaks as on the phone. KIT REQUEST: opts.textScale in A.chart. */
+  #sheet .a-cell.is-head { font-size: 13px; line-height: 16px; }
+  #sheet .a-cell.is-core { font-size: 13.5px; line-height: 16px; }
+  .foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-bottom: 30px; height: 24px; }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .word { font: 700 16px/20px var(--sans); letter-spacing: -0.01em; color: var(--print-strong); }
+  .date { font: 500 14px/20px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="top">
+    <div class="eyebrow" id="eyebrow"></div>
+    <div class="head"><div class="goal" id="goal"></div><div class="fig" id="fig"></div></div>
+  </div>
+  <div id="sheet"></div>
+  <div class="foot">
+    <div class="brand"><span id="mark"></span><span class="word">만다라트</span></div>
+    <span class="date" id="date"></span>
+  </div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, d = v.date;
+  document.querySelector('#eyebrow').textContent = `${d.year} 핵심 목표`;
+  document.querySelector('#goal').textContent = doc.coreGoal;
+  document.querySelector('#fig').innerHTML = `${v.progress.done}/${v.progress.of}<small>칸</small>`;
+  A.chart('#sheet', doc, { level: 'L2', map: true, cell: 48, width: 468 });
+  A.mark('#mark', { size: 22, variant: 'heart' });
+  document.querySelector('#date').textContent = `${d.year}. ${parseInt(d.month, 10)}. ${d.day}.`;
+});
+</script>
+</body>
+</html>

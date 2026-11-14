@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="512x512">
+<title>A · 앱 아이콘</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* the icon fills the square; iOS applies its own corner mask, so no radius here */
+  body { width: 512px; height: 512px; margin: 0; background: var(--paper); }
+  #icon { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="icon"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/icon-mark.js"></script>
+<script>
+// the mark alone on white: the ink core and the eight area dyes round it as soft tiles, with a wide
+// white margin (see AI.app in icon-mark.js). Calm at 1024, still a 3×3 of colours at 29.
+AI.app('#icon', { size: 512 });
+</script>
+</body>
+</html>

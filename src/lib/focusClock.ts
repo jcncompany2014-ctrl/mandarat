@@ -39,6 +39,26 @@ export function fmtClock(left: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/** 시각 글을 셋으로 — 숫자(2:35)와 그 앞뒤의 작은 낱말(오후 · PM). 숫자만 크게 그린다 */
+export interface ClockParts {
+  /** 숫자 앞 낱말 — ko '오후' */
+  pre: string;
+  /** '2:35' · '14:35' */
+  time: string;
+  /** 숫자 뒤 낱말 — en 'PM' */
+  post: string;
+  /** 통째로(화면 읽기) — '오후 2:35' */
+  text: string;
+}
+
+/** 그 순간(ms)의 시계 시각 — 그 언어의 fmt.time으로 적고 숫자와 오전·오후를 가른다(끝나는 시각) */
+export function clockParts(at: number, l?: Lang): ClockParts {
+  const d = new Date(Number.isFinite(at) ? at : 0);
+  const text = msg(l).fmt.time({ h: d.getHours(), m: d.getMinutes() });
+  const m = /^(.*?)(\d{1,2}:\d{2})(.*)$/.exec(text);
+  return m ? { pre: m[1].trim(), time: m[2], post: m[3].trim(), text } : { pre: '', time: text, post: '', text };
+}
+
 /**
  * 끝내기 버튼이 무엇을 기록하는지 — 한 번(아직 달성 전)은 달성, 습관(오늘 아직)은 오늘 체크, 나머지는 시간만.
  * 이미 달성했거나 오늘 이미 체크한 칸은 더 기록할 것이 없으니 'time'.

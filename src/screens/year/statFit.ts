@@ -27,3 +27,38 @@ export function statValueSize(texts: readonly string[], width: number, max = 20)
   const em = Math.max(1, ...texts.map(statEm));
   return Math.max(STAT_MIN, Math.min(max, Math.floor(width / em)));
 }
+
+/** 표가 채워진 모습 — 네 액자 사이의 가장 좁은 틈(pt) */
+export const FRAME_GAP_MIN = 6;
+
+/**
+ * 액자 하나(L1 지도)의 칸 크기 — 본문 폭에 넷이 한 줄로(목업 year.png: 390pt에서 칸 8 · 바깥 76).
+ * 바깥 = 9c + (c ≥ 11 ? 6 : 4)(components/chart geometry l1Width). 6~16pt.
+ */
+export function frameCell(width: number, n = 4): number {
+  const slot = (width - FRAME_GAP_MIN * (n - 1)) / Math.max(1, n);
+  let c = Math.floor((slot - 4) / 9);
+  if (c >= 11) c = Math.floor((slot - 6) / 9);
+  return Math.max(6, Math.min(16, c));
+}
+
+/** 숫자 조각 — lib/statsView figureParts와 같은 규칙(+ · − · 묶음 쉼표 · 소수점 · '24/64') */
+const FIG_NUM = /[+\-−]?\d[\d,.]*(?:\/\d[\d,.]*)?/g;
+/** 숫자 뒤 단위의 글자 크기(ROLE.unit 13) — 숫자 크기 22에서 */
+const UNIT_FS = 13;
+const FIG_MAX = 22;
+
+/**
+ * 숫자 + 작은 단위 글(Figure)의 숫자 크기 — 칸 안쪽 폭(width)에 넷 모두 한 줄로 들어가는 가장 큰 하나의 크기(STAT_MIN~max).
+ * 단위는 숫자 크기에 비례해 작아진다(13 × 크기 / 22).
+ */
+export function figureSize(texts: readonly string[], width: number, max = FIG_MAX): number {
+  let worst = 1;
+  for (const t of texts) {
+    const nums = t.match(FIG_NUM) ?? [];
+    const numEm = nums.reduce((s, n) => s + statEm(n), 0);
+    const unitEm = statEm(t.replace(FIG_NUM, ''));
+    worst = Math.max(worst, nums.length ? numEm + (unitEm * UNIT_FS) / FIG_MAX : statEm(t));
+  }
+  return Math.max(STAT_MIN, Math.min(max, Math.floor(width / worst)));
+}

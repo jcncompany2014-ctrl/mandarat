@@ -12,7 +12,7 @@ import { announce } from '../../lib/useReducedMotion';
 import { useUIActions } from '../../navigation/ui';
 import { usePro, useProActions } from '../../store/ProContext';
 import type { M } from '../../theme/usePalette';
-import { Section } from './rows';
+import { SetSection } from './rows';
 
 /** iOS · iPadOS만 StoreKit으로 사고 복원한다 */
 const STORE = Platform.OS === 'ios';
@@ -53,7 +53,7 @@ export function ProSection({ M }: { M: M }) {
   const restoring = phase === 'restoring';
   return (
     <>
-      <Section M={M} label={m.pro.sectionTitle} />
+      <SetSection M={M} label={m.pro.sectionTitle} />
       <View testID={TID.setPro}>
         <LineRow
           M={M}

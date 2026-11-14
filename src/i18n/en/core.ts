@@ -30,7 +30,6 @@ export default {
 
   repeatDow: ({ i }) => `Repeat on ${fmt.dowLong({ i })}s`,
   repeatLabel: ({ label }) => `Repeat: ${label}`,
-  noRepeat: "Don't repeat",
 
   ordinal: ({ n }) => ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth'][n - 1] ?? `${n}`,
   listSep: ', ',
@@ -56,24 +55,12 @@ export default {
   mgmtList: 'List',
   mgmtStreak: 'Streak',
   mgmtBoard: 'Board',
-  shapeRound: 'Rounded',
-  shapeSquare: 'Sharp',
-  paperIvory: 'Ivory',
-  paperCream: 'Cream',
-  paperGray: 'Gray',
-  paperLavender: 'Lavender',
-  paperDark: 'Dark',
   mood0: 'Rough',
   mood1: 'Meh',
   mood2: 'Okay',
   mood3: 'Good',
   mood4: 'Great',
 
-  accentGold: 'Gold',
-  accentRouge: 'Rouge',
-  accentMugwort: 'Sage',
-  accentIndigo: 'Indigo',
-  accentMulberry: 'Mulberry',
 
   fitAll: 'Fits in the 81-square chart',
   fitLines: ({ max }) => `Only ${max} ${plural(max, 'line', 'lines')} show in the 81-square chart`,

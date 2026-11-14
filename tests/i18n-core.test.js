@@ -1,6 +1,6 @@
 // X-0 — 바탕 글(core)과 표기 함수(src/lib/text.ts)를 지킨다.
 // - text.ts의 표기 함수는 언어마다 msg(l).fmt와 같은 글을 낸다(이름은 그대로, 속은 fmt).
-// - 모듈 맨 위의 낱말 상수(DOW_KR · WEEKDAY_KR · ORDINAL · MGMT_LABEL · SHAPE_LABEL · MOOD_LABEL · MOOD_WORDS · ACCENTS)는
+// - 모듈 맨 위의 낱말 상수(DOW_KR · WEEKDAY_KR · ORDINAL · MGMT_LABEL · MOOD_WORDS)는
 //   setLang을 따라 바뀌는 살아 있는 보기이고, 한국어 값은 옮기기 전과 글자 하나까지 같다.
 require('./register');
 const test = require('node:test');
@@ -11,7 +11,6 @@ const R = require('../src/lib/routine');
 const { ORDINAL, cellLabel, areaLabel } = require('../src/lib/chartSpeech');
 const K = require('../src/lib/marks');
 const C = require('../src/lib/copy');
-const { ACCENTS } = require('../src/theme/palette');
 const { chartFitHint } = require('../src/theme/chart');
 
 /** 그 언어로 잠깐 바꿔 fn을 돌리고 되돌린다 */
@@ -71,10 +70,7 @@ test('한국어는 옮기기 전과 글자 하나까지 같다', () => {
   assert.deepEqual([...K.WEEKDAY_KR], ['월', '화', '수', '목', '금', '토', '일']);
   assert.deepEqual([...ORDINAL], ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟']);
   assert.deepEqual({ ...C.MGMT_LABEL }, { '일일 체크': '목록', '습관 스트릭': '연속 기록', '칸반': '보드' });
-  assert.deepEqual({ ...C.SHAPE_LABEL }, { '둥근': '둥글게', '각진': '반듯하게' });
-  assert.deepEqual({ ...C.MOOD_LABEL }, { '연꽃': '미색', '크림': '크림', '화이트': '회색', '파스텔': '연보라', '다크': '다크' });
   assert.deepEqual([...C.MOOD_WORDS], ['힘듦', '별로', '보통', '좋음', '최고']);
-  assert.deepEqual(ACCENTS.map((a) => a.name), ['골드', '연지', '쑥', '쪽빛', '오디']);
   const cell = { ai: 2, text: '하루 물 2L', meta: { speech: '이번 주 3회 중 2회' }, isToday: true, didIt: false, done: true };
   assert.equal(cellLabel(cell), '세 번째 칸, 하루 물 2L, 이번 주 3회 중 2회, 오늘 할 일, 달성');
   assert.equal(cellLabel({ ...cell, didIt: true, done: false, meta: null }), '세 번째 칸, 하루 물 2L, 오늘 했어요');
@@ -108,10 +104,7 @@ test('살아 있는 보기는 setLang을 따라 바뀐다(키는 저장값 그�
     assert.equal(ORDINAL.length, 8);
     assert.deepEqual(Object.keys(C.MGMT_LABEL), ['일일 체크', '습관 스트릭', '칸반']);
     assert.equal(C.MGMT_LABEL['습관 스트릭'], 'Streak');
-    assert.equal(C.SHAPE_LABEL['각진'], 'Sharp');
-    assert.equal(C.MOOD_LABEL['연꽃'], 'Ivory');
     assert.equal(C.MOOD_WORDS[4], 'Great');
-    assert.equal(ACCENTS[0].name, 'Gold');
     assert.equal(K.weekDayActionLabel(0, false), 'Mark Monday done');
     assert.equal(K.weekStripSummary(['done', 'missed', 'today', 'planned', 'rest', 'rest', 'rest'], 2).split(', ')[2], 'Wednesday: today');
     assert.equal(areaLabel('Health', 5, 3, 2), "Health, 3 of 8 squares achieved, 2 on Today's list");
@@ -121,14 +114,12 @@ test('살아 있는 보기는 setLang을 따라 바뀐다(키는 저장값 그�
     assert.equal(R.DOW_KR[1], '月');
     assert.equal(K.WEEKDAY_KR[6], '日');
     assert.equal(C.MGMT_LABEL['일일 체크'], 'リスト');
-    assert.equal(ACCENTS[3].name, '藍');
     assert.equal(K.weekDayLabel(2, 'today'), '水曜日 今日');
     assert.equal(areaLabel('健康', 5, 3, 2), '健康、8マス中3マス達成、今日2マス');
     assert.equal(cellLabel({ ai: 0, text: '本', meta: null, isToday: true, didIt: true, done: false }), '1番目のマス、本、今日できました');
   });
   // 되돌아오면 한국어
   assert.equal(C.MOOD_WORDS[0], '힘듦');
-  assert.equal(ACCENTS[1].name, '연지');
 });
 
 test('en은 수에 맞춰 단수 · 복수, ja는 숫자와 단위를 붙여 쓴다', () => {

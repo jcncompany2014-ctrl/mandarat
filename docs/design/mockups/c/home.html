@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>홈 — C. 먹과 주홍</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/c/tokens.css">
+<style>
+  /* 홈에만 있는 배치: 표와 두 숫자가 한 덩어리인 머리 (S2) */
+  .hero { display: flex; gap: 18px; padding-top: 14px; padding-bottom: 16px; }
+  .hero__figs { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .hero__rule { height: var(--w-sub); background: var(--rule); }
+  .areas { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }
+  .areas__cell { height: 40px; display: flex; align-items: center; justify-content: space-between; border-top: var(--w-hair) solid var(--hair); }
+  .areas__cell:nth-child(-n+2) { border-top: 0; }
+  .areas__cell .c-area { font: 500 14px/20px var(--font-ui); color: var(--ink); gap: 8px; }
+</style>
+</head>
+<body class="c-screen">
+<main id="page" class="c-page"></main>
+<script src="/docs/design/mockups/c/shared.js"></script>
+<script>
+C.load().then(function (d) {
+  var h = C.h, v = d.view, page = document.getElementById('page');
+
+  // 머리: 날짜는 윗줄 한 줄, 제목은 사용자의 목표
+  page.append(C.header({
+    eyebrow: [h('span.c-strong', {}, v.date.month + ' ' + v.date.day + '일 ' + v.date.weekday), ' · ' + v.date.week + ' · ' + v.date.left],
+    title: d.coreGoal,
+    action: 'settings',
+  }));
+
+  // 주인공: 표(L1)와 두 숫자
+  page.append(h('section.hero.c-pad', {},
+    C.chartL1(d, { size: 180 }),
+    h('div.hero__figs', {},
+      C.figure({ label: '오늘', value: v.today.done, of: v.today.of, mark: 'today' }),
+      h('div.hero__rule'),
+      C.figure({ label: '달성', value: v.progress.done, of: v.progress.of, unit: '칸', mark: 'done' }))));
+
+  // 오늘 할 일: 이번 주 중점 두 줄을 맨 위에 꽂고, 모두 다섯 줄
+  var rowsByText = {};
+  v.today.rows.forEach(function (r) { rowsByText[r.text] = r; });
+  var list = [];
+  v.weekFocus.forEach(function (f) {
+    var r = rowsByText[f.text] || { text: f.text, area: f.area, meta: '' };
+    list.push({ title: r.text, area: r.area, color: d.color(r.area), meta: r.meta, strong: '이번 주 중점', right: r.right });
+  });
+  v.today.rows.forEach(function (r) {
+    if (list.length >= 5 || r.doneToday) return;
+    if (list.some(function (x) { return x.title === r.text; })) return;
+    list.push({ title: r.text, area: r.area, color: d.color(r.area), meta: r.meta, right: r.right });
+  });
+  var sec = C.section({ title: '오늘 할 일', trailing: C.textAction('모두 보기') });
+  list.forEach(function (r) { sec.append(C.row(r)); });
+  page.append(h('div.c-pad', {}, sec));
+
+  // 이번 주: 正
+  var week = C.section({ title: v.week.label, trailing: h('span', { style: { display: 'flex', alignItems: 'baseline' } }, h('span.c-fig.c-fig-m', {}, v.week.total.replace(/\D/g, '')), h('span.c-unit', {}, '번')) });
+  week.append(C.weekStrip(v.week));
+  page.append(h('div.c-pad', {}, week));
+
+  // 여덟 영역: 2 × 4 (첫 화면에서는 떠 있는 바 아래로 지나간다)
+  var areas = C.section({ title: '8개 영역' });
+  areas.style.marginTop = '32px';
+  areas.append(h('div.areas', {}, v.areaLedger.map(function (a) {
+    return h('div.areas__cell', {}, C.area({ name: a[0], color: d.color(a[0]) }),
+      h('span.c-fig.c-fig-m', {}, a[1].split('/')[0], h('span.c-figure__of', {}, '/' + a[1].split('/')[1])));
+  })));
+  page.append(h('div.c-pad', {}, areas));
+
+  page.append(C.tabBar({ active: 'home' }));
+});
+</script>
+</body>
+</html>

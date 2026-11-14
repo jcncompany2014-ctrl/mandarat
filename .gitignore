@@ -51,3 +51,6 @@ yarn-error.*
 /tools/store-shots/.web
 /dist-dev
 /.maestro/out
+
+# 시안용 서체(앱에 싣지 않는다) — tools/design-mockups/fonts.md
+tools/design-mockups/fonts/

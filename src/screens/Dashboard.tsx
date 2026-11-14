@@ -1,72 +1,44 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
-import { IconBtn, LineRow, RowDivider, RuledNotice, groupEdge, pressedRow } from '../components/common';
+import { Header, RuledNotice, pressedRow, type HeaderAction } from '../components/common';
 import { TID } from '../lib/testIds';
 import { Icon } from '../components/Icon';
-import { Check, checkEdge } from '../components/Check';
-import { MiniChart } from '../components/GridMark';
-import { TodayRow, TODAY_ROW_INSET, type TodayRowItem } from '../components/TodayRow';
-import { Tally } from '../components/Tally';
-import { NUM, TYPE } from '../theme/type';
-import { EASE } from '../theme/motion';
+import { CheckBox, DyeMark, LinkRow, Row, Section, TextLink } from '../components/kit';
+import { ColourMap, WeekBars, l1Width, type WeekBarDay } from '../components/chart';
+import { TodayRow, type TodayRowItem } from '../components/TodayRow';
+import { ROLE } from '../theme/type';
+import { GEO } from '../theme/tokens';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
-import { useUIActions, useUIState } from '../navigation/ui';
-import { readableOn } from '../theme/palette';
+import { useUIActions } from '../navigation/ui';
 import { useDoc, themeProgress, totalDone, dateKey } from '../store/MandaratContext';
 import { orderedTodayItems, todayItems, todayProgress, weekCounts } from '../lib/routine';
 import { GUIDE_FILL_TARGET, GUIDE_STEP_COUNT, canPickAny, firstAreaWithEmpty, guideSteps, type GuideKey } from '../lib/pick';
 import { ritualTarget, weekPriority } from '../lib/ritual';
-import { homeSummary } from '../lib/a11y';
+import { homeSummary, todaySummary } from '../lib/a11y';
 import { yearClosePrompt } from '../lib/archive';
 import { useMsg } from '../i18n/react';
-import { areaLine, headerMeta, homeGate } from '../lib/home';
-import { fmtDateLong, fmtRange, noOrphan } from '../lib/text';
-import { useIncreaseContrast, useReducedMotion } from '../lib/useReducedMotion';
+import { HOME, areaLine, daysLeftInYear, headerMeta, heroMapCell, homeEyebrow, homeGate, homeList } from '../lib/home';
+import { fmtDateLong, fmtRange } from '../lib/text';
 import { showGridAt } from './gridMemory';
 import { tap } from '../lib/haptics';
-import { legibleMark } from '../theme/chart';
 import type { MandaratDoc, Theme } from '../types';
 
-/** 화면 좌우 여백 */
-const GUTTER = 20;
+/** 구역 머리 아래 — 목업 home.html '.sec .a-section { margin-bottom: 4px }' */
+const SECTION_HEAD = { marginBottom: 4 } as const;
 
 /**
- * 구역 머리 — 종이 위 작은 제목 한 줄(18pt, 위 24 · 아래 12). 오른쪽엔 보조 숫자.
- * onPress가 있으면 줄 어디를 눌러도 되고, 화면 읽기에서는 제목(머리말)과 오른쪽 버튼을 따로 읽는다.
- */
-const SectionHead = memo(function SectionHead({ M, title, right, rightSpeech, onPress, a11y }: {
-  M: M; title: string; right?: string;
-  /** 오른쪽 숫자를 소리로 읽을 말 — '2/5'는 날짜로 읽혀서 '5단계 중 2단계'처럼 */
-  rightSpeech?: string;
-  onPress?: () => void; a11y?: string;
-}) {
-  const head = <Text style={{ ...TYPE.section, flex: 1, color: M.ink }} accessibilityRole="header">{title}</Text>;
-  const note = !!right && <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub, ...NUM }} accessibilityLabel={rightSpeech}>{right}</Text>;
-  const style = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4, paddingHorizontal: GUTTER, paddingTop: 24, paddingBottom: 12 };
-  if (!onPress) return <View style={style}>{head}{note}</View>;
-  return (
-    <Pressable onPress={onPress} accessible={false} style={style}>
-      {head}
-      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y ?? title} hitSlop={12} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        {note}
-        <Icon name="chevR" size={16} color={M.sub} />
-      </Pressable>
-    </Pressable>
-  );
-});
-
-/**
- * 홈 — 수첩의 오늘 쪽.
- * 날짜 머리(해·주·남은 날) 아래 인쇄된 두 줄 → 핵심 목표와 내 81칸 → 시작 가이드(끝날 때까지 아래를 가린다)
- * → 저장 알림 → 한 주 돌아보기 · 이번 주 중점 → 오늘 할 일(다 하면 장부 마감 두 줄) → 이번 주 正 → 8개 영역.
+ * 홈 — 디자인 A(docs/design/build-plan.md §1 Home, 목업 docs/design/mockups/a/home.png · home-dark.png).
+ * 머리(위 줄 날짜 · 주, 제목 = 핵심 목표 30/40, 설정) → 히어로(숫자 칸 셋 | 작은 색 지도 L1)
+ * → 저장 알림 · 한 해 마무리 · 한 주 돌아보기 · 시작하기(누르는 줄) → 오늘 할 일(중점 먼저, 다섯 줄까지, 전체 보기 ›)
+ * → 이번 주(막대 일곱) → 8개 영역(두 단 장부). 구역 사이 30(히어로 아래 32), 좌우 여백 24.
  */
 export const Dashboard = memo(function Dashboard() {
   const M = usePalette();
   const m = useMsg();
-  const { go, openEditor, openRitual, openAction, openYearClose } = useUIActions();
+  const { go, openEditor, openRitual, openYearClose } = useUIActions();
   const { doc, storageError, saveFailed, clock } = useDoc();
   const { width, fontScale } = useWindowDimensions();
 
@@ -79,13 +51,11 @@ export const Dashboard = memo(function Dashboard() {
   const guide = guideSteps(doc);
   const gate = homeGate({ guideActive: guide.next >= 0, todayTotal, weekTotal, filled: guide.filled });
   const ritualWeek = ritualTarget(doc, now);
-  const priority = weekPriority(doc, now).slice(0, 3);
-  const meta = headerMeta(now);
   // 12월 15일 ~ 1월 31일, 아직 마무리하지 않은 표 — clock이 바뀌면(자정) 다시 본다
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const yearPrompt = useMemo(() => yearClosePrompt(doc, new Date()), [doc.onboarded, doc.chartStart, doc.dayLog, doc.archives, clock]);
 
-  // 81칸 위 오늘 표시 — 오늘 할 일인 칸과 그중 오늘 한 칸.
+  // 지도의 화면 읽기 말(블록마다 '오늘 n칸') — 오늘 할 일인 칸과 그중 오늘 한 칸.
   // 문서는 체크마다 바뀌지만 Set은 서명(칸 키 + 했는지)이 같으면 그대로 둔다 — 81칸이 칸 값을 다시 세지 않게
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const todaySig = useMemo(() => todayItems(doc, new Date()).map((i) => i.key + (i.done ? '1' : '0')).join('|'), [doc, clock]);
@@ -99,7 +69,9 @@ export const Dashboard = memo(function Dashboard() {
 
   const onChartBlock = useCallback((b: number | 'c') => { tap(); if (b === 'c') go('grid'); else go('detail', b); }, [go]);
   const onArea = useCallback((ti: number) => { tap(); go('detail', ti); }, [go]);
-  // 이번 주 칸 — 오늘은 지금 다 했는지로, 지난 날은 마감해 둔 날(closedDays)로 작은 먹 네모를 단다
+  const onSettings = useCallback(() => go('settings'), [go]);
+  const onSetGoal = useCallback(() => { tap(); openEditor({ kind: 'center' }); }, [openEditor]);
+  // 이번 주 막대 — 오늘은 지금 다 했는지로, 지난 날은 마감해 둔 날(closedDays)로 '마감'을 읽는 말에 덧붙인다
   const closedDays = doc.closedDays;
   const weekCells = useMemo(
     () => week.map((d) => ({ ...d, closed: d.isToday ? dayComplete : !!closedDays?.includes(d.date) })),
@@ -108,221 +80,214 @@ export const Dashboard = memo(function Dashboard() {
     [doc.dayLog, dayComplete, closedDays, dateKey(now)],
   );
 
-  const big = fontScale >= 1.35;
-  const chartSize = big ? 160 : width < 380 ? 116 : 132;
+  const measure = width - GEO.gutter * 2;
+  const cell = heroMapCell(measure);
+  const stacked = fontScale >= HOME.stackScale;
   const goal = doc.centerGoal.trim();
 
   return (
-    <View style={{ paddingBottom: 12 }}>
-      {/* 머리 — 큰 날짜 · 달 · 요일 | 해 · 주 / 올해 남은 날 | 설정 */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingLeft: GUTTER, paddingRight: GUTTER - 11, paddingTop: 6 }}>
+    <View>
+      <HomeHeader
+        M={M}
+        eyebrow={homeEyebrow(now)}
+        goal={goal ? doc.centerGoal : ''}
+        summary={homeSummary(doc, now)}
+        onSettings={onSettings}
+        onSetGoal={onSetGoal}
+      />
+
+      <View style={{ paddingHorizontal: GEO.gutter }}>
+        {/* 히어로 — 숫자 칸 셋(오늘 · 달성 · 남은 날) | 내 81칸 색 지도(L1). 숫자 칸은 지도 높이에 고르게 */}
         <View
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-start' }}
-          accessible
-          accessibilityRole="header"
-          accessibilityLabel={homeSummary(doc, now)}
+          testID={TID.homeHero}
+          style={{
+            flexDirection: stacked ? 'column' : 'row',
+            alignItems: stacked ? 'flex-start' : 'stretch',
+            gap: HOME.heroGap,
+            marginTop: HOME.heroTop,
+          }}
         >
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+          <HeroFields
+            M={M}
+            today={`${todayDone}/${todayTotal}`}
+            todaySay={todaySummary(doc, now)}
+            done={done}
+            left={daysLeftInYear(now)}
+            leftSay={headerMeta(now).left}
+            minHeight={stacked ? undefined : l1Width(cell)}
+            stacked={stacked}
+          />
+          <ColourMap
+            level="L1"
+            cell={cell}
+            themes={doc.themes}
+            goal={doc.centerGoal}
+            todayKeys={todayKeys}
+            doneToday={doneToday}
+            onPressBlock={onChartBlock}
+            accessibilityHint={m.home.chartHint}
+          />
+        </View>
+
+        {/* 히어로 아래 구역들 — 사이 30, 히어로 바로 아래 32 */}
+        <View style={{ marginTop: HOME.heroBelow, gap: GEO.sectionGap }}>
+          {(saveFailed || storageError) && (
+            <View accessibilityRole="alert">
+              <RuledNotice
+                M={M}
+                title={m.home.saveFailTitle}
+                body={m.home.saveFailBody}
+                action={{ label: m.home.saveFailAction, onPress: () => { tap(); go('settings'); } }}
+              />
+            </View>
+          )}
+
+          {/* 한 해 마무리 · 한 주 돌아보기 — 오늘 할 일 위의 누르는 줄 */}
+          {(yearPrompt || ritualWeek) && (
             <View>
-              <Text style={{ ...TYPE.display, ...NUM, color: M.ink }} maxFontSizeMultiplier={1.2}>{now.getDate()}</Text>
-              {/* 오늘을 다 한 날 — 숫자 밑에 포인트 색(M.gold — 표·통계의 표시와 같은 색) 밑줄 하나, 종이 위 3:1 이상으로 */}
-              {dayComplete && <View style={{ height: 3, backgroundColor: legibleMark(M.gold, M.bg, M), marginTop: 1 }} />}
+              {yearPrompt && (
+                <LinkRow
+                  M={M}
+                  glyph="grid"
+                  title={m.year.homePrompt}
+                  meta={m.year.homePromptAction}
+                  onPress={() => { tap(); openYearClose(); }}
+                  testID={TID.homeYearPrompt}
+                  accessibilityLabel={`${m.year.homePrompt}${m.core.listSep}${m.year.homePromptAction}`}
+                />
+              )}
+              {ritualWeek && (
+                <LinkRow
+                  M={M}
+                  glyph="calendar"
+                  title={m.home.ritualTitle}
+                  meta={m.home.ritualSub({ range: fmtRange(ritualWeek) })}
+                  onPress={() => { tap(); openRitual(ritualWeek); }}
+                  testID={TID.homeRitual}
+                  divider={!!yearPrompt}
+                />
+              )}
             </View>
-            <View style={{ paddingBottom: dayComplete ? 12 : 8 }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{m.home.month({ n: now.getMonth() + 1 })}</Text>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub, marginTop: 1 }}>{m.fmt.dowLong({ i: now.getDay() })}</Text>
-            </View>
-          </View>
-          <View style={{ alignItems: 'flex-end', paddingTop: 12 }}>
-            <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: '500', color: M.sub, ...NUM }}>{meta.week}</Text>
-            <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: '500', color: M.sub, ...NUM }}>{meta.left}</Text>
-          </View>
-        </View>
-        <View style={{ paddingTop: 2, marginLeft: 4 }}>
-          <IconBtn M={M} name="settings" label={m.home.settings} testID={TID.homeSettings} onPress={() => go('settings')} />
-        </View>
-      </View>
-      {/* 인쇄된 두 줄 — 굵은 줄 1.5 · 가는 줄 0.5, 3pt 사이 */}
-      <View style={{ marginHorizontal: GUTTER, marginTop: 10, opacity: 0.7 }} accessible={false} importantForAccessibility="no-hide-descendants">
-        <View style={{ height: 1.5, backgroundColor: M.ink }} />
-        <View style={{ height: 0.5, backgroundColor: M.ink, marginTop: 3 }} />
-      </View>
-
-      {/* 한 해 마무리 안내 — 머리 아래 괘선 한 줄(카드 없이) */}
-      {yearPrompt && (
-        <Pressable
-          testID={TID.homeYearPrompt}
-          onPress={() => { tap(); openYearClose(); }}
-          accessibilityRole="button"
-          accessibilityLabel={`${m.year.homePrompt}, ${m.year.homePromptAction}`}
-          style={({ pressed }) => [
-            { marginHorizontal: GUTTER, minHeight: 48, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderColor: M.line },
-            pressed ? pressedRow(M) : null,
-          ]}
-        >
-          <Text style={{ flex: 1, fontSize: 14, lineHeight: 19, fontWeight: '600', color: M.ink }} numberOfLines={2}>
-            {`${m.year.homePrompt}${m.core.dot}${m.year.homePromptAction}`}
-          </Text>
-          <Icon name="chevR" size={16} color={M.sub} />
-        </Pressable>
-      )}
-
-      {/* 핵심 목표 + 내 81칸 */}
-      <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', gap: big ? 16 : 18, paddingHorizontal: GUTTER, marginTop: 20 }}>
-        <MiniChart
-          themes={doc.themes}
-          cellShape={doc.settings.cellShape}
-          size={chartSize}
-          todayKeys={todayKeys}
-          doneToday={doneToday}
-          onPressBlock={onChartBlock}
-          accessibilityHint={m.home.chartHint}
-        />
-        <View style={{ flex: big ? undefined : 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.home.coreGoal}</Text>
-          {goal ? (
-            <Text style={{ fontSize: 21, lineHeight: 28, fontWeight: '800', color: M.ink, marginTop: 4 }} numberOfLines={4}>
-              {noOrphan(doc.centerGoal)}
-            </Text>
-          ) : (
-            <Pressable
-              onPress={() => { tap(); openEditor({ kind: 'center' }); }}
-              accessibilityRole="button"
-              accessibilityLabel={m.home.setGoal}
-              accessibilityHint={m.home.setGoalHint}
-              hitSlop={8}
-              style={({ pressed }) => ({ marginTop: 4, opacity: pressed ? 0.6 : 1 })}
-            >
-              <Text style={{ fontSize: 21, lineHeight: 28, fontWeight: '800', color: M.sub }}>{m.home.setGoalText}</Text>
-            </Pressable>
           )}
-          {done > 0 && (
-            <Text style={{ fontSize: 13, color: M.sub, marginTop: 8, fontWeight: '500' }}>
-              {m.home.doneBefore}<Text style={{ color: M.ink, fontWeight: '800', ...NUM }}>{m.home.doneCount({ n: done })}</Text>{m.home.doneAfter}
-            </Text>
+
+          {/* 처음 쓰는 사람의 다섯 단계 — 다 끝내면 사라진다 */}
+          <StartGuide M={M} doc={doc} g={guide} />
+
+          {/* 오늘 할 일 — 중점 먼저, 다섯 줄까지. 체크한 줄은 제자리에 먹선이 그어진 채 남는다 */}
+          {gate.today && <TodaySection M={M} doc={doc} todayDone={todayDone} todayTotal={todayTotal} />}
+
+          {/* 이번 주 — 막대 일곱 */}
+          {gate.week && (
+            <View>
+              <Section M={M} label={m.home.weekTitle} meta={m.fmt.times({ n: weekTotal })} style={SECTION_HEAD} />
+              <WeekSection cells={weekCells} today={dateKey(now)} />
+            </View>
+          )}
+
+          {/* 8개 영역 — 두 단 장부: 표시 · 이름 · n/8. 왼쪽 단을 먼저 내려 읽는다 */}
+          {gate.areas && (
+            <View>
+              <Section M={M} label={m.home.areasTitle} style={SECTION_HEAD} />
+              <AreaLedger M={M} themes={doc.themes} onPress={onArea} />
+            </View>
           )}
         </View>
       </View>
+    </View>
+  );
+});
 
-      {/* 처음 쓰는 사람의 다섯 단계 — 다 끝내면 사라진다 */}
-      <StartGuide M={M} doc={doc} g={guide} />
+/**
+ * 머리 — common Header(위 줄 + 헤드라인 + 설정 글리프). 화면 읽기에는 예전처럼 머리 한 덩어리(homeSummary: 날짜 · 핵심 목표 ·
+ * 달성 · 남은 할 일, Header의 accessibilityLabel)와 설정 단추가 따로 읽힌다.
+ * 핵심 목표가 없으면 제목 자리에 '핵심 목표를 정해 주세요' — 누르면 편집 창(Header의 onTitlePress).
+ */
+const HomeHeader = memo(function HomeHeader({ M, eyebrow, goal, summary, onSettings, onSetGoal }: {
+  M: M; eyebrow: string; goal: string; summary: string; onSettings: () => void; onSetGoal: () => void;
+}) {
+  const m = useMsg();
+  const action = useMemo<HeaderAction>(
+    () => ({ glyph: 'settings', onPress: onSettings, label: m.home.settings, testID: TID.homeSettings }),
+    [onSettings, m],
+  );
+  return (
+    <Header
+      M={M}
+      eyebrow={eyebrow}
+      title={goal || m.home.setGoalText}
+      written={!!goal}
+      headline
+      accessibilityLabel={summary}
+      action={action}
+      onTitlePress={goal ? undefined : onSetGoal}
+      titleLabel={m.home.setGoal}
+      titleHint={m.home.setGoalHint}
+    />
+  );
+});
 
-      {(saveFailed || storageError) && (
-        <View style={{ marginHorizontal: GUTTER, marginTop: 24 }} accessibilityRole="alert">
-          <RuledNotice
-            M={M}
-            title={m.home.saveFailTitle}
-            body={m.home.saveFailBody}
-            action={{ label: m.home.saveFailAction, onPress: () => { tap(); go('settings'); } }}
-          />
-        </View>
-      )}
+/** 히어로의 숫자 칸 하나 — 인쇄된 이름(label) 위, 숫자(figureField) + 단위(unit) 아래. 소리로는 숫자를 말로 */
+function HeroField({ M, label, figure, unit, say }: { M: M; label: string; figure: string; unit?: string; say: string }) {
+  return (
+    <View accessible accessibilityLabel={say} style={{ gap: HOME.fieldGap }}>
+      <Text style={[ROLE.label, { color: M.print }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+        <Text style={[ROLE.figureField, { color: M.ink, fontVariant: ['tabular-nums'] }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>{figure}</Text>
+        {!!unit && <Text style={[ROLE.unit, { color: M.ink2 }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>{unit}</Text>}
+      </View>
+    </View>
+  );
+}
 
-      {/* 한 주 돌아보기 — 일요일 저녁 · 월화요일 */}
-      {ritualWeek && (
-        <View style={{ paddingHorizontal: GUTTER, marginTop: 24 }}>
-          <LineRow
-            M={M}
-            first
-            last
-            title={m.home.ritualTitle}
-            sub={m.home.ritualSub({ range: fmtRange(ritualWeek) })}
-            right="chevron"
-            onPress={() => { tap(); openRitual(ritualWeek); }}
-            testID={TID.homeRitual}
-          />
-        </View>
-      )}
-
-      {/* 이번 주 중점 — 지난주를 닫으며 고른 칸 */}
-      {priority.length > 0 && (
-        <>
-          <SectionHead M={M} title={m.home.priorityTitle} />
-          <View style={{ paddingHorizontal: GUTTER }}>
-            {priority.map((k, i) => {
-              const [ti, ai] = k.split('-').map(Number);
-              const th = doc.themes[ti];
-              const text = th?.actions[ai]?.text.trim() ?? '';
-              const area = th?.title.trim() || m.home.areaFallback({ n: ti + 1 });
-              return (
-                <Pressable
-                  key={k}
-                  onPress={() => { tap(); openAction(ti, ai); }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${text}${m.core.listSep}${area}`}
-                  accessibilityHint={m.home.actionHint}
-                  style={({ pressed }) => [
-                    groupEdge(M, i === 0, i === priority.length - 1),
-                    { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8, paddingHorizontal: 0 },
-                    pressed ? pressedRow(M) : null,
-                  ]}
-                >
-                  {i > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-                  {/* 오늘 할 일과 같은 글 줄 — 체크 칸 폭(26)에 영역 네모를 놓는다 */}
-                  <View style={{ width: 26, alignItems: 'center' }}>
-                    <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: th?.color ?? M.sub }} />
-                  </View>
-                  <Text style={{ ...TYPE.rowTitle, flex: 1, color: M.ink }} numberOfLines={2}>{text}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
-      )}
-
-      {/* 오늘 할 일 — 바로 체크, 다 하면 장부처럼 두 줄을 긋고 마감 */}
-      {gate.today && <TodaySection M={M} doc={doc} todayDone={todayDone} todayTotal={todayTotal} />}
-
-      {/* 이번 주 — 날마다 正 한 자 */}
-      {gate.week && (
-        <>
-          <SectionHead M={M} title={m.home.weekTitle} right={m.fmt.times({ n: weekTotal })} />
-          <WeekTally M={M} cells={weekCells} />
-        </>
-      )}
-
-      {/* 8개 영역 — 장부처럼 한 줄씩: 이름 · 다음 할 칸 · n/8 */}
-      {gate.areas && (
-        <>
-          <SectionHead M={M} title={m.home.areasTitle} />
-          <View style={{ paddingHorizontal: GUTTER }}>
-            {doc.themes.map((th, ti) => (
-              <AreaRow key={ti} M={M} th={th} ti={ti} last={ti === doc.themes.length - 1} onPress={onArea} />
-            ))}
-          </View>
-        </>
-      )}
+/** 히어로 숫자 칸 셋 — 지도 높이(minHeight)에 고르게(space-between). 더 큰 텍스트에서는 지도 위에 한 줄로(넘치면 접는다) */
+const HeroFields = memo(function HeroFields({ M, today, todaySay, done, left, leftSay, minHeight, stacked }: {
+  M: M; today: string; todaySay: string; done: number; left: number; leftSay: string; minHeight?: number; stacked: boolean;
+}) {
+  const m = useMsg();
+  return (
+    <View
+      style={stacked
+        ? { flexDirection: 'row', flexWrap: 'wrap', columnGap: HOME.heroGap, rowGap: 12 }
+        : { flex: 1, minWidth: 0, minHeight, justifyContent: 'space-between', paddingVertical: HOME.heroPadY }}
+    >
+      <HeroField M={M} label={m.home.heroToday} figure={today} say={todaySay} />
+      <HeroField M={M} label={m.home.heroDone} figure={`${done}/64`} unit={m.home.unitCells} say={m.home.sumDone({ n: done })} />
+      <HeroField M={M} label={m.home.heroLeft} figure={`${left}`} unit={m.home.unitDays({ n: left })} say={leftSay} />
     </View>
   );
 });
 
 type WeekCell = ReturnType<typeof weekCounts>[number] & { closed: boolean };
 
-/** 이번 주 일곱 칸 — 날마다 正 한 자와 요일, 할 일을 다 한(마감한) 날은 요일 아래 작은 먹 네모 */
-const WeekTally = memo(function WeekTally({ M, cells }: { M: M; cells: WeekCell[] }) {
+/** 이번 주 막대 일곱 — 아직 오지 않은 날은 점. 화면 읽기에는 오늘까지의 날을 한 그림으로('월요일 3번, … 수요일 1번, 오늘') */
+const WeekSection = memo(function WeekSection({ cells, today }: { cells: WeekCell[]; today: string }) {
   const m = useMsg();
+  const days = useMemo<WeekBarDay[]>(
+    () => cells.map((d) => ({ label: m.fmt.dowNarrow({ i: d.dow }), n: d.date > today ? null : d.count, today: d.isToday, sunday: d.dow === 0 })),
+    [cells, today, m],
+  );
+  const say = useMemo(
+    () => cells
+      .filter((d) => d.date <= today)
+      .map((d) => {
+        const base = (d.isToday ? m.home.weekDayToday : m.home.weekDay)({ day: m.fmt.dowLong({ i: d.dow }), n: d.count });
+        return d.closed ? `${base}${m.core.listSep}${m.home.weekClosed}` : base;
+      })
+      .join(m.core.listSep),
+    [cells, today, m],
+  );
+  return <WeekBars days={days} accessibilityLabel={say} />;
+});
+
+/** 8개 영역 — 두 단(왼쪽 1~4, 오른쪽 5~8), 단 사이 28, 줄 38. 줄 사이 선 없음 */
+const AreaLedger = memo(function AreaLedger({ M, themes, onPress }: { M: M; themes: readonly Theme[]; onPress: (ti: number) => void }) {
+  const half = Math.ceil(themes.length / 2);
+  const cols = [themes.slice(0, half), themes.slice(half)];
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: GUTTER }}>
-      {cells.map((d) => (
-        <View
-          key={d.date}
-          style={{ alignItems: 'center', gap: 6 }}
-          accessible
-          accessibilityLabel={(d.isToday ? m.home.weekDayToday : m.home.weekDay)({ day: m.fmt.dowLong({ i: d.dow }), n: d.count })}
-        >
-          <View
-            style={{
-              width: 40, height: 48, alignItems: 'center', justifyContent: 'center',
-              borderWidth: d.isToday ? 1.6 : 1, borderColor: d.isToday ? M.ink : M.line,
-            }}
-          >
-            <Tally n={d.count} color={M.ink} subColor={M.sub} grow={d.isToday} />
-          </View>
-          <Text style={{ fontSize: 11, lineHeight: 14, fontWeight: d.isToday ? '800' : '600', color: d.isToday ? M.ink : M.sub }}>
-            {m.fmt.dowNarrow({ i: d.dow })}
-          </Text>
-          {/* 할 일을 다 한 날 — 요일 아래 작은 먹 네모 */}
-          <View style={{ width: 4, height: 4, backgroundColor: d.closed ? M.ink : 'transparent' }} />
+    <View style={{ flexDirection: 'row', gap: HOME.ledgerGap }}>
+      {cols.map((col, c) => (
+        <View key={c} style={{ flex: 1, minWidth: 0 }}>
+          {col.map((th, i) => <AreaRow key={c * half + i} M={M} th={th} ti={c * half + i} onPress={onPress} />)}
         </View>
       ))}
     </View>
@@ -330,204 +295,162 @@ const WeekTally = memo(function WeekTally({ M, cells }: { M: M; cells: WeekCell[
 });
 
 /** 8개 영역의 한 줄 — 영역(theme)이 그대로면 다시 그리지 않는다(체크로 문서가 바뀌어도) */
-const AreaRow = memo(function AreaRow({ M, th, ti, last, onPress }: {
-  M: M; th: Theme; ti: number; last: boolean; onPress: (ti: number) => void;
+const AreaRow = memo(function AreaRow({ M, th, ti, onPress }: {
+  M: M; th: Theme; ti: number; onPress: (ti: number) => void;
 }) {
   const m = useMsg();
   const p = themeProgress(th);
   const name = th.title.trim() || m.home.areaFallback({ n: ti + 1 });
   const line = areaLine(th);
-  const first = ti === 0;
+  const slop = (44 - HOME.ledgerRow) / 2;
   return (
     <Pressable
       onPress={() => onPress(ti)}
       accessibilityRole="button"
       accessibilityLabel={m.home.areaRowLabel({ name, line, n: p.done })}
+      hitSlop={{ top: slop, bottom: slop }}
       style={({ pressed }) => [
-        groupEdge(M, first, last),
-        { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 9, paddingHorizontal: 0 },
+        { flexDirection: 'row', alignItems: 'center', minHeight: HOME.ledgerRow },
         pressed ? pressedRow(M) : null,
       ]}
     >
-      {!first && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-      {/* 오늘 할 일과 같은 글 줄 — 체크 칸 폭(26)에 영역 네모를 놓는다 */}
-      <View style={{ width: 26, alignItems: 'center' }}>
-        <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: th.color }} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '700', color: M.ink }} numberOfLines={1}>{name}</Text>
-        <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '500', color: M.sub, marginTop: 1 }} numberOfLines={1}>{line}</Text>
-      </View>
-      <Text style={{ minWidth: 30, textAlign: 'right', fontSize: 13, fontWeight: '600', color: M.sub, ...NUM }}>{p.done}/8</Text>
+      <DyeMark M={M} area={ti} />
+      <Text style={[ROLE.ledger, { flex: 1, minWidth: 0, color: M.ink }]} numberOfLines={1}>{name}</Text>
+      <Text style={[ROLE.ledgerFigure, { marginLeft: 8, color: M.ink2 }]}>{p.done}/8</Text>
     </Pressable>
   );
 });
 
+/** 오늘 할 일 한 줄의 재료 — 실천 줄(TodayItem)이나 직접 적은 할 일(TodayExtra) */
+type Line = { key: string; done: boolean; item: TodayRowItem; onOpen?: () => void };
+
 /**
- * 오늘 할 일 — 급한 것부터 셋을 오늘 줄(TodayRow 'home')로. 이번에 체크한 줄은 그 자리에 먹선이 그어진 채 남는다.
- * 다 하면 장부처럼 두 줄을 긋고 '10월 14일 수요일 마감 · 10 / 10'.
+ * 오늘 할 일 — 이번 주 중점이 먼저(오른쪽 '중점'; 오늘 할 일이 아닌 중점은 체크 칸 없이 '이번 주'), 그다음 남은 일,
+ * 끝에 오늘 한 일 하나 — 모두 다섯 줄까지(lib/home homeList). 구역 머리 오른쪽 '전체 보기 ›'는 오늘 화면으로.
+ * 이 화면에서 체크한 줄은 사라지지 않고 제자리에서 먹선이 그어진다. 다 하면 아래에 '10월 14일 수요일 마감' 한 줄.
  */
 function TodaySection({ M, doc, todayDone, todayTotal }: { M: M; doc: MandaratDoc; todayDone: number; todayTotal: number }) {
   const m = useMsg();
   const { go, openAction, openQuick, openPick } = useUIActions();
-  const { dayCloseTick, closedDay } = useUIState();
   const { clock } = useDoc();
-  // '+ 담기' 점선 네모 — 빈 체크 칸과 같은 테두리(대비 증가에서는 더 진하게)
-  const edge = checkEdge(M.dark, useIncreaseContrast());
   // 이 화면에 있는 동안 체크한 줄 — 사라지지 않고 제자리에서 먹선이 그어진다
   const [kept, setKept] = useState<ReadonlySet<string>>(() => new Set());
   const keep = (key: string) => setKept((s) => (s.has(key) ? s : new Set(s).add(key)));
-  // 이 화면에 들어온 뒤 하루가 마감되면(dayCloseTick이 바뀌면) 마감 줄을 그어 보인다
-  const mountTick = useRef(dayCloseTick);
-  const now = new Date();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const items = useMemo(() => orderedTodayItems(doc, new Date()), [doc, clock]);
-  type Row = { key: string; item: TodayRowItem; onOpen?: () => void };
-  const rows: Row[] = [
-    ...items.map((it) => ({ key: it.key, item: it as TodayRowItem, onOpen: () => openAction(it.ti, it.ai) })),
-    ...doc.todayExtra.map((x) => ({ key: `x${x.id}`, item: x as TodayRowItem })),
+  const rows: Line[] = [
+    ...items.map((it) => ({ key: it.key, done: it.done, item: it as TodayRowItem, onOpen: () => openAction(it.ti, it.ai) })),
+    ...doc.todayExtra.map((x) => ({ key: `x${x.id}`, done: x.done, item: x as TodayRowItem })),
   ];
-  const visible = rows.filter((r) => !r.item.done || kept.has(r.key));
-  const shown = visible.slice(0, 3);
-  const more = visible.length - shown.length;
+  // 이번 주 중점 — 지난주를 닫으며 고른 칸
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const focus = useMemo(() => weekPriority(doc, new Date()), [doc.themes, doc.reviews, clock]);
+  const { pinned, shown } = homeList(rows, focus, kept);
   const canPick = useMemo(() => canPickAny(doc, new Date()), [doc, clock]);
   const complete = todayTotal > 0 && todayDone === todayTotal;
-  // 이 화면에 있는 동안 다 찼고 아직 마감하지 않은 날 — 곧 마감 신호(dayCloseTick)가 온다(시트 위에서 마지막 하나를 한 때도).
-  // 마감 줄은 빈 줄에서 시작한다(그어진 채 보였다가 사라졌다 다시 그어지지 않게). 신호가 안 오면 400ms 뒤 그대로 보인다.
-  const startComplete = useRef(complete);
-  const today = dateKey(now);
-  const closing = complete && !startComplete.current && closedDay !== today && !doc.closedDays?.includes(today);
+  const focusMark = m.today.weekFocusMark;
 
-  // 줄: 남은 일 · (n개 더) · (고르기 / 추가하기)
-  const lines: React.ReactNode[] = shown.map((r, i) => (
-    <TodayRow
-      key={r.key}
-      M={M}
-      item={r.item}
-      variant="home"
-      onOpen={r.onOpen}
-      divider={i > 0}
-      onCheck={(wasDone) => { if (!wasDone) keep(r.key); }}
-    />
-  ));
-  if (more > 0) {
+  const lines: React.ReactNode[] = [];
+  for (const p of pinned) {
+    const divider = lines.length > 0;
+    if (p.row) {
+      lines.push(
+        <TodayRow key={p.key} M={M} item={p.row.item} variant="home" onOpen={p.row.onOpen} rightPrint={focusMark} divider={divider} />,
+      );
+    } else {
+      const [ti, ai] = p.key.split('-').map(Number);
+      lines.push(<FocusRow key={p.key} M={M} th={doc.themes[ti]} ti={ti} ai={ai} divider={divider} />);
+    }
+  }
+  for (const r of shown) {
     lines.push(
-      <Pressable
-        key="more"
-        onPress={() => { tap(); go('today'); }}
-        accessibilityRole="button"
-        accessibilityLabel={m.home.moreLabel({ n: more })}
-        style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center', paddingLeft: TODAY_ROW_INSET }, pressed ? pressedRow(M) : null]}
-      >
-        {lines.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-        <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.home.more({ n: more })}</Text>
-      </Pressable>,
+      <TodayRow
+        key={r.key}
+        M={M}
+        item={r.item}
+        variant="home"
+        onOpen={r.onOpen}
+        divider={lines.length > 0}
+        onCheck={(wasDone) => { if (!wasDone) keep(r.key); }}
+      />,
     );
   }
-  // 다 한 날엔 이 줄을 숫자와 마감 두 줄 사이에 두지 않는다 — 마감 아래 조용한 '더 고르기'로
-  if (!complete && (canPick || todayTotal === 0)) {
-    // 만다라트에 고를 실천이 있으면 거기서 고르고, 없으면 오늘만 할 일을 바로 적는다
+  // 오늘 할 일이 하나도 없을 때만 — 체크 칸 자리에 + 글리프, 만다라트에 고를 실천이 있으면 고르기, 없으면 바로 적기(점선 네모 없이)
+  if (!complete && todayTotal === 0) {
     const label = canPick ? m.home.pickMore : m.home.addToday;
     lines.push(
-      <Pressable
+      <LinkRow
         key="pick"
+        M={M}
+        lead={<Icon name="plus" size={18} color={M.ink} />}
+        title={label}
         onPress={() => { tap(); if (canPick) openPick(); else openQuick(); }}
-        accessibilityRole="button"
         accessibilityLabel={label}
-        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 54, paddingVertical: 8 }, pressed ? pressedRow(M) : null]}
-      >
-        {lines.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-        <View style={{ width: 26, height: 26, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="plus" size={13} color={M.sub} sw={2.2} />
-        </View>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: M.sub }}>{label}</Text>
-      </Pressable>,
+        divider={lines.length > 0}
+      />,
     );
   }
 
+  const day = fmtDateLong(dateKey());
   return (
-    <>
-      <SectionHead
+    <View>
+      <Section
         M={M}
-        title={m.home.todayTitle}
-        right={todayTotal > 0 ? `${todayDone}/${todayTotal}` : undefined}
-        onPress={() => { tap(); go('today'); }}
-        a11y={todayTotal > 0 ? m.home.todayHeadLabel({ total: todayTotal, done: todayDone }) : m.home.openToday}
+        label={m.home.todayTitle}
+        link={{
+          label: m.home.seeAll,
+          onPress: () => { tap(); go('today'); },
+          accessibilityLabel: todayTotal > 0 ? m.home.todayHeadLabel({ total: todayTotal, done: todayDone }) : m.home.openToday,
+        }}
+        style={SECTION_HEAD}
       />
-      <View style={{ paddingHorizontal: GUTTER }}>
-        {lines.length > 0 && (
-          <View style={{ borderTopWidth: 1, borderBottomWidth: complete ? 0 : 1, borderColor: M.line }}>{lines}</View>
-        )}
-        {complete && (
-          <LedgerClose M={M} total={todayTotal} draw={dayCloseTick !== mountTick.current} fresh={kept.size > 0 || closing} />
-        )}
-        {complete && canPick && (
-          <Pressable
-            onPress={() => { tap(); openPick(); }}
-            accessibilityRole="button"
-            accessibilityLabel={m.home.pickMore}
-            style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center', paddingTop: 8, alignSelf: 'flex-start' }, pressed ? { opacity: 0.5 } : null]}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.home.pickMoreLink}</Text>
-          </Pressable>
-        )}
-      </View>
-    </>
-  );
-}
-
-/** 마감 줄이 그어지는 시간 · 체크 획이 끝날 때까지 기다리는 시간(Root의 마감 알림 650ms와 맞춘다) */
-const CLOSE_MS = 420;
-const CLOSE_DELAY = 230;
-
-/**
- * 장부 마감 — 1pt 먹줄 두 개(2pt 사이)가 왼쪽에서 오른쪽으로 그어지고, 아래에 '10월 14일 수요일 마감' · '10 / 10'.
- * draw: 이 화면에 있는 동안 하루가 마감됐다(dayCloseTick이 바뀜) → 420ms에 긋는다. 아니면 처음부터 그어진 모습.
- * fresh: 방금 이 화면에서 마지막 하나를 체크했다 — 마감 신호를 기다리며 빈 줄에서 시작한다(오지 않으면 곧 그대로 보인다).
- */
-function LedgerClose({ M, total, draw, fresh }: { M: M; total: number; draw: boolean; fresh: boolean }) {
-  const m = useMsg();
-  const reduced = useReducedMotion();
-  const scale = useRef(new Animated.Value(fresh && !reduced ? 0 : 1)).current;
-  const ran = useRef(false);
-
-  useEffect(() => {
-    if (!draw || ran.current) return;
-    ran.current = true;
-    if (reduced) { scale.setValue(1); return; }
-    scale.setValue(0);
-    const run = Animated.timing(scale, { toValue: 1, duration: CLOSE_MS, delay: CLOSE_DELAY, easing: EASE.out, useNativeDriver: true });
-    run.start();
-  }, [draw, reduced, scale]);
-
-  // 마감 신호가 오지 않는 경우(이미 마감한 날 다시 다 함 등) — 빈 줄로 남지 않게
-  useEffect(() => {
-    if (!fresh) return;
-    const t = setTimeout(() => { if (!ran.current) scale.setValue(1); }, 400);
-    return () => clearTimeout(t);
-  }, [fresh, scale]);
-
-  // 움직이는 값이 든 스타일은 한 번만 — 다시 그릴 때마다 새 객체면 애니메이션 연결을 다시 맺는다
-  const rule = useMemo(() => ({ height: 1, backgroundColor: M.ink, transform: [{ scaleX: scale }], transformOrigin: 'left' as const }), [M.ink, scale]);
-  const rule2 = useMemo(() => [rule, { marginTop: 2 }], [rule]);
-  return (
-    <View accessible accessibilityLabel={m.home.closeLabel({ day: fmtDateLong(dateKey()), n: total })}>
-      <Animated.View style={rule} />
-      <Animated.View style={rule2} />
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', paddingTop: 10 }}>
-        <Text style={{ flex: 1, fontSize: 13, fontWeight: '500', color: M.sub }}>{m.today.closeLeft({ day: fmtDateLong(dateKey()) })}</Text>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, ...NUM }}>{total} / {total}</Text>
-      </View>
+      {lines}
+      {/* 다 한 날 — 마감 한 줄(인쇄된 글), 그 아래 조용한 '실천에서 더 고르기 ›' */}
+      {complete && (
+        <View accessible accessibilityLabel={m.home.closeLabel({ day, n: todayTotal })} style={{ paddingTop: 12 }}>
+          <Text style={[ROLE.note, { color: M.print }]}>{m.today.closeLeft({ day })}</Text>
+        </View>
+      )}
+      {complete && canPick && (
+        <View style={{ minHeight: 44, justifyContent: 'center', alignItems: 'flex-start' }}>
+          <TextLink M={M} label={m.home.pickMore} onPress={() => { tap(); openPick(); }} />
+        </View>
+      )}
     </View>
   );
 }
 
-// 마지막 단계(하나 체크하기)는 바로 아래 오늘 할 일에서 하므로 버튼이 없다 — 가리키는 줄 위에 '오늘 보기'를 두지 않는다
+/** 이번 주 중점이지만 오늘 할 일이 아닌 칸 — 체크 칸 자리는 비우고, 정보 줄 '영역 · 이번 주', 오른쪽 '중점'. 누르면 실천 시트 */
+const FocusRow = memo(function FocusRow({ M, th, ti, ai, divider }: { M: M; th: Theme | undefined; ti: number; ai: number; divider: boolean }) {
+  const m = useMsg();
+  const { openAction } = useUIActions();
+  const text = th?.actions[ai]?.text.trim() ?? '';
+  const area = th?.title.trim() || m.home.areaFallback({ n: ti + 1 });
+  return (
+    <Row
+      M={M}
+      title={text}
+      area={ti}
+      areaName={area}
+      meta={m.home.weekTitle}
+      right={m.today.weekFocusMark}
+      rightTone="print"
+      divider={divider}
+      onPress={() => { tap(); openAction(ti, ai); }}
+      accessibilityLabel={`${text}${m.core.listSep}${area}`}
+      accessibilityHint={m.home.actionHint}
+    />
+  );
+});
+
+// 마지막 단계(하나 체크하기)는 바로 아래 오늘 할 일에서 하므로 누르는 줄이 아니다
 const GUIDE_CTA: Record<GuideKey, 'ctaSet' | 'ctaFill' | 'ctaPick' | null> = { goal: 'ctaSet', areas: 'ctaSet', fill: 'ctaFill', today: 'ctaPick', check: null };
 
 /**
- * 시작하기 — 핵심 목표 → 영역 8개 → 실천 칸 → 오늘 할 일 → 첫 체크.
- * 다음 단계에만 버튼을 달아 지금 할 일 하나만 보이게 하고, 다섯 단계를 다 하면 사라진다.
+ * 시작하기 — 핵심 목표 → 영역 8개 → 실천 칸 → 오늘 할 일 → 첫 체크. 오늘 할 일 위의 누르는 줄(LinkRow).
+ * 끝낸 단계는 체크된 칸 + 먹선, 다음 단계만 누르는 줄('정하기 ›'), 아직 먼 단계는 아직 아닌 칸(later)과 흐린 글.
+ * 다섯 단계를 다 하면 사라진다.
  */
 function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeof guideSteps> }) {
   const m = useMsg();
@@ -547,71 +470,62 @@ function StartGuide({ M, doc, g }: { M: M; doc: MandaratDoc; g: ReturnType<typeo
     } else openPick();
   };
   return (
-    <>
-      <SectionHead M={M} title={m.home.guideTitle} right={`${doneCount}/${GUIDE_STEP_COUNT}`} rightSpeech={m.home.guideProgress({ total: GUIDE_STEP_COUNT, done: doneCount })} />
-      <View style={{ paddingHorizontal: GUTTER }}>
-        {g.steps.map((st, i) => {
-          const isNext = i === g.next;
-          const filled = Math.min(g.filled, GUIDE_FILL_TARGET);
-          const label = st.key === 'fill' ? m.home.guideFillLabel({ label: st.label, done: filled, total: GUIDE_FILL_TARGET }) : st.label;
-          // 소리로는 '3/8' 대신 '8칸 중 3칸'
-          const speech = st.key === 'fill' ? m.home.guideFillSpeech({ label: st.label, done: filled, total: GUIDE_FILL_TARGET }) : st.label;
-          const ctaKey = isNext ? GUIDE_CTA[st.key] : null;
-          const cta = ctaKey ? m.home[ctaKey] : null;
-          const first = i === 0;
-          // 버튼이 달린 단계만 누를 수 있다 — 끝낸 단계·아직 먼 단계는 누르는 것이 아닌 글 줄(View).
-          // Pressable에 onPress만 빼면 눌림 색이 비치고(RN) 웹에서는 Tab으로 멈춘다. disabled는 화면 읽기가
-          // '흐리게 표시됨'이라 읽으므로 쓰지 않는다
-          const pressable = !!cta;
-          const sep = m.core.listSep;
-          const a11yLabel = `${m.home.guideStep({ n: i + 1, text: speech })}${st.done ? sep + m.home.guideDone : isNext ? sep + m.home.guideNext : ''}${cta ? sep + cta : ''}`;
-          const rowStyle = [
-            groupEdge(M, first, i === g.steps.length - 1),
-            { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, minHeight: 54, paddingVertical: 8 },
-          ];
-          const body = (
-            <>
-              {!first && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-              {st.done ? (
-                <Check on color={legibleMark(M.accent, M.bg, M)} dark={M.dark} seed={st.key} />
-              ) : (
-                <View style={{ width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1.6, borderColor: isNext ? M.ink : M.line }}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: isNext ? M.ink : M.sub, ...NUM }} maxFontSizeMultiplier={1.2}>{i + 1}</Text>
-                </View>
-              )}
-              <Text
-                style={{ flex: 1, fontSize: 16, lineHeight: 21, fontWeight: isNext ? '800' : '500', color: isNext ? M.ink : M.sub, textDecorationLine: st.done ? 'line-through' : 'none' }}
-                numberOfLines={2}
-              >
-                {label}
-              </Text>
-              {cta && (
-                <View style={{ height: 32, paddingHorizontal: 14, borderRadius: 8, backgroundColor: M.accent, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: readableOn(M.accent) }} maxFontSizeMultiplier={1.3}>{cta}</Text>
-                </View>
-              )}
-            </>
-          );
-          if (!pressable) {
-            return (
-              <View key={st.key} accessible accessibilityRole="text" accessibilityLabel={a11yLabel} style={rowStyle}>
-                {body}
-              </View>
-            );
-          }
+    <View>
+      <Section
+        M={M}
+        label={m.home.guideTitle}
+        right={
+          // 소리로는 '2/5' 대신 '5단계 중 2단계'('2/5'는 날짜로 읽힌다)
+          <Text style={[ROLE.meta, { color: M.ink }]} accessibilityLabel={m.home.guideProgress({ total: GUIDE_STEP_COUNT, done: doneCount })}>
+            {`${doneCount}/${GUIDE_STEP_COUNT}`}
+          </Text>
+        }
+        style={SECTION_HEAD}
+      />
+      {g.steps.map((st, i) => {
+        const isNext = i === g.next;
+        const filled = Math.min(g.filled, GUIDE_FILL_TARGET);
+        const label = st.key === 'fill' ? m.home.guideFillLabel({ label: st.label, done: filled, total: GUIDE_FILL_TARGET }) : st.label;
+        // 소리로는 '3/8' 대신 '8칸 중 3칸'
+        const speech = st.key === 'fill' ? m.home.guideFillSpeech({ label: st.label, done: filled, total: GUIDE_FILL_TARGET }) : st.label;
+        const ctaKey = isNext ? GUIDE_CTA[st.key] : null;
+        const cta = ctaKey ? m.home[ctaKey] : null;
+        // 누를 것이 있는 단계만 누르는 줄 — 끝낸 단계 · 아직 먼 단계는 글 줄(View).
+        // Pressable에 onPress만 빼면 눌림 색이 비치고(RN) 웹에서는 Tab으로 멈춘다. disabled는 화면 읽기가
+        // '흐리게 표시됨'이라 읽으므로 쓰지 않는다
+        const pressable = !!cta;
+        const sep = m.core.listSep;
+        const a11yLabel = `${m.home.guideStep({ n: i + 1, text: speech })}${st.done ? sep + m.home.guideDone : isNext ? sep + m.home.guideNext : ''}${cta ? sep + cta : ''}`;
+        const lead = <CheckBox M={M} state={st.done ? 'done' : isNext ? 'open' : 'later'} />;
+        if (!pressable) {
           return (
-            <Pressable
+            <Row
               key={st.key}
-              onPress={() => run(st.key)}
-              accessibilityRole="button"
+              M={M}
+              title={label}
+              titleLines={2}
+              lead={lead}
+              done={st.done}
+              divider={i > 0}
+              titleStyle={!st.done && !isNext ? { color: M.ink2 } : undefined}
+              accessibilityRole="text"
               accessibilityLabel={a11yLabel}
-              style={({ pressed }) => [...rowStyle, pressed ? pressedRow(M) : null]}
-            >
-              {body}
-            </Pressable>
+            />
           );
-        })}
-      </View>
-    </>
+        }
+        return (
+          <LinkRow
+            key={st.key}
+            M={M}
+            lead={lead}
+            title={label}
+            value={cta ?? undefined}
+            onPress={() => run(st.key)}
+            divider={i > 0}
+            accessibilityLabel={a11yLabel}
+          />
+        );
+      })}
+    </View>
   );
 }

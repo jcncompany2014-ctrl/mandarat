@@ -1,17 +1,17 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import React, { memo, useCallback, useState } from 'react';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
-import * as SystemUI from 'expo-system-ui';
 
-import { MandaratProvider, usePaletteValue, useReady } from './src/store/MandaratContext';
+import { MandaratProvider, useReady } from './src/store/MandaratContext';
+import { LookProvider, usePaletteValue } from './src/theme/look';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
-import { PAPER, Splash, SplashFade, holdNativeSplash, nativeSplashUp, releaseNativeSplash } from './src/components/Splash';
+import { Splash, SplashFade, holdNativeSplash, nativeSplashUp, releaseNativeSplash } from './src/components/Splash';
 import { installWebStyles } from './src/lib/webStyle';
 import { PaperColumn } from './src/components/WebColumn';
-import { mix } from './src/theme/moods';
+import { desk } from './src/theme/tokens';
 import { crash } from './src/lib/crash';
 import { ProProvider } from './src/store/ProContext';
 import { LangBoot, LangRoot, prefetchLangPref, takeResumeHint } from './src/i18n/react';
@@ -36,14 +36,8 @@ const FONT_FILES = {
 
 function Gate() {
   // 준비됐는지만 읽는다 — 문서가 바뀌어도 문지기는 다시 그려지지 않는다
+  // (루트 뷰 바탕 · 상태 막대 · 시스템 모드는 LookProvider가 화면 모드에 맞춰 둔다)
   const ready = useReady();
-  // 종이 색은 무드가 바뀔 때만 바뀌는 팔레트에서
-  const paper = usePaletteValue().bg ?? PAPER;
-  // 루트 뷰 바탕을 지금 종이 색으로 — 키보드·시트가 오르내릴 때 드러나는 가장자리가 흰색/검은색으로 튀지 않게
-  useEffect(() => {
-    if (Platform.OS === 'web') return;
-    SystemUI.setBackgroundColorAsync(paper).catch(() => {});
-  }, [paper]);
   if (!ready) return <Splash />;
   return <Shell />;
 }
@@ -63,7 +57,7 @@ const Shell = memo(function Shell() {
   // 웹이거나 이미 걷혔으면 같은 모양의 JS 스플래시를 첫 화면 위에서 걷는다.
   const [jsFade, setJsFade] = useState(() => !nativeSplashUp());
   const endFade = useCallback(() => setJsFade(false), []);
-  // 넓은 창(웹 미리보기·아이패드): 종이 한 단을 가운데에 — 바깥은 종이보다 한 톤 짙은 책상, 가장자리에 가는 괘선.
+  // 넓은 창(웹 미리보기·아이패드): 종이 한 단을 가운데에 — 바깥은 책상(밝게 tile · 어둡게 한 톤 깊게), 가장자리에 가는 괘선.
   // 단 폭은 PaperColumn이 창 크기로 고르고(layoutFor) PageSize로 내려 준다 — 두 쪽 펼침(spread)은 V5-A
   const P = usePaletteValue();
   // 언어를 바꾸면 LangRoot 아래를 통째로 다시 그린다 — 문서는 그대로, 화면은 설정으로 돌아온다(Resume)
@@ -71,7 +65,7 @@ const Shell = memo(function Shell() {
     <LangRoot>
       <Resume>
         <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
-          <PaperColumn bg={mix(P.bg, P.ink, 0.05)} edge={P.line}>
+          <PaperColumn bg={desk(P)} edge={P.printRule}>
             <Root />
           </PaperColumn>
           {jsFade && <SplashFade onDone={endFade} />}
@@ -94,7 +88,9 @@ function App() {
         <SafeAreaProvider>
           <ProProvider>
             <MandaratProvider>
-              <Gate />
+              <LookProvider fallback={<Splash />}>
+                <Gate />
+              </LookProvider>
             </MandaratProvider>
           </ProProvider>
         </SafeAreaProvider>

@@ -137,13 +137,14 @@ src/
   types.ts                   데이터 모델
   data/                      defaults(8영역 시드·예시·migrate) · templates(목적별 템플릿)
   store/MandaratContext.tsx  AsyncStorage 영속 + 파생 셀렉터 + 되돌리기
-  theme/                     종이 팔레트·색 헬퍼(moods) · 영역 색(palette) · 차트 · 서체(Pretendard) · 글자 단계(type) · 그림자 · motion
+  theme/                     토큰(tokens: 밝게·어둡게) · 화면 모드(look) · 앱 팔레트·색 헬퍼(moods) · 저장되는 색(palette) · 표 자리(chart) · 서체(Pretendard) · 글자 역할(type ROLE) · 그림자 · motion
   lib/                       routine · kinds · kindSuggest · review/ritual(한 주 돌아보기) · todayCheck/todayList · statsView · poster(표 이미지)
                              · backup/backupLedger · copy(낱말장·금지어) · text(조사·날짜) · appInfo · useReducedMotion(동작 줄이기·스크린리더·굵은 텍스트·대비 증가) …
-  components/                AppText · Check · TodayRow · ChartBoard · ChartPoster · GridMark · Tally · WeekStrip · MoodRow · KindBits
-                             · EmptyState(빈 괘선 줄) · PaperDots(도트 종이) · LineIcons/AreaIcons/Icon · common(시트·괘선 줄·버튼) …
+  components/                kit/(체크 칸·줄·세그먼트·칸·고르기 줄 같은 부품 상자) · chart/(색 지도·크게 본 블록·위치 표·마크·이번 주 막대·분 칸)
+                             · AppText · Check · TodayRow · ChartPoster · GridMark · MoodRow · KindBits · EmptyState · PaperDots(종이 무늬)
+                             · LineIcons/AreaIcons/Icon · common(머리·시트·버튼·토스트) …
   navigation/                Root 셸 · 오버레이/토스트 컨텍스트(ui)
-  screens/                   Onboarding · Dashboard(홈) · GridScreen/FullGrid(81칸) · Detail(영역) · Today/TodayModes · Stats · Settings
+  screens/                   Onboarding · Dashboard(홈) · GridScreen/FullGrid(색 지도) · area/AreaPage(영역 쪽: 크게 보기·Detail) · Today/TodayModes · Stats · Year · Settings
   overlays/                  ActionSheet · CellEditor · QuickAdd · PickToday · FocusTimer · WeekRitual · ShareChart · BackupImport · Celebration · Snackbar
 scripts/releaseCheck.js      출시 막음 검사
 tests/                       순수 모듈 단위 테스트 (node:test + 프로젝트 TypeScript로 즉석 변환) · 화면 글 검사(copy.test)

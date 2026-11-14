@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>만다라트 9×9 · 여덟 빛깔</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/b/tokens.css">
+<style>
+  /* 만다라트 (S1 as a map): the goal is the title, the 9×9 runs edge to edge, the next step sits under it. */
+  .map { padding: 0 2px; }
+  .next { display: flex; align-items: center; gap: 14px; margin: 16px var(--gutter) 0; padding: 12px 12px 12px 12px; border-radius: var(--r-plate); background: var(--wash); }
+  .next__body { flex: 1; min-width: 0; }
+  .next__title { font-size: 20px; line-height: 26px; font-weight: 700; letter-spacing: -0.3px; margin-top: 1px; }
+  .next__area { display: flex; align-items: center; gap: 3px; color: var(--aink); font-weight: 500; }
+  .next__go { color: var(--ink); margin-right: 2px; }
+  /* The eight areas with their counts, in the same places as on the map. Tap one to open its block. */
+  .index { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 18px; margin: 10px var(--gutter) 0; }
+  .index__cell { display: flex; align-items: center; height: 44px; gap: 5px; font-size: 14px; line-height: 20px; }
+  .index__cell svg { display: block; color: var(--aink); }
+  .index__name { flex: 1; font-weight: 500; white-space: nowrap; }
+  .index__count { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .index__count span { font-weight: 500; color: var(--ink-2); }
+  .index__mark { display: flex; align-items: center; justify-content: center; height: 44px; }
+</style>
+</head>
+<body>
+<script src="/docs/design/mockups/b/shared.js"></script>
+<script>
+B.load().then((doc) => {
+  const v = doc.view, el = B.el;
+  const screen = B.screen();
+
+  // S3 header: the folio is the eyebrow, the user's goal is the title, one trailing action.
+  screen.append(B.header({
+    eyebrow: `${v.date.year} · ${v.progress.of}칸 중 ${v.progress.done}칸`,
+    title: doc.coreGoal,
+    action: 'share',
+  }));
+
+  // L2 map: tile 40, 386pt wide, 2pt from each screen edge (the same 2pt as the gap between tiles).
+  screen.append(el('div', 'map', B.chart(doc, { ...B.fit(386), labels: 'names' })));
+
+  // The next step, with a small picture of its block so you can see where it lives.
+  const area = doc.areaIndex(v.nextStep.area);
+  const action = doc.areas[area].actions.findIndex((a) => a.text === v.nextStep.text);
+  screen.append(el('div', `next a${area}`, [
+    B.miniBlock(doc, area, { tile: 14, gap: 3, pick: action }),
+    el('div', 'next__body', [
+      el('div', 't-caption', '다음 할 일'),
+      el('div', 'next__title', v.nextStep.text),
+      el('div', 't-meta next__area', [B.glyph(area, 14), v.nextStep.area]),
+    ]),
+    el('span', 'next__go', B.icon('chevron', 20)),
+  ]));
+
+  // Area index: 3×3, positions as on the map, the mark in the middle.
+  const index = el('div', 'index');
+  for (let k = 0; k < 9; k++) {
+    const i = k < 4 ? k : k - 1;
+    if (k === 4) { index.append(el('div', 'index__mark', B.mark({ size: 22 }))); continue; }
+    const a = doc.areas[i];
+    index.append(el('div', `index__cell a${i}`, [B.glyph(i, 15), el('span', 'index__name', a.title), el('span', 'index__count', [String(a.done), el('span', null, `/${a.of}`)])]));
+  }
+  screen.append(index);
+
+  screen.append(B.tabBar({ active: 'chart' }));
+});
+</script>
+</body>
+</html>

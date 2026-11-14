@@ -1,26 +1,29 @@
 {
   "ko": {
-    "chart": "81칸에 한 해 계획을 적어요",
-    "today": "오늘 할 일은 저절로 담겨요",
-    "home": "하루를 수첩처럼 닫아요",
-    "stats": "자주 한 칸일수록 짙어져요",
-    "ritual": "일요일엔 한 주를 돌아봐요",
-    "year": "한 해를 한 장으로 돌아봐요"
+    "brand": "만다라트 플래너",
+    "chart": { "eyebrow": "만다라트 계획표", "head": ["한 해 목표를", "한 장에 채워요"] },
+    "today": { "eyebrow": "오늘 할 일", "head": ["표에 적은 일이", "오늘 할 일이 돼요"] },
+    "widgets": { "eyebrow": "위젯", "head": ["홈 화면에서", "바로 체크해요"] },
+    "home": { "eyebrow": "홈", "head": ["오늘과 한 해를", "한눈에 봐요"] },
+    "stats": { "eyebrow": "통계", "head": ["꾸준히 한 만큼", "색이 쌓여요"] },
+    "year": { "eyebrow": "한 해 돌아보기", "head": ["채워 온 한 해를", "한 장으로 돌아봐요"] }
   },
   "ja": {
-    "chart": "81マスに一年の計画を書く",
-    "today": "今日やることが自然にそろう",
-    "home": "一日を手帳のように締める",
-    "stats": "よく続けたマスほど濃くなる",
-    "ritual": "日曜日に一週間をふりかえる",
-    "year": "一年を一枚でふりかえる"
+    "brand": "マンダラート プランナー",
+    "chart": { "eyebrow": "マンダラート", "head": ["一年の目標を", "一枚のシートに"] },
+    "today": { "eyebrow": "今日やること", "head": ["表に書いた計画が", "今日のやることに"] },
+    "widgets": { "eyebrow": "ウィジェット", "head": ["ホーム画面から", "そのままチェック"] },
+    "home": { "eyebrow": "ホーム", "head": ["今日と一年が", "ひと目でわかる"] },
+    "stats": { "eyebrow": "統計", "head": ["続けた分だけ", "色が積み重なる"] },
+    "year": { "eyebrow": "一年のふりかえり", "head": ["埋めてきた一年を", "一枚でふりかえる"] }
   },
   "en": {
-    "chart": "Plan your year in 81 squares",
-    "today": "Today’s list fills itself in",
-    "home": "Close each day like a ledger",
-    "stats": "Busy squares grow darker",
-    "ritual": "Look back every Sunday",
-    "year": "Your year on a single page"
+    "brand": "Mandalart Planner",
+    "chart": { "eyebrow": "The Mandalart chart", "head": ["Your year’s goals", "on one page"] },
+    "today": { "eyebrow": "Today", "head": ["Your plan becomes", "today’s list"] },
+    "widgets": { "eyebrow": "Widgets", "head": ["Check off tasks", "on your Home Screen"] },
+    "home": { "eyebrow": "Home", "head": ["Your day and year", "at a glance"] },
+    "stats": { "eyebrow": "Stats", "head": ["See your week", "in color"] },
+    "year": { "eyebrow": "Year in review", "head": ["Your whole year,", "square by square"] }
   }
 }

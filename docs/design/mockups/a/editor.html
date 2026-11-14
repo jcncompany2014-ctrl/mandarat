@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 칸 편집 · 11시 취침</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 칸 편집. The zoomed 건강 block stays behind, dimmed, with the cell being edited framed in ink.
+     The sheet reads top to bottom as one form: the words, then what kind, then when, then a reminder.
+     Labels above, always. Three selection controls, one job each:
+       segment    유형, 반복         one of a few, inline
+       check box  요일               seven independent yes/no (chosen = ink tick, never the done wash)
+       choice row 알림               one of a list
+     The only colour is 건강's: the dye mark by its name and the locator (head cell solid, written
+     cells in the pale tint, done cells in the wash), as on the colour map.
+     Clean round: Pretendard only (the field is the goal field of onboarding: 19/26 SemiBold on --tile,
+     12pt corners), white paper, no serif anywhere. */
+  #block { margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body"><div id="block"></div></div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script>
+A.ready().then((doc) => {
+  const AREA = 0, INDEX = 2; // 건강 · 11시 취침
+  const area = doc.areas[AREA];
+  const act = area.actions[INDEX];
+
+  // behind: the block page, as block.html draws it, with this cell selected
+  A.header('#header', { back: '만다라트', title: area.title, written: true, figure: `${area.done}/${area.of}`, action: 'more' });
+  A.block('#block', doc, AREA, { cell: 112, focus: 2 });
+  A.tabBar('#bar', { active: 'chart' });
+
+  // act.days counts from Sunday (0 = 일): [0..4] = 일 월 화 수 목, the "월·화·수·목·일 반복" of Today
+  const order = ['월', '화', '수', '목', '금', '토', '일'];
+  const dayNo = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
+  const chosen = new Set(act.days);
+  const days = order.map((d) => ({ d, s: chosen.has(dayNo[d]) ? 'chosen' : 'open' }));
+
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(doc, AREA, INDEX)}
+
+    <div class="s-field">
+      <div class="s-field-text">${act.text}</div>
+      <span class="t-label s-field-count">${[...act.text].length}/60</span>
+    </div>
+    <span class="t-note">무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요</span>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">유형</span></div>
+      ${S.segment(['한 번', '습관', '쌓기', '마음가짐'], '습관')}
+      <span class="t-note">정한 요일마다 ‘오늘’에 담겨요</span>
+    </section>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">반복</span><span class="s-quiets"><span class="s-quiet">매일</span><span class="s-quiet">평일</span><span class="s-quiet">주말</span></span></div>
+      ${S.segment(['요일마다', '횟수로'], '요일마다')}
+      <div style="height:12px"></div>
+      ${S.days(days)}
+    </section>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">알림</span></div>
+      <div class="a-list">
+        ${S.choice({ title: '없음' })}
+        ${S.choice({ title: '시각 정하기', meta: '오후 10:30 · 정한 요일마다', on: true })}
+      </div>
+    </section>
+
+    <div class="s-foot">
+      <span class="s-quiet">칸 비우기</span>
+      <div class="a-btn">저장</div>
+    </div>`;
+});
+</script>
+</body>
+</html>

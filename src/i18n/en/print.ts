@@ -9,7 +9,6 @@ export default {
   achieved: ({ done, total }) => `${done} of ${total} ${plural(total, 'square', 'squares')} achieved`,
   areaN: ({ n }) => `Area ${n}`,
   areaOf: ({ n, total }) => `Area ${n} of ${total}`,
-  finished: 'Achieved',
   memo: 'Notes',
   colAction: 'Action',
   colKind: 'Type',
@@ -41,6 +40,7 @@ export default {
   webNote: 'You can save a PDF from the print dialog',
   busy: 'Making the PDF',
   failed: "Couldn't make the PDF",
-  shareLink: 'Printable PDF ›',
   shareLinkSay: 'Printable PDF',
+  posterEyebrow: ({ y }) => `Core goal for ${y}`,
+  posterUnit: 'squares',
 } satisfies Like<typeof ko>;

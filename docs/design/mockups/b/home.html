@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>홈 · 여덟 빛깔</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/b/tokens.css">
+<style>
+  /* Home (S2): the goal, the mosaic, three time scales in one line, then today's rows. */
+  .hero { padding: 0 var(--gutter); }
+  .scales { display: flex; align-items: flex-start; margin: 12px var(--gutter) 0; }
+  .scales .b-figure + .b-figure { margin-left: 22px; }
+  .scales__week { margin-left: auto; }
+  .scales__week .t-caption { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .scales__week b { color: var(--ink); font-weight: 600; }
+  .list-head { margin-top: 23px; margin-bottom: 2px; }
+  .areas { display: grid; grid-template-columns: repeat(4, 83px); gap: 6px; padding: 0 var(--gutter); margin-top: 12px; }
+</style>
+</head>
+<body>
+<script src="/docs/design/mockups/b/shared.js"></script>
+<script>
+B.load().then((doc) => {
+  const v = doc.view, el = B.el;
+  const screen = B.screen();
+
+  // S3 header. The date is the masthead line; the dot before it is the same dot that marks today's tiles below.
+  screen.append(B.header({
+    today: true,
+    eyebrow: `${v.date.month} ${v.date.day}일 ${v.date.weekday} · ${v.date.week} · ${v.date.left}`,
+    title: doc.coreGoal,
+    action: 'settings',
+  }));
+
+  // Hero: the L1 mosaic at full content width (350pt, tile 36).
+  screen.append(el('div', 'hero', B.chart(doc, { ...B.fit(350) })));
+
+  // Today, this year, this week: two figures and the 正 strip.
+  screen.append(el('div', 'scales', [
+    B.figure({ label: '오늘', value: v.today.done, of: v.today.of }),
+    B.figure({ label: '올해', value: v.progress.done, of: v.progress.of, unit: '칸' }),
+    el('div', 'scales__week', [
+      el('div', 't-caption', [el('span', null, v.week.label), el('b', null, v.week.total)]),
+      B.week(v.week),
+    ]),
+  ]));
+
+  // Today's rows. This week's focus is pinned on top; then the rest of today in order (five rows in all).
+  screen.append(el('div', 'list-head', B.section('오늘 할 일', '모두 보기')));
+  const rows = v.today.rows;
+  const byText = (t) => rows.find((r) => r.text === t);
+  const pinned = v.weekFocus.map((f) => byText(f.text) || { text: f.text, area: f.area, meta: '' });
+  const rest = rows.filter((r) => !r.doneToday && !v.weekFocus.some((f) => f.text === r.text));
+  for (const r of pinned) screen.append(B.todayRow(doc, r, { right: '이번 주 중점', quiet: true }));
+  for (const r of rest.slice(0, 5 - pinned.length)) screen.append(B.todayRow(doc, r));
+
+  // Below the fold: the eight areas as a 2×4 of square tiles.
+  screen.append(el('div', { class: 'list-head', style: { marginTop: '40px' } }, B.section('8개 영역')));
+  screen.append(el('div', 'areas', doc.areas.map((a, i) => B.areaTile(doc, i))));
+
+  screen.append(B.tabBar({ active: 'home' }));
+});
+</script>
+</body>
+</html>

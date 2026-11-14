@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   sheetSubtitle, canBackfill, backfillToast, yesterdayOffer, canPostpone, postponedDue, POSTPONE, goalToast,
-  noteChanged, memoRules, historyStartLabel, weekDayKey, dowOf,
+  noteChanged, historyStartLabel, weekDayKey, dowOf,
 } = require('../src/lib/actionSheet');
 
 const WED = new Date(2026, 9, 14); // 수요일 — 이번 주는 10/12(월) ~ 10/18(일)
@@ -74,14 +74,11 @@ test('쌓기 목표 알림', () => {
   assert.equal(goalToast(1000, 'km'), '1,000km 목표에 닿았어요');
 });
 
-test('메모 — 바뀐 때만 저장, 줄 수는 글 높이를 덮게', () => {
+// 괘선 메모의 줄 수(memoRules)는 디자인 A에서 메모가 tile 칸이 되며 지웠다(모양만 고정하던 단언)
+test('메모 — 바뀐 때만 저장', () => {
   assert.equal(noteChanged('a', 'a'), false);
   assert.equal(noteChanged('', undefined), false);
   assert.equal(noteChanged('b', 'a'), true);
-  assert.equal(memoRules(0, 28, 4), 3);
-  assert.equal(memoRules(88, 28, 4), 3);
-  assert.equal(memoRules(116, 28, 4), 4);
-  assert.equal(memoRules(150, 28, 4), 6);
 });
 
 test('마음가짐 막대 첫 이름표', () => {

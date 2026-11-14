@@ -60,8 +60,6 @@ export default {
   // V3-D — 한 해 화면(돌아보기 · 통계의 한 해 구역)
   /** 화면 머리 — 보관함에서 연 지난 표 한 장 */
   sheetTitle: '지난 표',
-  /** 보관함 · 지난 표 쪽을 채우기 전의 괘선 한 줄(V4-B가 채운다) */
-  loading: '아직 준비 중이에요',
   /** 지금 쓰는 표의 돌아보기 — 기간 아래 작은 줄 */
   currentChart: '지금 쓰는 표',
   /** 네 숫자 중 하나 — 좁은 칸에 들어가게 짧게 */
@@ -113,4 +111,10 @@ export default {
   sheetReview: '이 해 돌아보기',
   /** 잠긴 지난 표 한 장 */
   sheetLocked: '지난 표를 펼쳐 보는 건 프로에서 할 수 있어요',
+
+  // 디자인 A(build-plan S4) — 한 해 쪽의 인쇄된 머리 줄
+  /** 표 위 한 줄 — '2025년 한 해 돌아보기'(label: yearLabel) */
+  folio: ({ label }: { label: string }) => `${label} 한 해 돌아보기`,
+  /** 지난 표 한 장 위 한 줄 — '2025년 지난 표' */
+  sheetFolio: ({ label }: { label: string }) => `${label} 지난 표`,
 } satisfies Namespace;

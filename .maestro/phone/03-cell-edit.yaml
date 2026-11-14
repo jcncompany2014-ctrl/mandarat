@@ -8,7 +8,7 @@ tags:
     arguments:
       "-AppleLanguages": "(ko)"
       "-AppleLocale": "ko_KR"
-# 만다라트 표 → 첫 영역 → 빈 칸 → 글 적기 → 저장 → 표에 글이 보인다
+# 만다라트 탭 → 첫 영역 블록(크게) → 칸 → 글 적기 → 저장 → 크게 본 블록에 글이 보인다
 - runFlow: ../common/onboard.yaml
 - tapOn:
     id: "tab-grid"
@@ -16,7 +16,14 @@ tags:
     visible:
       id: "grid-table"
     timeout: 10000
-# 81칸 표에서 칸을 누르면 그 영역이 먼저 크게 보인다(줌). 줌이 없는 화면이면 바로 편집이 열린다.
+# 만다라트 탭은 색 지도 — 칸은 블록을 크게 본 뒤에만 누를 수 있다. 첫 영역의 블록을 누르면 영역 화면(크게 보기)
+- tapOn:
+    id: "grid-block-0"
+- extendedWaitUntil:
+    visible:
+      id: "grid-cell-0-0"
+    timeout: 10000
+# 빈 칸이면 바로 편집 창, 이미 글이 있는 칸이면 실천 시트가 먼저 뜬다(시트의 칸 편집하기)
 - tapOn:
     id: "grid-cell-0-0"
 - runFlow:
@@ -25,11 +32,7 @@ tags:
         id: "editor-text"
     commands:
       - tapOn:
-          id: "grid-cell-0-0"
-      # 이미 글이 있는 칸이면 실천 시트가 먼저 뜬다
-      - tapOn:
           id: "sheet-edit"
-          optional: true
 - extendedWaitUntil:
     visible:
       id: "editor-text"

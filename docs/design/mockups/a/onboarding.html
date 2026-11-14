@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 처음 · 목표 쓰기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* First run, after the goal is typed (keyboard down). One question, one field, a small calm preview
+     of the centre block, one button. The preview uses pale tints with the area's colour in the word,
+     not eight solid blocks: the colour is a hint here, the goal is the subject. */
+  .wrap { position: absolute; inset: 0; padding: 0 var(--gutter); display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 8px; margin-top: 18px; height: 24px; }
+  .brand span { font: 600 14px/20px var(--sans); color: var(--print-strong); }
+  .q { margin-top: 36px; font: 700 26px/36px var(--sans); letter-spacing: -0.025em; color: var(--ink); }
+  .sub { margin-top: 10px; font: 400 15px/24px var(--sans); color: var(--ink-2); }
+
+  .field { margin-top: 28px; }
+  .field label { display: block; font: 600 13px/18px var(--sans); color: var(--print); margin-bottom: 8px; }
+  .input { height: 56px; border-radius: 12px; background: var(--tile); display: flex; align-items: center; padding: 0 16px;
+    font: 600 19px/26px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+  .caret { display: inline-block; width: 2px; height: 22px; margin-left: 2px; background: var(--ink); border-radius: 1px; }
+  .ex { margin-top: 10px; font: 400 13px/20px var(--sans); color: var(--print); }
+
+  .preview { margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 64px); grid-auto-rows: 64px; gap: 6px; }
+  .cell { border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center;
+    font: 600 13px/17px var(--sans); letter-spacing: -0.02em; padding: 0 4px; }
+  .cell.is-core { background: var(--core); color: var(--on-core); font-weight: 700; }
+  .note { font: 400 13px/18px var(--sans); color: var(--print); }
+
+  .actions { margin-top: auto; padding-bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .actions .a-btn { align-self: stretch; }
+  .link { font: 600 14px/20px var(--sans); color: var(--ink-2); height: 24px; display: flex; align-items: center; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div class="wrap">
+    <div class="brand"><span id="mk"></span><span>만다라트</span></div>
+    <div class="q">올해 꼭 이루고 싶은<br>목표 하나를 적어 주세요</div>
+    <div class="sub">목표를 가운데에 두고, 여덟 가지를 둘러 적어요.</div>
+
+    <div class="field">
+      <label for="goal">핵심 목표</label>
+      <div class="input" id="goal"></div>
+      <div class="ex">예) 몸무게 5kg 줄이기 · 토익 900점 넘기 · 이직 성공하기</div>
+    </div>
+
+    <div class="preview">
+      <div class="grid" id="grid"></div>
+      <div class="note">여덟 영역은 기본으로 채워 둬요. 나중에 바꿀 수 있어요.</div>
+    </div>
+
+    <div class="actions">
+      <div class="a-btn" id="go">시작하기</div>
+      <div class="link">템플릿으로 시작하기</div>
+    </div>
+  </div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  A.mark('#mk', { size: 18, variant: 'heart' });
+  document.querySelector('#goal').innerHTML = `${doc.coreGoal}<i class="caret"></i>`;
+  // the centre block: area names in their colour on a pale tint, the goal on ink in the middle
+  const order = [0, 1, 2, 3, 'core', 4, 5, 6, 7];
+  document.querySelector('#grid').innerHTML = order.map((i) => {
+    if (i === 'core') return `<div class="cell is-core">${A.keep(doc.coreGoal)}</div>`;
+    const a = doc.areas[i];
+    return `<div class="cell" style="background:${A.tint(i)};color:var(--dye-${i + 1})">${a.title}</div>`;
+  }).join('');
+});
+</script>
+</body>
+</html>

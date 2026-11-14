@@ -4,18 +4,28 @@ import type { Like } from '../types';
 import { plural } from './plural';
 
 export default {
+  viewsLabel: 'View',
+  listTitle: "Today's list",
+  closeTitle: "That's it for today.",
+  closeAll: ({ n }) => (n === 1 ? 'The one thing is done' : `All ${n} done`),
+  closeAt: ({ time }) => `closed at ${time}`,
+  foldTitle: ({ names, n }) => (n > 0 ? `${names} + ${n} more` : names),
+  foldLabel: ({ n, title }) => (n === 1
+    ? `The one thing on Today is done. ${title}`
+    : `All ${n} ${plural(n, 'item', 'items')} on Today are done. ${title}`),
+  weekTitle: 'This week',
+  weekDay: ({ day, times }) => `${day} ${times}`,
+  weekDayToday: ({ day, times }) => `${day} ${times}, today`,
+
   screenTitle: 'Today',
   all: 'All',
   areaFallback: ({ n }) => `Area ${n}`,
   areaEmpty: 'Nothing on Today for this area',
   pickMore: 'Pick more from your actions',
-  doneHead: ({ n }) => `Done ${n}`,
   doneHeadLabel: ({ n }) => `${n} done`,
   expand: 'Show',
   collapse: 'Hide',
-  pick: 'Pick',
   pickHint: 'Choose what to do today from the actions on your chart',
-  allDone: 'All done for today',
 
   emptyFill: 'Fill in squares on your chart and they show up here',
   fillChart: 'Fill in the chart',
@@ -37,7 +47,6 @@ export default {
   mindIntro: 'Rate from 1 to 5 how well you kept each one this week',
   rateLastWeek: "Rate last week",
   rateLastWeekHint: 'Opens the Weekly review',
-  rateLastWeekLink: 'Rate last week ›',
   mindRateLabel: ({ text }) => `${text}, score this week`,
   openHint: 'Shows the action',
   openAction: 'Details',
@@ -52,7 +61,6 @@ export default {
   runWeeksShort: ({ n }) => `${n}w`,
   streakBest: ({ run }) => `Best ${run}`,
   streakStart: 'Do one today to start',
-  streakCol: 'Streak',
   runNone: 'No streak yet',
   runLabel: ({ run }) => `Streak of ${run}`,
   streakLabel: ({ run, text, bestRun }) => `Current streak ${run}, ${text}. Best ${bestRun}`,
@@ -86,13 +94,13 @@ export default {
   quickPlaceholder: 'e.g. Send in the forms',
   quickCount: ({ n, max }) => `${n} of ${max} characters`,
   quickAreaAsk: 'Which area is it for?',
-  quickPicks: 'Add an action from this area',
-  quickPickHint: 'Adds it to Today',
   quickAdded: 'Added to Today',
   quickSubmit: 'Add to Today',
   quickWriteCell: ({ area }) => `Write in an empty ${area} square`,
   quickWriteCellHint: ({ area, n }) => `Writes it in square ${n} of ${area} on your chart`,
   quickWroteCell: ({ area, n }) => `Written in ${area}, square ${n}`,
+  quickPickFrom: ({ area }) => `Pick from ${area} actions`,
+  quickJustNow: 'just now',
 
   pickTitle: 'Pick for Today',
   pickSub: 'What you pick goes straight onto Today',

@@ -3,7 +3,6 @@ import {
   ICON_NAMES, type Action, type ActionKind, type ArchivedChart, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood,
   type PaperPattern, type Reminders, type Settings, type Theme, type TodayExtra, type WeekReviewEntry,
 } from '../types';
-import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 import { KINDS, normalizeDays, normalizePerWeek, ymd } from '../lib/routine';
 import { MAX_NUM, cleanNum, cleanUnit } from '../lib/kinds';
@@ -213,8 +212,8 @@ const LOG_KEY_RE = /^[0-7]-(?:[0-7]|x[A-Za-z0-9_-]{1,40})$/;
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 /** 알림 시각 'HH:MM' (24시간) */
 export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-/** 종이 무늬(프로) — 없으면 점 종이 */
-export const PAPER_OPTS: readonly PaperPattern[] = ['grid', 'lines', 'blank'];
+/** 종이 무늬 — 설정에 놓이는 차례(무지 · 점 · 모눈 · 줄). 없으면 무지 */
+export const PAPER_OPTS: readonly PaperPattern[] = ['blank', 'dots', 'grid', 'lines'];
 /**
  * 지난 표의 상한 — 깨진 저장본이 끝없이 커지지 않게 막는 안전장치일 뿐, 평소에는 닿지 않는다.
  * 지난 표는 사용자가 남긴 기념물이라 조용히 버리지 않는다: 표를 닫을 때(startNewChart)도,
@@ -224,7 +223,8 @@ export const ARCHIVE_KEEP = 200;
 /** 지난 표를 닫으며 적는 한 줄 메모의 글자 수 상한 */
 export const ARCHIVE_NOTE_MAX = 120;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
-const MOOD_OPTS = Object.keys(MOODS) as Mood[];
+/** 저장값 settings.mood가 될 수 있는 다섯 가지 — 새 앱은 쓰지 않고 그리지도 않는다(옛 앱 · 다른 기기와 처음 화면 모드를 위해 남긴다) */
+export const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const MGMT_OPTS: readonly Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
 

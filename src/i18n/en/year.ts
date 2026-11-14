@@ -49,7 +49,6 @@ export default {
 
   // V3-D — year screen (review · Stats section)
   sheetTitle: 'Past chart',
-  loading: 'Not ready yet',
   currentChart: 'The chart in use',
   statStreak: 'Longest streak',
   calendarTitle: 'The year by day',
@@ -82,4 +81,7 @@ export default {
   areaCloseHint: 'Hides the nine squares',
   sheetReview: 'Review this year',
   sheetLocked: 'Opening past charts comes with Pro',
+
+  folio: ({ label }) => `${label} in review`,
+  sheetFolio: ({ label }) => `Past chart, ${label}`,
 } satisfies Like<typeof ko>;

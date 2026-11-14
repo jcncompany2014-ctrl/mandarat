@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 오늘</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* Two layers above the first task: the header (date / 오늘 / 1/10 / one action) and one filter line.
+     The three view modes (목록 · 연속 기록 · 보드) move into the header action. */
+
+  /* filter line: written words (tappable, so ink), the chosen one with a 1pt ink underline.
+     It scrolls sideways and runs off the right edge of the screen. */
+  .filters { display: flex; gap: 18px; height: 44px; align-items: center; margin: 6px 0 0 var(--gutter); overflow: hidden; white-space: nowrap; }
+  .filter { position: relative; flex: none; display: inline-flex; align-items: center; height: 44px; font: 500 14px/18px var(--sans); color: var(--ink); }
+  .filter b { font: 400 12px/18px var(--sans); color: var(--ink-2); margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .filter.is-on { font-weight: 700; }
+  .filter.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 9px; height: 1px; background: var(--ink); }
+
+  .list { margin-top: 0; }
+  /* the way to add more: a written link in the check box's column, never a dashed box */
+  .more { display: flex; align-items: center; gap: 14px; height: 54px; margin-top: 6px; color: var(--ink); font: 600 15px/20px var(--sans); }
+  .more .slot { width: 24px; display: flex; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="filters" id="filters" data-bleed></div>
+  <div class="a-body">
+    <div class="a-list list" id="rows"></div>
+    <div class="more"><span class="slot" id="plus"></span><span style="flex:1">실천에서 더 고르기</span><span id="chev"></span></div>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, d = v.date;
+  A.header('#header', { eyebrow: `${d.month} ${d.day}일 ${d.weekday}`, title: '오늘', figure: `${v.today.done}/${v.today.of}`, action: 'more' });
+
+  document.querySelector('#filters').innerHTML = v.today.filters.map(([name, n], i) => {
+    const a = A.areaIndex(doc, name);
+    const mark = a >= 0 ? `<i class="a-dye" style="--d:var(--dye-${a + 1})"></i>` : '';
+    return `<span class="filter${i === 0 ? ' is-on' : ''}">${mark}${name}${i === 0 ? '' : `<b>${n}</b>`}</span>`;
+  }).join('');
+
+  const focus = new Set(v.weekFocus.map((f) => f.text));
+  // this week's focus is pinned first (as on Home), then the rest in the record's order; the done row stays where it is
+  const rows = v.today.rows.filter((r) => focus.has(r.text)).concat(v.today.rows.filter((r) => !focus.has(r.text)));
+  document.querySelector('#rows').innerHTML = rows.map((r) => A.todayRow(doc, r, focus.has(r.text) && !r.right ? { rightPrint: '중점' } : {})).join('');
+  document.querySelector('#plus').innerHTML = A.icon('plus', { size: 18 });
+  document.querySelector('#chev').innerHTML = A.icon('chevron', { size: 16 });
+
+  A.tabBar('#bar', { active: 'today' });
+});
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// 앱스토어 스크린샷 — 웹으로 내보낸 앱을 기기 크기마다 · 언어마다 띄워 장면 여섯을 찍고, 위에 짧은 설명을 얹는다.
+// 앱스토어 스크린샷 — 웹으로 내보낸 앱을 언어마다 띄워, 기기 크기마다 포스터 여섯 장을 만든다(docs/design/build-plan.md §3 R1).
+// 포스터 = 바탕 · 머리말 · 두 줄 제목 · 그림 하나(poster.js). 그림은 앱의 한 쪽을 잘라 낸 것(scenes.js) 또는 예시 문서로 그린 위젯.
 // 예시 문서(fixtures/<언어>.js)를 넣고, 시계(2026-10-14 09:30, 기기 시간대)와 움직임 줄이기를 고정해 실행마다 같은 그림이 나온다.
-// 설명 띠: 종이색 바탕에 먹색 글씨, 왼쪽 맞춤(Pretendard, 일본어는 Hiragino). 그라데이션 · 기기 테두리 · 그림자 없음.
 // 결과: out/<언어>/<기기>/<nn>-<장면>.png — 알파 없는 RGB PNG(verify.js가 크기와 색 형식을 본다).
 //
 // 쓰는 법: npm run store-shots -- [--no-export] [--locales ko,ja,en] [--devices all|iphone-6.9,ipad-13] [--scenes all|chart,today] [--out <dir>]
@@ -15,12 +15,16 @@ const HERE = __dirname;
 const ROOT = path.join(HERE, '..', '..');
 const WEB = path.join(HERE, '.web');
 const FONTS = path.join(ROOT, 'node_modules', 'pretendard', 'dist', 'web', 'static', 'woff2');
+/** 일본어 글꼴(리눅스에는 Hiragino가 없다) — 이 도구의 devDependency. 앱의 일본어 글꼴 목록(JA_WEB_STACK)에 있는 'Noto Sans JP' 이름으로 띄운다 */
+const JP_DIR = path.join(HERE, 'node_modules', '@fontsource-variable', 'noto-sans-jp');
 
 require(path.join(ROOT, 'tests', 'register'));
 const { TID } = require(path.join(ROOT, 'src', 'lib', 'testIds'));
-const { MOODS } = require(path.join(ROOT, 'src', 'theme', 'moods'));
+const { LIGHT } = require(path.join(ROOT, 'src', 'theme', 'tokens'));
+const { widgetProps } = require(path.join(ROOT, 'src', 'lib', 'widgetSnapshot'));
 const { pickDevices } = require('./devices');
-const { pickScenes } = require('./scenes');
+const { pickScenes, SCENES } = require('./scenes');
+const { layout, composeHtml, GROUNDS } = require('./poster');
 const { toRGB } = require('./png');
 const { verifyDir } = require('./verify');
 const CAPTIONS = require('./captions.json');
@@ -33,8 +37,6 @@ const LOCALES = {
   ja: { locale: 'ja-JP', timezoneId: 'Asia/Tokyo' },
   en: { locale: 'en-US', timezoneId: 'America/Los_Angeles' },
 };
-/** 설명 띠의 색 — 앱의 기본 무드('연꽃', 화면 이름 미색) */
-const PAPER = MOODS['연꽃'];
 /** 알려진 React Native Web 경고 — 실패로 보지 않는다(scripts/web-smoke.js와 같다) */
 const KNOWN = [
   /props\.pointerEvents is deprecated/,
@@ -100,25 +102,38 @@ function zonedEpoch(wall, timeZone) {
   return ms;
 }
 
-/**
- * 앱을 찍는 창 — 보통은 기기 크기(높이 − 설명 띠) 그대로. 아이패드에서 장면이 padWidth를 두면 그 폭의 창으로 찍고
- * 배율을 기기 폭/padWidth만큼 올린다: 찍힌 PNG는 기기 크기 그대로이고, 늘인 그림이 아니라 그 배율로 새로 그린 글자다.
- */
-function viewOf(device, scene) {
-  const appH = device.height - device.band;
-  if (!scene.padWidth || device.width < 700 || scene.padWidth >= device.width) return { width: device.width, height: appH, scale: device.scale };
-  const zoom = device.width / scene.padWidth;
-  return { width: scene.padWidth, height: Math.round(appH / zoom), scale: device.scale * zoom };
+/** 벽시계 시각 → 그 날짜 · 시각의 Date(이 프로세스의 지역 시간) — 위젯 값을 셈하는 순수 코드는 지역 날짜를 읽는다 */
+function wallDate(wall) {
+  const [d, t] = wall.split('T');
+  const [y, mo, da] = d.split('-').map(Number);
+  const [h, mi] = t.split(':').map(Number);
+  return new Date(y, mo - 1, da, h, mi);
+}
+
+/** Noto Sans JP의 @font-face(유니코드 구역마다 한 파일)를 'Noto Sans JP' 이름, /__jp/files/ 주소로 */
+function jpCss() {
+  const file = path.join(JP_DIR, 'wght.css');
+  if (!fs.existsSync(file)) return null;
+  return fs.readFileSync(file, 'utf8')
+    .replace(/font-family:\s*'Noto Sans JP Variable'/g, "font-family: 'Noto Sans JP'")
+    .replace(/url\(\.\/files\//g, 'url(/__jp/files/');
 }
 
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon', '.otf': 'font/otf', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 
-/** .web을 띄운다 — 없는 경로는 index.html(SPA), /__font/<이름>은 Pretendard 파일 */
+/** .web을 띄운다 — 없는 경로는 index.html(SPA), /__font/<이름>은 Pretendard, /__jp/는 Noto Sans JP */
 function serve(dir) {
+  const jp = jpCss();
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent((req.url || '/').split('?')[0]);
+    if (url === '/__jp/noto-sans-jp.css') {
+      res.writeHead(jp ? 200 : 404, { 'Content-Type': 'text/css' });
+      res.end(jp || '');
+      return;
+    }
     let file;
     if (url.startsWith('/__font/')) file = path.join(FONTS, path.basename(url));
+    else if (url.startsWith('/__jp/files/')) file = path.join(JP_DIR, 'files', path.basename(url));
     else {
       file = path.join(dir, url);
       if (!file.startsWith(dir) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(dir, 'index.html');
@@ -134,46 +149,124 @@ function serve(dir) {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve({ server, port: server.address().port })));
 }
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 
 /**
- * 설명 띠 + 앱 화면 한 장 — 위 band에 쪽 번호와 설명(왼쪽 맞춤), 그 아래 1px 줄, 그 아래 앱 화면을 그대로.
- * 숫자는 CSS px(= 논리 pt). 폰 기준 크기를 기기 폭에 맞춰 키운다.
+ * 앱을 띄워 장면을 열고 plan의 창 · 확대로 찍어 crop만큼 잘라 돌려준다 — { png, w, h }(w · h는 포스터에 놓을 크기, pt).
  */
-function composeHtml({ device, lang, caption, folio, png }) {
-  const k = device.width >= 700 ? 1.45 : 1;
-  const gutter = Math.round(28 * k);
-  const size = Math.round(30 * k);
-  const font = lang === 'ja'
-    ? `'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'IPAGothic', 'Noto Sans CJK JP', sans-serif`
-    : `'Pretendard', sans-serif`;
-  const appH = device.height - device.band;
-  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>
-@font-face { font-family: 'Pretendard'; font-weight: 500; src: url('/__font/Pretendard-Medium.woff2') format('woff2'); }
-@font-face { font-family: 'Pretendard'; font-weight: 600; src: url('/__font/Pretendard-SemiBold.woff2') format('woff2'); }
-html, body { margin: 0; padding: 0; background: ${PAPER.bg}; }
-.page { position: relative; width: ${device.width}px; height: ${device.height}px; overflow: hidden; background: ${PAPER.bg}; }
-.band { position: absolute; left: 0; top: 0; width: ${device.width}px; height: ${device.band}px; box-sizing: border-box;
-  padding: 0 ${gutter}px ${Math.round(26 * k)}px; display: flex; flex-direction: column; justify-content: flex-end; }
-.folio { font: 500 ${Math.round(13 * k)}px/1 'Pretendard', sans-serif; color: ${PAPER.sub}; letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums; margin-bottom: ${Math.round(12 * k)}px; }
-.cap { font-family: ${font}; font-weight: 600; font-size: ${size}px; line-height: 1.3; color: ${PAPER.ink};
-  letter-spacing: ${lang === 'en' ? '-0.01em' : '-0.02em'}; word-break: keep-all; overflow-wrap: break-word; margin: 0; }
-.rule { position: absolute; left: 0; top: ${device.band - 1}px; width: ${device.width}px; height: 1px; background: ${PAPER.ink}; opacity: 0.18; }
-.app { position: absolute; left: 0; top: ${device.band}px; width: ${device.width}px; height: ${appH}px; display: block; }
-</style></head><body><div class="page">
-<div class="band"><div class="folio">${esc(folio)}</div><p class="cap">${esc(caption)}</p></div>
-<div class="rule"></div>
-<img class="app" alt="" src="data:image/png;base64,${png.toString('base64')}">
-</div></body></html>`;
+async function capture({ browser, port, lang, device, scene, plan, L, fixture, problems, tag }) {
+  const { locale, timezoneId } = LOCALES[lang];
+  const doc = JSON.stringify(scene.prepare ? scene.prepare(fixture) : fixture);
+  const context = await browser.newContext({
+    viewport: { width: plan.view.width, height: plan.view.height },
+    deviceScaleFactor: device.scale * plan.zoom, locale, timezoneId, reducedMotion: 'reduce', colorScheme: 'light',
+  });
+  try {
+    await context.addInitScript(([d, l]) => {
+      try {
+        if (!sessionStorage.getItem('__shots_seeded')) {
+          localStorage.clear();
+          localStorage.setItem('mandarat:doc:v1', d);
+          localStorage.setItem('mandarat:lang:v1', l);
+          localStorage.setItem('mandarat:look:v1', 'light');
+          sessionStorage.setItem('__shots_seeded', '1');
+        }
+      } catch {}
+    }, [doc, lang]);
+    const page = await context.newPage();
+    page.on('pageerror', (e) => problems.push(`${tag} pageerror: ${e.message}`));
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const t = m.text();
+      if (!KNOWN.some((re) => re.test(t))) problems.push(`${tag} console.error: ${t.slice(0, 300)}`);
+    });
+    await page.clock.install({ time: zonedEpoch(scene.clock || CLOCK, timezoneId) });
+    const sel = (id) => `[data-testid="${id}"]`;
+    const settle = async () => {
+      await page.evaluate(() => document.fonts.ready);
+      await page.clock.runFor(1500);
+      await page.waitForTimeout(200);
+      await page.evaluate(() => document.fonts.ready);
+    };
+    const h = {
+      lang, device, TID, page,
+      wait: async (id) => {
+        if (!id) throw new Error('testID가 없어요(src/lib/testIds.ts)');
+        try {
+          await page.locator(sel(id)).first().waitFor({ state: 'visible', timeout: 15000 });
+        } catch {
+          throw new Error(`testID '${id}'를 화면에서 찾지 못했어요`);
+        }
+      },
+      tap: async (id) => {
+        await h.wait(id);
+        await page.locator(sel(id)).first().click();
+        await settle();
+      },
+      settle,
+    };
+    const q = ['lang=' + lang, device.query].filter(Boolean).join('&');
+    await page.goto(`http://127.0.0.1:${port}/?${q}`);
+    await page.waitForSelector(sel(TID.tab('dashboard')), { timeout: 30000 });
+    // 스크롤 막대는 웹에만 있다 — 기기 화면처럼 숨긴다. 일본어는 앱의 글꼴 목록에 있는 Noto Sans JP를 띄운다(맥에서는 Hiragino가 먼저)
+    await page.addStyleTag({ content: '*::-webkit-scrollbar { display: none !important; } * { scrollbar-width: none !important; }' });
+    // 일본어 줄바꿈은 낱말(문절) 단위로 — 웹의 기본은 글자 어디서나 끊어 '…はま / だです'처럼 된다(기기의 iOS도 문절을 지킨다)
+    if (lang === 'ja') {
+      await page.addStyleTag({ url: '/__jp/noto-sans-jp.css' });
+      await page.addStyleTag({ content: '* { word-break: auto-phrase !important; }' });
+    }
+    await settle();
+    await scene.run(page, h);
+    await settle();
+    const rect = await scene.crop(page, h, plan, L);
+    const clip = { x: rect.x, y: rect.y, width: rect.width, height: Math.min(rect.height, plan.view.height - rect.y) };
+    if (clip.y < 0 || clip.height <= 0) throw new Error(`자를 자리가 창 밖이에요(${JSON.stringify(rect)})`);
+    const png = await page.screenshot({ type: 'png', clip });
+    return { png, w: clip.width * plan.zoom, h: clip.height * plan.zoom };
+  } finally {
+    await context.close();
+  }
+}
+
+/** 포스터를 띄워 찍는다. 제목 줄이 글 여백을 넘으면 글씨를 85%까지 줄이고, 그래도 넘으면 문제로 적는다 */
+async function poster({ browser, port, lang, device, html, problems, tag }) {
+  const comp = await browser.newContext({ viewport: { width: device.width, height: device.height }, deviceScaleFactor: device.scale, colorScheme: 'light' });
+  try {
+    const cp = await comp.newPage();
+    await cp.goto(`http://127.0.0.1:${port}/__blank`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+    await cp.setContent(html, { waitUntil: 'load' });
+    await cp.evaluate(async () => {
+      await document.fonts.ready;
+      await Promise.all([...document.images].map((im) => (im.complete ? null : new Promise((r) => { im.onload = r; im.onerror = r; }))));
+    });
+    const fit = await cp.evaluate(() => {
+      const head = document.querySelector('.head');
+      const cap = document.querySelector('.cap');
+      const room = head.clientWidth;
+      const base = parseFloat(getComputedStyle(head).fontSize);
+      const lh = parseFloat(getComputedStyle(head).lineHeight) / base;
+      const widest = () => Math.max(...[...head.querySelectorAll('.ln')].map((l) => l.getBoundingClientRect().width));
+      let size = base;
+      while (widest() > room && size > base * 0.85) {
+        size -= 0.5;
+        head.style.fontSize = `${size}px`;
+        head.style.lineHeight = `${size * lh}px`;
+      }
+      return { over: widest() > room, capOver: cap.scrollWidth > cap.clientWidth + 1, size, base };
+    });
+    if (fit.over) problems.push(`${tag} 제목이 여백을 넘어요(${fit.size}px까지 줄였어요)`);
+    if (fit.capOver) problems.push(`${tag} 머리말이 한 줄에 들지 않아요`);
+    if (fit.size < fit.base) console.log(`  (참고) ${tag} 제목 글씨를 ${fit.base} → ${fit.size}px로 줄였어요`);
+    return await cp.screenshot({ type: 'png', clip: { x: 0, y: 0, width: device.width, height: device.height } });
+  } finally {
+    await comp.close();
+  }
 }
 
 async function main() {
   const opt = args(process.argv.slice(2));
   const devices = pickDevices(opt.devices);
   const scenes = pickScenes(opt.scenes);
-  const all = pickScenes('all');
 
   if (opt.export) {
     const cmd = ['expo', 'export', '--platform', 'web', '--output-dir', WEB];
@@ -187,128 +280,44 @@ async function main() {
     console.error(`${WEB}/index.html이 없어요 — --no-export 없이 다시 실행해 주세요`);
     process.exit(2);
   }
+  if (opt.locales.includes('ja') && !jpCss()) console.log('  (참고) Noto Sans JP가 없어요 — npm --prefix tools/store-shots ci. 일본어는 시스템 글꼴로 그려요');
 
   const { chromium } = loadPlaywright();
   const { server, port } = await serve(WEB);
   const browser = await launch(chromium);
   const problems = [];
   const written = [];
-  const notes = new Set();
-  const sel = (id) => `[data-testid="${id}"]`;
   try {
     for (const lang of opt.locales) {
       const fixture = require(`./fixtures/${lang}`).fixture();
-      const { locale, timezoneId } = LOCALES[lang];
       for (const device of devices) {
         const dir = path.join(opt.out, lang, device.id);
         fs.mkdirSync(dir, { recursive: true });
+        const L = layout(device);
         for (const scene of scenes) {
-          const nn = String(all.indexOf(scene) + 1).padStart(2, '0');
+          const nn = String(SCENES.indexOf(scene) + 1).padStart(2, '0');
           const tag = `[${lang} ${device.id} ${scene.id}]`;
-          const doc = JSON.stringify(scene.prepare ? scene.prepare(fixture) : fixture);
-          const view = viewOf(device, scene);
-          const context = await browser.newContext({
-            viewport: { width: view.width, height: view.height },
-            deviceScaleFactor: view.scale, locale, timezoneId, reducedMotion: 'reduce',
-          });
-          await context.addInitScript(([d, l]) => {
-            try {
-              if (!sessionStorage.getItem('__shots_seeded')) {
-                localStorage.clear();
-                localStorage.setItem('mandarat:doc:v1', d);
-                localStorage.setItem('mandarat:lang:v1', l);
-                sessionStorage.setItem('__shots_seeded', '1');
-              }
-            } catch {}
-          }, [doc, lang]);
-          const page = await context.newPage();
-          page.on('pageerror', (e) => problems.push(`${tag} pageerror: ${e.message}`));
-          page.on('console', (m) => {
-            if (m.type() !== 'error') return;
-            const t = m.text();
-            if (!KNOWN.some((re) => re.test(t))) problems.push(`${tag} console.error: ${t.slice(0, 300)}`);
-          });
-          await page.clock.install({ time: zonedEpoch(scene.clock || CLOCK, timezoneId) });
-          const settle = async () => {
-            await page.evaluate(() => document.fonts.ready);
-            await page.clock.runFor(1500);
-            await page.waitForTimeout(200);
-          };
-          const h = {
-            lang, device, TID, page,
-            tid: (id) => page.locator(sel(id)).first(),
-            has: async (id) => !!id && (await page.locator(sel(id)).count()) > 0,
-            wait: async (id) => {
-              if (!id) throw new Error('testID가 없어요(src/lib/testIds.ts)');
-              await page.locator(sel(id)).first().waitFor({ state: 'visible', timeout: 15000 });
-            },
-            /** V5-B가 붙이는 testID — 있으면 보일 때까지 기다리고, 아직 없으면 한 번 적고 넘어간다 */
-            soft: async (id) => {
-              try {
-                await page.locator(sel(id)).first().waitFor({ state: 'visible', timeout: 4000 });
-              } catch {
-                if (!notes.has(id)) console.log(`  (참고) testID '${id}'가 아직 화면에 없어요 — 탭만 누르고 찍어요(V5-B)`);
-                notes.add(id);
-              }
-            },
-            tap: async (id) => {
-              if (!id) throw new Error('testID가 없어요(src/lib/testIds.ts)');
-              const loc = page.locator(sel(id)).first();
-              try {
-                await loc.waitFor({ state: 'visible', timeout: 15000 });
-              } catch {
-                throw new Error(`testID '${id}'를 화면에서 찾지 못했어요`);
-              }
-              await loc.click();
-              await settle();
-            },
-            settle,
-          };
           try {
-            const q = ['lang=' + lang, device.query].filter(Boolean).join('&');
-            await page.goto(`http://127.0.0.1:${port}/?${q}`);
-            await page.waitForSelector(sel(TID.tab('dashboard')), { timeout: 30000 });
-            // 스크롤 막대는 웹에만 있다 — 기기 화면처럼 숨긴다
-            await page.addStyleTag({ content: '*::-webkit-scrollbar { display: none !important; } * { scrollbar-width: none !important; }' });
-            await settle();
-            await scene.run(page, h);
-            await settle();
-            const app = await page.screenshot({ type: 'png' });
-
-            const comp = await browser.newContext({ viewport: { width: device.width, height: device.height }, deviceScaleFactor: device.scale });
-            const cp = await comp.newPage();
-            await cp.goto(`http://127.0.0.1:${port}/__blank`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+            let picture = null;
+            let plan = null;
+            let widgets = null;
+            if (scene.widgets) {
+              const doc = scene.prepare ? scene.prepare(fixture) : fixture;
+              widgets = widgetProps(doc, wallDate(scene.clock || CLOCK), { pat: 'blank', lang });
+            } else {
+              plan = scene.plan(L);
+              picture = await capture({ browser, port, lang, device, scene, plan, L, fixture, problems, tag });
+            }
             const caption = CAPTIONS[lang][scene.id];
-            await cp.setContent(composeHtml({ device, lang, caption, folio: `${nn} / ${String(all.length).padStart(2, '0')}`, png: app }));
-            await cp.evaluate(async () => {
-              await document.fonts.ready;
-              await Promise.all([...document.images].map((im) => (im.complete ? null : new Promise((r) => { im.onload = r; im.onerror = r; }))));
-            });
-            // 맞추기 — 일본어는 글자 어디서나 줄이 바뀌어 한 글자만 넘어가기 쉬우니 한 줄에 들게 글씨를 조금(85%까지) 줄인다.
-            // 한국어 · 영어는 낱말 단위로 두 줄까지 두고, 그보다 길면 줄인다.
-            const fit = await cp.evaluate((ja) => {
-              const band = document.querySelector('.band');
-              const cap = document.querySelector('.cap');
-              const base = parseFloat(getComputedStyle(cap).fontSize);
-              const lines = () => Math.round(cap.getBoundingClientRect().height / parseFloat(getComputedStyle(cap).lineHeight));
-              if (ja) cap.style.whiteSpace = 'nowrap';
-              let size = base;
-              const over = () => (ja ? cap.scrollWidth > cap.clientWidth : lines() > 2);
-              while (over() && size > base * 0.85) cap.style.fontSize = `${(size -= 0.5)}px`;
-              if (ja && over()) cap.style.whiteSpace = 'normal';
-              return { lines: lines(), over: band.scrollHeight > band.clientHeight + 1 };
-            }, lang === 'ja');
-            if (fit.over || fit.lines > 2) problems.push(`${tag} 설명이 띠를 넘쳐요(${fit.lines}줄): ${caption}`);
-            const shot = await cp.screenshot({ type: 'png', clip: { x: 0, y: 0, width: device.width, height: device.height } });
-            await comp.close();
+            const html = composeHtml({ device, lang, scene, caption, brand: CAPTIONS[lang].brand, plan, picture, widgets });
+            const shot = await poster({ browser, port, lang, device, html, problems, tag });
             const file = path.join(dir, `${nn}-${scene.id}.png`);
-            fs.writeFileSync(file, toRGB(shot, hex(PAPER.bg)));
+            fs.writeFileSync(file, toRGB(shot, hex(GROUNDS[scene.ground] || LIGHT.paper)));
             written.push(file);
             console.log(`✔ ${tag} → ${path.relative(ROOT, file)}`);
           } catch (e) {
             problems.push(`${tag} ${e.message.split('\n')[0]}`);
           }
-          await context.close();
         }
       }
     }
@@ -335,4 +344,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { zonedEpoch, composeHtml, viewOf, LOCALES, CLOCK };
+module.exports = { zonedEpoch, wallDate, jpCss, LOCALES, CLOCK };

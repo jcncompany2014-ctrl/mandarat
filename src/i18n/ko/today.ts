@@ -2,7 +2,32 @@
 // 오늘 할 일 담기 · 고르기 시트, 고르기 판단(lib/pick)의 글(X-D, docs/v2/plan.md 부록 B).
 import type { Namespace } from '../types';
 
+/** 열까지는 우리말 수(한 가지 · 열 가지), 그 위는 숫자(12가지) */
+const KO_NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+const kindsOf = (n: number) => (n >= 1 && n <= 10 ? `${KO_NUM[n]} ` : String(n));
+
 export default {
+  // ── 디자인 A(S3): 머리 · 보기 고르기 · 하루 마감 · 이번 주 ──
+  /** 머리 오른쪽 '···'의 이름이자 그 시트의 머리 — 목록 · 연속 기록 · 보드 */
+  viewsLabel: '보기 방식',
+  /** 목록 묶음의 이름(하루 마감에서 접힌 줄 위) */
+  listTitle: '오늘 할 일',
+  /** 마감한 날의 한 문장 */
+  closeTitle: '오늘은 여기까지예요.',
+  /** '열 가지를 모두 했어요' */
+  closeAll: ({ n }: { n: number }) => (n === 1 ? '한 가지를 했어요' : `${kindsOf(n)}가지를 모두 했어요`),
+  /** '오후 9:40 마감'(time은 fmt.time) */
+  closeAt: ({ time }: { time: string }) => `${time} 마감`,
+  /** 접은 목록 한 줄 — '이력서 갱신, 주 3회 운동 외 8개'(names는 listSep으로 이은 앞 두 줄) */
+  foldTitle: ({ names, n }: { names: string; n: number }) => (n > 0 ? `${names} 외 ${n}개` : names),
+  /** 접은 목록 한 줄의 화면 읽기 */
+  foldLabel: ({ n, title }: { n: number; title: string }) => `오늘 할 일 ${n}개를 다 했어요. ${title}`,
+  /** 이번 주 막대 머리 */
+  weekTitle: '이번 주',
+  /** 막대 하루의 화면 읽기 — '월요일 3번'(times는 fmt.times) · 오늘은 '수요일 10번, 오늘' */
+  weekDay: ({ day, times }: { day: string; times: string }) => `${day} ${times}`,
+  weekDayToday: ({ day, times }: { day: string; times: string }) => `${day} ${times}, 오늘`,
+
   // ── 머리 · 목록 ──
   /** 화면 머리 */
   screenTitle: '오늘',
@@ -12,16 +37,11 @@ export default {
   areaFallback: ({ n }: { n: number }) => `영역 ${n}`,
   areaEmpty: '이 영역은 오늘 할 일이 없어요',
   pickMore: '실천에서 더 고르기',
-  /** '했어요 3' 묶음 머리(보이는 글) */
-  doneHead: ({ n }: { n: number }) => `했어요 ${n}`,
   /** 묶음 머리의 화면 읽기 */
   doneHeadLabel: ({ n }: { n: number }) => `했어요 ${n}개`,
   expand: '펼치기',
   collapse: '접기',
-  /** 집계 옆 '고르기' */
-  pick: '고르기',
   pickHint: '만다라트 실천에서 오늘 할 일을 골라요',
-  allDone: '오늘 다 했어요',
 
   // ── 빈 목록 ──
   emptyFill: '만다라트 칸을 채우면 여기 담겨요',
@@ -47,8 +67,6 @@ export default {
   mindIntro: '한 주 동안 얼마나 지켰는지 1~5점으로 매겨요',
   rateLastWeek: '지난주 점수 매기기',
   rateLastWeekHint: '한 주 돌아보기를 열어요',
-  /** 보이는 줄 — 끝에 '›' */
-  rateLastWeekLink: '지난주 점수 매기기 ›',
   /** 점수 칸 묶음의 이름 */
   mindRateLabel: ({ text }: { text: string }) => `${text} 이번 주 점수`,
   openHint: '실천 자세히 보기',
@@ -70,8 +88,6 @@ export default {
   /** '최고 9일' */
   streakBest: ({ run }: { run: string }) => `최고 ${run}`,
   streakStart: '오늘 하나 하면 시작돼요',
-  /** 요일 머리글 오른쪽 기록 칸 머리 */
-  streakCol: '연속',
   runNone: '연속 기록 아직 없음',
   runLabel: ({ run }: { run: string }) => `연속 ${run}`,
   streakLabel: ({ run, text, bestRun }: { run: string; text: string; bestRun: string }) => `지금 연속 ${run}, ${text}. 최고 ${bestRun}`,
@@ -111,14 +127,16 @@ export default {
   quickPlaceholder: '예) 서류 제출하기',
   quickCount: ({ n, max }: { n: number; max: number }) => `${n}자, 최대 ${max}자`,
   quickAreaAsk: '어느 영역의 일인가요?',
-  quickPicks: '이 영역 실천 담기',
-  quickPickHint: '오늘 할 일에 담아요',
   quickAdded: '오늘 할 일에 담았어요',
   quickSubmit: '오늘 할 일에 담기',
   quickWriteCell: ({ area }: { area: string }) => `${area} 빈 칸에 적기`,
   /** n은 1부터 */
   quickWriteCellHint: ({ area, n }: { area: string; n: number }) => `만다라트 ${area} 영역의 ${n}번 칸에 적어요`,
   quickWroteCell: ({ area, n }: { area: string; n: number }) => `${area} ${n}번 칸에 적었어요`,
+  /** '어느 영역의 일인가요?' 줄 오른쪽 — 고르기 시트를 그 영역으로 연다(뒤에 꺾쇠) */
+  quickPickFrom: ({ area }: { area: string }) => `${area} 실천에서 고르기`,
+  /** 이 시트에서 마지막으로 담은 줄의 정보 — '커리어 · 방금' */
+  quickJustNow: '방금',
 
   // ── 오늘 할 일 고르기 시트 ──
   pickTitle: '오늘 할 일 고르기',

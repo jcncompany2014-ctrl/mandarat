@@ -1,4 +1,4 @@
-// 'settings' 이름공간 — 설정 화면의 줄 · 종이와 포인트 컬러 고르기 · 템플릿 확인 · 백업 줄 · 저장본 · 판권면 · 확인 대화상자(X-G, docs/v2/plan.md 부록 B).
+// 'settings' 이름공간 — 설정 화면의 줄 · 알림 줄의 정보 · 화면 모드 · 템플릿 확인 · 백업 줄 · 저장본 · 판권면 · 확인 대화상자(X-G, docs/v2/plan.md 부록 B).
 import type { Namespace } from '../types';
 
 /** '이 iPhone과' · '이 iPad와' — 아이패드에서도 iPhone이라 적지 않게(device는 'iPhone' | 'iPad') */
@@ -14,21 +14,28 @@ export default {
   goalLabel: ({ goal }: { goal: string }) => `핵심 목표, ${goal}`,
   goalHint: '고치기',
 
+  // ── 알림(설정 › 알림 줄의 정보 줄 — 시각은 오른쪽 칩에 따로 적는다) ──
+  notifyMorningMeta: '할 일이 있는 날만',
+  notifyEveningMeta: '남은 일이 있는 날만',
+  /** '매주 일요일' — dow는 fmt.dowLong */
+  notifyReviewMeta: ({ dow }: { dow: string }) => `매주 ${dow}`,
+  /** 시각 칩의 화면 읽기 힌트 */
+  notifyTimeHint: '시각을 바꾸는 줄을 열어요',
+
+  // ── iCloud와 백업 ──
+  secCloud: 'iCloud와 백업',
+
   // ── 보기 ──
   secView: '보기',
-  subPaper: '종이',
-  /** 종이 줄의 화면 읽기 이름 — name은 core.paper* */
-  paperLabel: ({ name }: { name: string }) => `종이 ${name}`,
-  /** 종이 견본 안의 먹색 글자 한 자 */
-  swatchGlyph: '가',
-  subAccent: '포인트 컬러',
-  accentLabel: ({ name }: { name: string }) => `포인트 컬러 ${name}`,
-  subShape: '칸 모서리',
-  shapeLabel: ({ name }: { name: string }) => `칸 모서리 ${name}`,
+  /** 화면 모드 — 자동 · 밝게 · 어둡게(기기마다, theme/look) */
+  subLook: '화면 모드',
+  lookAuto: '자동',
+  lookLight: '밝게',
+  lookDark: '어둡게',
+  /** 화면 모드 견본의 화면 읽기 이름 */
+  lookLabel: ({ name }: { name: string }) => `화면 모드 ${name}`,
 
   // ── 기록 › 백업 ──
-  secRecords: '기록',
-  subBackup: '백업',
   exportTitle: '백업 내보내기',
   /** age는 backupAgeLabel(마지막 백업 · 오늘 …) */
   exportHint: ({ age }: { age: string }) => `${age}. 기록을 파일로 내보내요`,

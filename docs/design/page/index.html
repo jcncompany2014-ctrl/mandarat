@@ -1,0 +1,301 @@
+<title>만다라트 디자인 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* 배치: 시안이 주인공인 비교 벽 — 페이지는 차가운 회색으로 물러나고, 화면만 색을 가진다 */
+:root {
+  --wall: #E9ECEF;
+  --panel: #F6F7F9;
+  --ink: #171A1F;
+  --sub: #555E6B;
+  --line: #CDD3DA;
+  --mark: #1F4FD8;
+  --shadow: 0 1px 2px rgba(23, 26, 31, 0.10), 0 10px 28px rgba(23, 26, 31, 0.12);
+  --sans: 'IBM Plex Sans KR', -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wall: #14171B; --panel: #1C2026; --ink: #EEF1F4; --sub: #A3ADB9; --line: #333B45; --mark: #8FB0FF;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --wall: #14171B; --panel: #1C2026; --ink: #EEF1F4; --sub: #A3ADB9; --line: #333B45; --mark: #8FB0FF;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-block: 28px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+}
+h1, h2, h3, p, ul, ol, figure { margin: 0; }
+h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 22px; line-height: 1.35; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
+.lede { font-size: 17px; color: var(--sub); max-width: 64ch; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--sub); letter-spacing: 0.04em; }
+.head { display: flex; flex-direction: column; gap: 12px; }
+.note { font-size: 14px; color: var(--sub); max-width: 72ch; }
+
+.ask {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--mark);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 760px;
+}
+.ask b { font-weight: 700; }
+.ask ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+.swap { width: 100%; max-width: 880px; border-collapse: collapse; font-size: 15px; }
+.swap th { text-align: left; font-weight: 600; color: var(--sub); font-size: 13px; padding: 0 12px 8px 0; border-bottom: 1px solid var(--line); }
+.swap td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.swap td:first-child { font-weight: 600; white-space: nowrap; }
+.tablebox { overflow-x: auto; }
+
+.switch {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  display: none;
+  background: var(--wall);
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.switch div { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--ink); }
+.switch button {
+  font: inherit; font-size: 14px; font-weight: 600;
+  padding: 10px 4px; min-height: 44px;
+  color: var(--ink); background: transparent; border: 0; border-left: 1px solid var(--ink);
+  cursor: pointer;
+}
+.switch button:first-child { border-left: 0; }
+.switch button[aria-pressed="true"] { background: var(--ink); color: var(--wall); }
+.switch button:focus-visible, .zoomable:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+
+.rows { display: flex; flex-direction: column; gap: 40px; }
+.row { display: flex; flex-direction: column; gap: 12px; }
+.row > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.shots.two { grid-template-columns: repeat(2, minmax(0, 390px)); justify-content: start; }
+.shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.shot .tag { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
+.shot .tag span { font-weight: 400; color: var(--sub); }
+.shot[data-dir="cur"] .tag, .shot[data-dir="soft"] .tag { color: var(--sub); }
+.frame {
+  display: block; width: 100%;
+  background: var(--panel); box-shadow: var(--shadow); border-radius: 18px; overflow: hidden;
+  padding: 0; border: 0; cursor: zoom-in;
+}
+.frame.is-wide { border-radius: 12px; }
+.frame img { display: block; width: 100%; height: auto; }
+.specimen { max-width: 800px; }
+
+.lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 15, 0.86); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
+.lightbox img { max-height: 100%; max-width: min(100%, 960px); border-radius: 14px; }
+
+@media (max-width: 860px) {
+  .switch { display: block; }
+  .shots, .shots.two { grid-template-columns: 1fr; justify-items: center; }
+  .shot { width: 100%; max-width: 390px; }
+  .shot[hidden] { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .frame { transition: transform 0.18s ease; }
+  .frame:hover { transform: translateY(-2px); }
+}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <p class="eyebrow">만다라트 · 디자인 개선 · A 깨끗하게 · 전체 화면</p>
+    <h1>좋다고 하신 방향으로 스무 개 화면을 모두 맞췄어요</h1>
+    <p class="lede">흰 바탕, 프리텐다드 한 가지, 색 지도 표, 정(正) 표시 없음. 화면마다 지금 앱과 새 시안을 나란히 놓았어요.</p>
+    <div class="ask">
+      <b>전체를 한 번 훑어봐 주세요.</b>
+      <span>마음에 안 드는 화면이 있으면 이름과 함께 말씀해 주세요. 괜찮으면 다음은 앱에 실제로 적용하는 단계예요.</span>
+      <span>표는 색 지도, 글꼴은 프리텐다드로 두었어요. 글자 표나 다른 글꼴이 좋으면 아래 견본을 보고 말씀해 주세요.</span>
+    </div>
+  </header>
+
+  <section class="head">
+    <h2>지난번 말씀과 바꾼 것</h2>
+    <div class="tablebox">
+      <table class="swap">
+        <thead><tr><th>말씀</th><th>바꾼 것</th></tr></thead>
+        <tbody>
+          <tr><td>정(正) 표시가 들어간 주간 칸</td><td>요일마다 작은 막대 하나. 위에 횟수, 오늘은 진하게, 아직 안 온 날은 점.</td></tr>
+          <tr><td>글꼴이 마음에 안 듦</td><td>명조체를 모두 빼고 고딕 한 가지로. 다른 고딕 세 가지 견본도 준비했어요.</td></tr>
+          <tr><td>표가 너무 꽉 참</td><td>전체 표는 색 지도로. 영역 이름과 목표만 보이고, 칸 사이가 넓어요. 실천 글씨는 블록을 누르면 크게 보여요.</td></tr>
+          <tr><td>배경이 누런색</td><td>흰 바탕과 중성 회색. 누런 기운을 모두 뺐어요.</td></tr>
+          <tr><td>시작 화면이 짜침</td><td>진한 색 블록 아홉 개를 없앴어요. 질문 하나, 입력 칸 하나, 옅은 색의 작은 미리보기, 버튼 하나.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="head" id="screens">
+    <h2>화면별 비교</h2>
+    <p class="note">화면을 누르면 크게 볼 수 있어요. 같은 예시 데이터(목표 "단단한 한 해", 64칸 중 24칸 달성)예요.</p>
+    <nav class="switch" aria-label="보여 줄 판">
+      <div id="switch"></div>
+    </nav>
+    <div id="rows" class="rows"></div>
+  </section>
+
+  <section class="head">
+    <h2>만다라트 표: 색 지도와 글자 표</h2>
+    <p class="note">색 지도는 한눈에 어느 영역이 얼마나 찼는지 보여 주고, 덜 꽉 차 보여요. 글자 표는 81칸 글씨가 다 보이지만 칸이 작아 빽빽해요. 앱에서는 색 지도를 기본으로 두고 글자 표를 설정에서 켜게 할 수도 있어요.</p>
+    <div class="shots two" id="charts"></div>
+  </section>
+
+  <section class="head">
+    <h2>글꼴 견본</h2>
+    <p class="note">같은 홈 화면 윗부분을 글꼴만 바꿔 그렸어요. 네 가지 모두 앱에 무료로 넣을 수 있어요(OFL).</p>
+    <button class="frame is-wide zoomable specimen" type="button" id="fonts" aria-label="글꼴 견본 크게 보기"><img src="img/new-_fonts.png" alt="프리텐다드, 수트, 원티드 산스, 라인 시드로 그린 홈 화면 윗부분 견본" loading="lazy"></button>
+  </section>
+
+  <section class="head">
+    <h2>다음 순서</h2>
+    <ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px">
+      <li>서로 너무 비슷한 여덟 영역 색을 다시 뽑아요.</li>
+      <li>앱에 실제로 적용해요. 표, 홈, 탭 막대, 부품, 색, 다크 모드 순서예요.</li>
+      <li>설정에서 빠지는 꾸미기(종이 색 다섯 가지, 포인트 컬러, 칸 모서리)는 그때 함께 확인받을게요.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var COLS = [
+    { key: 'cur', label: '지금 앱' },
+    { key: 'new', label: '새 시안' }
+  ];
+  var SCREENS = [
+    { key: 'home', label: '홈', note: '목표, 오늘 숫자, 할 일, 이번 주 막대' },
+    { key: 'chart', label: '만다라트 표', note: '색 지도' },
+    { key: 'block', label: '블록 크게 보기', note: '건강 영역의 실천 여덟 칸' },
+    { key: 'today', label: '오늘', note: '오늘 할 일 목록' },
+    { key: 'stats', label: '통계', note: '이번 주 한 문장과 막대' },
+    { key: 'onboarding', label: '시작 화면', note: '질문 하나, 입력 칸 하나' },
+    { key: 'first', label: '첫 표', note: '막 시작한 빈 표' },
+    { key: 'editor', label: '칸 편집', note: '고르는 방식 세 가지' },
+    { key: 'sheet', label: '실천 시트', note: '칸 하나를 눌렀을 때' },
+    { key: 'add', label: '담기', note: '오늘 할 일 빠르게 적기' },
+    { key: 'focus', label: '25분 집중', note: '1분에 한 칸씩 채워지는 5×5' },
+    { key: 'dayclose', label: '하루 마감', note: '다 끝낸 날' },
+    { key: 'year', label: '한 해 돌아보기', note: '지난 표와 채워진 모습' },
+    { key: 'settings', label: '설정', note: '' },
+    { key: 'home-dark', label: '다크 모드', note: '홈' },
+    { key: 'widgets', label: '위젯', note: '홈 화면과 잠금 화면', wide: true, noCur: true },
+    { key: 'store', label: '앱스토어 스크린샷', note: '지금 앱은 첫 장만', wide: true },
+    { key: 'share', label: '공유 이미지', note: '4:5', wide: true },
+    { key: 'icon', label: '앱 아이콘', note: '', wide: true }
+  ];
+  var rows = document.getElementById('rows');
+  var sw = document.getElementById('switch');
+  var picked = 'new';
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  }
+  function frame(src, alt, wide) {
+    var btn = el('button', 'frame zoomable' + (wide ? ' is-wide' : ''));
+    btn.type = 'button';
+    btn.setAttribute('aria-label', alt + ', 크게 보기');
+    var img = el('img');
+    img.src = src;
+    img.alt = alt;
+    img.loading = 'lazy';
+    btn.appendChild(img);
+    btn.addEventListener('click', function () { zoom(src, alt); });
+    return btn;
+  }
+
+  SCREENS.forEach(function (s) {
+    var row = el('section', 'row');
+    var head = el('header');
+    head.appendChild(el('h3', '', s.label));
+    if (s.note) head.appendChild(el('p', 'note', s.note));
+    row.appendChild(head);
+    var shots = el('div', 'shots' + (s.wide ? '' : ' two'));
+    COLS.forEach(function (c) {
+      var fig = el('figure', 'shot');
+      fig.dataset.dir = c.key;
+      fig.appendChild(el('figcaption', 'tag', c.label));
+      if (c.key === 'cur' && s.noCur) fig.appendChild(el('p', 'note', '지금 앱에는 비교할 화면이 없어요.'));
+      else fig.appendChild(frame('img/' + c.key + '-' + s.key + '.png', s.label + ', ' + c.label, s.wide));
+      shots.appendChild(fig);
+    });
+    row.appendChild(shots);
+    rows.appendChild(row);
+  });
+
+  var charts = document.getElementById('charts');
+  [['new-chart', '색 지도 (권해요)'], ['new-chart-text', '글자 표']].forEach(function (x) {
+    var fig = el('figure', 'shot');
+    fig.appendChild(el('figcaption', 'tag', x[1]));
+    fig.appendChild(frame('img/' + x[0] + '.png', '만다라트 표, ' + x[1]));
+    charts.appendChild(fig);
+  });
+  document.getElementById('fonts').addEventListener('click', function () { zoom('img/new-_fonts.png', '글꼴 견본'); });
+
+  COLS.forEach(function (c) {
+    var b = el('button', '', c.label);
+    b.type = 'button';
+    b.dataset.dir = c.key;
+    b.addEventListener('click', function () { picked = c.key; apply(); });
+    sw.appendChild(b);
+  });
+
+  var narrow = window.matchMedia('(max-width: 860px)');
+  function apply() {
+    var one = narrow.matches;
+    document.querySelectorAll('#rows .shot').forEach(function (f) { f.hidden = one && f.dataset.dir !== picked; });
+    sw.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.dir === picked)); });
+  }
+  narrow.addEventListener('change', apply);
+  apply();
+
+  function zoom(src, alt) {
+    var box = el('div', 'lightbox');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', alt);
+    box.tabIndex = -1;
+    var img = el('img');
+    img.src = src;
+    img.alt = alt;
+    box.appendChild(img);
+    function close() { box.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    box.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(box);
+    box.focus();
+  }
+})();
+</script>

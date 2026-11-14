@@ -30,7 +30,8 @@ test('이전 원색 영역 색은 연꽃 팔레트로, 사용자 색은 보존, 
   const d = migrate({
     themes: [{ color: '#2FA968' }, { color: '#123456' }, { color: 'red' }],
   });
-  assert.equal(d.themes[0].color, PILLAR_COLORS[0]);
+  // 예전 원색은 그때의 연꽃 팔레트로(이행 표는 늘리지 않는다 — build-plan §2.5), 깨진 색은 지금 슬롯 기본색(LIGHT.dye)
+  assert.equal(d.themes[0].color, '#478058');
   assert.equal(d.themes[1].color, '#123456');
   assert.equal(d.themes[2].color, PILLAR_COLORS[2]);
 });
@@ -149,7 +150,7 @@ test('예시 데이터의 루틴이 이행 후에도 남는다', () => {
 });
 
 test('팔레트 이행 함수는 대소문자를 가리지 않고, 모르는 색은 그대로 둔다', () => {
-  assert.equal(migrateAreaColor('#F4793B'), PILLAR_COLORS[7]);
+  assert.equal(migrateAreaColor('#F4793B'), '#AE5A35');
   assert.equal(migrateAreaColor('#abcdef'), '#abcdef');
   assert.equal(migrateAccent('#f4793b'), GOLD);
   assert.equal(migrateAccent(GOLD), GOLD);
@@ -187,8 +188,8 @@ test('예시 데이터는 유형을 고루 담고, 저장·이행을 거쳐도 �
 });
 
 test('포인트 컬러: 사용자가 고른 색은 그대로 둔다(이전 원색만 옮긴다)', () => {
-  const { ACCENTS } = require('../src/theme/palette');
-  for (const { color } of ACCENTS) assert.equal(migrate({ settings: { accent: color } }).settings.accent, color);
+  // 예전 앱이 고르게 하던 다섯 가지(골드 · 연지 · 쑥 · 쪽빛 · 오디)
+  for (const color of [GOLD, '#B35A72', '#478058', '#5068AB', '#7E60A8']) assert.equal(migrate({ settings: { accent: color } }).settings.accent, color);
   assert.equal(migrate({ settings: { accent: '#123456' } }).settings.accent, '#123456');
   assert.equal(migrate({ settings: { accent: 'blue' } }).settings.accent, GOLD);
 });
@@ -287,10 +288,10 @@ test('settings.reminders: HH:MM이 맞는 아침·저녁과 참인 돌아보기�
   assert.equal('reminders' in blankDoc().settings, false);
 });
 
-test('settings.paper: 고를 수 있는 무늬만 남고, 아니면 필드가 없다(점 종이)', () => {
-  assert.deepEqual([...PAPER_OPTS], ['grid', 'lines', 'blank']);
+test('settings.paper: 고를 수 있는 무늬(무지 · 점 · 모눈 · 줄)만 남고, 아니면 필드가 없다(무지)', () => {
+  assert.deepEqual([...PAPER_OPTS], ['blank', 'dots', 'grid', 'lines']);
   for (const p of PAPER_OPTS) assert.equal(migrate({ settings: { paper: p } }).settings.paper, p);
-  for (const bad of ['dots', '', 3, null, '__proto__']) assert.equal('paper' in migrate({ settings: { paper: bad } }).settings, false);
+  for (const bad of ['wavy', '', 3, null, '__proto__', 'Dots']) assert.equal('paper' in migrate({ settings: { paper: bad } }).settings, false);
 });
 
 test('action.remindAt: 유형과 상관없이 HH:MM일 때만 남는다', () => {

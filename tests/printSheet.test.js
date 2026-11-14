@@ -1,4 +1,4 @@
-// 인쇄용 HTML(src/lib/printSheet.ts) — 종이 크기 · 81칸 · 빈 표 · 금색 줄 · 언어 · 쪽 수 · 바깥 주소 · 파일 이름.
+// 인쇄용 HTML(src/lib/printSheet.ts) — 종이 크기 · 81칸 · 빈 표 · 다 이룬 블록의 먹 테두리 · 언어 · 쪽 수 · 바깥 주소 · 파일 이름.
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -7,7 +7,7 @@ const { PRINT_PAPERS } = require('../src/lib/contracts');
 const { demoDoc } = require('../scripts/smoke/demoDoc');
 
 const NOW = new Date(2026, 9, 14, 9, 30);
-const base = { paper: 'A4', layout: 'chart', blank: false, now: NOW, lang: 'ko', fontCss: '', accent: '#B0883C' };
+const base = { paper: 'A4', layout: 'chart', blank: false, now: NOW, lang: 'ko', fontCss: '' };
 const render = (doc, o = {}) => printHtml(doc, { ...base, ...o });
 const count = (s, re) => (s.match(re) || []).length;
 
@@ -56,8 +56,10 @@ test('칸의 <script>는 글자로 찍힌다', () => {
 
 test('빈 표에는 실천 글이 없다 — 이름표와 목표만', () => {
   const doc = demoDoc();
+  // 한 음절 낱말은 옆 낱말에 붙여(\u00a0) 찍는다 — 글을 찾을 때는 보통 띄어쓰기로 읽는다
+  const plain = (s) => s.replace(/\u00a0/g, ' ');
   for (const layout of ['chart', 'areas']) {
-    const { html } = render(doc, { blank: true, layout });
+    const html = plain(render(doc, { blank: true, layout }).html);
     for (const th of doc.themes) {
       for (const a of th.actions) if (a.text.trim()) assert.ok(!html.includes(`>${a.text.trim()}<`), `${layout}: ${a.text}`);
       assert.ok(html.includes(th.title.trim()), `${layout}: 이름표 ${th.title}`);
@@ -67,11 +69,11 @@ test('빈 표에는 실천 글이 없다 — 이름표와 목표만', () => {
     assert.ok(!/class="[^"]*\bdone\b/.test(html), `${layout}: 칠한 칸 없음`);
   }
   // 채운 표에는 실천 글이 있다
-  const filled = render(doc).html;
+  const filled = plain(render(doc).html);
   assert.ok(filled.includes(doc.themes[0].actions[0].text.trim()));
 });
 
-test('금색 줄은 8칸을 다 달성한 영역마다 하나', () => {
+test('먹 테두리는 8칸을 다 달성한 영역마다 하나', () => {
   assert.equal(count(render(demoDoc()).html, /class="finframe"/g), 0);
   const doc = finishedDoc();
   assert.equal(count(render(doc).html, /class="finframe"/g), 1);
@@ -81,7 +83,6 @@ test('금색 줄은 8칸을 다 달성한 영역마다 하나', () => {
   });
   const { html } = render(doc);
   assert.equal(count(html, /class="finframe"/g), 2);
-  assert.equal(count(html, /class="fin"/g), 4, '두 이름표 칸(가운데 블록·그 블록 가운데) 아래 달성 표시');
   assert.equal(count(render(doc, { blank: true }).html, /class="finframe"/g), 0, '빈 표에는 없다');
 });
 
@@ -153,11 +154,12 @@ test('작은 종이에서도 글자 크기에 바닥이 있다(R-6 D-2)', () => 
   const a4 = render(demoDoc(), { paper: 'A4' }).html;
   // A5 날짜 숫자는 날 칸에 '31'이 한 줄로 들어가는 크기(예전 3.9pt보다 크고, 5.5pt 바닥보다 작다 — 5.5pt면 두 줄로 쌓였다)
   assert.ok(size(a5, '.rows th.d') > 4.4 && size(a5, '.rows th.d') < 5.5, `A5 ${size(a5, '.rows th.d')}`);
-  assert.equal(size(a5, '.t81 .in'), 6.5, 'A5 81칸 글은 6.5pt 바닥');
-  assert.equal(size(a5, '.t81 .head .in,.t81 .core .in'), 7, 'A5 이름표 · 핵심은 7pt 바닥');
-  // A4(k≈1)는 바닥 위 — 날짜 숫자 6.5pt, 칸 글 8.5pt
+  assert.ok(size(a5, '.t81 .in') >= 6.5, 'A5 81칸 글은 6.5pt 바닥');
+  assert.ok(size(a5, '.t81 .head .in,.t81 .core .in') >= 7, 'A5 이름표 · 핵심은 7pt 바닥');
+  // A4(k≈1)는 바닥 위 — 날짜 숫자 6.5pt, 칸 글 9.5pt · 이름표 10pt(목업 chart-text의 칸과 글 비율에 가깝게)
   assert.ok(Math.abs(size(a4, '.rows th.d') - 6.5) < 0.01);
-  assert.ok(Math.abs(size(a4, '.t81 .in') - 8.5) < 0.01);
+  assert.ok(Math.abs(size(a4, '.t81 .in') - 9.5) < 0.01);
+  assert.ok(Math.abs(size(a4, '.t81 .head .in,.t81 .core .in') - 10) < 0.01);
 });
 
 test('날짜 숫자 \'31\'은 어느 종이에서도 날 칸 한 줄에 들어간다', () => {

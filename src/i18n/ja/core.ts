@@ -29,7 +29,6 @@ export default {
 
   repeatDow: ({ i }) => `${fmt.dowLong({ i })}に繰り返す`,
   repeatLabel: ({ label }) => `繰り返し：${label}`,
-  noRepeat: '繰り返さない',
 
   ordinal: ({ n }) => `${n}番目`,
   listSep: '、',
@@ -55,24 +54,12 @@ export default {
   mgmtList: 'リスト',
   mgmtStreak: '連続記録',
   mgmtBoard: 'ボード',
-  shapeRound: '丸い',
-  shapeSquare: '四角い',
-  paperIvory: 'アイボリー',
-  paperCream: 'クリーム',
-  paperGray: 'グレー',
-  paperLavender: '藤色',
-  paperDark: 'ダーク',
   mood0: 'つらい',
   mood1: 'いまいち',
   mood2: 'ふつう',
   mood3: 'よい',
   mood4: '最高',
 
-  accentGold: 'ゴールド',
-  accentRouge: '臙脂',
-  accentMugwort: 'よもぎ',
-  accentIndigo: '藍',
-  accentMulberry: '桑の実',
 
   fitAll: '81マスにすべて収まります',
   fitLines: ({ max }) => `81マスでは${max}行まで表示されます`,

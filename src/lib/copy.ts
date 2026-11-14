@@ -12,8 +12,8 @@
 // - 연속        하루도 빠짐없이 이어 온 날(스트릭).
 // 그 밖: '탭' 대신 '누르기', 연도는 글에 박아 넣지 않는다(날짜는 lib/text.ts의 표기 함수로).
 //
-// 저장값(Mood · Mgmt · CellShape)은 이전 저장본과 백업 호환을 위해 그대로 두고, 화면에는 아래 이름만 보인다.
-import type { CellShape, Mgmt, Mood } from '../types';
+// 저장값(Mood · Mgmt · CellShape)은 이전 저장본과 백업 호환을 위해 그대로 둔다. 무드(종이 색)와 칸 모서리는 이제 화면에 보이지 않는다.
+import type { Mgmt } from '../types';
 import { msg } from '../i18n';
 import { liveList, liveRecord } from '../i18n/live';
 
@@ -24,24 +24,6 @@ import { liveList, liveRecord } from '../i18n/live';
 export const MGMT_LABEL: Record<Mgmt, string> = liveRecord(() => {
   const c = msg().core;
   return { '일일 체크': c.mgmtList, '습관 스트릭': c.mgmtStreak, '칸반': c.mgmtBoard };
-});
-
-/**
- * 칸 모서리 (core.shape*)
- * @deprecated msg().core.shapeRound · shapeSquare를 쓴다(V8-A가 지운다).
- */
-export const SHAPE_LABEL: Record<CellShape, string> = liveRecord(() => {
-  const c = msg().core;
-  return { '둥근': c.shapeRound, '각진': c.shapeSquare };
-});
-
-/**
- * 종이 색 (core.paper*)
- * @deprecated msg().core.paperIvory … paperDark를 쓴다(V8-A가 지운다).
- */
-export const MOOD_LABEL: Record<Mood, string> = liveRecord(() => {
-  const c = msg().core;
-  return { '연꽃': c.paperIvory, '크림': c.paperCream, '화이트': c.paperGray, '파스텔': c.paperLavender, '다크': c.paperDark };
 });
 
 /**

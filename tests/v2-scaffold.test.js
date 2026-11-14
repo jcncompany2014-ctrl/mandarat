@@ -15,18 +15,23 @@ test('설정: v2 구역 자리가 정해진 순서로 있다', () => {
     assert.ok(i >= 0, needle);
     return i;
   };
+  // 디자인 A(build-plan §1 settings): 핵심 목표 · 알림 · iCloud와 백업 · 보기 · 언어 · 한 해 · 새로 시작 · 프로 · 정보
   const order = [
-    '<Section M={M} label={st.secGoal} />',
-    '<Section M={M} label={st.secView} />', '<SubHead M={M} label={st.subShape} />', '<PaperRows M={M} />',
-    '<LanguageSection M={M} />', '<NotifySection M={M} />', '<SyncSection M={M} />',
-    '<Section M={M} label={st.secRecords} />', 'last title={st.snapTitle}', '{storage.note}', '<YearRows M={M} />', '<SubHead M={M} label={st.subRestart} />',
+    '<SetSection M={M} label={st.secGoal} first />',
+    '<NotifySection M={M} />',
+    '<SetSection M={M} label={st.secCloud} />', '<SyncSection M={M} />', 'glyph="copies" glyphTone="print" divider title={st.snapTitle}', '<SetNote M={M} text={storage.note} />',
+    '<SetSection M={M} label={st.secView} note={st.subLook} />', '<LookRows M={M} />', '<PaperRows M={M} />',
+    '<LanguageSection M={M} />', '<YearRows M={M} />', '<SetSection M={M} label={st.subRestart} />',
     'last danger title={st.resetRow}', '<ProSection M={M} />',
-    '<Section M={M} label={st.secInfo} />',
+    '<SetSection M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
+  // 예전 종이 색 · 포인트 컬러 · 칸 모서리 줄은 없다(값은 문서에 남는다, build-plan §2.4)
+  assert.doesNotMatch(s, /setSetting\('(mood|accent|cellShape)'/);
+  assert.doesNotMatch(s, /\bMOODS\b|\bACCENTS\b|st\.subAccent|st\.subShape/);
   // 줄 모양은 settings/rows.tsx 한 곳에
   const rows = src('src/screens/settings/rows.tsx');
-  for (const name of ['Section', 'SubHead', 'RadioRow', 'TextLink', 'ColophonRow', 'rowBase', 'ask']) {
+  for (const name of ['SetSection', 'SwatchHead', 'SetNote', 'ColophonRow', 'ask']) {
     assert.match(rows, new RegExp(`export function ${name}\\(`), name);
     assert.doesNotMatch(s, new RegExp(`\\nfunction ${name}\\(`), `${name}는 Settings.tsx에 다시 두지 않는다`);
   }
@@ -74,11 +79,12 @@ test('ui.tsx: 프로 · 인쇄 · 한 해 닫기는 늘 대기열(afterOverlays)
   for (const k of ['go', 'openPro', 'openPrint', 'openYearClose', 'openYear']) assert.match(hooks, new RegExp(`\\b${k}\\b`), k);
 });
 
-test('App: 오류 수집 · 언어 · 프로 공급자 순서', () => {
+test('App: 오류 수집 · 언어 · 프로 · 화면 모드 공급자 순서', () => {
   const s = src('App.tsx');
   assert.match(s, /^crash\.init\(\);$/m);
   assert.match(s, /export default crash\.wrap\(App\);/);
-  const order = ['<LangBoot fallback={<Splash />}>', '<ErrorBoundary>', '<SafeAreaProvider>', '<ProProvider>', '<MandaratProvider>', '<Gate />'].map((n) => {
+  // 화면 모드(LookProvider)는 저장소 안(예전 무드를 읽어 처음 한 번 정한다), 문지기 앞 — 정하기 전에는 스플래시
+  const order = ['<LangBoot fallback={<Splash />}>', '<ErrorBoundary>', '<SafeAreaProvider>', '<ProProvider>', '<MandaratProvider>', '<LookProvider fallback={<Splash />}>', '<Gate />'].map((n) => {
     const i = s.indexOf(n);
     assert.ok(i >= 0, n);
     return i;
@@ -88,7 +94,8 @@ test('App: 오류 수집 · 언어 · 프로 공급자 순서', () => {
   assert.match(s, /<LangRoot>\s*<Resume>/);
   assert.match(s, /const \[hint\] = useState\(takeResumeHint\);\s*return <UIProvider initialScreen=\{hint\}>/);
   assert.match(src('src/components/ErrorBoundary.tsx'), /crash\.report\(error, \{ componentStack: info\.componentStack \?\? '' \}\);/);
-  assert.match(src('src/screens/Dashboard.tsx'), /testID=\{TID\.homeSettings\}/);
+  // 홈의 설정 글리프는 머리의 동작(action) — testID는 그 동작에 실린다
+  assert.match(src('src/screens/Dashboard.tsx'), /testID: TID\.homeSettings\b|testID=\{TID\.homeSettings\}/);
 });
 
 test('뒤 꾸러미가 채울 빈 파일이 모두 있다', () => {

@@ -37,14 +37,19 @@ function loadPure(rel) {
   }
 }
 
-test('Year: memo · 나눈 컨텍스트만 · 머리는 설정과 같은 Header', () => {
+test('Year: memo · 나눈 컨텍스트만 · 머리는 그 쪽 표의 핵심 목표(디자인 A S4)', () => {
   const s = src(YEAR);
   assert.match(s, /export const Year = memo\(function Year\(\)/);
   assert.match(s, /useUIState\(\)/);
   assert.match(s, /useUIActions\(\)/);
   assert.match(s, /useDoc\(\)/);
   assert.doesNotMatch(s, /useMandarat\(|useUI\(\)/);
-  assert.match(s, /<Header M=\{M\} kr=\{viewTitle\(m, yearView\)\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.yearBack\} \/>/);
+  assert.match(s, /<Header M=\{M\} title=\{title\} written=\{!!goal\} onBack=\{back\} focusTitle backTestID=\{TID\.yearBack\} action=\{action\} \/>/);
+  // 제목: 지금 표면 지금 핵심 목표, 지난 표면 그 표의 목표 — 비었으면 쪽 이름(viewTitle)
+  assert.match(s, /const title = goal \|\| \(missing \? m\.year\.shelf : viewTitle\(m, yearView\)\);/);
+  // 오른쪽 글리프: 지금 표의 돌아보기는 표 이미지 공유, 열린 지난 표는 인쇄 · PDF(잠겼으면 없음)
+  assert.match(s, /glyph: 'share', onPress: \(\) => \{ tap\(\); openShare\(\); \}, label: m\.chart\.shareSay, testID: TID\.yearShare/);
+  assert.match(s, /: archive && unlocked\n\s+\? \{ glyph: 'share', onPress: \(\) => \{ tap\(\); openPrint\(\{ archiveId: archive\.id \}\); \}, label: m\.year\.printLink/);
   assert.match(s, /testID=\{TID\.yearPage\}/);
   // 세 쪽을 yearView로 고른다
   assert.match(s, /yearView\.kind === 'shelf'/);
@@ -73,21 +78,22 @@ test('Year: 지난 표의 돌아보기는 archiveAccess(owned).review로 잠그�
   assert.match(s, /: <YearShelf M=\{M\} onOpen=\{open\} \/>;/);
 });
 
-test('YearReview: 네 숫자 · 한 해 달력 · 채워진 모습 · 닳은 자리 · 돌아본 주 · 회고 · 한 줄 · 인쇄용 PDF 순서', () => {
+test('YearReview: 인쇄된 한 줄 · 색 지도 · 채워진 모습 · 네 숫자 · 한 해 달력 · 닳은 자리 · 돌아본 주 · 회고 · 한 줄 · 인쇄용 PDF 순서(year.png)', () => {
   const s = src(REVIEW);
   assert.match(s, /export const YearReview = memo\(function YearReview/);
   const order = [
     'yearLabel(from, to)',
-    '<DoubleRule M={M} />',
+    '<ColourMap themes={view.themes} goal={goal} level="L2" width={mapW} />',
+    'label={m.year.framesTitle}',
+    '<Frames ',
     '<Numbers ',
-    'title={m.year.calendarTitle}',
+    'label={m.year.calendarTitle}',
     '<YearLedger M={M} rows={rows} />',
-    'title={m.year.framesTitle}',
-    'title={m.year.wearTitle}',
+    'label={m.year.wearTitle}',
     '<ActivityChart ',
     '<WearLegend M={M} head={m.year.wearLegend} />',
-    'title={m.year.weeksTitle}',
-    'title={m.year.notesTitle}',
+    'label={m.year.weeksTitle}',
+    'label={m.year.notesTitle}',
     'm.year.noteLabel',
     'testID={TID.yearPrint}',
   ];
@@ -103,17 +109,21 @@ test('YearReview: 네 숫자 · 한 해 달력 · 채워진 모습 · 닳은 자
   assert.match(s, /focus: \(doc\.focusMinutes \?\? 0\) - \(doc\.focusStart \?\? 0\)/);
   assert.match(s, /openPrint\(archive \? \{ archiveId: archive\.id \} : undefined\)/);
   // 닳은 자리는 읽기만(누르면 다른 화면으로 가지 않는 인쇄된 쪽)
-  assert.match(s, /<ActivityChart M=\{M\} doc=\{view\} activity=\{wear\} width=\{contentW\} \/>/);
+  assert.match(s, /<ActivityChart M=\{M\} doc=\{view\} activity=\{wear\} width=\{mapW\} \/>/);
+  // 액자 넷은 L1 지도(첫 화면 다음 프레임에, §4.6), 마지막 날짜는 먹 600
+  assert.match(s, /<ColourMap themes=\{f\.themes\} level="L1" cell=\{cell\} defer \/>/);
+  assert.match(s, /color: last \? M\.ink : M\.print \}, last \? \{ fontFamily: PRETENDARD\[600\] \} : null/);
 });
 
-test('YearReview: 큰 글자(1.35)에서 네 숫자는 2×2, 숫자는 한 줄(값 안에서 줄을 바꾸지 않는다) · 글자 크기 상한', () => {
+test('YearReview: 큰 글자(1.35) · 좁은 폭에서 네 숫자는 2×2, 넷은 한 크기 · 한 줄 · 글자 크기 상한', () => {
   const s = src(REVIEW);
   assert.match(s, /const STACK_SCALE = 1\.35;/);
   assert.match(s, /const stacked = fontScale >= STACK_SCALE \|\| contentW < ROW_MIN_W;/);
   assert.match(s, /const lines = stacked \? \[cells\.slice\(0, 2\), cells\.slice\(2\)\] : \[cells\];/);
   const nums = s.slice(s.indexOf('function Numbers('), s.indexOf('// ── 표가 채워진 모습'));
-  assert.equal((nums.match(/maxFontSizeMultiplier=\{STACK_SCALE\}/g) ?? []).length, 2);
-  assert.match(nums, /numberOfLines=\{1\}\n\s+adjustsFontSizeToFit\n\s+minimumFontScale=\{0\.7\}/);
+  assert.equal((nums.match(/maxScale=\{STACK_SCALE\}|maxFontSizeMultiplier=\{STACK_SCALE\}/g) ?? []).length, 2);
+  assert.match(nums, /const size = figureSize\(cells\.map\(\(c\) => c\.value\), \(width - FIG_GAP \* \(per - 1\)\) \/ per\);/);
+  assert.match(nums, /<Figure M=\{M\} text=\{c\.value\} size=\{size\} adjust maxScale=\{STACK_SCALE\} \/>/);
   assert.match(nums, /accessibilityLabel=\{`\$\{c\.label\}, \$\{c\.speech \?\? c\.value\}`\}/);
 });
 
@@ -145,13 +155,16 @@ test('보관함 · 지난 표(V4-B가 채웠다) — onOpen을 받고 안쪽 쪽
   assert.match(src(SHEET), /onOpen\(\{ kind: 'review', id: a\.id \}\)/);
 });
 
-test('통계: 맨 끝 구역 \'한 해\' — 한 해 돌아보기(TID.statsYear) · 보관함 n장', () => {
+test('통계: 범위 줄 \'올해\'의 첫 구역 — 한 해 돌아보기(TID.statsYear) · 보관함 n장', () => {
   const s = src(STATS);
-  const reflections = s.indexOf('<Reflections M={M} doc={doc} now={now} />');
-  const head = s.indexOf('<SectionHead M={M} title={m.year.settingsHead} />');
-  const section = s.indexOf('<YearSection ');
-  assert.ok(reflections > 0 && head > reflections && section > head, '회고 다음에 한 해');
-  assert.match(s, /onOpen=\{\(v\) => \{ tap\(\); openYear\(v\); \}\}/);
+  const scope = s.indexOf("{scope === 'year' && (");
+  const yearScope = s.indexOf('const YearScope = memo(');
+  const section = s.indexOf('<YearSection ', yearScope);
+  const count = s.indexOf('<CountLedger ', yearScope);
+  const reflections = s.indexOf('<Reflections M={M} doc={doc} now={now} />', yearScope);
+  assert.ok(scope > 0 && yearScope > 0 && section > yearScope && count > section && reflections > count, '올해: 한 해 → 숫자 목표 → 회고');
+  assert.match(s, /const onYear = useCallback\(\(v: YearView\) => \{ tap\(\); openYear\(v\); \}, \[openYear\]\);/);
+  assert.match(s, /onYear=\{onYear\}/);
   const body = s.slice(s.indexOf('function YearSection('));
   const review = body.indexOf("onOpen({ kind: 'review', id: null })");
   const shelf = body.indexOf("onOpen({ kind: 'shelf' })");

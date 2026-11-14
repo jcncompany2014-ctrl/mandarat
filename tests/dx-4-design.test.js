@@ -4,7 +4,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { MOODS, alpha, fade, mix, toHex } = require('../src/theme/moods');
 const { PILLAR_COLORS } = require('../src/theme/palette');
 
 const src = (rel) => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
@@ -18,14 +17,10 @@ function lumOver(rgba, bg) {
   return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
 }
 
-test('D-14: 탭바의 지금 탭 표시는 윗 괘선 위가 아니라 탭바 안(top: 3)', () => {
-  const s = src('src/navigation/Root.tsx');
-  assert.match(s, /position: 'absolute' as const, top: 3, left: 0, width: IND_W, height: 2/);
-  assert.doesNotMatch(s, /top: -1, left: 0, width: IND_W/);
-});
+// D-14(탭바 위 지금 탭 표시 막대)는 디자인 A의 떠 있는 탭 막대(고른 탭은 칠한 글리프)로 바뀌어 지웠다 — tests/a-chrome.test.js가 본다
 
-test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 10주 칸은 오른쪽 끝까지', () => {
-  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr=\{st\.screenTitle\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);
+test('D-15: 설정 제목은 뒤로 가기 아래 줄(머리는 스크롤 밖에 고정, S6), 최근 10주 칸은 오른쪽 끝까지', () => {
+  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} title=\{st\.screenTitle\} onBack=\{back\} focusTitle pinned backTestID=\{TID\.setBack\} \/>/);
   const charts = src('src/components/StatsCharts.tsx');
   assert.match(charts, /const labelW = Math\.max\(HEAT_LABEL_W, Math\.floor\(width\) - cell \* map\.cols\.length - HEAT_GAP \* \(map\.cols\.length - 1\)\);/);
   assert.doesNotMatch(charts, /width: HEAT_LABEL_W/);
@@ -38,35 +33,19 @@ test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 1
   }
 });
 
-test('D-20: 달성한 칸이 없으면 닳은 자리 표에 0%를 찍지 않는다(화면 읽기 이름은 그대로)', () => {
+test('D-20: 달성한 칸이 없으면 닳은 자리 지도에 0%를 찍지 않는다(화면 읽기 이름은 그대로)', () => {
+  // 디자인 A(S4): 이름 칸은 영역 이름만(지도와 같은 글), %는 가운데 칸 하나와 화면 읽기 이름에
   const charts = src('src/components/StatsCharts.tsx');
-  assert.match(charts, /const blank = totalDone\(doc\) === 0;/);
-  assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 2, '영역 이름표 % · 가운데 %');
+  assert.match(charts, /const blank = done === 0;/);
+  assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 1, '가운데 %');
   assert.match(charts, /accessibilityLabel=\{`\$\{name\} \$\{p\.pct\}%/);
   const stats = src('src/screens/Stats.tsx');
-  assert.match(stats, /caption=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);
+  assert.match(stats, /note=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);
 });
 
-test('D-24: 닳은 자리 범례 견본의 밝기가 실제 칸(영역 색) 범위에 든다 — 다크의 5+가 흰 가운데 칸처럼 보이지 않는다', () => {
-  const WEAR_FILL = [25, 45, 65, 85];
-  for (const [name, M] of Object.entries(MOODS)) {
-    const swatch = M.dark ? toHex(mix(M.sub, M.bg, 0.3)) : toHex(M.sub);
-    WEAR_FILL.forEach((f) => {
-      const legend = lumOver(alpha(swatch, f / 100), M.bg);
-      const cells = PILLAR_COLORS.map((c) => lumOver(fade(c, f), M.bg));
-      const lo = Math.min(...cells);
-      const hi = Math.max(...cells);
-      // 견본은 칸 범위에서 10% 안쪽(사람 눈에 같은 단계로 보이게)
-      assert.ok(legend >= lo * 0.9 && legend <= hi * 1.1, `${name} ${f}%: 견본 ${legend.toFixed(3)} / 칸 ${lo.toFixed(3)}~${hi.toFixed(3)}`);
-    });
-  }
-  const charts = src('src/components/StatsCharts.tsx');
-  assert.doesNotMatch(charts, /alpha\(M\.ink, WEAR_FILL/);
-  // 쌓기 칸의 진행 막대는 칸 안쪽에 띄운다(바닥 괘선 위 100% 막대가 아래 칸 테두리처럼 읽히지 않게)
-  assert.match(charts, /position: 'absolute', left: 3, right: 3, bottom: 3, height: 2, backgroundColor: headTrack\(th\.color\)/);
-});
+// D-24(닳은 자리 범례 견본의 밝기 · 쌓기 칸 진행 막대 자리)는 디자인 A(S4)의 타일 지도와 회색 타일 범례로 바뀌어 지웠다 — tests/a-s4.test.js가 본다
 
-test('D-31: 설정 › 기록 — 백업 묶음(+저장 위치 안내)과 새로 시작 묶음을 떼어 둔다', () => {
+test('D-31: 설정 — 백업 묶음(iCloud와 백업 + 저장 위치 안내)과 새로 시작 묶음을 떼어 둔다', () => {
   const s = src('src/screens/Settings.tsx');
   const at = (needle) => {
     const i = s.indexOf(needle);
@@ -74,9 +53,9 @@ test('D-31: 설정 › 기록 — 백업 묶음(+저장 위치 안내)과 새로
     return i;
   };
   const order = [
-    '<Section M={M} label={st.secRecords} />', '<SubHead M={M} label={st.subBackup} first />', 'title={st.exportTitle}', 'title={st.importTitle}',
-    'last title={st.snapTitle}', '{storage.note}', '<SubHead M={M} label={st.subRestart} />', 'first title={st.templateRow}',
-    'title={st.sampleRow}', 'last danger title={st.resetRow}', '<Section M={M} label={st.secInfo} />',
+    '<SetSection M={M} label={st.secCloud} />', '<SyncSection M={M} />', 'title={st.exportTitle}', 'title={st.importTitle}',
+    'glyph="copies" glyphTone="print" divider title={st.snapTitle}', '<SetNote M={M} text={storage.note} />', '<SetSection M={M} label={st.subRestart} />', 'first title={st.templateRow}',
+    'title={st.sampleRow}', 'last danger title={st.resetRow}', '<SetSection M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
 });

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>만다라트 9×9 — C. 먹과 주홍</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/c/tokens.css">
+<style>
+  /* 표는 종이 한 장이라 가장자리 4pt까지 간다. 나머지 글은 20pt 여백에 맞춘다. */
+  .sheet { padding: 0 4px; }
+  /* 표 아래 합계 줄: 홈의 두 숫자와 같은 자리(x = 20, 218)에 선다 */
+  .totals { display: flex; padding-top: 16px; padding-bottom: 16px; }
+  .totals > :first-child { width: 198px; }
+</style>
+</head>
+<body class="c-screen">
+<main id="page" class="c-page"></main>
+<script src="/docs/design/mockups/c/shared.js"></script>
+<script>
+C.load().then(function (d) {
+  var h = C.h, v = d.view, page = document.getElementById('page');
+
+  // 머리: 제목은 앱 이름이 아니라 사용자의 목표. 3pt 바 자리에 표의 테두리가 온다.
+  page.append(C.header({ eyebrow: '핵심 목표 · ' + v.date.year, title: d.coreGoal, action: 'more', bar: false }));
+
+  // 표 (L2): 81칸 글이 모두 먹으로
+  page.append(h('div.sheet', {}, C.chartL2(d, { width: 382 })));
+
+  // 장부의 합계 줄
+  page.append(h('div.totals.c-pad', {},
+    C.figure({ label: '오늘', value: v.today.done, of: v.today.of, size: 'l', mark: 'today' }),
+    C.figure({ label: '달성', value: v.progress.done, of: v.progress.of, unit: '칸', size: 'l', mark: 'done' })));
+
+  // 다음 할 일
+  var next = C.section({ title: '다음 할 일' });
+  next.append(C.row({ title: v.nextStep.text, area: v.nextStep.area, color: d.color(v.nextStep.area), check: false, chevron: true }));
+  page.append(h('div.c-pad', {}, next));
+
+  page.append(C.tabBar({ active: 'chart' }));
+});
+</script>
+</body>
+</html>

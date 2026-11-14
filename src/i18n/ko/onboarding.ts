@@ -6,7 +6,9 @@ export default {
   recoveredTitle: '저장된 기록을 읽지 못했어요',
   recoveredBody: '읽지 못한 기록은 지우지 않고 따로 보관해 두었어요.',
 
+  brand: '만다라트',
   heading: '올해 꼭 이루고 싶은\n목표 하나를 적어 주세요',
+  headingNote: '목표를 가운데에 두고, 여덟 가지를 둘러 적어요.',
   goalLabel: '핵심 목표',
   goalPlaceholder: '예) 첫 마라톤 완주하기',
   exampleMark: '예)',
@@ -17,7 +19,7 @@ export default {
 
   templateAreas: ({ name }: { name: string }) => `‘${name}’ 영역 8개로 시작해요`,
   defaultAreas: '기본 영역 8개로 시작해요',
-  defaultCaption: '기본 영역 8개로 시작해요 · 내 목표에 맞게 바꿀 수 있어요',
+  defaultCaption: '여덟 영역은 기본으로 채워 둬요. 나중에 바꿀 수 있어요.',
   unpick: '되돌리기',
   unpickHint: '기본 영역으로 되돌려요',
 

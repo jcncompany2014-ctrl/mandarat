@@ -46,11 +46,11 @@ test('R-5 #2: 넓은 글자(가나·한자·한글)는 1em, 숫자는 그보다 
   assert.ok(statEm('2 hr 5 min') > statEm('2時間5分') - 1);
 });
 
-test('A-3a · D-7: 장부 — 기록한 날 테두리 1pt, 진하기 40/60/75/90, 칸은 16pt까지', () => {
+test('A-3a · D-7: 장부 — 칸은 16pt까지, 기록한 날은 통계의 최근 10주와 같은 진하기 차례(타일, 디자인 A S4)', () => {
   const s = src('src/components/YearLedger.tsx');
-  assert.match(s, /export const HEAT_FILL = \[0, 40, 60, 75, 90\] as const;/);
-  assert.match(s, /borderWidth: 1, borderColor: inkEdge/);
   assert.match(s, /Math\.max\(6, Math\.min\(16, Math\.floor\(\(width - LEDGER_LABEL_W\) \/ 31\)\)\)/);
+  assert.match(s, /const tones = HEAT_TONES\.map\(\(t\) => M\[t\]\);/);
+  assert.deepEqual([...require('../src/lib/statsView').HEAT_TONES], ['tile', 'printMid', 'printEdge', 'ink2', 'ink']);
 });
 
 test('A-2: 펼침 — 왼쪽 쪽 → 오른쪽 쪽 순서(experimental_accessibilityOrder · id)', () => {
@@ -87,26 +87,23 @@ test('A-7: 잠긴 인쇄 줄은 프로 안내가 열린다고 알려 준다', ()
 
 test('A-8: 한 해 닫기 — 둘째 쪽부터 "‹ 이전"(44pt, onBack)', () => {
   const s = src('src/overlays/YearClose.tsx');
-  const at = s.indexOf('{index > 0 && (');
+  // 디자인 A: 머리 위 줄의 '‹ 이전'(PageHead lead) — 18 높이 줄 안에서 손끝은 44
+  const at = s.indexOf('const back = index > 0 && (');
   assert.ok(at > 0);
   const btn = s.slice(at, s.indexOf('</Pressable>', at));
   assert.match(btn, /onBack\(\)/);
   assert.match(btn, /accessibilityLabel=\{m\.common\.back\}/);
   assert.match(btn, /minHeight: 44, minWidth: 44/);
+  assert.match(s, /<PageHead\s+M=\{M\}\s+lead=\{back\}/);
   assert.equal(msg('ko').common.back, '이전');
   assert.equal(msg('ja').common.back, '前へ');
   assert.equal(msg('en').common.back, 'Back');
 });
 
-test('D-5: 종이 무늬 견본 잉크는 종이 위 3:1', () => {
-  assert.match(src('src/screens/settings/PaperRows.tsx'), /const ink = legibleMark\(M\.faint, M\.bg, M\);/);
-});
-
-test('D-6: "프로" 글자는 한 가지 모양(13 · 600 · sub)', () => {
-  for (const f of ['src/screens/year/YearReview.tsx', 'src/screens/year/YearSheet.tsx']) {
-    assert.match(src(f), /\{ fontSize: 13, fontWeight: '600', color: M\.sub \}\}>\{m\.common\.proMark\}/, f);
+test('D-6: "프로" 글자는 한 가지 모양(rowRight · print, 디자인 A S4)', () => {
+  for (const f of ['src/screens/year/YearReview.tsx', 'src/screens/year/YearSheet.tsx', 'src/screens/year/YearShelf.tsx']) {
+    assert.match(src(f), /<Text style=\{\[ROLE\.rowRight, \{ color: M\.print \}\]\}>\{m\.common\.proMark\}<\/Text>/, f);
   }
-  assert.match(src('src/screens/year/YearShelf.tsx'), /fontWeight: locked \? '600' : '700', color: M\.sub/);
 });
 
 test('D-9: 돌아보기의 닳은 자리 범례는 제목 줄과 같은 머리말', () => {
@@ -117,5 +114,5 @@ test('D-9: 돌아보기의 닳은 자리 범례는 제목 줄과 같은 머리�
 });
 
 test('R2-2: 언어 아래 덧말(iPhone 언어를 따라요)은 iOS에서만', () => {
-  assert.match(src('src/screens/settings/LanguageSection.tsx'), /\{Platform\.OS === 'ios' && \(\n\s+<Text[^>]*>\{m\.lang\.footnote\}<\/Text>/);
+  assert.match(src('src/screens/settings/LanguageSection.tsx'), /\{Platform\.OS === 'ios' && \(\n\s+<SetNote M=\{M\} text=\{m\.lang\.footnote\} \/>/);
 });

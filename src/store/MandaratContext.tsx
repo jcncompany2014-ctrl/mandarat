@@ -5,10 +5,8 @@ import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '
 import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleGoal, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 import { addCount as addCountTo, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
-import { activeStreak, archiveAllCells, archiveCellLog, areaStreak, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
+import { activeStreak, archiveAllCells, archiveCellLog, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
 import { summarize, type BackupSummary } from '../lib/backup';
-import { MOODS, withAccent, type Palette } from '../theme/moods';
-import { GOLD } from '../theme/palette';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
 import type { SyncMeta } from '../lib/syncMeta';
@@ -230,13 +228,8 @@ const ReadyCtx = createContext(false);
 /** 맞추기 엔진(V4-A)의 손잡이 — iOS에서 저장본을 다 읽은 뒤에만, 그 밖에는 null. 처음 한 번만 바뀐다 */
 const SyncPortCtx = createContext<SyncPort | null>(null);
 
-// ── palette ───────────────────────────────────────────────────────────────────
-/** 지금 고른 종이(무드) 팔레트 + 포인트 컬러 */
-export type PaletteValue = Palette & { accent: string };
-
-const DEFAULT_PALETTE: PaletteValue = withAccent(MOODS['연꽃'], GOLD);
-// 팔레트는 문서와 따로 — 체크·글쓰기처럼 색과 무관한 변경에는 같은 객체를 돌려줘 화면이 다시 그려지지 않게
-const PaletteCtx = createContext<PaletteValue>(DEFAULT_PALETTE);
+// 팔레트(화면 모드)는 문서와 따로 — src/theme/look.tsx의 LookProvider가 내려 준다(usePaletteValue).
+// 예전 종이 무드 · 포인트 컬러 · 칸 모서리(settings.mood · accent · cellShape)는 문서에 그대로 두되 그리는 데 쓰지 않는다.
 
 export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const [doc, setDoc] = useState<MandaratDoc>(() => blankDoc());
@@ -917,17 +910,11 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [doc, ready, storageError, saveFailed, recoveredCopy, clock],
   );
 
-  const { mood, accent } = doc.settings;
-  // goldInk는 지금 고른 포인트 컬러에서 만든다 — 어떤 색을 골라도 글자 대비 4.5:1 이상
-  const palette = useMemo<PaletteValue>(() => withAccent(MOODS[mood], accent), [mood, accent]);
-
   return (
     <ActionsCtx.Provider value={actions}>
       <DocCtx.Provider value={state}>
         <ReadyCtx.Provider value={ready}>
-          <PaletteCtx.Provider value={palette}>
-            <SyncPortCtx.Provider value={portOn ? port : null}>{children}</SyncPortCtx.Provider>
-          </PaletteCtx.Provider>
+          <SyncPortCtx.Provider value={portOn ? port : null}>{children}</SyncPortCtx.Provider>
         </ReadyCtx.Provider>
       </DocCtx.Provider>
     </ActionsCtx.Provider>
@@ -971,11 +958,6 @@ export function useSyncPort(): SyncPort | null {
   return useContext(SyncPortCtx);
 }
 
-/** 지금 팔레트 — 무드·포인트 컬러가 바뀔 때만 새 객체(그 밖의 문서 변경에는 같은 객체) */
-export function usePaletteValue(): PaletteValue {
-  return useContext(PaletteCtx);
-}
-
 // ── derived selectors (pure, used across screens) ────────────────────────────
 export function themeProgress(theme: Theme) {
   const filled = theme.actions.filter((a) => a.text.trim());
@@ -991,11 +973,4 @@ export function totalDone(doc: MandaratDoc): number {
 /** 하나라도 한 날이 이어진 날 수(오늘 또는 어제까지) — 상한 없이 센다. 계산은 src/lib/history.ts activeStreak */
 export function overallStreak(doc: Pick<MandaratDoc, 'dayLog'>, now: Date = new Date()): number {
   return activeStreak(doc.dayLog, now);
-}
-
-/**
- * 영역별 연속 기록 — 현재·최고 연속 일수와 이번 주(월~일) 기록 여부. 계산은 src/lib/history.ts areaStreak.
- */
-export function themeStreak(doc: Pick<MandaratDoc, 'dayLog'>, ti: number, now: Date = new Date()): { cur: number; best: number; week: number[] } {
-  return areaStreak(doc.dayLog, ti, now);
 }

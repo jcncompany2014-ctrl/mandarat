@@ -1,96 +1,80 @@
+// 습관의 반복 요일(editor.png '반복') — 일곱 요일 칸과 빠른 고르기.
+// - DayPicker: 부품 상자의 요일 칸(DayBoxes) — 고른 요일은 먹 테두리 + 안쪽 먹 획(chosen), 아닌 요일은 빈 칸(open).
+//   영역 색은 쓰지 않는다(고른 것은 기록이 아니다). 일요일 글자는 signal(달력의 약속). 화면 읽기: 체크 상자 + 선택됨.
+// - DayPresets: 매일 · 평일 · 주말 — 구역 머리 줄 오른쪽의 조용한 글(.s-quiets, 사이 14). 누르면 그 요일로 바꾼다.
 import React from 'react';
-import { Pressable, View } from 'react-native';
-import { Text } from './AppText';
-import { PaperChip } from './common';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { DayBoxes, hitFor, SECTION, type DayBox } from './kit';
+import { QuietAction } from './common';
 import type { M } from '../theme/usePalette';
-import { readableOn } from '../theme/palette';
 import { WEEK_ORDER, normalizeDays } from '../lib/routine';
 import { useMsg } from '../i18n/react';
 import { tap } from '../lib/haptics';
 
-/** 매일 · 평일 · 주말 — 이름은 fmt.daysLabel이 그 언어로 붙인다 */
-const PRESETS: readonly (readonly number[])[] = [
+/** 매일 · 평일 · 주말(0 = 일요일) — 이름은 fmt.daysLabel이 그 언어로 붙인다 */
+export const DAY_PRESETS: readonly (readonly number[])[] = [
   [0, 1, 2, 3, 4, 5, 6],
   [1, 2, 3, 4, 5],
   [0, 6],
 ];
 
+/** 빠른 고르기 낱말 사이(목업 .s-quiets gap 14) */
+const PRESET_GAP = 14;
+
+/** 18 높이의 구역 머리 줄 안에서도 손끝은 44 — 위아래로 넘쳐 눌린다 */
+const IN_LABEL_ROW: ViewStyle = { marginVertical: -hitFor(SECTION.h) };
+
 /**
- * 반복 요일 선택(월~일) + 매일·평일·주말 빠른 선택 + 해제(hideClear면 해제 칩을 두지 않는다).
- * 요일 칸은 인쇄된 표의 칸처럼 반듯한 네모(높이 44) — 고른 요일은 영역 색(데이터)으로 칠한다.
- * 빠른 선택은 종이 칩(고르면 먹색).
+ * 반복 요일(월~일 차례) — days는 0 = 일요일. keepOne이면 마지막 남은 요일은 끌 수 없다(습관은 요일이 하나는 있어야 한다).
  */
-export function DayPicker({ M, days, color, onChange, hideClear = false }: {
+export function DayPicker({ M, days, onChange, keepOne = false }: {
   M: M;
-  days: number[];
-  color: string;
+  days: readonly number[];
   onChange: (days: number[]) => void;
-  hideClear?: boolean;
+  keepOne?: boolean;
 }) {
   const m = useMsg();
-  const cur = normalizeDays(days);
-  const set = new Set(cur);
-  const toggle = (d: number) => {
-    tap();
+  const set = new Set(normalizeDays([...days]));
+  const boxes: DayBox[] = WEEK_ORDER.map((d) => (set.has(d) ? 'chosen' : 'open'));
+  const toggle = (i: number) => {
+    const d = WEEK_ORDER[i];
     const n = new Set(set);
     if (n.has(d)) n.delete(d);
     else n.add(d);
-    onChange(normalizeDays([...n]));
-  };
-  const pick = (next: number[]) => {
+    const next = normalizeDays([...n]);
+    if (keepOne && next.length === 0) return;
     tap();
     onChange(next);
   };
-  // 영역 색 위 글씨 — 8영역 색은 모두 흰 글씨가 AA. 사용자가 고른 밝은 색이면 먹색으로
-  const onInk = readableOn(color);
-
   return (
-    <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        {WEEK_ORDER.map((d) => {
-          const on = set.has(d);
-          return (
-            <Pressable
-              key={d}
-              onPress={() => toggle(d)}
-              // 요일 칸 사이 6pt 틈을 반씩 나눠 손끝 폭을 넓힌다(좁은 화면에서도 44pt 가까이)
-              hitSlop={{ left: 3, right: 3 }}
-              accessibilityRole="checkbox"
-              accessibilityLabel={m.core.repeatDow({ i: d })}
-              accessibilityState={{ checked: on }}
-              style={({ pressed }) => ({
-                flex: 1, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center',
-                borderWidth: 1, borderColor: on ? color : M.line,
-                backgroundColor: on ? color : 'transparent',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text maxFontSizeMultiplier={1.4} style={{ fontSize: 13, fontWeight: on ? '800' : '700', color: on ? onInk : M.ink }}>
-                {m.fmt.dowShort({ i: d })}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {PRESETS.map((p) => {
-          const label = m.fmt.daysLabel({ dows: p });
-          return (
-            <PaperChip
-              key={p.join()}
-              M={M}
-              label={label}
-              on={cur.join() === p.join()}
-              onPress={() => pick([...p])}
-              accessibilityLabel={m.core.repeatLabel({ label })}
-            />
-          );
-        })}
-        {cur.length > 0 && !hideClear && (
-          // 이름은 보이는 글 그대로('반복 안 함') — 음성 제어로 보이는 말을 불러 누를 수 있게
-          <PaperChip M={M} label={m.core.noRepeat} onPress={() => pick([])} />
-        )}
-      </View>
+    <DayBoxes
+      M={M}
+      days={boxes}
+      onPressDay={toggle}
+      role="checkbox"
+      dayLabel={(i) => m.core.repeatDow({ i: WEEK_ORDER[i] })}
+    />
+  );
+}
+
+/** 매일 · 평일 · 주말 — 조용한 글 셋. 누르면 그 요일들(새 배열)을 건넨다 */
+export function DayPresets({ M, onPick, style }: { M: M; onPick: (days: number[]) => void; style?: StyleProp<ViewStyle> }) {
+  const m = useMsg();
+  return (
+    <View style={[{ flexDirection: 'row', gap: PRESET_GAP }, style]}>
+      {DAY_PRESETS.map((p) => {
+        const label = m.fmt.daysLabel({ dows: p });
+        return (
+          <QuietAction
+            key={p.join()}
+            M={M}
+            label={label}
+            accessibilityLabel={m.core.repeatLabel({ label })}
+            onPress={() => { tap(); onPick([...p]); }}
+            style={IN_LABEL_ROW}
+          />
+        );
+      })}
     </View>
   );
 }

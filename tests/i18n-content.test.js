@@ -8,8 +8,7 @@ const { templates, TEMPLATES, templateThemes } = require('../src/data/templates'
 const { suggestActions, exampleGroup } = require('../src/lib/suggest');
 const { analyzeAction, guideScore } = require('../src/lib/coach');
 const { suggestKind } = require('../src/lib/kindSuggest');
-const { chartFit, estimateLines, CHART_HEAD_FS, RULE } = require('../src/theme/chart');
-const { PRETENDARD_GLYPHS } = require('../src/lib/labelFit');
+const { chartFit, estimateLines } = require('../src/theme/chart');
 const { fitBox, longestWord } = require('../src/lib/text');
 const { textProblems } = require('./i18nLint');
 
@@ -68,21 +67,18 @@ test('TEMPLATES는 지금 언어를 따르는 보기이고, templateThemes는 �
   assert.ok(th.every((x) => x.actions.length === 8 && x.actions.every((a) => a.text === '' && !a.done)));
 });
 
-test('템플릿 글은 81칸(375 · 390)의 영역 칸 3줄 · 가운데 칸 4줄, 처음 화면 스케치(180pt) 칸에 든다', () => {
+test('템플릿 영역 이름은 색 지도(375 · 390)의 이름 칸에 말줄임 없이, 처음 화면 스케치(180pt) 칸에 든다', () => {
   const cell = (180 - 2) / 3;
   const inner = cell - 8;
   for (const l of ['ja', 'en']) {
     inLang(l, () => {
       for (const t of templates(l)) {
         for (const w of [375, 390]) {
-          const c = chartFit(t.centerGoal, 'center', w);
-          assert.ok(c.lines <= c.max, `${l} ${w}: '${t.centerGoal}' ${c.lines}줄`);
+          // 지도 칸(≈ 31~33pt)은 10 → 8pt로 줄이고 3줄까지 — 영문의 긴 낱말은 붙임표로 나눈다(Rela-tion-ships).
+          // 핵심 목표는 지도 가운데 칸에서 3줄을 넘으면 말줄임표로(쪽 제목이 전체를 보인다) — 여기서 재지 않는다
           for (const a of t.areas) {
             const f = chartFit(a.title, 'theme', w);
             assert.ok(f.lines <= f.max, `${l} ${w}: '${a.title}' ${f.lines}줄`);
-            // 낱말이 칸 폭보다 길면 81칸이 낱말 가운데서 끊는다(Language/s) — 영어는 낱말마다 칸 폭 안
-            const cellW = (w - 22 - RULE.frame * 2) / 9 - 4 - RULE.cell;
-            assert.ok(longestWord(a.title, CHART_HEAD_FS, PRETENDARD_GLYPHS) <= cellW, `${l} ${w}: '${a.title}' 낱말이 칸보다 넓다`);
           }
         }
         for (const { title } of t.areas) {

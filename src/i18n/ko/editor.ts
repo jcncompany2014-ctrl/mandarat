@@ -19,6 +19,9 @@ export default {
   themePlaceholder: '예) 건강',
   /** 실천 칸의 제목 — '건강 · 실천 3/8' */
   actionTitle: ({ area, n }: { area: string; n: number }) => `${area} · 실천 ${n}/8`,
+  /** 시트 머리 둘째 줄(인쇄 색) — 실천 칸 '실천 3/8' · 영역 이름 칸 '영역 이름' (첫 줄은 영역 이름) */
+  actionN: ({ n }: { n: number }) => `실천 ${n}/8`,
+  themeSub: '영역 이름',
   /** 예시 자리 글 — '예) 하루 30분 걷기' */
   example: ({ text }: { text: string }) => `예) ${text}`,
   /** 이름이 빈 영역 — '영역 3' */
@@ -46,12 +49,20 @@ export default {
   draftRestored: '적던 내용을 다시 올렸어요',
 
   // ── 내용 줄 ──
-  textLabel: '내용',
   helpPlaceholder: '직접 적거나 아래에서 골라요',
   /** 글자 수를 읽는 말 — '60자 중 12자' */
   charCount: ({ n, max }: { n: number; max: number }) => `${max}자 중 ${n}자`,
   helpTitle: '이런 실천은 어때요',
   helpHint: '누르면 내용에 적어요',
+  /**
+   * 실천 글 점검(GuideChips) — 입력 칸 아래 한 줄. 빠진 것만 말한다(셋 다 있으면 부르지 않는다).
+   * 셋 다 빠지면 '무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요'
+   */
+  coachNote: ({ noWhat, noHow, noWhen }: { noWhat: boolean; noHow: boolean; noWhen: boolean }) => {
+    const list = [noWhat && '무엇을', noHow && '얼마나', noWhen && '언제·어디서'].filter(Boolean).join(', ');
+    if (!list) return '';
+    return `${list.endsWith('을') ? list : josa(list, '을/를')} 쓰면 실천하기 쉬워요`;
+  },
 
   // ── 유형 ──
   kindLabel: '유형',
@@ -66,12 +77,17 @@ export default {
   offerKeepA11y: '지금 유형 그대로 두기',
   offerTake: '바꾸기',
   offerTakeA11y: ({ label }: { label: string }) => `${josa(label, '으로/로')} 바꾸기`,
+  /** 유형 고르기 아래 한 줄 — 고른 유형이 '오늘'에 어떻게 담기는지 */
+  noteOnce: '마감 사흘 전부터 ‘오늘’에 담겨요',
+  noteHabitDays: '정한 요일마다 ‘오늘’에 담겨요',
+  noteHabitWeek: '횟수를 다 할 때까지 매일 ‘오늘’에 담겨요',
+  noteCount: '목표 수에 닿으면 칸이 달성돼요',
+  noteMind: '한 주에 한 번 1~5점으로 돌아봐요',
 
   // ── 습관 ──
   repeat: '반복',
   byDays: '요일마다',
   byCount: '횟수로',
-  perWeekLabel: '횟수',
   perWeekA11y: '주간 횟수',
   /** '주 3회' */
   perWeek: ({ n }: { n: number }) => `주 ${n}회`,
@@ -79,7 +95,9 @@ export default {
   perWeekSay: ({ n }: { n: number }) => `주 ${n}회`,
   perWeekLess: '주 1회 줄이기',
   perWeekMore: '주 1회 늘리기',
-  days: '요일',
+  /** 알림 '시각 정하기' 줄의 정보 — '오후 10:30 · 정한 요일마다' */
+  remindDays: '정한 요일마다',
+  remindWeek: '횟수를 채울 때까지 매일',
 
   // ── 쌓기 ──
   goal: '목표',
@@ -97,9 +115,13 @@ export default {
 
   // ── 마감 ──
   due: '마감',
+  /** 마감 빠른 고르기 칸에 보이는 짧은 이름(분절 선택기 네 칸) — 읽는 말은 kinds.preset*의 긴 이름(dueChipA11y) */
+  dueWeek: '이번 주',
+  dueMonth: '이번 달',
+  due3Months: '3개월 뒤',
+  dueYear: '올해 안',
   /** 마감 고르기 칩을 읽는 말 — '마감 3개월 뒤, 2027년 1월 14일 목요일' */
   dueChipA11y: ({ label, date }: { label: string; date: string }) => `마감 ${label}, ${date}`,
-  date: '날짜',
   /** 정한 마감을 읽는 말 — '10월 21일 수요일, 마감 7일 남음' */
   dueA11y: ({ date, left }: { date: string; left: string }) => `${date}, ${left}`,
   dueClear: '마감 없애기',

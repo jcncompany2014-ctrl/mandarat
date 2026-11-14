@@ -107,7 +107,6 @@ test('화면 읽기 언어: iOS에서 앱 언어가 기기 언어와 다를 때�
   assert.equal(AT.a11yLang('ja', 'android', 'ko'), undefined);
   const s = src('src/components/AppText.tsx');
   assert.match(s, /accessibilityLanguage=\{accessibilityLanguage \?\? \(nested \? undefined : a11yLang\(l\)\)\}/);
-  assert.match(src('src/components/Pressy.tsx'), /accessibilityLanguage=\{accessibilityLanguage \?\? a11yLang\(lang\(\)\)\}/);
 });
 
 // ── 일본어 줄바꿈(금칙) ───────────────────────────────────────────────────────
@@ -179,14 +178,17 @@ test('설정 › 언어: 네 줄 · 언어 이름 · 고르면 chooseLang과 새
   assert.match(s, /export const LANG_PREFS: readonly LangPref\[\] = \['system', 'ko', 'ja', 'en'\];/);
   assert.match(s, /p === 'system' \? m\.lang\.system : LANG_NAMES\[p\]/);
   assert.match(s, /testID=\{TID\.setLang\(p\)\}/);
-  assert.match(s, /accessibilityRole="radio"/);
-  assert.match(s, /accessibilityState=\{\{ checked: on, selected: on \}\}/);
+  // 줄은 부품 상자의 고르기 줄(ChoiceRow: 라디오 + 선택됨)
+  assert.match(s, /<ChoiceRow\b/);
+  const choice = src('src/components/kit/ChoiceRow.tsx');
+  assert.match(choice, /accessibilityRole="radio"/);
+  assert.match(choice, /accessibilityState=\{\{ checked: on, selected: on \}\}/);
   assert.match(s, /chooseLang\(p\)\.then\(\(to: Lang\) => announce\(msg\(to\)\.lang\.changed\(\{ name: LANG_NAMES\[to\] \}\)\)/);
   assert.match(s, /\{m\.lang\.footnote\}/);
   assert.match(s, /process\.env\.EXPO_PUBLIC_APP_ENV/);
   const { languageSectionShown } = loadTsx('src/screens/settings/LanguageSection.tsx', {
     '../../components/AppText': {}, '../../components/Check': {}, '../../components/common': {}, '../../lib/haptics': {},
-    '../../lib/useReducedMotion': {}, '../../i18n/react': {}, '../../i18n/prefs': {}, './rows': {},
+    '../../lib/useReducedMotion': {}, '../../i18n/react': {}, '../../i18n/prefs': {}, './rows': {}, '../../components/kit': {},
   });
   assert.equal(languageSectionShown(false, false, 'production'), false, '스토어 빌드 · Vercel 미리보기에는 아직 없다');
   assert.equal(languageSectionShown(false, false, undefined), false);

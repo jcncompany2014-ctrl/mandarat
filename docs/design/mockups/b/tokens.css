@@ -1,0 +1,252 @@
+/*
+ * 여덟 빛깔 (direction B) — tokens and component styles.
+ *
+ * Part 1: variables. Light on :root, a complete dark set under prefers-color-scheme: dark.
+ * Part 2: type roles (.t-*).
+ * Part 3: component classes used by shared.js (.b-*). Use the functions in shared.js; do not rebuild these by hand.
+ *
+ * Use after /tools/design-mockups/kit.css:
+ *   <link rel="stylesheet" href="/tools/design-mockups/kit.css">
+ *   <link rel="stylesheet" href="/docs/design/mockups/b/tokens.css">
+ *
+ * Area colours: every area has four steps. Put class .a0 … .a7 on an element and use the short names
+ * var(--wash) var(--tint) var(--pigment) var(--aink) inside it.
+ *   wash     ground of an empty tile, an unchecked box, an area band. Text on it: ink, ink-2 or the area's ink.
+ *   tint     ground of a DONE tile or a checked box. Text on it: ink only (ink-2 and area ink fail 4.5:1).
+ *   pigment  structure: the 16 area-name tiles, bars, the box edge. Text on it: --on-pigment only.
+ *   aink     the area colour as text or a glyph on paper or wash.
+ * Order: 0 쑥 건강 · 1 쪽빛 커리어 · 2 황토 자기계발 · 3 연지 관계 · 4 청자 재정 · 5 오디 취미 · 6 비색 마음챙김 · 7 주홍 모험.
+ */
+
+/* ───────────────────────── 1. Variables ───────────────────────── */
+
+:root {
+  color-scheme: light dark;
+
+  /* neutrals */
+  --paper: #FBFAF6;        /* the page. Clean warm white, no texture */
+  --ink: #1F1C19;          /* text, core tile, selection, primary action. 16.2:1 on paper */
+  --ink-2: #6A645C;        /* secondary text. 5.6:1 on paper, 5.0:1 on any wash */
+  --ink-3: #8C867D;        /* marks and neutral control edges only, never text. 3.5:1 on paper */
+  --line: #E7E3DB;         /* decorative hairline between groups */
+  --raised: #F1EFEA;       /* neutral tile: future days, round tool buttons */
+  --raised-2: #E8E5DF;     /* pressed, the selected tab */
+  --tile-off: #DCD8D0;     /* a tile that is only there to show the lattice (locator) */
+  --on-pigment: #FFFFFF;   /* text on pigment. 4.5 to 9.8:1 */
+  --core: #1F1C19;         /* the centre tile of the chart */
+  --core-ink: #FBFAF6;     /* text on the core tile */
+  --core-edge: #1F1C19;    /* keyline of the core tile (only visible in dark) */
+
+  /* signal: today and now. 치자 (gardenia yellow), the ninth dye. Always a round dot or a chip with ink on it */
+  --signal: #F2BB1D;
+  --signal-edge: #1F1C19;  /* 1px ring round the dot, so it holds 3:1 on paper, wash and tint */
+  --on-signal: #1F1C19;    /* 9.6:1 */
+
+  /* floating bar */
+  --bar-bg: rgba(251, 250, 246, 0.86);
+  --bar-edge: rgba(31, 28, 25, 0.09);
+  --bar-shadow: 0 10px 28px rgba(31, 28, 25, 0.13), 0 1px 3px rgba(31, 28, 25, 0.08);
+  --scrim: rgba(31, 28, 25, 0.40);
+  --sheet: #FBFAF6;        /* inset sheet ground: the page itself in light */
+
+  /* eight dyes: wash / tint / pigment / ink */
+  --a0-wash: #E8F2E8; --a0-tint: #70A672; --a0-pigment: #26662C; --a0-ink: #14561D; /* 쑥 건강 */
+  --a1-wash: #EAEEFA; --a1-tint: #7A8ECB; --a1-pigment: #2E419B; --a1-ink: #2D3F8D; /* 쪽빛 커리어 */
+  --a2-wash: #F5EDE3; --a2-tint: #D1AA73; --a2-pigment: #9F6C10; --a2-ink: #624000; /* 황토 자기계발 */
+  --a3-wash: #F8EAEE; --a3-tint: #D58A9F; --a3-pigment: #A9255C; --a3-ink: #7B1F44; /* 연지 관계 */
+  --a4-wash: #E3F2F0; --a4-tint: #71C2BB; --a4-pigment: #1E847E; --a4-ink: #00534F; /* 청자 재정 */
+  --a5-wash: #F4EBF5; --a5-tint: #AB7DB4; --a5-pigment: #692776; --a5-ink: #662A71; /* 오디 취미 */
+  --a6-wash: #E5F1F8; --a6-tint: #62A6CC; --a6-pigment: #03648B; --a6-ink: #004E6E; /* 비색 마음챙김 */
+  --a7-wash: #F9EBE7; --a7-tint: #D98F7A; --a7-pigment: #AD3202; --a7-ink: #7E2404; /* 주홍 모험 */
+
+  /* geometry */
+  --gutter: 20px;          /* side margin of every screen */
+  --content: 350px;        /* 390 − 2 × gutter */
+  --r-box: 4px;            /* check box 24pt */
+  --r-tile: 3px;           /* a 36pt chart tile; shared.js scales it with the tile (8.5%, see B.radius) */
+  --r-plate: 10px;         /* large tiles: area tile, band, zoomed cell */
+  --r-sheet: 28px;         /* inset sheet */
+  --header-h: 84px;        /* S3: the same on every tab */
+  --bar-h: 60px;           /* floating capsule and 담기 */
+  --bar-bottom: 26px;
+  --bar-side: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 먹지: warm near-black. Not an inversion: the core is a raised tile, not a light one */
+    --paper: #161412;
+    --ink: #ECE7DE;          /* 14.9:1 */
+    --ink-2: #A8A298;        /* 7.3:1 */
+    --ink-3: #736D65;        /* 3.6:1, marks only */
+    --line: #2A2724;
+    --raised: #24211E;
+    --raised-2: #332F2A;
+    --tile-off: #3A3530;
+    --on-pigment: #F6F2EA;   /* 4.6 to 5.5:1 on the dark pigments */
+    --core: #403A33;         /* 1.6:1 on the page, ink text on it 9.1:1 */
+    --core-ink: #ECE7DE;
+    --core-edge: #6E675E;    /* 1px keyline so the core reads as a tile and not a hole */
+
+    --signal: #F2BB1D;       /* 10.4:1 on the page */
+    --signal-edge: #161412;  /* the ring takes the page colour at night */
+    --on-signal: #1F1C19;
+
+    --bar-bg: rgba(36, 33, 30, 0.88);
+    --bar-edge: rgba(236, 231, 222, 0.10);
+    --bar-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.30);
+    --scrim: rgba(0, 0, 0, 0.55);
+    --sheet: #201D1A;        /* one step above the page so the sheet reads over the scrim */
+
+    /* dyes at night. pigment is lifted to at least 3:1 on the page and still holds --on-pigment at 4.5:1.
+       tint (done) is the pigment at 58% over the page: deeper than pigment, brighter than wash.
+       All eight sit in one lightness band at night (the price of one text colour on all of them),
+       so at night area identity leans on position, name and glyph more than in light. */
+    --a0-wash: #1C2419; --a0-tint: #2A4A2A; --a0-pigment: #39713C; --a0-ink: #8EC990;
+    --a1-wash: #1E202D; --a1-tint: #323E6E; --a1-pigment: #475DB0; --a1-ink: #9EB5F8;
+    --a2-wash: #2B2213; --a2-tint: #5E4316; --a2-pigment: #926519; --a2-ink: #DDAE6C;
+    --a3-wash: #311B21; --a3-tint: #712D45; --a3-pigment: #B33F6A; --a3-ink: #ED9CB4;
+    --a4-wash: #182522; --a4-tint: #1D4E4A; --a4-pigment: #227873; --a4-ink: #6ECAC3;
+    --a5-wash: #291E28; --a5-tint: #58355D; --a5-pigment: #884D94; --a5-ink: #D5A2DF;
+    --a6-wash: #192328; --a6-tint: #20485C; --a6-pigment: #276E91; --a6-ink: #74C2ED;
+    --a7-wash: #2F1B14; --a7-tint: #6C2C18; --a7-pigment: #AB3E1D; --a7-ink: #EFA18A;
+  }
+}
+
+/* short names inside an area */
+.a0 { --wash: var(--a0-wash); --tint: var(--a0-tint); --pigment: var(--a0-pigment); --aink: var(--a0-ink); }
+.a1 { --wash: var(--a1-wash); --tint: var(--a1-tint); --pigment: var(--a1-pigment); --aink: var(--a1-ink); }
+.a2 { --wash: var(--a2-wash); --tint: var(--a2-tint); --pigment: var(--a2-pigment); --aink: var(--a2-ink); }
+.a3 { --wash: var(--a3-wash); --tint: var(--a3-tint); --pigment: var(--a3-pigment); --aink: var(--a3-ink); }
+.a4 { --wash: var(--a4-wash); --tint: var(--a4-tint); --pigment: var(--a4-pigment); --aink: var(--a4-ink); }
+.a5 { --wash: var(--a5-wash); --tint: var(--a5-tint); --pigment: var(--a5-pigment); --aink: var(--a5-ink); }
+.a6 { --wash: var(--a6-wash); --tint: var(--a6-tint); --pigment: var(--a6-pigment); --aink: var(--a6-ink); }
+.a7 { --wash: var(--a7-wash); --tint: var(--a7-tint); --pigment: var(--a7-pigment); --aink: var(--a7-ink); }
+/* no area: neutral tile, ink edge */
+.a-none { --wash: var(--raised); --tint: var(--raised-2); --pigment: var(--ink-3); --aink: var(--ink-2); }
+
+/* ───────────────────────── 2. Type roles (Pretendard only) ───────────────────────── */
+
+body { background: var(--paper); color: var(--ink); }
+
+.t-eyebrow { font-size: 13px; line-height: 16px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.t-title   { font-size: 30px; line-height: 36px; font-weight: 800; letter-spacing: -0.6px; color: var(--ink); }
+.t-head    { font-size: 17px; line-height: 22px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink); }
+.t-figure  { font-size: 26px; line-height: 30px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.t-row     { font-size: 16px; line-height: 22px; font-weight: 500; color: var(--ink); }
+.t-meta    { font-size: 13px; line-height: 16px; font-weight: 400; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.t-caption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.t-cell    { font-size: 16px; line-height: 21px; font-weight: 500; color: var(--ink); }           /* the user's words in a zoomed cell */
+.t-label   { font-size: 11.5px; line-height: 13px; font-weight: 700; letter-spacing: -0.1px; }    /* area name on a map tile */
+.t-tab     { font-size: 11px; line-height: 13px; font-weight: 600; }
+.t-button  { font-size: 16px; line-height: 20px; font-weight: 700; }
+
+/* ───────────────────────── 3. Components ───────────────────────── */
+
+/* Screen: content scrolls under the floating bar. Children are laid out in normal flow. */
+.b-screen { position: relative; width: 390px; height: 844px; overflow: hidden; background: var(--paper); color: var(--ink); }
+
+/* Header (S3): reserved eyebrow, title, one trailing action. Height is fixed. */
+.b-header { position: relative; height: var(--header-h); padding: 14px var(--gutter) 0; }
+.b-header__eyebrow { display: flex; align-items: center; gap: 6px; height: 16px; white-space: nowrap; }
+.b-header__title { margin: 4px 52px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-header__action { position: absolute; right: var(--gutter); top: 32px; }
+
+/* Round tool button (the only round things are tools and the today dot) */
+.b-tool { width: 40px; height: 40px; border-radius: 20px; background: var(--raised); color: var(--ink); display: flex; align-items: center; justify-content: center; }
+.b-tool svg { display: block; }
+
+/* Today dot: the one signal shape. 치자 fill with a 1px ring. */
+.b-dot { display: block; flex: none; border-radius: 50%; background: var(--signal); border: 1px solid var(--signal-edge); }
+
+/* Chart. Tiles are absolutely placed by shared.js. */
+.b-chart { position: relative; flex: none; }
+.b-tile { position: absolute; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; background: var(--wash); }
+.b-tile.is-done { background: var(--tint); }
+.b-tile.is-name, .b-tile.is-ring { background: var(--pigment); color: var(--on-pigment); }
+.b-tile.is-core { background: var(--core); color: var(--core-ink); box-shadow: inset 0 0 0 1px var(--core-edge); }
+.b-tile.is-off { background: var(--tile-off); }                 /* locator: a block that is not the current one */
+.b-tile.is-pick { box-shadow: inset 0 0 0 2px var(--ink); }    /* selection is always ink */
+.b-tile .b-dot { position: absolute; }
+.b-tile__label { white-space: pre-line; word-break: keep-all; }
+
+/* Zoomed block (3×3 with text) */
+.b-cell { position: absolute; overflow: hidden; background: var(--wash); border-radius: var(--r-plate); padding: 30px 10px 26px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.b-cell.is-done { background: var(--tint); }
+.b-cell.is-name, .b-cell.is-ring { background: var(--pigment); color: var(--on-pigment); flex-direction: column; padding: 10px; }
+.b-cell.is-core { background: var(--core); color: var(--core-ink); box-shadow: inset 0 0 0 1px var(--core-edge); padding: 10px; }
+.b-cell.is-pick { box-shadow: inset 0 0 0 2px var(--ink); }
+.b-cell__text { color: var(--ink); }
+.b-cell.is-blank .b-cell__text { color: var(--ink-2); font-weight: 400; }
+.b-cell__name { font-size: 20px; line-height: 24px; font-weight: 800; letter-spacing: -0.3px; }
+.b-cell__count { margin-top: 4px; font-size: 13px; line-height: 16px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0.92; }
+.b-cell__goal { font-size: 17px; line-height: 22px; font-weight: 800; letter-spacing: -0.3px; }
+.b-cell__meta { position: absolute; left: 8px; right: 8px; bottom: 9px; font-size: 12px; line-height: 14px; font-weight: 500; color: var(--aink); font-variant-numeric: tabular-nums; }
+.b-cell.is-done .b-cell__meta { color: var(--ink); }
+.b-cell__tick { position: absolute; left: 9px; top: 8px; color: var(--ink); }
+.b-cell .b-dot { position: absolute; right: 10px; top: 10px; width: 12px; height: 12px; }
+
+/* Check box (S5): a 24pt tile. Edge in pigment, wash inside; done is tint with an ink pen tick that overshoots. */
+.b-check { position: relative; flex: none; width: 24px; height: 24px; border-radius: var(--r-box); border: 1.5px solid var(--pigment); background: var(--wash); }
+.b-check.is-done { background: var(--tint); }
+.b-check svg { position: absolute; left: -1.5px; top: -7.5px; overflow: visible; color: var(--ink); }
+.b-check--sm { width: 20px; height: 20px; border-radius: 3.5px; }
+.b-check--sm svg { left: -2.5px; top: -8px; transform: scale(0.84); transform-origin: 0 100%; }
+
+/* List row (S5): check on the leading side, one title, one line of meta, at most one thing on the right. */
+.b-row { display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 6px var(--gutter); }
+.b-row__body { flex: 1; min-width: 0; }
+.b-row__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-row__meta { display: flex; align-items: center; gap: 4px; margin-top: 2px; white-space: nowrap; }
+.b-row__area { display: inline-flex; align-items: center; gap: 3px; color: var(--aink); font-weight: 500; }
+.b-row__area svg { display: block; }
+.b-row__right { flex: none; font-size: 13px; line-height: 16px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 4px; }
+.b-row__right--quiet { font-weight: 500; color: var(--ink-2); }
+.b-row.is-done .b-row__title { color: var(--ink-2); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* Section head: a title and, if it leads somewhere, an ink link with a chevron */
+.b-section { display: flex; align-items: baseline; justify-content: space-between; padding: 0 var(--gutter); }
+.b-link { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--ink); }
+.b-link svg { display: block; }
+
+/* Figure: a label over a confident number */
+.b-figure__label { display: block; }
+.b-figure__value { display: flex; align-items: baseline; margin-top: 2px; white-space: nowrap; }
+.b-figure__of { color: var(--ink-2); font-weight: 600; }
+.b-figure__unit { margin-left: 2px; font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0; color: var(--ink-2); }
+
+/* 正 week strip: seven small tiles */
+.b-week { display: flex; gap: 3px; }
+.b-week__day { position: relative; width: 22px; }
+.b-week__tile { width: 22px; height: 22px; border-radius: 3px; background: var(--raised); display: flex; align-items: center; justify-content: center; color: var(--ink); }
+.b-week__day.is-today .b-week__tile { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.b-week__day .b-dot { position: absolute; right: -3px; top: -3px; width: 8px; height: 8px; }
+.b-week__letter { display: block; margin-top: 3px; text-align: center; font-size: 11px; line-height: 13px; font-weight: 500; color: var(--ink-2); }
+.b-week__day.is-today .b-week__letter { color: var(--ink); font-weight: 700; }
+.b-tally { display: block; }
+
+/* Area tile: a square of the area's wash with its glyph, name and count */
+.b-area { position: relative; background: var(--wash); border-radius: var(--r-plate); padding: 10px 10px 9px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+.b-area__name { display: flex; align-items: center; gap: 4px; font-size: 13px; line-height: 16px; font-weight: 600; color: var(--aink); white-space: nowrap; }
+.b-area__count { font-size: 20px; line-height: 24px; font-weight: 800; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.b-area__count span { color: var(--ink-2); font-weight: 600; }
+.b-area__next { font-size: 12px; line-height: 15px; font-weight: 400; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-pips { display: flex; gap: 2px; }
+.b-pips i { display: block; width: 7px; height: 7px; border-radius: 1.5px; background: var(--paper); }
+.b-pips i.is-done { background: var(--pigment); }
+
+/* Primary button (S5): ink fill, paper text. Never an area colour, never the signal. */
+.b-button { display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 26px; padding: 0 24px; background: var(--ink); color: var(--paper); }
+.b-button--quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+
+/* Floating navigation (S4): a capsule with four places, and 담기 on its own beside it. */
+.b-tabbar { position: absolute; left: var(--bar-side); right: var(--bar-side); bottom: var(--bar-bottom); height: var(--bar-h); display: flex; gap: 10px; z-index: 10; }
+.b-tabbar__capsule { flex: 1; display: flex; padding: 4px; border-radius: 30px; background: var(--bar-bg); box-shadow: var(--bar-shadow), inset 0 0 0 1px var(--bar-edge); -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6); }
+.b-tabbar__item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 26px; color: var(--ink-2); }
+.b-tabbar__item.is-active { color: var(--ink); background: var(--raised-2); }
+.b-tabbar__item svg { display: block; }
+.b-tabbar__add { flex: none; width: var(--bar-h); height: var(--bar-h); border-radius: 30px; background: var(--ink); color: var(--paper); display: flex; align-items: center; justify-content: center; box-shadow: var(--bar-shadow); }
+
+/* Inset sheet (S4): floats 8pt from the edges with four round corners. Put it over .b-scrim. */
+.b-scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 20; }
+.b-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: var(--r-sheet); background: var(--sheet); padding: 20px; z-index: 21; }

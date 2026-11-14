@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="780x844">
+<title>A · 위젯과 잠금 화면</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-widgets.css">
+<style>
+  /* two 390 × 844 phones on plain grey wallpaper. The phone furniture (dock, island, clock, buttons)
+     is the system's, drawn in neutral greys with no hue at all (not the blue-tinted greys of a cool
+     wallpaper) so only our widgets carry colour. Other apps are blank squircles: Apple allows a Home
+     Screen in marketing only to show your own widget. Our surfaces are white and float on the soft
+     shadow. Clean round: Pretendard only, figures in Bold, the small widget is the L1 colour map,
+     the Lock Screen count is a ring gauge (no 正), the app icon is AI.app (the mark on white). */
+  html, body { width: 780px; height: 844px; background: #4B4B4B; }
+  .phone { position: absolute; top: 0; width: 390px; height: 844px; overflow: hidden; background: var(--wall); --wall: #5F5F5F; }
+  .phone + .phone { left: 390px; box-shadow: inset 1px 0 0 #4B4B4B; }
+  .ind { position: absolute; left: 128px; bottom: 8px; width: 134px; height: 5px; border-radius: 3px; background: #EDEDED; }
+  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7B7B7B; overflow: hidden; }
+  .app-label { position: absolute; width: 76px; text-align: center; font: 500 11px/14px var(--sans); color: #F2F2F2; }
+  .dock { position: absolute; left: 12px; right: 12px; bottom: 22px; height: 88px; border-radius: 32px; background: #6F6F6F; }
+  .dots { position: absolute; left: 0; right: 0; top: 696px; display: flex; justify-content: center; gap: 8px; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: #8E8E8E; }
+  .dots i:first-child { background: #F2F2F2; }
+
+  .lock-date { position: absolute; left: 0; right: 0; top: 64px; text-align: center; font: 600 18px/24px var(--sans); color: var(--lock-1); }
+  .lock-time { position: absolute; left: 0; right: 0; top: 86px; text-align: center; font: 700 96px/104px var(--sans); letter-spacing: -0.02em; color: var(--lock-1); font-variant-numeric: tabular-nums; }
+  .lock-row { position: absolute; left: 33px; top: 206px; display: flex; gap: 12px; }
+  .qbtn { position: absolute; bottom: 44px; width: 50px; height: 50px; border-radius: 50%; background: #6D6D6D; display: flex; align-items: center; justify-content: center; color: var(--lock-1); }
+</style>
+</head>
+<body>
+<!-- Home Screen -->
+<div class="phone" id="home">
+  <div id="island"></div>
+  <div id="small" style="position:absolute;left:26px;top:60px"></div>
+  <div class="app" id="our-icon" style="left:212px;top:66px"></div>
+  <div class="app-label" style="left:204px;top:130px">만다라트</div>
+  <div class="app" style="left:304px;top:66px"></div>
+  <div class="app" style="left:212px;top:158px"></div>
+  <div class="app" style="left:304px;top:158px"></div>
+  <div id="medium" style="position:absolute;left:26px;top:250px"></div>
+  <div class="app" style="left:26px;top:440px"></div>
+  <div class="app" style="left:119px;top:440px"></div>
+  <div class="app" style="left:212px;top:440px"></div>
+  <div class="app" style="left:304px;top:440px"></div>
+  <div class="dots"><i></i><i></i></div>
+  <div class="dock">
+    <div class="app" style="left:14px;top:14px"></div>
+    <div class="app" style="left:107px;top:14px"></div>
+    <div class="app" style="left:199px;top:14px"></div>
+    <div class="app" style="left:292px;top:14px"></div>
+  </div>
+  <div class="ind"></div>
+</div>
+
+<!-- Lock Screen -->
+<div class="phone lockscreen" id="lock">
+  <div class="lock-date" id="lock-date"></div>
+  <div class="lock-time">9:30</div>
+  <div class="lock-row lock"><div id="lock-rect"></div><div id="lock-gauge"></div><div id="lock-add"></div></div>
+  <div id="live" style="position:absolute;left:16px;top:598px"></div>
+  <div class="qbtn" style="left:46px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3.75h8v3.5l-2 3v10h-4v-10l-2-3z"/><path d="M12 13v2.5"/></svg></div>
+  <div class="qbtn" style="right:46px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.75 7.75h4l1.5-2.5h5.5l1.5 2.5h4v11h-16.5z"/><circle cx="12" cy="13" r="3.25"/></svg></div>
+  <div class="ind"></div>
+</div>
+
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/icon-mark.js"></script>
+<script src="/docs/design/mockups/a/parts-widgets.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, rows = v.today.rows;
+  const find = (t) => rows.find((r) => r.text === t);
+
+  // Home Screen: small (the colour map + 오늘 1/10), medium (three rows to tick, 9개 남음), the app
+  // icon, the island
+  W.small('#small', doc);
+  W.medium('#medium', doc, [
+    { text: v.weekFocus[0].text, area: v.weekFocus[0].area, rightPrint: '중점' },
+    { text: rows[0].text, area: rows[0].area, right: rows[0].right },
+    Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
+  ]);
+  AI.app('#our-icon', { size: 60 });
+  const isl = W.island('#island', doc);
+  isl.style.left = '77px'; isl.style.top = '11px'; isl.style.width = '236px';
+
+  // Lock Screen: rectangular (the next action), circular (today's gauge, 1/10), circular (담기), the
+  // Live Activity
+  document.querySelector('#lock-date').textContent = `${v.date.month} ${v.date.day}일 ${v.date.weekday}`;
+  W.lockRect('#lock-rect', doc);
+  W.lockGauge('#lock-gauge', doc);
+  W.lockAdd('#lock-add');
+  W.live('#live', doc);
+});
+</script>
+</body>
+</html>

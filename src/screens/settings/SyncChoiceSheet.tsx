@@ -1,12 +1,13 @@
 // iCloud 고르기 시트 — 처음 켤 때(또는 오래 맞추지 않았을 때) 이 기기와 iCloud 양쪽에 기록이 있으면 엔진이 묻는다(phase 'needsChoice').
-// 두 장부(이 기기 | iCloud)를 보이고, 괘선 세 줄에서 하나를 고른 뒤 버튼으로 정한다. 미리 골라 둔 것은 없다.
-// 어느 쪽을 골라도 엔진이 먼저 오늘 저장본을 남긴다(keepCopy) — 고르기 아래 한 줄이 그것을 알린다.
+// 두 장부(이 기기 | iCloud)를 보이고, 고르기 줄 셋에서 하나를 고른 뒤 단추로 정한다. 미리 골라 둔 것은 없다.
+// 어느 쪽을 골라도 엔진이 먼저 오늘 저장본을 남긴다(keepCopy) — 고르기 아래 알림 한 장이 그것을 알린다.
 // 닫으면(고르지 않고) 맞추기를 켜지 않는다(setChoice(null)).
+// 시트는 부품 상자의 시트(안쪽 24, 떠 있는 판) · 머리(SheetHead) · 고르기 줄(펜 획) · 검은 단추.
 import React, { memo, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
-import { Check } from '../../components/Check';
-import { PrimaryButton, RowDivider, RuledNotice, Sheet, pressedRow, useSheetDismiss } from '../../components/common';
+import { Button, RuledNotice, Sheet, useSheetDismiss } from '../../components/common';
+import { ChoiceRow } from '../../components/kit';
 import { SheetHead } from '../../components/TemplateSheet';
 import { summarize, type BackupSummary } from '../../lib/backup';
 import { ledgerRows, LEDGER_NONE } from '../../lib/backupLedger';
@@ -15,18 +16,22 @@ import { useWindowDimensions } from '../../lib/screen';
 import { setChoice, useSyncStatus, type SyncChoice } from '../../lib/syncStatus';
 import { useMsg } from '../../i18n/react';
 import { useDoc } from '../../store/MandaratContext';
-import { NUM } from '../../theme/type';
+import { NUM, ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import type { MandaratDoc } from '../../types';
-import { rowBase } from './rows';
 import { CHOICES, choiceKey, choiceOpen, choiceText } from './syncView';
 
 /** 두 장부를 나란히 놓는 쪽 폭 — 그보다 좁으면(폰) 위아래로 */
 const SIDE_BY_SIDE = 520;
+/** 장부 이름 칸 · 줄 위아래 · 고르기 줄 위아래 · 묶음 사이 */
+const LEDGER_LABEL_W = 84;
+const LEDGER_PAD_Y = 8;
+const CHOICE_PAD = { paddingVertical: 10 } as const;
+const GAP = 20;
 
 /**
  * 엔진이 물을 때만 시트를 띄운다. 답한 물음은 엔진이 다음으로 넘어갈 때까지 다시 띄우지 않는다.
- * 설정 › iCloud 구역이 붙인다(Root에 붙이면 어느 화면에서든 뜬다 — docs/v2/V5-E.md 넘겨줄 일).
+ * Root가 붙인다 — 어느 화면에서든 묻는다(docs/v2/V5-E.md 넘겨줄 일).
  */
 export const SyncChoiceHost = memo(function SyncChoiceHost({ M }: { M: M }) {
   const status = useSyncStatus();
@@ -55,7 +60,7 @@ export function SyncChoiceSheet({ M, remote, onAnswer }: {
   // 확인 버튼으로 닫을 때 고른 것을 여기에 두고, 닫힘(onClose)에서 한 번만 알린다
   const chosen = useRef<SyncChoice | null>(null);
   return (
-    <Sheet M={M} ownClose onClose={() => onAnswer(chosen.current)}>
+    <Sheet M={M} ownClose pad onClose={() => onAnswer(chosen.current)}>
       <Body M={M} remote={remote} onConfirm={(c) => { chosen.current = c; }} />
     </Sheet>
   );
@@ -74,33 +79,27 @@ function Body({ M, remote, onConfirm }: { M: M; remote: MandaratDoc | null; onCo
     dismiss(true);
   };
   return (
-    <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+    <View>
       <SheetHead M={M} title={t.sync.choiceTitle} body={t.sync.choiceBody} />
       <Ledgers M={M} here={summarize(doc)} cloud={remote ? summarize(remote) : null} />
 
-      <View style={{ marginTop: 20 }} accessibilityRole="radiogroup">
+      <View style={{ marginTop: GAP }} accessibilityRole="radiogroup">
         {CHOICES.map((c, i) => {
           const { title, sub } = choiceText(c, t);
-          const on = pick === c;
+          // 설명이 길어 제목은 두 줄까지, 설명은 다 보인다
           return (
-            <Pressable
+            <ChoiceRow
               key={c}
-              onPress={() => { if (!on) { tap(); setPick(c); } }}
-              accessibilityRole="radio"
-              accessibilityLabel={`${title}, ${sub}`}
-              {...a11yLangProp()}
-              accessibilityState={{ checked: on, selected: on }}
-              style={({ pressed }) => [rowBase(M, i === 0, i === CHOICES.length - 1), { alignItems: 'flex-start', paddingVertical: 12 }, pressed && !on ? pressedRow(M) : null]}
-            >
-              {i > 0 && <RowDivider M={M} inset={0} />}
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '700', color: M.ink }}>{title}</Text>
-                <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{sub}</Text>
-              </View>
-              <View style={{ paddingTop: 1 }}>
-                <Check on={on} color={M.ink} dark={M.dark} size={22} />
-              </View>
-            </Pressable>
+              M={M}
+              title={title}
+              meta={sub}
+              on={pick === c}
+              onPress={() => { tap(); setPick(c); }}
+              divider={i > 0}
+              titleLines={2}
+              metaLines={0}
+              style={CHOICE_PAD}
+            />
           );
         })}
       </View>
@@ -109,8 +108,8 @@ function Body({ M, remote, onConfirm }: { M: M; remote: MandaratDoc | null; onCo
         <RuledNotice M={M} title={t.sync.copyNote} />
       </View>
 
-      <View style={{ marginTop: 20 }}>
-        <PrimaryButton
+      <View style={{ marginTop: GAP }}>
+        <Button
           M={M}
           label={t.sync.confirm}
           accessibilityHint={pick ? undefined : t.sync.confirmHint}
@@ -130,7 +129,7 @@ function Ledgers({ M, here, cloud }: { M: M; here: BackupSummary; cloud: BackupS
   // 장부의 이름표와 값은 백업 불러오기와 같은 줄(backupLedger) — 지금 | 백업 자리에 이 기기 | iCloud
   const rows = ledgerRows(here, cloud ?? here);
   return (
-    <View style={{ flexDirection: side ? 'row' : 'column', gap: side ? 20 : 14, marginTop: 6 }}>
+    <View style={{ flexDirection: side ? 'row' : 'column', gap: side ? GAP : 14, marginTop: 6 }}>
       <Ledger M={M} head={t.sync.here} rows={rows.map((r) => ({ label: r.label, value: r.now, say: r.nowSay, text: r.text }))} />
       {cloud && (
         <Ledger M={M} head={t.sync.cloud} rows={rows.map((r) => ({ label: r.label, value: r.backup, say: r.backupSay, text: r.text }))} />
@@ -139,6 +138,7 @@ function Ledgers({ M, here, cloud }: { M: M; here: BackupSummary; cloud: BackupS
   );
 }
 
+/** 장부 하나 — 인쇄된 머리(section) · 줄 사이 머리카락 선 · 이름(label print) · 값(ledger 먹, 없으면 ink2) */
 function Ledger({ M, head, rows }: {
   M: M;
   head: string;
@@ -146,26 +146,27 @@ function Ledger({ M, head, rows }: {
 }) {
   return (
     <View style={{ flex: 1, minWidth: 0 }}>
-      <Text accessibilityRole="header" style={{ fontSize: 12, lineHeight: 16, fontWeight: '700', color: M.sub, paddingBottom: 6 }}>{head}</Text>
-      <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
-        {rows.map((r, i) => (
-          <View
-            key={r.label}
-            accessible
-            accessibilityLabel={`${head}, ${r.label}, ${r.say ?? r.value}`}
-            {...a11yLangProp()}
-            style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 8, borderTopWidth: i === 0 ? 0 : 1, borderColor: M.line }}
+      <Text accessibilityRole="header" style={{ ...ROLE.section, color: M.printStrong, paddingBottom: 4 }}>{head}</Text>
+      {rows.map((r, i) => (
+        <View
+          key={r.label}
+          accessible
+          accessibilityLabel={`${head}, ${r.label}, ${r.say ?? r.value}`}
+          {...a11yLangProp()}
+          style={{
+            flexDirection: 'row', alignItems: 'flex-start', paddingVertical: LEDGER_PAD_Y,
+            borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth, borderColor: M.printRule,
+          }}
+        >
+          <Text style={{ ...ROLE.label, width: LEDGER_LABEL_W, color: M.print }}>{r.label}</Text>
+          <Text
+            style={[{ ...ROLE.ledger, flex: 1, color: r.value === LEDGER_NONE ? M.ink2 : M.ink }, r.text ? null : NUM]}
+            numberOfLines={r.text ? 2 : 1}
           >
-            <Text style={{ width: 84, fontSize: 13, lineHeight: 20, color: M.sub }}>{r.label}</Text>
-            <Text
-              style={[{ flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '700', color: r.value === LEDGER_NONE ? M.sub : M.ink }, r.text ? null : NUM]}
-              numberOfLines={r.text ? 2 : 1}
-            >
-              {r.value}
-            </Text>
-          </View>
-        ))}
-      </View>
+            {r.value}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }

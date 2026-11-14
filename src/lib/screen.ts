@@ -55,6 +55,19 @@ export function useLayout(): Layout {
 /** 한 쪽(종이 한 단·시트 판)의 폭 — 이 안에서 useWindowDimensions()는 창이 아니라 쪽의 폭을 돌려준다 */
 export const PageSize = createContext<{ width: number } | null>(null);
 
+/**
+ * 쪽을 감싼 세로 스크롤을 맨 위로 — 화면 안에서 쪽이 통째로 바뀔 때(만다라트 탭의 지도 ↔ 크게 본 블록).
+ * Root가 쪽마다(왼쪽 쪽 · 펼침의 오른쪽 쪽) 늘 같은 함수로 넣어 준다. 쪽 밖에서는 아무것도 하지 않는다.
+ */
+export const PageScroll = createContext<(() => void) | null>(null);
+
+const noScroll = () => {};
+
+/** 지금 쪽의 스크롤을 맨 위로 보내는 함수 — 쪽 밖이면 아무것도 하지 않는 함수 */
+export function usePageScrollTop(): () => void {
+  return useContext(PageScroll) ?? noScroll;
+}
+
 /** useWindowDimensions와 같지만, 쪽(PageSize) 안에서는 쪽의 폭을, 쪽 밖의 웹에서는 WEB_MAX_W로 묶은 폭을 */
 export function useWindowDimensions(): ScaledSize {
   const d = useRNWindowDimensions();
@@ -75,9 +88,3 @@ export function usePanelStyle(): ViewStyle | null {
     [layout.kind, max],
   );
 }
-
-/** 웹 넓은 화면에서 폰 한 장 폭으로 가운데에 세우는 틀 스타일 — 네이티브에서는 null */
-export const WEB_COLUMN: ViewStyle | null = WEB ? { flex: 1, width: '100%', maxWidth: WEB_MAX_W, alignSelf: 'center' } : null;
-
-/** 시트처럼 아래에 붙는 판을 같은 폭으로 — 네이티브에서는 null (새 코드는 usePanelStyle) */
-export const WEB_PANEL: ViewStyle | null = WEB ? { width: '100%', maxWidth: WEB_MAX_W, alignSelf: 'center' } : null;

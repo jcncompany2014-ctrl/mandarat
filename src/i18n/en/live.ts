@@ -8,5 +8,7 @@ export default {
   paused: 'Paused',
   done: 'Finished 25 minutes of focus',
   focus: 'Focusing',
+  running: '25-min focus',
+  leftShort: 'left',
   doneTitle: '25 minutes are up',
 } satisfies Like<typeof ko>;

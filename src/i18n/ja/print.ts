@@ -8,7 +8,6 @@ export default {
   achieved: ({ done, total }) => `${total}マス中${done}マス達成`,
   areaN: ({ n }) => `分野${n}`,
   areaOf: ({ n, total }) => `分野${n} / ${total}`,
-  finished: '達成',
   memo: 'メモ',
   colAction: '行動',
   colKind: '種類',
@@ -40,6 +39,7 @@ export default {
   webNote: '印刷画面でPDFとして保存できます',
   busy: 'PDFを作っています',
   failed: 'PDFを作れませんでした',
-  shareLink: '印刷用PDF ›',
   shareLinkSay: '印刷用PDF',
+  posterEyebrow: ({ y }) => `${y}年の中心の目標`,
+  posterUnit: 'マス',
 } satisfies Like<typeof ko>;

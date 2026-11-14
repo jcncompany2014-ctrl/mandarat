@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, Share, View } from 'react-native';
+import { Appearance, Platform, Pressable, Share, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths } from 'expo-file-system';
 import { Text } from './AppText';
@@ -8,23 +8,26 @@ import { releaseNativeSplash } from './Splash';
 import { ymd } from '../lib/routine';
 import { crash } from '../lib/crash';
 import { msg } from '../i18n';
+import { DARK, LIGHT } from '../theme/tokens';
+import { ROLE } from '../theme/type';
 
 interface Props { children: React.ReactNode }
 interface State {
   error: Error | null;
-  /** 내보내기 뒤 한 줄 — alert면 실패(경고 글씨), 아니면 보조 글씨 */
+  /** 내보내기 뒤 한 줄 — alert면 실패(먹 글씨), 아니면 보조 글씨 */
   exportNote: { text: string; alert: boolean } | null;
 }
 
 /** 저장소 열쇠 — MandaratContext의 STORAGE_KEY와 같은 값(그 모듈을 부르지 않으려고 여기 둔다) */
 const DOC_KEY = 'mandarat:doc:v1';
 
-// 테마 훅·팔레트가 원인일 수 있어 색은 고정값(밝은 종이 무드)으로 쓴다
-const PAPER = '#FBF9F4';
-const INK = '#2B2620';
-const SUB = '#6F6657';
-const GOLD = '#B0883C';
-const ALERT = '#A15166';
+/**
+ * 오류 화면의 색 — 화면 모드 공급자(LookProvider)·팔레트 훅이 원인일 수 있어 훅을 거치지 않고 토큰 두 벌에서 바로 고른다.
+ * 시스템(또는 LookProvider가 맞춰 둔) 밝기를 따른다.
+ */
+function tokens() {
+  return Appearance.getColorScheme() === 'dark' ? DARK : LIGHT;
+}
 
 /**
  * 저장된 문서 원문을 그대로 공유한다. iOS는 .json 파일로('파일에 저장'),
@@ -87,13 +90,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
     const { exportNote } = this.state;
     // 공급자(LangRoot) 바깥에서도 그려지므로 훅 대신 지금 언어의 바구니를 바로 읽는다
     const m = msg();
+    const T = tokens();
     return (
-      <View style={{ flex: 1, backgroundColor: PAPER, justifyContent: 'center', paddingHorizontal: 28 }}>
-        <GridMark size={32} color={GOLD} />
-        <Text accessibilityRole="header" style={{ marginTop: 20, fontSize: 19, lineHeight: 26, fontWeight: '700', color: INK }}>
+      <View style={{ flex: 1, backgroundColor: T.paper, justifyContent: 'center', paddingHorizontal: 24 }}>
+        <GridMark size={32} color={T.ink} />
+        <Text accessibilityRole="header" style={{ ...ROLE.prompt, marginTop: 20, color: T.ink }}>
           {m.core.crashTitle}
         </Text>
-        <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 21, color: SUB }}>
+        <Text style={{ ...ROLE.body, marginTop: 8, color: T.ink2 }}>
           {m.core.crashBody}
         </Text>
 
@@ -102,12 +106,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
           accessibilityRole="button"
           accessibilityLabel={m.common.retry}
           style={({ pressed }) => ({
-            marginTop: 28, height: 48, minWidth: 160, alignSelf: 'flex-start', paddingHorizontal: 24,
-            borderRadius: 10, backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center',
+            marginTop: 28, minHeight: 52, minWidth: 160, alignSelf: 'flex-start', paddingHorizontal: 24,
+            borderRadius: 26, backgroundColor: T.btn, alignItems: 'center', justifyContent: 'center',
             opacity: pressed ? 0.85 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: '700', color: INK }}>{m.common.retry}</Text>
+          <Text style={{ ...ROLE.button, color: T.onBtn }}>{m.common.retry}</Text>
         </Pressable>
 
         {Platform.OS !== 'web' && (
@@ -120,10 +124,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Text style={{ fontSize: 15, fontWeight: '700', color: INK, textDecorationLine: 'underline' }}>{m.core.crashExport}</Text>
+              <Text style={{ ...ROLE.quietFoot, color: T.ink }}>{m.core.crashExport}</Text>
             </Pressable>
             {!!exportNote && (
-              <Text accessibilityLiveRegion="polite" style={{ fontSize: 13, lineHeight: 18, color: exportNote.alert ? ALERT : SUB }}>
+              <Text accessibilityLiveRegion="polite" style={{ ...ROLE.noteSheet, color: exportNote.alert ? T.ink : T.ink2 }}>
                 {exportNote.text}
               </Text>
             )}

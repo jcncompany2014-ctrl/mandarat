@@ -1,0 +1,89 @@
+/* 방향 A · styles for parts-sheets.js (editor.html, sheet.html). Every rule here is a KIT REQUEST:
+   it uses only tokens.css variables and can move into tokens.css section 4 as it stands.
+   Clean round (owner: "어어 훨 낫다 좋다"): white paper, Pretendard only, no rules round groups, no
+   dividers inside controls. Fields and tracks are --tile with 12pt corners (as the goal field on
+   onboarding.html); space does the grouping. */
+
+/* the sheet's inner layout. .a-sheet supplies the inset, radius, soft shadow and paper. */
+.a-sheet.s-sheet { padding: 6px 24px 24px; z-index: 21; }
+/* a sheet covers the floating bar: the scrim dims the bar with the page */
+.a-scrim.s-scrim { z-index: 20; }
+
+/* header: 48pt line. Locator, then where (two printed words), then close. */
+.s-head { display: flex; align-items: center; gap: 12px; height: 48px; }
+.s-head-where { flex: 1; display: flex; flex-direction: column; }
+.s-head-where .t-label { line-height: 17px; color: var(--print); }
+.s-head-where .t-label:first-child { color: var(--ink); font-weight: 600; }
+.s-head-close { width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+
+/* a field: the owner's words in a --tile field, 56pt tall, 12pt corners, no edge (the same field as
+   the goal on onboarding.html); the count printed at its end */
+.s-field {
+  position: relative; margin-top: 6px;
+  display: flex; align-items: center; min-height: 56px;
+  padding: 0 64px 0 16px; border-radius: 12px; background: var(--tile);
+}
+.s-field-text { font: 600 19px/26px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+.s-field-count { position: absolute; right: 16px; top: 50%; margin-top: -9px; }
+.s-field + .t-note { display: block; margin-top: 8px; }
+
+/* group: a printed label above every control (labels above, always: HL-10). Space, not a rule,
+   separates one group from the next. */
+.s-group { margin-top: 24px; }
+.s-group > .a-section { margin-bottom: 8px; }
+.s-group > .a-section > .t-label:first-child { font-weight: 600; }   /* a field's label, as 핵심 목표 on onboarding */
+.s-group > .t-note { display: block; margin-top: 8px; }
+
+/* segment: a --tile track (12pt corners), equal cells, no edge and no dividers; the chosen cell is
+   an ink fill with 9pt corners sitting 3pt inside the track */
+.s-seg {
+  display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 2px;
+  height: 40px; padding: 3px; border-radius: 12px; background: var(--tile);
+}
+.s-seg > span {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px;
+  font: 500 14px/18px var(--sans); color: var(--ink);
+}
+.s-seg > span.is-on { background: var(--ink); color: var(--paper); font-weight: 600; }
+
+/* seven days: letter over a soft check box, no rules and no dividers (as the week strip on Home);
+   today = the 5pt vermilion dot under the box */
+.s-days { display: flex; margin: 0 -6px; }
+.s-day {
+  position: relative; flex: 1; height: 58px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px;
+  padding-top: 2px;
+}
+.s-day .t-label { line-height: 16px; }
+.s-day.is-sunday .t-label { color: var(--signal); }
+.s-day.is-today .t-label { color: var(--ink); font-weight: 700; }
+.s-day.is-today::after {
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 5px; height: 5px; margin-left: -2.5px;
+  background: var(--signal); border-radius: 50%;
+}
+.s-days-none { display: block; width: 24px; height: 24px; }
+
+/* quiet text action: bold ink words, no underline (ink is what you can tap; grey never is), as
+   그만하기 on focus and 완료 on 담기. For actions that do not open anything: presets, 칸 비우기. */
+.s-quiet { font: 700 13px/18px var(--sans); color: var(--ink); }
+.s-quiets { display: flex; gap: 14px; }
+
+/* choice row: no box, so the hairline between rows starts at the text (x 0), not at x 38;
+   the chosen one is SemiBold with the pen tick on the right */
+.s-choice + .s-choice::before { left: 0; }
+.s-choice .a-row-title { font-weight: 400; }
+.s-choice.is-on .a-row-title { font-weight: 600; }
+
+/* link row: glyph in the 24pt check-box column, so titles align with the check rows above */
+.s-link .s-link-glyph { width: 24px; height: 24px; color: var(--ink); }
+.s-link > svg:last-child { color: var(--ink); margin-right: -3px; }
+
+/* memo: the same --tile field as the editor's text (12pt corners), the placeholder printed in it */
+.s-memo { min-height: 84px; padding: 14px 16px; border-radius: 12px; background: var(--tile); }
+.s-memo .t-note { font-size: 14px; line-height: 20px; }
+
+/* footer: one quiet destructive word, one ink primary button */
+.s-foot { display: flex; align-items: center; gap: 24px; margin-top: 24px; }
+.s-foot .a-btn { flex: 1; }
+.s-foot .s-quiet { height: 44px; display: flex; align-items: center; font-size: 14px; }

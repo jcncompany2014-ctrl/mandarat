@@ -44,7 +44,14 @@
       html,
       body {
         height: 100%;
-        background-color: #fbf9f4;
+        background-color: #ffffff;
+      }
+      /* 앱이 뜨기 전 — 시스템이 어두우면 어두운 종이(tokens DARK.paper)로, 흰 화면이 번쩍이지 않게 */
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background-color: #121316;
+        }
       }
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {

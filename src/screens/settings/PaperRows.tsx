@@ -1,52 +1,19 @@
-// 설정 › 보기 — 종이 무늬: 점(기본, 무료) · 모눈 · 줄 · 무지(프로).
-// 잠긴 무늬는 오른쪽에 '프로'를 적고, 누르면 프로 시트를 연다(openPro('paper')) — 저장값은 바꾸지 않는다.
-// 프로 없이 저장된 프로 무늬(환불 · 다른 기기에서 고름)는 고른 것으로 보이고, '프로를 열면 이 무늬로 그려져요'를 덧붙인다.
+// 설정 › 보기 › 종이 무늬 — 무지(기본) · 점 · 모눈 · 줄 견본 넷(build-plan §2.6). 견본 쪽에 그 무늬를 그대로 그린다.
+// 모눈 · 줄은 프로 — 판매를 끈 1.0(STORE_OPEN 거짓)은 모두 열려 있다. 판매를 켜면 잠긴 견본은 이름 뒤에 '프로'를 적고,
+// 누르면 프로 시트를 연다(openPro('paper')) — 저장값은 바꾸지 않는다.
+// 프로 없이 저장된 프로 무늬(환불 · 다른 기기에서 고름)는 고른 것으로 보이고, 그 아래 '프로를 열면 이 무늬로 그려져요'(누르면 프로 시트).
 import React from 'react';
-import { Pressable, View } from 'react-native';
-import { Text, a11yLangProp } from '../../components/AppText';
-import { Check } from '../../components/Check';
-import { RowDivider, pressedRow } from '../../components/common';
+import { View } from 'react-native';
+import { SWATCH, Swatch, TextLink } from '../../components/kit';
 import { useMsg } from '../../i18n/react';
 import { select, tap } from '../../lib/haptics';
-import { PAPER_CHOICES, isProPattern, patternSetting, storedPattern, type DrawnPattern } from '../../lib/paper';
+import { PAPER_CHOICES, isProPattern, patternSetting, storedPattern } from '../../lib/paper';
 import { TID } from '../../lib/testIds';
-import { legibleMark } from '../../theme/chart';
 import { useUIActions } from '../../navigation/ui';
 import { useActions, useDoc } from '../../store/MandaratContext';
 import { useLocked } from '../../store/ProContext';
 import type { M } from '../../theme/usePalette';
-import { SubHead, rowBase } from './rows';
-
-/** 무늬 견본 — 지금 종이 바탕 위 그 무늬의 한 귀퉁이(점 여섯 · 모눈 · 줄 셋 · 빈 종이). 잉크는 종이 위 3:1로 올린다 */
-function PatternSwatch({ M, p }: { M: M; p: DrawnPattern }) {
-  const ink = legibleMark(M.faint, M.bg, M);
-  return (
-    <View
-      style={{
-        width: 44, height: 30, borderRadius: 3, borderWidth: 1, borderColor: M.line,
-        backgroundColor: M.bg, overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      {p === 'dots' && (
-        <View style={{ width: 22, flexDirection: 'row', flexWrap: 'wrap', rowGap: 6, columnGap: 8 }}>
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <View key={i} style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: ink }} />
-          ))}
-        </View>
-      )}
-      {(p === 'grid' || p === 'lines') && (
-        <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
-          {[6, 14, 22].map((y) => (
-            <View key={`h${y}`} style={{ position: 'absolute', left: 0, right: 0, top: y, height: 1, backgroundColor: ink }} />
-          ))}
-          {p === 'grid' && [7, 15, 23, 31, 39].map((x) => (
-            <View key={`v${x}`} style={{ position: 'absolute', top: 0, bottom: 0, left: x, width: 1, backgroundColor: ink }} />
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
+import { SET, SwatchHead } from './rows';
 
 export function PaperRows({ M }: { M: M }) {
   const m = useMsg();
@@ -54,18 +21,17 @@ export function PaperRows({ M }: { M: M }) {
   const { setSetting } = useActions();
   const { openPro } = useUIActions();
   const proLocked = useLocked('paper');
+  // 고른 무늬인데 프로가 없어 무지로 그리는 중
+  const keptLocked = proLocked && isProPattern(chosen);
 
   return (
     <>
-      <SubHead M={M} label={m.paper.head} />
-      <View accessibilityRole="radiogroup">
-        {PAPER_CHOICES.map((p, i) => {
+      <SwatchHead M={M} label={m.paper.head} />
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: SWATCH.gap, paddingTop: SET.swatchTop }}>
+        {PAPER_CHOICES.map((p) => {
           const on = chosen === p;
           const locked = proLocked && isProPattern(p);
-          const first = i === 0;
-          const last = i === PAPER_CHOICES.length - 1;
           const name = m.paper[p];
-          // 고른 무늬인데 프로가 없어 점으로 그리는 중
           const kept = on && locked;
           const label = locked ? m.paper.sayLocked({ name }) : m.paper.say({ name });
           const onPress = () => {
@@ -75,36 +41,25 @@ export function PaperRows({ M }: { M: M }) {
             setSetting('paper', patternSetting(p));
           };
           return (
-            <Pressable
+            // 견본(라디오)이 testID와 aria-checked를 함께 단다 — 웹 읽기 도구 · 스모크(scripts/smoke/paper.js)가 고른 견본을 안다
+            <Swatch
               key={p}
-              testID={TID.setPaper(p)}
+              M={M}
+              kind={{ pattern: p }}
+              label={locked ? `${name}${m.core.dot}${m.paper.pro}` : name}
+              on={on}
               onPress={onPress}
-              accessibilityRole="radio"
-              accessibilityLabel={kept ? `${label}, ${m.paper.keptNote}` : label}
-              {...a11yLangProp()}
-              accessibilityHint={locked ? m.paper.lockedHint : undefined}
-              accessibilityState={{ checked: on, selected: on }}
-              aria-checked={on}
-              style={({ pressed }) => [rowBase(M, first, last), pressed && (locked || !on) ? pressedRow(M) : null]}
-            >
-              {!first && <RowDivider M={M} inset={0} />}
-              <PatternSwatch M={M} p={p} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '600', color: M.ink }} numberOfLines={1}>
-                  {name}
-                </Text>
-                {kept && (
-                  <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{m.paper.keptNote}</Text>
-                )}
-              </View>
-              {locked && (
-                <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }} numberOfLines={1}>{m.paper.pro}</Text>
-              )}
-              {(!locked || on) && <Check on={on} color={M.ink} dark={M.dark} size={22} />}
-            </Pressable>
+              testID={TID.setPaper(p)}
+              accessibilityLabel={kept ? `${label}${m.core.listSep}${m.paper.keptNote}` : label}
+            />
           );
         })}
       </View>
+      {keptLocked && (
+        <View style={{ marginTop: SET.noteTop, alignSelf: 'flex-start' }}>
+          <TextLink M={M} label={m.paper.keptNote} hint={m.paper.lockedHint} onPress={() => { tap(); openPro('paper'); }} />
+        </View>
+      )}
     </>
   );
 }

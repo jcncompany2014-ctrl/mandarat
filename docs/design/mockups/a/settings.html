@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 설정</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* 설정, top of the page. A pushed page outside the four places: no tab bar; the header is pinned
+     (outside the scroll view, M1) so the way back is there at any depth. Order: 핵심 목표, 알림,
+     iCloud와 백업, 보기, 언어, 정보 (HL-13). Three controls, one job each (CI-02):
+       check box   = on / off (알림, iCloud)
+       swatch      = an appearance option, one of three (보기)
+       choice row  = one of many in words (언어)
+     Rows that open something end in the one ink chevron (CI-10).
+     Clean round: white paper, Pretendard only, section names as on Home (.t-label.is-section); no
+     rule over the goal or a list or the swatches; space between sections does the grouping; a
+     reminder's time sits in a --tile field. Every colour is a token: the night swatch is drawn in
+     --ink with --paper words, so nothing here is hard-coded. */
+  .pin { position: absolute; left: 0; right: 0; top: 0; z-index: 5; background: var(--paper); }
+  .scroll { position: absolute; left: 0; right: 0; top: 72px; bottom: 0; overflow: hidden; }
+  .sec { margin-top: 24px; }
+  .sec:first-child { margin-top: 12px; }
+  .sec > .a-section { margin-bottom: 0; }
+
+  /* the goal: the owner's words, the largest and darkest thing on the page */
+  .goal { display: flex; align-items: center; gap: 12px; height: 46px; }
+  .goal .t-title { flex: 1; min-width: 0; }
+  .goal .s-chev { color: var(--ink); }
+
+  .s-slot { width: 24px; height: 24px; flex: none; color: var(--print); }
+  .s-chev { flex: none; color: var(--ink); margin-right: -4px; }
+  .s-choice + .s-choice::before { left: 0; }   /* no box: the hairline starts at the text */
+  .s-choice .a-row-title { font-weight: 400; }
+  .s-choice.is-on .a-row-title { font-weight: 600; }
+  .s-tick { flex: none; margin-right: 2px; }
+  /* a reminder's time is tappable (it opens the time picker): written ink in a soft tinted field */
+  .s-row .a-row-right.s-time {
+    align-self: center; margin: 0;
+    padding: 6px 10px; border-radius: 10px; background: var(--tile);
+    font: 500 14px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .s-row:not(.is-on) .a-row-right.s-time { color: var(--ink-2); }   /* the time of a reminder that is off */
+  .note { margin-top: 6px; }
+
+  /* swatches: three tiny pages, one row, on --tile (the field colour: they are the control). Each
+     page is the stock it names: 밝게 = paper, 어둡게 = ink, 자동 = both halves. The chosen one gets
+     the ink ring (selection is always ink), 3pt outside it, and a bolder label. */
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 10px 0 0; }
+  .s-swatch-frame { padding: 3px; border-radius: 15px; }
+  .s-swatch.is-on .s-swatch-frame { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .s-well { padding: 8px 8px 0; border-radius: 12px; background: var(--tile); overflow: hidden; }
+  .s-page, .s-split { height: 46px; border-radius: 7px 7px 0 0; overflow: hidden; }
+  .s-split { display: flex; }
+  .s-split .s-page { flex: 1; border-radius: 0; }
+  .s-page { position: relative; background: var(--paper); padding: 27px 9px 0; }
+  .s-page-word { position: absolute; left: 9px; top: 5px; font: 700 14px/20px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+  .s-page-line { display: block; height: 3px; border-radius: 1.5px; background: var(--print-mid); }
+  .s-page-line + .s-page-line { margin-top: 5px; }
+  .s-page-line.is-short { width: 55%; }
+  /* the night stock, drawn from the light tokens with the inks swapped: the page is --ink, the word
+     --paper, the lines --ink-2. No hex values (the old swatch repeated the warm dark set). */
+  .s-page.is-night { background: var(--ink); }
+  .s-page.is-night .s-page-word { color: var(--paper); }
+  .s-page.is-night .s-page-line { background: var(--ink-2); }
+  .s-swatch-label { margin-top: 8px; text-align: center; font: 500 14px/18px var(--sans); color: var(--ink-2); }
+  .s-swatch.is-on .s-swatch-label { font-weight: 700; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div class="pin"><div id="header"></div></div>
+  <div class="scroll"><div class="a-body" id="body"></div></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-settings.js"></script>
+<script>
+A.ready().then((doc) => {
+  A.header('#header', { back: '홈', title: '설정' });
+  const sec = (label, inner, right) => `<section class="sec"><div class="a-section"><span class="t-label is-section">${label}</span>${right || ''}</div>${inner}</section>`;
+
+  const goal = `<div class="goal"><div class="t-title is-written">${doc.coreGoal}</div><span class="s-chev">${A.icon('chevron', { size: 16 })}</span></div>`;
+
+  // reminder times are not in the demo data: plain realistic values, listed in the report
+  const notify = `<div class="a-list">${[
+    S.toggleRow({ on: true, title: '아침에 오늘 할 일', meta: '할 일이 있는 날만', right: '오전 8:00' }),
+    S.toggleRow({ on: true, title: '저녁에 남은 일', meta: '남은 일이 있는 날만', right: '오후 9:00' }),
+    S.toggleRow({ on: false, title: '한 주 돌아보기', meta: '매주 일요일', right: '오후 8:00' }),
+  ].join('')}</div>`;
+
+  const cloud = `<div class="a-list">${[
+    S.toggleRow({ on: true, title: 'iCloud로 기기끼리 맞추기', meta: '오늘 9:12에 맞췄어요' }),
+    S.linkRow({ glyph: 'export', title: '백업 내보내기', meta: '마지막 백업 · 2일 전' }),
+    S.linkRow({ glyph: 'import', title: '백업 불러오기', meta: '내보낸 백업으로 기록을 되살려요' }),
+    S.linkRow({ glyph: 'copies', title: '저장본', meta: '최근 7일, 하루 한 번 저절로 남겨요' }),
+  ].join('')}</div>`;
+
+  const view = `<div class="swatches">${[
+    S.swatch({ mode: 'auto', label: '자동', on: true }),
+    S.swatch({ mode: 'day', label: '밝게' }),
+    S.swatch({ mode: 'night', label: '어둡게' }),
+  ].join('')}</div>`;
+
+  const lang = `<div class="a-list">${[
+    S.choiceRow({ on: true, title: '기기 설정 따르기', meta: '지금은 한국어' }),
+    S.choiceRow({ title: '한국어' }),
+    S.choiceRow({ title: '日本語' }),
+    S.choiceRow({ title: 'English' }),
+  ].join('')}</div>`;
+
+  document.querySelector('#body').innerHTML =
+    sec('핵심 목표', goal) +
+    sec('알림', notify) +
+    sec('iCloud와 백업', cloud) +
+    sec('보기', view, '<span class="t-label">화면 모드</span>') +
+    sec('언어', lang);
+});
+</script>
+</body>
+</html>

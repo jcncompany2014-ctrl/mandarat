@@ -50,14 +50,13 @@ test('rowStatus: 유형마다 짧은 상태 한 마디', () => {
   assert.equal(rowStatus(und, 0, 2, WED), '이번 주 2/7');
 });
 
-test('D-7: 영역 화면 — 누를 수 없는 상태 표시는 체크 칸 모양이 아니고, 바닥줄 위에 빈 괘선 띠가 없다', () => {
-  const detail = fs.readFileSync(path.join(__dirname, '..', 'src/screens/Detail.tsx'), 'utf8');
-  const row = detail.slice(detail.indexOf('const ActionRow = memo('), detail.indexOf('function FooterLink'));
-  assert.doesNotMatch(row, /borderRadius: MARK \* 0\.28/, '상태 네모가 Check와 같은 22pt 둥근 칸이면 안 된다');
-  assert.doesNotMatch(row, /line-through/, '달성한 줄은 한 모습(긋지 않는다)');
-  const footer = detail.slice(detail.indexOf('이웃 영역 — 괘선 바닥줄'), detail.indexOf('const ActionRow = memo('));
-  assert.doesNotMatch(footer, /borderTopWidth/);
-  assert.doesNotMatch(footer, /marginTop: RHYTHM\.sectionTop/);
+test('D-7: 영역 화면 — 체크 칸은 누를 수 있는 한 번에만, 달성한 줄은 한 모습(긋지 않는다)', () => {
+  // 디자인 A(S2): 영역 화면은 src/screens/area/AreaPage.tsx — 그 밖의 실천 줄(kit Row)
+  const page = fs.readFileSync(path.join(__dirname, '..', 'src/screens/area/AreaPage.tsx'), 'utf8');
+  const row = page.slice(page.indexOf('const ActionRow = memo('), page.indexOf('function AreaMore('));
+  assert.ok(row.length > 0);
+  assert.match(row, /lead=\{once \? <CheckBox /, '체크 칸은 한 번(칸 달성)에만 — 쌓기 · 마음가짐은 여기서 체크하지 않는다');
+  assert.doesNotMatch(row, /line-through|\bdone=\{/, '달성한 줄은 한 모습(먹선 없이, 오른쪽 상태가 달성)');
 });
 
 test('rowLabel: 보이는 글 + 달성 + 유형 한 줄', () => {
@@ -75,7 +74,7 @@ test('rowLabelFor: 이미 센 유형 줄로 rowLabel과 같은 말 — 영역 �
     const a = d.themes[0].actions[ai];
     assert.equal(rowLabelFor(a, ai, a.text.trim() ? kindLine(d, 0, ai, WED) : null), rowLabel(d, 0, ai, WED), `칸 ${ai}`);
   }
-  const detail = fs.readFileSync(path.join(__dirname, '..', 'src/screens/Detail.tsx'), 'utf8');
+  const detail = fs.readFileSync(path.join(__dirname, '..', 'src/screens/area/AreaPage.tsx'), 'utf8');
   assert.match(detail, /label=\{rowLabelFor\(a, ai, line\)\}/);
   assert.doesNotMatch(detail, /function rowSpeech/);
 });

@@ -106,15 +106,21 @@ test('영역 화면 embedded: 뒤로 가기 · 제목 초점 · 이전/다음 �
   assert.match(d, /export const Detail = memo\(function Detail\(\{ ti, embedded = false \}/);
   assert.match(d, /onBack=\{embedded \? undefined : back\}/);
   assert.match(d, /focusTitle=\{!embedded\}/);
-  assert.match(d, /\{!embedded && \(\s*<View style=\{\{ marginHorizontal: RHYTHM\.gutter, height: 56/);
+  // 이전/다음(넘기기 줄)과 블록은 왼쪽 쪽 몫 — 오른쪽 쪽은 영역 화면의 나머지(습관 · 그 밖의 실천)만
+  assert.match(d, /onStep=\{embedded \? undefined : page\}/);
+  assert.match(d, /part=\{embedded \? 'rest' : 'all'\}/);
   assert.match(src('src/navigation/Root.tsx'), /<DetailPure ti=\{companion\.ti\} embedded \/>/);
 });
 
-test('FullGrid: availH가 있을 때만 표 폭을 줄이고, 크게 보는 영역을 알린다', () => {
+test('만다라트 탭: availH가 있을 때만 지도 · 블록을 줄이고, 크게 보는 영역을 알린다', () => {
   const f = src('src/screens/FullGrid.tsx');
-  assert.match(f, /const fitW = availH != null \? fitTableW\(fullW, availH - GRID_CHROME\) : fullW;/);
-  assert.match(f, /onFocusArea\?\.\(typeof focus === 'number' \? focus : null\);/);
-  assert.match(f, /style=\{fitW < fullW \? \{ width: fitW, alignSelf: 'center' \} : null\}/);
+  assert.match(f, /const fitW = availH != null \? fitMapW\(measure, availH\) : measure;/);
+  const g = src('src/screens/GridScreen.tsx');
+  assert.match(g, /onFocusArea\?\.\(typeof focus === 'number' \? focus : null\);/);
+  // 펼침의 크게 보기는 왼쪽 쪽에 블록까지(part 'block'), 쪽 높이에 들어가게
+  assert.match(g, /part=\{spread \? 'block' : 'all'\}/);
+  assert.match(g, /const maxBlock = spread \? Math\.max\(0, availH - AREA_BLOCK_CHROME\) : undefined;/);
+  assert.match(f, /return Math\.max\(0, Math\.min\(measure, Math\.floor\(availH - GRID_CHROME\)\)\);/);
   // 폰 · 한 단(펼침이 아닐 때)은 GridScreen에 availH를 주지 않는다
   assert.match(src('src/navigation/Root.tsx'), /screen = spread \? <GridScreenPure availH=\{pageH\} onFocusArea=\{setFocusTi\} \/> : <GridScreenPure \/>;/);
 });

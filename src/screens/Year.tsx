@@ -3,12 +3,13 @@
 // 뒤로 가기(머리의 ‹ · 가장자리 밀기 · VoiceOver 문지르기)는 그 줄을 먼저 하나씩 되짚는다.
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { Header } from '../components/common';
+import { Header, type HeaderAction } from '../components/common';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useDoc } from '../store/MandaratContext';
 import { usePro } from '../store/ProContext';
 import { archiveAccess } from '../lib/archive';
+import { tap } from '../lib/haptics';
 import { TID } from '../lib/testIds';
 import { useMsg } from '../i18n/react';
 import type { Messages } from '../i18n';
@@ -34,7 +35,7 @@ export const Year = memo(function Year() {
   const M = usePalette();
   const m = useMsg();
   const { yearView } = useUIState();
-  const { back, setYearView, setBackGuard } = useUIActions();
+  const { back, setYearView, setBackGuard, openShare, openPrint } = useUIActions();
   const { doc } = useDoc();
   const { owned } = usePro();
   const access = archiveAccess(owned);
@@ -95,9 +96,23 @@ export const Year = memo(function Year() {
       : <YearShelf M={M} onOpen={open} />;
   }
 
+  // 머리 — 그 쪽 표의 핵심 목표가 제목(주인이 쓴 말), 뒤로 가기는 온 곳(통계 · 설정)의 이름.
+  // 오른쪽 글리프: 지금 표의 돌아보기는 표 이미지 공유, 열린 지난 표는 인쇄 · PDF(그 표를 내보내는 길)
+  const archive = yearView.kind === 'shelf' || yearView.id === null ? null : (doc.archives ?? []).find((x) => x.id === yearView.id) ?? null;
+  const current = yearView.kind === 'review' && yearView.id === null;
+  const missing = yearView.kind !== 'shelf' && !current && !archive;
+  const goal = missing ? '' : (current ? doc.centerGoal : archive?.centerGoal ?? '').trim();
+  const title = goal || (missing ? m.year.shelf : viewTitle(m, yearView));
+  const unlocked = yearView.kind === 'sheet' ? access.open : access.review;
+  const action: HeaderAction | undefined = current
+    ? { glyph: 'share', onPress: () => { tap(); openShare(); }, label: m.chart.shareSay, testID: TID.yearShare }
+    : archive && unlocked
+      ? { glyph: 'share', onPress: () => { tap(); openPrint({ archiveId: archive.id }); }, label: m.year.printLink, testID: TID.yearShare }
+      : undefined;
+
   return (
     <View testID={TID.yearPage}>
-      <Header M={M} kr={viewTitle(m, yearView)} onBack={back} focusTitle stacked backTestID={TID.yearBack} />
+      <Header M={M} title={title} written={!!goal} onBack={back} focusTitle backTestID={TID.yearBack} action={action} />
       {body}
     </View>
   );

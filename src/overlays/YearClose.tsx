@@ -2,14 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PaperColumn } from '../components/WebColumn';
-import { MODAL_ORIENTATIONS } from '../lib/screen';
-import { Text, TextInput, a11yLangProp } from '../components/AppText';
-import { Check } from '../components/Check';
-import { PaperDots } from '../components/PaperDots';
-import { PrimaryButton, RuledNotice, RowDivider, groupEdge, pressedRow } from '../components/common';
+import { MODAL_ORIENTATIONS, useWindowDimensions } from '../lib/screen';
+import { Text, a11yLangProp } from '../components/AppText';
+import { Icon } from '../components/Icon';
+import { Button, RuledNotice } from '../components/common';
+import { ChoiceRow, Field, Figure, PageHead, Row, Section } from '../components/kit';
+import { ColourMap } from '../components/chart';
 import { YearLedger, YearLedgerHead } from '../components/YearLedger';
 import { DUR, EASE } from '../theme/motion';
-import { NUM, RHYTHM, TYPE } from '../theme/type';
+import { PRETENDARD } from '../theme/fonts';
+import { GEO } from '../theme/tokens';
+import { ROLE } from '../theme/type';
 import { usePalette, type M as Palette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useActions, useDoc } from '../store/MandaratContext';
@@ -24,11 +27,12 @@ import { useMsg } from '../i18n/react';
 import type { Messages } from '../i18n';
 import type { MandaratDoc } from '../types';
 
-const GUTTER = RHYTHM.gutter;
-/** 위 막대(닫기 · 쪽 번호) 높이 — 안전 영역 아래 */
-const TOP_BAR_H = 48;
 const PAGES = ['review', 'new', 'start'] as const;
 type Page = (typeof PAGES)[number];
+/** 큰 지도의 가장 큰 폭(아이패드 단에서도 min(본문, 520) — build-plan §4.4) */
+const MAP_MAX = 520;
+/** 마무리 쪽의 작은 지도(L1) 칸 크기 — 한 해 화면의 액자와 같은 16 */
+const SHELF_CELL = 16;
 
 /** 새 표 고르기 — 위에서부터 '실천은 그대로' · '영역만' · '빈 표' (archive.startNewChart의 mode) */
 export const MODES: readonly NewChartMode[] = ['continue', 'areas', 'blank'];
@@ -51,9 +55,10 @@ function dayOf(key: string): Date {
 
 /**
  * 한 해 마무리 — 지금 표를 보관함에 담고 새 표를 시작하는 세 쪽(설정 › 한 해 · 홈의 12월 안내에서 연다).
- * 1 한 해 돌아보기: 네 숫자 · 달마다 장부 · 한 줄 메모
- * 2 새 표: 무엇을 남길지(셋 중 하나)와 새 핵심 목표
- * 3 마무리: '지금 표는 보관함에 그대로 남아요' → 새 표 시작하기
+ * 탭 막대 없이 화면 전체를 덮는 종이 한 장, 한 주 돌아보기와 같은 머리(PageHead).
+ * 1 한 해 돌아보기: 다 채운 표 한 장(year.png) — 색 지도 · 네 숫자 · 달마다 장부 · 한 줄 메모
+ * 2 새 표: 무엇을 남길지(고르기 줄 셋)와 새 핵심 목표
+ * 3 마무리: 보관함에 들어갈 표(작은 지도)와 '지금 표는 보관함에 그대로 남아요' → 새 표 시작하기
  * 축하는 없다. 시작하면 닫고 '되돌리기' 토스트 하나(useSnapshotUndo).
  */
 export function YearClose() {
@@ -78,8 +83,13 @@ function ClosePages() {
   const [mode, setMode] = useState<NewChartMode>('continue');
   const [goal, setGoal] = useState('');
   const [note, setNote] = useState('');
-  // 오늘 시작한 표 — startNewChart가 false를 돌려주면 닫지 않고 괘선 알림을 보인다
+  // 오늘 시작한 표 — startNewChart가 false를 돌려주면 닫지 않고 알림 한 장을 보인다
   const [blocked, setBlocked] = useState(false);
+
+  // 여는 순간의 기간으로 센다(돌아보는 사이 숫자가 바뀌지 않게)
+  const [now] = useState(() => new Date());
+  const { from, to } = useMemo(() => chartRange(doc, now), [doc, now]);
+  const range = `${yearLabel(from, to)}${m.core.dot}${m.fmt.range({ from: dayOf(from), to: dayOf(to) })}`;
 
   // 쪽을 넘길 때 — 오른쪽에서 살짝 밀려 들어온다(동작 줄이기에서는 그대로)
   const enter = useRef(new Animated.Value(1)).current;
@@ -123,7 +133,25 @@ function ClosePages() {
     else closeYearClose();
   };
 
-  const pageNo = m.year.pageSpeech({ n: index + 1, total: PAGES.length });
+  // 둘째 쪽부터 위 줄에 '‹ 이전'(닫기는 써 둔 것까지 버리므로 한 쪽 앞으로 갈 길을 따로 둔다).
+  // 위 줄은 18 높이 — 손끝은 위아래로 넓혀 44를 지킨다
+  const back = index > 0 && (
+    <Pressable
+      onPress={() => { tap(); onBack(); }}
+      hitSlop={{ left: 10, right: 10 }}
+      testID={TID.yearCloseBack}
+      accessibilityRole="button"
+      accessibilityLabel={m.common.back}
+      {...a11yLangProp()}
+      style={({ pressed }) => ({
+        minHeight: 44, minWidth: 44, marginVertical: -13, marginLeft: -4,
+        flexDirection: 'row', alignItems: 'center', gap: 2, opacity: pressed ? 0.5 : 1,
+      })}
+    >
+      <Icon name="chevL" size={16} color={M.ink} />
+      <Text style={{ ...ROLE.link, color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.4}>{m.common.back}</Text>
+    </Pressable>
+  );
 
   return (
     <Modal
@@ -134,71 +162,46 @@ function ClosePages() {
       onRequestClose={onBack}
       statusBarTranslucent
     >
-      <PaperColumn bg={M.bg} edge={M.line}>
-      <View style={{ flex: 1, backgroundColor: M.bg }} accessibilityViewIsModal onAccessibilityEscape={onBack}>
-        <PaperDots M={M} offsetY={insets.top % RHYTHM.dot} />
-
-        {/* 위 막대 — 왼쪽 '닫기', 오른쪽 쪽수. 둘째 쪽부터는 쪽수 왼쪽에 '‹ 이전'(닫기는 써 둔 것까지 버리므로 한 쪽 앞으로 갈 길을 따로 둔다) */}
-        <View
-          style={{
-            paddingTop: insets.top, paddingHorizontal: GUTTER - 8, height: insets.top + TOP_BAR_H,
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-          }}
-        >
-          <Pressable
-            onPress={closeYearClose}
-            hitSlop={6}
-            accessibilityRole="button"
-            accessibilityLabel={m.common.close}
-            {...a11yLangProp()}
-            style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 8, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '600', color: M.ink }}>{m.common.close}</Text>
-          </Pressable>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {index > 0 && (
-              <Pressable
-                onPress={() => { tap(); onBack(); }}
-                hitSlop={6}
-                testID={TID.yearCloseBack}
-                accessibilityRole="button"
-                accessibilityLabel={m.common.back}
-                {...a11yLangProp()}
-                style={({ pressed }) => ({ minHeight: 44, minWidth: 44, paddingHorizontal: 8, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-              >
-                <Text style={{ fontSize: 16, fontWeight: '600', color: M.ink }}>{`‹ ${m.common.back}`}</Text>
-              </Pressable>
-            )}
-            <Text style={{ ...TYPE.caption, ...NUM, color: M.sub, paddingHorizontal: 8 }} accessibilityLabel={pageNo}>
-              {`${index + 1} / ${PAGES.length}`}
-            </Text>
-          </View>
-        </View>
+      <PaperColumn bg={M.paper} edge={M.printRule}>
+      <View style={{ flex: 1, backgroundColor: M.paper, paddingTop: insets.top }} accessibilityViewIsModal onAccessibilityEscape={onBack}>
+        <PageHead
+          M={M}
+          lead={back}
+          eyebrow={range}
+          title={pageTitle(m, page)}
+          page={`${index + 1}/${PAGES.length}`}
+          pageSay={m.year.pageSpeech({ n: index + 1, total: PAGES.length })}
+          onClose={closeYearClose}
+          closeLabel={m.common.close}
+        />
 
         <ScrollView
           key={page}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: GUTTER, paddingTop: 12, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingHorizontal: GEO.gutter, paddingBottom: GEO.sectionGap }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
           <Animated.View style={slide}>
-            <Text style={{ ...TYPE.title, color: M.ink }} accessibilityRole="header">{pageTitle(m, page)}</Text>
-            {page === 'review' && <ReviewPage M={M} m={m} doc={doc} note={note} onNote={setNote} />}
+            {page === 'review' && <ReviewPage M={M} m={m} doc={doc} from={from} to={to} note={note} onNote={setNote} />}
             {page === 'new' && (
               <NewPage M={M} m={m} doc={doc} mode={mode} onMode={(x) => { tap(); setMode(x); }} goal={goal} onGoal={setGoal} />
             )}
-            {page === 'start' && <StartPage M={M} m={m} mode={mode} blocked={blocked} />}
+            {page === 'start' && <StartPage M={M} m={m} doc={doc} mode={mode} blocked={blocked} />}
           </Animated.View>
         </ScrollView>
 
-        {/* 시트 바닥처럼 1px 괘선 위에 버튼 */}
-        <View style={{ paddingHorizontal: GUTTER, paddingTop: 10, paddingBottom: Math.max(16, insets.bottom + 8), borderTopWidth: 1, borderColor: M.line }}>
-          <View testID={last ? TID.yearCloseStart : TID.yearCloseNext}>
-            <PrimaryButton M={M} label={last ? m.year.start : m.year.next} onPress={onNext} disabled={last && blocked} />
-          </View>
+        {/* 엄지 자리의 주 단추 하나 — 괘선 없이 종이 위에 */}
+        <View style={{ paddingHorizontal: GEO.gutter, paddingTop: 12, paddingBottom: Math.max(GEO.sheet.pad, insets.bottom) }}>
+          <Button
+            M={M}
+            label={last ? m.year.start : m.year.next}
+            onPress={onNext}
+            disabled={last && blocked}
+            testID={last ? TID.yearCloseStart : TID.yearCloseNext}
+          />
         </View>
       </View>
       </PaperColumn>
@@ -206,143 +209,138 @@ function ClosePages() {
   );
 }
 
-/** 장부 한 줄 — 왼쪽 이름, 오른쪽 값(숫자 폭 고정). speech는 읽을 말 */
-function LedgerRow({ M, label, value, speech, first = false }: { M: Palette; label: string; value: string; speech?: string; first?: boolean }) {
+/** 입력 칸 위의 이름(dayclose의 '한 줄' — label 600 print) */
+function FieldLabel({ M, text, right, rightSay }: { M: Palette; text: string; right?: string; rightSay?: string }) {
   return (
-    <View
-      accessible
-      accessibilityLabel={`${label}, ${speech ?? value}`}
-      {...a11yLangProp()}
-      style={{
-        minHeight: RHYTHM.row - 6, flexDirection: 'row', alignItems: 'center', gap: 12,
-        borderTopWidth: first ? 1 : 0, borderBottomWidth: 1, borderColor: M.line,
-      }}
-    >
-      <Text style={{ ...TYPE.body, color: M.ink, flex: 1 }}>{label}</Text>
-      <Text style={{ ...TYPE.rowTitle, ...NUM, color: M.ink, textAlign: 'right', flexShrink: 1 }} numberOfLines={1}>{value}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 18 }}>
+      <Text style={{ ...ROLE.label, fontFamily: PRETENDARD[600], color: M.print, flex: 1 }}>{text}</Text>
+      {!!right && (
+        <Text style={{ ...ROLE.label, color: M.print }} accessibilityLabel={rightSay}>{right}</Text>
+      )}
     </View>
   );
 }
 
-/** 1쪽 — 이 표를 쓴 동안의 네 숫자 · 장부 · 한 줄 메모 */
-function ReviewPage({ M, m, doc, note, onNote }: { M: Palette; m: Messages; doc: MandaratDoc; note: string; onNote: (t: string) => void }) {
-  // 여는 순간의 기간으로 센다(돌아보는 사이 숫자가 바뀌지 않게)
-  const [now] = useState(() => new Date());
-  const { from, to } = useMemo(() => chartRange(doc, now), [doc, now]);
+/** 1쪽 — 다 채운 표 한 장(year.png): 이 표의 색 지도 · 네 숫자(한 크기) · 달마다 장부 · 한 줄 메모 */
+function ReviewPage({ M, m, doc, from, to, note, onNote }: {
+  M: Palette; m: Messages; doc: MandaratDoc; from: string; to: string; note: string; onNote: (t: string) => void;
+}) {
+  const { width } = useWindowDimensions();
+  const mapW = Math.max(0, Math.floor(Math.min(MAP_MAX, width - GEO.gutter * 2)));
   const digest = useMemo(
     () => yearDigest(doc, from, to, (doc.focusMinutes ?? 0) - (doc.focusStart ?? 0)),
     [doc, from, to],
   );
   const rows = useMemo(() => yearCalendar(doc.dayLog, from, to), [doc.dayLog, from, to]);
-  const range = `${yearLabel(from, to)}${m.core.dot}${m.fmt.range({ from: dayOf(from), to: dayOf(to) })}`;
   const count = Array.from(note).length;
+  const figures = [
+    { key: 'days', label: m.year.statDays, value: m.fmt.days({ n: digest.days }) },
+    { key: 'longest', label: m.year.statLongest, value: m.fmt.days({ n: digest.longest }) },
+    { key: 'achieved', label: m.year.statAchieved, value: `${digest.achieved}/64`, speech: m.year.achievedSpeech({ n: digest.achieved }) },
+    { key: 'focus', label: m.year.statFocus, value: m.fmt.duration({ mins: digest.focusMins }) },
+  ];
 
   return (
     <View>
-      <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.sub, marginTop: 4, ...NUM }}>{range}</Text>
-
-      <View style={{ marginTop: 24 }}>
-        <LedgerRow M={M} first label={m.year.statDays} value={m.fmt.days({ n: digest.days })} />
-        <LedgerRow M={M} label={m.year.statLongest} value={m.fmt.days({ n: digest.longest })} />
-        <LedgerRow M={M} label={m.year.statAchieved} value={`${digest.achieved}/64`} speech={m.year.achievedSpeech({ n: digest.achieved })} />
-        <LedgerRow M={M} label={m.year.statFocus} value={m.fmt.duration({ mins: digest.focusMins })} />
+      <View style={{ marginTop: 18 }}>
+        <ColourMap themes={doc.themes} goal={doc.centerGoal} level="L2" width={mapW} fade />
       </View>
 
-      <View style={{ marginTop: RHYTHM.sectionTop }}>
+      {/* 네 숫자 — 한 크기(figureField 22/30) · 두 줄 두 칸, 괘선 · 상자 없이 */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 18, marginTop: 28 }}>
+        {figures.map((f) => (
+          <View
+            key={f.key}
+            accessible
+            accessibilityLabel={`${f.label}, ${f.speech ?? f.value}`}
+            {...a11yLangProp()}
+            style={{ width: '50%', paddingRight: 12, gap: 2 }}
+          >
+            <Text style={{ ...ROLE.label, color: M.print }} numberOfLines={1}>{f.label}</Text>
+            <Figure M={M} text={f.value} size="field" />
+          </View>
+        ))}
+      </View>
+
+      <View style={{ marginTop: GEO.sectionGap }}>
         <YearLedgerHead M={M} title={m.year.ledgerTitle} />
         <YearLedger M={M} rows={rows} />
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, marginTop: RHYTHM.sectionTop + 4 }}>
-        <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, flex: 1 }}>{m.year.noteLabel}</Text>
-        <Text style={{ ...TYPE.caption, ...NUM, color: M.sub }} accessibilityLabel={m.year.noteCount({ n: count, max: ARCHIVE_NOTE_MAX })}>
-          {`${count}/${ARCHIVE_NOTE_MAX}`}
-        </Text>
+      <View style={{ marginTop: GEO.sectionGap }}>
+        <FieldLabel
+          M={M}
+          text={m.year.noteLabel}
+          right={`${count}/${ARCHIVE_NOTE_MAX}`}
+          rightSay={m.year.noteCount({ n: count, max: ARCHIVE_NOTE_MAX })}
+        />
+        <Field
+          M={M}
+          variant="small"
+          value={note}
+          onChangeText={onNote}
+          maxLength={ARCHIVE_NOTE_MAX}
+          returnKeyType="done"
+          blurOnSubmit
+          accessibilityLabel={m.year.noteLabel}
+          style={{ marginTop: 8 }}
+        />
       </View>
-      <TextInput
-        value={note}
-        onChangeText={onNote}
-        maxLength={ARCHIVE_NOTE_MAX}
-        returnKeyType="done"
-        blurOnSubmit
-        accessibilityLabel={m.year.noteLabel}
-        style={{ ...TYPE.body, color: M.ink, marginTop: 4, paddingVertical: 10, paddingHorizontal: 0, borderBottomWidth: 1, borderColor: M.line }}
-      />
     </View>
   );
 }
 
-/** 2쪽 — 무엇을 남길지와 새 핵심 목표 */
+/** 2쪽 — 무엇을 남길지(고르기 줄 셋)와 새 핵심 목표 */
 function NewPage({ M, m, doc, mode, onMode, goal, onGoal }: {
   M: Palette; m: Messages; doc: MandaratDoc; mode: NewChartMode; onMode: (x: NewChartMode) => void; goal: string; onGoal: (t: string) => void;
 }) {
   return (
     <View>
-      <View style={{ marginTop: 20 }} accessibilityRole="radiogroup">
+      <View style={{ marginTop: 12 }} accessibilityRole="radiogroup">
         {MODES.map((x, i) => {
-          const on = x === mode;
           const t = modeText(m, x);
           return (
-            <Pressable
-              key={x}
-              onPress={() => { if (!on) onMode(x); }}
-              accessibilityRole="radio"
-              accessibilityLabel={`${t.title}, ${t.sub}`}
-              {...a11yLangProp()}
-              accessibilityState={{ checked: on, selected: on }}
-              style={({ pressed }) => [
-                groupEdge(M, i === 0, i === MODES.length - 1),
-                { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 2 },
-                pressed && !on ? pressedRow(M) : null,
-              ]}
-            >
-              {i > 0 && <RowDivider M={M} inset={0} />}
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '600', color: M.ink }}>{t.title}</Text>
-                <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{t.sub}</Text>
-              </View>
-              <Check on={on} color={M.ink} dark={M.dark} size={22} seed={x} />
-            </Pressable>
+            <ChoiceRow key={x} M={M} title={t.title} meta={t.sub} on={x === mode} onPress={() => onMode(x)} divider={i > 0} />
           );
         })}
       </View>
 
-      <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, marginTop: RHYTHM.sectionTop + 4 }}>{m.year.goalLabel}</Text>
-      <TextInput
-        value={goal}
-        onChangeText={onGoal}
-        placeholder={doc.centerGoal.trim() || undefined}
-        placeholderTextColor={M.sub}
-        returnKeyType="done"
-        blurOnSubmit
-        accessibilityLabel={m.year.goalLabel}
-        accessibilityHint={m.year.goalHint}
-        style={{ ...TYPE.body, color: M.ink, marginTop: 4, paddingVertical: 10, paddingHorizontal: 0, borderBottomWidth: 1, borderColor: M.line }}
-      />
-      <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 8 }}>{m.year.goalHint}</Text>
+      <View style={{ marginTop: GEO.sectionGap }}>
+        <FieldLabel M={M} text={m.year.goalLabel} />
+        <Field
+          M={M}
+          value={goal}
+          onChangeText={onGoal}
+          placeholder={doc.centerGoal.trim() || undefined}
+          returnKeyType="done"
+          blurOnSubmit
+          accessibilityLabel={m.year.goalLabel}
+          accessibilityHint={m.year.goalHint}
+          style={{ marginTop: 8 }}
+        />
+        <Text style={{ ...ROLE.note, color: M.print, marginTop: 8 }}>{m.year.goalHint}</Text>
+      </View>
     </View>
   );
 }
 
-/** 3쪽 — 보관함에 남는다는 한 줄과 고른 새 표 */
-function StartPage({ M, m, mode, blocked }: { M: Palette; m: Messages; mode: NewChartMode; blocked: boolean }) {
+/** 3쪽 — 마무리의 한 장면: 보관함에 들어갈 표(작은 지도) · 한 문장 · 고른 새 표 */
+function StartPage({ M, m, doc, mode, blocked }: { M: Palette; m: Messages; doc: MandaratDoc; mode: NewChartMode; blocked: boolean }) {
   const t = modeText(m, mode);
   return (
     <View>
-      <Text style={{ fontSize: 17, lineHeight: 24, fontWeight: '700', color: M.ink, marginTop: 20 }}>{m.year.keepNote}</Text>
-      <Text style={{ ...TYPE.body, color: M.sub, marginTop: 6 }}>{m.year.keepSub}</Text>
-      <View
-        accessible
-        accessibilityLabel={`${m.year.pageNew}, ${t.title}, ${t.sub}`}
-        {...a11yLangProp()}
-        style={{ marginTop: RHYTHM.sectionTop, paddingVertical: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}
-      >
-        <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }}>{m.year.pageNew}</Text>
-        <Text style={{ fontSize: 16, lineHeight: 21, fontWeight: '600', color: M.ink, marginTop: 2 }}>{t.title}</Text>
-        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{t.sub}</Text>
+      <View style={{ marginTop: 18, alignSelf: 'flex-start' }}>
+        <ColourMap themes={doc.themes} level="L1" cell={SHELF_CELL} fade />
+      </View>
+      <Text style={{ ...ROLE.prompt, color: M.ink, marginTop: 20 }}>{m.year.keepNote}</Text>
+      <Text style={{ ...ROLE.note, color: M.print, marginTop: 2 }}>{m.year.keepSub}</Text>
+
+      <View style={{ marginTop: GEO.sectionGap }}>
+        <Section M={M} label={m.year.pageNew} />
+        <Row M={M} bare title={t.title} meta={t.sub} accessibilityLabel={`${m.year.pageNew}, ${t.title}, ${t.sub}`} />
       </View>
       {blocked && (
-        <View style={{ marginTop: RHYTHM.sectionTop }} accessibilityRole="alert">
+        <View style={{ marginTop: GEO.sectionGap - 10 }} accessibilityRole="alert">
           <RuledNotice M={M} title={m.year.sameDay} />
         </View>
       )}

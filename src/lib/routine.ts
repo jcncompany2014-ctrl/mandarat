@@ -64,7 +64,6 @@ export function kindOf(a: KindFields | undefined): ActionKind {
 export function isRoutine(a: KindFields): boolean {
   return kindOf(a) === 'habit';
 }
-export const isHabit = isRoutine;
 
 /** 주 N회 습관이면 N, 아니면 0 (요일을 정한 습관은 요일이 우선) */
 export function perWeekOf(a: KindFields | undefined): number {

@@ -1,12 +1,14 @@
-// 한 해 › 보관함 — 지난 표를 수첩 뒤쪽의 목차처럼 괘선 줄로(새것부터). 목록은 늘 보인다(무료).
-// 한 줄: 작은 81칸(56pt) · 해 · 기간 · 핵심 목표 · '64칸 중 n칸 달성 · n일 기록'. 누르면 지난 표 한 장(프로) — 없으면 프로 안내.
+// 한 해 › 보관함 — 지난 표를 목차처럼 머리카락 선 사이 줄로(새것부터). 목록은 늘 보인다(무료). 디자인 A(year.png와 같은 부품).
+// 한 줄: 작은 지도(L1, 56pt) · 해 · 기간 · 핵심 목표 · '64칸 중 n칸 달성 · n일 기록'. 누르면 지난 표 한 장(프로) — 없으면 프로 안내.
 // onOpen: 이 화면 안에서 다른 쪽을 연다(지난 표 한 장 · 그 해 돌아보기) — Year가 안쪽 뒤로 가기 줄에 쌓는다.
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
-import { RowDivider, groupEdge, pressedRow } from '../../components/common';
-import { MiniChart } from '../../components/GridMark';
-import { NUM, RHYTHM, TYPE } from '../../theme/type';
+import { RowDivider, pressedRow } from '../../components/common';
+import { Icon } from '../../components/Icon';
+import { ColourMap } from '../../components/chart';
+import { GEO } from '../../theme/tokens';
+import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { useUIActions } from '../../navigation/ui';
 import { useDoc } from '../../store/MandaratContext';
@@ -18,10 +20,10 @@ import { tap } from '../../lib/haptics';
 import { useMsg } from '../../i18n/react';
 import type { Messages } from '../../i18n';
 import type { YearView } from '../../lib/contracts';
-import type { ArchivedChart, CellShape } from '../../types';
+import type { ArchivedChart } from '../../types';
 
-const GUTTER = RHYTHM.gutter;
-/** 줄 왼쪽의 작은 81칸 */
+const GUTTER = GEO.gutter;
+/** 줄 왼쪽의 작은 지도(L1) 폭 */
 const MINI = 56;
 /** 처음에 보이는 줄 수 — 지난 표는 200장까지 쌓이므로 '더 보기'로 이만큼씩 펼친다 */
 export const SHELF_PAGE = 24;
@@ -57,11 +59,9 @@ export const YearShelf = memo(function YearShelf({ M, onOpen }: { M: M; onOpen: 
 
   if (list.length === 0) {
     return (
-      <View style={{ paddingHorizontal: GUTTER }}>
-        <View style={[groupEdge(M, true, true), { paddingVertical: 14, paddingHorizontal: 2 }]}>
-          <Text style={{ ...TYPE.rowTitle, color: M.ink }}>{m.year.shelfNone}</Text>
-          <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 4 }}>{m.year.shelfNoneSub}</Text>
-        </View>
+      <View style={{ paddingHorizontal: GUTTER, marginTop: 18 }}>
+        <Text style={[ROLE.rowTitle, { color: M.ink }]}>{m.year.shelfNone}</Text>
+        <Text style={[ROLE.note, { color: M.print, marginTop: 4 }]}>{m.year.shelfNoneSub}</Text>
       </View>
     );
   }
@@ -69,19 +69,9 @@ export const YearShelf = memo(function YearShelf({ M, onOpen }: { M: M; onOpen: 
   const rows = list.slice(0, shown);
   const left = list.length - rows.length;
   return (
-    <View style={{ paddingHorizontal: GUTTER, paddingBottom: 24 }}>
+    <View style={{ paddingHorizontal: GUTTER, paddingBottom: 24, marginTop: 10 }}>
       {rows.map((a, i) => (
-        <ShelfRow
-          key={a.id}
-          M={M}
-          m={m}
-          archive={a}
-          cellShape={doc.settings.cellShape}
-          locked={!open}
-          first={i === 0}
-          last={i === rows.length - 1 && left === 0}
-          onPick={pick}
-        />
+        <ShelfRow key={a.id} M={M} m={m} archive={a} locked={!open} first={i === 0} onPick={pick} />
       ))}
       {left > 0 && (
         <Pressable
@@ -90,25 +80,23 @@ export const YearShelf = memo(function YearShelf({ M, onOpen }: { M: M; onOpen: 
           accessibilityRole="button"
           accessibilityLabel={m.year.shelfMore({ n: Math.min(left, SHELF_PAGE) })}
           {...a11yLangProp()}
-          style={({ pressed }) => [groupEdge(M, false, true), { minHeight: 44, paddingHorizontal: 2, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
+          style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
         >
           <RowDivider M={M} inset={0} />
-          <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{m.year.shelfMore({ n: Math.min(left, SHELF_PAGE) })}</Text>
+          <Text style={[ROLE.quiet, { color: M.ink }]}>{m.year.shelfMore({ n: Math.min(left, SHELF_PAGE) })}</Text>
         </Pressable>
       )}
     </View>
   );
 });
 
-/** 보관함 한 줄 — 괘선 사이에 작은 표와 세 줄. 잠겼으면 오른쪽에 '프로', 열리면 '›' */
-const ShelfRow = memo(function ShelfRow({ M, m, archive: a, cellShape, locked, first, last, onPick }: {
+/** 보관함 한 줄 — 작은 지도와 세 줄. 잠겼으면 오른쪽에 '프로', 열리면 꺾쇠 */
+const ShelfRow = memo(function ShelfRow({ M, m, archive: a, locked, first, onPick }: {
   M: M;
   m: Messages;
   archive: ArchivedChart;
-  cellShape: CellShape;
   locked: boolean;
   first: boolean;
-  last: boolean;
   onPick: (id: string) => void;
 }) {
   const label = yearLabel(a.from, a.to);
@@ -124,26 +112,25 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, cellShape, locked, f
       {...a11yLangProp()}
       accessibilityHint={locked ? m.year.shelfLockedHint : undefined}
       style={({ pressed }) => [
-        groupEdge(M, first, last),
-        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 2, minHeight: MINI + 24 },
+        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, minHeight: MINI + 24 },
         pressed ? pressedRow(M) : null,
       ]}
     >
       {!first && <RowDivider M={M} inset={0} />}
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <MiniChart themes={a.themes} cellShape={cellShape} size={MINI} />
+        <ColourMap themes={a.themes} level="L1" width={MINI} defer />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[{ ...TYPE.rowTitle, color: M.ink }, NUM]} numberOfLines={1}>
+        <Text style={[ROLE.rowTitle, { color: M.ink }]} numberOfLines={1}>
           {label}
-          <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{`  ${range}`}</Text>
+          <Text style={[ROLE.rowMeta, { color: M.ink2 }]}>{`  ${range}`}</Text>
         </Text>
-        {!!goal && (
-          <Text style={{ fontSize: 14, lineHeight: 19, color: M.ink, marginTop: 2 }} numberOfLines={2}>{goal}</Text>
-        )}
-        <Text style={[{ fontSize: 12, lineHeight: 16, fontWeight: '600', color: M.sub, marginTop: 3 }, NUM]} numberOfLines={2}>{line}</Text>
+        {!!goal && <Text style={[ROLE.body, { color: M.ink }]} numberOfLines={2}>{goal}</Text>}
+        <Text style={[ROLE.meta, { color: M.ink2 }]} numberOfLines={2}>{line}</Text>
       </View>
-      <Text style={{ fontSize: locked ? 13 : 18, fontWeight: locked ? '600' : '700', color: M.sub }}>{locked ? m.common.proMark : '›'}</Text>
+      {locked
+        ? <Text style={[ROLE.rowRight, { color: M.print }]}>{m.common.proMark}</Text>
+        : <Icon name="chevR" size={16} color={M.ink} />}
     </Pressable>
   );
 });

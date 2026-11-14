@@ -5,13 +5,12 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { faceFor, heavierFace, PRETENDARD } = require('../src/theme/fonts');
-const { MOODS, contrastEdition, withAccent } = require('../src/theme/moods');
+const { PALETTE, contrastPalette } = require('../src/theme/moods');
 const { MOOD_WORDS } = require('../src/lib/copy');
 const { releaseProblems } = require('../scripts/releaseCheck');
 
 const ROOT = path.join(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
-const alphaOf = (rgba) => Number(rgba.match(/,\s*([\d.]+)\s*\)$/)[1]);
 
 test('굵은 텍스트: 한 단계 굵게 — 400 → SemiBold, 500·600 → Bold, 700 이상 → Bold', () => {
   for (const w of [undefined, 'normal', '100', '300', '400']) assert.equal(faceFor(w, true), PRETENDARD[600], String(w));
@@ -43,27 +42,29 @@ test('AppText와 TextInput 모두 굵은 텍스트를 따른다', () => {
   assert.match(src, /faceFor\(weight, bold\)/);
 });
 
-test('대비 증가: 괘선 알파 2배, 흐린 글씨는 보조 글씨로, 나머지는 그대로', () => {
-  for (const [name, P] of Object.entries(MOODS)) {
-    const M = withAccent(P, '#B0883C');
-    const E = contrastEdition(M);
-    assert.ok(Math.abs(alphaOf(E.line) - Math.min(1, alphaOf(P.line) * 2)) < 1e-9, `${name} line`);
-    assert.equal(E.faint, P.sub, `${name} faint`);
-    for (const k of ['bg', 'surface', 'card', 'ink', 'sub', 'tabBg', 'dark', 'gold', 'goldInk', 'center', 'accent']) {
+test('대비 증가: 괘선 · 가장자리 · 인쇄 글씨 · 흐린 글씨가 한 단계 진해진다 — 나머지는 그대로', () => {
+  for (const [name, M] of Object.entries(PALETTE)) {
+    const E = contrastPalette(M);
+    assert.equal(E.printRule, M.printMid, `${name} printRule`);
+    assert.equal(E.printEdge, M.ink2, `${name} printEdge`);
+    assert.equal(E.print, M.printStrong, `${name} print`);
+    assert.equal(E.ink3, M.ink2, `${name} ink3`);
+    for (const k of ['paper', 'ink', 'ink2', 'tile', 'signal', 'core', 'btn', 'capsule', 'dark']) {
       assert.equal(E[k], M[k], `${name} ${k}`);
     }
     assert.notEqual(E, M, '새 객체(원래 팔레트는 건드리지 않는다)');
-    assert.equal(M.faint, P.faint);
   }
 });
 
 test('대비 증가: 도트 종이·체크 칸 테두리가 진해진다', () => {
   const dots = read('src/components/PaperDots.tsx');
   assert.match(dots, /useIncreaseContrast\(\)/);
-  assert.match(dots, /more \? 0\.2 : 0\.11/);
+  assert.match(dots, /patternInk\(pattern, M\.dark \? DARK : LIGHT, more\)/);
+  // 체크 칸 테두리는 토큰 printEdge — 대비 증가 팔레트(moreContrast)에서 ink2가 된다(kit/CheckBox), 점선 칸은 checkEdge
   const check = read('src/components/Check.tsx');
-  assert.match(check, /rgba\(43,38,32,0\.70\)/);
-  assert.match(check, /width: 2/);
+  assert.match(check, /more \? T\.ink2 : T\.printEdge/);
+  assert.match(read('src/components/kit/CheckBox.tsx'), /borderColor: M\.printEdge/);
+  for (const P of [PALETTE.light, PALETTE.dark]) assert.equal(contrastPalette(P).printEdge, P.ink2);
   const pal = read('src/theme/usePalette.ts');
   assert.match(pal, /useIncreaseContrast\(\)/);
   assert.match(pal, /WeakMap/);
@@ -74,7 +75,7 @@ test('대비 증가: 도트 종이·체크 칸 테두리가 진해진다', () =>
 });
 
 test('지운 코드가 돌아오지 않는다 — 히어로 색·기분 얼굴·주 N회 칸·옛 빈 상태·lucide', () => {
-  for (const P of Object.values(MOODS)) {
+  for (const P of Object.values(PALETTE)) {
     for (const k of ['hero', 'heroInk', 'heroSub', 'heroLight']) assert.equal(P[k], undefined, k);
   }
   for (const f of ['WeekDots.tsx', 'MoodFaces.tsx', 'Ring.tsx', 'Reveal.tsx']) {
@@ -96,11 +97,14 @@ test('기분 줄은 copy.ts의 낱말을 쓰고, 쌓기 줄은 알약 모양이 
   assert.match(read('src/components/KindBits.tsx'), /borderRadius: Math\.min\(2, height \/ 2\)/);
 });
 
-test('액션 시트의 줄은 LineRow — 체크 상태를 함께 읽는다', () => {
+test('액션 시트의 체크 줄은 체크 상태를 함께 읽는다', () => {
   const sheet = read('src/overlays/ActionSheet.tsx');
   assert.doesNotMatch(sheet, /function SheetRow\(/);
-  assert.equal((sheet.match(/<LineRow/g) || []).length, 5);
-  assert.equal((sheet.match(/accessibilityRole="checkbox"/g) || []).length >= 2, true);
+  // 체크 줄은 모두 CheckRow(kit Row + CheckBox) 하나로 — 체크 상자 역할과 선택됨을 읽는다
+  const row = sheet.slice(sheet.indexOf('function CheckRow('), sheet.indexOf('\n}\n', sheet.indexOf('function CheckRow(')));
+  assert.match(row, /accessibilityRole="checkbox"/);
+  assert.match(row, /accessibilityState=\{\{ checked: state !== 'open' \}\}/);
+  assert.equal((sheet.match(/<CheckRow\b/g) || []).length >= 4, true);
   const common = read('src/components/common.tsx');
   assert.match(common, /accessibilityState=\{a11yState\}/);
 });

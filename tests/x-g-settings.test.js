@@ -27,8 +27,7 @@ test('한국어 값 = 옮기기 전 글', () => {
   const s = msg('ko').settings;
   const same = {
     screenTitle: '설정', secGoal: '핵심 목표', goalEmpty: '핵심 목표를 정해 주세요', goalHint: '고치기',
-    secView: '보기', subPaper: '종이', swatchGlyph: '가', subAccent: '포인트 컬러', subShape: '칸 모서리',
-    secRecords: '기록', subBackup: '백업', exportTitle: '백업 내보내기',
+    secView: '보기', exportTitle: '백업 내보내기',
     exportSaved: '백업 파일을 저장했어요', exportWebFail: '이 브라우저에서는 저장할 수 없어요', exportDone: '백업을 내보냈어요',
     importTitle: '백업 불러오기', importSub: '내보낸 백업으로 기록을 되살려요',
     snapTitle: '저장본', snapSub: '최근 7일, 하루 한 번 저절로 남겨요',
@@ -50,9 +49,6 @@ test('한국어 값 = 옮기기 전 글', () => {
   };
   for (const [k, v] of Object.entries(same)) assert.equal(s[k], v, k);
   assert.equal(s.goalLabel({ goal: '마라톤' }), '핵심 목표, 마라톤');
-  assert.equal(s.paperLabel({ name: '미색' }), '종이 미색');
-  assert.equal(s.accentLabel({ name: '골드' }), '포인트 컬러 골드');
-  assert.equal(s.shapeLabel({ name: '둥글게' }), '칸 모서리 둥글게');
   assert.equal(s.exportHint({ age: '마지막 백업 · 오늘' }), '마지막 백업 · 오늘. 기록을 파일로 내보내요');
   assert.equal(s.snapRow({ date: '10월 14일 수요일' }), '10월 14일 수요일 저장본');
   assert.equal(s.snapRowSub({ n: 12, days: 3 }), '채운 칸 12 · 기록 3일');

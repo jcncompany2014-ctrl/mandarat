@@ -1,6 +1,6 @@
 // 화면 읽기 언어(R-6 A-1) — 이름표를 직접 단 View · Pressable은 안쪽 글자의 언어가 아니라 자기 언어로 읽힌다.
 // 그래서 accessibilityLabel을 단 바탕 요소에는 accessibilityLanguage(또는 a11yLangProp())가 함께 있어야 한다.
-// AppText의 Text · TextInput, Pressy, LineRow 같은 앱 부품은 안에서 이미 언어를 붙이므로 보지 않는다.
+// AppText의 Text · TextInput, LineRow 같은 앱 부품은 안에서 이미 언어를 붙이므로 보지 않는다.
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');

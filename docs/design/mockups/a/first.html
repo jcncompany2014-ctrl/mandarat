@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 첫 실행</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* first run: the form arrives printed. 17 cells are already coloured (the goal, the eight areas
+     twice); everything else is paper, and one cell is framed in ink: "start here". */
+  .sheet { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+  .sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+  .sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #chart { margin: 12px 0 0; }
+  .invite { margin-top: 24px; }
+  .invite .t-prompt { margin-top: 6px; }
+  .invite .t-note { margin-top: 6px; }
+  .picks { display: flex; gap: 8px; margin-top: 18px; }
+  .pick {                                  /* a written suggestion: ink words on a soft tile (no outline), tap to write it in */
+    flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px;
+    height: 44px; padding: 0 6px; white-space: nowrap;
+    border-radius: 10px; background: var(--tile);
+    font: 500 14px/18px var(--sans); color: var(--ink);
+  }
+  .pick svg { color: var(--print); }
+  .pick svg path { stroke-width: 1.5; }
+  .cta { margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="sheet">
+    <div class="sheet-line"><span class="t-label" id="form-name"></span><span class="t-label">쓴 칸 <b id="count"></b></span></div>
+    <div id="chart"></div>
+  </div>
+  <div class="a-body invite">
+    <div class="t-label" id="area"></div>
+    <div class="t-prompt" id="prompt"></div>
+    <div class="t-note" id="note"></div>
+    <div class="picks" id="picks"></div>
+    <div class="a-btn cta" id="cta"></div>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const blank = A.blankDoc(doc);
+  const v = blank.view;
+  const first = doc.areas[0];                     // 건강: the first area, top-left block
+  A.header('#header', { eyebrow: '핵심 목표', title: doc.coreGoal, written: true, action: 'edit' });
+  document.querySelector('#form-name').textContent = `${v.date.year} 만다라트`;
+  document.querySelector('#count').textContent = `${v.progress.done}/${v.progress.of}`;
+  // the next empty cell (1) gets the ink frame
+  A.chart('#chart', blank, {
+    level: 'L2', map: true, width: 342, focus: [0, 0],
+  });
+  document.querySelector('#area').innerHTML = `<i class="a-dye" style="--d:var(--dye-1)"></i>${first.title} · 1번 칸부터`;
+  document.querySelector('#prompt').textContent = A.keep(`${first.title}을 위해 무엇을 해 볼까요?`);
+  document.querySelector('#note').textContent = '한 칸에 한 가지씩. 여덟 칸을 채우면 한 영역이 완성돼요.';
+  // suggestions are the demo document's own 건강 actions (picked, not typed)
+  document.querySelector('#picks').innerHTML = first.actions.slice(0, 3)
+    .map((a) => `<span class="pick">${A.icon('plus', { size: 16 })}${a.text}</span>`).join('');
+  document.querySelector('#cta').textContent = '직접 쓰기';
+  A.tabBar('#bar', { active: 'chart' });
+});
+</script>
+</body>
+</html>

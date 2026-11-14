@@ -42,7 +42,7 @@ test('오버레이: 전체 화면 Modal · 네 방향 · 웹 폭 틀(WebColumn �
   const s = src('src/overlays/YearClose.tsx');
   assert.match(s, /<Modal[\s\S]*presentationStyle="fullScreen"/);
   assert.match(s, /supportedOrientations=\{MODAL_ORIENTATIONS\}/);
-  assert.match(s, /<PaperColumn bg=\{M\.bg\}/);
+  assert.match(s, /<PaperColumn bg=\{M\.paper\}/);
   assert.ok(s.indexOf('</PaperColumn>') < s.indexOf('</Modal>'));
   assert.match(s, /accessibilityViewIsModal/);
   // 세 쪽 · 버튼 testID
@@ -85,15 +85,16 @@ test('세 가지 새 표가 startNewChart에 그대로 간다', () => {
   for (const d of [keep, areas, blank]) assert.equal(d.archives.length, 1);
 });
 
-test('홈: 마무리 안내 줄은 yearClosePrompt일 때만, 머리 바로 아래 괘선 한 줄', () => {
+test('홈: 마무리 안내 줄은 yearClosePrompt일 때만, 히어로 아래 · 오늘 할 일 위의 누르는 줄(디자인 A)', () => {
   const s = src('src/screens/Dashboard.tsx');
   assert.match(s, /const yearPrompt = useMemo\(\(\) => yearClosePrompt\(doc, new Date\(\)\), \[[^\]]*\bclock\]\);/);
-  assert.match(s, /\{yearPrompt && \(\s*<Pressable\s+testID=\{TID\.homeYearPrompt\}/);
-  assert.match(s, /onPress=\{\(\) => \{ tap\(\); openYearClose\(\); \}\}/);
-  // 머리(인쇄된 두 줄) 다음, 핵심 목표 앞
-  assert.ok(s.indexOf('{yearPrompt && (') > s.indexOf('marginTop: 3 }} />'));
-  assert.ok(s.indexOf('{yearPrompt && (') < s.indexOf('<MiniChart'));
-  const row = s.slice(s.indexOf('{yearPrompt && ('), s.indexOf('<MiniChart'));
+  const row = s.slice(s.indexOf('{yearPrompt && ('), s.indexOf('{ritualWeek && ('));
+  assert.match(row, /^\{yearPrompt && \(\s*<LinkRow\b/);
+  assert.match(row, /testID=\{TID\.homeYearPrompt\}/);
+  assert.match(row, /onPress=\{\(\) => \{ tap\(\); openYearClose\(\); \}\}/);
+  // 히어로(작은 지도) 다음, 오늘 할 일 앞
+  assert.ok(s.indexOf('{yearPrompt && (') > s.indexOf('<ColourMap'));
+  assert.ok(s.indexOf('{yearPrompt && (') < s.indexOf('<TodaySection'));
   assert.doesNotMatch(row, /borderRadius|backgroundColor/);
 
   const base = { onboarded: true, chartStart: '2026-01-01', dayLog: {}, archives: undefined };
@@ -104,7 +105,7 @@ test('홈: 마무리 안내 줄은 yearClosePrompt일 때만, 머리 바로 아�
 test('설정: 한 해 — 새 표 시작하기 · 지난 표 보관함(n장)', () => {
   const s = src('src/screens/settings/YearRows.tsx');
   assert.match(s, /export function YearRows\(\{ M \}: \{ M: M \}\)/);
-  assert.match(s, /<SubHead M=\{M\} label=\{m\.year\.settingsHead\} \/>/);
+  assert.match(s, /<SetSection M=\{M\} label=\{m\.year\.settingsHead\} \/>/);
   assert.match(s, /<View testID=\{TID\.setYearClose\}>[\s\S]*openYearClose\(\)/);
   assert.match(s, /<View testID=\{TID\.setYearShelf\}>[\s\S]*openYear\(\{ kind: 'shelf' \}\)/);
   assert.match(s, /m\.year\.archiveCount\(\{ n \}\)/);
@@ -135,10 +136,10 @@ test('장부: 13달 · 윤년 2월 29일 · 없는 날은 칸이 없다', () => 
   assert.equal(ledgerCellSize(350), 10);
   assert.equal(ledgerCellSize(100), 6);
   assert.equal(ledgerCellSize(1000), 16);
-  // 칸 사이 머리카락 괘선 · 둥근 모서리 없음
+  // 디자인 A(S4): 칸은 타일(모서리 2, 사이 1.5) — 통계의 최근 10주와 같은 진하기 차례(HEAT_TONES)
   const s = src('src/components/YearLedger.tsx');
-  assert.match(s, /borderRightWidth: rule/);
-  assert.doesNotMatch(s, /borderRadius/);
+  assert.match(s, /const LEDGER_RADIUS = 2;/);
+  assert.match(s, /backgroundColor: tones\[c \?\? 0\] \?\? M\.tile/);
 });
 
 test('디자인 가드: 새 파일에 둥근 카드 · 그림자 · 그라데이션 · 이모지가 없다', () => {

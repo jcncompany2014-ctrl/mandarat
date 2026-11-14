@@ -7,24 +7,15 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const src = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
-test('온보딩: 3×3 표는 화면 가운데에, 폭에 맞춰 크게(작은 화면 228 · 그 밖 300)', () => {
-  const onb = src('src/screens/Onboarding.tsx');
-  assert.match(onb, /const sketchSize = Math\.round\(Math\.min\(winW - GUTTER \* 2, winH < 700 \? 228 : 300\)\)/);
-  assert.match(onb, /<View style=\{\{ marginTop: 24, alignItems: 'center' \}\}>\s*<ChartSketch M=\{M\} size=\{sketchSize\}/);
-  assert.doesNotMatch(onb, /alignItems: 'flex-start' \}\}>\s*<ChartSketch/);
-  // 큰 표에서는 영역 이름도 한 단계 크게
-  assert.match(src('src/components/ChartSketch.tsx'), /size >= 240 \? AREA_SIZES_LARGE : AREA_SIZES/);
-});
-
 test('웹: 폭에 맞춰 크기를 정하는 화면은 묶인 폭(lib/screen)을 쓴다', () => {
   const files = [
-    'src/components/TodayRow.tsx', 'src/components/ChartBoard.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/FocusTimer.tsx',
-    'src/overlays/ActionSheet.tsx', 'src/overlays/ShareChart.tsx', 'src/screens/TodayModes.tsx', 'src/screens/Dashboard.tsx',
+    'src/components/kit/Row.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/FocusTimer.tsx',
+    'src/overlays/ShareChart.tsx', 'src/screens/TodayModes.tsx', 'src/screens/Dashboard.tsx',
     'src/screens/FullGrid.tsx', 'src/screens/Stats.tsx', 'src/screens/Onboarding.tsx',
   ];
   for (const f of files) {
     const s = src(f);
-    assert.match(s, /import \{ useWindowDimensions \} from '\.\.\/lib\/screen';/, f);
+    assert.match(s, /import \{ useWindowDimensions \} from '(\.\.\/)+lib\/screen';/, f);
     assert.doesNotMatch(s, /import \{[^}]*\buseWindowDimensions\b[^}]*\} from 'react-native'/, f);
   }
   const screen = src('src/lib/screen.ts');
@@ -33,11 +24,12 @@ test('웹: 폭에 맞춰 크기를 정하는 화면은 묶인 폭(lib/screen)을
 });
 
 test('웹: 앱 틀 · 시트 · 전체 화면 창이 같은 폭 안에 선다', () => {
-  assert.match(src('App.tsx'), /<PaperColumn bg=\{mix\(P\.bg, P\.ink, 0\.05\)\} edge=\{P\.line\}>\s*<Root \/>/);
+  // 단 바깥은 책상(tokens desk: 밝게 tile · 어둡게 한 톤 깊게)
+  assert.match(src('App.tsx'), /<PaperColumn bg=\{desk\(P\)\} edge=\{P\.printRule\}>\s*<Root \/>/);
   assert.match(src('src/components/common.tsx'), /panel,\s*shadow\(8/);
   for (const f of ['src/overlays/FocusTimer.tsx', 'src/overlays/WeekRitual.tsx', 'src/overlays/Celebration.tsx']) {
     const s = src(f);
-    assert.match(s, /<PaperColumn bg=\{M\.(center|bg)\}/, f);
+    assert.match(s, /<PaperColumn bg=\{M\.(center|bg|paper)\}/, f);
     assert.ok(s.indexOf('</PaperColumn>') < s.indexOf('</Modal>'), f);
   }
   // 폰(네이티브)에서는 아무것도 감싸지 않는다 — 웹·아이패드는 늘 감싼다

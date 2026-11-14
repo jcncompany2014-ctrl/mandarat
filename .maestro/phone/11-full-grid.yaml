@@ -8,7 +8,7 @@ tags:
     arguments:
       "-AppleLanguages": "(ko)"
       "-AppleLocale": "ko_KR"
-# 만다라트 탭 → 81칸 표 → 영역 하나를 크게 → 표 전체로 돌아온다
+# 만다라트 탭 → 색 지도(블록 아홉) → 영역 하나를 크게(영역 화면) → 뒤로 지도
 - runFlow: ../common/onboard.yaml
 - runFlow: ../common/sample.yaml
 - tapOn:
@@ -17,21 +17,26 @@ tags:
     visible:
       id: "grid-table"
     timeout: 10000
+# 지도는 블록 단추만 — 실천 칸(grid-cell-*)은 크게 본 블록에만 있다
 - assertVisible:
-    id: "grid-cell-0-0"
+    id: "grid-block-0"
 - assertVisible:
-    id: "grid-cell-7-7"
+    id: "grid-block-7"
 - tapOn:
-    id: "grid-cell-3-3"
+    id: "grid-block-3"
 - waitForAnimationToEnd:
     timeout: 3000
-# 칸을 누르면 영역이 크게 보이거나(줌) 실천 시트가 뜬다 — 둘 중 하나면 된다
-- assertVisible:
-    id: "grid-cell-3-3|sheet-edit"
-- tapOn:
-    id: "tab-grid"
 - extendedWaitUntil:
     visible:
-      id: "grid-table"
+      id: "grid-cell-3-3"
+    timeout: 10000
+- assertNotVisible:
+    id: "grid-block-0"
+# 머리의 ‹ 만다라트(영역 화면의 뒤로) → 지도
+- tapOn:
+    id: "detail-back"
+- extendedWaitUntil:
+    visible:
+      id: "grid-block-0"
     timeout: 10000
 - takeScreenshot: "phone-grid"

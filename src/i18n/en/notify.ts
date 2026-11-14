@@ -36,5 +36,4 @@ export default {
   editorPick: 'Set a time',
   editorNoneA11y: 'No reminder',
   editorPickA11y: 'Set a reminder time',
-  habitHint: 'Only on the days you do this habit',
 } satisfies Like<typeof ko>;

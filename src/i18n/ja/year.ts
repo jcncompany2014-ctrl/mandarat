@@ -47,7 +47,6 @@ export default {
 
   // V3-D — year screen (review · Stats section)
   sheetTitle: '過去の表',
-  loading: 'まだ準備中です',
   currentChart: '今使っている表',
   statStreak: '最長の連続',
   calendarTitle: '一年のカレンダー',
@@ -80,4 +79,7 @@ export default {
   areaCloseHint: '9マスを閉じます',
   sheetReview: 'この年をふりかえる',
   sheetLocked: '過去の表を広げて見るのはプロでできます',
+
+  folio: ({ label }) => `${label} 一年のふりかえり`,
+  sheetFolio: ({ label }) => `${label} 過去の表`,
 } satisfies Like<typeof ko>;

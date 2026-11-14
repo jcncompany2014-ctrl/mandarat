@@ -1,60 +1,31 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { PanResponder, Pressable, View, type AccessibilityActionEvent } from 'react-native';
-import { Text } from '../components/AppText';
-import { Header, RowDivider, groupEdge, pressedRow } from '../components/common';
-import { Check } from '../components/Check';
-import { ChartBoard } from '../components/ChartBoard';
-import { AnimatedNumber } from '../components/AnimatedNumber';
-import { alertInk } from '../components/KindBits';
-import { NUM, RHYTHM, TYPE } from '../theme/type';
-import { legibleMark } from '../theme/chart';
-import { usePalette, type M as Palette } from '../theme/usePalette';
+import React, { memo, useEffect, useMemo } from 'react';
+import { PanResponder, View } from 'react-native';
+import { AreaPage } from './area/AreaPage';
 import { useUIActions } from '../navigation/ui';
-import { useActions, useDoc, dateKey, themeProgress, themeStreak } from '../store/MandaratContext';
-import { tap, check as checkHaptic, uncheck as uncheckHaptic } from '../lib/haptics';
-import { kindLine } from '../lib/kinds';
-import { kindOf } from '../lib/routine';
+import { useDoc } from '../store/MandaratContext';
+import { tap } from '../lib/haptics';
 import { announce, screenReader } from '../lib/useReducedMotion';
-import { areaTitle, neighborArea, pageSpeech, rowLabelFor, rowStatus } from '../lib/areaPage';
-import type { Action } from '../types';
+import { neighborArea, pageSpeech } from '../lib/areaPage';
 import { TID } from '../lib/testIds';
-import { useMsg } from '../i18n/react';
 
-/** 왼쪽 표시(체크 칸·상태 네모) 한 변 */
-const MARK = 22;
 /** 왼쪽 가장자리 쓸기는 Root의 '뒤로'가 받는다 — 이 안에서 시작한 쓸기로는 영역을 넘기지 않는다 */
 const EDGE = 28;
 
 /**
- * 이전·다음 버튼(또는 쓸기)으로 넘겨 온 영역 — 다음 영역 화면이 그려질 때 한 번 읽어 준다.
+ * 이전·다음(넘기기 줄 또는 쓸기)으로 넘겨 온 영역 — 다음 영역 화면이 그려질 때 한 번 읽어 준다.
  * Root가 영역마다 이 화면을 새로 그리므로(key = ti) 화면 밖에 둔다.
  */
 let pagedTo: number | null = null;
 
 /**
- * 영역 화면 — 이 영역에서 무엇을 얼마나 달성했는지 보는 곳.
- * 보드와 목록은 습관·쌓기·마음가짐을 체크하지 않는다(하루 체크는 오늘·홈·실천 시트에서).
- * 목록에서 바로 바꿀 수 있는 건 '한 번' 실천의 달성뿐이다.
- */
-/**
+ * 영역 화면 — 만다라트 탭의 크게 보기와 같은 영역 화면(AreaPage): 머리(‹ 온 곳 · 영역 이름 · 4/8 · ···) · 블록 ·
+ * 넘기기 줄 · 이번 주 습관 · 그 밖의 실천. 홈 · 오늘 · 통계에서 영역을 눌러 들어온다.
  * embedded: 펼침(V5-A)의 오른쪽 쪽에 곁들인 영역 화면 — 왼쪽 만다라트 탭이 크게 보는 블록을 따라간다.
- * 뒤로 가기·제목으로 초점 옮기기·이전/다음(바닥줄·쓸기)이 없다 — 영역은 왼쪽 표에서 넘긴다.
+ * 뒤로 가기·제목으로 초점 옮기기·이전/다음(넘기기 줄·쓸기)·블록이 없다 — 블록과 넘기기는 왼쪽 쪽에 있다.
  */
 export const Detail = memo(function Detail({ ti, embedded = false }: { ti: number; embedded?: boolean }) {
-  const M = usePalette();
-  const m = useMsg();
   const { doc } = useDoc();
-  const { toggleDone } = useActions();
-  const { go, back, openAction, openEditor } = useUIActions();
-  const th = doc.themes[ti];
-  const p = themeProgress(th);
-  // 영역 연속 기록은 기록 전체를 한 번 훑는다 — 기록(dayLog)이나 날짜가 바뀔 때만 다시 센다
-  const day = dateKey();
-  const streak = useMemo(() => themeStreak(doc, ti), [doc.dayLog, ti, day]); // eslint-disable-line react-hooks/exhaustive-deps
-  const now = new Date();
-  const title = areaTitle(doc, ti);
-  const prevTi = neighborArea(ti, -1);
-  const nextTi = neighborArea(ti, 1);
+  const { go, back } = useUIActions();
 
   // 넘겨 온 영역이면 제목으로 초점이 옮겨진 뒤(Header focusTitle) 어느 영역인지 읽어 준다
   useEffect(() => {
@@ -72,31 +43,6 @@ export const Detail = memo(function Detail({ ti, embedded = false }: { ti: numbe
     go('detail', to);
   };
 
-  /** 칸·줄을 눌렀을 때 — 쓴 칸은 실천 시트, 빈 칸은 바로 쓰기 */
-  const open = (ai: number) => {
-    if (th.actions[ai].text.trim()) openAction(ti, ai);
-    else openEditor({ kind: 'action', ti, ai });
-  };
-
-  const toggleOnce = (a: Action, ai: number) => {
-    if (a.done) uncheckHaptic();
-    else checkHaptic();
-    toggleDone(ti, ai);
-  };
-
-  // 줄에 넘기는 함수는 고정 — 최신 open · toggleOnce · 칸을 ref로 읽는다(줄이 체크마다 다시 그려지지 않게)
-  const latest = useRef({ open, toggleOnce, th });
-  latest.current = { open, toggleOnce, th };
-  const onRowOpen = useCallback((ai: number) => { tap(); latest.current.open(ai); }, []);
-  const onRowToggle = useCallback((ai: number) => {
-    const a = latest.current.th.actions[ai];
-    if (a) latest.current.toggleOnce(a, ai);
-  }, []);
-  // 보드도 같은 고정 함수로(보드는 칸마다 memo — ChartBoard가 함수도 ref로 읽지만, 보드 자체도 다시 그리지 않게)
-  const onBoardCell = onRowOpen;
-  const onBoardLong = useCallback((ai: number) => openEditor({ kind: 'action', ti, ai }), [openEditor, ti]);
-  const onBoardHead = useCallback(() => openEditor({ kind: 'theme', ti }), [openEditor, ti]);
-
   // 좌우로 쓸어 이전·다음 영역으로 (세로 스크롤은 그대로)
   const swipe = useMemo(
     () =>
@@ -112,228 +58,16 @@ export const Detail = memo(function Detail({ ti, embedded = false }: { ti: numbe
     [ti, go],
   );
 
-  const sectionHead = { ...TYPE.section, color: M.ink, paddingHorizontal: RHYTHM.gutter } as const;
-
   return (
     <View {...(embedded ? null : swipe.panHandlers)} onAccessibilityEscape={embedded ? undefined : back}>
-      <Header
-        M={M}
-        sub={m.chart.areaOf({ n: ti + 1 })}
-        kr={title}
+      <AreaPage
+        ti={ti}
+        part={embedded ? 'rest' : 'all'}
         onBack={embedded ? undefined : back}
         backTestID={TID.detailBack}
-        stacked
+        onStep={embedded ? undefined : page}
         focusTitle={!embedded}
-        right={
-          <Pressable
-            onPress={() => openEditor({ kind: 'theme', ti })}
-            accessibilityRole="button"
-            accessibilityLabel={m.chart.edit}
-            accessibilityHint={m.chart.editAreaName}
-            hitSlop={4}
-            style={({ pressed }) => ({ minWidth: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-          >
-            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{m.chart.edit}</Text>
-          </Pressable>
-        }
       />
-
-      {/* 달성 수 — 큰 숫자 하나 */}
-      <View
-        accessible
-        accessibilityLabel={m.chart.areaDoneSay({ done: p.done, days: streak.cur })}
-        style={{ paddingHorizontal: RHYTHM.gutter, paddingBottom: 20, flexDirection: 'row', alignItems: 'baseline', gap: 10 }}
-      >
-        <Text style={{ ...TYPE.title, ...NUM, color: M.ink }} maxFontSizeMultiplier={1.35}>
-          <AnimatedNumber value={p.done} />
-          <Text style={{ ...TYPE.rowTitle, ...NUM, color: M.sub }} maxFontSizeMultiplier={1.35}>{m.chart.ofEightDone}</Text>
-        </Text>
-        <View style={{ flex: 1 }} />
-        {streak.cur > 0 && (
-          <Text style={{ ...TYPE.caption, ...NUM, color: M.sub }}>{m.chart.streak({ n: streak.cur })}</Text>
-        )}
-      </View>
-
-      {/* 실천 보드 — 81칸의 크게 보기와 같은 보드. 펼침(embedded)에서는 왼쪽 쪽이 같은 보드를 크게 보고 있어 목록만 */}
-      {!embedded && (
-        <>
-          <Text accessibilityRole="header" style={sectionHead}>{m.chart.boardTitle}</Text>
-          <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10, paddingBottom: RHYTHM.sectionTop }}>
-            <ChartBoard
-              M={M}
-              doc={doc}
-              ti={ti}
-              onCell={onBoardCell}
-              onCellLong={onBoardLong}
-              onHead={onBoardHead}
-            />
-          </View>
-        </>
-      )}
-
-      {p.filled === 0 ? (
-        // 아직 쓴 칸이 없으면 빈 줄 8개 대신 한 줄만
-        <View style={{ marginHorizontal: RHYTHM.gutter, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, minHeight: RHYTHM.row, justifyContent: 'center' }}>
-          <Text style={{ ...TYPE.body, color: M.sub }}>{m.chart.emptyHint}</Text>
-        </View>
-      ) : (
-        <>
-          <Text accessibilityRole="header" style={sectionHead}>{m.chart.actionsTitle}</Text>
-          {/* 한 면에 8줄 — 카드 없이 가는 선으로만 나눈다 */}
-          <View style={{ paddingHorizontal: RHYTHM.gutter, paddingTop: 10 }}>
-            {th.actions.map((a, ai) => {
-              const line = kindLine(doc, ti, ai, now);
-              return (
-                <ActionRow
-                  key={ai}
-                  M={M}
-                  a={a}
-                  ai={ai}
-                  first={ai === 0}
-                  last={ai === th.actions.length - 1}
-                  color={th.color}
-                  seed={`${ti}-${ai}`}
-                  status={rowStatus(doc, ti, ai, now)}
-                  overdue={!!line?.alert}
-                  label={rowLabelFor(a, ai, line)}
-                  onOpen={onRowOpen}
-                  onToggle={onRowToggle}
-                />
-              );
-            })}
-          </View>
-        </>
-      )}
-
-      {/* 이웃 영역 — 괘선 바닥줄. 위의 목록(또는 빈 안내)이 이미 괘선으로 끝나 그 선이 바닥줄의 윗선이다(선을 한 번 더 긋지 않는다) */}
-      {!embedded && (
-        <View style={{ marginHorizontal: RHYTHM.gutter, height: 56, flexDirection: 'row', alignItems: 'stretch' }}>
-          <FooterLink M={M} label={`‹ ${areaTitle(doc, prevTi)}`} speech={m.chart.prevAreaSay({ name: areaTitle(doc, prevTi) })} align="left" onPress={() => page(-1)} />
-          <FooterLink M={M} label={`${areaTitle(doc, nextTi)} ›`} speech={m.chart.nextAreaSay({ name: areaTitle(doc, nextTi) })} align="right" onPress={() => page(1)} />
-        </View>
-      )}
     </View>
   );
 });
-
-/**
- * 실천 한 줄 — 왼쪽 표시 · 글 · 오른쪽 상태.
- * - 한 번: 누를 수 있는 체크 칸(칸 달성을 바꾼다).
- * - 습관·쌓기·마음가짐: 누를 수 없으니 체크 칸을 그리지 않는다 — 달성이면 81칸의 '칠한 칸 = 달성'과 같은 작은 색 네모, 아니면 빈자리.
- *   하루 체크는 여기서 하지 않는다.
- * - 달성한 줄은 유형과 상관없이 한 모습: 먹 글씨 그대로, 오른쪽에 '달성'.
- * - 빈 칸: 표시 없이 '실천 n 채우기'.
- * 줄을 누르면 쓴 칸은 실천 시트, 빈 칸은 쓰기.
- */
-/** 실천 한 줄 — 칸(a)과 값이 그대로면 다시 그리지 않는다. onOpen · onToggle은 칸 번호를 받는 고정된 함수 */
-const ActionRow = memo(function ActionRow({
-  M, a, ai, first, last, color, seed, status, overdue, label, onOpen: openAt, onToggle: toggleAt,
-}: {
-  M: Palette;
-  a: Action;
-  ai: number;
-  first: boolean;
-  last: boolean;
-  color: string;
-  seed: string;
-  status: string;
-  overdue: boolean;
-  label: string;
-  onOpen: (ai: number) => void;
-  onToggle: (ai: number) => void;
-}) {
-  const m = useMsg();
-  const onOpen = () => openAt(ai);
-  const onToggle = () => toggleAt(ai);
-  const has = !!a.text.trim();
-  const once = has && kindOf(a) === 'once';
-
-  const actions = once ? [{ name: 'toggle', label: a.done ? m.chart.undoDone : m.chart.markDone }] : undefined;
-  const onAction = (e: AccessibilityActionEvent) => {
-    if (e.nativeEvent.actionName === 'toggle') onToggle();
-    else if (e.nativeEvent.actionName === 'activate') onOpen();
-  };
-
-  let mark: React.ReactNode = <View style={{ width: MARK, height: MARK }} />;
-  if (once) {
-    mark = (
-      <Pressable
-        onPress={onToggle}
-        hitSlop={11}
-        // 줄 전체가 화면 읽기의 한 덩어리 — 체크는 동작 목록('달성으로 표시')으로 한다
-        accessible={false}
-        importantForAccessibility="no"
-      >
-        <Check on={a.done} color={color} dark={M.dark} size={MARK} seed={seed} />
-      </Pressable>
-    );
-  } else if (has && a.done) {
-    mark = (
-      <View style={{ width: MARK, height: MARK, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: legibleMark(color, M.bg, M) }} />
-      </View>
-    );
-  }
-
-  return (
-    <Pressable
-      onPress={onOpen}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={m.chart.rowHint}
-      accessibilityActions={actions ? [{ name: 'activate' }, ...actions] : undefined}
-      onAccessibilityAction={actions ? onAction : undefined}
-      style={({ pressed }) => [
-        groupEdge(M, first, last),
-        { minHeight: RHYTHM.row, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 },
-        pressed ? pressedRow(M) : null,
-      ]}
-    >
-      {!first && <RowDivider M={M} inset={MARK + 14} />}
-      {mark}
-      <Text
-        style={{
-          ...TYPE.rowTitle, flex: 1, minWidth: 0,
-          color: has ? M.ink : M.sub,
-          fontWeight: has ? TYPE.rowTitle.fontWeight : '500',
-        }}
-        numberOfLines={2}
-      >
-        {has ? a.text : m.chart.fillAction({ n: ai + 1 })}
-      </Text>
-      {!!status && (
-        <Text style={{ fontSize: 13, fontWeight: '600', color: overdue ? alertInk(M) : M.sub, ...NUM }} numberOfLines={1}>
-          {status}
-        </Text>
-      )}
-    </Pressable>
-  );
-});
-
-/** 바닥줄의 이웃 영역 글자 버튼 — 반쪽씩 */
-function FooterLink({
-  M, label, speech, align, onPress,
-}: {
-  M: Palette;
-  label: string;
-  speech: string;
-  align: 'left' | 'right';
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={speech}
-      style={({ pressed }) => ({
-        flex: 1, minWidth: 0, justifyContent: 'center',
-        alignItems: align === 'left' ? 'flex-start' : 'flex-end',
-        opacity: pressed ? 0.5 : 1,
-      })}
-    >
-      <Text style={{ fontSize: 13.5, fontWeight: '700', color: M.ink }} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}

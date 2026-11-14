@@ -13,6 +13,9 @@ async function tabSpan(page, h) {
     const b = await h.tid(h.TID.tab(tab)).boundingBox();
     if (b) boxes.push(b);
   }
+  // 담기 단추도 같은 막대 안에(떠 있는 막대는 560에서 멈추고 가운데)
+  const add = await h.tid(h.TID.tabAdd).boundingBox();
+  if (add) boxes.push(add);
   return { left: Math.min(...boxes.map((b) => b.x)), right: Math.max(...boxes.map((b) => b.x + b.width)) };
 }
 

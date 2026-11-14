@@ -4,7 +4,7 @@ import type { Like } from '../types';
 
 export default {
   head: 'Paper pattern',
-  dots: 'Dots (default)',
+  dots: 'Dots',
   grid: 'Grid',
   lines: 'Lined',
   blank: 'Plain',

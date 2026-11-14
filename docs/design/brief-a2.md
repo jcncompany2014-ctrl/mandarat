@@ -1,0 +1,118 @@
+# Direction A, round 2: complete it and perfect it
+
+The owner saw Home and the chart of the three directions and chose **A, 인쇄된 한 장**, with one instruction: "A를 더 완벽하게 만들어봐" (make A more perfect). Directions B and C are closed. Their folders stay as a source of ideas.
+
+Round 1 gave A a real system: `docs/design/mockups/a/direction.md` (the two-ink rule, tokens, type roles, geometry), `tokens.css`, `shared.js`, a kit sheet, and seven screens. Round 2 has two jobs:
+
+1. **Complete it.** Draw the rest of the app in A, so no screen is left to guess when the app is built.
+2. **Perfect it.** Critique and fix in rounds until critics find nothing a senior designer would refuse to sign.
+
+Read `docs/design/brief.md` first (the audit summary, the shared skeleton S1–S8, how to build and render). Everything there still holds. Then read `docs/design/mockups/a/direction.md` in full and open `docs/design/mockups/a/_kit.png`. This file adds to them.
+
+## The bar
+
+"Would Apple feature this, and would a Korean user in their twenties or thirties show it to a friend?" The audits' sentence about the old design was "a careful removal of bad taste, not yet an identity". A's identity is the two-ink rule: what the printer made is pale, cool and small; what the owner wrote is dark, warm and large. A screen that does not show that rule at a glance is not finished.
+
+Three things to protect while polishing:
+- **Quiet.** Stationery is calm. Do not add decoration to make a screen "richer". Fix hierarchy, rhythm and alignment instead.
+- **One hand.** Every screen must look drawn by the same person from the same kit. New parts are built from the tokens and from `shared.js`, never restyled locally.
+- **The owner's words win.** On every screen the largest, darkest thing is something the owner wrote or did, never a label.
+
+## Screens to add
+
+Same rules as round 1: 390×844, no status bar, demo data from `/tools/design-mockups/data.json` (invent nothing that contradicts it; where a screen needs data the file lacks, such as a reminder time, use plain realistic values and list them in your report). Each screen names the audit findings it must answer; read those findings before drawing (grep the id in `docs/design/audit/`). Look at the current app's version of the screen first (paths below are in `/tmp/web-smoke` unless they start with `/tmp/design-shots`).
+
+| File | Screen | Must show | Findings to answer | Current app |
+|---|---|---|---|---|
+| `stats.html` | 통계 | One sentence that interprets the week above its chart; the chart filling in as the page's best picture; streak shown kindly; sections without data collapsed to a line | HL-03, HL-07, FI-16, CD-13, TY-09 | `ko-tab-stats.png`, `/tmp/design-shots/light-tall-tab-stats.png` |
+| `onboarding.html` | First run, typing the goal (keyboard up; draw a plain iOS keyboard as a grey block of the right height, 336pt) | The centre cell of a 3×3 in real colours is the input; the eight default areas around it in their dyes; one heading; one button | FI-01, M1 (first-impression), HL-15, TY-12 | `ko-xi-onboarding.png` |
+| `editor.html` | 칸 편집 sheet for the habit "11시 취침" (건강) | An inset sheet over the dimmed block; text field first; exactly three kinds of selection control (check box, choice row, segment), each with one job; the area's dye as the only colour; one ink primary button | CI-02, HL-10, FI-17, CI-07 | `ko-xa-editor-habit.png` |
+| `sheet.html` | 실천 시트 for "주 3회 운동" | The 3×3 locator; today's check on the leading side; this week as a plain statement plus seven day boxes with weekday letters; two link rows with chevrons; memo lines | HL-16, CI-12, CI-13, M3 (components) | `/tmp/design-shots/light-action-sheet.png` |
+| `add.html` | 담기 sheet (keyboard up) | One field on the keyboard; the area picker as eight dye marks with names; recently added lines appear above the field as written lines | CI-01, M3 (motion-feel), M-13 | `/tmp/design-shots/light-quick-add.png` |
+| `focus.html` | 25분 집중, 12:41 left, for "이력서 갱신" | The 5×5 minute grid as the hero (about 300pt), the current minute filling; the task name above it; figures in MaruBuri; pause and finish as real buttons | M-11, M5 (motion-feel) | `/tmp/design-shots/light-focus-timer.png` |
+| `dayclose.html` | 오늘 with all ten done and the day closed | The finished list folded to a closing line; the ledger double rule; the day's mark; mood and one line as one small module; "enough for today", no nagging | HL-11, M-09, planner-apps takeaway 13 | `ko-xh-closed.png`, `ko-xh-closed-bottom.png`, `ko-xd-list-bottom.png` |
+| `settings.html` | 설정 (top of the page) | A pinned header with back; choices as choice rows, not check boxes; appearance options as swatches; the order 핵심 목표, 알림, iCloud와 백업, 보기, 언어, 정보 | HL-13, CI-02, CI-10, M1 (motion-feel), CD-01 | `/tmp/design-shots/light-settings.png`, `/tmp/design-shots/light-tall-settings.png` |
+| `year.html` | 한 해 돌아보기 for an archived 2025 | "표가 채워진 모습" as four thumbnails that really differ; four stat tiles at one size; the sheet as the page, not a box | CH-03 (year frames), CH-17, TY-10, HL-14 | `ko-year-review-390.png`, `ko-year-sheet.png` |
+| `widgets.html` | A phone Home Screen and Lock Screen with our widgets (canvas 780×844, two phones side by side, plain grey wallpaper) | Small widget (the L1 chart and 오늘 1/10), medium widget (three rows with check boxes), lock-screen rectangular and circular in opaque greys with no hue, the focus Live Activity | TY-20, M4 (components), grid-dataviz "Home thumbnail" | none (never captured) |
+| `store.html` | App Store screenshots 1 to 3 (canvas 1290×932: three 6.9" frames at 430×932 each, scaled) | Posters, not captures: a two-line headline in MaruBuri at two to three times the caption size, the screen cropped to its best part, different composition per frame; frame 1 shows the idea (the sheet filling in), not the dense grid | FI-05, store-icon-onboarding memo | `store/screenshots/ko/APP_IPHONE_67/` in the repository |
+| `share.html` | The share image, 4:5 (canvas 540×675) | The sheet at near full width, the goal as title, the folio, the L0 mark and wordmark; legible at feed size | CH-12, FI-09 | `ko-share-poster.png` |
+
+## Ideas from B and C worth trying in A's own language
+
+Look at `docs/design/mockups/b/home.png`, `b/chart.png`, `c/home.png`, `c/chart.png`. Take an idea only if it survives the two-ink rule.
+
+- From B: an area glyph beside the area's name wherever an area is named in a row (identity that does not rest on colour alone, CI-05). The app already has eight hand-drawn glyphs in `src/components/AreaIcons.tsx`; redraw them in A's line weight.
+- From B: on the chart tab, the space under the sheet holds the eight areas with n/8 in chart position (a 3×3 of names and counts round the L0 mark), instead of blank paper.
+- From C: "6개 더 있어요 ›" under the Home list, so the list ends with a door.
+- From C: the header of the chart tab carries the two figures (오늘 1/10, 달성 24/64) under the sheet, set large.
+- From the type-and-colour memo (`docs/design/refs/type-color.md`): two pairs of area colours are too close (비색 and 오디 under deuteranopia; 쪽빛 and 비색, 황토 and 주홍 for everyone). A kept the current hues. Re-derive the eight within A's limits (cream text on a dye at 4.6:1 or better, ink on a wash at 9:1 or better) so that chart neighbours are distinct, using the memo's "A 미색 고침" or "B 활판" set as the start. Show the old and new sets side by side in `_kit.html` so the owner can see what changed.
+
+## Open questions from round 1 to settle
+
+1. **The seal.** Round 1 gave vermilion a third job: a solid mark for a finished whole (an area at 8/8, a closed day, 64/64). The owner banned "stamps of any kind" earlier, meaning the cute 참 잘했어요 stamp. Draw the finished states so they work **without** a seal (ledger double rule, the name cell's tick, a line of text) and, separately, show the small vermilion seal as an option in `_kit.html`, labelled as an option. The owner decides.
+2. **The tick is writing ink**, not vermilion. Round 1's reasoning is sound (34 red ticks would drown "today"). Keep it.
+3. **MaruBuri** adds about 2 MB and must be confirmed as OFL on Naver's page before it ships. Design with it; note every place it is used so the cost is visible.
+
+## Art director's notes on round 1
+
+Seen in `a/home.png`, `a/chart.png` and `_kit.png` as they stood when round 2 began. Check each against the current files; some may already be fixed.
+
+1. **Home, hero.** The thumbnail and the two fields are the right idea. Check that the fields' rules register exactly with the thumbnail's top and bottom, that "오늘 1/10" reads before "달성 24/64칸", and that the goal never orphans a syllable when it is longer than the demo's five syllables (try "올해는 몸과 마음을 단단하게 만드는 한 해").
+2. **Home, bottom.** The 8개 영역 ledger is cut by the floating bar in the first view. Either end the first view cleanly at the week strip or let the ledger start lower; a half-covered heading looks like an accident.
+3. **Chart tab.** About 250pt under "다음 할 일" is blank. Use it (see the idea from B above) or bring the next-step row and the figures into one composed block.
+4. **Active tab.** A filled glyph and a bolder label are subtle on a paper capsule. Make the active place unmistakable in A's language (for example an ink underline under the glyph, as a printed index mark), without a pill.
+5. **Ghost 正.** The printed ghost of 正 behind the written strokes is this direction's best small idea. Make sure the written strokes sit exactly on the ghost and that the ghost is visible but below 2:1.
+6. **Sunday in vermilion** is right for a Korean calendar. Saturday may stay print ink.
+7. **Check box.** The done state (wash fill, ink tick that overshoots) is right. The empty box edge must be 3:1 or better on cream.
+8. **The 담기 capsule** is the only heavy object on the page. Good. Keep everything else off that weight.
+
+## How round 2 runs
+
+1. Builders draw the new screens from the kit. They do not edit `tokens.css`, `shared.js` or `direction.md`; a part the kit lacks goes in a file of the builder's own and is listed in the report.
+2. Critics review every screen through four lenses (craft; concept and user; rules and buildability; one hand across all screens). A finishing designer then fixes, moving new shared parts into the kit.
+3. Steps 2 repeats until a round finds no P0 or P1, or three rounds have run.
+4. The last pass updates `direction.md` and `_kit.html` so they are the specification the app will be built from.
+
+## Decisions after the build round (art director)
+
+All twelve new screens are drawn. These decisions settle what the builders left open. Critics and finishing designers follow them.
+
+1. **종이 무늬 stays.** The app ships four paper patterns (무지, 점, 모눈, 줄) and the store text names them, so A keeps the option. A pattern is printed furniture: drawn in `--print-rule`, on the page ground only, registered to the 6pt and 24pt module so list rules land on it. Default is 무지 (what every screen shows now). Settings › 보기 gets a second swatch row for it beside 화면 모드, and `_kit.html` shows one screen (Home) on 점 and on 모눈 to prove the registration.
+2. **Options A drops, pending the owner:** the five paper colours (replaced by 화면 모드 자동 / 밝게 / 어둡게), 포인트 컬러 (the signal is always vermilion) and 칸 모서리 (cells are square). Do not draw them. List them in `direction.md` under "left out" so the owner can confirm.
+3. **One brand mark.** The icon's drawing (eight dyes round the ink core on the printed lattice) is the mark. Use the same drawing, simplified by size, on the share image's foot, the onboarding eyebrow, the store frames and the settings colophon. Retire any second variant.
+4. **No duplicate counts side by side.** On the Home Screen the medium widget says what is left ("9개 남음") while the small one says 오늘 1/10. On 하루 마감 the day's 正 appears once.
+5. **The streak on 통계** keeps the figure and the sentence. The 正 beside it goes unless a critic can show it reads at a glance to someone who has never seen the week strip.
+6. **The editor** is drawn open (all controls visible) as the specification of the controls. `direction.md` states the default: it opens with the text field and 유형 only, and 반복 and 알림 unfold when they apply.
+7. **Dark is checked on more than Home.** Add `chart-dark.html`, `today-dark.html`, `block-dark.html` and `sheet-dark.html` (the same pages with `<meta name="mock:dark" content="1">`) and fix whatever does not hold at night. A screen may not hard-code a colour.
+8. **Stress checks**, drawn once in `_stress.html` (not a screen; canvas 780×1200): the L2 sheet with English and with Japanese sample labels (use the app's own samples in `src/data` and `src/i18n/{en,ja}`), Home's hero with a long goal ("올해는 몸과 마음을 단단하게 만드는 한 해"), and Home at 375pt wide. Fix what breaks: no word split without a hyphen, no single character alone on a line, one text size per block, nothing clipped.
+9. **Empty paper is allowed, accidents are not.** Where a screen leaves a band of paper (focus, 하루 마감, the chart tab), either compose it (anchor, align, give it a job) or close the page above it. A critic should not be able to tell whether a blank band was meant.
+10. **Sunday stays vermilion everywhere a week is drawn**, including the editor. "The area's dye is the only colour" in the editor means no second accent for controls; the calendar convention is not an accent.
+
+## Softening pass (owner: "다 좋은데 지금 진짜 전체적으로 너무 딱딱해 보여")
+
+The owner likes A but finds it too stiff overall. The kit has been softened (see the header comment of `tokens.css`); every screen must now follow it. What made A stiff, and what replaces it:
+
+| Stiff | Soft |
+|---|---|
+| Cool blue-grey print ink on cream (graph-paper look) | Warm pencil grey (`--print` #74695B, `--print-edge` #908472, `--print-rule` #E3DBCC). Never hard-code the old blue-greys (#3D4B5F, #55657A, #76869C, #9FADC0, #BCC7D5, #C9D3E0, #ACB8C9). |
+| Rules everywhere: masthead rule, rule on top of every list, boxed cells, vertical dividers, booktabs tables | Space does the grouping. No masthead rule, no top rule on lists, no vertical rules, no boxed cells. Between list rows only a faint hairline inset to the text. A table is aligned columns with at most faint row hairlines. |
+| Sharp square boxes | Small round corners: check box 6, chart cell 3, zoomed cell 10, tags 2, segments and inputs 10. Tiles with small gaps instead of ruled grids (the chart, the 5×5 focus grid, week charts, mood choices). |
+| Today as a cut vermilion corner | A small vermilion dot (6pt; 5pt under a weekday). |
+| 11pt tracked labels | 13pt plain labels (`.t-label`), section names `.t-label.is-section` (14/600). |
+| Tab titles in MaruBuri Regular blue-grey | Tab titles Pretendard Bold in ink (`.t-title`). MaruBuri stays for the owner's goal, the owner's words as a title (`.t-title.is-written`), figures and ritual prompts. |
+| Square line caps, miter joins | Round caps and joins on glyphs and the 正 tally. |
+| Hard-edged floating bar and sheets | A lighter capsule and sheets lifted by a soft warm shadow (`--float-shadow`), no outline. |
+
+Still out (owner-decisions 7): rounded cards, pill chips, badges, gradients (except the bar's scroll fade), sparkles, emoji, stamps. Softness comes from warmth, fewer lines, space and gentle corners, not from cards.
+
+## Clean round (owner: "어어 훨 낫다 좋다")
+
+After the softening pass the owner still disliked the 正 tally, the typefaces, the crowded 9×9, the cream paper and the onboarding ("너무 짜쳐"). The kit was changed again and the owner approved the result on Home, onboarding, first run, the chart, the block and Today. Every other screen now follows it.
+
+1. **White paper, neutral greys.** `--paper` is #FFFFFF, `--tile` #F3F4F6, the greys come from tokens.css. No cream, no warm tint, no hard-coded colours.
+2. **One typeface: Pretendard.** `--serif` now points at Pretendard; never set MaruBuri. Big words are Pretendard 700 with negative tracking (goal 30/40, titles 26/36, figures 26/34 tabular). No light or thin weights for figures.
+3. **No 正 anywhere.** Do not call `A.tally`. The week is `A.weekStrip` (seven small bars). A count is a number.
+4. **The 9×9 overview is a colour map** (`A.chart(target, doc, { level: 'L2', map: true, width: 342 })`): area names and the goal only. A screen that must show the whole chart small (year, share, store) uses the map or L1. The zoomed block keeps its text.
+5. **Solid dye only for the 16 area cells of the chart.** Anywhere else an area colour appears as a choice, a tag or a preview, use the pale tint (`A.tint(i)`) with the dye as the text colour, as onboarding.html does. No big saturated blocks: they read as cheap.
+6. **Calm composition.** One question or one hero per screen, generous space, one primary button. Fields and tracks are `--tile` with 12pt corners. No outlines where a tint will do.
+7. Still out: rounded cards with shadows, pill chips, badges, gradients, emoji, stamps.

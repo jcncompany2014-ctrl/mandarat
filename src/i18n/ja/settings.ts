@@ -1,4 +1,4 @@
-// 'settings' namespace — Settings rows, paper and accent choosers, template confirm, backup rows, saved copies, colophon and alerts (X-G).
+// 'settings' namespace — Settings rows, reminder row notes, theme, template confirm, backup rows, saved copies, colophon and alerts (X-G).
 import type ko from '../ko/settings';
 import type { Like } from '../types';
 import fmt from './fmt';
@@ -14,17 +14,20 @@ export default {
   goalLabel: ({ goal }) => `中心の目標、${goal}`,
   goalHint: '編集',
 
-  secView: '表示',
-  subPaper: '紙',
-  paperLabel: ({ name }) => `紙、${name}`,
-  swatchGlyph: 'あ',
-  subAccent: 'アクセントカラー',
-  accentLabel: ({ name }) => `アクセントカラー、${name}`,
-  subShape: 'マスの角',
-  shapeLabel: ({ name }) => `マスの角、${name}`,
+  notifyMorningMeta: 'やることがある日だけ',
+  notifyEveningMeta: '残りがある日だけ',
+  notifyReviewMeta: ({ dow }) => `毎週${dow}`,
+  notifyTimeHint: '時刻を変える行を開きます',
 
-  secRecords: '記録',
-  subBackup: 'バックアップ',
+  secCloud: 'iCloudとバックアップ',
+
+  secView: '表示',
+  subLook: '画面モード',
+  lookAuto: '自動',
+  lookLight: 'ライト',
+  lookDark: 'ダーク',
+  lookLabel: ({ name }) => `画面モード、${name}`,
+
   exportTitle: 'バックアップを書き出す',
   exportHint: ({ age }) => `${age}。記録をファイルに書き出します`,
   exportSaved: 'バックアップファイルを保存しました',

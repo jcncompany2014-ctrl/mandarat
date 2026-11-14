@@ -18,7 +18,6 @@ export default {
   heroStreak: 'Streak',
   heroDays: ({ n }) => ` ${days(n)}`,
   heroDone: 'Achieved',
-  heroOf64: 'of 64 squares',
   streakStart: 'Do one to start',
   streakKept: 'Kept up through today',
   streakNext: ({ n }) => `Do one today for day ${n}`,
@@ -28,8 +27,6 @@ export default {
   recordBest: ({ n }) => `Best ${n} ${days(n)}`,
   recordMonth: ({ n }) => `${n} ${plural(n, 'square', 'squares')} achieved this month`,
 
-  secWeek: 'This week',
-  reviewLink: 'Review ›',
   reviewLinkSay: 'Weekly review',
   weekDid: ({ n }) => `Done ${n} ${times(n)} this week`,
   weekNoDone: ({ n }) => `Done ${n} ${times(n)} this week. A square is achieved when you finish a one-time action or reach its target.`,
@@ -40,7 +37,6 @@ export default {
   barTodaySay: ({ i, n }) => `Today, ${fmt.dowLong({ i })}: ${n} ${times(n)}`,
   barFutureSay: ({ i }) => `From ${fmt.dowLong({ i })}: not yet`,
 
-  ledgerAdded: 'Added',
   ledgerFocus: 'Focus',
   ledgerNone: 'none',
   ledgerSay: ({ label, value }) => `${label}: ${value}`,
@@ -61,7 +57,6 @@ export default {
   moreWeeks: ({ n }) => `Show ${n} more ${plural(n, 'week', 'weeks')}`,
   more: 'Show more',
 
-  secTenWeeks: 'Last 10 weeks',
   since: ({ date }) => `Since ${date}`,
   monthLabel: ({ n }) => MON[n - 1] ?? '',
   bestNone: 'No record yet',
@@ -106,4 +101,30 @@ export default {
   moodNoneSay: ({ days: d }) => `No mood logged in the last ${d} ${days(d)}`,
   moodSay: ({ days: d, n }) => `Mood logged on ${n} of the last ${d} ${days(d)}`,
   moodDaySay: ({ date, word }) => `${date}: ${word}`,
+
+  eyebrow: ({ y, w, days }) => `${fmt.weekNo({ y, w })} · ${days} ${plural(days, 'day', 'days')} left`,
+  heroCells: ({ done }) => `${done}/64`,
+  monthCells: ({ n }) => `${n} ${plural(n, 'square', 'squares')} this month`,
+  scopeWeek: 'This week',
+  scopeTen: '10 weeks',
+  scopeYear: 'This year',
+  reading: ({ top, n, low, lowN }) => {
+    const did = (k: number) => (k === 1 ? 'once' : `${k} ${times(k)}`);
+    if (!low) return `You worked on ${top} ${did(n)}`;
+    if (!(lowN > 0)) return `You worked on ${top} ${did(n)}, and not yet on ${low}`;
+    return `You worked on ${top} ${did(n)} and on ${low} ${did(lowN)}`;
+  },
+  readingEven: ({ k, n }) => `You worked on ${k} areas ${n === 1 ? 'once' : `${n} ${times(n)}`} each`,
+  weekAll: ({ n }) => `${n} ${times(n)} in all`,
+  doneHint: 'A square is achieved when you finish a one-time action or reach its target.',
+  areaCountSay: ({ name, n }) => `${name}: ${n} ${times(n)}`,
+  habitNone: 'No habits set',
+  mindNone: 'No mindset squares',
+  focusNone: 'No focus time yet',
+  linkSet: 'Set up',
+  linkSetHint: 'Choose a square’s kind on the Mandalart',
+  linkRate: 'Rate',
+  linkRateHint: 'Opens a square to rate this week',
+  linkToday: 'Open Today',
+  linkTodayHint: 'Start a 25-minute focus from Today’s list',
 } satisfies Like<typeof ko>;

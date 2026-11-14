@@ -15,15 +15,16 @@ The checks that need a person, and the plan's full list, are in `docs/v2/plan.md
   phone/  (config.yaml + 12 flows)
     01-onboarding        goal → sample → start → the tabs are visible
     02-today-check       Today → check the first row → it reads checked
-    03-cell-edit         81-cell table → a cell → type → save → the text is on the table
+    03-cell-edit         chart tab (colour map) → block grid-block-0 → its cell grid-cell-0-0 (sheet › 칸 편집하기 if written)
+                         → type → save → the text is on the zoomed block
     04-focus             a Today row → sheet → 25-minute focus → pause → close
     05-language          Settings › English → back on Settings → tabs exist → back to 한국어
     06-reminders         Settings › morning reminder on → (OS prompt: 허용/Allow) → time row → off
     07-pro-sheet         Settings › Pro → buy and restore are visible (never tapped) → close
     08-year-close        Settings › 한 해 닫기 → page through → the start button (a fresh chart is blocked)
-    09-deeplink          mandarat://stats → Stats; mandarat://today → the Today tab is selected
+    09-deeplink          mandarat://stats → Stats › 올해 (stats-scope-year) → stats-year; mandarat://today → Today is selected
     10-print-sheet       mandarat://print → paper and print buttons visible → swipe the sheet closed; no AirPrint
-    11-full-grid         the 81-cell table → zoom one area → back to the whole table
+    11-full-grid         colour map (grid-block-0, -7) → grid-block-3 → the area page with its cells → ‹ 만다라트 (detail-back) → map
     12-backup            Settings › 백업 내보내기 → the iOS share sheet → close it (nothing is saved)
   ipad/   (config.yaml + 2 flows)
     01-spread            both pages (spread-left, spread-right) in portrait and landscape
@@ -45,6 +46,8 @@ Every flow:
   - the Settings row `예시로 채우기`, the fallback in `common/sample.yaml` that is used only when `onb-sample` did not fill the chart.
 
 Function ids are matched with a regex: `today-row-.*` with `index: 0` means "the first row".
+
+**Design A (2026-11).** The chart tab draws a colour map: the map has one button per block (`grid-block-<area>`, `grid-block-c` for the centre), and the action cells (`grid-cell-<area>-<n>`) exist only on the zoomed block. A flow that taps a cell first taps the block that holds it. The zoomed area page's back link carries `detail-back` in the chart tab too (as in the area page opened from Home, Today or Stats). Stats shows one scope at a time, so `stats-year` sits under the 올해 scope: tap `stats-scope-year` first. `tests/a-r2b.test.js` checks both rules for every flow.
 
 The e2e build (`eas.json` › `build.e2e`) sets `EXPO_PUBLIC_E2E=1`. With it, `src/lib/useReducedMotion.ts` reports reduced motion as always on and never asks the OS. That way flows don't wait on decorative animation. The same build also turns Sentry off (`crash.native.ts`).
 
@@ -108,6 +111,22 @@ The step names and inputs were checked against `@expo/build-tools` 25.1.1 (`dist
 - the workflow's jobs and needs, the e2e profile (simulator, `EXPO_PUBLIC_E2E`), the custom step names and inputs, the `steps.<id>` references, and that the `flow_path` folders exist.
 
 `tests/release.test.js` pins the `EXPO_PUBLIC_E2E` reduced-motion lines.
+
+## Device-QA — design A (the owner, on a preview build; `docs/design/build-plan.md` §5)
+
+Dark:
+- [ ] Settings › 보기 › 화면 모드 자동 · 밝게 · 어둡게 on every tab, sheet and the focus page. Switch dark mode in Control Centre with the app open and in the background: 자동 follows, 밝게 / 어둡게 hold.
+- [ ] An upgrade over the previous build keeps the data and turns the old paper into the look: 다크 → 어둡게, 크림 · 화이트 · 파스텔 → 밝게, 연꽃 (never changed) → 자동.
+- [ ] Maestro has no dark run; capture a few screens in dark on the simulator (Simulator › Features › Toggle Appearance) and compare with `docs/design/mockups/a/home-dark.png`.
+
+Widgets:
+- [ ] Small ("● 오늘 1/10" + map), medium ("● 오늘 할 일" + three tickable rows), large (map beside the date and goal + six rows), and the Lock Screen rectangular (next action with a box), circular (ring gauge "오늘 1/10") and inline, each in light, dark and tinted (iOS 18 › Customize › Tinted), on light and dark wallpapers.
+- [ ] Tick a row in the medium widget, open the app: the row is ticked. The rectangular widget's box ticks the next action (drop the box if it misbehaves, build-plan §4.1).
+- [ ] The circular gauge is a ring, not a line; the large widget fits on an iPhone SE; no time is shown twice under the Live Activity bar.
+
+Icon and splash:
+- [ ] Light, dark and tinted icons on the Home Screen, in Settings and in Spotlight; the dark icon's dim core is acceptable.
+- [ ] The light and dark splash fade into the app with no jump.
 
 ## Device-QA (the lead, after wave 5 is merged)
 

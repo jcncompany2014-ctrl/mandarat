@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1290x932">
+<title>A · 앱 스토어 스크린숏 1–3</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-widgets.css">
+<style>
+  /* Three 6.9" frames (1320 × 2868 px = 440 × 956pt), drawn here at 430 × 932 each.
+     Posters, not captures. Clean round: white and pale grounds, Pretendard only, the colour map.
+     One system for all three: a printed caption (16) and a two-line headline in Pretendard Bold
+     (40/52, 2.5× the caption) at the same place; below it one picture, cropped to its best part.
+     What changes per frame is the ground and the picture:
+       1 paper   the whole colour map, as the 만다라트 tab draws it, with its folio line; the mark and
+                 wordmark at the foot (the one brand mark, decision 3)
+       2 tile    today's page, a white sheet rising from the bottom on the --tile ground
+       3 wall    the Home Screen on a pale wallpaper: our two white widgets and the icon; other apps
+                 are frosted blanks with no labels (the large-icon layout), so only ours has colour
+     Grounds are the app's own greys. No dye ground: a dye means an area. */
+  html, body { width: 1290px; height: 932px; background: var(--paper); }
+  .frame { position: absolute; top: 0; width: 430px; height: 932px; overflow: hidden; }
+  .f1 { left: 0; background: var(--paper); }
+  .f2 { left: 430px; background: var(--tile); }
+  .f3 { left: 860px; background: var(--print-mid); }
+
+  .cap { position: absolute; left: 32px; top: 84px; font: 600 16px/22px var(--sans); color: var(--print); }
+  .head { position: absolute; left: 32px; right: 24px; top: 114px; font: 700 40px/52px var(--sans); letter-spacing: -0.03em; color: var(--ink); }
+  .f3 .cap { color: var(--print-strong); }
+
+  /* 1: the whole map on the 32pt margins, its folio line above, the brand at the foot */
+  .folio1 { position: absolute; left: 32px; right: 32px; top: 300px; height: 22px; display: flex; justify-content: space-between; align-items: baseline;
+    font: 500 15px/22px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
+  .folio1 b { font: 700 16px/22px var(--sans); color: var(--ink); margin-left: 4px; }
+  #map1 { position: absolute; left: 32px; top: 336px; }
+  .brand1 { position: absolute; left: 32px; bottom: 64px; display: flex; align-items: center; gap: 8px; }
+  .brand1 span { font: 700 15px/20px var(--sans); letter-spacing: -0.01em; color: var(--print-strong); }
+  .brand1 #mark1 { display: block; }
+
+  /* 2: today's page, a white sheet with the inset sheet's round top corners, off the bottom */
+  .page2 { position: absolute; left: 24px; top: 300px; width: 340px; height: 600px; transform-origin: 0 0; background: var(--paper);
+    padding: 16px 0 0; border-radius: 28px 28px 0 0; }
+  .page2 .a-header { margin: 0 22px; }
+  .page2 .a-list { margin: 10px 22px 0; }
+
+  /* 3: the Home Screen, scaled 1.12 and centred on the frame */
+  .home3 { position: absolute; left: 0; top: 0; width: 364px; height: 440px; transform-origin: 0 0; }
+  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; overflow: hidden;
+    background: color-mix(in oklab, var(--paper) 42%, transparent); }
+  .app-ours { box-shadow: var(--float-shadow); }
+</style>
+</head>
+<body>
+<section class="frame f1">
+  <div class="cap">만다라트 계획표</div>
+  <div class="head">한 해 목표를<br>한 장에 채워요</div>
+  <div class="folio1"><span id="form1"></span><span>달성<b id="prog1"></b></span></div>
+  <div id="map1"></div>
+  <div class="brand1"><span id="mark1"></span><span>만다라트</span></div>
+</section>
+
+<section class="frame f2">
+  <div class="cap">오늘 할 일</div>
+  <div class="head">표에 적은 일이<br>오늘 할 일이 돼요</div>
+  <div class="page2" id="page2"><div id="h2"></div><div class="a-list" id="rows2"></div></div>
+</section>
+
+<section class="frame f3">
+  <div class="cap">위젯</div>
+  <div class="head">홈 화면에서<br>바로 체크해요</div>
+  <div class="home3" id="home3">
+    <div id="small3" style="position:absolute;left:26px;top:0"></div>
+    <div class="app app-ours" id="icon3" style="left:212px;top:6px"></div>
+    <div class="app" style="left:304px;top:6px"></div>
+    <div class="app" style="left:212px;top:98px"></div>
+    <div class="app" style="left:304px;top:98px"></div>
+    <div id="medium3" style="position:absolute;left:26px;top:190px"></div>
+    <div class="app" style="left:26px;top:380px"></div>
+    <div class="app" style="left:119px;top:380px"></div>
+    <div class="app" style="left:212px;top:380px"></div>
+    <div class="app" style="left:304px;top:380px"></div>
+  </div>
+</section>
+
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/icon-mark.js"></script>
+<script src="/docs/design/mockups/a/parts-widgets.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, rows = v.today.rows;
+  const find = (t) => rows.find((r) => r.text === t);
+
+  /* 1 ─ the whole colour map (names and the goal only), as chart.html draws it, at the 366pt measure */
+  document.querySelector('#form1').textContent = `${v.date.year} 만다라트`;
+  document.querySelector('#prog1').textContent = `${v.progress.done}/${v.progress.of}칸`;
+  A.chart('#map1', doc, { level: 'L2', map: true, width: 366 });
+  AI.app('#mark1', { size: 22, pad: 0, gap: 0.06 });
+
+  /* 2 ─ today's page on the tile ground */
+  A.header('#h2', { eyebrow: `${v.date.month} ${v.date.day}일 ${v.date.weekday}`, title: '오늘', figure: `${v.today.done}/${v.today.of}` });
+  document.querySelector('#rows2').innerHTML = [
+    A.todayRow(doc, find(v.weekFocus[0].text), { rightPrint: '중점' }),
+    A.todayRow(doc, rows[0]),
+    A.todayRow(doc, rows[1]),
+    A.todayRow(doc, rows[3]),
+    A.todayRow(doc, rows[4]),
+    A.todayRow(doc, find('하루 물 2L')),
+    A.todayRow(doc, rows[6]),
+  ].join('');
+  document.querySelector('#page2').style.transform = `scale(${382 / 340})`;
+
+  /* 3 ─ the Home Screen widgets */
+  W.small('#small3', doc);
+  W.medium('#medium3', doc, [
+    { text: v.weekFocus[0].text, area: v.weekFocus[0].area, rightPrint: '중점' },
+    { text: rows[0].text, area: rows[0].area, right: rows[0].right },
+    Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
+  ]);
+  AI.app('#icon3', { size: 60 });
+  const k = 1.12, h3 = document.querySelector('#home3');
+  h3.style.transform = `scale(${k})`;
+  h3.style.left = ((430 - 338 * k) / 2 - 26 * k) + 'px';
+  h3.style.top = '300px';
+});
+</script>
+</body>
+</html>

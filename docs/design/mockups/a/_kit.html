@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="852x1188">
+<title>A · kit (not a screen: every shared part once, with the call that draws it)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  .kit { display: flex; gap: 24px; padding: 24px; }
+  .col { width: 390px; position: relative; }
+  .cap { font: 500 11px/18px var(--sans); letter-spacing: .04em; color: var(--print); margin: 18px 0 6px; }
+  .cap:first-child { margin-top: 0; }
+  .line { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="kit">
+  <div class="col">
+    <div class="cap">A.header — back, written title, figure, action</div>
+    <div id="h1"></div>
+    <div class="cap">A.chart L2 · A.blankDoc (first run) · focus · print</div>
+    <div id="first"></div>
+    <div class="cap">A.header — printed title, figure, action</div>
+    <div id="h2"></div>
+    <div class="cap">A.todayRow / A.row inside .a-list</div>
+    <div class="a-body"><div class="a-list" id="rows"></div></div>
+    <div class="cap">.a-btn · .is-secondary · .is-small · A.seal · .a-link</div>
+    <div class="line"><div class="a-btn">시작하기</div><div class="a-btn is-secondary">나중에</div><div class="a-btn is-small">정하기</div><span id="seal"></span><span class="a-link" id="link"></span></div>
+    <div class="cap">A.weekStrip</div>
+    <div id="week"></div>
+  </div>
+  <div class="col">
+    <div class="cap">A.block — 건강, with opts.extra</div>
+    <div id="block"></div>
+    <div class="cap">A.chart L1 — cell 19 · 13 · 9 · 7</div>
+    <div class="line" style="align-items:flex-end"><div id="l1a"></div><div id="l1b"></div></div>
+    <div class="line" style="align-items:flex-end;margin-top:12px"><div id="l1c"></div><div id="l1d"></div><div id="l1e"></div></div>
+    <div class="cap">A.mark — heart 16 · 24 · 32, sheet 64 · 120</div>
+    <div class="line" id="marks" style="align-items:flex-end"></div>
+    <div class="cap">A.icon — each plain and active</div>
+    <div class="line" id="icons" style="color:var(--ink);gap:10px"></div>
+    <div class="cap">A.tally 0–7 · .a-today · .a-dye</div>
+    <div class="line" id="tally"></div>
+    <div class="cap">A.tabBar</div>
+    <div style="position:relative;height:76px"><div id="bar"></div></div>
+  </div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const blank = A.blankDoc(doc);
+  const q = (s) => document.querySelector(s);
+  A.header('#h1', { back: '만다라트', title: '건강', written: true, figure: '4/8', action: 'more' });
+  A.chart('#first', blank, { level: 'L2', cell: 41, focus: [0, 0], print: (c) => (c.row === 0 && c.col === 1 ? '주 3회 운동' : '') });
+  A.header('#h2', { eyebrow: '10월 14일 수요일', title: '오늘', figure: '1/10', action: 'settings' });
+  const rows = doc.view.today.rows;
+  q('#rows').innerHTML = A.todayRow(doc, rows[0]) + A.todayRow(doc, rows[2], { rightPrint: '중점' }) + A.todayRow(doc, rows[9]);
+  q('#seal').innerHTML = A.seal({ size: 28 });
+  q('#link').innerHTML = '전체 10개' + A.icon('chevron', { size: 16 });
+  A.weekStrip('#week', doc.view.week);
+  A.block('#block', doc, 0, { cell: 114, extra: (c) => (c.kind === 'action' && c.act.kind === 'habit' ? '<span class="t-meta">습관</span>' : '') });
+  A.chart('#l1a', doc, { level: 'L1', cell: 19 });
+  A.chart('#l1b', blank, { level: 'L1', cell: 19 });
+  A.chart('#l1c', doc, { level: 'L1', cell: 13 });
+  A.chart('#l1d', doc, { level: 'L1', cell: 9 });
+  A.chart('#l1e', doc, { level: 'L1', cell: 7 });
+  [[16, 'heart'], [24, 'heart'], [32, 'heart'], [64, 'sheet'], [120, 'sheet']].forEach(([s, v]) => { const e = document.createElement('div'); q('#marks').appendChild(e); A.mark(e, { size: s, variant: v }); });
+  q('#icons').innerHTML = ['home', 'chart', 'today', 'stats'].map((n) => A.icon(n) + A.icon(n, { active: true })).join('') + ['plus', 'settings', 'share', 'edit', 'more', 'chevron', 'back', 'close'].map((n) => A.icon(n)).join('');
+  q('#tally').innerHTML = '<span class="t-label"><i class="a-today"></i>오늘</span><span class="t-meta"><i class="a-dye" style="--d:var(--dye-4)"></i>관계</span>';
+  A.tabBar('#bar', { active: 'today' });
+});
+</script>
+</body>
+</html>

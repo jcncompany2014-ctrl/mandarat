@@ -22,19 +22,23 @@ test('core.dot — ko · en은 앞뒤 빈칸 있는 가운뎃점, ja는 전각 �
 test('R-5가 짚은 자리는 core.dot을 쓴다 — 손으로 쓴 ASCII 가운뎃점이 없다', () => {
   const sites = {
     'src/components/TemplateSheet.tsx': [/\.join\(m\.core\.dot\)/],
-    'src/screens/TodayModes.tsx': [/\$\{m\.core\.dot\}\$\{lead\.text\}/, /\{m\.core\.dot\.trim\(\)\}[\s\S]*\{m\.core\.dot\.trim\(\)\}/],
-    'src/components/TodayRow.tsx': [/\$\{area\}\$\{m\.core\.dot\}\$\{m\.sheet\.rowWritten\}/, /\{m\.core\.dot\.trim\(\)\}/],
-    'src/screens/Dashboard.tsx': [/\$\{m\.year\.homePrompt\}\$\{m\.core\.dot\}\$\{m\.year\.homePromptAction\}/],
-    'src/screens/Stats.tsx': [/\$\{m\.core\.dot\}\$\{parts\.month\}/],
+    // 오늘 보기(디자인 A, S3): 연속 기록 머리 · 습관 줄 · 보드 줄의 정보 줄을 core.dot으로 잇는다
+    'src/screens/TodayModes.tsx': [
+      /\$\{lead\.text\}\$\{m\.core\.dot\}\$\{m\.today\.streakBest\(/, /\$\{area\}\$\{m\.core\.dot\}\$\{plan\}/, /\$\{area\}\$\{m\.core\.dot\}\$\{metaText\(line\)\}/,
+    ],
+    'src/components/TodayRow.tsx': [/\$\{area\}\$\{m\.core\.dot\}\$\{m\.sheet\.rowWritten\}/, /\$\{area\}\$\{m\.core\.dot\}\$\{metaText\(metaLine\)\}/],
+    // 홈 마무리 안내(디자인 A): 보이는 글은 제목 · 정보 두 줄, 읽는 말은 core.listSep으로 잇는다
+    'src/screens/Dashboard.tsx': [/\$\{m\.year\.homePrompt\}\$\{m\.core\.listSep\}\$\{m\.year\.homePromptAction\}/],
+    'src/screens/Stats.tsx': [/\]\.filter\(Boolean\)\.join\(m\.core\.dot\)/],
     // R-5가 짚지 않았지만 같은 모양의 자리(F-1 넘겨줄 일 2)
     'src/lib/statsView.ts': [/parts\.join\(m\.core\.dot\)[\s\S]*parts\.join\(m\.core\.dot\)/, /\$\{line\}\$\{m\.core\.dot\}\$\{s\.thisWeek\}/, /\$\{dot\}\$\{word\}/],
     // 시트 제목 아래 한 줄은 sheet.kindPlan으로 잇는다(ja는 괄호 — 요일 목록의 ・와 섞이지 않게)
     'src/lib/actionSheet.ts': [/m\.kindPlan\(\{ name, plan \}\)/, /m\.kindPlan\(\{ name, plan: m\.onceAWeek \}\)/],
-    'src/overlays/ActionSheet.tsx': [/\$\{m\.core\.dot\}\$\{c\.reached/, /\$\{fmtDateLong\(due\.date\)\}\$\{m\.core\.dot\}/],
+    'src/overlays/ActionSheet.tsx': [/\$\{subtitle\}\$\{m\.core\.dot\}\$\{m\.sheet\.autoMeta\}/, /\$\{fmtDateLong\(due\.date\)\}\$\{m\.core\.dot\}/],
     'src/overlays/CellEditor.tsx': [/\$\{fmtDateLong\(due\)\}\$\{core\.dot\}/],
     'src/overlays/YearClose.tsx': [/\$\{yearLabel\(from, to\)\}\$\{m\.core\.dot\}/],
     'src/screens/year/YearReview.tsx': [/\$\{range\}\$\{m\.core\.dot\}\$\{m\.year\.currentChart\}/, /\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
-    'src/screens/year/YearSheet.tsx': [/\$\{label\}\$\{m\.core\.dot\}\$\{range\}[\s\S]*\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
+    'src/screens/year/YearSheet.tsx': [/\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
   };
   for (const [file, pats] of Object.entries(sites)) {
     const s = src(file);

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="800x900">
+<title>A · 글꼴 견본</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* the same top of Home, four ways: only the typeface changes */
+  body { background: var(--tile); }
+  .board { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  .card { background: var(--paper); border-radius: 18px; padding: 20px 22px 18px; height: 426px; display: flex; flex-direction: column; }
+  .name { font: 600 12px/16px 'Pretendard'; color: var(--print); margin-bottom: 14px; }
+  .name b { color: var(--ink); font-weight: 700; margin-right: 6px; }
+  .eye { font-weight: 500; font-size: 13px; line-height: 18px; color: var(--print); }
+  .goal { font-weight: 700; font-size: 30px; line-height: 40px; letter-spacing: -0.025em; color: var(--ink); margin-top: 2px; }
+  .figs { display: flex; gap: 28px; margin-top: 18px; }
+  .fig .l { font-weight: 500; font-size: 13px; line-height: 18px; color: var(--print); }
+  .fig .v { font-weight: 700; font-size: 26px; line-height: 34px; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .fig .v small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+  .sec { font-weight: 600; font-size: 14px; line-height: 18px; color: var(--print-strong); margin-top: 22px; }
+  .row { display: flex; gap: 14px; align-items: center; height: 54px; }
+  .row + .row { box-shadow: inset 0 0.5px 0 var(--print-rule); }
+  .box { width: 24px; height: 24px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px var(--print-edge); flex: none; }
+  .t { font-weight: 500; font-size: 16px; line-height: 23px; color: var(--ink); }
+  .m { font-weight: 400; font-size: 13px; line-height: 18px; color: var(--ink-2); }
+  .dye { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+</style>
+</head>
+<body>
+<div class="board" id="board"></div>
+<script>
+const FONTS = [
+  ['Pretendard', '프리텐다드', '지금 쓰는 글꼴. 토스·많은 앱의 기본'],
+  ['SUIT', '수트', '조금 더 둥글고 부드러움'],
+  ['Wanted Sans', '원티드 산스', '단정하고 또렷함, 숫자가 반듯함'],
+  ['LINE Seed KR', '라인 시드', '동글동글, 친근함'],
+];
+document.querySelector('#board').innerHTML = FONTS.map(([f, ko, note]) => `
+  <div class="card" style="font-family:'${f}', 'Pretendard', sans-serif">
+    <div class="name"><b>${ko}</b>${note}</div>
+    <div class="eye">10월 14일 수요일 · 42주</div>
+    <div class="goal">단단한 한 해</div>
+    <div class="figs">
+      <div class="fig"><div class="l">오늘</div><div class="v">1/10</div></div>
+      <div class="fig"><div class="l">달성</div><div class="v">24/64<small>칸</small></div></div>
+      <div class="fig"><div class="l">남은 날</div><div class="v">78<small>일</small></div></div>
+    </div>
+    <div class="sec">오늘 할 일</div>
+    <div class="row"><i class="box"></i><div><div class="t">11시 취침</div><div class="m"><i class="dye" style="background:var(--dye-1)"></i>건강 · 월·화·수·목·일 반복</div></div></div>
+    <div class="row"><i class="box"></i><div><div class="t">이력서 갱신</div><div class="m"><i class="dye" style="background:var(--dye-2)"></i>커리어 · D-2</div></div></div>
+    <div class="row"><i class="box"></i><div><div class="t">주 3회 운동</div><div class="m"><i class="dye" style="background:var(--dye-1)"></i>건강 · 이번 주 0/3회</div></div></div>
+  </div>`).join('');
+</script>
+</body>
+</html>

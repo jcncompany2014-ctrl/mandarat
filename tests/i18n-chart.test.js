@@ -14,17 +14,12 @@ const en = msg('en').chart;
 
 test('ko: 옮기기 전 글 그대로', () => {
   const same = {
-    done: '달성', sep: ', ', coreGoal: '핵심 목표', goalPrompt: '핵심 목표를 정해 주세요', prevArea: '이전 영역', nextArea: '다음 영역',
-    today: '오늘', editAreaName: '영역 이름 고치기', coreUnsetSay: '핵심 목표를 아직 정하지 않았어요',
-    centerBlockSay: '가운데 블록, 핵심 목표와 8개 영역', blockHint: '위아래로 쓸어 칸을 하나씩 읽어요. 두 번 누르면 크게 봐요',
-    zoomCenterSay: '가운데 블록을 크게 봐요', wholeSay: '81칸 전체를 봐요', wholeBtnSay: '81칸 전체 보기', wholeBtn: '81칸 전체',
-    centerBlock: '가운데 블록', legendSay: '칠한 칸은 달성, 옅게 깔린 칸은 영역 이름, 작은 색 네모는 오늘 할 일', legendArea: '영역 이름',
-    firstHint: '블록을 누르면 크게 볼 수 있어요', tabTitle: '만다라트', shareSay: '표 이미지로 공유', editGoal: '핵심 목표 고치기',
-    next: '다음 할 일', edit: '고치기', ofEightDone: ' / 8 달성', boardTitle: '실천 보드', emptyHint: '칸을 눌러 실천 8개를 채워요',
-    actionsTitle: '실천 8개', undoDone: '달성 풀기', markDone: '달성으로 표시', rowHint: '자세히 봐요', editText: '글자 고치기',
-    posterTitle: '목표 달성표', brand: '만다라트', shareTitle: '표 이미지', shareWebOnly: '앱에서 이미지로 공유할 수 있어요',
-    previewBlankSay: '표 이미지 미리보기, 빈 표', modeProgress: '진행 표시', modeBlank: '빈 표', making: '이미지를 만드는 중이에요',
-    makeFailed: '이미지를 만들지 못했어요', shareFailed: '공유하지 못했어요', saveShare: '이미지 저장·공유', sketchEmpty: '비어 있음',
+    done: '달성', sep: ', ', coreGoal: '핵심 목표', goalPrompt: '핵심 목표를 정해 주세요', editAreaName: '영역 이름 고치기', coreUnsetSay: '핵심 목표를 아직 정하지 않았어요',
+    centerBlockSay: '가운데 블록, 핵심 목표와 8개 영역', zoomCenterSay: '가운데 블록을 크게 봐요', wholeSay: '81칸 전체를 봐요', centerBlock: '가운데 블록', tabTitle: '만다라트',
+    shareSay: '표 이미지로 공유', editGoal: '핵심 목표 고치기', next: '다음 할 일', emptyHint: '칸을 눌러 실천 8개를 채워요', undoDone: '달성 풀기', markDone: '달성으로 표시',
+    rowHint: '자세히 봐요', brand: '만다라트', shareTitle: '표 이미지', shareWebOnly: '앱에서 이미지로 공유할 수 있어요', previewBlankSay: '표 이미지 미리보기, 빈 표',
+    modeProgress: '진행 표시', modeBlank: '빈 표', making: '이미지를 만드는 중이에요', makeFailed: '이미지를 만들지 못했어요', shareFailed: '공유하지 못했어요', saveShare: '이미지 저장·공유',
+    sketchEmpty: '비어 있음',
   };
   for (const [k, v] of Object.entries(same)) assert.equal(ko[k], v, k);
 
@@ -33,30 +28,21 @@ test('ko: 옮기기 전 글 그대로', () => {
   ORDINAL.forEach((w, i) => assert.equal(ko.areaOrdinalSay({ n: i + 1 }), `8개 영역 중 ${w} 번째`));
   assert.equal(ko.areaOrdinalSay({ n: 9 }), '8개 영역 중 9 번째');
   assert.equal(ko.coreSay({ goal: '건강한 한 해' }), '핵심 목표, 건강한 한 해');
-  assert.equal(ko.blockSay({ name: '건강' }), '건강 블록');
-  assert.equal(ko.coreCellSay({ goal: '', done: 3 }), '핵심 목표, 아직 정하지 않았어요, 64칸 중 3칸 달성, 고치기');
-  assert.equal(ko.coreCellSay({ goal: '건강', done: 0 }), '핵심 목표, 건강, 64칸 중 0칸 달성, 고치기');
-  assert.equal(ko.zoomHeadSay({ label: '건강, 8칸 중 3칸 달성' }), '건강, 8칸 중 3칸 달성, 블록 크게 보기');
   assert.equal(ko.zoomBlockSay({ name: '건강' }), '건강 블록을 크게 봐요');
-  assert.equal(ko.editGoalSay({ goal: '건강' }), '핵심 목표, 건강, 고치기');
   assert.equal(ko.doneOf64Say({ done: 12 }), '64칸 중 12칸 달성');
-  assert.equal(ko.doneOf64({ done: 12 }), '12 / 64칸');
   assert.equal(ko.nextBlanks({ n: 12, area: '건강' }), '빈 칸 12 · 건강부터 채우기');
   assert.equal(ko.nextStepSay({ title: '빈 칸 12 · 건강부터 채우기' }), '다음 할 일, 빈 칸 12 · 건강부터 채우기');
   assert.equal(ko.nextStepAreaSay({ title: '물 2L', area: '건강' }), '다음 할 일, 물 2L, 건강');
   assert.equal(ko.areaOf({ n: 3 }), '영역 3 / 8');
   assert.equal(ko.areaDoneSay({ done: 3, days: 0 }), '8칸 중 3칸 달성');
   assert.equal(ko.areaDoneSay({ done: 3, days: 4 }), '8칸 중 3칸 달성, 4일 연속');
-  assert.equal(ko.streak({ n: 4 }), '4일 연속');
   assert.equal(ko.prevAreaSay({ name: '건강' }), '이전 영역, 건강');
   assert.equal(ko.nextAreaSay({ name: '건강' }), '다음 영역, 건강');
   assert.equal(ko.weekCount({ done: 2, total: 3 }), '이번 주 2/3');
   assert.equal(ko.points({ n: 4 }), '4점');
-  assert.equal(ko.posterDone({ done: 7 }), '64칸 중 7칸');
   assert.equal(ko.posterDate({ y: 2026, m: 10, n: 13 }), '2026. 10. 13.');
   assert.equal(ko.previewSay({ done: 7 }), '표 이미지 미리보기, 64칸 중 7칸 달성');
   assert.equal(ko.markSay({ done: 7 }) + ko.markTodaySay({ total: 5, done: 2 }), '내 만다라트 81칸, 64칸 중 7칸 달성, 오늘 할 일 5개 중 2개 했어요');
-  assert.equal(ko.areaView({ name: '건강' }), '건강 보기');
   assert.equal(ko.sketchSay({ goal: '비어 있음', areas: '건강, 재정' }), '만다라트 표, 가운데 칸 비어 있음, 영역 건강, 재정');
 });
 

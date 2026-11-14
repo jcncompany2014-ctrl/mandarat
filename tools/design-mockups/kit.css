@@ -1,0 +1,33 @@
+/* 시안 공통 바탕 — Pretendard(앱이 쓰는 서체)와 폰 크기 틀. 방향마다 자기 토큰은 자기 파일에 둔다. */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+  src: url('/node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-family: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 숫자 폭 맞춤 */
+.num {
+  font-variant-numeric: tabular-nums;
+}

@@ -20,10 +20,10 @@ The owner works top to bottom: each step needs the ones above it.
 | V1 | **Privacy policy** in ko, ja and en. The draft is `docs/v2/privacy.md`; legal review is needed. Publish it at an https address and set `PRIVACY_URL`. The v1 one-line text in §2 of v1 below is **out of date**: it does not mention iCloud, Sentry or the purchase. | **DONE (web)** — https://mandarat-delta.vercel.app/privacy, generated from `docs/v2/privacy.md` (`npm run privacy-page`); legal review still advised | `src/lib/appInfo.ts`; App Store Connect › App Information › Privacy Policy URL, per locale; `store.config.json` `privacyPolicyUrl` (V8-B placeholder) |
 | V2 | **Support contact** `SUPPORT_EMAIL`, plus a Support URL (it can be the privacy page). | **DONE** — `SUPPORT_EMAIL` set; Support URL = the privacy page (it carries the contact) | `src/lib/appInfo.ts`; App Store Connect › Support URL; `store.config.json` `supportUrl` |
 | V3 | **Sentry.** | **DEFERRED** — 1.0 ships without crash reporting (owner, 2026-11). Sentry is removed from the build; see v2-3 for how to bring it back. | — |
-| V4 | **Store names.** ko: '만다라트' is taken (id6444119494; see v1 B3). ja `マンダラート` and en `Mandalart`: check the trademark first (owner confirmation 1, plan §1.3). If a name changes, also update the Siri phrase list in `docs/v2/review-notes.md`. | **OPEN** | `locales/*.json` (lead), `store.config.json` (V8-B) |
+| V4 | **Store names.** '만다라트' alone is taken (id6444119494; see v1 B3), so the store name is **만다라트 플래너** (ja **マンダラート プランナー**, en **Mandalart Planner**). The **home-screen name stays 만다라트** (ja マンダラート, en Mandalart; `CFBundleDisplayName` and `locales/*.json` do not change), and so do the Siri phrases in `docs/v2/review-notes.md`. | **DECIDED** (owner, 2026-11; `docs/v2/owner-decisions.md` 8) — the three titles are in `store.config.json`; type or push them as the App Store Connect › Name of each locale | `store.config.json` `title` per locale; App Store Connect › App Information › Name |
 | V5 | **Owner confirmations 2–5** (plan §1.3): the pro list; fallback language ko; reminders per device; year-archive gating. To keep the latest archive's review free, change `archiveAccess` in `src/lib/archive.ts`. | **OPEN — defaults are implemented** | — |
 | V6 | **Release version.** The lead bumps `app.json` `version` (proposed `2.0.0`). | **OPEN** | `app.json` (lead only) |
-| V7 | **Copyright holder** (v1 B4). | **OPEN** | App Store Connect › Copyright |
+| V7 | **Copyright line.** The holder is the owner as a person (`docs/v2/owner-decisions.md` 8). The owner types **`© 2026 <owner's name>`** (their own legal name) into App Store Connect. The line is not in the repo: `store.config.json` has no `copyright`, so `eas metadata:push` leaves the field empty. | **OPEN — the owner enters it** | App Store Connect › App Information › Copyright |
 | V8 | **Optional custom EULA.** Not needed for a one-time purchase; Apple's standard EULA applies. To add one: `TERMS_URL` in `appInfo.ts`, a link in `ProSheet.tsx` and a `terms` key in the three `pro.ts` files (V3-C). | optional | — |
 
 ## v2-1. Apple Developer — capabilities
@@ -66,7 +66,8 @@ To bring Sentry back in an update:
 - **No in-app purchase in 1.0** (owner decision, 2026-11). `STORE_OPEN = false` in `src/lib/pro.ts` opens every Pro feature for free and hides Settings › 프로. Not needed for 1.0: the Paid Apps Agreement, banking and tax, the `com.jcncompany.mandarat.pro` product, Family Sharing, sandbox testers. The free-apps agreement that every account accepts is enough. **When sales open later:** add new Pro features first (what is free in 1.0 stays free), set `STORE_OPEN = true`, restore the Pro parts of `docs/v2/review-notes.md`, `docs/v2/privacy.md` §4 and `store.config.json` from git history, then do the Paid Apps Agreement, the product (price, ko/ja/en name and description, review screenshot of the 프로 sheet), Family Sharing (cannot be turned off) and two sandbox testers.
 - [ ] **App record** for `com.jcncompany.mandarat` (My Apps › +), if it does not exist. The first `eas submit` can also create the record.
 - [ ] **Price**: Free (tier 0).
-- [ ] **Localizations** ja and en-US in addition to ko. For each: name, subtitle, description, keywords, promotional text, What's New, support URL and privacy policy URL. The drafts are in `store.config.json` (V8-B, `docs/v2/store-metadata.md`).
+- [ ] **Localizations** ja and en-US in addition to ko. For each: name, subtitle, description, keywords, promotional text, What's New, support URL and privacy policy URL. The drafts are in `store.config.json` (V8-B, `docs/v2/store-metadata.md`). Name: 만다라트 플래너 · マンダラート プランナー · Mandalart Planner (V4).
+- [ ] **Copyright**: the owner types `© 2026 <owner's name>` (V7). Nothing in the repo fills it.
 - [ ] **Screenshots**: 6.9" iPhone (`APP_IPHONE_67`) and 13" iPad (`APP_IPAD_PRO_3GEN_129`) in each locale.
   - Source: `store/screenshots/<locale>/<display>/` (V8-B), regenerated with `npm --prefix tools/store-shots ci && npm run store-shots -- --locales ko,ja,en --devices all` (`docs/v2/store-shots.md`).
   - Re-shoot ja on macOS so it uses Hiragino.
@@ -116,6 +117,7 @@ To bring Sentry back in an update:
 - [ ] `npx eas-cli@latest workflow:validate .eas/workflows/e2e-ios.yml`
 - [ ] `npx eas-cli@latest workflow:run .eas/workflows/e2e-ios.yml`, then `workflow:runs`. It must be green on **iPhone** (`type: maestro`) and **iPad** (the custom `eas/start_ios_simulator` job).
 - [ ] If the Korean locale does not take with `-AppleLanguages (ko)`, use `maestro start-device --device-locale ko_KR`.
+- [ ] Design A changed three flows (`docs/v2/device-tests.md`): the chart tab is a colour map, so 03 and 11 tap the block (`grid-block-<area>`) before a cell (`grid-cell-<area>-<n>`, only on the zoomed block), and 11 returns to the map with the area page's back (`detail-back`); 09 taps the 올해 scope (`stats-scope-year`) before it looks for `stats-year`.
 - [ ] Known items to check in the run:
   - flow 02 `checked:true`;
   - flow 06 taps `허용` once;
@@ -128,8 +130,21 @@ To bring Sentry back in an update:
 
 Tick each item on real devices: an iPhone, an iPhone SE (small screen), a 13" iPad, and an 11" iPad where noted. iCloud needs two devices on one Apple ID. The source package is in brackets; its note has the full detail. The v1 groups (§4 of v1 below) remain the core regression list.
 
+### Design A — look, dark, accessibility, widgets, icon, upgrade [build-plan §5]
+Check against the mockups in `docs/design/mockups/a/*.png`, on an iPhone and an iPad.
+- [ ] Every tab, every sheet and the focus page match their PNG (spacing, type, colours), in light and in dark.
+- [ ] Settings › 보기 › 화면 모드: 자동 follows the system, 밝게 and 어둡게 hold whatever the system does. The status bar, the keyboard and the share sheet follow the chosen look.
+- [ ] Control Centre: switch dark mode on and off with the app open, and again with the app in the background, then return. The app follows on 자동 and stays put on 밝게 / 어둡게; no flash of the other look when coming back.
+- [ ] Settings › 보기 › 종이 무늬: 무지 (the default) · 점 · 모눈 · 줄 each draw on the page ground only (not in tiles, sheets or the tab bar), in light and dark.
+- [ ] Accessibility: Increase Contrast (rules and edges darken), Bold Text, Larger Text two steps up (Settings › Accessibility › Display & Text Size › Larger Text), Reduce Motion (no slides or fades).
+- [ ] VoiceOver on the chart tab's colour map: each block reads its area name, its count and today's count; the zoomed block reads each cell. The map ↔ zoom switch moves focus to the new page and the page opens at the top.
+- [ ] Widgets: add small, medium and large to the Home Screen and the three Lock Screen widgets (rectangular, circular, inline). Tick a row in the medium widget, open the app: it is ticked. Light and dark wallpaper; tinted Home Screen (iOS 18: long-press › Edit › Customize › Tinted): no hue, written cells dimmer than done ones. The widgets follow the system look, not the in-app 화면 모드 (accepted, §4.2).
+- [ ] Live Activity: start a 25-minute focus, lock the phone (the banner counts down on its own), check the Dynamic Island compact and expanded views, then finish.
+- [ ] App icon light, dark and tinted on the Home Screen, in Settings and in Spotlight (is the dark icon's dim core acceptable?). Splash in light and in dark: the native splash fades into the app without a jump.
+- [ ] **Upgrade install** over the previous build that has data: records, archives and settings are intact; the earlier paper (mood) became the right look — 다크 → 어둡게, a chosen light paper (크림 · 화이트 · 파스텔) → 밝게, the untouched default 연꽃 → 자동; after that only Settings › 보기 decides. iCloud sync between iPhone and iPad still works.
+
 ### Install and configuration [W0, V3-B]
-- [ ] The display name is 만다라트 / マンダラート / Mandalart in the device language. The photo prompt is in the device language.
+- [ ] The display name (home screen) is 만다라트 / マンダラート / Mandalart in the device language; only the store name is 만다라트 플래너 (V4). The photo prompt is in the device language.
 - [ ] iPad installs in all 4 orientations without a crash.
 - [ ] `LangBoot` adds no visible delay at launch. A forced error shows the paper error screen in the app language.
 - [ ] `Mandarat.app` has `ko.lproj`, `ja.lproj` and `en.lproj`, each with `Localizable.strings` and `AppShortcuts.strings`, plus `Metadata.appintents`.

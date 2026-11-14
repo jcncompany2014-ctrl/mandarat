@@ -96,10 +96,12 @@ for (const [l, v] of Object.entries(INFO)) {
   });
 }
 
-test('기본 이름(plan §1.3 확인 1): 만다라트 · マンダラート · Mandalart', () => {
-  assert.equal(INFO.ko.title, '만다라트');
-  assert.equal(INFO.ja.title, 'マンダラート');
-  assert.equal(INFO['en-US'].title, 'Mandalart');
+// 스토어 이름은 '만다라트'가 이미 다른 앱의 이름이라 '만다라트 플래너'로 낸다(owner 2026-11).
+// 홈 화면 아이콘 아래 이름(CFBundleDisplayName)은 짧게 '만다라트' 그대로 둔다.
+test('스토어 이름: 만다라트 플래너 · マンダラート プランナー · Mandalart Planner', () => {
+  assert.equal(INFO.ko.title, '만다라트 플래너');
+  assert.equal(INFO.ja.title, 'マンダラート プランナー');
+  assert.equal(INFO['en-US'].title, 'Mandalart Planner');
 });
 
 /** PNG 머리(IHDR)의 가로 · 세로 · 비트 깊이 · 색 형식 */

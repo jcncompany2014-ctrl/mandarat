@@ -3,8 +3,6 @@ import type { Namespace } from '../types';
 
 export default {
   // ── 설정 › iCloud ──
-  /** 구역 제목 */
-  sectionTitle: 'iCloud',
   toggle: 'iCloud로 기기끼리 맞추기',
   toggleSub: '같은 Apple 계정의 iPhone·iPad끼리 기록을 맞춰요',
   /** 상태 줄 — 1분 안에 맞췄을 때 */

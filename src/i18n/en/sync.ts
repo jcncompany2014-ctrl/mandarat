@@ -3,7 +3,6 @@ import type ko from '../ko/sync';
 import type { Like } from '../types';
 
 export default {
-  sectionTitle: 'iCloud',
   toggle: 'Sync devices with iCloud',
   toggleSub: 'Keeps your records the same on iPhone and iPad with the same Apple Account',
   justNow: 'Synced just now',

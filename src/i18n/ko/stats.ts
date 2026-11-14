@@ -2,6 +2,10 @@
 // 날짜·요일·횟수는 fmt로 적은 글을 받는다(date · day). 목록을 잇는 쉼표는 core.listSep.
 import type { Namespace } from '../types';
 import fmt from './fmt';
+import { josa } from './josa';
+
+/** 줄인 이름 + 조사 — 조사는 원래 이름의 끝소리로 고른다('건강하고 활기찬…는') */
+const topic = (name: string, full: string) => name + josa(full, '은/는').slice(full.length);
 
 export default {
   screenTitle: '통계',
@@ -12,8 +16,7 @@ export default {
   heroStreak: '연속',
   /** 연속 큰 숫자 뒤 단위 — en은 n에 따라 day/days */
   heroDays: (_: { n: number }) => '일',
-  heroDone: '달성한 칸',
-  heroOf64: '64칸 중',
+  heroDone: '달성',
   streakStart: '하나 하면 시작돼요',
   streakKept: '오늘까지 이어 왔어요',
   /** 오늘 하면 n일째 — n은 오늘 포함 */
@@ -25,8 +28,6 @@ export default {
   recordMonth: ({ n }: { n: number }) => `이번 달 달성 ${n}칸`,
 
   // ── 이번 주 ──
-  secWeek: '이번 주',
-  reviewLink: '돌아보기 ›',
   reviewLinkSay: '한 주 돌아보기',
   weekDid: ({ n }: { n: number }) => `이번 주 ${n}번 했어요`,
   /** 했지만 달성한 칸이 없을 때 — 달성이 무엇인지 */
@@ -40,7 +41,6 @@ export default {
   barFutureSay: ({ i }: { i: number }) => `${fmt.dowLong({ i })}부터는 아직`,
 
   // ── 이번 주 장부 ──
-  ledgerAdded: '쌓은 것',
   ledgerFocus: '집중',
   ledgerNone: '없음',
   /** 장부 한 줄 읽기 — '습관 9번 중 5번' */
@@ -65,7 +65,6 @@ export default {
   more: '더 보기',
 
   // ── 최근 10주 ──
-  secTenWeeks: '최근 10주',
   since: ({ date }: { date: string }) => `${date}부터`,
   /** 달 이름(n: 1~12) */
   monthLabel: ({ n }: { n: number }) => `${n}월`,
@@ -116,4 +115,45 @@ export default {
   moodNoneSay: ({ days }: { days: number }) => `최근 ${days}일 기분 기록 없음`,
   moodSay: ({ days, n }: { days: number; n: number }) => `최근 ${days}일 중 기분을 남긴 날 ${n}일`,
   moodDaySay: ({ date, word }: { date: string; word: string }) => `${date} ${word}`,
+
+  // ── 디자인 A(build-plan S4) ──
+  /** 머리 위 줄 — '2026 · 42주 · D-78' (y · w: ISO 주, days: 올해 남은 날) */
+  eyebrow: ({ y, w, days }: { y: number; w: number; days: number }) => `${fmt.weekNo({ y, w })} · ${fmt.dueShort({ days })}`,
+  /** 히어로 달성 아래 — '이번 달 3칸' */
+  /** 달성 숫자 — '24/64칸'(숫자 뒤 단위는 작게) */
+  heroCells: ({ done }: { done: number }) => `${done}/64칸`,
+  monthCells: ({ n }: { n: number }) => `이번 달 ${n}칸`,
+  /** 범위 줄 — 한 번에 한 기간 */
+  scopeWeek: '이번 주',
+  scopeTen: '10주',
+  scopeYear: '올해',
+  /**
+   * 이번 주를 읽는 한 줄 — 가장 많이 챙긴 영역(top)과 가장 적게 챙긴 영역(low, 적어 둔 영역 중).
+   * top · low는 줄인 이름, topFull · lowFull은 조사를 고를 원래 이름. low가 ''이면 top만.
+   * '건강은 5번 챙겼고, 커리어는 아직이에요' · '건강은 5번, 재정은 1번 챙겼어요' · '건강은 5번 챙겼어요'
+   */
+  reading: ({ top, topFull, n, low, lowFull, lowN }: { top: string; topFull: string; n: number; low: string; lowFull: string; lowN: number }) => {
+    if (!low) return `${topic(top, topFull)} ${n}번 챙겼어요`;
+    if (!(lowN > 0)) return `${topic(top, topFull)} ${n}번 챙겼고, ${topic(low, lowFull)} 아직이에요`;
+    return `${topic(top, topFull)} ${n}번, ${topic(low, lowFull)} ${lowN}번 챙겼어요`;
+  },
+  /** 적어 둔 영역을 모두 같은 수만큼 — '3개 영역을 2번씩 챙겼어요' */
+  readingEven: ({ k, n }: { k: number; n: number }) => `${k}개 영역을 ${n}번씩 챙겼어요`,
+  /** 읽는 줄 아래 — '모두 7번' */
+  weekAll: ({ n }: { n: number }) => `모두 ${n}번`,
+  /** 이번 주에 했지만 달성한 칸이 없을 때 — 달성이 무엇인지 */
+  doneHint: '칸은 한 번짜리 일을 끝내거나 목표 수에 닿으면 달성돼요.',
+  /** 막대 아래 영역 표 한 칸을 읽는 말 — '건강 5번' */
+  areaCountSay: ({ name, n }: { name: string; n: number }) => `${name} ${n}번`,
+  /** 유형 줄 — 기록이 없는 유형은 한 줄 + 링크 */
+  habitNone: '정한 습관이 없어요',
+  mindNone: '마음가짐 칸이 없어요',
+  focusNone: '아직 집중한 시간이 없어요',
+  /** 링크 — 만다라트에서 정하기 · 그 칸 열어 점수 매기기 · 오늘에서 집중 시작하기 */
+  linkSet: '정하기',
+  linkSetHint: '만다라트에서 칸의 유형을 정해요',
+  linkRate: '매기기',
+  linkRateHint: '이번 주 점수를 매길 칸을 열어요',
+  linkToday: '오늘 보기',
+  linkTodayHint: '오늘 할 일에서 25분 집중을 시작할 수 있어요',
 } satisfies Namespace;
