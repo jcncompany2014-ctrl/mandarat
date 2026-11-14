@@ -41,12 +41,16 @@ function doc(extra = {}) {
 }
 const props = (lang = 'ko', d = doc(), at = NOW) => widgetTimeline(d, at, { pat: 'blank', lang })[0].props;
 const render = (p, family, e = {}) => rt.render(p, { widgetFamily: family, ...e });
-const mod = (n, type) => { const m = (n.props.modifiers || []).find((x) => x.$type === type); return m ? m.args : null; };
+/** vm 안에서 만든 값은 원형(prototype)이 달라 deepStrictEqual이 같다고 하지 않는다 — JSON으로 옮겨 견준다 */
+const plain = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
+const mod = (n, type) => { const m = (n.props.modifiers || []).find((x) => x.$type === type); return m ? plain(m.args) : null; };
 const all = (node, pred) => { const out = []; walk(node, (n) => { if (pred(n)) out.push(n); }); return out; };
 const texts = (node) => all(node, (n) => n.type === 'TextView' && typeof n.props.text === 'string').map((n) => n.props.text);
 const textNode = (node, s) => all(node, (n) => n.type === 'TextView' && n.props.text === s)[0];
 const font = (n) => (mod(n, 'font') || [null])[0];
 const fgOf = (n) => (mod(n, 'foregroundStyle') || [null])[0];
+/** 색 지도의 81칸 — 읽어 주기에서 숨긴 지도 VStack 안의 둥근 네모, 줄 우선 순서 */
+const mapTiles = (tree) => all(all(tree, (n) => n.type === 'VStackView' && mod(n, 'accessibilityHidden'))[0], (n) => n.type === 'RoundedRectangleView');
 const MONO = { type: 'hierarchical', style: 'primary' };
 
 // ── 스냅숏 ──────────────────────────────────────────────────────────────────
@@ -123,14 +127,16 @@ test("작게 — '● 오늘 1/10' 한 줄(지도 폭 91) + 색 지도 L1(칸 9 
     assert.equal(fgOf(dot), P.signal);
     // 지도: 블록 사이 2(바깥 VStack · 줄 HStack), 칸 사이 1
     const map = all(t, (n) => n.type === 'VStackView' && mod(n, 'accessibilityHidden'))[0];
-    assert.equal(map.props.spacing, 2);
-    const tiles = all(map, (n) => n.type === 'RoundedRectangleView');
+    assert.equal(map.props.spacing, 2, '블록 사이 2');
+    assert.equal(map.props.children[0].props.spacing, 1, '칸 사이 1(세로)');
+    assert.equal(map.props.children[0].props.children[0].props.spacing, 2, '블록 사이 2(가로)');
+    assert.equal(map.props.children[0].props.children[0].props.children[0].props.spacing, 1, '칸 사이 1(가로)');
+    const tiles = mapTiles(t);
     assert.equal(tiles.length, 81);
     for (let i = 0; i < 81; i++) {
       const row = Math.floor(i / 9);
       const col = i % 9;
       const n = tiles[i];
-      assert.equal(n.key, `m${row}-${col}`, '줄 우선으로 그린다');
       assert.equal(n.props.cornerRadius, 1.5);
       assert.deepEqual(mod(n, 'frame')[0], { width: 9, height: 9 });
       assert.equal(fgOf(n), wantColour(P, p.cells, row, col), `${scheme} ${row},${col}`);
@@ -146,15 +152,14 @@ test('틴트(accented) · vibrant — 색 없이 단계 색과 불투명도: 달
   const p = props();
   for (const mode of ['accented', 'vibrant']) {
     for (const family of ['systemSmall', 'systemLarge']) {
-      const tiles = all(render(p, family, { widgetRenderingMode: mode }), (n) => n.type === 'RoundedRectangleView' && /^m\d-\d$/.test(n.key || ''));
+      const tiles = mapTiles(render(p, family, { widgetRenderingMode: mode }));
       assert.equal(tiles.length, 81, `${family}/${mode}`);
-      for (const n of tiles) {
-        const [row, col] = n.key.slice(1).split('-').map(Number);
-        const c = chartCell(row, col);
+      for (const [i, n] of tiles.entries()) {
+        const c = chartCell(Math.floor(i / 9), i % 9);
         const s = c.kind === 'action' ? p.cells[c.ti * 8 + c.ai] : 'x';
         const want = s === '1' ? 0.45 : s === '0' ? 0.18 : 1;
-        assert.deepEqual(fgOf(n), MONO, `${family}/${mode} ${n.key}`);
-        assert.deepEqual(mod(n, 'opacity'), [want], `${family}/${mode} ${n.key}`);
+        assert.deepEqual(fgOf(n), MONO, `${family}/${mode} ${i}`);
+        assert.deepEqual(mod(n, 'opacity'), [want], `${family}/${mode} ${i}`);
       }
     }
   }
@@ -257,7 +262,7 @@ test('크게 — 지도(칸 12 · 사이 1.5 · 블록 2) 옆에 머리 · 날�
   const p = props();
   assert.ok(p.items.length > 6);
   const t = render(p, 'systemLarge');
-  const tiles = all(t, (n) => n.type === 'RoundedRectangleView' && /^m\d-\d$/.test(n.key || ''));
+  const tiles = mapTiles(t);
   assert.equal(tiles.length, 81);
   for (const n of tiles) {
     assert.deepEqual(mod(n, 'frame')[0], { width: 12, height: 12 });
@@ -389,7 +394,7 @@ test("Live Activity 배너 — 종이 · 안쪽 14, '25분 집중'(print) + 영�
     assert.equal(fgOf(timer), P.ink);
     assert.equal(fgOf(textNode(banner, '남음')), P.ink2);
     const bar = all(banner, (n) => n.type === 'ProgressView')[0];
-    assert.deepEqual(bar.props.timerInterval, { lower: p.start, upper: p.end });
+    assert.deepEqual(plain(bar.props.timerInterval), { lower: p.start, upper: p.end });
     assert.equal(bar.props.countsDown, false, '막대는 찬다');
     assert.deepEqual(mod(bar, 'progressViewStyle'), ['linear']);
     assert.deepEqual(mod(bar, 'tint'), [P.ink]);
