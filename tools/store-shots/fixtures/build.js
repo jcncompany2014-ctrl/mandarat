@@ -1,7 +1,7 @@
 // 스토어 스크린샷 예시 문서 만들기 — 언어마다 손으로 쓴 글(fixtures/{ko,ja,en}.js)을 받아 같은 모양의 문서를 만든다.
 // 고정한 오늘(2026-10-14 수요일 09:30) 기준: 이 표는 70일째(2026-08-06부터), 지난 표 한 장(2025-08-04 ~ 2026-08-05).
 // 기록은 시드를 고정한 의사 난수로 만든다 — 실행마다 같은 문서(그래서 같은 화면)가 나온다.
-// 종이 무늬(settings.paper)는 두지 않는다(점 종이). migrate(문서)가 문서와 같아야 한다(tests/storeShots.test.js).
+// 종이 무늬(settings.paper)는 두지 않는다(무지 — 기본값). migrate(문서)가 문서와 같아야 한다(tests/storeShots.test.js).
 require('../../../tests/register');
 const { THEME_SEEDS, blankDoc } = require('../../../src/data/defaults');
 const { makeArchive } = require('../../../src/lib/archive');
