@@ -12,12 +12,12 @@
      line into the list above the field and clears the field. 완료 or a pull down closes.
      Top to bottom: what you just wrote · which area · the one field, sitting on the keyboard. */
   .behind { position: absolute; inset: 0; }
-  .sheet { bottom: calc(336px + 8px); padding: 8px 24px 12px; }
+  .sheet { bottom: calc(336px + 8px); padding: 8px 24px 16px; }
   .sheet-head { display: flex; align-items: center; justify-content: space-between; height: 44px; margin: 2px 0 0; }
   .sheet-head b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; margin-left: 4px; }
-  .sect { display: flex; align-items: baseline; justify-content: space-between; height: 18px; margin: 18px 0 6px; }
+  .sect { display: flex; align-items: baseline; justify-content: space-between; height: 18px; margin: 18px 0 8px; }
   .sect b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-  #field { margin-top: 12px; }
+  #field { margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -41,8 +41,9 @@
 <script>
 A.ready().then((doc) => {
   const v = doc.view, d = v.date;
-  // behind the scrim: Home's header (the rest of Home is under the sheet; a half-covered headline would look like an accident)
-  A.header('#header', { eyebrow: `${d.year} · ${d.week} · D-${d.left.replace(/\D/g, '')}`, title: `${d.month} ${d.day}일 ${d.weekday}`, action: 'settings' });
+  // behind the scrim: Home's header as Home draws it (the date as the folio, the goal as the headline);
+  // the rest of Home is under the sheet, since a half-covered list would look like an accident
+  A.header('#header', { eyebrow: `${d.month} ${d.day}일 ${d.weekday} · ${d.week}`, title: doc.coreGoal, headline: true, action: 'settings' });
 
   // two lines written in this sheet so far (invented: typed to-dos are not in the demo document)
   const added = [

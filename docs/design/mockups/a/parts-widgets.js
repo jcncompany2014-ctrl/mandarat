@@ -12,7 +12,7 @@
      W.lockRect()  Lock Screen rectangular: leading check box + next action
      W.lockTally() Lock Screen circular: the 正 of today's done count + n/m
      W.lockAdd()   Lock Screen circular: 담기
-     W.minutes()   the 5×5 minute grid (one cell per minute of a 25-minute focus)
+     W.minutes()   the 5×5 minute grid as soft tiles (one tile per minute of a 25-minute focus)
      W.live()      the focus Live Activity on the Lock Screen
      W.island()    the Dynamic Island, compact presentation of the same activity
      W.icon(...)   'pause' glyph (24 box, 1.5 stroke) — missing from A.icon
@@ -24,21 +24,20 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dpr = () => global.devicePixelRatio || 2;
 
-  /* W.icon('pause') — the glyph A.icon lacks. Two printed bars on the 24 box. */
+  /* W.icon('pause') — the glyph A.icon lacks. Two bars with round ends on the 24 box. */
   W.icon = function (name, opts) {
     const s = (opts && opts.size) || 24;
-    const body = { pause: '<rect x="7" y="5.5" width="3.5" height="13" fill="currentColor"/><rect x="13.5" y="5.5" width="3.5" height="13" fill="currentColor"/>' }[name] || '';
+    const body = { pause: '<rect x="7" y="5.5" width="3.5" height="13" rx="1.25" fill="currentColor"/><rect x="13.5" y="5.5" width="3.5" height="13" rx="1.25" fill="currentColor"/>' }[name] || '';
     return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="display:block;flex:none" aria-hidden="true">${body}</svg>`;
   };
 
-  /* the head line every widget shares: a printed label with the today corner, the written figure right */
+  /* the head line every widget shares: a printed label with the today dot, the written figure right */
   const head = (label, figure) =>
     `<div class="w-head"><span class="t-label"><i class="a-today"></i>${esc(label)}</span><span class="w-fig">${esc(figure)}</span></div>`;
 
   /* W.small(target, doc) — 158 × 158. The sheet in miniature (A.chart L1, cell 10 = 94pt) under one
-     head line: ◤ 오늘 … 1/10. The column is the sheet's width, so label, figure and frame share
-     two edges. Under 100pt the sheet drops cell rules and today corners (A's L1 rule); the corner
-     beside 오늘 carries today. */
+     head line: • 오늘 … 1/10. The column is the sheet's width, so label, figure and sheet share
+     two edges. At L1 the sheet shows no today dots (A's L1 rule); the dot beside 오늘 carries today. */
   W.small = function (target, doc) {
     const t = doc.view.today;
     const host = el(target);
@@ -48,7 +47,7 @@
     return host;
   };
 
-  /* W.wRow(doc, r) — a row at widget size: 32pt, 20pt check box, 15pt title, one thing on the right.
+  /* W.wRow(doc, r) — a row at widget size: 34pt, 20pt check box, 15pt title, one thing on the right.
      r = { text, area, right, rightPrint, done } as in A.row. Without right/rightPrint the right side is
      the area (dye mark + name), so the area still has a word beside its colour. */
   W.wRow = function (doc, r) {
@@ -56,10 +55,10 @@
     const right = r.right ? `<span class="w-row-right">${esc(r.right)}</span>`
       : r.rightPrint ? `<span class="w-row-right is-print">${esc(r.rightPrint)}</span>`
       : r.area ? `<span class="w-row-area"><i class="a-dye" style="--d:var(--dye-${a + 1})"></i>${esc(r.area)}</span>` : '';
-    return `<div class="w-row${r.done ? ' is-done' : ''}">${A.check({ done: !!r.done, area: a, size: 20 })}<span class="w-row-title">${esc(r.text)}</span>${right}</div>`;
+    return `<div class="w-row${r.done ? ' is-done' : ''}">${A.check({ done: !!r.done, area: a, size: 20 })}<span class="w-row-title"><span class="w-strike">${esc(r.text)}</span></span>${right}</div>`;
   };
 
-  /* W.medium(target, doc, rows) — 338 × 158. Head line, the list's 1pt top rule, three rows.
+  /* W.medium(target, doc, rows) — 338 × 158. Head line, then three rows (no rule on top of the list).
      rows = array of W.wRow inputs. Not the small widget scaled up: this one is for ticking. */
   W.medium = function (target, doc, rows) {
     const t = doc.view.today;
@@ -72,7 +71,7 @@
   /* Lock Screen (vibrant rendering). The system draws these in opaque greys of one hue-less ramp;
      the container .lock sets --ink / --ink-2 / --print / --print-rule / --print-edge to those greys,
      so A.check and A.tally draw themselves in grey. Meaning never rests on colour: today is the
-     corner shape, done is the tick. */
+     dot, done is the tick. */
 
   /* W.lockRect(target, doc) — 156 × 72. Leading check box (tap = done), the next action, its fact. */
   W.lockRect = function (target, doc) {
@@ -102,59 +101,51 @@
     return host;
   };
 
-  /* W.minutes(target, opts) — the 5×5 minute grid of a 25-minute focus, drawn as A draws a block:
-     print frame (1.5pt), pale cell rules, fills inset from the rules.
-       done minutes     the area's wash (done = wash, as everywhere)
-       the current one  the wash filling left to right by the seconds gone, and the vermilion corner
-                        (now = the signal's job, the same corner as today on the chart)
-       the rest         paper
+  /* W.minutes(target, opts) — the 5×5 minute grid of a 25-minute focus, drawn as A draws the chart:
+     soft tiles with a small gap and round corners, no frame and no rules.
+       done minutes     the area's stronger wash (--wash-l1: done = wash, as everywhere)
+       the current one  the tile tint, the wash rising from the bottom by the seconds gone, and the
+                        6pt vermilion dot top-left (now = the signal's job, the same dot as today)
+       the rest         the tile tint (an empty cell of the chart)
      opts.size (pt, outer), opts.area (0..7), opts.elapsed (whole minutes), opts.part (0..1 of the
-     current minute), opts.tiles = true: no rules, tiles with gaps (for 20–30pt, e.g. the island). */
+     current minute), opts.tiles = true: the island version (20–30pt) in its own greys, no dot. */
   W.minutes = function (target, opts) {
     opts = opts || {};
     const d = dpr();
     const px = (pt) => Math.max(1, Math.round(pt * d));
     const a = (opts.area || 0) + 1;
-    const n = 5, elapsed = opts.elapsed || 0, part = opts.part || 0;
-    let svg = '', W2 = 0;
-    if (opts.tiles) {
-      const gap = px(opts.gap || 1);
-      const t = Math.floor((px(opts.size || 20) - 4 * gap) / 5);
-      W2 = 5 * t + 4 * gap;
-      for (let i = 0; i < 25; i++) {
-        const x = (i % 5) * (t + gap), y = Math.floor(i / 5) * (t + gap);
+    const elapsed = opts.elapsed || 0, part = opts.part || 0;
+    const island = !!opts.tiles;
+    const gap = px(opts.gap || (island ? 1 : 3));
+    const t = Math.floor((px(opts.size || 110) - 4 * gap) / 5);
+    const W2 = 5 * t + 4 * gap;
+    const rx = island ? 0.9 * d : Math.max(2, t / d * 0.13) * d;
+    let fills = '', marks = '';
+    for (let i = 0; i < 25; i++) {
+      const x = (i % 5) * (t + gap), y = Math.floor(i / 5) * (t + gap);
+      if (island) {
         const fill = i < elapsed ? 'var(--isl-done)' : i === elapsed ? 'var(--signal)' : 'var(--isl-rest)';
-        svg += `<rect x="${x}" y="${y}" width="${t}" height="${t}" style="fill:${fill}"/>`;
+        fills += `<rect x="${x}" y="${y}" width="${t}" height="${t}" rx="${rx}" style="fill:${fill}"/>`;
+        continue;
       }
-    } else {
-      const f = px(1.5), h = px(0.5), ins = px(opts.inset || 1);
-      const c = Math.floor((px(opts.size || 110) - 2 * f - 4 * h) / 5);
-      const xs = []; let x = f;
-      for (let i = 0; i < n; i++) { xs.push(x); x += c + (i < n - 1 ? h : 0); }
-      W2 = x + f;
-      let rules = '';
-      for (let i = 0; i < n - 1; i++) {
-        const p = xs[i] + c;
-        rules += `<rect x="${p}" y="${f}" width="${h}" height="${W2 - 2 * f}"/><rect x="${f}" y="${p}" width="${W2 - 2 * f}" height="${h}"/>`;
-      }
-      let fills = '', marks = '';
-      const leg = px(Math.max(5, (c / d) * 0.3));
-      for (let i = 0; i < 25; i++) {
-        const cx = xs[i % 5], cy = xs[Math.floor(i / 5)];
-        const fs = c - 2 * ins;
-        if (i < elapsed) fills += `<rect x="${cx + ins}" y="${cy + ins}" width="${fs}" height="${fs}" style="fill:var(--wash-${a})"/>`;
+      if (i < elapsed) {
+        fills += `<rect x="${x}" y="${y}" width="${t}" height="${t}" rx="${rx}" style="fill:var(--wash-l1-${a})"/>`;
+      } else {
+        fills += `<rect x="${x}" y="${y}" width="${t}" height="${t}" rx="${rx}" style="fill:var(--tile)"/>`;
         if (i === elapsed) {
-          fills += `<rect x="${cx + ins}" y="${cy + ins}" width="${Math.round(fs * part)}" height="${fs}" style="fill:var(--wash-${a})"/>`;
-          marks += `<path d="M${cx} ${cy}h${leg}l${-leg} ${leg}z" style="fill:var(--signal)"/>`;
+          // the wash rises inside the tile: clipped to the tile so its corners stay round
+          const h = Math.round(t * part);
+          fills += `<clipPath id="w-now-${i}"><rect x="${x}" y="${y}" width="${t}" height="${t}" rx="${rx}"/></clipPath><rect x="${x}" y="${y + t - h}" width="${t}" height="${h}" clip-path="url(#w-now-${i})" style="fill:var(--wash-l1-${a})"/>`;
+          const o = Math.min(5.5, t / d * 0.28) * d;
+          marks += `<circle cx="${x + o}" cy="${y + o}" r="${2.5 * d}" style="fill:var(--signal)"/>`;
         }
       }
-      svg = `<g style="fill:var(--rule-cell)">${rules}</g>${fills}<g style="fill:var(--rule-frame)"><rect x="0" y="0" width="${W2}" height="${f}"/><rect x="0" y="${W2 - f}" width="${W2}" height="${f}"/><rect x="0" y="0" width="${f}" height="${W2}"/><rect x="${W2 - f}" y="0" width="${f}" height="${W2}"/></g><g shape-rendering="geometricPrecision">${marks}</g>`;
     }
     const size = W2 / d;
     const host = el(target);
     host.style.width = size + 'px';
     host.style.height = size + 'px';
-    host.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${W2} ${W2}" shape-rendering="crispEdges" style="display:block" aria-hidden="true">${svg}</svg>`;
+    host.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${W2} ${W2}" style="display:block" aria-hidden="true">${fills}${marks}</svg>`;
     return { el: host, size };
   };
 

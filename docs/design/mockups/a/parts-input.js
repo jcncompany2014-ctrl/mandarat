@@ -8,9 +8,9 @@
      <script src="/docs/design/mockups/a/parts-input.js"></script>
 
      AP.keyboard(target)                the system keyboard, 336pt, as a plain grey block (not ours to draw)
-     AP.field(target, opts)             the one text field: a written line, ink rule when focused
-     AP.areaPicker(target, doc, opts)   the eight areas as a 4 × 2 printed table: dye mark + name,
-                                        the chosen one framed in ink (the chart's "focus" frame)
+     AP.field(target, opts)             the one text field: a soft tile (10pt corners), the ink caret
+     AP.areaPicker(target, doc, opts)   the eight areas as 4 × 2 soft tiles: dye mark + name,
+                                        the chosen one filled with ink (as a segment's chosen cell)
      AP.caret()                         the text caret (ink, or paper on an ink cell)
      .ap-grabber                        the grabber at the top of an inset sheet (CSS only)
    ─────────────────────────────────────────────────────────────────────────── */
@@ -28,30 +28,29 @@
   /* the caret: a 2pt bar in the colour of the text it follows */
   .ap-caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -0.14em; background: currentColor; border-radius: 1px; }
 
-  /* the text field: the owner writes on a line. Placeholder = printed example (print ink),
-     typed text = writing ink, the focused line = ink (selection is always ink). */
-  .ap-field { display: flex; align-items: center; gap: 12px; height: 52px; border-bottom: 1.5px solid var(--ink); }
-  .ap-field-text { flex: 1; min-width: 0; font: 500 18px/24px var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; }
+  /* the text field: softened from a ruled line to a tile (the chart's empty tint, 10pt corners).
+     Placeholder = printed example (print ink), typed text = writing ink. Focus is the ink caret;
+     no outline. The small button sits inside the tile's right end. */
+  .ap-field { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 8px 0 16px; border-radius: 10px; background: var(--tile); }
+  .ap-field-text { flex: 1; min-width: 0; font: 500 17px/24px var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; }
   .ap-field-text.is-empty { color: var(--print); font-weight: 400; }
   .ap-field-text.is-empty .ap-caret { background: var(--ink); margin: 0 3px 0 0; }
   .ap-field .a-btn.is-small { flex: none; }
-  .ap-field .a-btn.is-off { background: transparent; color: var(--print); box-shadow: inset 0 0 0 var(--rule) var(--print-rule); }
+  .ap-field .a-btn.is-off { background: transparent; color: var(--ink-3); box-shadow: none; }
 
   /* the grabber of an inset sheet: a printed bar, "pull down to close" */
   .ap-grabber { width: 36px; height: 4px; margin: 0 auto; border-radius: 2px; background: var(--print-mid); }
 
-  /* area picker: a little printed table, 4 columns × 2 rows, hairlines between, rule on top.
-     Each cell is a 44pt target. The chosen area gets the ink frame and its name in Bold. */
-  .ap-areas { display: grid; grid-template-columns: repeat(4, 1fr); border-top: var(--rule) solid var(--print-mid); }
+  /* area picker: eight soft tiles, 4 × 2, 6pt gaps, 10pt corners, no rules. Each is a 44pt target:
+     dye mark + name. The chosen area is filled with ink, its name in paper (as S.segment's chosen cell). */
+  .ap-areas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .ap-area {
-    position: relative; height: 44px; display: flex; align-items: center; gap: 0; padding-left: 9px;
+    height: 44px; display: flex; align-items: center; justify-content: center; gap: 0; padding: 0 4px;
+    border-radius: 10px; background: var(--tile);
     font: 500 14px/18px var(--sans); color: var(--ink); letter-spacing: -0.01em; white-space: nowrap;
-    border-bottom: var(--hair) solid var(--print-rule); border-left: var(--hair) solid var(--print-rule);
   }
-  .ap-area:nth-child(4n + 1) { border-left: 0; }
-  .ap-area .a-dye { width: 10px; height: 10px; margin-right: 6px; }
-  .ap-area.is-on { font-weight: 700; }
-  .ap-area.is-on::after { content: ''; position: absolute; inset: 2px; border: 1.5px solid var(--ink); border-radius: 0; pointer-events: none; }
+  .ap-area .a-dye { width: 9px; height: 9px; margin-right: 6px; }
+  .ap-area.is-on { font-weight: 600; background: var(--ink); color: var(--paper); }
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -84,7 +83,7 @@
   };
 
   /* AP.areaPicker(target, doc, opts)
-     opts.selected  area index 0..7 (the chosen one; selection = ink frame + Bold). */
+     opts.selected  area index 0..7 (the chosen one; selection = ink fill, paper text). */
   AP.areaPicker = function (target, doc, opts) {
     opts = opts || {};
     const host = el(target);

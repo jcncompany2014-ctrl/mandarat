@@ -10,23 +10,24 @@
 <link rel="stylesheet" href="/docs/design/mockups/a/parts-widgets.css">
 <style>
   /* two 390 × 844 phones on plain grey wallpaper. The phone furniture (dock, island, clock, buttons)
-     is the system's, drawn in hue-less greys so only our widgets carry colour. Other apps are blank
-     squircles: Apple allows a Home Screen in marketing only to show your own widget. */
-  html, body { width: 780px; height: 844px; background: #4A4D51; }
-  .phone { position: absolute; top: 0; width: 390px; height: 844px; overflow: hidden; background: var(--wall); --wall: #5E6165; }
-  .phone + .phone { left: 390px; box-shadow: inset 1px 0 0 #4A4D51; }
+     is the system's, drawn in neutral greys with no hue at all (not the blue-tinted greys of a cool
+     wallpaper) so only our widgets carry colour. Other apps are blank squircles: Apple allows a Home
+     Screen in marketing only to show your own widget. Our surfaces float on the soft warm shadow. */
+  html, body { width: 780px; height: 844px; background: #4B4B4B; }
+  .phone { position: absolute; top: 0; width: 390px; height: 844px; overflow: hidden; background: var(--wall); --wall: #5F5F5F; }
+  .phone + .phone { left: 390px; box-shadow: inset 1px 0 0 #4B4B4B; }
   .ind { position: absolute; left: 128px; bottom: 8px; width: 134px; height: 5px; border-radius: 3px; background: #EDEDED; }
-  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7A7D81; overflow: hidden; }
+  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7B7B7B; overflow: hidden; }
   .app-label { position: absolute; width: 76px; text-align: center; font: 500 11px/14px var(--sans); color: #F2F2F2; }
-  .dock { position: absolute; left: 12px; right: 12px; bottom: 22px; height: 88px; border-radius: 32px; background: #6E7175; }
+  .dock { position: absolute; left: 12px; right: 12px; bottom: 22px; height: 88px; border-radius: 32px; background: #6F6F6F; }
   .dots { position: absolute; left: 0; right: 0; top: 696px; display: flex; justify-content: center; gap: 8px; }
-  .dots i { width: 7px; height: 7px; border-radius: 50%; background: #8C8F93; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: #8E8E8E; }
   .dots i:first-child { background: #F2F2F2; }
 
   .lock-date { position: absolute; left: 0; right: 0; top: 64px; text-align: center; font: 600 18px/24px var(--sans); color: var(--lock-1); }
   .lock-time { position: absolute; left: 0; right: 0; top: 86px; text-align: center; font: 700 96px/104px var(--sans); letter-spacing: -0.02em; color: var(--lock-1); font-variant-numeric: tabular-nums; }
   .lock-row { position: absolute; left: 33px; top: 206px; display: flex; gap: 12px; }
-  .qbtn { position: absolute; bottom: 44px; width: 50px; height: 50px; border-radius: 50%; background: #6C6F73; display: flex; align-items: center; justify-content: center; color: var(--lock-1); }
+  .qbtn { position: absolute; bottom: 44px; width: 50px; height: 50px; border-radius: 50%; background: #6D6D6D; display: flex; align-items: center; justify-content: center; color: var(--lock-1); }
 </style>
 </head>
 <body>
@@ -80,7 +81,7 @@ A.ready().then((doc) => {
     { text: rows[0].text, area: rows[0].area, right: rows[0].right },
     Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
   ]);
-  AI.crop('#our-icon', { size: 60, hair: 0.03, block: 0.06, inset: 0.06 });
+  AI.crop('#our-icon', { size: 60 });
   const isl = W.island('#island', doc);
   isl.style.left = '77px'; isl.style.top = '11px'; isl.style.width = '236px';
 

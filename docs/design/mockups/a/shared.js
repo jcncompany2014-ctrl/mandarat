@@ -525,7 +525,7 @@
     const s = opts.size || 24;
     const a = opts.area;
     const box = opts.done
-      ? `<rect x=".75" y=".75" width="22.5" height="22.5" rx="6" style="fill:${a >= 0 ? wash(a) : 'var(--print-rule)'};stroke:${a >= 0 ? dye(a) : 'var(--ink)'}" stroke-width="1.5"/>`
+      ? `<rect x=".75" y=".75" width="22.5" height="22.5" rx="6" style="fill:${a >= 0 ? wash(a) : 'var(--tile)'};stroke:${a >= 0 ? dye(a) : 'var(--print-edge)'}" stroke-width="1.5"/>`
       : `<rect x=".75" y=".75" width="22.5" height="22.5" rx="6" fill="none" style="stroke:var(--print-edge)" stroke-width="1.5"/>`;
     const tick = opts.done ? `<path d="M5.600 12.400C8 14.200 9.600 16.200 10.800 18.600 14.600 11 19.800 3.600 27.200-3" fill="none" style="stroke:var(--tick)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : '';
     return `<svg class="a-check" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true">${box}${tick}</svg>`;

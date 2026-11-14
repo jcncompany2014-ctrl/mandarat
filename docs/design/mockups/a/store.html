@@ -16,35 +16,39 @@
        1 paper   the sheet itself, cropped full-bleed to the five middle columns (text legible)
        2 ink     today's page as a paper sheet laid on the core's ink, bleeding off the bottom
        3 wall    the Home Screen: our two widgets and the island, on the grey wallpaper
-     Grounds are the app's own: paper, the core's ink, and a phone. No dye ground: a dye means an area. */
+     Grounds are the app's own: paper, the core's ink, and a phone. No dye ground: a dye means an area.
+     Softened with the kit: plain (untracked) captions, the sheet as soft tiles, today's page with the
+     sheet's round corners, the phone's wallpaper a neutral grey with no blue in it. */
   html, body { width: 1290px; height: 932px; background: var(--paper); }
   .frame { position: absolute; top: 0; width: 430px; height: 932px; overflow: hidden; }
   .f1 { left: 0; background: var(--paper); }
   .f2 { left: 430px; background: var(--core); }
-  .f3 { left: 860px; background: #5E6165; }
+  .f3 { left: 860px; background: #5F5F5F; }
 
-  .cap { position: absolute; left: 32px; top: 76px; font: 500 15px/20px var(--sans); letter-spacing: 0.04em; color: var(--print); }
+  .cap { position: absolute; left: 32px; top: 76px; font: 500 16px/22px var(--sans); color: var(--print); }
   .head { position: absolute; left: 32px; right: 24px; top: 106px; font: 600 44px/58px var(--serif); letter-spacing: -0.02em; color: var(--ink); }
   .f2 .cap { color: var(--print-mid); }
   .f2 .head { color: var(--on-core); }
-  .f3 .cap { color: #C9CBCE; }
+  .f3 .cap { color: #CDCDCD; }
   .f3 .head { color: var(--paper); }
 
-  /* 1: a window on the L2 sheet, columns 3–7 and rows 2–8, cut on the rules so no word is cut */
+  /* 1: a window on the L2 sheet, columns 3–7 and rows 2–8, cut in the gaps so no word is cut */
   .win { position: absolute; left: 0; width: 430px; overflow: hidden; }
   .win > div { position: absolute; transform-origin: 0 0; }
 
-  .folio { position: absolute; left: 32px; right: 32px; top: 292px; display: flex; justify-content: space-between; align-items: baseline; font: 500 15px/20px var(--sans); letter-spacing: 0.04em; color: var(--print); font-variant-numeric: tabular-nums; }
+  .folio { position: absolute; left: 32px; right: 32px; top: 292px; display: flex; justify-content: space-between; align-items: baseline; font: 500 16px/22px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
   .folio b { font: 600 17px/20px var(--sans); letter-spacing: 0; color: var(--ink); margin-left: 6px; }
 
   /* 2: today's page */
-  .page2 { position: absolute; left: 24px; top: 330px; width: 290px; height: 520px; transform-origin: 0 0; background: var(--paper); padding: 12px 0 0; }
+    /* the page has the inset sheet's round top corners (22 here × the 1.32 scale ≈ the 28pt sheet radius)
+     and runs off the bottom of the frame */
+  .page2 { position: absolute; left: 24px; top: 330px; width: 290px; height: 520px; transform-origin: 0 0; background: var(--paper); padding: 12px 0 0; border-radius: 22px 22px 0 0; }
   .page2 .a-header { margin: 0 18px; }
-  .page2 .a-list { margin: 0 18px; border-top: 0; }  /* the masthead rule is the table's top rule: a doubled rule means a closed day in A */
+  .page2 .a-list { margin: 6px 18px 0; }
 
   /* 3: the Home Screen */
   .home3 { position: absolute; left: 0; top: 0; width: 364px; height: 440px; transform-origin: 0 0; }
-  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7A7D81; overflow: hidden; }
+  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7B7B7B; overflow: hidden; }
   .app-label { position: absolute; width: 76px; text-align: center; font: 500 11px/14px var(--sans); color: #F2F2F2; }
 </style>
 </head>
@@ -127,7 +131,7 @@ A.ready().then((doc) => {
     { text: rows[0].text, area: rows[0].area, right: rows[0].right },
     Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
   ]);
-  AI.crop('#icon3', { size: 60, hair: 0.03, block: 0.06, inset: 0.06 });
+  AI.crop('#icon3', { size: 60 });
   const k = 1.12, h3 = document.querySelector('#home3');
   h3.style.transform = `scale(${k})`;
   h3.style.left = ((430 - 338 * k) / 2 - 26 * k) + 'px';

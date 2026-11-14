@@ -18,11 +18,10 @@
   .invite .t-prompt { margin-top: 6px; }
   .invite .t-note { margin-top: 6px; }
   .picks { display: flex; gap: 8px; margin-top: 18px; }
-  .pick {                                  /* a written suggestion: ink words in a printed box, tap to write it in */
+  .pick {                                  /* a written suggestion: ink words on a soft tile (no outline), tap to write it in */
     flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 3px;
-    height: 40px; padding: 0 6px; white-space: nowrap;
-    border-radius: var(--r-paper);
-    box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
+    height: 44px; padding: 0 6px; white-space: nowrap;
+    border-radius: 10px; background: var(--tile);
     font: 500 14px/18px var(--sans); color: var(--ink);
   }
   .pick svg { color: var(--print); }

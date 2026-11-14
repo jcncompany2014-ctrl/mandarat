@@ -10,47 +10,49 @@
 <style>
   /* 통계 is a page of the same notebook: the sheet filling in is the picture (hero), then one time
      scope at a time (HL-07). In 이번 주: one written sentence that reads the week, the week drawn
-     as printed boxes filled in with the areas' washes (CD-13), and the three kinds as a ledger in
-     which a kind with no data is one line (FI-16). */
+     as soft tiles filled in with the areas' washes (CD-13), and the three kinds as aligned lines in
+     which a kind with no data is one line (FI-16). Softened: no rules round the hero, under the
+     scopes or on top of the kinds; space groups. */
 
   /* hero: the same composition as Home (fields on the gutter, the sheet tipped in on the right),
-     so the two tabs read as one hand. Fields here are 연속 and 달성. */
+     so the two tabs read as one hand. No rules round the fields: space groups them, as on Home.
+     Fields here are 연속 and 달성. */
   .hero { display: flex; gap: 24px; margin-top: 18px; }
-  .hero-fields { flex: 1; display: flex; flex-direction: column; border-top: var(--rule) solid var(--print-mid); }
-  .hero-field { flex: 1; display: flex; flex-direction: column; padding: 7px 0 6px; border-bottom: var(--hair) solid var(--print-rule); }
-  .hero-field .t-figure { margin-top: auto; }
-  .hero-field .streak { display: flex; align-items: center; gap: 12px; }
+  .hero-fields { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0; }
+  .hero-field { display: flex; flex-direction: column; gap: 2px; }
   .field-head { display: flex; justify-content: space-between; }
-  .hero-field .t-meta { margin-top: 0; }
 
-  /* scope line: written words (tappable = ink), the chosen one Bold with a 1pt ink underline,
-     sitting on the page's 1pt rule like a printed index. Same drawing as the filter line on 오늘. */
-  .scopes { display: flex; gap: 24px; height: 44px; align-items: center; margin-top: 12px; border-bottom: var(--rule) solid var(--print-mid); }
+  /* scope line: written words (tappable = ink), the chosen one Bold with a 1pt ink underline.
+     No rule under the line. The same drawing as the filter line on 오늘. */
+  .scopes { display: flex; gap: 24px; height: 44px; align-items: center; margin-top: 14px; }
   .scope { position: relative; display: inline-flex; align-items: center; height: 44px; font: 500 15px/18px var(--sans); color: var(--ink); }
   .scope.is-on { font-weight: 700; }
-  .scope.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--ink); }
+  .scope.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 9px; height: 1px; background: var(--ink); }
   .scopes .range { margin-left: auto; }
 
   /* the week's reading: one sentence in the ritual voice, the comparison under it */
-  .reading { margin-top: 18px; }
+  .reading { margin-top: 12px; }
   .reading .t-prompt { text-wrap: balance; }
 
-  /* the week as a printed form: seven day columns of empty boxes (print ink hairlines), filled from
-     the bottom, one box per time, in the wash of the area it was for; the largest area at the base. */
+  /* the week as a form filling in: seven columns of soft tiles (the chart's empty tint, 3pt corners,
+     small gaps, no rules), filled from the bottom, one tile per time, in the wash of the area it was
+     for; the largest area at the base. Today = the 5pt vermilion dot under its weekday. */
   .wk { margin-top: 18px; }
   .wk svg { display: block; }
-  .wk-key { display: flex; gap: 14px; margin-top: 8px; }
+  .wk-key { display: flex; gap: 14px; margin-top: 6px; }
   .wk-key span { display: inline-flex; align-items: center; }
   .wk-key b { font-weight: 500; color: var(--ink); margin-left: 3px; }
 
-  /* the kinds: a booktabs ledger, one line each. No data = the line says so and offers the one door. */
-  .kinds { margin-top: 18px; border-top: var(--rule) solid var(--print-mid); }
-  .kind { display: flex; align-items: center; height: 40px; border-bottom: var(--hair) solid var(--print-rule); }
+  /* the kinds: aligned columns, one line each, a faint hairline between lines and none above or
+     below. No data = the line says so and offers the one door. */
+  .kinds { margin-top: 18px; }
+  .kind { position: relative; display: flex; align-items: center; height: 42px; }
+  .kind + .kind::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: var(--hair); background: var(--print-rule); }
   .kind-name { width: 72px; font: 500 15px/18px var(--sans); color: var(--ink); }
   .kind .t-meta { flex: 1; }
   .kind-fig { font: 500 15px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
   .kind-fig small { font: 500 12px/18px var(--sans); color: var(--ink-2); margin-left: 1px; }
-  .kind .a-link { height: 40px; }
+  .kind .a-link { height: 42px; }
 </style>
 </head>
 <body>
@@ -61,7 +63,7 @@
       <div class="hero-fields">
         <div class="hero-field">
           <div class="field-head"><span class="t-label">연속</span><span class="t-label" id="best"></span></div>
-          <div class="t-figure streak"><span id="fig-streak"></span><span id="tally"></span></div>
+          <div class="t-figure" id="fig-streak"></div>
           <div class="t-meta" id="streak-note"></div>
         </div>
         <div class="hero-field">
@@ -101,9 +103,9 @@ A.ready().then((doc) => {
   // hero: the sheet filling in (L1, larger than Home's 177pt: it is this page's picture)
   A.chart('#chart', doc, { level: 'L1', cell: 21 });
   const streak = parseInt(s.streak, 10);
+  // the streak: the figure and the sentence (no flame, no warning). The 正 beside it is gone
+  // (art director's decision 5): it did not read at a glance without the week strip.
   document.querySelector('#fig-streak').innerHTML = `${streak}<small>일</small>`;
-  // the streak kept as the 正 tally: one stroke a day, inked over the printed character (no flame, no warning)
-  document.querySelector('#tally').innerHTML = A.tally(streak, { size: 22 });
   document.querySelector('#streak-note').textContent = s.streakNote;
   const [best, month] = s.best.split(' · ');
   document.querySelector('#fig-cells').innerHTML = `${v.progress.done}/${v.progress.of}<small>칸</small>`;
@@ -122,42 +124,30 @@ A.ready().then((doc) => {
   const H = A.areaIndex(doc, '건강'), SELF = A.areaIndex(doc, '자기계발'), MIND = A.areaIndex(doc, '마음챙김');
   const byDay = [[H, H, MIND], [H, H, SELF], [H], [], [], [], []];
   const days = v.week.days;
-  const dpr = window.devicePixelRatio || 2;
-  const P = (pt) => Math.round(pt * dpr);
-  const W = 342, colW = W / 7;
+  // soft tiles: 7 columns with 6pt gaps, rows of 18pt with 4pt gaps, 3pt corners (the chart's L2 radius)
+  const W = 342, gapX = 6, gapY = 3, tileH = 16, rx = 3;
+  const tileW = (W - 6 * gapX) / 7;
   const rows = Math.max(4, Math.max(...byDay.map((x) => x.length)) + 1);
-  const boxH = 18, headH = 0, footH = 24;
-  const top = headH, chartH = rows * boxH;
-  const H_ALL = headH + chartH + footH;
+  const chartH = rows * tileH + (rows - 1) * gapY;
+  const letterTop = chartH + 6, H_ALL = letterTop + 18 + 10;
+  const tileY = (k) => chartH - (k + 1) * tileH - k * gapY; // k = 0 is the base
   let svg = '', html = '';
-  // printed form: hairline lattice (columns and rows), 1pt baseline
-  for (let i = 1; i < 7; i++) {
-    const x = P(i * colW);
-    svg += `<rect x="${x}" y="${P(top)}" width="${P(0.5)}" height="${P(chartH + footH)}" style="fill:var(--print-rule)"/>`;
-  }
-  for (let r = 0; r < rows; r++) {
-    svg += `<rect x="0" y="${P(top + r * boxH)}" width="${P(W)}" height="${P(0.5)}" style="fill:var(--print-rule)"/>`;
-  }
-  svg += `<rect x="0" y="${P(top + chartH)}" width="${P(W)}" height="${P(1)}" style="fill:var(--print-mid)"/>`;
-  svg += `<rect x="0" y="${P(H_ALL) - P(0.5)}" width="${P(W)}" height="${P(0.5)}" style="fill:var(--print-rule)"/>`;
-  // filled boxes: inset 1pt from the rules, washes (done), the largest area at the base
   byDay.forEach((list, i) => {
-    const x0 = P(i * colW) + P(0.5) + P(1), x1 = P((i + 1) * colW) - P(1);
-    list.forEach((a, k) => {
-      const yb = top + chartH - k * boxH; // bottom of this box (pt)
-      const y0 = P(yb - boxH) + P(0.5) + P(1), y1 = P(yb) - P(1);
-      svg += `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" style="fill:var(--wash-l1-${a + 1})"/>`;
-    });
+    const x = i * (tileW + gapX);
+    for (let k = 0; k < rows; k++) {
+      const fill = k < list.length ? `var(--wash-l1-${list[k] + 1})` : 'var(--tile)';
+      svg += `<rect x="${x.toFixed(2)}" y="${tileY(k)}" width="${tileW.toFixed(2)}" height="${tileH}" rx="${rx}" style="fill:${fill}"/>`;
+    }
+    // the day's count, written in the next empty tile, as the next stroke would be
     if (list.length) {
-      html += `<span class="wk-n" style="position:absolute;left:${i * colW}px;width:${colW}px;top:${top + chartH - list.length * boxH - 18}px;text-align:center;font:500 13px/18px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums">${list.length}</span>`;
+      html += `<span style="position:absolute;left:${x}px;width:${tileW}px;top:${tileY(list.length)}px;text-align:center;font:500 12px/16px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums">${list.length}</span>`;
     }
     const dd = days[i];
     const cls = dd[0] === '일' ? 'color:var(--signal)' : dd[2] === 'today' ? 'color:var(--ink);font-weight:700' : '';
-    html += `<span class="t-label" style="position:absolute;left:${i * colW}px;width:${colW}px;top:${top + chartH + 4}px;text-align:center;line-height:18px;${cls}">${dd[0]}</span>`;
-    if (dd[2] === 'today') svg += `<path d="M${P(i * colW) + P(0.5)} ${P(top + chartH + 1)}h${P(8)}l${-P(8)} ${P(8)}z" style="fill:var(--signal)"/>`;
+    html += `<span class="t-label" style="position:absolute;left:${x}px;width:${tileW}px;top:${letterTop}px;text-align:center;line-height:18px;${cls}">${dd[0]}</span>`;
+    if (dd[2] === 'today') svg += `<circle cx="${(x + tileW / 2).toFixed(2)}" cy="${letterTop + 18 + 5.5}" r="2.5" style="fill:var(--signal)"/>`;
   });
-  const tw = P(W), th = P(H_ALL);
-  document.querySelector('#wk').innerHTML = `<div style="position:relative;width:${W}px;height:${H_ALL}px"><svg width="${W}" height="${H_ALL}" viewBox="0 0 ${tw} ${th}" shape-rendering="crispEdges" aria-hidden="true">${svg}</svg>${html}</div>`;
+  document.querySelector('#wk').innerHTML = `<div style="position:relative;width:${W}px;height:${H_ALL}px"><svg width="${W}" height="${H_ALL}" viewBox="0 0 ${W} ${H_ALL}" aria-hidden="true">${svg}</svg>${html}</div>`;
 
   // what the colours are: the areas, written out with their counts (a reading, not a legend:
   // the 커리어 the sentence names is in it too, at 0)

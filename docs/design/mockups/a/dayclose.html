@@ -16,33 +16,34 @@
   /* the folded list: one row, the same anatomy as a task row */
   .fold .a-row-title { white-space: normal; }
   .fold .a-row-meta { display: flex; gap: 0; }
-  .fold .a-row-meta span + span { margin-left: 10px; }
-  .fold .a-row-meta .a-dye { margin-right: 4px; }
-  .fold .a-row { border-bottom: 0; }
-  .fold-open { display: flex; align-items: center; gap: 2px; font: 600 13px/18px var(--sans); color: var(--ink); }
+  .fold .a-row-meta span + span { margin-left: 7px; }
+  .fold .a-row-meta .a-dye { margin-right: 3px; }
+  .fold .a-row-meta b { font-weight: 400; margin-left: 3px; }
+  .fold-open { display: flex; align-items: center; gap: 2px; font: 700 13px/18px var(--sans); color: var(--ink); }
+  .fold-open svg { margin-right: -4px; }
 
-  /* KIT REQUEST: the ledger double rule (close of a page). Two 1pt print rules, 2pt of paper between. */
-  .a-double { height: 4px; border-top: var(--rule) solid var(--print-edge); border-bottom: var(--rule) solid var(--print-edge); }
+  /* KIT REQUEST: the ledger double rule (close of a page). Softened: two 1pt rules in the pale
+     closing grey (--print-mid), 2pt of paper between, starting at the text like a row hairline. */
+  .a-double { height: 4px; margin-left: 38px; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--rule) solid var(--print-mid); }
 
   /* the day's total under the rule: the 正 of the day, written large, with the closing sentence */
   .close { display: flex; align-items: center; gap: 20px; padding: 32px 0 36px; }
   .close-mark { flex: none; }
   .close-text { display: flex; flex-direction: column; gap: 2px; }
 
-  /* KIT REQUEST: segment (single choice in a printed strip). Same cells as the week strip;
-     the chosen cell gets the chart's ink selection frame (1.5pt inset) and its word in ink Bold. */
-  .a-seg { display: flex; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--hair) solid var(--print-rule); }
-  .a-seg-cell { position: relative; flex: 1; height: 44px; display: flex; align-items: center; justify-content: center;
-                border-left: var(--hair) solid var(--print-rule); font: 500 14px/18px var(--sans); color: var(--ink); }
-  .a-seg-cell:first-child { border-left: 0; }
-  .a-seg-cell.is-on { font-weight: 700; }
-  .a-seg-cell.is-on::after { content: ''; position: absolute; inset: 2px; box-shadow: inset 0 0 0 1.5px var(--ink); }
+  /* KIT REQUEST: mood choices as soft tiles (the chart's empty tint, 10pt corners, 6pt gaps), no
+     rules. The chosen one is filled with ink, its word in paper, as the chosen cell of a segment (S.segment). */
+  .a-seg { display: flex; gap: 6px; }
+  .a-seg-cell { flex: 1; height: 44px; display: flex; align-items: center; justify-content: center;
+                border-radius: 10px; background: var(--tile); font: 500 14px/18px var(--sans); color: var(--ink); }
+  .a-seg-cell.is-on { font-weight: 600; background: var(--ink); color: var(--paper); }
 
-  /* KIT REQUEST: one written line (a ruled line to write on). Placeholder = printed, so print ink. */
-  .a-line { display: flex; align-items: center; justify-content: space-between; height: 48px; border-bottom: var(--hair) solid var(--print-edge); }
+  /* KIT REQUEST: one input line, softened: a tile with 10pt corners instead of a ruled line to write on.
+     Placeholder = printed, so print ink. */
+  .a-line { display: flex; align-items: center; height: 48px; padding: 0 16px; border-radius: 10px; background: var(--tile); }
   .a-line .ph { font: 400 16px/24px var(--sans); color: var(--print); }
 
-  .module .t-label + .a-seg, .module .t-label + .a-line { margin-top: 6px; }
+  .module .t-label + .a-seg, .module .t-label + .a-line { margin-top: 8px; }
   .module .gap { height: 24px; }
   .week { margin-top: 36px; }
 </style>
@@ -52,7 +53,7 @@
   <div id="header"></div>
   <div class="a-body">
     <section class="sec">
-      <div class="a-section"><span class="t-label">오늘 할 일</span><span class="fold-open" id="open"></span></div>
+      <div class="a-section"><span class="t-label is-section">오늘 할 일</span><span class="fold-open" id="open"></span></div>
       <div class="a-list fold" id="fold"></div>
       <div class="a-double"></div>
       <div class="close">
@@ -73,7 +74,7 @@
     </section>
 
     <section class="sec week">
-      <div class="a-section"><span class="t-label">이번 주</span><span class="t-meta" id="week-total" style="color:var(--ink);font-weight:500"></span></div>
+      <div class="a-section"><span class="t-label is-section">이번 주</span><span class="t-meta" id="week-total" style="color:var(--ink)"></span></div>
       <div id="week"></div>
     </section>
   </div>
@@ -89,7 +90,7 @@ A.ready().then((doc) => {
 
   // the folded list: one row. Leading box ticked (no single area, so it takes ink), the count as the title,
   // the areas as the one meta line (from the record's filter counts), one control on the right.
-  const areas = v.today.filters.slice(1).map(([name, k]) => `<span><i class="a-dye" style="--d:var(--dye-${A.areaIndex(doc, name) + 1})"></i>${name} ${k}</span>`).join('');
+  const areas = v.today.filters.slice(1).map(([name, k]) => `<span><i class="a-dye" style="--d:var(--dye-${A.areaIndex(doc, name) + 1})"></i>${name}<b>${k}</b></span>`).join('');
   document.querySelector('#fold').innerHTML =
     `<div class="a-row">${A.check({ done: true })}<div class="a-row-main"><div class="a-row-title">${v.today.rows[0].text}, ${v.today.rows[1].text} 외 ${n - 2}개</div><div class="a-row-meta">${areas}</div></div></div>`;
   document.querySelector('#open').innerHTML = `펼치기${A.glyph('down', 16)}`;

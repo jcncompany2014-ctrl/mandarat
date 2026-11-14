@@ -15,7 +15,8 @@
   .sheet-line { align-self: stretch; height: 18px; margin: 0 var(--gutter); display: flex; justify-content: space-between; align-items: baseline; }
   #chart { margin: 6px 0; }
 
-  .sec { margin-top: 18px; }
+  .sec { margin-top: 24px; }
+  .sec + .sec { margin-top: 30px; }
 
   /* 표가 채워진 모습: four frames of the same sheet, L1 (solid structure, wash for done, paper),
      on one baseline, the date under each in print ink. The last one is the year as it closed. */
@@ -23,10 +24,10 @@
   .frame { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
   .frame.is-last .t-label { color: var(--ink); }
 
-  /* four figures, one size (TY-10): a booktabs row, rule on top, hairline under, no boxes.
-     Label printed, figure written: MaruBuri 22 with the unit at half size in Pretendard. */
-  .figs { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 12px; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--hair) solid var(--print-rule); }
-  .fig { padding: 6px 0 6px; display: flex; flex-direction: column; }
+  /* four figures, one size (TY-10): four filled-in fields in a row, no rules and no boxes; the space
+     above groups them. Label printed, figure written: MaruBuri 22 with the unit in Pretendard. */
+  .figs { display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 12px; }
+  .fig { display: flex; flex-direction: column; gap: 2px; }
   .fig .t-figure { font-size: 22px; line-height: 30px; white-space: nowrap; }
   .fig .t-figure small { font-size: 11px; margin-left: 1px; margin-right: 2px; }
 </style>
@@ -40,7 +41,7 @@
   </div>
   <div class="a-body">
     <section class="sec">
-      <div class="a-section"><span class="t-label">표가 채워진 모습</span></div>
+      <div class="a-section"><span class="t-label is-section">표가 채워진 모습</span></div>
       <div class="frames" id="frames"></div>
     </section>
     <section class="sec">

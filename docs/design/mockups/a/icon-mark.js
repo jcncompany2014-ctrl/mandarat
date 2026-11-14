@@ -43,43 +43,58 @@
     host.innerHTML = `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="display:block" aria-hidden="true"><rect width="${S}" height="${S}" style="fill:var(--paper)"/>${out}</svg>`;
     return { el: host, size: S };
   };
-  /* AI.crop(target, opts) — the icon as a crop of the printed sheet itself: a 5×5 window centred on the
-     core. The heart (ink core + eight dye cells) sits inside the block rule, exactly as on the L2 sheet;
-     pale cell rules run on to the edges of the square, so the paper and its print fill the whole icon
-     and the corner mask cuts the form, not the drawing.
+  /* AI.crop(target, opts) — the icon as a window on the softened sheet, centred on its heart: the ink
+     core and the eight dye cells as soft tiles (small gap, gentle corners), and round them the first
+     ring of the sheet's empty tiles in the tile tint, cut by the icon's edge, so the paper and the
+     sheet run on past the square. No frame, no lines.
      opts.size   outer size (default 512).
      opts.n      cells across the window (default 5; the heart is always the middle 3).
-     opts.hair / opts.block / opts.inset  as fractions of one cell (defaults 0.02 / 0.045 / 0.05). */
+     opts.gap       gap between the heart's tiles, as a fraction of one cell (default 0.06).
+     opts.blockGap  gap between the heart and the ring, as a fraction of one cell (default 0.16).
+     (opts.hair / block / inset, the rule weights of the ruled drawing, are accepted and ignored.)
+     opts.ring   false = the heart alone on paper (default true).
+     opts.show   how much of a ring tile shows inside the square, 0..1 (default 0.5). */
   AI.crop = function (target, opts) {
     opts = opts || {};
     const S = opts.size || 512;
     const n = opts.n || 5;
     const c = S / n;
-    const hair = c * (opts.hair || 0.02), block = c * (opts.block || 0.045), inset = c * (opts.inset !== undefined ? opts.inset : 0.05);
-    const lo = (n - 3) / 2;               // first cell of the heart
-    let rules = '', heavy = '', fills = '';
-    for (let k = 1; k < n; k++) {
-      const p = k * c;
-      if (k === lo || k === lo + 3) {
-        // the block rule only frames the centre block; outside it the line continues as a hair
-        const a = lo * c - block / 2, len = 3 * c + block;
-        heavy += `<rect x="${(p - block / 2).toFixed(2)}" y="${a.toFixed(2)}" width="${block.toFixed(2)}" height="${len.toFixed(2)}"/><rect x="${a.toFixed(2)}" y="${(p - block / 2).toFixed(2)}" width="${len.toFixed(2)}" height="${block.toFixed(2)}"/>`;
+    const gi = c * (opts.gap !== undefined ? opts.gap : 0.06);
+    const gb = c * (opts.blockGap !== undefined ? opts.blockGap : 0.16);
+    const show = opts.show !== undefined ? opts.show : 0.5;
+    const ring = opts.ring !== false;
+    // tile size: the ring tile shows `show` of its width inside the square (with a ring), or the heart
+    // fills the middle three cells of the window (without one)
+    const t = ring ? (S / 2 - gi - gb) / (1.5 + show) : (3 * c - 2 * gi) / 3;
+    const rx = t * 0.12;
+    const H = 3 * t + 2 * gi;
+    const o = (S - H) / 2;                               // the heart's top-left
+    const tileAt = (k) => (k < 0 ? o - gb - t : k > 2 ? o + H + gb : o + k * (t + gi));
+    const rect = (x, y, fill) => `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${t.toFixed(2)}" height="${t.toFixed(2)}" rx="${rx.toFixed(2)}" style="fill:${fill}"/>`;
+    let tiles = '', fills = '';
+    if (ring) {
+      for (let row = -1; row <= 3; row++) for (let col = -1; col <= 3; col++) {
+        if (row >= 0 && row <= 2 && col >= 0 && col <= 2) continue;
+        // the ring is the neighbouring blocks' edge cells: a block gap runs between them only where a
+        // block boundary does (at the heart's edges), so ring tiles beside each other keep the small gap
+        tiles += rect(tileAt(col), tileAt(row), 'var(--tile)');
       }
-      rules += `<rect x="${(p - hair / 2).toFixed(2)}" y="0" width="${hair.toFixed(2)}" height="${S}"/><rect x="0" y="${(p - hair / 2).toFixed(2)}" width="${S}" height="${hair.toFixed(2)}"/>`;
     }
     for (let i = 0; i < 9; i++) {
       const a = i < 4 ? i : i - 1;
-      const col = lo + (i % 3), row = lo + Math.floor(i / 3);
-      // every fill the same size, centred in its cell, so the gaps read even whatever the rule beside them
-      const w = c - block - 2 * inset, h = w;
-      const x = col * c + (c - w) / 2, y = row * c + (c - h) / 2;
-      fills += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" style="fill:${i === 4 ? 'var(--core)' : `var(--dye-${a + 1})`}"/>`;
-      if (i === 4) fills += `<rect x="${(x + hair / 2).toFixed(2)}" y="${(y + hair / 2).toFixed(2)}" width="${(w - hair).toFixed(2)}" height="${(h - hair).toFixed(2)}" fill="none" style="stroke:var(--core-edge)" stroke-width="${hair.toFixed(2)}"/>`;
+      const x = tileAt(i % 3), y = tileAt(Math.floor(i / 3));
+      fills += rect(x, y, i === 4 ? 'var(--core)' : `var(--dye-${a + 1})`);
+      if (i === 4) {
+        const ce = Math.max(0.5, t / 40);
+        fills += `<rect x="${(x + ce / 2).toFixed(2)}" y="${(y + ce / 2).toFixed(2)}" width="${(t - ce).toFixed(2)}" height="${(t - ce).toFixed(2)}" rx="${(rx - ce / 2).toFixed(2)}" fill="none" style="stroke:var(--core-edge)" stroke-width="${ce.toFixed(2)}"/>`;
+      }
     }
     const host = typeof target === 'string' ? document.querySelector(target) : target;
     host.style.width = S + 'px';
     host.style.height = S + 'px';
-    host.innerHTML = `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="display:block" aria-hidden="true"><rect width="${S}" height="${S}" style="fill:var(--paper)"/><g style="fill:var(--rule-cell)">${rules}</g><g style="fill:var(--rule-block)">${heavy}</g>${fills}</svg>`;
+    // the ring is cut by the square on purpose (data-bleed tells the renderer's overflow check so)
+    const clip = `ai-crop-${(AI._n = (AI._n || 0) + 1)}`;
+    host.innerHTML = `<svg data-bleed width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="display:block" aria-hidden="true"><defs><clipPath id="${clip}"><rect width="${S}" height="${S}"/></clipPath></defs><rect width="${S}" height="${S}" style="fill:var(--paper)"/><g clip-path="url(#${clip})">${tiles}</g>${fills}</svg>`;
     return { el: host, size: S };
   };
   global.AI = AI;
