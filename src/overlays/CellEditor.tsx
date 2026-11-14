@@ -5,9 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text, a11yLangProp } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import {
-  Button, CloseBtn, QuietAction, Sheet, useKeyboardHeight, useSheetDismiss, type SheetDismissFn,
+  Button, QuietAction, Sheet, SheetHeader, useKeyboardHeight, useSheetDismiss, type SheetDismissFn,
 } from '../components/common';
-import { ChoiceRow, DyeMark, Field, Row, SECTION, Segment, hitFor } from '../components/kit';
+import { ChoiceRow, Field, Row, SECTION, Segment, hitFor } from '../components/kit';
 import { Locator } from '../components/chart';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
@@ -53,11 +53,6 @@ const HABIT_REMIND_DEFAULT = '08:00';
  * 본문 끝 12(+ 바닥 줄 위 12 = 24), 바닥 줄 낱말 사이 24.
  */
 const SP = { field: 6, group: 24, label: 8, note: 8, under: 12, pair: 16, pairGap: 12, end: 12, foot: 24 } as const;
-
-/** 시트 머리(S.head) — 48 높이, 위치 표 36 뒤 12, 두 줄은 17 줄 높이(첫 줄 먹 600, 둘째 줄 인쇄 색) */
-const HEAD = { h: 48, gap: 12, closeInset: -10 } as const;
-const HEAD_TITLE: TextStyle = { ...ROLE.label, fontFamily: PRETENDARD[600], lineHeight: 17 };
-const HEAD_SUB: TextStyle = { ...ROLE.label, lineHeight: 17 };
 
 /** 무리 이름 — 입력 칸의 이름처럼 label 600 13/18 print(목업 .s-group .t-label:first-child) */
 const GROUP_LABEL: TextStyle = { ...ROLE.label, fontFamily: PRETENDARD[600] };
@@ -625,31 +620,25 @@ function Editor({ editor }: { editor: EditorTarget }) {
 // ── 머리 · 무리 · 안내 ──────────────────────────────────────────────────────────
 
 /**
- * 시트 머리(S.head) — 위치 표(이 칸에 먹 테두리) + 인쇄된 두 줄(■ 영역 · 실천 3/8) + 닫기(×, 44).
+ * 시트 머리(S.head, common SheetHeader) — 위치 표(이 칸에 먹 테두리) + 인쇄된 두 줄(■ 영역 · 실천 3/8) + 닫기(×, 44).
  * 핵심 목표는 가운데 블록의 위치 표 + '핵심 목표' 한 줄. 화면 읽기에서는 한 덩어리의 머리 —
  * '3/8'은 날짜로 읽히므로 소리는 '건강 영역, 8칸 중 세 번째 칸'(meta().speech).
- * (SheetHeader는 두 줄을 따로 읽어 이름을 줄 수 없어 여기서 그린다 — 웨이브 4가 SheetHeader에 accessibilityLabel을 더하면 옮긴다)
  */
 function EditorHead({ M, editor, doc, speech }: { M: M; editor: EditorTarget; doc: MandaratDoc; speech: string }) {
   const ed = useMsg().editor;
-  const dismiss = useSheetDismiss();
   const ti = editor.kind === 'center' ? null : editor.ti;
   const title = editor.kind === 'center' ? ed.centerTitle : areaName(doc, editor.ti);
   const sub = editor.kind === 'action' ? ed.actionN({ n: editor.ai + 1 }) : editor.kind === 'theme' ? ed.themeSub : '';
   return (
-    <View style={{ height: HEAD.h, flexDirection: 'row', alignItems: 'center', gap: HEAD.gap }}>
-      <Locator themes={doc.themes} block={ti ?? 'core'} at={editor.kind === 'action' ? editor.ai : 'head'} />
-      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityRole="header" accessibilityLabel={speech} {...a11yLangProp()}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {ti != null && <DyeMark M={M} area={ti} />}
-          <Text style={[HEAD_TITLE, { color: M.ink, flexShrink: 1 }]} numberOfLines={1}>{title}</Text>
-        </View>
-        {!!sub && <Text style={[HEAD_SUB, { color: M.print }]} numberOfLines={1}>{sub}</Text>}
-      </View>
-      <View style={{ marginRight: HEAD.closeInset }}>
-        <CloseBtn M={M} onPress={() => dismiss()} testID={TID.editorClose} />
-      </View>
-    </View>
+    <SheetHeader
+      M={M}
+      leading={<Locator themes={doc.themes} block={ti ?? 'core'} at={editor.kind === 'action' ? editor.ai : 'head'} />}
+      title={title}
+      area={ti ?? undefined}
+      sub={sub}
+      accessibilityLabel={speech}
+      closeTestID={TID.editorClose}
+    />
   );
 }
 

@@ -20,12 +20,16 @@ const fn = (name, next) => ed.slice(ed.indexOf(`function ${name}(`), next ? ed.i
 test('O1: 새 시트(pad + 머리 줄) — 머리는 위치 표 · 영역 표시 · 두 줄 · 닫기(editorClose), 소리는 한 덩어리', () => {
   assert.match(ed, /<Sheet\s+M=\{M\}\s+pad\s+ownClose\s+header=\{<EditorHead M=\{M\} editor=\{editor\} doc=\{doc\} speech=\{m\.speech\} \/>\}/);
   const head = fn('EditorHead', 'Group');
-  assert.match(head, /<Locator themes=\{doc\.themes\} block=\{ti \?\? 'core'\} at=\{editor\.kind === 'action' \? editor\.ai : 'head'\} \/>/);
-  assert.match(head, /\{ti != null && <DyeMark M=\{M\} area=\{ti\} \/>\}/);
-  assert.match(head, /accessible accessibilityRole="header" accessibilityLabel=\{speech\}/);
+  // 머리는 common의 SheetHeader(48 · 위치 표 · 두 줄 17 · 닫기 −10) — 두 줄은 한 덩어리의 머리(header)로 speech를 읽는다
+  assert.match(head, /<SheetHeader\s+M=\{M\}\s+leading=\{<Locator themes=\{doc\.themes\} block=\{ti \?\? 'core'\} at=\{editor\.kind === 'action' \? editor\.ai : 'head'\} \/>\}/);
+  // 영역 표시는 영역 번호로 — 색은 SheetHeader가 그 영역의 dye에서 고른다
+  assert.match(head, /area=\{ti \?\? undefined\}/);
+  assert.match(head, /accessibilityLabel=\{speech\}/);
   assert.match(head, /ed\.actionN\(\{ n: editor\.ai \+ 1 \}\)/);
-  assert.match(head, /<CloseBtn M=\{M\} onPress=\{\(\) => dismiss\(\)\} testID=\{TID\.editorClose\} \/>/);
-  assert.match(ed, /const HEAD = \{ h: 48, gap: 12, closeInset: -10 \} as const;/);
+  assert.match(head, /closeTestID=\{TID\.editorClose\}/);
+  const c = code('src/components/common.tsx');
+  assert.match(c, /accessibilityRole=\{accessibilityLabel \? 'header' : undefined\}\s+accessibilityLabel=\{accessibilityLabel\}/);
+  assert.match(c, /<CloseBtn M=\{M\} onPress=\{onClose \?\? \(\(\) => dismiss\(\)\)\} testID=\{closeTestID \?\? TID\.sheetClose\} \/>/);
 });
 
 test('O1: 입력 칸이 먼저 — 부품 상자 Field(editorText, 글자 수 n/max), 아래 안내 한 줄(실천: 점검 · 목표/영역: 81칸 어림)', () => {

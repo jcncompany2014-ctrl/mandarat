@@ -9,7 +9,7 @@ const amt = ({ n, unit }: { n: number; unit: string }) => `${groupNum(n)}${unit}
 
 export default {
   areaFallback: ({ n }) => `分野${n}`,
-  headA11y: ({ area, ordinal }) => `分野「${area}」、${ordinal}、分野を開く`,
+  headA11y: ({ area, ordinal }) => `分野「${area}」、行動8マスのうち${ordinal}、分野を開く`,
   headSub: ({ n }) => `行動 ${n}/8`,
   actionFallback: '行動',
   titleA11y: ({ text, subtitle }) => `${text}、${subtitle}、文と種類を編集`,

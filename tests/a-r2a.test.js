@@ -90,3 +90,30 @@ test('머리를 쓰는 화면 — 홈은 감싼 칸 없이 Header 하나, 숫자
   const { headerMeta } = require('../src/lib/home');
   assert.equal(headerMeta(new Date(2026, 9, 14), 'ko').left, '올해 78일 남음');
 });
+
+// ── 시트 머리 ──────────────────────────────────────────────────────────────────
+
+test("SheetHeader: '어디'(위치 표 + ■ 건강 / 실천 1/8)가 영역 쪽으로 가는 한 단추 · 읽는 말은 '실천 8칸 중 첫 번째 칸'", () => {
+  const c = code('src/components/common.tsx');
+  const head = c.slice(c.indexOf('export function SheetHeader('), c.indexOf('export function CloseBtn('));
+  for (const k of ['onPress', 'accessibilityLabel', 'accessibilityHint', 'area']) assert.match(head, new RegExp(`\\b${k}\\?: `), k);
+  // 누르면: 앞 자리와 두 줄이 한 Pressable(44 손끝), 닫기는 그 밖
+  assert.match(head, /<Pressable\s+onPress=\{onPress\}\s+accessibilityRole="button"\s+accessibilityLabel=\{accessibilityLabel\}/);
+  assert.match(head, /minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed \? 0\.6 : 1/);
+  assert.match(head, /\{leading\}\s+<View style=\{\{ flex: 1, minWidth: 0 \}\}>\{lines\}<\/View>\s+<\/Pressable>/);
+  // 누를 수 없으면: 두 줄이 그 말 한 덩어리의 머리
+  assert.match(head, /const mark = dye \?\? \(area != null \? M\.dye\[area\] : undefined\);/);
+  const sheet = code('src/overlays/ActionSheet.tsx');
+  assert.match(sheet, /onPress=\{toArea\}/);
+  assert.match(sheet, /accessibilityLabel=\{m\.sheet\.headA11y\(\{ area, ordinal: m\.fmt\.ordinalCell\(\{ n: ai \+ 1 \}\) \}\)\}/);
+  assert.doesNotMatch(sheet, /CloseBtn|const HEAD\b/);
+  // 편집 창의 머리도 같은 부품
+  assert.match(code('src/overlays/CellEditor.tsx'), /<SheetHeader\b[\s\S]{0,400}accessibilityLabel=\{speech\}\s+closeTestID=\{TID\.editorClose\}/);
+  // 'n/8'을 날짜로 읽지 않게 — 세 언어 모두 '8칸 중 몇 번째 칸'
+  const { msg } = require('../src/i18n');
+  const say = (l, area) => msg(l).sheet.headA11y({ area, ordinal: msg(l).fmt.ordinalCell({ n: 1 }) });
+  assert.equal(say('ko', '건강'), '건강 영역, 실천 8칸 중 첫 번째 칸, 영역 보기');
+  assert.equal(say('ja', '健康'), '分野「健康」、行動8マスのうち1番目のマス、分野を開く');
+  assert.equal(say('en', 'Health'), 'Health area, first square of 8, open area');
+  for (const l of ['ko', 'ja', 'en']) assert.doesNotMatch(say(l, 'x'), /\d\/8/, l);
+});

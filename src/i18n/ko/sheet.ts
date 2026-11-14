@@ -11,8 +11,8 @@ export default {
   // ── 실천 시트 머리 ──
   /** 영역 이름이 비었을 때 — '영역 3' */
   areaFallback: ({ n }: { n: number }) => `영역 ${n}`,
-  /** 머리(작은 3×3 + 영역 이름) 버튼 — ordinal은 fmt.ordinalCell('세 번째 칸') */
-  headA11y: ({ area, ordinal }: { area: string; ordinal: string }) => `${area} 영역, ${ordinal}, 영역 보기`,
+  /** 머리(작은 3×3 + 영역 이름) 버튼 — ordinal은 fmt.ordinalCell('세 번째 칸'). '실천 3/8'을 말로: '실천 8칸 중 세 번째 칸' */
+  headA11y: ({ area, ordinal }: { area: string; ordinal: string }) => `${area} 영역, 실천 8칸 중 ${ordinal}, 영역 보기`,
   /** 머리 둘째 줄 — '실천 3/8'(화면 읽기는 headA11y가 서수로 읽는다) */
   headSub: ({ n }: { n: number }) => `실천 ${n}/8`,
   /** 실천 글이 비었을 때 */

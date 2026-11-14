@@ -9,7 +9,7 @@ const amt = ({ n, unit }: { n: number; unit: string }) => (unit ? `${groupNum(n)
 
 export default {
   areaFallback: ({ n }) => `Area ${n}`,
-  headA11y: ({ area, ordinal }) => `${area} area, ${ordinal}, open area`,
+  headA11y: ({ area, ordinal }) => `${area} area, ${ordinal} of 8, open area`,
   headSub: ({ n }) => `Action ${n} of 8`,
   actionFallback: 'Action',
   titleA11y: ({ text, subtitle }) => `${text}, ${subtitle}, edit text and type`,

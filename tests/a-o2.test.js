@@ -108,7 +108,9 @@ test('새 말 — 세 언어에 있고, 한국어는 목업 그대로', () => {
 test('시트는 디자인 A 부품으로 — 떠 있는 시트(pad · 머리), 위치 표, 체크 줄, 요일 칸, 여는 줄, 메모 칸', () => {
   const s = src(SHEET);
   assert.match(s, /<Sheet\s+M=\{M\}\s+onClose=\{closeSheet\}\s+ownClose\s+pad\s+header=\{<SheetHead /);
-  assert.match(s, /import \{ CheckBox, DayBoxes, DyeMark, Field, LinkRow, Row, Section \} from '\.\.\/components\/kit';/);
+  assert.match(s, /import \{ CheckBox, DayBoxes, Field, LinkRow, Row, Section \} from '\.\.\/components\/kit';/);
+  // 머리는 common의 SheetHeader — 위치 표와 두 줄이 영역 쪽으로 가는 한 단추(읽는 말은 서수)
+  assert.match(s, /<SheetHeader\s+M=\{M\}\s+leading=\{<Locator themes=\{doc\.themes\} block=\{ti\} at=\{ai\} \/>\}\s+title=\{area\}\s+area=\{ti\}\s+sub=\{m\.sheet\.headSub\(\{ n: ai \+ 1 \}\)\}\s+onPress=\{toArea\}/);
   assert.match(s, /<Locator themes=\{doc\.themes\} block=\{ti\} at=\{ai\} \/>/);
   assert.match(s, /<Field\s+M=\{M\}\s+variant="memo"/);
   assert.match(s, /<LinkRow key="focus" M=\{M\} glyph="focus" title=\{m\.sheet\.focusRow\}/);
@@ -120,7 +122,6 @@ test('시트는 디자인 A 부품으로 — 떠 있는 시트(pad · 머리), �
   assert.match(s, /ROLE\.figureField, NUM/);
   assert.match(s, /ROLE\.unit, \{ color: M\.ink2 \}/);
   // 목업 간격(parts-sheets.css · sheet.html)
-  assert.match(s, /const HEAD = \{ h: 48, gap: 12, closeBleed: -10 \} as const;/);
   assert.match(s, /const SP = \{ title: 10, meta: 2, first: 18, group: 24, groupHead: 8, sayH: 30, say: 8 \} as const;/);
   // 예전 그림(괘선 줄 · 영역 색 · 손으로 그린 위치 표 · 예전 글자)은 없다 — 색은 모두 토큰
   for (const re of [/LineRow/, /\bth\.color\b/, /\btint\(/, /sheetBg/, /\bTYPE\b/, /fontSize:/, /fontWeight:/, /#[0-9A-Fa-f]{3,8}\b/, /WeekStrip/, /alertInk/]) {
@@ -131,7 +132,10 @@ test('시트는 디자인 A 부품으로 — 떠 있는 시트(pad · 머리), �
 test('예전 동작을 지킨다 — TID, 체크 · 지난날 · 어제 · 쌓기 · 마음가짐 · 담기 · 달성 · 메모 · 소리', () => {
   const s = src(SHEET);
   assert.equal((s.match(/testID=\{TID\.sheetCheck\}/g) ?? []).length, 3, '습관 · 한 번 체크 줄, 쌓기 더하기');
-  for (const t of ['sheetFocus', 'sheetEdit', 'sheetClose']) assert.equal((s.match(new RegExp(`testID=\\{TID\\.${t}\\}`, 'g')) ?? []).length, 1, t);
+  for (const t of ['sheetFocus', 'sheetEdit']) assert.equal((s.match(new RegExp(`testID=\\{TID\\.${t}\\}`, 'g')) ?? []).length, 1, t);
+  // 닫기(×)는 SheetHeader의 기본 testID(TID.sheetClose) — 시트 머리가 다른 testID를 주지 않는다
+  assert.doesNotMatch(s, /closeTestID/);
+  assert.match(src('src/components/common.tsx'), /testID=\{closeTestID \?\? TID\.sheetClose\}/);
   assert.match(s, /toggleRoutineToday\(ti, ai\)/);
   assert.match(s, /toggleHabitOn\(ti, ai, day\)/);
   assert.match(s, /canBackfill\(a, new Date\(\), i\)/);

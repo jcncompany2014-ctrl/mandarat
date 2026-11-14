@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from '../components/AppText';
-import { Button, CloseBtn, QuietAction, Sheet, useSheetDismiss } from '../components/common';
-import { CheckBox, DayBoxes, DyeMark, Field, LinkRow, Row, Section } from '../components/kit';
+import { Button, QuietAction, Sheet, SheetHeader, useSheetDismiss } from '../components/common';
+import { CheckBox, DayBoxes, Field, LinkRow, Row, Section } from '../components/kit';
 import { Locator, WEEK_BARS, barHeight, weekMax } from '../components/chart';
 import { Icon } from '../components/Icon';
 import { Snackbar } from './Snackbar';
 import { CountBar, RatingBoxes } from '../components/KindBits';
-import { PRETENDARD } from '../theme/fonts';
 import { NUM, ROLE } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
@@ -37,8 +36,6 @@ import type { Action, Theme } from '../types';
  * 한 번은 다 했어요 줄과 마감. 체크는 모두 앞쪽 24 상자 칸에, 오른쪽에는 꺾쇠만.
  */
 
-/** 자리(parts-sheets.css · sheet.html) — 머리 줄 48, 위치 표와 글 사이 12, 닫기는 오른쪽으로 10 내민다 */
-const HEAD = { h: 48, gap: 12, closeBleed: -10 } as const;
 /**
  * 본문 간격 — 머리 아래 제목 10, 제목과 정한 것 2, 첫 묶음(체크 줄 · 쌓기 단추 · 점수) 18,
  * 묶음 사이 24(.s-group), 묶음 이름 아래 8, 숫자 줄 30 높이 · 아래 8 · 숫자와 한 마디 사이 8(.s-week-say).
@@ -80,9 +77,8 @@ export function ActionSheet() {
 // ── 머리 ─────────────────────────────────────────────────────────────────────
 
 /**
- * 머리 줄(S.head) — 위치 표(36) + 인쇄된 두 줄('■ 건강' 먹 600 · '실천 1/8' print) + 닫기(44, 동그라미 없음).
- * 위치 표와 두 줄은 한 버튼 — 누르면 그 영역 페이지로(화면 읽기는 '건강 영역, 첫 번째 칸, 영역 보기').
- * common의 SheetHeader에는 누르는 '어디' 자리와 그 이름표가 없어 여기서 같은 그림으로 그린다(웨이브 4가 SheetHeader로 옮긴다).
+ * 머리 줄(S.head, common SheetHeader) — 위치 표(36) + 인쇄된 두 줄('■ 건강' 먹 600 · '실천 1/8' print) + 닫기(44, 동그라미 없음).
+ * 위치 표와 두 줄은 한 단추 — 누르면 그 영역 페이지로(화면 읽기는 '건강 영역, 실천 8칸 중 첫 번째 칸, 영역 보기').
  */
 function SheetHead({ M, ti, ai }: { M: M; ti: number; ai: number }) {
   const { doc } = useMandarat();
@@ -94,28 +90,16 @@ function SheetHead({ M, ti, ai }: { M: M; ti: number; ai: number }) {
   // iOS는 시트 위에 시트를 띄우지 못한다 — 이 시트가 다 내려간 뒤에 연다(한 번에 한 장)
   const toArea = () => { dismiss(); afterOverlays(() => go('detail', ti)); };
   return (
-    <View style={{ height: HEAD.h, flexDirection: 'row', alignItems: 'center', gap: HEAD.gap }}>
-      <Pressable
-        onPress={toArea}
-        accessibilityRole="button"
-        // 차트 칸·편집 창과 같은 고유어 서수 — '세 번째 칸'('3/8'은 날짜로 읽힌다)
-        accessibilityLabel={m.sheet.headA11y({ area, ordinal: m.fmt.ordinalCell({ n: ai + 1 }) })}
-        {...a11yLangProp()}
-        style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: HEAD.gap, opacity: pressed ? 0.6 : 1 })}
-      >
-        <Locator themes={doc.themes} block={ti} at={ai} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <DyeMark M={M} area={ti} />
-            <Text style={[ROLE.label, { fontFamily: PRETENDARD[600], color: M.ink, flexShrink: 1 }]} numberOfLines={1}>{area}</Text>
-          </View>
-          <Text style={[ROLE.label, { color: M.print }]} numberOfLines={1}>{m.sheet.headSub({ n: ai + 1 })}</Text>
-        </View>
-      </Pressable>
-      <View style={{ marginRight: HEAD.closeBleed }}>
-        <CloseBtn M={M} onPress={() => dismiss()} testID={TID.sheetClose} />
-      </View>
-    </View>
+    <SheetHeader
+      M={M}
+      leading={<Locator themes={doc.themes} block={ti} at={ai} />}
+      title={area}
+      area={ti}
+      sub={m.sheet.headSub({ n: ai + 1 })}
+      onPress={toArea}
+      // 차트 칸·편집 창과 같은 고유어 서수 — '세 번째 칸'('3/8'은 날짜로 읽힌다)
+      accessibilityLabel={m.sheet.headA11y({ area, ordinal: m.fmt.ordinalCell({ n: ai + 1 }) })}
+    />
   );
 }
 

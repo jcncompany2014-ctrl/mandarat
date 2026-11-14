@@ -625,9 +625,12 @@ export function Sheet({
 /**
  * 시트의 머리 줄(S.head) — 48 높이: 앞 자리(위치 표 · locator) + 인쇄된 두 줄(첫 줄 먹 600, 물감 네모 선택 · 둘째 줄 인쇄 색)
  * + 닫기 글리프(44 손끝, 동그라미 없음). Sheet의 header로 넘기면 스크롤 밖 위에 고정된다.
+ * - accessibilityLabel: 앞 자리와 두 줄을 이 말 한 덩어리로 읽는다 — '실천 3/8'은 날짜로 읽혀서 말로('건강 영역, 8칸 중 세 번째 칸').
+ *   누를 수 없으면 머리(header)로 읽힌다.
+ * - onPress: 앞 자리와 두 줄이 한 단추 — 실천 시트에서 '어디'(위치 표 + ■ 건강 / 실천 1/8)를 누르면 그 영역 쪽으로.
  */
 export function SheetHeader({
-  closeTestID, M, leading, title, dye, sub, onClose,
+  closeTestID, M, leading, title, dye, area, sub, onClose, onPress, accessibilityLabel, accessibilityHint,
 }: {
   /** 닫기(×)의 testID — 기본은 TID.sheetClose */
   closeTestID?: string;
@@ -638,24 +641,60 @@ export function SheetHeader({
   title?: string;
   /** 첫 줄 앞 물감 네모의 색 */
   dye?: string;
+  /** 첫 줄 앞 물감 네모 — 영역 번호로(그 영역의 dye). dye를 주면 그것 */
+  area?: number;
   /** 둘째 줄(인쇄 색) — '실천 3/8' */
   sub?: string;
   /** 닫기 — 기본은 시트 닫기(guard를 거친다) */
   onClose?: () => void;
+  /** 앞 자리 · 두 줄을 누르면(영역 쪽으로 가는 '어디' 단추) */
+  onPress?: () => void;
+  /** 앞 자리 · 두 줄을 한 번에 읽는 말 */
+  accessibilityLabel?: string;
+  /** 단추일 때의 도움말 */
+  accessibilityHint?: string;
 }) {
   const dismiss = useSheetDismiss();
+  const mark = dye ?? (area != null ? M.dye[area] : undefined);
+  const lines = (
+    <>
+      {!!title && (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {!!mark && <Dye color={mark} />}
+          <Text style={{ ...ROLE.label, fontFamily: PRETENDARD[600], lineHeight: 17, color: M.ink, flexShrink: 1 }} numberOfLines={1}>{title}</Text>
+        </View>
+      )}
+      {!!sub && <Text style={{ ...ROLE.label, lineHeight: 17, color: M.print }} numberOfLines={1}>{sub}</Text>}
+    </>
+  );
   return (
     <View style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      {leading}
-      <View style={{ flex: 1, minWidth: 0 }} accessible={!!(title || sub)}>
-        {!!title && (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {!!dye && <Dye color={dye} />}
-            <Text style={{ ...ROLE.label, fontFamily: PRETENDARD[600], lineHeight: 17, color: M.ink, flexShrink: 1 }} numberOfLines={1}>{title}</Text>
+      {onPress ? (
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          {...a11yLangProp()}
+          style={({ pressed }) => ({ flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.6 : 1 })}
+        >
+          {leading}
+          <View style={{ flex: 1, minWidth: 0 }}>{lines}</View>
+        </Pressable>
+      ) : (
+        <>
+          {leading}
+          <View
+            style={{ flex: 1, minWidth: 0 }}
+            accessible={!!(title || sub)}
+            accessibilityRole={accessibilityLabel ? 'header' : undefined}
+            accessibilityLabel={accessibilityLabel}
+            {...a11yLangProp()}
+          >
+            {lines}
           </View>
-        )}
-        {!!sub && <Text style={{ ...ROLE.label, lineHeight: 17, color: M.print }} numberOfLines={1}>{sub}</Text>}
-      </View>
+        </>
+      )}
       <View style={{ marginRight: -10 }}>
         <CloseBtn M={M} onPress={onClose ?? (() => dismiss())} testID={closeTestID ?? TID.sheetClose} />
       </View>
