@@ -117,8 +117,10 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
           <ColourMap themes={view.themes} goal={goal} level="L2" width={mapW} />
         </View>
 
-        <Section M={M} label={m.year.framesTitle} style={{ marginTop: SECTION_GAP, marginBottom: 10 }} />
-        <Frames M={M} m={m} frames={frames} width={contentW} />
+        <View testID={TID.yearFrames}>
+          <Section M={M} label={m.year.framesTitle} style={{ marginTop: SECTION_GAP, marginBottom: 10 }} />
+          <Frames M={M} m={m} frames={frames} width={contentW} />
+        </View>
 
         <Numbers M={M} m={m} digest={digest} stacked={stacked} width={contentW} />
 

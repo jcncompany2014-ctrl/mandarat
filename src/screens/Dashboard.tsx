@@ -105,6 +105,7 @@ export const Dashboard = memo(function Dashboard() {
       <View style={{ paddingHorizontal: GEO.gutter }}>
         {/* 히어로 — 숫자 칸 셋(오늘 · 달성 · 남은 날) | 내 81칸 색 지도(L1). 숫자 칸은 지도 높이에 고르게 */}
         <View
+          testID={TID.homeHero}
           style={{
             flexDirection: stacked ? 'column' : 'row',
             alignItems: stacked ? 'flex-start' : 'stretch',

@@ -11,6 +11,8 @@ export const TID = {
   homeSettings: 'home-settings',
   homeYearPrompt: 'home-year-prompt',
   homeRitual: 'home-ritual',
+  /** 히어로(숫자 칸 셋 + 81칸 색 지도) — 스토어 스크린샷이 이 자리부터 자른다 */
+  homeHero: 'home-hero',
 
   // 시작하기
   onbGoal: 'onb-goal',
@@ -90,6 +92,8 @@ export const TID = {
   /** 한 해 쪽 머리의 공유(지금 표) · 인쇄(지난 표) 글리프 */
   yearShare: 'year-share',
   yearPage: 'year-page',
+  /** 한 해 돌아보기의 '표가 채워진 모습'(작은 표 넷) — 스토어 스크린샷이 이 자리부터 자른다 */
+  yearFrames: 'year-frames',
   yearBack: 'year-back',
   yearShelfRow: (id: string) => `year-shelf-row-${id}`,
   yearShelfMore: 'year-shelf-more',
