@@ -123,7 +123,7 @@ test("SheetHeader: '어디'(위치 표 + ■ 건강 / 실천 1/8)가 영역 쪽�
 test('PageHead · Figure는 부품 상자에 — 한 주 돌아보기 · 한 해 마무리가 같은 것을 쓴다', () => {
   const kit = src(`${KIT}/index.ts`);
   assert.match(kit, /export \{ PageHead \} from '\.\/PageHead';/);
-  assert.match(kit, /export \{ Figure, figureRuns \} from '\.\/Figure';/);
+  assert.match(kit, /export \{ Figure \} from '\.\/Figure';/);
   for (const f of ['src/overlays/WeekRitual.tsx', 'src/overlays/YearClose.tsx']) {
     const s = code(f);
     assert.match(s, /import \{[^}]*\bFigure, PageHead\b[^}]*\} from '\.\.\/components\/kit';/, f);

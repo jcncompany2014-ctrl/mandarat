@@ -9,7 +9,7 @@ import { CHOICE_TICK } from '../../lib/marks';
 import { useMsg } from '../../i18n/react';
 
 /** 고른 줄 오른쪽의 펜 획 — 18pt, 먹 2.2 */
-export function ChoiceTick({ M, size = CHOICE.tick }: { M: M; size?: number }) {
+function ChoiceTick({ M, size = CHOICE.tick }: { M: M; size?: number }) {
   return (
     <View style={{ marginRight: CHOICE.tickInset }} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={size} height={size} viewBox="0 0 24 24">

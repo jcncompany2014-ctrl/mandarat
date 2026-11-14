@@ -6,7 +6,7 @@ export { DyeMark } from './DyeMark';
 export { InLink, Section, TextLink } from './Section';
 export { Segment, segmentFace, segmentRoles, type SegOption } from './Segment';
 export { Field, type FieldButton, type FieldProps } from './Field';
-export { ChoiceRow, ChoiceTick } from './ChoiceRow';
+export { ChoiceRow } from './ChoiceRow';
 export { TimeChip, ToggleRow } from './ToggleRow';
 export { LinkRow } from './LinkRow';
 export { DayBoxes, type DayBoxesProps } from './DayBoxes';
@@ -14,7 +14,7 @@ export { AreaPicker } from './AreaPicker';
 export { FilterLine, type FilterItem } from './FilterLine';
 export { Swatch, type SwatchKind } from './Swatch';
 export { PageHead } from './PageHead';
-export { Figure, figureRuns } from './Figure';
+export { Figure } from './Figure';
 export {
   AREA, CHIP, CHOICE, COUNT_BAR, DAYS, DYE, FIELD, FILTER, ROW, SECTION, SEG, SWATCH,
   hitFor, lookPages, rowInset, segmentCells, strikeBox, strikeTop, type PageInk,

@@ -4,7 +4,7 @@ import { NUM, ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 
 /** 숫자 · 단위 조각 — '2시간 5분' → 2 | 시간 | 5 | 분 (숫자는 그림 글자, 단위는 unit 13/18 ink2) */
-export function figureRuns(text: string): { text: string; num: boolean }[] {
+function figureRuns(text: string): { text: string; num: boolean }[] {
   return text
     .split(/(\d[\d,.:/]*)/)
     .filter((s) => s.length > 0)
