@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style>
-/* 배치: 시안이 주인공인 비교 벽 — 페이지 자체는 차가운 회색으로 물러나고, 폰 화면만 색을 가진다 */
+/* 배치: 시안이 주인공인 비교 벽 — 페이지는 차가운 회색으로 물러나고, 화면만 색을 가진다 */
 :root {
   --wall: #E9ECEF;
   --panel: #F6F7F9;
@@ -37,7 +37,7 @@ body {
   overflow-wrap: anywhere;
 }
 .wrap {
-  max-width: 1080px;
+  max-width: 1180px;
   margin: 0 auto;
   padding-block: 28px 72px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -50,10 +50,10 @@ h1, h2, h3, p, ul, ol, figure { margin: 0; }
 h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
 h2 { font-size: 22px; line-height: 1.35; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
 h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
-.lede { font-size: 17px; color: var(--sub); max-width: 62ch; }
+.lede { font-size: 17px; color: var(--sub); max-width: 64ch; }
 .eyebrow { font-size: 13px; font-weight: 600; color: var(--sub); letter-spacing: 0.04em; }
 .head { display: flex; flex-direction: column; gap: 12px; }
-.note { font-size: 14px; color: var(--sub); max-width: 70ch; }
+.note { font-size: 14px; color: var(--sub); max-width: 72ch; }
 
 .ask {
   background: var(--panel);
@@ -74,14 +74,14 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 .plain li::before { content: ''; position: absolute; left: 2px; top: 0.68em; width: 6px; height: 6px; background: var(--sub); }
 .plain b { font-weight: 600; }
 
-/* 두 잉크 견본 */
-.inks { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; max-width: 760px; }
-.ink { background: #F6F1E4; border: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.ink i { display: block; width: 100%; height: 28px; }
-.ink b { font-size: 14px; font-weight: 600; color: #221F1B; }
-.ink span { font-size: 13px; color: #665D52; }
+/* 바꾼 것 표 */
+.swap { width: 100%; max-width: 880px; border-collapse: collapse; font-size: 15px; }
+.swap th { text-align: left; font-weight: 600; color: var(--sub); font-size: 13px; padding: 0 12px 8px 0; border-bottom: 1px solid var(--line); }
+.swap td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.swap td:first-child { font-weight: 600; white-space: nowrap; }
+.tablebox { overflow-x: auto; }
 
-/* 지금 / A 고르는 띠 — 좁은 화면에서만 */
+/* 고르는 띠 — 좁은 화면에서만 */
 .switch {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
@@ -91,7 +91,7 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
   padding-block: 8px;
   border-bottom: 1px solid var(--line);
 }
-.switch div { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--ink); }
+.switch div { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); }
 .switch button {
   font: inherit; font-size: 14px; font-weight: 600;
   padding: 10px 4px; min-height: 44px;
@@ -102,25 +102,27 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 .switch button[aria-pressed="true"] { background: var(--ink); color: var(--wall); }
 .switch button:focus-visible, .zoomable:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
 
-.screens { display: flex; flex-direction: column; gap: 44px; }
-.row { display: flex; flex-direction: column; gap: 14px; }
-.row > header { display: flex; flex-direction: column; gap: 4px; }
-.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 390px)); gap: 28px; align-items: start; justify-content: center; }
+.group { display: flex; flex-direction: column; gap: 28px; }
+.group > h2 { padding-top: 8px; border-top: 1px solid var(--line); }
+.row { display: flex; flex-direction: column; gap: 12px; }
+.row > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
 .shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .shot .tag { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
 .shot .tag span { font-weight: 400; color: var(--sub); }
-.shot[data-dir="cur"] .tag { color: var(--sub); }
-.phone {
-  display: block; width: 100%; max-width: 390px; aspect-ratio: 390 / 844;
-  background: var(--panel); box-shadow: var(--shadow); border-radius: 22px; overflow: hidden;
+.shot[data-dir="cur"] .tag, .shot[data-dir="stiff"] .tag { color: var(--sub); }
+.frame {
+  display: block; width: 100%;
+  background: var(--panel); box-shadow: var(--shadow); border-radius: 18px; overflow: hidden;
   padding: 0; border: 0; cursor: zoom-in;
 }
-.phone img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.shot.icon .phone { aspect-ratio: 1 / 1; max-width: 180px; border-radius: 22.5%; cursor: default; }
-.pending { font-size: 14px; color: var(--sub); border: 1px dashed var(--line); padding: 14px 16px; max-width: 760px; }
+.frame.is-wide, .frame.is-icon { border-radius: 10px; }
+.frame.is-icon { width: 60%; border-radius: 22.5%; cursor: default; }
+.frame img { display: block; width: 100%; height: auto; }
+.none { font-size: 14px; color: var(--sub); border: 1px dashed var(--line); padding: 16px; border-radius: 12px; }
 
 .lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 15, 0.86); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
-.lightbox img { max-height: 100%; max-width: min(100%, 520px); border-radius: 18px; }
+.lightbox img { max-height: 100%; max-width: min(100%, 960px); border-radius: 14px; }
 
 @media (max-width: 860px) {
   .switch { display: block; }
@@ -128,68 +130,68 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
   .shot { width: 100%; max-width: 390px; }
   .shot[hidden] { display: none; }
 }
+@media (prefers-reduced-motion: no-preference) {
+  .frame { transition: transform 0.18s ease; }
+  .frame:hover { transform: translateY(-2px); }
+  .frame.is-icon:hover { transform: none; }
+}
 </style>
 
 <div class="wrap">
   <header class="head">
-    <p class="eyebrow">만다라트 · 디자인 개선 · A 방향</p>
-    <h1>A, 인쇄된 한 장으로 정했어요. 지금 다듬는 중이에요</h1>
-    <p class="lede">A의 일곱 화면을 지금 앱과 나란히 놓았어요. 나머지 열두 화면을 그리고 있고, 다 그린 뒤 비평과 수정을 반복해서 다듬어요.</p>
+    <p class="eyebrow">만다라트 · 디자인 개선 · A 부드럽게</p>
+    <h1>A를 부드럽게 다시 그렸어요</h1>
+    <p class="lede">"전체적으로 너무 딱딱해 보인다"는 말씀에 맞춰 A의 19개 화면을 모두 고쳤어요. 화면마다 지금 앱, A 처음, A 부드럽게를 나란히 놓았어요.</p>
     <div class="ask">
-      <b>지금 정해 주실 것은 없어요.</b>
-      <span>보시다가 마음에 안 드는 곳이 있으면 화면 이름과 함께 말씀해 주세요. 다듬는 중에 바로 반영해요.</span>
+      <b>이 정도 부드러움이 맞는지 봐 주세요.</b>
+      <span>"더 부드럽게", "이 정도 좋아", "표는 예전이 나았어"처럼 말씀해 주시면 그대로 맞춰요. 마음에 드시면 다음은 앱에 실제로 적용하는 단계예요.</span>
     </div>
   </header>
 
   <section class="head">
-    <h2>A는 잉크 두 가지로 그려요</h2>
-    <p class="lede">인쇄소가 찍은 것은 옅고 차갑고 작게, 내가 쓴 것은 진하고 따뜻하고 크게. 고급 수첩이 그렇게 생겼어요. 지금 앱은 반대로 제목이 굵고 내 목표가 작아요.</p>
-    <div class="inks">
-      <div class="ink"><i style="background:#55657A"></i><b>인쇄 잉크</b><span>줄, 칸, 제목, 날짜</span></div>
-      <div class="ink"><i style="background:#221F1B"></i><b>쓰는 먹</b><span>내 목표, 할 일, 숫자, 체크</span></div>
-      <div class="ink"><i style="background:linear-gradient(90deg,#447753 0 12.5%,#5068AB 0 25%,#916329 0 37.5%,#A35468 0 50%,#2E7773 0 62.5%,#7C5FA5 0 75%,#38719B 0 87.5%,#A65633 0)"></i><b>여덟 가지 염색</b><span>어느 영역인지</span></div>
-      <div class="ink"><i style="background:#C4372F"></i><b>주홍</b><span>오늘, 일요일</span></div>
+    <h2>무엇을 바꿨나요</h2>
+    <div class="tablebox">
+      <table class="swap">
+        <thead><tr><th>딱딱했던 것</th><th>A 처음</th><th>A 부드럽게</th></tr></thead>
+        <tbody>
+          <tr><td>선 색</td><td>차가운 청회색. 크림색 종이 위에서 모눈종이처럼 보였어요.</td><td>따뜻한 연필색</td></tr>
+          <tr><td>선 개수</td><td>제목 아래, 목록 위, 칸마다 테두리, 세로 칸막이</td><td>대부분 걷어내고 간격으로 묶었어요. 할 일 사이에만 아주 옅은 선.</td></tr>
+          <tr><td>만다라트 표</td><td>테두리 친 표</td><td>살짝 둥근 타일이 조금씩 떨어진 모양</td></tr>
+          <tr><td>모서리</td><td>날카로운 네모</td><td>체크박스, 칸, 입력 칸을 살짝 둥글게</td></tr>
+          <tr><td>'오늘' 표시</td><td>잘린 모서리</td><td>작은 주홍 점</td></tr>
+          <tr><td>이름표</td><td>작고 자간이 넓은 글자</td><td>평범한 13pt 글자</td></tr>
+          <tr><td>탭 제목</td><td>가는 명조체, 청회색</td><td>굵은 고딕, 먹색. 명조체는 내 목표와 숫자에만.</td></tr>
+          <tr><td>탭 막대, 시트</td><td>선으로 두른 테두리</td><td>은은한 그림자로 떠 있어요</td></tr>
+        </tbody>
+      </table>
     </div>
+    <p class="note">예전에 정하신 대로 둥근 카드, 알약 모양 버튼, 배지, 그라데이션, 도장은 여전히 쓰지 않았어요. 부드러움은 그런 장식이 아니라 따뜻한 색, 적은 선, 여백, 살짝 둥근 모서리에서 나와요.</p>
   </section>
 
-  <section class="screens" id="screens">
-    <div class="head">
-      <h2>지금 앱과 A</h2>
-      <p class="note">화면을 누르면 크게 볼 수 있어요. 두 화면은 같은 예시 데이터(목표 "단단한 한 해", 64칸 중 24칸 달성)예요.</p>
-    </div>
-    <nav class="switch" aria-label="보여 줄 화면">
+  <section class="head" id="screens">
+    <h2>화면별 비교</h2>
+    <p class="note">화면을 누르면 크게 볼 수 있어요. 모든 시안은 같은 예시 데이터(목표 "단단한 한 해", 64칸 중 24칸 달성)예요.</p>
+    <nav class="switch" aria-label="보여 줄 판">
       <div id="switch"></div>
     </nav>
-    <div id="rows" class="screens"></div>
-    <p class="pending" id="pending"></p>
+    <div id="groups" class="group" style="gap:48px"></div>
   </section>
 
   <section class="cols">
     <section>
-      <h2>화면마다 달라진 점</h2>
+      <h2>확인받을 것</h2>
       <ul class="plain">
-        <li><b>홈:</b> 맨 위 주인공이 날짜에서 내 목표로 바뀌었어요. 그 아래에 표와 "오늘 1/10 · 달성 24/64칸"이 있고, 바로 오늘 할 일이 이어져요.</li>
-        <li><b>만다라트 표:</b> 영역 이름 칸은 진한 색으로 고정이에요. 달성한 칸은 옅은 색에 체크 표시가 붙고, 글씨는 먹색 그대로라 잘 읽혀요. 범례는 없앴어요.</li>
-        <li><b>블록 크게 보기:</b> 아래 빈 공간에 이번 주 습관표가 들어갔어요.</li>
-        <li><b>오늘:</b> 첫 할 일 위에 있던 일곱 겹을 두 겹으로 줄였어요. 뜻을 알기 어렵던 요일 점은 "이번 주 0/3회" 같은 글로 바꿨어요.</li>
-        <li><b>첫 화면:</b> '+' 64개 대신 색 칸 16개가 중심을 둘러싼 표가 보이고, "건강을 위해 무엇을 해 볼까요?"라는 질문과 예시 세 개가 있어요.</li>
-        <li><b>탭 막대:</b> 떠 있는 캡슐 모양이고, '담기'는 따로 떨어진 먹색 버튼이에요.</li>
-        <li><b>다크 모드:</b> 보랏빛 대신 따뜻한 먹색이에요. 가운데 칸이 하얗게 튀지 않아요.</li>
-        <li><b>아이콘:</b> 가는 선 격자 대신 여덟 색 칸이 먹색 중심을 둘러싼 모양이에요.</li>
+        <li><b>설정에서 빠지는 꾸미기:</b> 종이 색 다섯 가지는 화면 모드(자동·밝게·어둡게)로 바뀌어요. 포인트 컬러와 칸 모서리 설정은 없어져요. 종이 무늬(점·모눈·줄)는 그대로 둬요.</li>
+        <li><b>명조체:</b> 목표와 숫자에 네이버 마루 부리를 써요. 앱에 넣으면 약 2MB가 늘고, 출시 전에 라이선스를 확인해야 해요.</li>
+        <li><b>완성 표시:</b> 영역 하나를 다 채웠을 때의 작은 주홍 도장은 선택지로만 남겨 뒀어요. 예전에 도장은 빼기로 하셨기 때문이에요.</li>
       </ul>
     </section>
     <section>
-      <h2>다듬으면서 정리할 것</h2>
-      <ul class="plain">
-        <li><b>여덟 영역 색:</b> 지금 색 중 두 쌍이 서로 너무 가까워요. A 안에서 다시 뽑고, 바꾸기 전과 후를 나란히 보여드릴게요.</li>
-        <li><b>완성 표시:</b> 영역 하나를 다 채웠을 때 작은 주홍 도장을 쓸지는 선택지로 따로 그려 둘게요. 예전에 도장은 빼기로 하셨기 때문에, 도장 없이도 완성이 드러나게 먼저 그려요.</li>
-        <li><b>명조체:</b> 목표와 날짜에 네이버 마루 부리를 써요. 앱에 넣으면 약 2MB가 늘고, 출시 전에 네이버 공식 페이지에서 라이선스를 확인해야 해요.</li>
-      </ul>
       <h2>남은 순서</h2>
       <ol class="plain">
-        <li>나머지 화면 그리기: 통계, 시작 화면, 칸 편집, 실천 시트, 담기, 집중 타이머, 하루 마감, 설정, 한 해 돌아보기, 위젯, 앱스토어 스크린샷, 공유 이미지.</li>
-        <li>비평과 수정을 큰 지적이 안 나올 때까지 반복.</li>
-        <li>이 페이지에 전체 화면을 올리고, 확인받은 뒤 앱에 적용.</li>
+        <li>부드러움 정도를 확인받기.</li>
+        <li>여덟 영역 색 다시 뽑기. 지금 색 중 두 쌍이 서로 너무 가까워요.</li>
+        <li>앱에 적용하기. 표, 홈, 탭 막대, 부품, 색, 다크 모드 순서로요.</li>
       </ol>
     </section>
   </section>
@@ -197,24 +199,48 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 
 <script>
 (function () {
-  var DIRS = [
-    { key: 'cur', label: '지금', sub: '현재 앱' },
-    { key: 'a', label: 'A', sub: '인쇄된 한 장' }
+  var COLS = [
+    { key: 'cur', label: '지금 앱', short: '지금' },
+    { key: 'stiff', label: 'A 처음', short: 'A 처음' },
+    { key: 'soft', label: 'A 부드럽게', short: '부드럽게' }
   ];
-  // 화면 목록 — 시안이 준비된 것만 ready: true
-  var SCREENS = [
-    { key: 'home', label: '홈', note: '앱을 열면 처음 보는 화면', ready: true },
-    { key: 'chart', label: '만다라트 표', note: '81칸 전체', ready: true },
-    { key: 'block', label: '블록 크게 보기', note: '건강 영역의 3×3', ready: true },
-    { key: 'today', label: '오늘', note: '오늘 할 일 목록', ready: true },
-    { key: 'first', label: '첫 화면', note: '막 시작한 빈 표', ready: true },
-    { key: 'home-dark', label: '다크 모드', note: '홈', ready: true },
-    { key: 'icon', label: '앱 아이콘', note: '', ready: true, icon: true }
+  // wide: 폰 화면이 아닌 판(위젯, 스토어, 공유), icon: 아이콘
+  var GROUPS = [
+    { title: '매일 보는 화면', screens: [
+      { key: 'home', label: '홈', note: '앱을 열면 처음 보는 화면' },
+      { key: 'chart', label: '만다라트 표', note: '81칸 전체' },
+      { key: 'block', label: '블록 크게 보기', note: '건강 영역의 3×3과 이번 주 습관' },
+      { key: 'today', label: '오늘', note: '오늘 할 일 목록' },
+      { key: 'stats', label: '통계', note: '이번 주 한 문장과 쌓인 기록' }
+    ] },
+    { title: '처음 시작할 때', screens: [
+      { key: 'onboarding', label: '시작 화면', note: '가운데 칸에 목표를 바로 써요' },
+      { key: 'first', label: '첫 표', note: '막 시작한 빈 표' }
+    ] },
+    { title: '누르면 올라오는 시트', screens: [
+      { key: 'editor', label: '칸 편집', note: '고르는 방식을 세 가지로 줄였어요' },
+      { key: 'sheet', label: '실천 시트', note: '칸 하나를 눌렀을 때' },
+      { key: 'add', label: '담기', note: '오늘 할 일 빠르게 적기' }
+    ] },
+    { title: '특별한 순간', screens: [
+      { key: 'focus', label: '25분 집중', note: '1분에 한 칸씩 채워지는 5×5' },
+      { key: 'dayclose', label: '하루 마감', note: '다 끝낸 날' },
+      { key: 'year', label: '한 해 돌아보기', note: '지난 표와 채워진 모습' }
+    ] },
+    { title: '그 밖의 화면', screens: [
+      { key: 'settings', label: '설정', note: '' },
+      { key: 'home-dark', label: '다크 모드', note: '홈' }
+    ] },
+    { title: '앱 밖에서 보이는 것', screens: [
+      { key: 'widgets', label: '위젯', note: '홈 화면과 잠금 화면', wide: true, noCur: true },
+      { key: 'store', label: '앱스토어 스크린샷', note: '지금 앱은 첫 장만', wide: true },
+      { key: 'share', label: '공유 이미지', note: '4:5', wide: true },
+      { key: 'icon', label: '앱 아이콘', note: '', icon: true }
+    ] }
   ];
-  var WAITING = ['통계', '시작 화면', '칸 편집', '실천 시트', '담기', '집중 타이머', '하루 마감', '설정', '한 해 돌아보기', '위젯', '앱스토어 스크린샷', '공유 이미지'];
-  var rows = document.getElementById('rows');
+  var groups = document.getElementById('groups');
   var sw = document.getElementById('switch');
-  var picked = 'a';
+  var picked = 'soft';
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -223,44 +249,47 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
     return n;
   }
 
-  SCREENS.filter(function (s) { return s.ready; }).forEach(function (s) {
-    var row = el('section', 'row');
-    var head = el('header');
-    head.appendChild(el('h3', '', s.label));
-    if (s.note) head.appendChild(el('p', 'note', s.note));
-    row.appendChild(head);
-    var shots = el('div', 'shots');
-    DIRS.forEach(function (d) {
-      var fig = el('figure', 'shot' + (s.icon ? ' icon' : ''));
-      fig.dataset.dir = d.key;
-      var tag = el('figcaption', 'tag', d.label);
-      tag.appendChild(el('span', '', d.sub));
-      var btn = el('button', 'phone zoomable');
-      btn.type = 'button';
-      btn.setAttribute('aria-label', s.label + ' — ' + d.label + ' ' + d.sub + (s.icon ? '' : ' 크게 보기'));
-      var img = el('img');
-      img.src = 'img/' + d.key + '-' + s.key + '.png';
-      img.alt = s.label + ' 화면, ' + d.sub;
-      img.loading = 'lazy';
-      btn.appendChild(img);
-      if (!s.icon) btn.addEventListener('click', function () { zoom(img.src, img.alt); });
-      fig.appendChild(tag);
-      fig.appendChild(btn);
-      shots.appendChild(fig);
+  GROUPS.forEach(function (g) {
+    var box = el('section', 'group');
+    box.appendChild(el('h2', '', g.title));
+    g.screens.forEach(function (s) {
+      var row = el('section', 'row');
+      var head = el('header');
+      head.appendChild(el('h3', '', s.label));
+      if (s.note) head.appendChild(el('p', 'note', s.note));
+      row.appendChild(head);
+      var shots = el('div', 'shots');
+      COLS.forEach(function (c) {
+        var fig = el('figure', 'shot');
+        fig.dataset.dir = c.key;
+        fig.appendChild(el('figcaption', 'tag', c.label));
+        if (c.key === 'cur' && s.noCur) {
+          fig.appendChild(el('p', 'none', '지금 앱에는 비교할 화면이 없어요.'));
+        } else {
+          var btn = el('button', 'frame zoomable' + (s.wide ? ' is-wide' : '') + (s.icon ? ' is-icon' : ''));
+          btn.type = 'button';
+          btn.setAttribute('aria-label', s.label + ', ' + c.label + (s.icon ? '' : ', 크게 보기'));
+          var img = el('img');
+          img.src = 'img/' + c.key + '-' + s.key + '.png';
+          img.alt = s.label + ', ' + c.label;
+          img.loading = 'lazy';
+          btn.appendChild(img);
+          if (!s.icon) btn.addEventListener('click', function () { zoom(img.src, img.alt); });
+          fig.appendChild(btn);
+        }
+        shots.appendChild(fig);
+      });
+      row.appendChild(shots);
+      box.appendChild(row);
     });
-    row.appendChild(shots);
-    rows.appendChild(row);
+    groups.appendChild(box);
   });
 
-  var pending = document.getElementById('pending');
-  if (WAITING.length) pending.textContent = '그리는 중: ' + WAITING.join(', ') + '. 다 되면 이 페이지에 올려요.';
-  else pending.hidden = true;
-
-  DIRS.forEach(function (d) {
-    var b = el('button', '', d.label === '지금' ? '지금 앱' : d.label + ' ' + d.sub);
+  COLS.forEach(function (c) {
+    var b = el('button', '', c.label);
     b.type = 'button';
-    b.dataset.dir = d.key;
-    b.addEventListener('click', function () { picked = d.key; apply(); });
+    b.dataset.dir = c.key;
+    b.addEventListener('click', function () { picked = c.key; apply(); });
     sw.appendChild(b);
   });
 
