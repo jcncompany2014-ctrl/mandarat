@@ -50,6 +50,7 @@ export function ChoiceRow({
       testID={testID}
       accessibilityRole="radio"
       accessibilityState={{ checked: on, selected: on }}
+      aria-checked={on}
       accessibilityLabel={accessibilityLabel ?? (meta ? `${title}${sep}${meta}` : title)}
       accessibilityHint={accessibilityHint}
     />

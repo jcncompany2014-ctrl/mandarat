@@ -162,6 +162,7 @@ export const CheckBox = memo(function CheckBox({
       testID={testID}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: isChecked(state), disabled: !!disabled }}
+      aria-checked={isChecked(state)}
       accessibilityLabel={accessibilityLabel}
       {...a11yLangProp()}
       accessibilityHint={accessibilityHint}

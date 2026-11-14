@@ -235,6 +235,7 @@ function PickRowView({ M, r, divider, onToggle }: { M: M; r: PickListRow; divide
       onPress={onToggle}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
+      aria-checked={on}
       accessibilityLabel={label}
     />
   );

@@ -75,6 +75,7 @@ export function ToggleRow({
         testID={testID}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on, disabled }}
+        aria-checked={on}
         accessibilityLabel={accessibilityLabel ?? (meta ? `${title}${sep}${meta}` : title)}
         {...a11yLangProp()}
         accessibilityHint={accessibilityHint}

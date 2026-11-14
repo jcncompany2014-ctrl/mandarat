@@ -69,6 +69,7 @@ function LanguageRows({ M }: { M: M }) {
               // 언어 이름은 그 언어 목소리로 읽는다(iOS) — '시스템' 줄은 앱 언어로
               accessibilityLanguage={Platform.OS === 'ios' && p !== 'system' ? p : a11yLang()}
               accessibilityState={{ checked: on, selected: on }}
+              aria-checked={on}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', gap: ROW.gap, minHeight: ROW.h,
                 backgroundColor: pressed && !on ? M.tile : undefined,

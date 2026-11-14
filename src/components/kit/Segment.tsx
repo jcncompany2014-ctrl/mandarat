@@ -93,6 +93,8 @@ export function Segment<T extends string>({
             {...a11yLangProp()}
             accessibilityHint={o.a11yHint}
             accessibilityState={roles.radio ? { checked: on } : { selected: on }}
+            aria-checked={roles.radio ? on : undefined}
+            aria-selected={roles.radio ? undefined : on}
             style={({ pressed }) => ({
               flex: 1, minWidth: 0, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center',
               paddingHorizontal: 6,

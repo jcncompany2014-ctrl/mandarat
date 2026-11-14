@@ -458,6 +458,7 @@ function NextPage({ M, doc, picks, onPick, note, onNote }: {
                   onPress={() => onPick(key)}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: on }}
+                  aria-checked={on}
                   accessibilityLabel={text}
                 />
               );

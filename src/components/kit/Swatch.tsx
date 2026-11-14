@@ -103,6 +103,7 @@ export function Swatch({
       testID={testID}
       accessibilityRole="radio"
       accessibilityState={{ checked: on }}
+      aria-checked={on}
       accessibilityLabel={accessibilityLabel ?? label}
       {...a11yLangProp()}
       style={({ pressed }) => ({ flex: 1, minWidth: 0, opacity: pressed && !on ? 0.7 : 1 })}

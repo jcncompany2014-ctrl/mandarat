@@ -133,6 +133,7 @@ export function RatingBoxes({ M, value, onRate, size = MIN_TAP, gap = SEG.tileGa
             hitSlop={4}
             accessibilityRole="radio"
             accessibilityState={{ checked: n === value }}
+            aria-checked={n === value}
             accessibilityLabel={ed.ratingOption({ label, n, word: RATING_TEXT[n] })}
             {...a11yLangProp()}
             accessibilityHint={n === value ? ed.ratingClearHint : undefined}

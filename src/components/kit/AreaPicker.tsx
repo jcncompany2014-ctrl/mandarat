@@ -44,6 +44,7 @@ export function AreaPicker({
                 }}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: on }}
+                aria-checked={on}
                 accessibilityLabel={name}
                 {...a11yLangProp()}
                 style={({ pressed }) => ({

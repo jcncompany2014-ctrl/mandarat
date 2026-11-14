@@ -96,6 +96,7 @@ function Body({ M, remote, onConfirm }: { M: M; remote: MandaratDoc | null; onCo
               accessibilityLabel={`${title}, ${sub}`}
               {...a11yLangProp()}
               accessibilityState={{ checked: on, selected: on }}
+              aria-checked={on}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', gap: ROW.gap, minHeight: ROW.h, paddingVertical: CHOICE_PAD_Y,
                 backgroundColor: pressed && !on ? M.tile : undefined,

@@ -225,6 +225,7 @@ function CheckRow({
       testID={testID}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: state !== 'open' }}
+      aria-checked={state !== 'open'}
       accessibilityLabel={label}
       accessibilityHint={hint}
     />

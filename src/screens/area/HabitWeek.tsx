@@ -61,6 +61,7 @@ const WeekRow = memo(function WeekRow({ M, ti, row, todayIndex, first, onToggle 
             onPress={() => onToggle(row.ai, i)}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: done }}
+            aria-checked={done}
             accessibilityLabel={`${row.text}${sep}${weekDayLabel(i, row.states[i], i === todayIndex)}`}
             {...a11yLangProp()}
             hitSlop={{ top: 2, bottom: 2 }}

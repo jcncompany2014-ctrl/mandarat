@@ -86,6 +86,7 @@ export const DayBoxes = memo(function DayBoxes({
               testID={testID?.(i)}
               accessibilityRole={role}
               accessibilityState={role === 'checkbox' ? { checked } : undefined}
+              aria-checked={role === 'checkbox' ? checked : undefined}
               accessibilityLabel={name}
               {...a11yLangProp()}
               style={({ pressed }) => [col, { opacity: pressed ? 0.6 : 1 }]}
