@@ -1,0 +1,82 @@
+/* 방향 A · styles for parts-sheets.js (editor.html, sheet.html). Every rule here is a KIT REQUEST:
+   it uses only tokens.css variables and can move into tokens.css section 4 as it stands. */
+
+/* the sheet's inner layout. .a-sheet supplies the inset, radius, printed edge and paper. */
+.a-sheet.s-sheet { padding: 6px 24px 24px; z-index: 21; }
+/* a sheet covers the floating bar: the scrim dims the bar with the page */
+.a-scrim.s-scrim { z-index: 20; }
+
+/* header: 44pt line. Locator, then where (two printed words), then close. */
+.s-head { display: flex; align-items: center; gap: 12px; height: 48px; }
+.s-head-where { flex: 1; display: flex; flex-direction: column; }
+.s-head-where .t-label { line-height: 16px; color: var(--print); }
+.s-head-where .t-label:first-child { color: var(--ink); font-weight: 600; letter-spacing: 0.02em; }
+.s-head-close { width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+
+/* a field: the owner's words written on a line, the count printed at the line's end */
+.s-field { position: relative; padding-top: 6px; }
+.s-field-text { font: 600 26px/36px var(--serif); letter-spacing: -0.01em; color: var(--ink); padding-bottom: 6px; padding-right: 56px; }
+.s-field-line { height: var(--rule-heavy); background: var(--print-edge); }
+.s-field-count { position: absolute; right: 0; bottom: 10px; }
+.s-field + .t-note { display: block; margin-top: 6px; }
+
+/* group: a printed label above every control (labels above, always: HL-10) */
+.s-group { margin-top: 24px; }
+.s-group > .a-section { margin-bottom: 6px; }
+.s-group > .t-note { display: block; margin-top: 6px; }
+
+/* segment: one printed box, equal cells. Edge 3.3:1, hairline dividers, chosen = ink fill. */
+.s-seg {
+  display: grid; grid-template-columns: repeat(var(--n), 1fr);
+  height: 36px; border-radius: var(--r-paper);
+  box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
+}
+.s-seg > span {
+  display: flex; align-items: center; justify-content: center;
+  font: 500 14px/18px var(--sans); color: var(--ink);
+  border-left: var(--hair) solid var(--print-rule);
+}
+.s-seg > span:first-child { border-left: 0; }
+.s-seg > span.is-on { background: var(--ink); color: var(--paper); font-weight: 600; border-radius: var(--r-paper); border-left-color: transparent; }
+.s-seg > span.is-on + span { border-left-color: transparent; }
+
+/* seven days: printed cells, letter over box, hairlines between (as the week strip on Home) */
+.s-days { display: flex; border-top: var(--hair) solid var(--print-rule); border-bottom: var(--hair) solid var(--print-rule); }
+.s-day {
+  position: relative; flex: 1; height: 60px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border-left: var(--hair) solid var(--print-rule);
+}
+.s-day:first-child { border-left: 0; }
+.s-day .t-label { line-height: 14px; }
+.s-day.is-sunday .t-label { color: var(--signal); }
+.s-day.is-today .t-label { color: var(--ink); font-weight: 700; }
+.s-day.is-today::before {
+  content: ''; position: absolute; left: 0; top: 0; width: 8px; height: 8px;
+  background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.s-days-none { display: block; width: 24px; height: 24px; }
+
+/* quiet text action: ink, underlined (for actions that do not open anything, e.g. presets, 칸 비우기) */
+.s-quiet {
+  font: 600 13px/18px var(--sans); color: var(--ink);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+  text-decoration-color: var(--print-edge);
+}
+.s-quiets { display: flex; gap: 12px; }
+
+/* choice row: a ruled row; the chosen one is Medium with the pen tick on the right */
+.s-choice .a-row-title { font-weight: 400; }
+.s-choice.is-on .a-row-title { font-weight: 600; }
+
+/* link row: glyph in the 24pt check-box column, so titles align with the check rows above */
+.s-link .s-link-glyph { width: 24px; height: 24px; color: var(--ink); }
+.s-link > svg:last-child { color: var(--ink); margin-right: -3px; }
+
+/* memo: ruled lines, 30pt apart */
+.s-memo-line { height: 30px; border-bottom: var(--hair) solid var(--print-rule); display: flex; align-items: flex-end; padding-bottom: 5px; }
+
+/* footer: one quiet destructive word, one ink primary button */
+.s-foot { display: flex; align-items: center; gap: 24px; margin-top: 24px; }
+.s-foot .a-btn { flex: 1; }
+.s-foot .s-quiet { height: 44px; display: flex; align-items: center; font-size: 14px; }

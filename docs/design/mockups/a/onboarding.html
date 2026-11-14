@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 처음 · 목표 쓰기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* First run, keyboard up. The form arrives printed: the centre block of the chart in its real
+     colours, and the owner writes the goal straight into the ink core cell (FI-01, HL-15, M1).
+     One heading (printed), one button (pinned above the keyboard). Skip is a written link. */
+  .signed { display: inline-flex; align-items: center; gap: 6px; }
+  .signed .mk { display: inline-block; }
+  .skip { position: absolute; right: 0; top: 39px; }
+  #block { margin: 12px auto 0; }
+  /* the core cell is the input: a printed field label, the goal in writing (paper on ink), the caret */
+  .core-label { position: absolute; left: 0; right: 0; top: 10px; text-align: center;
+    font: 500 11px/18px var(--sans); letter-spacing: 0.04em; color: var(--print-mid); }
+  #block .a-cell.is-core { font-size: 24px !important; line-height: 32px !important; padding-top: 14px !important; }
+  #block .a-cell.is-core .ap-caret { margin-left: 5px; }
+  .go { position: absolute; left: var(--gutter); right: var(--gutter); bottom: calc(336px + 12px); }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div id="block"></div>
+  <div class="a-btn go" id="go"></div>
+  <div id="kb"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-input.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = doc.view.date;
+  const h = A.header('#header', { eyebrow: ' ', title: '올해 꼭 이룰 한 가지' });
+  // sign the first screen: the L0 heart and the wordmark in the eyebrow line
+  h.querySelector('.t-folio').innerHTML = `<span class="signed"><span class="mk" id="mk"></span>만다라트 · ${d.year}</span>`;
+  A.mark('#mk', { size: 14, variant: 'heart' });
+  const skip = document.createElement('span');
+  skip.className = 'a-link skip';
+  skip.innerHTML = `나중에${A.icon('chevron', { size: 16 })}`;
+  h.appendChild(skip);
+
+  // the centre block: the eight default areas in their dyes round the ink core, which is the input
+  const b = A.block('#block', doc, 'core', { cell: 112.5 });
+  const core = b.cells.find((c) => c.cell.kind === 'core').el;
+  core.querySelector('span').insertAdjacentHTML('beforeend', AP.caret());
+  core.insertAdjacentHTML('afterbegin', '<div class="core-label">핵심 목표</div>');
+
+  document.querySelector('#go').textContent = '시작하기';
+  AP.keyboard('#kb');
+});
+</script>
+</body>
+</html>

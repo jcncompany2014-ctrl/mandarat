@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 통계</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* 통계 is a page of the same notebook: the sheet filling in is the picture (hero), then one time
+     scope at a time (HL-07). In 이번 주: one written sentence that reads the week, the week drawn
+     as printed boxes filled in with the areas' washes (CD-13), and the three kinds as a ledger in
+     which a kind with no data is one line (FI-16). */
+
+  /* hero: the same composition as Home (fields on the gutter, the sheet tipped in on the right),
+     so the two tabs read as one hand. Fields here are 연속 and 달성. */
+  .hero { display: flex; gap: 24px; margin-top: 18px; }
+  .hero-fields { flex: 1; display: flex; flex-direction: column; border-top: var(--rule) solid var(--print-mid); }
+  .hero-field { flex: 1; display: flex; flex-direction: column; padding: 7px 0 6px; border-bottom: var(--hair) solid var(--print-rule); }
+  .hero-field .t-figure { margin-top: auto; }
+  .hero-field .streak { display: flex; align-items: center; gap: 12px; }
+  .field-head { display: flex; justify-content: space-between; }
+  .hero-field .t-meta { margin-top: 0; }
+
+  /* scope line: written words (tappable = ink), the chosen one Bold with a 1pt ink underline,
+     sitting on the page's 1pt rule like a printed index. Same drawing as the filter line on 오늘. */
+  .scopes { display: flex; gap: 24px; height: 44px; align-items: center; margin-top: 12px; border-bottom: var(--rule) solid var(--print-mid); }
+  .scope { position: relative; display: inline-flex; align-items: center; height: 44px; font: 500 15px/18px var(--sans); color: var(--ink); }
+  .scope.is-on { font-weight: 700; }
+  .scope.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--ink); }
+  .scopes .range { margin-left: auto; }
+
+  /* the week's reading: one sentence in the ritual voice, the comparison under it */
+  .reading { margin-top: 18px; }
+  .reading .t-prompt { text-wrap: balance; }
+
+  /* the week as a printed form: seven day columns of empty boxes (print ink hairlines), filled from
+     the bottom, one box per time, in the wash of the area it was for; the largest area at the base. */
+  .wk { margin-top: 18px; }
+  .wk svg { display: block; }
+  .wk-key { display: flex; gap: 14px; margin-top: 8px; }
+  .wk-key span { display: inline-flex; align-items: center; }
+  .wk-key b { font-weight: 500; color: var(--ink); margin-left: 3px; }
+
+  /* the kinds: a booktabs ledger, one line each. No data = the line says so and offers the one door. */
+  .kinds { margin-top: 18px; border-top: var(--rule) solid var(--print-mid); }
+  .kind { display: flex; align-items: center; height: 40px; border-bottom: var(--hair) solid var(--print-rule); }
+  .kind-name { width: 72px; font: 500 15px/18px var(--sans); color: var(--ink); }
+  .kind .t-meta { flex: 1; }
+  .kind-fig { font: 500 15px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kind-fig small { font: 500 12px/18px var(--sans); color: var(--ink-2); margin-left: 1px; }
+  .kind .a-link { height: 40px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body">
+    <section class="hero">
+      <div class="hero-fields">
+        <div class="hero-field">
+          <div class="field-head"><span class="t-label">연속</span><span class="t-label" id="best"></span></div>
+          <div class="t-figure streak"><span id="fig-streak"></span><span id="tally"></span></div>
+          <div class="t-meta" id="streak-note"></div>
+        </div>
+        <div class="hero-field">
+          <div class="t-label">달성</div>
+          <div class="t-figure" id="fig-cells"></div>
+          <div class="t-meta" id="month-note"></div>
+        </div>
+      </div>
+      <div id="chart"></div>
+    </section>
+
+    <nav class="scopes">
+      <span class="scope is-on">이번 주</span><span class="scope">10주</span><span class="scope">올해</span>
+      <span class="t-label range" id="range"></span>
+    </nav>
+
+    <section class="reading">
+      <div class="t-prompt" id="headline"></div>
+      <div class="t-meta" id="delta"></div>
+    </section>
+
+    <section class="wk">
+      <div id="wk"></div>
+      <div class="wk-key t-meta" id="key"></div>
+    </section>
+
+    <section class="kinds" id="kinds"></section>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, s = v.stats, d = v.date;
+  A.header('#header', { eyebrow: `${d.year} · ${d.week} · D-${d.left.replace(/\D/g, '')}`, title: '통계' });
+
+  // hero: the sheet filling in (L1, larger than Home's 177pt: it is this page's picture)
+  A.chart('#chart', doc, { level: 'L1', cell: 21 });
+  const streak = parseInt(s.streak, 10);
+  document.querySelector('#fig-streak').innerHTML = `${streak}<small>일</small>`;
+  // the streak kept as the 正 tally: one stroke a day, inked over the printed character (no flame, no warning)
+  document.querySelector('#tally').innerHTML = A.tally(streak, { size: 22 });
+  document.querySelector('#streak-note').textContent = s.streakNote;
+  const [best, month] = s.best.split(' · ');
+  document.querySelector('#fig-cells').innerHTML = `${v.progress.done}/${v.progress.of}<small>칸</small>`;
+  document.querySelector('#best').textContent = best.replace('지금이 ', '');
+  document.querySelector('#month-note').textContent = month.replace(' 달성', '');
+
+  document.querySelector('#range').textContent = '10월 12일 – 18일';
+  document.querySelector('#headline').textContent = A.keep(s.headline);
+  document.querySelector('#delta').textContent = `${v.week.total} · ${s.delta}`;
+
+  // ── the week, filled in ─────────────────────────────────────────────────────
+  // Who did what on which day, from the record's week strings (v.today.rows[].week, v.week.days):
+  //   월 3 = 하루 물 2L, 1만보 걷기 (건강) + 명상 10분 (마음챙김)
+  //   화 3 = 하루 물 2L, 1만보 걷기 (건강) + 아침 글쓰기 (자기계발)
+  //   수 1 = 하루 물 2L (건강, done today)          → 건강 5, as the headline says; total 7.
+  const H = A.areaIndex(doc, '건강'), SELF = A.areaIndex(doc, '자기계발'), MIND = A.areaIndex(doc, '마음챙김');
+  const byDay = [[H, H, MIND], [H, H, SELF], [H], [], [], [], []];
+  const days = v.week.days;
+  const dpr = window.devicePixelRatio || 2;
+  const P = (pt) => Math.round(pt * dpr);
+  const W = 342, colW = W / 7;
+  const rows = Math.max(4, Math.max(...byDay.map((x) => x.length)) + 1);
+  const boxH = 18, headH = 0, footH = 24;
+  const top = headH, chartH = rows * boxH;
+  const H_ALL = headH + chartH + footH;
+  let svg = '', html = '';
+  // printed form: hairline lattice (columns and rows), 1pt baseline
+  for (let i = 1; i < 7; i++) {
+    const x = P(i * colW);
+    svg += `<rect x="${x}" y="${P(top)}" width="${P(0.5)}" height="${P(chartH + footH)}" style="fill:var(--print-rule)"/>`;
+  }
+  for (let r = 0; r < rows; r++) {
+    svg += `<rect x="0" y="${P(top + r * boxH)}" width="${P(W)}" height="${P(0.5)}" style="fill:var(--print-rule)"/>`;
+  }
+  svg += `<rect x="0" y="${P(top + chartH)}" width="${P(W)}" height="${P(1)}" style="fill:var(--print-mid)"/>`;
+  svg += `<rect x="0" y="${P(H_ALL) - P(0.5)}" width="${P(W)}" height="${P(0.5)}" style="fill:var(--print-rule)"/>`;
+  // filled boxes: inset 1pt from the rules, washes (done), the largest area at the base
+  byDay.forEach((list, i) => {
+    const x0 = P(i * colW) + P(0.5) + P(1), x1 = P((i + 1) * colW) - P(1);
+    list.forEach((a, k) => {
+      const yb = top + chartH - k * boxH; // bottom of this box (pt)
+      const y0 = P(yb - boxH) + P(0.5) + P(1), y1 = P(yb) - P(1);
+      svg += `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" style="fill:var(--wash-l1-${a + 1})"/>`;
+    });
+    if (list.length) {
+      html += `<span class="wk-n" style="position:absolute;left:${i * colW}px;width:${colW}px;top:${top + chartH - list.length * boxH - 18}px;text-align:center;font:500 13px/18px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums">${list.length}</span>`;
+    }
+    const dd = days[i];
+    const cls = dd[0] === '일' ? 'color:var(--signal)' : dd[2] === 'today' ? 'color:var(--ink);font-weight:700' : '';
+    html += `<span class="t-label" style="position:absolute;left:${i * colW}px;width:${colW}px;top:${top + chartH + 4}px;text-align:center;line-height:18px;${cls}">${dd[0]}</span>`;
+    if (dd[2] === 'today') svg += `<path d="M${P(i * colW) + P(0.5)} ${P(top + chartH + 1)}h${P(8)}l${-P(8)} ${P(8)}z" style="fill:var(--signal)"/>`;
+  });
+  const tw = P(W), th = P(H_ALL);
+  document.querySelector('#wk').innerHTML = `<div style="position:relative;width:${W}px;height:${H_ALL}px"><svg width="${W}" height="${H_ALL}" viewBox="0 0 ${tw} ${th}" shape-rendering="crispEdges" aria-hidden="true">${svg}</svg>${html}</div>`;
+
+  // what the colours are: the areas, written out with their counts (a reading, not a legend:
+  // the 커리어 the sentence names is in it too, at 0)
+  const count = (a) => byDay.flat().filter((x) => x === a).length;
+  const C = A.areaIndex(doc, '커리어');
+  document.querySelector('#key').innerHTML = [H, SELF, MIND, C].map((a) => `<span><i class="a-dye" style="--d:var(--dye-${a + 1})"></i>${doc.areas[a].title}<b>${count(a)}</b></span>`).join('');
+
+  // the kinds: 습관 · 마음가짐 · 집중
+  const [habit, mind, focus] = s.rows;
+  const fig = (t) => t.replace(/(\d+)([^\d/\s]+)/g, '$1<small>$2</small>');
+  document.querySelector('#kinds').innerHTML =
+    `<div class="kind"><span class="kind-name">${habit[0]}</span><span class="t-meta">${habit[1]}</span><span class="kind-fig">${fig(habit[2])}</span></div>` +
+    `<div class="kind"><span class="kind-name">${mind[0]}</span><span class="t-meta">아직 매기지 않았어요</span><span class="a-link">매기기${A.icon('chevron', { size: 16 })}</span></div>` +
+    `<div class="kind"><span class="kind-name">${focus[0]}</span><span class="t-meta">${focus[1]}</span><span class="kind-fig">${fig(focus[2])}</span></div>`;
+
+  A.tabBar('#bar', { active: 'stats' });
+});
+</script>
+</body>
+</html>

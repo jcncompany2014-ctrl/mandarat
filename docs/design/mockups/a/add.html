@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 담기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* 담기, keyboard up, after two lines were added (M3, M-13). The sheet stays open: return writes the
+     line into the list above the field and clears the field. 완료 or a pull down closes.
+     Top to bottom: what you just wrote · which area · the one field, sitting on the keyboard. */
+  .behind { position: absolute; inset: 0; }
+  .sheet { bottom: calc(336px + 8px); padding: 8px 24px 12px; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; height: 44px; margin: 2px 0 0; }
+  .sheet-head b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; margin-left: 4px; }
+  .sect { display: flex; align-items: baseline; justify-content: space-between; height: 18px; margin: 18px 0 6px; }
+  .sect b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  #field { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div class="behind">
+    <div id="header"></div>
+  </div>
+  <div class="a-scrim"></div>
+  <div class="a-sheet sheet">
+    <div class="ap-grabber"></div>
+    <div class="sheet-head"><span class="t-label">오늘 할 일 <b id="count"></b></span><span class="a-link" id="done">완료</span></div>
+    <div class="a-list" id="rows"></div>
+    <div class="sect"><span class="t-label">어느 영역의 일인가요?</span><span class="a-link" id="picks"></span></div>
+    <div id="areas"></div>
+    <div id="field"></div>
+  </div>
+  <div id="kb"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-input.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, d = v.date;
+  // behind the scrim: Home's header (the rest of Home is under the sheet; a half-covered headline would look like an accident)
+  A.header('#header', { eyebrow: `${d.year} · ${d.week} · D-${d.left.replace(/\D/g, '')}`, title: `${d.month} ${d.day}일 ${d.weekday}`, action: 'settings' });
+
+  // two lines written in this sheet so far (invented: typed to-dos are not in the demo document)
+  const added = [
+    { text: '치과 예약하기', area: '건강' },
+    { text: '보고서 초안 보내기', area: '커리어', meta: '방금' },
+  ];
+  document.querySelector('#rows').innerHTML = added.map((r) => A.row(doc, r)).join('');
+  // the running count: today's list was 1/10, two lines later it is 1/12
+  document.querySelector('#count').textContent = `${v.today.done}/${v.today.of + added.length}`;
+
+  // the area for the next line: the last one used stays chosen
+  AP.areaPicker('#areas', doc, { selected: A.areaIndex(doc, '커리어') });
+  document.querySelector('#picks').innerHTML = `커리어 실천에서 고르기${A.icon('chevron', { size: 16 })}`;
+  AP.field('#field', { value: '', placeholder: '예) 서류 제출하기', button: '담기' });
+  AP.keyboard('#kb');
+});
+</script>
+</body>
+</html>
