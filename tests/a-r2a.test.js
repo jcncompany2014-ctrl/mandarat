@@ -143,3 +143,50 @@ test('InLink는 부품 상자에(TextLink를 button 역할로) — 통계 · 한
   }
   assert.doesNotMatch(code('src/components/StatsCharts.tsx'), /InLink|STATS_TYPE/);
 });
+
+// ── 색 지도 · 표 이미지 ────────────────────────────────────────────────────────
+
+test('ColourMap: 색 한 벌(tokens) · 빈 표(blank) · 이름 배율(textScale) · 그리는 배율(scale, ratio) · 그림 한 장(picture)', () => {
+  const map = code('src/components/chart/ColourMap.tsx');
+  for (const k of ['tokens', 'blank', 'textScale', 'scale', 'ratio', 'picture']) assert.match(map, new RegExp(`\\b${k}\\?: `), k);
+  // 색은 주어진 한 벌, 없으면 화면의 팔레트
+  assert.match(map, /const P: MapTokens = tokens \?\? palette;/);
+  // 배율 1이면 주어진 픽셀 배율에, 아니면 기기 픽셀에 · 이름의 줄은 배율 1의 칸에서
+  assert.match(map, /const ratio = scale === 1 \? base : device;/);
+  assert.match(map, /const fit = scale === 1 \? g : mapGeometry\(\{ level, width, cell, ratio: base \}\);/);
+  assert.match(map, /scaleMapLabel\(c\.text, kind, fit\.cells\[c\.col\], fit\.cells\[c\.row\], kind === 'core' \? coreK : headK, l\)/);
+  assert.match(map, /pad=\{MAP_LABEL\.pad \* scale\}/);
+  assert.match(map, /fs=\{t\.lab\.fs \* scale\} lh=\{t\.lab\.lh \* scale\} ls=\{t\.lab\.letterSpacing \* scale\}/);
+  // 그림 한 장: 글자 크기 설정을 따르지 않고(allowFontScaling false) 화면 읽기 요소가 아니다
+  assert.match(map, /allowFontScaling=\{fixed \? false : undefined\}/);
+  assert.match(map, /accessible=\{!onPressBlock && !picture\}/);
+});
+
+test('scaleMapLabel: 배율 1이면 mapLabel 그대로(화면의 지도는 바뀌지 않는다), 배율 k면 줄은 그대로 · 글자만 k배', () => {
+  const { mapGeometry, mapLabel, scaleMapLabel } = require('../src/components/chart/geometry');
+  const P = require('../src/lib/poster');
+  const g = mapGeometry({ level: 'L2', width: 327, ratio: 3 });
+  const c = g.cells[1];
+  for (const [t, kind] of [['자기계발', 'head'], ['Relationships', 'head'], ['단단한 한 해', 'core']]) {
+    assert.deepEqual(scaleMapLabel(t, kind, c, c, 1, 'ko'), mapLabel(t, kind, c, c, 'ko'), t);
+  }
+  // 표 이미지의 이름 — 예전 posterLabel과 같은 셈(칸을 k로 줄인 상자에서 나누고 fs × k · lh 반올림 · 자간 둘째 자리)
+  const pg = mapGeometry({ level: 'L2', width: P.POSTER_MAP, ratio: P.POSTER_RATIO });
+  const pc = pg.cells[1];
+  const k = P.POSTER_LABEL.head;
+  const raw = mapLabel('자기계발', 'head', pc / k, pc / k, 'ko');
+  const lab = scaleMapLabel('자기계발', 'head', pc, pc, k, 'ko');
+  assert.equal(lab.text, raw.text);
+  assert.equal(lab.fs, raw.fs * k);
+  assert.equal(lab.lh, Math.round(raw.lh * k));
+  assert.equal(lab.letterSpacing, Math.round(raw.letterSpacing * k * 100) / 100);
+  assert.equal(P.posterLabel, undefined, 'posterLabel은 ColourMap textScale로 옮겨 지웠다');
+});
+
+test('ChartPoster는 제 지도를 그리지 않는다 — ColourMap에 LIGHT · POSTER_LABEL · 배율을 넘긴다', () => {
+  const s = code('src/components/ChartPoster.tsx');
+  assert.doesNotMatch(s, /PosterMap|mapFill|mapGeometry|mapCells|PixelRatio/);
+  assert.match(s, /tokens=\{T\}/);
+  assert.match(s, /textScale=\{POSTER_LABEL\}/);
+  assert.match(s, /scale=\{scale\}\s+ratio=\{POSTER_RATIO\}/);
+});

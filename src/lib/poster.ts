@@ -5,7 +5,7 @@
 import type { MandaratDoc } from '../types';
 import { chartCell } from '../theme/chart';
 import { PRETENDARD_GLYPHS, textWidth } from './labelFit';
-import { mapLabel, type MapLabel, type MapLabelKind } from '../components/chart/geometry';
+import type { MapLabelKind } from '../components/chart/geometry';
 import { lang as currentLang, msg, type Lang } from '../i18n';
 
 /** 공유 이미지 한 장의 크기(pt) — 인스타그램 세로 4:5 */
@@ -60,16 +60,10 @@ export const POSTER_MAP = POSTER_W - POSTER.pad * 2;
 /**
  * 지도 글자의 배율 — 지도의 이름은 33pt 칸(만다라트 탭, 10/12)에 맞춰 둔 크기라, 피드(360pt 폭)에서도 9pt쯤으로 읽히게
  * share.png 그대로 키운다: 영역 이름 13/16(× 1.3) · 핵심 목표 13.5/16(× 13.5/11).
- * 줄은 칸을 배율로 줄인 상자에서 나누고(mapLabel) 글자만 키운다 — 화면의 지도와 같은 자리에서 끊긴다('자기 / 계발').
+ * ColourMap의 textScale로 넘긴다 — 줄은 칸을 배율로 줄인 상자에서 나누고(geometry scaleMapLabel) 글자만 키운다,
+ * 화면의 지도와 같은 자리에서 끊긴다('자기 / 계발').
  */
 export const POSTER_LABEL: Readonly<Record<MapLabelKind, number>> = { head: 1.3, core: 13.5 / 11 };
-
-/** 지도 칸 하나의 글 — 칸(w × h pt)에 맞춘 mapLabel을 배율만큼 키운 것 */
-export function posterLabel(text: string, kind: MapLabelKind, w: number, h: number, l: Lang = currentLang()): MapLabel {
-  const k = POSTER_LABEL[kind];
-  const lab = mapLabel(text, kind, w / k, h / k, l);
-  return { ...lab, fs: lab.fs * k, lh: Math.round(lab.lh * k), letterSpacing: Math.round(lab.letterSpacing * k * 100) / 100 };
-}
 
 /**
  * 그림의 치수(pt) — 모두 scale에서 나온다. scale 1이 공유 이미지(540×675) 그대로,

@@ -1,6 +1,7 @@
 // 색 지도 — 만다라트 81칸을 색으로(디자인 A, build-plan §3 G · 목업 shared.js A.chart { map: true } · chart.png · home.png).
 // L2: 만다라트 탭 · 한 해 · 축하의 큰 지도 — 영역 이름 16칸과 핵심 목표만 글, 실천 64칸은 색만.
 // L1: 홈 · 통계 · 한 해 액자의 작은 지도 — 글 없음.
+// 표 이미지(ChartPoster)도 이 지도를 그린다 — 늘 밝은 토큰(tokens), 피드 크기 이름(textScale), 미리보기 배율(scale), 그림 한 장(picture).
 // 칸의 약속: 가운데 = core · 영역 이름 = dye · 달성 = wash(L1 washL1) · 적은 칸 = tint · 빈 칸 = tile. 체크 · 오늘 표시는 없다.
 // 그리기: 절대 자리 View 81개(Svg 없음). 자리는 폭마다 한 번(geometry), 칸 색은 mapKey가 같으면 다시 세지 않고,
 // 칸 하나하나가 memo라 체크 하나에 바뀐 칸 하나만 다시 그려진다(§4.6).
@@ -8,6 +9,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { Animated, PixelRatio, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '../AppText';
 import { usePalette, type M } from '../../theme/usePalette';
+import type { Tokens } from '../../theme/tokens';
 import { ROLE } from '../../theme/type';
 import { useReducedMotion } from '../../lib/useReducedMotion';
 import { useMsg } from '../../i18n/react';
@@ -15,11 +17,14 @@ import { lang } from '../../i18n';
 import { areaLabel } from '../../lib/chartSpeech';
 import { areaCounts, mapCells, mapKey, type MapCell } from '../../lib/mapCells';
 import { CHART_POS, SLOT_INDEX } from '../../theme/chart';
-import { MAP_LABEL, mapGeometry, mapLabel, type MapLevel, type Rect } from './geometry';
+import { MAP_LABEL, mapGeometry, scaleMapLabel, type MapLabelKind, type MapLevel, type Rect } from './geometry';
 import type { Theme } from '../../types';
 
 /** 처음 그릴 때 페이드(ms) — 동작 줄이기면 없음 */
 export const MAP_FADE_MS = 220;
+
+/** 지도가 고르는 색 — 화면의 팔레트(M) 또는 늘 같은 토큰 한 벌(표 이미지는 LIGHT) */
+export type MapTokens = Pick<Tokens, 'core' | 'dye' | 'wash' | 'washL1' | 'tint' | 'tile' | 'onDye' | 'onCore' | 'ink' | 'dark'>;
 
 export interface ColourMapProps {
   /** 여덟 영역(doc.themes) — 문서 통째가 아니라 이것만 넘긴다(다른 데가 바뀌어도 지도가 다시 그려지지 않게) */
@@ -52,6 +57,24 @@ export interface ColourMapProps {
   testID?: string;
   /** 블록 단추의 testID */
   blockTestID?: (b: number | 'c') => string | undefined;
+  /** 칸 · 이름표의 색 — 기본은 화면의 팔레트(밝게 · 어둡게 · 대비 증가). 표 이미지는 늘 밝은 토큰(LIGHT) */
+  tokens?: MapTokens;
+  /** 실천 64칸을 모두 빈 칸으로 — 손으로 채울 빈 표(이름표와 핵심 목표만) */
+  blank?: boolean;
+  /**
+   * 이름표 글자 배율 — 영역 이름 · 핵심 목표를 지도 칸에 맞춘 크기의 몇 배로(종류마다 줄 수 있다).
+   * 표 이미지: 피드에서 읽히게 영역 이름 1.3 · 핵심 목표 13.5/11(lib/poster POSTER_LABEL). 줄은 화면의 지도와 같은 자리에서 끊긴다
+   */
+  textScale?: number | Readonly<Record<MapLabelKind, number>>;
+  /**
+   * 그리는 배율 — width(L1은 cell)의 지도를 이 배율로 그린다(표 이미지 미리보기). 이름표의 줄은 배율 1의 칸에서 나누고
+   * 글자에 배율만 곱한다 — 미리보기가 찍히는 그림과 같은 자리에서 끊긴다. transform이 아니라 치수라 글자가 또렷하다
+   */
+  scale?: number;
+  /** 배율 1의 칸 틈을 맞출 픽셀 배율 — 기본은 기기(표 이미지는 찍히는 그림의 2배). 다른 배율로 그리면 기기 픽셀에 맞춘다 */
+  ratio?: number;
+  /** 그림 한 장(표 이미지) — 기기의 글자 크기 설정을 따르지 않고, 화면 읽기 요소가 아니다(감싼 쪽이 읽는 말을 단다) */
+  picture?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -62,15 +85,16 @@ const Tile = memo(function Tile({ x, y, w, h, r, bg }: { x: number; y: number; w
   return <View style={{ position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: r, backgroundColor: bg }} />;
 });
 
-/** 영역 이름 · 핵심 목표 — 줄을 미리 나눈 글(geometry mapLabel)이라 기기마다 같은 자리에서 끊긴다 */
-const Label = memo(function Label({ x, y, w, h, text, fs, lh, ls, lines, color, core }: {
-  x: number; y: number; w: number; h: number; text: string; fs: number; lh: number; ls: number; lines: number; color: string; core: boolean;
+/** 영역 이름 · 핵심 목표 — 줄을 미리 나눈 글(geometry mapLabel)이라 기기마다 같은 자리에서 끊긴다. fixed: 글자 크기 설정을 따르지 않는다 */
+const Label = memo(function Label({ x, y, w, h, pad, text, fs, lh, ls, lines, color, core, fixed }: {
+  x: number; y: number; w: number; h: number; pad: number; text: string; fs: number; lh: number; ls: number; lines: number; color: string;
+  core: boolean; fixed: boolean;
 }) {
   return (
     <View
       pointerEvents="none"
       style={{
-        position: 'absolute', left: x, top: y, width: w, height: h, paddingHorizontal: MAP_LABEL.pad,
+        position: 'absolute', left: x, top: y, width: w, height: h, paddingHorizontal: pad,
         alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}
     >
@@ -78,6 +102,7 @@ const Label = memo(function Label({ x, y, w, h, text, fs, lh, ls, lines, color, 
         style={[core ? ROLE.mapCore : ROLE.mapHead, { fontSize: fs, lineHeight: lh, letterSpacing: ls, color, textAlign: 'center' }]}
         numberOfLines={Math.max(1, lines)}
         maxFontSizeMultiplier={1}
+        allowFontScaling={fixed ? false : undefined}
         accessible={false}
       >
         {text}
@@ -118,7 +143,7 @@ const BlockButton = memo(function BlockButton({ rect, b, r, ink, dark, label, hi
 });
 
 /** 칸 바탕 — 토큰 이름으로만 */
-export function mapFill(c: MapCell, P: Pick<M, 'core' | 'dye' | 'wash' | 'washL1' | 'tint' | 'tile'>, level: MapLevel): string {
+export function mapFill(c: MapCell, P: Pick<M | Tokens, 'core' | 'dye' | 'wash' | 'washL1' | 'tint' | 'tile'>, level: MapLevel): string {
   if (c.kind === 'core') return P.core;
   if (c.kind !== 'action') return P.dye[c.ti] ?? P.tile;
   if (c.state === 'done') return (level === 'L1' ? P.washL1 : P.wash)[c.ti] ?? P.tile;
@@ -134,14 +159,21 @@ const slotOf = (b: number | 'c') => (b === 'c' ? 4 : CHART_POS[b]);
  * (가운데 놓기는 PixelRatio.roundToNearestPixel((폭 − size) / 2)).
  */
 export const ColourMap = memo(function ColourMap({
-  themes = NO_THEMES, goal, level = 'L2', width, cell, focus, todayKeys, doneToday, onPressBlock, accessibilityHint, fade, defer, testID, blockTestID, style,
+  themes = NO_THEMES, goal, level = 'L2', width, cell, focus, todayKeys, doneToday, onPressBlock, accessibilityHint, fade, defer, testID, blockTestID,
+  tokens, blank = false, textScale = 1, scale = 1, ratio: baseRatio, picture = false, style,
 }: ColourMapProps) {
-  const P = usePalette();
+  const palette = usePalette();
+  const P: MapTokens = tokens ?? palette;
   const m = useMsg();
   const l = lang();
   const reduced = useReducedMotion();
-  const ratio = PixelRatio.get();
-  const g = mapGeometry({ level, width, cell, ratio });
+  const device = PixelRatio.get();
+  // 배율 1이면 주어진 픽셀 배율(기본 기기)에, 다른 배율이면 기기 픽셀에 칸 틈을 맞춘다
+  const base = baseRatio ?? device;
+  const ratio = scale === 1 ? base : device;
+  const g = mapGeometry({ level, width: width != null ? width * scale : undefined, cell: cell != null ? cell * scale : undefined, ratio });
+  // 이름표를 나누는 칸 — 배율 1의 지도(배율이 1이면 그리는 지도 그대로)
+  const fit = scale === 1 ? g : mapGeometry({ level, width, cell, ratio: base });
   const L2 = level === 'L2';
 
   // 칸 값 — 상태(mapKey) · 이름 · 목표 · 오늘 목록이 같으면 다시 세지 않는다
@@ -153,21 +185,25 @@ export const ColourMap = memo(function ColourMap({
   );
 
   const tiles = useMemo(
-    () => cells.map((c) => ({ c, x: g.pos[c.col], y: g.pos[c.row], w: g.cells[c.col], h: g.cells[c.row], bg: mapFill(c, P, level) })),
-    [cells, g, P, level],
+    () => cells.map((c) => ({
+      c, x: g.pos[c.col], y: g.pos[c.row], w: g.cells[c.col], h: g.cells[c.row],
+      bg: blank && c.kind === 'action' ? P.tile : mapFill(c, P, level),
+    })),
+    [cells, g, P, level, blank],
   );
 
+  const headK = typeof textScale === 'number' ? textScale : textScale.head;
+  const coreK = typeof textScale === 'number' ? textScale : textScale.core;
   const labels = useMemo(() => {
     if (!L2) return [];
     return cells
       .filter((c) => c.kind !== 'action' && c.text.trim())
       .map((c) => {
-        const w = g.cells[c.col];
-        const h = g.cells[c.row];
-        const lab = mapLabel(c.text, c.kind === 'core' ? 'core' : 'head', w, h, l);
-        return { c, x: g.pos[c.col], y: g.pos[c.row], w, h, lab };
+        const kind = c.kind === 'core' ? 'core' : 'head';
+        const lab = scaleMapLabel(c.text, kind, fit.cells[c.col], fit.cells[c.row], kind === 'core' ? coreK : headK, l);
+        return { c, x: g.pos[c.col], y: g.pos[c.row], w: g.cells[c.col], h: g.cells[c.row], lab };
       });
-  }, [cells, g, l, L2]);
+  }, [cells, g, fit, l, L2, headK, coreK]);
 
   // 처음 그릴 때 페이드(축하 · 새 표) — 동작 줄이기면 처음부터 다 보인다
   const op = useRef(new Animated.Value(fade && !reduced ? 0 : 1)).current;
@@ -210,7 +246,7 @@ export const ColourMap = memo(function ColourMap({
   }, [onPressBlock != null, cells, themes, goal, total, m, l]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const imageLabel = useMemo(() => {
-    if (onPressBlock) return undefined;
+    if (onPressBlock || picture) return undefined;
     let n = 0;
     let did = 0;
     for (const c of cells) {
@@ -219,7 +255,7 @@ export const ColourMap = memo(function ColourMap({
       if (doneToday?.has(`${c.ti}-${c.ai}`)) did++;
     }
     return `${m.chart.markSay({ done: total })}${n > 0 ? m.chart.markTodaySay({ total: n, done: did }) : ''}`;
-  }, [onPressBlock != null, cells, doneToday, total, m]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onPressBlock != null, picture, cells, doneToday, total, m]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ringT = Math.max(1, Math.round(1.5 * ratio)) / ratio;
   const f = focus ? cells[focus[0] * 9 + focus[1]] : null;
@@ -227,8 +263,8 @@ export const ColourMap = memo(function ColourMap({
   return (
     <Animated.View
       testID={testID}
-      accessible={!onPressBlock}
-      accessibilityRole={onPressBlock ? undefined : 'image'}
+      accessible={!onPressBlock && !picture}
+      accessibilityRole={onPressBlock || picture ? undefined : 'image'}
       accessibilityLabel={imageLabel}
       style={[{ width: g.size, height: g.size, opacity: op }, style]}
     >
@@ -238,10 +274,11 @@ export const ColourMap = memo(function ColourMap({
       {shown && labels.map((t) => (
         <Label
           key={`l${t.c.row}-${t.c.col}`}
-          x={t.x} y={t.y} w={t.w} h={t.h}
-          text={t.lab.text} fs={t.lab.fs} lh={t.lab.lh} ls={t.lab.letterSpacing} lines={t.lab.lines}
+          x={t.x} y={t.y} w={t.w} h={t.h} pad={MAP_LABEL.pad * scale}
+          text={t.lab.text} fs={t.lab.fs * scale} lh={t.lab.lh * scale} ls={t.lab.letterSpacing * scale} lines={t.lab.lines}
           color={t.c.kind === 'core' ? P.onCore : P.onDye}
           core={t.c.kind === 'core'}
+          fixed={picture}
         />
       ))}
       {f && (

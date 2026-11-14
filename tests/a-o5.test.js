@@ -11,7 +11,7 @@ const { LIGHT } = require('../src/theme/tokens');
 const { msg } = require('../src/i18n');
 const P = require('../src/lib/poster');
 const S = require('../src/lib/printSheet');
-const { mapGeometry } = require('../src/components/chart/geometry');
+const { mapGeometry, scaleMapLabel } = require('../src/components/chart/geometry');
 const { demoDoc } = require('../scripts/smoke/demoDoc');
 
 const ROOT = path.join(__dirname, '..');
@@ -65,18 +65,20 @@ test('표 이미지의 자리 — share.html 값 그대로, 지도는 본문 폭
 test('지도의 이름은 피드 크기 — 영역 이름 13/16, 핵심 목표 13.5/16, 화면의 지도와 같은 자리에서 끊긴다', () => {
   const g = mapGeometry({ level: 'L2', width: P.POSTER_MAP, ratio: P.POSTER_RATIO });
   const c = g.cells[1];
-  const head = P.posterLabel('건강', 'head', c, c, 'ko');
+  // 표 이미지의 지도(ColourMap textScale={POSTER_LABEL})가 칸마다 맞추는 이름
+  const posterLabel = (t, kind, w, h, l) => scaleMapLabel(t, kind, w, h, P.POSTER_LABEL[kind], l);
+  const head = posterLabel('건강', 'head', c, c, 'ko');
   assert.deepEqual([head.text, head.fs, head.lh], ['건강', 13, 16]);
-  assert.equal(P.posterLabel('자기계발', 'head', c, c, 'ko').text, '자기\n계발');
-  assert.equal(P.posterLabel('마음챙김', 'head', c, c, 'ko').text, '마음\n챙김');
-  const core = P.posterLabel('단단한 한 해', 'core', c, c, 'ko');
+  assert.equal(posterLabel('자기계발', 'head', c, c, 'ko').text, '자기\n계발');
+  assert.equal(posterLabel('마음챙김', 'head', c, c, 'ko').text, '마음\n챙김');
+  const core = posterLabel('단단한 한 해', 'core', c, c, 'ko');
   // 한 음절 낱말은 옆 낱말에 붙는다(한\u00a0해 — 목업 A.keep)
   assert.deepEqual([core.text, core.fs, core.lh], ['단단한\n한\u00a0해', 13.5, 16]);
   // 360pt 피드에서도 영역 이름이 8.5pt 넘게
   assert.ok(head.fs * (360 / P.POSTER_W) >= 8.5);
   // 긴 이름도 칸 안에 — 영어 · 일본어 기본 이름
   for (const [t, l] of [['Relationships', 'en'], ['人間関係', 'ja'], ['自己成長', 'ja']]) {
-    const lab = P.posterLabel(t, 'head', c, c, l);
+    const lab = posterLabel(t, 'head', c, c, l);
     assert.equal(lab.cut, false, t);
     assert.ok(lab.lines * lab.lh <= c, `${t}: ${lab.lines} × ${lab.lh}`);
   }
@@ -95,9 +97,12 @@ test('ChartPoster: 늘 LIGHT · G의 지도 칸 색(mapFill) · 마크 · 날짜
   const s = src('src/components/ChartPoster.tsx');
   assert.match(s, /const T: Tokens = LIGHT;/);
   assert.doesNotMatch(s, /usePalette|MOODS|GOLD|legibleMark|headBg|DONE_INK/);
-  assert.match(s, /import \{ Mark, keepWords, mapFill, mapGeometry \} from '\.\/chart';/);
-  assert.match(s, /mapFill\(c, T, 'L2'\)/);
-  assert.match(s, /blank && c\.kind === 'action' \? T\.tile/);
+  // 지도는 G의 ColourMap 그대로(같은 칸 · 색 mapFill) — 늘 LIGHT, 빈 표는 실천 칸을 tile로, 이름은 피드 크기, 그림 한 장
+  assert.match(s, /import \{ ColourMap, Mark, keepWords \} from '\.\/chart';/);
+  assert.match(s, /<ColourMap\s+themes=\{doc\.themes\}\s+goal=\{goal\}\s+level="L2"\s+width=\{POSTER_MAP\}\s+scale=\{scale\}\s+ratio=\{POSTER_RATIO\}\s+tokens=\{T\}\s+blank=\{blank\}\s+textScale=\{POSTER_LABEL\}\s+picture\s*\/>/);
+  const map = src('src/components/chart/ColourMap.tsx');
+  assert.match(map, /bg: blank && c\.kind === 'action' \? P\.tile : mapFill\(c, P, level\)/);
+  assert.match(map, /const P: MapTokens = tokens \?\? palette;/);
   assert.match(s, /<Mark variant="heart" size=\{k\.mark\} tokens=\{T\} \/>/);
   assert.match(s, /m\.print\.posterEyebrow\(\{ y: now\.getFullYear\(\) \}\)/);
   assert.match(s, /posterDate\(now, l\)/);

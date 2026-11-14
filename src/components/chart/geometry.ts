@@ -543,6 +543,16 @@ export function mapLabel(text: string, kind: MapLabelKind, width: number, height
 }
 
 /**
+ * 이름표를 k배로 — 줄은 칸을 k로 줄인 상자에서 나누고(mapLabel) 글자만 키운다. 화면의 지도와 같은 자리에서 끊긴다.
+ * 표 이미지가 피드에서 읽히게 이름을 키울 때(ColourMap textScale, lib/poster POSTER_LABEL). k = 1이면 mapLabel 그대로.
+ */
+export function scaleMapLabel(text: string, kind: MapLabelKind, width: number, height: number, k: number, l: Lang = lang()): MapLabel {
+  if (k === 1) return mapLabel(text, kind, width, height, l);
+  const lab = mapLabel(text, kind, width / k, height / k, l);
+  return { ...lab, fs: lab.fs * k, lh: Math.round(lab.lh * k), letterSpacing: Math.round(lab.letterSpacing * k * 100) / 100 };
+}
+
+/**
  * 한 음절 낱말을 옆 낱말에 붙인다(목업 A.keep) — '주 3회 운동' → '주\u00a03회 운동', '단단한 한 해' → '단단한 한\u00a0해'.
  * 어떤 음절도 줄에 홀로 남지 않게. 한국어 글(한글이 들고 가나 · 한자가 없는 글)에만 — 그 밖의 글은 그대로.
  */
