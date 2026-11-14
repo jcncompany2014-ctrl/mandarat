@@ -88,9 +88,3 @@ export function usePanelStyle(): ViewStyle | null {
     [layout.kind, max],
   );
 }
-
-/** 웹 넓은 화면에서 폰 한 장 폭으로 가운데에 세우는 틀 스타일 — 네이티브에서는 null */
-export const WEB_COLUMN: ViewStyle | null = WEB ? { flex: 1, width: '100%', maxWidth: WEB_MAX_W, alignSelf: 'center' } : null;
-
-/** 시트처럼 아래에 붙는 판을 같은 폭으로 — 네이티브에서는 null (새 코드는 usePanelStyle) */
-export const WEB_PANEL: ViewStyle | null = WEB ? { width: '100%', maxWidth: WEB_MAX_W, alignSelf: 'center' } : null;

@@ -5,7 +5,7 @@ import type { MandaratDoc, Settings, Theme, TodayExtra, WeekReviewEntry } from '
 import { DATE_RE, blankDoc, cleanClosedDays, cleanReviewEntry, cleanReviews, isMondayKey, migrate, sampleGoal, sampleThemes } from '../data/defaults';
 import { extraLogKey, isRoutine, kindOf, rolloverToday, setDayLog, toggleDayLog, ymd } from '../lib/routine';
 import { addCount as addCountTo, clearedAction, rateWeek, sameConfig, configOf, toggleCountToday, type KindConfig } from '../lib/kinds';
-import { activeStreak, archiveAllCells, archiveCellLog, areaStreak, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
+import { activeStreak, archiveAllCells, archiveCellLog, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
 import { summarize, type BackupSummary } from '../lib/backup';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
@@ -973,11 +973,4 @@ export function totalDone(doc: MandaratDoc): number {
 /** 하나라도 한 날이 이어진 날 수(오늘 또는 어제까지) — 상한 없이 센다. 계산은 src/lib/history.ts activeStreak */
 export function overallStreak(doc: Pick<MandaratDoc, 'dayLog'>, now: Date = new Date()): number {
   return activeStreak(doc.dayLog, now);
-}
-
-/**
- * 영역별 연속 기록 — 현재·최고 연속 일수와 이번 주(월~일) 기록 여부. 계산은 src/lib/history.ts areaStreak.
- */
-export function themeStreak(doc: Pick<MandaratDoc, 'dayLog'>, ti: number, now: Date = new Date()): { cur: number; best: number; week: number[] } {
-  return areaStreak(doc.dayLog, ti, now);
 }

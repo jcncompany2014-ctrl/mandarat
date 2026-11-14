@@ -36,6 +36,3 @@ export const SPRING = {
   /** 체크·축하처럼 기쁜 순간 */
   bouncy: { damping: 11, stiffness: 220, mass: 1 },
 } as const;
-
-/** 차례로 등장할 때 항목 사이 간격(ms) */
-export const STAGGER = 45;
