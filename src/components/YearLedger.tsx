@@ -12,8 +12,11 @@ export const LEDGER_LABEL_W = 30;
 /** 칸 사이(타일 사이의 틈) · 타일 모서리 */
 const LEDGER_GAP = 1.5;
 const LEDGER_RADIUS = 2;
-/** 달 줄 사이 — 달 이름(12pt)이 겹치지 않게 */
-const LEDGER_ROW_GAP = 3;
+/** 달 줄 사이 — 줄 간격(칸 + 사이)이 16pt 아래로 내려가지 않게: 폰의 10pt 칸에서도 달 이름(13pt)끼리 붙지 않는다 */
+const LEDGER_ROW_PITCH = 16;
+function ledgerRowGap(cell: number): number {
+  return Math.max(3, LEDGER_ROW_PITCH - cell);
+}
 /** 한 칸 한 변 — 폰에서 10pt 안팎, 아이패드 단(600pt)에서 16pt까지 넓혀 단을 채운다. 좁아도 6pt 아래로는 줄이지 않는다 */
 export function ledgerCellSize(width: number): number {
   return Math.max(6, Math.min(16, Math.floor((width - LEDGER_LABEL_W) / 31)));
@@ -61,6 +64,7 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
   const [width, setWidth] = useState(0);
   const cell = ledgerCellSize(width || 340);
   const lines = ledgerLines(rows);
+  const rowGap = ledgerRowGap(cell);
   const tones = HEAT_TONES.map((t) => M[t]);
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
@@ -70,9 +74,9 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
           accessible
           accessibilityLabel={ln.speech}
           {...a11yLangProp()}
-          style={{ flexDirection: 'row', alignItems: 'center', height: cell, marginTop: LEDGER_ROW_GAP }}
+          style={{ flexDirection: 'row', alignItems: 'center', height: cell, marginTop: rowGap }}
         >
-          <Text style={[ROLE.meta, { width: LEDGER_LABEL_W, lineHeight: cell + LEDGER_ROW_GAP, color: M.print }]} maxFontSizeMultiplier={1.2} numberOfLines={1}>
+          <Text style={[ROLE.meta, { width: LEDGER_LABEL_W, lineHeight: cell + rowGap, color: M.print }]} maxFontSizeMultiplier={1.2} numberOfLines={1}>
             {ln.label}
           </Text>
           {ln.cells.slice(0, ln.length).map((c, d) => (

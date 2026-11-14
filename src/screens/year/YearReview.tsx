@@ -192,8 +192,9 @@ function Numbers({ M, m, digest, stacked, width }: { M: M; m: Messages; digest: 
               accessible
               accessibilityLabel={`${c.label}, ${c.speech ?? c.value}`}
               {...a11yLangProp()}
-              style={{ flex: 1, minWidth: 0, gap: 2 }}
+              style={{ flex: 1, minWidth: 0, gap: 2, justifyContent: 'space-between' }}
             >
+              {/* 이름이 두 줄로 접혀도(en 'Days with records') 숫자는 한 줄에 나란히 — 칸을 같은 높이로 늘리고 숫자를 바닥에 */}
               <Text style={[ROLE.label, { color: M.print }]} numberOfLines={2} maxFontSizeMultiplier={STACK_SCALE}>{c.label}</Text>
               {/* 숫자는 한 줄 — 값 안에서 줄을 바꾸지 않는다(2시간 5분도 한 줄) */}
               <Figure M={M} text={c.value} size={size} adjust maxScale={STACK_SCALE} />
