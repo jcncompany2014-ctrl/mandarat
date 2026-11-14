@@ -28,6 +28,9 @@ const areaName = (m: Messages, doc: Pick<MandaratDoc, 'themes'>, ti: number) => 
 /** 화면 읽기에서 숨기는 장식 — 범례처럼 이미 글로 읽은 것 */
 const HIDDEN = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
 
+/** 숫자와 단위 사이 — 머리카락 빈칸(U+200A) */
+const HAIR = '\u200A';
+
 /** 타일 모서리 — 최근 10주 · 닳은 자리 · 범례(build-plan S4) */
 export const TILE_RADIUS = 3;
 
@@ -79,7 +82,8 @@ export function Figure({
     >
       {parts.map((p, i) => (p.unit ? (
         <Text key={i} style={[unit, { color: M.ink2, fontSize: Math.max(9, (unit.fontSize ?? 13) * Math.min(1, k)), letterSpacing: 0 }]}>
-          {p.t}
+          {/* 숫자 바로 뒤 단위는 머리카락 빈칸 하나 띄운다(목업 small margin-left 2 — 글 안의 글은 여백을 받지 않는다) */}
+          {i > 0 && !/^\s/.test(p.t) ? `${HAIR}${p.t}` : p.t}
         </Text>
       ) : p.t))}
     </Text>
