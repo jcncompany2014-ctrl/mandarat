@@ -123,7 +123,7 @@
       focus: (() => {
         let r = `<rect x="3.75" y="3.75" width="16.5" height="16.5" rx="1" ${P}/>`;
         r += `<path d="M7.875 4.5v15M12 4.5v15M16.125 4.5v15M4.5 7.875h15M4.5 12h15M4.5 16.125h15" ${P} stroke-width="1" stroke-linecap="butt"/>`;
-        for (let i = 0; i < 6; i++) r += `<rect x="${3.75 + (i % 4) * 4.125}" y="${3.75 + Math.floor(i / 4) * 4.125}" width="4.125" height="4.125" fill="currentColor"/>`;
+        for (let i = 0; i < 3; i++) r += `<rect x="${3.75 + (i % 4) * 4.125}" y="${3.75 + Math.floor(i / 4) * 4.125}" width="4.125" height="4.125" fill="currentColor"/>`;
         return r;
       })(),
       bell: `<path d="M6.75 16.25V11a5.25 5.25 0 0 1 10.5 0v5.25l1.5 1.5H5.25z" ${P}/><path d="M10 20.25h4" ${P}/>`,

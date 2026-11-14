@@ -11,9 +11,9 @@
   /* 25분 집중: a full-screen page of the same notebook (no tab bar; it covers the app).
      Header anatomy as on every tab: eyebrow = the area and "25분 집중", title = the action in
      writing ink, one action = minimise (the session keeps running in a bar and the Live Activity).
-     Hero: the 25-minute form, one box per minute, 300pt on the left gutter with a printed minute ruler to its right.
+     Hero: the 25-minute form, one box per minute, 315pt on the left gutter with a printed minute ruler to its right.
      Under it one filled-in field: the time left in MaruBuri. Controls sit in the thumb zone. */
-  #minutes { margin: 36px 0 0; }  /* 300pt on the gutter; the minute ruler takes the 36pt to its right */
+  #minutes { margin: 36px 0 0; }  /* 315pt on the gutter; the minute ruler takes the 27pt to its right */
 
   .field { margin-top: 36px; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--hair) solid var(--print-rule);
            display: flex; align-items: flex-end; justify-content: space-between; padding: 7px 0 10px; }
@@ -72,7 +72,7 @@ A.ready().then((doc) => {
   h.firstElementChild.innerHTML = `<i class="a-dye" style="--d:var(--dye-${area + 1})"></i>${row.area} · 25분 집중`;
   h.insertAdjacentHTML('beforeend', `<div class="a-header-action" aria-label="접어 두기">${A.glyph('down')}</div>`);
 
-  A.minutes('#minutes', { cell: 59, area, done: Math.floor(run / 60), frac: (run % 60) / 60 });
+  A.minutes('#minutes', { cell: 62, area, done: Math.floor(run / 60), frac: (run % 60) / 60 });
 
   const mm = Math.floor(left / 60), ss = String(left % 60).padStart(2, '0');
   document.querySelector('#clock').textContent = `${mm}:${ss}`;

@@ -20,8 +20,8 @@
      opts.done     whole minutes finished (0..25).
      opts.frac     how far the current minute has run, 0..1. The current box fills from the bottom;
                    the level is a 1pt line of the area's dye (in the app: one native scaleY over 60 s).
-     opts.marks    true = print the minute count (5, 10, 15, 20, 25) as a ruler in a 36pt column to the
-                   right of the frame (outside the returned size), bottom-aligned with each row. Default true. */
+     opts.marks    true = print the minute count (5, 10, 15, 20, 25) as a ruler 8pt to the
+                   right of the frame, left-aligned (outside the returned size), bottom-aligned with each row. Default true. */
   A.minutes = function (target, opts) {
     opts = opts || {};
     const d = dpr();
@@ -72,7 +72,7 @@
     // the ruler is printed outside the frame, on paper, so it keeps its 5.3:1 against any fill
     if (opts.marks !== false) {
       for (let r = 0; r < 5; r++) {
-        html += `<span class="t-label" style="position:absolute;left:${size + 6}px;width:36px;top:${(xs[r] + c) / d - 16}px;text-align:right;line-height:12px">${(r + 1) * 5}</span>`;
+        html += `<span class="t-label" style="position:absolute;left:${size + 8}px;width:24px;top:${(xs[r] + c) / d - 16}px;text-align:left;line-height:12px">${(r + 1) * 5}</span>`;
       }
     }
     host.innerHTML = html;
