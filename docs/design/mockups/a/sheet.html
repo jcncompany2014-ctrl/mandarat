@@ -16,7 +16,7 @@
   .chart-wrap { display: flex; justify-content: center; margin-top: 18px; }
   .s-title { margin-top: 6px; }
   .s-title + .t-meta { display: block; }
-  .s-week-say { display: flex; align-items: baseline; gap: 8px; height: 30px; }
+  .s-week-say { display: flex; align-items: baseline; gap: 8px; height: 30px; margin-bottom: 6px; }
   .s-week-say .t-figure { font-size: 22px; line-height: 30px; }
   .s-week-say .t-figure small { font-size: 13px; }
 </style>
@@ -51,7 +51,7 @@ A.ready().then((doc) => {
     ${S.head(doc, AREA, INDEX)}
 
     <div class="t-title is-written s-title">${act.text}</div>
-    <span class="t-meta">습관 · 주 ${act.perWeek}회 · 오늘 할 일에 있어요</span>
+    <span class="t-meta">습관 · 주 ${act.perWeek}회 · 오늘 할 일에 저절로 담겨요</span>
 
     <div class="a-list" style="margin-top:18px">
       ${A.row(doc, { text: '오늘 했어요' })}
@@ -64,9 +64,9 @@ A.ready().then((doc) => {
     </section>
 
     <div class="a-list" style="margin-top:24px">
-      ${A.row(doc, { text: '이 칸 달성하기', meta: '몸에 뱄다면 체크해 두세요' })}
+      ${A.row(doc, { text: '이 칸 달성하기', meta: '몸에 뱄다면 눌러 주세요' })}
       ${S.linkRow({ icon: 'focus', title: '25분 집중하기' })}
-      ${S.linkRow({ icon: 'edit', title: '칸 고치기' })}
+      ${S.linkRow({ icon: 'edit', title: '칸 편집하기' })}
     </div>
 
     <section class="s-group">
