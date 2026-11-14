@@ -733,6 +733,7 @@ function KindRows({
           value={cfg.kind}
           onChange={onKind}
           options={KIND_ORDER.map((k) => ({ value: k, label: KIND_LABEL[k], a11yLabel: ed.kindA11y({ label: KIND_LABEL[k] }), testID: TID.editorKind(k) }))}
+          accessibilityLabel={ed.kindLabel}
         />
         <Note M={M} text={`${auto ? ed.autoPicked : ''}${note}`} />
         {offer && (
@@ -791,6 +792,7 @@ function HabitRows({ M, cfg, setCfg, onReveal }: {
           value={byWeek ? 'week' : 'days'}
           onChange={pickMode}
           options={[{ value: 'days', label: ed.byDays }, { value: 'week', label: ed.byCount }]}
+          accessibilityLabel={ed.repeat}
         />
         <View style={{ marginTop: SP.under }}>
           {byWeek ? (
@@ -1015,6 +1017,7 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
           // 소리로는 '마감 3개월 뒤, 2027년 1월 14일 목요일' — 점 찍은 짧은 표기('1.14 (목)')는 소수로 읽힌다
           a11yLabel: ed.dueChipA11y({ label: p.label, date: fmtDateSpeech(p.date, now) }),
         }))}
+        accessibilityLabel={ed.due}
       />
       {due ? (
         <View style={{ marginTop: SP.under }}>

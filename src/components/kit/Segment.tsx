@@ -46,9 +46,10 @@ export function segmentFace(M: M, on: boolean, tiles: boolean) {
  * - tiles: 따로 선 낱칸(44 높이, 모서리 12, 사이 6) — 하루 마감의 오늘 기분, 마음가짐 점수.
  * 글자는 한 줄(numberOfLines 1, 넘치면 85%까지 줄인다). 고를 때 짧은 딸깍(select).
  * 이미 고른 칸을 다시 누르면 onReselect(있을 때만 — 점수 지우기처럼).
+ * accessibilityLabel: 묶음의 이름('유형' · '오늘 기분') — 라디오 묶음 · 탭 목록에 달아 무엇을 고르는지 함께 읽힌다.
  */
 export function Segment<T extends string>({
-  M, options, value, onChange, onReselect, role = 'tab', variant = 'track', style,
+  M, options, value, onChange, onReselect, role = 'tab', variant = 'track', accessibilityLabel, style,
 }: {
   M: M;
   options: readonly SegOption<T>[];
@@ -57,6 +58,8 @@ export function Segment<T extends string>({
   onReselect?: (v: T) => void;
   role?: AccessibilityRole;
   variant?: 'track' | 'tiles';
+  /** 묶음의 이름(radiogroup · tablist) */
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }) {
   const tiles = variant === 'tiles';
@@ -65,6 +68,8 @@ export function Segment<T extends string>({
   return (
     <View
       accessibilityRole={roles.group}
+      accessibilityLabel={accessibilityLabel}
+      {...a11yLangProp()}
       style={[
         tiles
           ? { flexDirection: 'row', gap: SEG.tileGap }

@@ -38,3 +38,18 @@ test('설정 › 언어 · iCloud 고르기 시트는 부품 상자의 ChoiceRow
   assert.match(sync, /meta=\{sub\}/);
   for (const s of [lang, sync]) assert.doesNotMatch(s, /ChoiceTick|RowTitle|RowRule|<Pressable/);
 });
+
+// ── 분절 선택기 ────────────────────────────────────────────────────────────────
+
+test('Segment: 묶음(라디오 묶음 · 탭 목록)에 이름 — 무엇을 고르는지 함께 읽힌다, 쓰는 곳마다 단다', () => {
+  const seg = code(`${KIT}/Segment.tsx`);
+  assert.match(seg, /accessibilityRole=\{roles\.group\}\s+accessibilityLabel=\{accessibilityLabel\}\s+\{\.\.\.a11yLangProp\(\)\}/);
+  // 라디오면 묶음은 radiogroup(웹의 role="radiogroup"), 탭이면 iOS 밖에서 tablist
+  assert.match(seg, /group: radio \? 'radiogroup' : role === 'tab' && !IOS \? 'tablist' : undefined/);
+  const mood = code('src/components/MoodRow.tsx');
+  assert.match(mood, /<Segment[\s\S]*?accessibilityLabel=\{m\.today\.moodTitle\}\s*\/>/);
+  assert.doesNotMatch(mood, /<View/, '이름을 달려고 감싼 칸이 없다');
+  const ed = code('src/overlays/CellEditor.tsx');
+  for (const k of ['kindLabel', 'repeat', 'due']) assert.match(ed, new RegExp(`accessibilityLabel=\\{ed\\.${k}\\}\\s*/>`), k);
+  assert.match(code('src/overlays/ShareChart.tsx'), /<Segment[\s\S]*?accessibilityLabel=\{m\.chart\.shareTitle\}\s*\/>/);
+});

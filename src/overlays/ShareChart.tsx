@@ -124,6 +124,7 @@ function ShareBody({ M, mode, setMode, posterRef }: {
           { value: 'progress', label: m.chart.modeProgress },
           { value: 'blank', label: m.chart.modeBlank },
         ]}
+        accessibilityLabel={m.chart.shareTitle}
       />
 
       {/* 찍을 원본 — 줄이지 않은 540×675 한 장을 화면 밖에 둔다(미리보기는 줄여 그려 그대로 찍으면 흐리다) */}

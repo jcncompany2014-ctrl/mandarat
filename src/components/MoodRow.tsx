@@ -1,5 +1,4 @@
 import React from 'react';
-import { View } from 'react-native';
 import { Segment, type SegOption } from './kit/Segment';
 import { MOOD_WORDS } from '../lib/copy';
 import type { M } from '../theme/usePalette';
@@ -15,15 +14,14 @@ export function MoodRow({ M, value, onPick }: { M: M; value?: number; onPick: (i
   const m = useMsg();
   const options: SegOption<string>[] = MOOD_WORDS.map((word, i) => ({ value: String(i), label: word }));
   return (
-    <View accessibilityLabel={m.today.moodTitle}>
-      <Segment
-        M={M}
-        variant="tiles"
-        role="radio"
-        options={options}
-        value={value == null ? '' : String(value)}
-        onChange={(v) => onPick(Number(v))}
-      />
-    </View>
+    <Segment
+      M={M}
+      variant="tiles"
+      role="radio"
+      options={options}
+      value={value == null ? '' : String(value)}
+      onChange={(v) => onPick(Number(v))}
+      accessibilityLabel={m.today.moodTitle}
+    />
   );
 }
