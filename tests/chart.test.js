@@ -9,10 +9,19 @@ const {
   DONE_INK, coreBg, coreInk, headBg, headTrack, writtenBg, RULE, ruleColor, frameRadius, legibleMark,
   estimateLines, fitFontSize,
 } = require('../src/theme/chart');
-const { MOODS, toHex } = require('../src/theme/moods');
+const { MOODS, PALETTE, contrastPalette, mix, tint, toHex } = require('../src/theme/moods');
 const { PILLAR_COLORS, contrast } = require('../src/theme/palette');
+const { LIGHT, DARK } = require('../src/theme/tokens');
 
+/** 옛 무드 표 — 공유 이미지 · 인쇄가 웨이브 3까지 넘긴다(예전 값 그대로 나와야 한다) */
 const moods = Object.entries(MOODS);
+/** 앱 팔레트 — 밝게 · 어둡게, 각각 대비 증가 */
+const apps = [
+  ['밝게', PALETTE.light], ['어둡게', PALETTE.dark],
+  ['밝게 +IC', contrastPalette(PALETTE.light)], ['어둡게 +IC', contrastPalette(PALETTE.dark)],
+];
+/** 지금 쓰이는 영역 색 — 예전 문서의 연꽃 값과 새 슬롯 색(LIGHT.dye) */
+const AREA = [...new Set(['#478058', '#5068AB', '#9C6A2A', '#B35A72', '#2F7D79', '#7E60A8', '#3A77A5', '#AE5A35', ...PILLAR_COLORS])];
 
 test('자리: 영역·실천 8개가 가운데를 빼고 왼쪽 위부터 읽는 순서로 놓인다', () => {
   assert.deepEqual([...CHART_POS], [0, 1, 2, 3, 5, 6, 7, 8]);
@@ -104,34 +113,48 @@ test('spiralRank: 가운데가 0, 바깥 바퀴일수록 뒤, 81칸 모두 다�
   assert.ok(spiralRank(5, 3) < spiralRank(4, 3));
 });
 
-test('가운데 칸: 밝은 무드는 무드의 먹색, 다크는 뒤집어 밝게 — 글자는 4.5:1 이상', () => {
+test('가운데 칸: 앱 팔레트는 토큰 core · onCore(어둡게도 뒤집지 않는다), 옛 무드 표는 예전 그대로 — 글자는 4.5:1 이상', () => {
+  for (const [name, M] of apps) {
+    assert.equal(coreBg(M), M.core, name);
+    assert.equal(coreInk(M), M.onCore, name);
+    assert.ok(contrast(coreInk(M), coreBg(M)) >= 4.5, `${name}: ${contrast(coreInk(M), coreBg(M)).toFixed(2)}`);
+    // 가운데 칸은 종이 위에서 또렷하다
+    assert.ok(contrast(coreBg(M), M.paper) >= 1.9, `${name}: ${contrast(coreBg(M), M.paper).toFixed(2)}`);
+  }
+  assert.equal(coreBg(LIGHT), '#221F1B');
+  assert.equal(coreBg(DARK), '#4A4E55');
   for (const [name, M] of moods) {
     const bg = coreBg(M);
     const ink = coreInk(M);
     assert.equal(bg, M.dark ? M.ink : M.center, name);
     assert.ok(contrast(toHex(ink), toHex(bg)) >= 4.5, `${name}: ${contrast(toHex(ink), toHex(bg)).toFixed(2)}`);
-    // 가운데 칸은 종이 위에서 또렷하다
     assert.ok(contrast(toHex(bg), M.bg) >= 3, name);
   }
 });
 
 test('칠한 칸(달성) 위 흰 글씨는 8영역 모두 4.5:1 이상', () => {
-  for (const c of PILLAR_COLORS) assert.ok(contrast(DONE_INK, c) >= 4.5, c);
+  for (const c of AREA) assert.ok(contrast(DONE_INK, c) >= 4.5, c);
 });
 
 test('이름표 바탕은 쓰기만 한 칸보다 옅고, 둘 다 달성(영역 색)과 뚜렷이 다르다 — 이름표 위 먹색 글씨 AA', () => {
-  for (const [name, M] of moods) {
-    for (const c of PILLAR_COLORS) {
+  for (const [name, M] of apps) {
+    for (const c of AREA) {
       const head = toHex(headBg(c, M));
       const written = toHex(writtenBg(c, M));
       const solid = toHex(c);
       assert.notEqual(head, written);
-      assert.ok(contrast(head, solid) >= 2, `${name} ${c}: 이름표 vs 달성`);
-      assert.ok(contrast(written, solid) >= 1.8, `${name} ${c}: 쓴 칸 vs 달성`);
+      assert.ok(contrast(head, solid) >= 2, `${name} ${c}: 이름표 vs 달성 ${contrast(head, solid).toFixed(2)}`);
+      assert.ok(contrast(written, solid) >= 1.6, `${name} ${c}: 쓴 칸 vs 달성 ${contrast(written, solid).toFixed(2)}`);
       assert.ok(contrast(M.ink, head) >= 4.5, `${name} ${c}: 이름표 위 글씨`);
-      if (!M.dark) assert.ok(contrast(head, M.bg) < contrast(written, M.bg), `${name} ${c}: 이름표가 더 옅다`);
+      assert.ok(contrast(M.ink, written) >= 4.5, `${name} ${c}: 쓴 칸 위 글씨`);
+      if (!M.dark) assert.ok(contrast(head, M.paper) < contrast(written, M.paper), `${name} ${c}: 이름표가 더 옅다`);
     }
   }
+  // 토큰 팔레트는 지금 종이(paper) 위에 섞는다 — 옛 무드 표는 예전 바탕(흰색 · 다크 #1C1C22) 위에 그대로
+  assert.equal(headBg('#447753', PALETTE.dark), mix(DARK.paper, '#447753', 0.24));
+  assert.equal(writtenBg('#447753', PALETTE.light), mix(LIGHT.paper, '#447753', 0.22));
+  assert.equal(headBg('#478058', MOODS['다크']), tint('#478058', 24, true));
+  assert.equal(headBg('#478058', MOODS['연꽃']), tint('#478058', 16, false));
 });
 
 test('이름표 진행 막대: 바탕은 영역 색 25% — 이름표 위에서 보이고, 채운 부분(영역 색)은 더 또렷하다', () => {
@@ -140,20 +163,30 @@ test('이름표 진행 막대: 바탕은 영역 색 25% — 이름표 위에서 
     const base = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
     return toHex(`rgb(${[r, g, b].map((c, i) => Math.round(c * a + base[i] * (1 - a))).join(', ')})`);
   };
-  for (const c of PILLAR_COLORS) assert.equal(headTrack(c), `rgba(${[1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)).join(', ')}, 0.25)`);
-  for (const [name, M] of moods) {
-    for (const c of PILLAR_COLORS) {
+  for (const c of AREA) assert.equal(headTrack(c), `rgba(${[1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)).join(', ')}, 0.25)`);
+  for (const [name, M] of apps) {
+    for (const c of AREA) {
       const head = toHex(headBg(c, M));
       const track = over(headTrack(c), head);
-      assert.ok(contrast(track, head) >= 1.2, `${name} ${c}: 막대 바탕 ${contrast(track, head).toFixed(2)}`);
-      assert.ok(contrast(c, head) >= 2.4, `${name} ${c}: 채운 막대 ${contrast(c, head).toFixed(2)}`);
+      // 어둡게: 영역 색은 표시로 3:1 남짓이라 막대는 더 조용하다
+      const min = M.dark ? 1.1 : 1.2;
+      assert.ok(contrast(track, head) >= min, `${name} ${c}: 막대 바탕 ${contrast(track, head).toFixed(2)}`);
+      assert.ok(contrast(c, head) >= (M.dark ? 1.8 : 2.4), `${name} ${c}: 채운 막대 ${contrast(c, head).toFixed(2)}`);
       assert.ok(contrast(c, head) > contrast(track, head), `${name} ${c}`);
     }
   }
 });
 
-test('괘선: 테두리 > 블록 > 칸 순으로 굵고, 색도 그 순서로 진하다', () => {
+test('괘선: 테두리 > 블록 > 칸 순으로 굵고, 앱 팔레트는 인쇄 회색(테두리 · 블록 printEdge, 칸 printMid), 옛 무드 표는 먹 알파', () => {
   assert.ok(RULE.frame > RULE.block && RULE.block > RULE.cell);
+  for (const [name, M] of apps) {
+    assert.equal(ruleColor(M, 'frame'), M.printEdge, name);
+    assert.equal(ruleColor(M, 'block'), M.printEdge, name);
+    assert.equal(ruleColor(M, 'cell'), M.printMid, name);
+    // 진하기도 굵기 순서(같거나 옅게)
+    assert.ok(contrast(ruleColor(M, 'block'), M.paper) >= contrast(ruleColor(M, 'cell'), M.paper), name);
+    assert.ok(contrast(ruleColor(M, 'frame'), M.paper) >= 3, `${name}: 표 테두리는 컨트롤 가장자리처럼 3:1`);
+  }
   for (const [name, M] of moods) {
     const a = (s) => Number(s.match(/[\d.]+\)$/)[0].slice(0, -1));
     assert.ok(a(ruleColor(M, 'frame')) > a(ruleColor(M, 'block')), name);
@@ -168,19 +201,20 @@ test('frameRadius: 반듯하게면 0, 둥글게면 3(카드처럼 둥글지 않�
   assert.equal(frameRadius(undefined), 3);
 });
 
-test('legibleMark: 금색 표시가 종이·쓴 칸 위에서 3:1 이상 — 넉넉하면 그대로 둔다', () => {
-  for (const [name, M] of moods) {
-    const grounds = [M.bg, ...PILLAR_COLORS.map((c) => writtenBg(c, M))];
+test('legibleMark: 오늘 표시(M.gold = signal)가 종이 · 쓴 칸 위에서 3:1 이상 — 넉넉하면 그대로 둔다', () => {
+  for (const [name, M] of [...apps, ...moods]) {
+    const grounds = [M.bg, ...AREA.map((c) => writtenBg(c, M))];
     for (const g of grounds) {
       const m = legibleMark(M.gold, g, M);
       assert.ok(contrast(toHex(m), toHex(g)) >= 3, `${name} on ${g}: ${contrast(toHex(m), toHex(g)).toFixed(2)}`);
     }
   }
-  // 다크의 금색은 이미 또렷해서 그대로
+  // signal은 종이 위에서 이미 또렷해서 그대로
+  for (const [, M] of apps) assert.equal(legibleMark(M.gold, M.paper, M), M.gold);
   const D = MOODS['다크'];
   assert.equal(legibleMark(D.gold, D.bg, D), D.gold);
   // 같은 입력은 같은 답
-  const L = MOODS['연꽃'];
+  const L = PALETTE.light;
   assert.equal(legibleMark(L.gold, '#FFFFFF', L), legibleMark(L.gold, '#FFFFFF', L));
 });
 

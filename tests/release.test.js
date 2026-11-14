@@ -5,13 +5,12 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { faceFor, heavierFace, PRETENDARD } = require('../src/theme/fonts');
-const { MOODS, contrastEdition, withAccent } = require('../src/theme/moods');
+const { MOODS, PALETTE, contrastPalette } = require('../src/theme/moods');
 const { MOOD_WORDS } = require('../src/lib/copy');
 const { releaseProblems } = require('../scripts/releaseCheck');
 
 const ROOT = path.join(__dirname, '..');
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
-const alphaOf = (rgba) => Number(rgba.match(/,\s*([\d.]+)\s*\)$/)[1]);
 
 test('굵은 텍스트: 한 단계 굵게 — 400 → SemiBold, 500·600 → Bold, 700 이상 → Bold', () => {
   for (const w of [undefined, 'normal', '100', '300', '400']) assert.equal(faceFor(w, true), PRETENDARD[600], String(w));
@@ -43,24 +42,27 @@ test('AppText와 TextInput 모두 굵은 텍스트를 따른다', () => {
   assert.match(src, /faceFor\(weight, bold\)/);
 });
 
-test('대비 증가: 괘선 알파 2배, 흐린 글씨는 보조 글씨로, 나머지는 그대로', () => {
-  for (const [name, P] of Object.entries(MOODS)) {
-    const M = withAccent(P, '#B0883C');
-    const E = contrastEdition(M);
-    assert.ok(Math.abs(alphaOf(E.line) - Math.min(1, alphaOf(P.line) * 2)) < 1e-9, `${name} line`);
-    assert.equal(E.faint, P.sub, `${name} faint`);
-    for (const k of ['bg', 'surface', 'card', 'ink', 'sub', 'tabBg', 'dark', 'gold', 'goldInk', 'center', 'accent']) {
+test('대비 증가: 괘선 · 가장자리 · 인쇄 글씨 · 흐린 글씨가 한 단계 진해지고, 옛 이름도 따라온다 — 나머지는 그대로', () => {
+  for (const [name, M] of Object.entries(PALETTE)) {
+    const E = contrastPalette(M);
+    assert.equal(E.printRule, M.printMid, `${name} printRule`);
+    assert.equal(E.printEdge, M.ink2, `${name} printEdge`);
+    assert.equal(E.print, M.printStrong, `${name} print`);
+    assert.equal(E.ink3, M.ink2, `${name} ink3`);
+    // 옛 이름(line · faint)은 진해진 토큰을 가리킨다
+    assert.equal(E.line, E.printRule, `${name} line`);
+    assert.equal(E.faint, E.ink3, `${name} faint`);
+    for (const k of ['paper', 'ink', 'ink2', 'tile', 'signal', 'core', 'btn', 'bg', 'surface', 'card', 'sub', 'tabBg', 'dark', 'gold', 'goldInk', 'center', 'accent']) {
       assert.equal(E[k], M[k], `${name} ${k}`);
     }
     assert.notEqual(E, M, '새 객체(원래 팔레트는 건드리지 않는다)');
-    assert.equal(M.faint, P.faint);
   }
 });
 
 test('대비 증가: 도트 종이·체크 칸 테두리가 진해진다', () => {
   const dots = read('src/components/PaperDots.tsx');
   assert.match(dots, /useIncreaseContrast\(\)/);
-  assert.match(dots, /more \? 0\.2 : 0\.11/);
+  assert.match(dots, /patternInk\(pattern, M\.dark \? DARK : LIGHT, more\)/);
   const check = read('src/components/Check.tsx');
   assert.match(check, /rgba\(43,38,32,0\.70\)/);
   assert.match(check, /width: 2/);

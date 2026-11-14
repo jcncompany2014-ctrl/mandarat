@@ -1,9 +1,11 @@
-// 대비 회귀 테스트 — 무드·포인트 컬러가 바뀌어도 글씨는 AA(4.5:1), 글씨 아닌 표시는 3:1을 지킨다.
+// 대비 회귀 테스트 — 앱 팔레트(토큰 + 옛 이름, 밝게 · 어둡게 · 대비 증가)에서 글씨는 AA(4.5:1), 글씨 아닌 표시는 3:1을 지킨다.
+// 뒤쪽 '옛 무드 표'는 위젯 · 공유 이미지 · 인쇄가 웨이브 2–3까지 쓰는 MOODS · withAccent · accentInk의 동작을 지킨다(웨이브 4가 지운다).
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { MOODS, areaInk, accentInk, withAccent, toHex, mix } = require('../src/theme/moods');
+const { MOODS, PALETTE, areaInk, accentInk, withAccent, contrastPalette, toHex, mix } = require('../src/theme/moods');
 const { PILLAR_COLORS, ACCENTS, GOLD, SEMANTIC, contrast } = require('../src/theme/palette');
+const { LIGHT, DARK } = require('../src/theme/tokens');
 
 const moods = Object.entries(MOODS);
 const fmt = (n) => n.toFixed(2);
@@ -28,6 +30,98 @@ const hueGap = (a, b) => { const d = Math.abs(hue(a) - hue(b)); return Math.min(
 
 /** 글씨가 놓이는 바탕 — 종이·면(시트)·카드·탭바 */
 const grounds = (M) => [['bg', M.bg], ['surface', M.surface], ['card', M.card], ['tabBg', M.tabBg]];
+
+// ── 앱 팔레트(usePalette) ────────────────────────────────────────────────────
+
+/** 앱이 그리는 네 판 — 밝게 · 어둡게, 각각 iOS 대비 증가 */
+const apps = [
+  ['밝게', PALETTE.light], ['어둡게', PALETTE.dark],
+  ['밝게 +IC', contrastPalette(PALETTE.light)], ['어둡게 +IC', contrastPalette(PALETTE.dark)],
+];
+
+test('앱 팔레트: 먹 · 보조 · 금색 글씨(ink · sub · goldInk)와 인쇄 글씨(print · printStrong)는 바탕 · 면 · 카드 · 탭바 · 칸 위 AA', () => {
+  for (const [name, M] of apps) {
+    for (const key of ['ink', 'sub', 'goldInk', 'ink2', 'print', 'printStrong']) {
+      for (const [g, bg] of [...grounds(M), ['tile', M.tile]]) {
+        const c = contrast(M[key], bg);
+        // 인쇄 글씨(print)는 종이 위 글씨 — 칸(tile) 위에는 ink2를 쓴다(밝게 print/tile 4.41)
+        if (key === 'print' && g === 'tile' && !M.dark) continue;
+        assert.ok(c >= 4.5, `${name} ${key} ${M[key]} on ${g} ${bg}: ${fmt(c)}`);
+      }
+    }
+  }
+});
+
+test('앱 팔레트: 단추(accent) 위 글씨 readableOn · 토큰 onBtn 모두 AA, 가운데 칸 글씨 AA', () => {
+  const { readableOn } = require('../src/theme/palette');
+  for (const [name, M] of apps) {
+    assert.ok(contrast(readableOn(M.accent), M.accent) >= 4.5, `${name} readableOn(accent)`);
+    assert.ok(contrast(M.onBtn, M.btn) >= 4.5, `${name} onBtn`);
+    assert.ok(contrast(M.onCore, M.center) >= 4.5, `${name} onCore on center`);
+  }
+});
+
+test('앱 팔레트: 오늘 표시(gold = signal)는 바탕 · 면 위 3:1 이상, 종이 위 글씨로도 AA', () => {
+  const { legibleMark } = require('../src/theme/chart');
+  for (const [name, M] of apps) {
+    for (const [g, bg] of grounds(M)) {
+      const mark = legibleMark(M.gold, bg, M);
+      assert.equal(mark, M.gold, `${name}: signal은 옮기지 않아도 된다(${g})`);
+      assert.ok(contrast(M.gold, bg) >= 3, `${name} signal on ${g}: ${fmt(contrast(M.gold, bg))}`);
+    }
+    // 종이 위에서는 글씨(일요일 글자)로도 읽힌다
+    assert.ok(contrast(M.gold, M.paper) >= 4.5, `${name} signal on paper: ${fmt(contrast(M.gold, M.paper))}`);
+  }
+  assert.equal(PALETTE.light.gold, LIGHT.signal);
+  assert.equal(PALETTE.dark.gold, DARK.signal);
+});
+
+test('앱 팔레트: 영역 색(예전 PILLAR · 새 dye)을 글씨로(areaInk) — 바탕 · 면 위 AA, 색조는 그대로', () => {
+  for (const [name, M] of apps) {
+    for (const color of [...PILLAR_COLORS, ...LIGHT.dye]) {
+      const ink = areaInk(color, M);
+      assert.match(ink, /^#[0-9A-F]{6}$/);
+      for (const [g, bg] of grounds(M)) {
+        const c = contrast(ink, bg);
+        assert.ok(c >= 4.5, `${name} areaInk(${color}) ${ink} on ${g}: ${fmt(c)}`);
+      }
+      assert.ok(hueGap(ink, color) <= 3, `${name} ${color}: hue ${fmt(hue(color))} → ${fmt(hue(ink))}`);
+    }
+  }
+});
+
+test('앱 팔레트: 체크 칸 테두리(밝게 먹 55%, 어둡게 흰색 40%)가 바탕 · 면 위 3:1 이상', () => {
+  for (const [name, M] of apps) {
+    const border = M.dark ? 'rgba(255,255,255,0.40)' : 'rgba(43,38,32,0.55)';
+    for (const [g, bg] of grounds(M)) {
+      const c = contrast(over(border, bg), bg);
+      assert.ok(c >= 3, `${name} checkbox border on ${g}: ${fmt(c)}`);
+    }
+  }
+});
+
+test('앱 팔레트: 스낵바 되돌리기 글씨 #E2C27F — 스낵바 바탕(M.center, 어둡게 #26242F) 위 AA', () => {
+  for (const [name, M] of apps) {
+    const bg = M.dark ? '#26242F' : M.center;
+    const c = contrast('#E2C27F', bg);
+    assert.ok(c >= 4.5, `${name} snackbar action on ${bg}: ${fmt(c)}`);
+    assert.ok(contrast('#FFFFFF', bg) >= 4.5, `${name} snackbar text on ${bg}`);
+  }
+});
+
+test('영역 색 칸 위 글씨: 예전 PILLAR(흰 글씨) · 새 dye(onDye) 모두 AA', () => {
+  for (const color of PILLAR_COLORS) assert.ok(contrast('#FFFFFF', color) >= 4.5, `white on ${color}: ${fmt(contrast('#FFFFFF', color))}`);
+  for (const t of [LIGHT, DARK]) for (const d of t.dye) assert.ok(contrast(t.onDye, d) >= 4.5, `${t.onDye} on ${d}`);
+});
+
+test('의미 색 글씨: 밝게는 SEMANTIC.doneInk가 바탕 · 면 위 AA', () => {
+  for (const [name, M] of apps) {
+    if (M.dark) continue;
+    for (const [g, bg] of grounds(M)) assert.ok(contrast(SEMANTIC.doneInk, bg) >= 4.5, `${name} doneInk on ${g}: ${fmt(contrast(SEMANTIC.doneInk, bg))}`);
+  }
+});
+
+// ── 옛 무드 표(위젯 · 공유 이미지 · 인쇄가 웨이브 2–3까지 쓴다) ─────────────────────
 
 test('무드마다 먹·보조·금색 글씨(ink·sub·goldInk)는 바탕·면·탭바 위 AA(4.5)', () => {
   for (const [name, M] of moods) {
@@ -77,32 +171,6 @@ test('의미 색 글씨: 밝은 무드는 SEMANTIC.doneInk, 어느 무드든 are
   }
 });
 
-test('체크 상자 테두리(글씨 아닌 표시): 밝게 먹 55%, 다크 흰색 40% — 겹쳐 그린 색이 바탕·면 위 3:1 이상', () => {
-  for (const [name, M] of moods) {
-    const border = M.dark ? 'rgba(255,255,255,0.40)' : 'rgba(43,38,32,0.55)';
-    for (const [g, bg] of grounds(M)) {
-      const c = contrast(over(border, bg), bg);
-      assert.ok(c >= 3, `${name} checkbox border on ${g}: ${fmt(c)}`);
-    }
-  }
-});
-
-test('8영역 색 칸 위 흰 글씨는 AA', () => {
-  for (const color of PILLAR_COLORS) {
-    const c = contrast('#FFFFFF', color);
-    assert.ok(c >= 4.5, `white on ${color}: ${fmt(c)}`);
-  }
-});
-
-test('스낵바 되돌리기 글씨 #E2C27F — 스낵바 바탕(M.center, 다크 #26242F) 위 AA', () => {
-  for (const [name, M] of moods) {
-    const bg = M.dark ? '#26242F' : M.center;
-    const c = contrast('#E2C27F', bg);
-    assert.ok(c >= 4.5, `${name} snackbar action on ${bg}: ${fmt(c)}`);
-  }
-});
-
-// ── 포인트 컬러를 글씨로(주인 결정: 포인트 컬러 선택은 그대로, 글씨는 지금 고른 색에서) ──────────
 test('accentInk: 5가지 포인트 컬러 × 5무드 모두 바탕·면·카드·탭바 위 AA, 같은 색조', () => {
   for (const [name, P] of moods) {
     for (const { color, name: accentName } of ACCENTS) {

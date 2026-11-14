@@ -1,15 +1,15 @@
 // FX-D — 오늘 · 통계 화면과 그 부품에 남은 말과 표시 색을 지킨다.
 // - 화면 글(문자열·템플릿·JSX 글, 주석 제외)에 '완료'·'탭해'·'이뤘'·'이룬'·'셉니다'·'칸을 (다) 채웠'·'직접 추가'가 없다.
 // - 화면 읽기 라벨에 KindLine.long('6/12권'·'D-3')을 쓰지 않는다(소리로 읽을 말은 .speech).
-// - 통계 막대·달력 테두리·보드 '진행 중' 표시는 모든 무드 × 포인트 컬러에서 3:1 이상.
+// - 통계 막대·달력 테두리·보드 '진행 중' 표시는 앱 팔레트(밝게 · 어둡게 · 대비 증가)에서 3:1 이상.
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
-const { MOODS, contrastEdition, withAccent } = require('../src/theme/moods');
-const { ACCENTS, contrast } = require('../src/theme/palette');
+const { PALETTE, contrastPalette } = require('../src/theme/moods');
+const { contrast } = require('../src/theme/palette');
 const { legibleMark } = require('../src/theme/chart');
 
 const ROOT = path.join(__dirname, '..');
@@ -62,18 +62,16 @@ test('화면 읽기 라벨은 KindLine.long 대신 .speech를 쓴다', () => {
   assert.deepEqual(hits, []);
 });
 
-test('포인트 컬러 표시(막대 · 달력 테두리 · 진행 중 표시)는 모든 무드에서 3:1 이상', () => {
+test('포인트 컬러 표시(막대 · 달력 테두리 · 진행 중 표시)는 앱 팔레트 모두에서 3:1 이상', () => {
   // 통계 막대·달력 칸은 카드 없이 종이(bg) 위에 바로 그린다 — 그 바탕으로 재고, 그 바탕에서 잰다 (FX-VERIFY K-2 · K-3).
-  // 대비 증가(contrastEdition)를 켠 팔레트도 같이 본다
-  for (const [name, mood] of Object.entries(MOODS)) {
-    for (const accent of ACCENTS) {
-      for (const [ic, M] of [['', withAccent(mood, accent.color)], [' +IC', contrastEdition(withAccent(mood, accent.color))]]) {
-        // 막대·달력은 표의 표시색(M.gold — 포인트 컬러를 따르고, 골드면 무드마다 제 금색)으로 그린다
-        for (const base of [M.accent, M.gold]) {
-          const mark = legibleMark(base, M.bg, M);
-          const c = contrast(mark, M.bg);
-          assert.ok(c >= 3, `${name}${ic} ${base} on bg: ${c.toFixed(2)}`);
-        }
+  // 대비 증가(contrastPalette)를 켠 팔레트도 같이 본다
+  for (const [name, P] of Object.entries(PALETTE)) {
+    for (const [ic, M] of [['', P], [' +IC', contrastPalette(P)]]) {
+      // 막대·달력은 표의 표시색(M.gold = signal)으로, 단추 쪽은 M.accent(= btn, 먹)로 그린다
+      for (const base of [M.accent, M.gold]) {
+        const mark = legibleMark(base, M.bg, M);
+        const c = contrast(mark, M.bg);
+        assert.ok(c >= 3, `${name}${ic} ${base} on bg: ${c.toFixed(2)}`);
       }
     }
   }

@@ -82,7 +82,7 @@ test('저장소는 문서 · 함수 · 팔레트를 따로 내보내고, 예전 
   const look = src('src/theme/look.tsx');
   assert.match(look, /export function usePaletteValue\(/);
   assert.match(look, /const palette = dark \? PALETTE\.dark : PALETTE\.light;/);
-  assert.doesNotMatch(s, /PaletteCtx|usePaletteValue/);
+  assert.doesNotMatch(s, /PaletteCtx|export function usePaletteValue/);
   // 문서에 따라 바뀌던 inToday는 함수 묶음에 없다(예전 모양에서만 문서로 만든다)
   const actions = s.slice(s.indexOf('export interface Actions'), s.indexOf('export interface Ctx'));
   assert.doesNotMatch(actions, /inToday:/);

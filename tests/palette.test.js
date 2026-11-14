@@ -1,14 +1,28 @@
+// 영역 · 포인트 · 의미 색과 대비 계산(src/theme/palette.ts). 영역 슬롯 색은 디자인 A의 밝은 염료(LIGHT.dye, build-plan §2.5).
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  PILLAR_COLORS, ACCENTS, GOLD, INK, SEMANTIC, MOOD_COLORS, contrast, readableOn, migrateAccent,
+  PILLAR_COLORS, ACCENTS, GOLD, INK, SEMANTIC, MOOD_COLORS, contrast, readableOn, migrateAccent, migrateAreaColor,
 } = require('../src/theme/palette');
+const { LIGHT } = require('../src/theme/tokens');
+const { blankDoc, migrate } = require('../src/data/defaults');
 
 test('contrast는 WCAG 대비율을 계산한다', () => {
   assert.equal(contrast('#FFFFFF', '#000000').toFixed(1), '21.0');
   assert.equal(contrast('#777777', '#777777'), 1);
   assert.equal(contrast('#000000', '#FFFFFF'), contrast('#FFFFFF', '#000000'));
+});
+
+test('8영역 슬롯 색 = 디자인 A의 밝은 염료(LIGHT.dye) — 새 문서 · 템플릿이 이 값을 적는다', () => {
+  assert.deepEqual([...PILLAR_COLORS], [...LIGHT.dye]);
+  assert.deepEqual(blankDoc().themes.map((t) => t.color), [...LIGHT.dye]);
+  // 이미 적힌 예전 연꽃 값은 옮기지 않는다(이행 표를 늘리지 않는다 — 동기화가 출렁이지 않게)
+  for (const old of ['#478058', '#9C6A2A', '#B35A72', '#2F7D79', '#7E60A8', '#3A77A5', '#AE5A35']) {
+    assert.equal(migrateAreaColor(old), old);
+    const d = migrate({ ...blankDoc(), themes: blankDoc().themes.map((t, i) => (i === 0 ? { ...t, color: old } : t)) });
+    assert.equal(d.themes[0].color, old, `${old}: 저장된 값 그대로`);
+  }
 });
 
 test('8영역 색은 흰 글씨와 AA(4.5) 이상 — 칸 위 흰 글씨가 늘 읽힌다', () => {

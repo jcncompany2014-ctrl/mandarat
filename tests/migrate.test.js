@@ -30,7 +30,8 @@ test('이전 원색 영역 색은 연꽃 팔레트로, 사용자 색은 보존, 
   const d = migrate({
     themes: [{ color: '#2FA968' }, { color: '#123456' }, { color: 'red' }],
   });
-  assert.equal(d.themes[0].color, PILLAR_COLORS[0]);
+  // 예전 원색은 그때의 연꽃 팔레트로(이행 표는 늘리지 않는다 — build-plan §2.5), 깨진 색은 지금 슬롯 기본색(LIGHT.dye)
+  assert.equal(d.themes[0].color, '#478058');
   assert.equal(d.themes[1].color, '#123456');
   assert.equal(d.themes[2].color, PILLAR_COLORS[2]);
 });
@@ -149,7 +150,7 @@ test('예시 데이터의 루틴이 이행 후에도 남는다', () => {
 });
 
 test('팔레트 이행 함수는 대소문자를 가리지 않고, 모르는 색은 그대로 둔다', () => {
-  assert.equal(migrateAreaColor('#F4793B'), PILLAR_COLORS[7]);
+  assert.equal(migrateAreaColor('#F4793B'), '#AE5A35');
   assert.equal(migrateAreaColor('#abcdef'), '#abcdef');
   assert.equal(migrateAccent('#f4793b'), GOLD);
   assert.equal(migrateAccent(GOLD), GOLD);

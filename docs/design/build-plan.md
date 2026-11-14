@@ -392,3 +392,11 @@ After wave 2 merges (first device look), and again after wave 4 (release):
    - an upgrade install over the previous build: the earlier mood choice became the right look (§2.4), data intact, iCloud sync between iPhone and iPad still works.
 4. Maestro on a simulator: `maestro test .maestro/phone` and `.maestro/ipad` (or `npx eas-cli@latest workflow:run .eas/workflows/e2e-ios.yml`), see `docs/v2/device-tests.md`.
 5. Release: decide the version in `app.json`; `npm run release-check`; `npx eas-cli build -p ios --profile production`; `npx eas-cli submit -p ios`; upload the new screenshots from `store/screenshots/` (App Store Connect or `eas metadata:push`); the decisions in §4.8 and the deferred items in §4.1 go into the release notes for the owner's record.
+
+## 6. Handoff notes (added by the lead as waves finish)
+
+From T (wave 1a):
+- C: T removed Root's `Appearance.setColorScheme` effect (auto must follow the system). Root still passes `gap={RHYTHM.dot}` to the paper; switch it to 24 with `offsetY={insets.top}`. `ErrorBoundary` still hard-codes the old cream colours.
+- S6 (Settings): `paper.ko.dots` still says "점 (기본)"; the default is now 무지. `scripts/smoke/paper.js` was edited to end on the default.
+- N1 (Widgets): `WidgetSync` still treats an unset paper as 'dots'.
+- New: `src/theme/tokens.ts` (+ `desk()`), `src/lib/look.ts`, `src/theme/look.tsx` (`LookProvider`, `useLook`, `usePaletteValue`, `readLook`, `writeLook`); `type.ts` exports `ROLE`; `moods.ts` exports `PaletteValue`, `paletteOf`, `PALETTE`, `contrastPalette`; `shadow.ts` returns `{ boxShadow: float }`; `PILLAR_COLORS = LIGHT.dye`.

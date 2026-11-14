@@ -1,12 +1,15 @@
-// 연꽃 팔레트 — 8영역·포인트·의미 색의 단일 출처.
-// 영역 색은 천연 염료 톤으로, 흰 글씨 대비 WCAG AA(≥4.5)와 다크 카드 대비(≥3.1)를 모두 만족한다.
+// 8영역 · 포인트 · 의미 색과 대비 계산.
+// 영역 색은 천연 염료 톤 — 새 문서 · 템플릿에 적는 값은 디자인 A의 밝은 염료(tokens LIGHT.dye, build-plan §2.5).
+// 그리기는 웨이브 2–3에서 영역 번호로 옮긴다(M.dye[ti]) — 문서의 theme.color는 데이터로만 남는다.
 // RN 의존이 없는 순수 모듈이라 단위 테스트에서 그대로 쓸 수 있다.
 import { msg } from '../i18n';
+import { LIGHT } from './tokens';
 
-/** 8영역 슬롯 색 (쑥·쪽빛·황토·연지·청자·오디·비색·주홍) */
-export const PILLAR_COLORS = [
-  '#478058', '#5068AB', '#9C6A2A', '#B35A72', '#2F7D79', '#7E60A8', '#3A77A5', '#AE5A35',
-] as const;
+/**
+ * 8영역 슬롯 색 (쑥·쪽빛·황토·연지·청자·오디·비색·주홍) = LIGHT.dye — 새 문서 · 템플릿 · 깨진 색의 기본값.
+ * 이미 적힌 예전 값(#478058 …)은 옮기지 않는다(migrateAreaColor를 늘리지 않는다 — 동기화가 출렁이지 않게).
+ */
+export const PILLAR_COLORS: readonly string[] = LIGHT.dye;
 
 export const GOLD = '#B0883C';
 
@@ -34,7 +37,7 @@ export const SEMANTIC = {
 /** 기분 5단계(힘듦→최고) 색 */
 export const MOOD_COLORS = ['#B35A72', '#AE5A35', '#9C6A2A', '#478058', '#3A77A5'] as const;
 
-// 이전 원색 팔레트 → 연꽃 팔레트 (저장된 문서 이행용)
+// 이전 원색 팔레트 → 연꽃 팔레트 (저장된 문서 이행용 — 값은 그때의 연꽃 팔레트 그대로)
 const LEGACY_AREA: Record<string, string> = {
   '#2fa968': '#478058', '#4f6bed': '#5068AB', '#e8a33d': '#9C6A2A', '#e5547f': '#B35A72',
   '#159e9e': '#2F7D79', '#8b5cf6': '#7E60A8', '#4da3e0': '#3A77A5', '#f4793b': '#AE5A35',

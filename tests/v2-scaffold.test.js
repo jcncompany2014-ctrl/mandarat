@@ -74,11 +74,12 @@ test('ui.tsx: 프로 · 인쇄 · 한 해 닫기는 늘 대기열(afterOverlays)
   for (const k of ['go', 'openPro', 'openPrint', 'openYearClose', 'openYear']) assert.match(hooks, new RegExp(`\\b${k}\\b`), k);
 });
 
-test('App: 오류 수집 · 언어 · 프로 공급자 순서', () => {
+test('App: 오류 수집 · 언어 · 프로 · 화면 모드 공급자 순서', () => {
   const s = src('App.tsx');
   assert.match(s, /^crash\.init\(\);$/m);
   assert.match(s, /export default crash\.wrap\(App\);/);
-  const order = ['<LangBoot fallback={<Splash />}>', '<ErrorBoundary>', '<SafeAreaProvider>', '<ProProvider>', '<MandaratProvider>', '<Gate />'].map((n) => {
+  // 화면 모드(LookProvider)는 저장소 안(예전 무드를 읽어 처음 한 번 정한다), 문지기 앞 — 정하기 전에는 스플래시
+  const order = ['<LangBoot fallback={<Splash />}>', '<ErrorBoundary>', '<SafeAreaProvider>', '<ProProvider>', '<MandaratProvider>', '<LookProvider fallback={<Splash />}>', '<Gate />'].map((n) => {
     const i = s.indexOf(n);
     assert.ok(i >= 0, n);
     return i;

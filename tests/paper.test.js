@@ -1,16 +1,19 @@
-// 종이 무늬(V4-C) — 무늬의 선 · 프로 잠금(proValue) · PaperDots 지키기 · 저장값 왕복 · 글씨 대비 · 설정 줄.
+// 종이 무늬(V4-C, 디자인 A §2.6) — 무늬의 선 · 프로 잠금(proValue) · PaperDots 지키기 · 저장값 왕복 · 글씨 대비 · 설정 줄.
+// 기본은 무지, 고른 것은 무지 · 점까지 그대로 적는다. 모눈 · 줄만 프로(1.0은 판매를 꺼서 모두 열림).
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const {
-  PAPER_CHOICES, PATTERN_STROKE, drawnPattern, isProPattern, patternLines, patternSetting, storedPattern,
+  DEFAULT_PATTERN, DOT_R, PAPER_CHOICES, PAPER_MODULE, PATTERN_STROKE, drawnPattern, isProPattern, patternInk, patternLines,
+  patternOrigin, patternSetting, storedPattern,
 } = require('../src/lib/paper');
 const { proValue } = require('../src/lib/pro');
 const { migrate, blankDoc, PAPER_OPTS } = require('../src/data/defaults');
 const { makeBackup, parseBackup } = require('../src/lib/backup');
-const { MOODS, contrastEdition } = require('../src/theme/moods');
+const { PALETTE, contrastPalette } = require('../src/theme/moods');
+const { LIGHT, DARK, GEO } = require('../src/theme/tokens');
 const { contrast } = require('../src/theme/palette');
 const { RHYTHM } = require('../src/theme/type');
 
@@ -57,38 +60,40 @@ test('patternLines: 크기나 간격이 0 · 음수 · NaN이면 빈 목록(끝�
 
 // ── 프로 잠금 ─────────────────────────────────────────────
 
-test('drawnPattern: 점은 늘 무료, 프로 무늬는 프로가 있을 때만 — 없으면 점으로 그린다', () => {
-  assert.equal(drawnPattern(undefined, false), 'dots');
-  assert.equal(drawnPattern(undefined, true), 'dots');
+test('drawnPattern: 무지 · 점은 늘 무료, 모눈 · 줄은 프로가 있을 때만 — 없으면 무지(기본)로 그린다', () => {
+  assert.equal(DEFAULT_PATTERN, 'blank');
+  assert.equal(drawnPattern(undefined, false), 'blank');
+  assert.equal(drawnPattern(undefined, true), 'blank');
   for (const p of PAPER_OPTS) {
     assert.equal(drawnPattern(p, true), p);
-    assert.equal(drawnPattern(p, false), 'dots', `${p}: 프로 없이`);
+    assert.equal(drawnPattern(p, false), isProPattern(p) ? 'blank' : p, `${p}: 프로 없이`);
   }
-  // 모르는 값(옛 앱 · 망가진 저장값)은 점
-  assert.equal(drawnPattern('wavy', true), 'dots');
-  assert.equal(drawnPattern(null, true), 'dots');
+  // 모르는 값(옛 앱 · 망가진 저장값)은 무지
+  assert.equal(drawnPattern('wavy', true), 'blank');
+  assert.equal(drawnPattern(null, true), 'blank');
 });
 
 test('proValue: 저장값은 그대로 두고 그릴 값만 바꾼다', () => {
   const settings = Object.freeze({ paper: 'grid' });
-  assert.equal(proValue(settings.paper, 'dots', isProPattern, false), 'dots');
-  assert.equal(proValue(settings.paper, 'dots', isProPattern, true), 'grid');
-  assert.equal(proValue('dots', 'dots', isProPattern, false), 'dots');
+  assert.equal(proValue(settings.paper, 'blank', isProPattern, false), 'blank');
+  assert.equal(proValue(settings.paper, 'blank', isProPattern, true), 'grid');
+  assert.equal(proValue('dots', 'blank', isProPattern, false), 'dots');
   assert.equal(settings.paper, 'grid');
-  assert.equal(isProPattern('dots'), false);
-  for (const p of PAPER_OPTS) assert.equal(isProPattern(p), true, p);
+  assert.deepEqual(PAPER_OPTS.filter(isProPattern), ['grid', 'lines']);
 });
 
-test('설정 차례와 저장값: 점이 맨 위, 점은 저장하지 않는다', () => {
-  assert.deepEqual([...PAPER_CHOICES], ['dots', 'grid', 'lines', 'blank']);
-  assert.equal(patternSetting('dots'), undefined);
-  for (const p of PAPER_OPTS) assert.equal(patternSetting(p), p);
-  for (const p of PAPER_CHOICES) assert.equal(storedPattern(patternSetting(p)), p);
+test('설정 차례와 저장값: 무지 · 점 · 모눈 · 줄, 고른 것은 무지 · 점까지 그대로 적는다', () => {
+  assert.deepEqual([...PAPER_CHOICES], ['blank', 'dots', 'grid', 'lines']);
+  for (const p of PAPER_CHOICES) {
+    assert.equal(patternSetting(p), p);
+    assert.equal(storedPattern(patternSetting(p)), p);
+  }
+  assert.equal(storedPattern(undefined), 'blank');
 });
 
 // ── 저장값 왕복 ───────────────────────────────────────────
 
-test('settings.paper: migrate · 백업 왕복, 모르는 값은 버리고 점은 남기지 않는다', () => {
+test('settings.paper: migrate · 백업 왕복(무지 · 점도), 모르는 값은 버리고 없으면 무지로 읽는다', () => {
   for (const p of PAPER_OPTS) {
     const d = migrate({ ...blankDoc(), settings: { ...blankDoc().settings, paper: p } });
     assert.equal(d.settings.paper, p);
@@ -97,31 +102,61 @@ test('settings.paper: migrate · 백업 왕복, 모르는 값은 버리고 점�
     assert.equal(back.ok, true);
     assert.equal(back.doc.settings.paper, p);
   }
-  for (const bad of ['dots', 'wavy', 3, null]) {
+  for (const bad of ['wavy', 3, null]) {
     assert.equal('paper' in migrate({ settings: { paper: bad } }).settings, false, String(bad));
   }
-  // 점으로 돌아가면(patternSetting('dots') → undefined) 저장된 글에서 사라진다
-  const d = migrate({ ...blankDoc(), settings: { ...blankDoc().settings, paper: patternSetting('dots') } });
-  assert.equal('paper' in d.settings, false);
-  assert.equal(JSON.parse(makeBackup(d)).doc.settings.paper, undefined);
+  // 새 문서에는 필드가 없다 — 무지로 그린다
+  assert.equal('paper' in blankDoc().settings, false);
+  assert.equal(storedPattern(blankDoc().settings.paper), 'blank');
 });
 
 // ── PaperDots ─────────────────────────────────────────────
 
-test('PaperDots: release.test.js의 지키기 그대로 — 대비 증가에서 진해지는 같은 색', () => {
+test('PaperDots: 토큰 색 · 24pt 한 칸 · 대비 증가에서 한 단계 진하게', () => {
   const dots = src('src/components/PaperDots.tsx');
   assert.match(dots, /useIncreaseContrast\(\)/);
-  assert.match(dots, /more \? 0\.2 : 0\.11/);
-  assert.match(dots, /more \? 0\.15 : 0\.08/);
-  // 점은 그대로(반지름 0.9, gap/2) — 무료 기본값의 모양이 바뀌지 않는다
-  assert.match(dots, /<Circle cx=\{gap \/ 2\} cy=\{gap \/ 2\} r=\{0\.9\} fill=\{color\} \/>/);
-  // 모눈 · 줄은 점과 같은 색조(stroke={color}), 알파만 낮다 — 목록 괘선보다 옅게(R-6 D-4)
-  assert.match(dots, /more \? 0\.12 : 0\.065/);
-  assert.match(dots, /more \? 0\.1 : 0\.05/);
-  assert.match(dots, /const a = pattern === 'dots'/);
+  // 기본 판의 토큰에서 고른다(대비 증가 판의 printEdge는 ink2라 점이 너무 진하다)
+  assert.match(dots, /const color = patternInk\(pattern, M\.dark \? DARK : LIGHT, more\);/);
+  assert.match(dots, /<Circle cx=\{gap \/ 2\} cy=\{gap \/ 2\} r=\{DOT_R\} fill=\{color\} \/>/);
   assert.match(dots, /stroke=\{color\} strokeWidth=\{PATTERN_STROKE\}/);
+  assert.match(dots, /gap = PAPER_MODULE, offsetX = 0, offsetY = 0/);
+  assert.match(dots, /x=\{patternOrigin\(offsetX, gap\)\} y=\{patternOrigin\(offsetY, gap\)\}/);
   assert.match(dots, /pointerEvents="none"/);
   assert.match(dots, /importantForAccessibility="no-hide-descendants"/);
+  assert.doesNotMatch(dots, /rgba\(/, '색은 모두 토큰');
+  // 수치(§2.6): 한 칸 24 = 화면 여백, 점 반지름 0.8, 선 0.5pt
+  assert.equal(PAPER_MODULE, 24);
+  assert.equal(PAPER_MODULE, GEO.gutter);
+  assert.equal(DOT_R, 0.8);
+  assert.equal(PATTERN_STROKE, 0.5);
+});
+
+test('patternInk: 점 printMid · 선 printRule, 대비 증가에서는 점 printEdge · 선 printMid', () => {
+  for (const t of [LIGHT, DARK]) {
+    assert.equal(patternInk('dots', t, false), t.printMid);
+    assert.equal(patternInk('dots', t, true), t.printEdge);
+    for (const k of ['grid', 'lines']) {
+      assert.equal(patternInk(k, t, false), t.printRule);
+      assert.equal(patternInk(k, t, true), t.printMid);
+    }
+  }
+});
+
+test('patternOrigin: 세로 한 줄이 x = at(여백 선)에, 가로 한 줄이 y = at(머리 아래)에 선다', () => {
+  const g = PAPER_MODULE;
+  for (const at of [0, 24, 47, 59, 100, -10]) {
+    const o = patternOrigin(at, g);
+    assert.ok(o >= 0 && o < g, `${at}: ${o}`);
+    // 무늬 한 장 안의 점 · 선은 gap/2에 선다 → o + gap/2 ≡ at (mod gap)
+    assert.equal((((o + g / 2 - at) % g) + g) % g, 0, `${at}`);
+  }
+  // 기본(0): 세로 줄이 24 · 48 … — 화면 여백(24) 위
+  assert.equal((patternOrigin(0, g) + g / 2) % g, 0);
+  // 머리 72 = 3칸 — insets.top을 넘기면 가로 줄이 머리 바닥(insets.top + 72)에도 선다
+  const top = 47;
+  assert.equal((((patternOrigin(top, g) + g / 2 - (top + GEO.header)) % g) + g) % g, 0);
+  assert.equal(patternOrigin(10, 0), 0);
+  assert.equal(patternOrigin(NaN, 24), 0);
 });
 
 test('PaperDots: 얇은 껍데기가 무늬만 읽고, 안의 종이는 memo — 무늬가 바뀔 때만 다시 그린다', () => {
@@ -136,51 +171,49 @@ test('PaperDots: 얇은 껍데기가 무늬만 읽고, 안의 종이는 memo —
   assert.match(dots, /if \(pattern === 'blank'\) return null;/);
 });
 
-// ── 글씨 대비(모든 무드 · 다크 · 대비 증가) ─────────────────
+// ── 글씨 대비(밝게 · 어둡게 · 대비 증가) ─────────────────
 
-/** rgba(r,g,b,a)를 바탕 hex 위에 겹친 색 */
-function over(rgba, bg) {
-  const [r, g, b, a] = rgba.match(/[\d.]+/g).map(Number);
-  const base = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
-  const c = [r, g, b].map((x, i) => Math.round(x * a + base[i] * (1 - a)));
+/** 두 hex를 a만큼 섞는다(바탕 위에 선이 덮는 넓이만큼) */
+function blend(fg, bg, a) {
+  const c = [1, 3, 5].map((i) => Math.round(parseInt(fg.slice(i, i + 2), 16) * a + parseInt(bg.slice(i, i + 2), 16) * (1 - a)));
   return `#${c.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
 }
 
 /**
- * 글씨가 얹히는 종이 — 머리카락 선은 gap마다 하나라서 눈에는 바탕이 아주 조금 어두워진 것으로 읽힌다.
+ * 글씨가 얹히는 종이 — 머리카락 선은 gap마다 하나라서 눈에는 바탕이 아주 조금 어두워진(밝아진) 것으로 읽힌다.
  * 선이 덮는 넓이(줄: 굵기/gap, 모눈: 가로+세로)만큼 선 색을 섞은 바탕을 '읽히는 종이'로 본다.
  */
-function seenPaper(rgba, bg, kind, gap = RHYTHM.dot) {
+function seenPaper(line, bg, kind, gap = PAPER_MODULE) {
   const f = PATTERN_STROKE / gap;
   const cover = kind === 'grid' ? 2 * f - f * f : f;
-  const [r, g, b, a] = rgba.match(/[\d.]+/g).map(Number);
-  return over(`rgba(${r},${g},${b},${a * cover})`, bg);
+  return blend(line, bg, cover);
 }
 
-test('무늬 위에서도 글씨 대비가 4.5:1 이상(모든 무드 · 다크 · 대비 증가), 선 자체는 조용하다', () => {
-  // PaperDots의 알파 — 점과 모눈 · 줄이 다르다(R-6 D-4)
-  const ink = (dark, more, kind = 'dots') => {
-    const a = kind === 'dots' ? (dark ? (more ? 0.15 : 0.08) : (more ? 0.2 : 0.11)) : (dark ? (more ? 0.1 : 0.05) : (more ? 0.12 : 0.065));
-    return dark ? `rgba(255,255,255,${a})` : `rgba(60,45,20,${a})`;
-  };
-  for (const [name, P] of Object.entries(MOODS)) {
+test('무늬 위에서도 글씨 대비가 그대로(밝게 · 어둡게 · 대비 증가), 선 자체는 조용하다', () => {
+  for (const [name, base] of [['밝게', PALETTE.light], ['어둡게', PALETTE.dark]]) {
     for (const more of [false, true]) {
-      const pal = more ? contrastEdition(P) : P;
+      const pal = more ? contrastPalette(base) : base;
+      const t = base.dark ? DARK : LIGHT;
       for (const kind of ['grid', 'lines']) {
-        const paper = seenPaper(ink(P.dark, more, kind), P.bg, kind);
-        for (const k of ['ink', 'sub', 'goldInk']) {
-          const plain = contrast(pal[k], P.bg);
+        const paper = seenPaper(patternInk(kind, t, more), base.paper, kind);
+        for (const k of ['ink', 'ink2', 'print']) {
+          const plain = contrast(pal[k], base.paper);
           const c = contrast(pal[k], paper);
           const at = `${name}${more ? ' 대비 증가' : ''} ${kind} ${k}`;
           if (plain >= 4.5) assert.ok(c >= 4.5, `${at}: ${c.toFixed(2)}`);
-          assert.ok(c / plain > 0.97, `${at}: 대비가 3% 넘게 준다 ${plain.toFixed(2)} → ${c.toFixed(2)}`);
+          assert.ok(c / plain > 0.98, `${at}: 대비가 2% 넘게 준다 ${plain.toFixed(2)} → ${c.toFixed(2)}`);
         }
       }
-      // 선 한 가닥은 바탕과 거의 같은 색 — 점보다 옅고(밝은 종이 0.065, 다크 0.05), 목록 괘선(M.line)보다도 옅다
-      const line = over(ink(P.dark, more, 'lines'), P.bg);
-      if (!more) assert.ok(contrast(line, P.bg) < 1.15, `${name}: 선이 너무 진하다 ${contrast(line, P.bg).toFixed(2)}`);
-      assert.ok(contrast(line, P.bg) < contrast(over(ink(P.dark, more), P.bg), P.bg), `${name}: 선이 점보다 옅다`);
-      if (!more && /^rgba/.test(P.line)) assert.ok(contrast(line, P.bg) < contrast(over(P.line, P.bg), P.bg), `${name}: 무늬 선이 목록 괘선보다 옅다`);
+      // 선 한 가닥은 바탕과 거의 같은 색(목록 괘선 printRule과 같거나 옅다), 점보다 옅다
+      const line = patternInk('lines', t, more);
+      const dot = patternInk('dots', t, more);
+      if (!more) {
+        assert.equal(line, t.printRule, `${name}: 무늬 선은 목록 괘선과 같은 색`);
+        assert.ok(contrast(line, base.paper) < 1.3, `${name}: 선이 너무 진하다 ${contrast(line, base.paper).toFixed(2)}`);
+      }
+      assert.ok(contrast(line, base.paper) < contrast(dot, base.paper), `${name}${more ? ' 대비 증가' : ''}: 선이 점보다 옅다`);
+      // 점은 여전히 표시일 뿐 — 글씨(print) 보다 옅다
+      assert.ok(contrast(dot, base.paper) < contrast(t.print, base.paper), `${name}: 점이 인쇄 글씨보다 옅다`);
     }
   }
 });
