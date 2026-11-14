@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1300x420">
+<title>A · icon study</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  body { width: 1300px; height: 420px; background: #8a8f96; }
+  .row { display: flex; gap: 36px; padding: 30px; align-items: flex-end; }
+  .v { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  .tile { overflow: hidden; border-radius: 22.37%; background: var(--paper); }
+  .smalls { display: flex; gap: 14px; align-items: flex-end; }
+  .dark { --paper:#171411; --core:#2B2621; --core-edge:#8C9AAD; --rule-cell:#30363E; --rule-block:#3F4854;
+    --dye-1:#40704D; --dye-2:#4D64A3; --dye-3:#885D26; --dye-4:#9A4F62; --dye-5:#2C706D; --dye-6:#75599A; --dye-7:#356A92; --dye-8:#9C5231; }
+  .cap { font: 500 12px/16px var(--sans); color: #fff; }
+</style>
+</head>
+<body>
+<div class="row" id="r"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/icon-mark.js"></script>
+<script>
+A.ready().then(() => {
+  const variants = [
+    ['heart pad', (n, s) => A.mark(n, { size: s, variant: 'heart', pad: s * 0.2 })],
+    ['printed 3x3', (n, s) => AI.printed(n, { size: s })],
+    ['crop 5', (n, s) => AI.crop(n, { size: s })],
+    ['crop 5 heavier', (n, s) => AI.crop(n, { size: s, hair: 0.03, block: 0.06, inset: 0.06 })],
+    ['crop 5 dark', (n, s) => AI.crop(n, { size: s }), 'dark'],
+  ];
+  const r = document.querySelector('#r');
+  variants.forEach(([name, fn, cls]) => {
+    const v = document.createElement('div'); v.className = 'v' + (cls ? ' ' + cls : '');
+    const big = document.createElement('div'); big.className = 'tile'; fn(big, 200); v.appendChild(big);
+    const sm = document.createElement('div'); sm.className = 'smalls';
+    [60, 40, 29].forEach((s) => { const t = document.createElement('div'); t.className = 'tile'; fn(t, s); sm.appendChild(t); });
+    v.appendChild(sm);
+    const c = document.createElement('div'); c.className = 'cap'; c.textContent = name; v.appendChild(c);
+    r.appendChild(v);
+  });
+});
+</script>
+</body>
+</html>

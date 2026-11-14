@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>만다라트 · 건강 — C. 먹과 주홍</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/c/tokens.css">
+<style>
+  /* 9×9에서 한 블록을 확대한 같은 종이. 표의 테두리(3pt)가 머리의 3pt 바 자리(y = 80)에 그대로 온다. */
+  .sheet { padding: 0 4px; }
+  .blk { position: relative; background: var(--paper); }
+  .blk__cell { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--paper); color: var(--ink); overflow: hidden; }
+  .blk__cell--done { background: var(--wash); }
+  .blk__cell--head { background: color-mix(in srgb, var(--a), var(--dye-ink) var(--dye-mix)); color: var(--on-dye); }
+  /* 확대한 칸의 글: 16/22 600, 단어 단위로 줄을 나눈다 */
+  .blk__text { font: 600 16px/22px var(--font-ui); letter-spacing: -0.02em; white-space: nowrap; }
+  .blk__name { font: 800 22px/28px var(--font-ui); letter-spacing: -0.03em; }
+  .blk__count { margin-top: 8px; display: flex; align-items: baseline; color: var(--on-dye); }
+  .blk__count .c-figure__of { color: var(--on-dye); opacity: 0.72; }
+  /* 습관 상태: 칸 아래쪽 한 줄 */
+  .blk__state { position: absolute; left: 0; right: 0; bottom: 12px; font: 600 12px/16px var(--font-ui); color: var(--ink-2); white-space: nowrap; }
+  .blk__flag { position: absolute; left: 0; top: 0; }
+  .blk__tick { position: absolute; right: 13px; top: 13px; }
+  .blk__rule { position: absolute; }
+
+  /* 머리의 동작 자리: 28pt 위치 표지 (L0 한 잉크, 지금 블록만 물감) — 누르면 81칸으로 */
+  .locator { color: var(--ink); }
+
+  /* 표 아래 띠: 이 영역의 두 숫자 (만다라트 탭 합계 줄과 같은 자리) */
+  .totals { display: flex; padding-top: 18px; padding-bottom: 18px; }
+  .totals > :first-child { width: 198px; }
+  .nav { display: flex; justify-content: space-between; border-top: var(--w-sub) solid var(--rule); margin-top: 4px; }
+  .nav .c-textaction { gap: 4px; }
+  .nav__name { display: inline-flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body class="c-screen">
+<main id="page" class="c-page"></main>
+<script src="/docs/design/mockups/c/shared.js"></script>
+<script>
+C.load().then(function (d) {
+  var h = C.h, v = d.view, page = document.getElementById('page');
+  var DPR = window.devicePixelRatio || 2;
+  function px(n) { return n / DPR + 'px'; }
+
+  var AREA = 0; // 건강: 블록 0 (왼쪽 위)
+  var area = d.areas[AREA];
+  var cells = C.chartCells(d);
+  var br = Math.floor((AREA < 4 ? AREA : AREA + 1) / 3) * 3, bc = ((AREA < 4 ? AREA : AREA + 1) % 3) * 3;
+
+  // 습관 상태 한 줄: 오늘 목록의 메타에서 가져온다 (데이터 그대로)
+  var metaByText = {};
+  v.today.rows.forEach(function (r) { if (r.area === area.title) metaByText[r.text] = r.meta; });
+
+  // ── 머리: 윗줄이 돌아가는 길(목표로), 제목은 이 영역, 오른쪽은 위치 표지 ──
+  var head = C.header({
+    eyebrow: h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--ink)', fontWeight: 700 } }, C.glyph('back', 14), d.coreGoal, h('span', { style: { color: 'var(--ink-2)', fontWeight: 600, marginLeft: '4px' } }, '· 8개 영역 중 1')),
+    title: area.title,
+    action: null,
+    bar: false,
+  });
+  var loc = C.chartL0({ size: 28, variant: 'ink' });
+  // 지금 보고 있는 블록 한 칸만 그 영역의 물감으로
+  var c0 = loc.querySelectorAll('.c-chart__cell')[AREA < 4 ? AREA : AREA + 1];
+  c0.classList.add('c-chart__cell--head');
+  c0.style.setProperty('--a', area.color);
+  head.append(h('div.c-header__action.locator', { role: 'button', 'aria-label': '81칸 전체 보기' }, loc));
+  page.append(head);
+
+  // ── 블록: 3×3, 382pt, 테두리 3pt, 칸 사이 1 장치 픽셀 ──
+  var total = Math.round(382 * DPR), frame = 3 * DPR, hair = 1;
+  var cell = Math.floor((total - 2 * frame - 2 * hair) / 3);
+  var size = 3 * cell + 2 * hair + 2 * frame;
+  var pos = [frame, frame + cell + hair, frame + 2 * (cell + hair)];
+  var blk = h('div.blk', { style: { width: px(size), height: px(size) }, role: 'img', 'aria-label': area.title + ' 블록' });
+
+  var probe = h('span.blk__text', { style: { position: 'absolute', visibility: 'hidden', left: '-999px' } });
+  document.body.append(probe);
+  function measure(s) { probe.textContent = s; return probe.getBoundingClientRect().width; }
+  var inner = cell / DPR - 28; // 14pt 여백 양쪽
+
+  for (var r = 0; r < 3; r++) for (var c = 0; c < 3; c++) {
+    var cd = cells[br + r][bc + c];
+    var cls = cd.kind === 'head' ? '.blk__cell--head' : cd.done || cd.today === 'done' ? '.blk__cell--done' : '';
+    var box = h('div.blk__cell' + cls, { style: { left: px(pos[c]), top: px(pos[r]), width: px(cell), height: px(cell) } });
+    if (cd.kind === 'head') {
+      box.style.setProperty('--a', cd.color);
+      box.append(h('div.blk__name', {}, cd.text),
+        h('div.blk__count', {}, h('span.c-fig.c-fig-m', {}, String(area.done), h('span.c-figure__of', {}, '/' + area.of))));
+    } else {
+      var lines = C.breakLines(cd.text, inner, measure, 4);
+      box.append(h('div.blk__text', { html: lines.join('<br>') }));
+      var meta = metaByText[cd.text];
+      if (meta) box.append(h('div.blk__state', {}, meta));
+      if (cd.today === 'todo') box.append(h('span.blk__flag', {}, C.flag(14)));
+      if (cd.done || cd.today === 'done') box.append(h('span.blk__tick', {}, C.tick({ size: 16, color: cd.today === 'done' ? 'var(--signal)' : 'var(--ink)' })));
+    }
+    blk.append(box);
+  }
+  probe.remove();
+  [1, 2].forEach(function (k) {
+    var at = pos[k] - hair;
+    blk.append(h('div.blk__rule', { style: { left: px(at), top: px(frame), width: px(hair), height: px(size - 2 * frame), background: 'var(--chart-hair)' } }));
+    blk.append(h('div.blk__rule', { style: { top: px(at), left: px(frame), height: px(hair), width: px(size - 2 * frame), background: 'var(--chart-hair)' } }));
+  });
+  blk.append(h('div.blk__rule', { style: { inset: 0, border: px(frame) + ' solid var(--chart-frame)' } }));
+  page.append(h('div.sheet', {}, blk));
+
+  // ── 아래 띠: 이 영역의 두 숫자 ──
+  var todayRows = v.today.rows.filter(function (x) { return x.area === area.title; });
+  var doneToday = todayRows.filter(function (x) { return x.doneToday; }).length;
+  page.append(h('div.totals.c-pad', {},
+    C.figure({ label: '오늘', value: doneToday, of: todayRows.length, size: 'l', mark: 'today' }),
+    C.figure({ label: '달성', value: area.done, of: area.of, unit: '칸', size: 'l', mark: 'done' })));
+
+  // 다음 할 일: 이 영역의 다음 실천
+  var nextText = v.areaLedger.filter(function (a) { return a[0] === area.title; })[0][2];
+  var nextRow = v.today.rows.filter(function (x) { return x.text === nextText; })[0] || {};
+  var next = C.section({ title: '다음 할 일' });
+  next.append(C.row({ title: nextText, area: area.title, color: area.color, meta: nextRow.meta, check: false, chevron: true }));
+  page.append(h('div.c-pad', {}, next));
+
+  page.append(C.tabBar({ active: 'chart' }));
+});
+</script>
+</body>
+</html>

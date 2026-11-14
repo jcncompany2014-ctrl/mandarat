@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>첫날 — C. 먹과 주홍</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/c/tokens.css">
+<style>
+  /* 만다라트 탭과 같은 자리: 표는 가장자리 4pt, 나머지는 20pt 여백 */
+  .sheet { padding: 0 4px; }
+  /* 커서: 지금 쓸 자리. 주홍은 '오늘·지금'이라 첫날 화면의 빨강은 이 하나뿐이다 */
+  .caret { position: absolute; left: 50%; top: 50%; width: 2px; height: 16px; margin: -8px 0 0 -1px; background: var(--signal); }
+  .band { padding-top: 20px; }
+  .band__top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .lead { font: 700 20px/28px var(--font-ui); letter-spacing: -0.02em; margin: 0; }
+  .note { margin: 8px 0 0; font: 500 14px/21px var(--font-ui); color: var(--ink-2); }
+  .cta { margin-top: 20px; display: flex; align-items: center; gap: 16px; }
+</style>
+</head>
+<body class="c-screen">
+<main id="page" class="c-page"></main>
+<script src="/docs/design/mockups/c/shared.js"></script>
+<script>
+C.load().then(function (d) {
+  var h = C.h, v = d.view, page = document.getElementById('page');
+
+  // 첫날의 문서: 목표와 여덟 영역 이름만 있고, 실천 64칸은 종이
+  var first = { coreGoal: d.coreGoal, areas: d.areas.map(function (a) { return { title: a.title, color: a.color, actions: [] }; }), view: {} };
+
+  page.append(C.header({ eyebrow: '핵심 목표 · ' + v.date.year, title: first.coreGoal, action: 'more', bar: false }));
+
+  var chart = C.chartL2(first, { width: 382, select: [0, 0] });
+  chart.querySelector('[data-r="0"][data-c="0"]').append(h('span.caret'));
+  page.append(h('div.sheet', {}, chart));
+
+  var area0 = first.areas[0].title;
+  page.append(h('section.band.c-pad', {},
+    h('div.band__top', {},
+      h('p.lead', {}, '이제 칸을 채울 차례예요'),
+      C.figure({ label: '쓴 칸', value: 0, of: 64, unit: '칸', size: 'l' })),
+    h('p.note', {}, '영역마다 여덟 가지, 해 볼 일을 적어요. 한 칸이면 시작이에요.'),
+    h('div.cta', {}, h('div.c-button', {}, area0 + '부터 쓰기'), C.textAction('예시 보기'))));
+
+  page.append(C.tabBar({ active: 'chart' }));
+});
+</script>
+</body>
+</html>

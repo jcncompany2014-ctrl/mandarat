@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 만다라트 · 건강</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* The zoomed block is a page of the notebook: the 3×3 at full width, then a pager to the
+     neighbouring areas, then this area's habits as a printed week tracker (the form the eight
+     cells cannot hold). Every row of the tracker is a cell of the block, in the same order. */
+  #block { margin-top: 18px; }
+
+  /* pager: a 44pt row. Written links on both sides, the position on the sheet in the middle. */
+  .pager { display: flex; align-items: center; justify-content: space-between; height: 44px; margin-top: 6px; }
+  .pager .a-link { font-size: 14px; height: 44px; }
+  .pager .a-link.is-prev svg { margin-left: -6px; margin-right: 0; }
+  .pager-where { display: flex; align-items: center; gap: 8px; }
+
+  /* the week tracker: booktabs. 1pt rule on top, hairlines under rows, no boxes round it. */
+  .sec { margin-top: 12px; }
+  .wk { border-top: var(--rule) solid var(--print-mid); }
+  .wk-row { display: grid; grid-template-columns: 1fr repeat(7, 28px) 44px; align-items: center; height: 36px; border-bottom: var(--hair) solid var(--print-rule); }
+  .wk-row.is-head { height: 24px; }
+  .wk-row > * { display: flex; justify-content: center; align-items: center; height: 100%; position: relative; }
+  .wk-row > .wk-name { justify-content: flex-start; font: 500 14px/18px var(--sans); color: var(--ink); white-space: nowrap; }
+  .wk-row > .wk-fig { justify-content: flex-end; font: 400 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .wk-row.is-head .t-label { line-height: 24px; }
+  .wk-day.is-sunday .t-label { color: var(--signal); }
+  .wk-day.is-today .t-label { color: var(--ink); font-weight: 700; }
+  .wk-day.is-today::before { content: ''; position: absolute; left: 3px; top: 3px; width: 7px; height: 7px; background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%); }
+  /* a day not yet reached: the box is printed, pale */
+  .wk-box-future rect { stroke: var(--print-rule) !important; }
+  .cell-state { text-align: center; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body">
+    <div id="block"></div>
+
+    <div class="pager">
+      <span class="a-link is-prev" id="prev"></span>
+      <span class="pager-where" id="where"></span>
+      <span class="a-link" id="next"></span>
+    </div>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label">이번 주 습관</span><span class="t-label" id="range"></span></div>
+      <div class="wk" id="wk"></div>
+    </section>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const AREA = 0; // 건강
+  const area = doc.areas[AREA];
+  const v = doc.view;
+
+  A.header('#header', { back: '만다라트', title: area.title, written: true, figure: `${area.done}/${area.of}`, action: 'more' });
+
+  // This week, from the demo record's week strings (v = done, x = missed, T = today, o = planned, · = not planned).
+  // 하루 물 2L has no string in the record; the current app's zoomed block draws it as 월·화·수 done.
+  const weekOf = { '주 3회 운동': '··T····', '하루 물 2L': 'vvVoooo', '11시 취침': 'xxTo··o', '1만보 걷기': 'vvToooo', '스트레칭 10분': 'xxToo··' };
+  const tally = (s) => {
+    const done = [...s].filter((c) => c === 'v' || c === 'V').length;
+    const planned = [...s].filter((c) => c !== '·').length;
+    return { done, planned };
+  };
+
+  // habit state inside the cell: only where the cell is not done (a done cell already has its wash and tick)
+  // The figure is the one the app's area page uses ('이번 주 2/3').
+  const state = (cell) => {
+    if (cell.kind !== 'action' || cell.done || cell.actKind !== 'habit') return '';
+    const row = v.today.rows.find((r) => r.text === cell.text);
+    const t = cell.act.perWeek ? { done: 0, planned: cell.act.perWeek } : tally(weekOf[cell.text] || '');
+    return `<div class="t-meta cell-state">이번 주 ${t.done}/${t.planned}${row && row.kind === 'count' ? '회' : ''}</div>`;
+  };
+  A.block('#block', doc, AREA, { cell: 112, extra: state });
+
+  // pager: the eight areas go round in a ring, as in the app (neighborArea)
+  const prev = doc.areas[(AREA + 7) % 8], next = doc.areas[(AREA + 1) % 8];
+  document.querySelector('#prev').innerHTML = `${A.icon('back', { size: 16 })}${prev.title}`;
+  document.querySelector('#next').innerHTML = `${next.title}${A.icon('chevron', { size: 16 })}`;
+  // where on the sheet: the 3×3 of blocks, this block in its dye, the centre in ink, the rest printed
+  const u = 6, gap = 2;
+  let m = '';
+  for (let b = 0; b < 9; b++) {
+    const x = (b % 3) * (u + gap), y = Math.floor(b / 3) * (u + gap);
+    const fill = b === 4 ? 'var(--core)' : b === (AREA < 4 ? AREA : AREA + 1) ? `var(--dye-${AREA + 1})` : 'var(--print-rule)';
+    m += `<rect x="${x}" y="${y}" width="${u}" height="${u}" style="fill:${fill}"/>`;
+  }
+  document.querySelector('#where').innerHTML = `<svg width="22" height="22" viewBox="0 0 22 22" style="display:block" aria-hidden="true">${m}</svg><span class="t-label">1 / 8</span>`;
+
+  // the week tracker
+  const days = v.week.days;
+  document.querySelector('#range').textContent = '10월 12일 – 18일';
+  let html = `<div class="wk-row is-head"><span></span>${days.map((d) => `<span class="wk-day${d[2] === 'today' ? ' is-today' : ''}${d[0] === '일' ? ' is-sunday' : ''}"><span class="t-label">${d[0]}</span></span>`).join('')}<span class="wk-fig"><span class="t-label">횟수</span></span></div>`;
+  const mark = (c) => {
+    if (c === 'v' || c === 'V') return A.check({ done: true, area: AREA, size: 14 });
+    if (c === 'x' || c === 'T') return A.check({ size: 14 });
+    if (c === 'o') return `<span class="wk-box-future">${A.check({ size: 14 })}</span>`;
+    return '';
+  };
+  area.actions.filter((a) => a.kind === 'habit').forEach((a) => {
+    const s = weekOf[a.text];
+    const t = a.perWeek ? { done: 0, planned: a.perWeek } : tally(s);
+    html += `<div class="wk-row"><span class="wk-name">${a.text}</span>${[...s].map((c) => `<span>${mark(c)}</span>`).join('')}<span class="wk-fig">${t.done}/${t.planned}</span></div>`;
+  });
+  document.querySelector('#wk').innerHTML = html;
+
+  A.tabBar('#bar', { active: 'chart' });
+});
+</script>
+</body>
+</html>

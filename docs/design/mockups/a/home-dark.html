@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<meta name="mock:dark" content="1">
+<title>A · 홈 (다크)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* hero: one text column on the gutter (label, the goal, two filled-in fields) and the sheet in
+     miniature tipped in on the right. Its top and bottom rules register with the chart's frame. */
+  .hero { padding-top: 12px; }
+  .hero-row { display: flex; gap: 24px; margin-top: 12px; }
+  .hero-fields { flex: 1; display: flex; flex-direction: column; border-top: var(--rule) solid var(--print-mid); }
+  .hero-field { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 7px 0 6px; border-bottom: var(--hair) solid var(--print-rule); }
+  .sec { margin-top: 18px; }
+  .hero + .sec { margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body">
+    <section class="hero">
+      <div class="t-label">핵심 목표</div>
+      <div class="t-headline" id="goal"></div>
+      <div class="hero-row">
+        <div class="hero-fields">
+          <div class="hero-field">
+            <div class="t-label"><i class="a-today"></i>오늘</div>
+            <div class="t-figure" id="fig-today"></div>
+          </div>
+          <div class="hero-field">
+            <div class="t-label">달성</div>
+            <div class="t-figure" id="fig-cells"></div>
+          </div>
+        </div>
+        <div id="chart"></div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label">오늘 할 일</span><span class="a-link" id="all"></span></div>
+      <div class="a-list" id="rows"></div>
+    </section>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label" id="week-label"></span><span class="t-meta" id="week-total" style="color:var(--ink);font-weight:500"></span></div>
+      <div id="week"></div>
+    </section>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label">8개 영역</span></div>
+      <div id="ledger"></div>
+    </section>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, d = v.date;
+  A.header('#header', {
+    eyebrow: `${d.year} · ${d.week} · D-${d.left.replace(/\D/g, '')}`,
+    title: `${d.month} ${d.day}일 ${d.weekday}`,
+    action: 'settings',
+  });
+  document.querySelector('#goal').textContent = doc.coreGoal;
+  A.chart('#chart', doc, { level: 'L1', cell: 19 });
+  document.querySelector('#fig-today').textContent = `${v.today.done}/${v.today.of}`;
+  document.querySelector('#fig-cells').innerHTML = `${v.progress.done}/${v.progress.of}<small>칸</small>`;
+
+  // today's list: this week's two focus items pinned first, then what is next, then the one done today
+  const rows = v.today.rows;
+  const find = (t) => rows.find((r) => r.text === t);
+  const html = [
+    A.todayRow(doc, find(v.weekFocus[0].text), { rightPrint: '중점' }),
+    A.row(doc, { text: v.weekFocus[1].text, area: v.weekFocus[1].area, rightPrint: '중점' }),
+    A.todayRow(doc, rows[0]),
+    A.todayRow(doc, rows[1]),
+    A.todayRow(doc, rows.find((r) => r.doneToday)),
+  ].join('');
+  document.querySelector('#rows').innerHTML = html;
+  document.querySelector('#all').innerHTML = `전체 ${v.today.of}개${A.icon('chevron', { size: 16 })}`;
+
+  document.querySelector('#week-label').textContent = v.week.label;
+  document.querySelector('#week-total').textContent = v.week.total;
+  A.weekStrip('#week', v.week);
+  A.ledger('#ledger', doc);
+  A.tabBar('#bar', { active: 'home' });
+});
+</script>
+</body>
+</html>
