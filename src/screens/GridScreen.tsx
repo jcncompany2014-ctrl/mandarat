@@ -16,7 +16,7 @@ import { todayItems } from '../lib/routine';
 import { tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader } from '../lib/useReducedMotion';
 import { noOrphan } from '../lib/text';
-import { useWindowDimensions } from '../lib/screen';
+import { usePageScrollTop, useWindowDimensions } from '../lib/screen';
 import { CELL_POS, CHART_POS } from '../theme/chart';
 import { DUR, EASE } from '../theme/motion';
 import { ROLE } from '../theme/type';
@@ -247,6 +247,8 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
   focusRef.current = focus;
   // 바뀐 쪽(지도 ↔ 크게 보기)이 떠오르는 값 · 이웃 영역으로 넘길 때 옆에서 들어오는 값
   const show = useRef(new Animated.Value(1)).current;
+  // 쪽이 바뀌면(지도 ↔ 크게 보기 · 이웃 영역) 맨 위에서 — 영역 화면(Detail)이 영역을 넘길 때와 같다
+  const scrollTop = usePageScrollTop();
   const slide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -279,6 +281,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
 
   const open = (f: GridFocus) => {
     tap();
+    scrollTop();
     gridMemory.focus = f;
     gridMemory.zoomedOnce = true;
     slide.setValue(0);
@@ -289,6 +292,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
   };
   const close = () => {
     tap();
+    scrollTop();
     gridMemory.focus = null;
     announce(m.chart.wholeSay);
     slide.setValue(0);
@@ -299,6 +303,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
   /** 크게 본 채로 다른 블록으로 — from: 새 쪽이 들어오는 쪽(1 오른쪽, -1 왼쪽, 0 제자리에서 떠오름) */
   const switchTo = (f: GridFocus, from: 1 | -1 | 0 = 0) => {
     tap();
+    scrollTop();
     gridMemory.focus = f;
     setFocus(f);
     say(f);
@@ -385,6 +390,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
             part={spread ? 'block' : 'all'}
             onBack={closeZoom}
             back={m.chart.tabTitle}
+            backTestID={TID.detailBack}
             onStep={stepZoom}
             headRef={headRef}
             maxBlock={maxBlock}

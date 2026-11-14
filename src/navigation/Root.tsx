@@ -22,7 +22,7 @@ import { TAB_BAR_H, isDeep, tabBarBottom, tabClearance, useUIActions, useUIState
 import { TID } from '../lib/testIds';
 import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
 import { todayProgress } from '../lib/routine';
-import { PageSize, useLayout } from '../lib/screen';
+import { PageScroll, PageSize, useLayout } from '../lib/screen';
 import { BINDING, BINDING_W, SPREAD_TABS_W, companionFor, companionKey, modeFor, spreadPageW, type Companion } from '../lib/spread';
 import { crash } from '../lib/crash';
 import { gridMemory } from '../screens/gridMemory';
@@ -284,6 +284,8 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
     if (restoring.current) return;
     scrollMem.set(scrollOwner.current, e.nativeEvent.contentOffset.y);
   }, [scrollMem]);
+  // 화면 안에서 쪽이 통째로 바뀌면(만다라트 탭의 지도 ↔ 크게 보기) 맨 위에서 — 늘 같은 함수(memo된 화면이 다시 그려지지 않게)
+  const scrollTop = useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []);
   // 움직이는 값이 든 스타일은 한 번만 만든다 — 다시 그릴 때마다 새 객체면 애니메이션 연결을 다시 맺는다
   const dotsStyle = useMemo(
     () => ({ position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: dotsY }] }),
@@ -446,7 +448,9 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
           onAccessibilityEscape={deep ? ui.back : undefined}
           style={pageStyle}
         >
-          <PinnedHeaderSlot.Provider value={setPinned}>{screen}</PinnedHeaderSlot.Provider>
+          <PageScroll.Provider value={scrollTop}>
+            <PinnedHeaderSlot.Provider value={setPinned}>{screen}</PinnedHeaderSlot.Provider>
+          </PageScroll.Provider>
         </Animated.View>
       </Animated.ScrollView>
       <PinnedHeaderHost M={M} topInset={insets.top} style={pinStyle} register={pinSet} latest={pinNode} onHeight={setPinH} />
@@ -563,6 +567,8 @@ const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bott
   onFocusArea: (ti: number | null) => void;
 }) {
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollTop = useCallback(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, []);
   const dotsStyle = useMemo(() => {
     const y = Animated.modulo(scrollY, DOT).interpolate({ inputRange: [0, DOT], outputRange: [0, -DOT] });
     return { position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: -DOT, transform: [{ translateY: y }] };
@@ -592,6 +598,7 @@ const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bott
         </Animated.View>
       </View>
       <Animated.ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingTop: topInset, paddingBottom: bottomPad }}
         showsVerticalScrollIndicator={false}
@@ -602,7 +609,11 @@ const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bott
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : Platform.OS === 'android' ? 'on-drag' : 'none'}
       >
         {/* 곁 쪽에는 고정 머리 자리가 없다 — 머리는 제자리에 그린다 */}
-        <Animated.View style={bodyStyle}><PinnedHeaderSlot.Provider value={null}>{body}</PinnedHeaderSlot.Provider></Animated.View>
+        <Animated.View style={bodyStyle}>
+          <PageScroll.Provider value={scrollTop}>
+            <PinnedHeaderSlot.Provider value={null}>{body}</PinnedHeaderSlot.Provider>
+          </PageScroll.Provider>
+        </Animated.View>
       </Animated.ScrollView>
     </>
   );
