@@ -4,7 +4,7 @@ import type { Like } from '../types';
 
 export default {
   head: '紙の柄',
-  dots: 'ドット(標準)',
+  dots: 'ドット',
   grid: '方眼',
   lines: '罫線',
   blank: '無地',

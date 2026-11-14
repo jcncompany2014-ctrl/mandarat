@@ -53,7 +53,7 @@ export interface TodayWidgetProps {
   lines: TodayWidgetLines; pal: { light: WidgetPalette; dark: WidgetPalette }; pat: WidgetPattern;
   ops: WidgetOp[]; url: string;
 }
-export interface FocusActivityLines { left: string; paused: string; done: string; focus: string; label: string /* '25분 집중' */; leftShort: string /* '남음' */ }
+export interface FocusActivityLines { left: string; paused: string; done: string; focus: string; running: string /* '25분 집중' */; leftShort: string /* '남음' */ }
 /** the Live Activity's tokens — dye is this session's area dye */
 export interface LivePalette { paper: string; ink: string; ink2: string; print: string; tile: string; dye: string }
 export interface FocusActivityProps {

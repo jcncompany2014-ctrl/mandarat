@@ -8,7 +8,7 @@ export default {
   paused: 'いったん止めています',
   done: '25分の集中を終えました',
   focus: '集中しています',
-  label: '25分集中',
+  running: '25分集中',
   leftShort: '残り',
   doneTitle: '25分たちました',
 } satisfies Like<typeof ko>;

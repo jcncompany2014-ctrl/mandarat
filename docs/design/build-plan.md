@@ -406,3 +406,13 @@ From K (wave 1b, controls kit, `src/components/kit/`):
 - `TODAY_ROW_INSET` is 38. `TodayRow` has `rightPrint` (for 중점); its mini week strip is gone. Old `Check` maps legacy colours (ink → chosen, area colour → done). `KIT_TYPE` holds text styles missing from `ROLE` (fold in during wave 4).
 
 From N2 (app icon and splash): `tools/icons/render.js` draws every icon PNG from the tokens (sizes from G's `markTiles`, splash heart size from `Splash.tsx` `MARK`); `assets/splash-icon-dark.png` is new; app.json splash `imageWidth` 160 and `dark.image`. Owner device checks: light, dark and tinted icons on the Home Screen, in Settings and in Spotlight (the dark icon's core is dim: acceptable?); light and dark splash fade to the JS splash without a jump.
+
+From G (chart and marks, `src/components/chart/`, `src/lib/mapCells.ts`):
+- `ColourMap` {themes, goal?, level 'L2'|'L1', width?, cell?, focus?:[row,col], todayKeys?, doneToday?, onPressBlock?, accessibilityHint?, fade?, defer?, testID?, blockTestID?}
+- `BlockGrid` {themes, goal?, block: ti|'core', width, todayKeys?, doneToday?, focus?: slot, extra?, print?, speech?, onCell?, onCellLong?, onHead?, onHeadLong?, onRing?, cellHint?, headRef?, cellTestID?}
+- `Locator` {themes, block, at?: ai|'head', size=36}; `PagerMark` {block, size=22}; `Mark` {variant 'heart'|'app', size, tokens?}
+- `WeekBars` {days: [{label, n|null, today?, sunday?, stack?}], variant 'bars'|'stack', accessibilityLabel?} — pre-sort the stack; the screen gives the a11y label.
+- `MinuteGrid` {width, area, done, frac?, running?}
+- `mapCells(doc, today?)`, `mapKey`, `actionStates` (64 chars, for widgets), `blockCells`, `areaCounts`.
+- `GridMark`, `MiniChart` keep their props; `Splash` draws the heart (`MARK = 84`); `CHART_HEAD_FS` is 10.
+- Pass `themes`, not the doc; place maps on whole pixels; the year page puts `defer` on its four small maps. On phones the map's centre cell holds 3 lines and long goals end in "…"; the ja/en goal placeholders in the editor do not fit (O1).

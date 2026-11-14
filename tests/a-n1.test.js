@@ -408,9 +408,9 @@ test("Live Activity 배너 — 종이 · 안쪽 14, '25분 집중'(print) + 영�
   const done = liveRender(focusProps({ ...liveBase, done: true }), {}).banner;
   assert.ok(texts(done).includes('25분 집중을 마쳤어요'));
   assert.ok(!texts(done).includes('남음'));
-  // 예전 문구(label 없음)는 '집중하는 중'으로
+  // 예전 문구(running 없음)는 '집중하는 중'으로
   const old = focusProps(liveBase);
-  delete old.lines.label;
+  delete old.lines.running;
   assert.ok(texts(liveRender(old, {}).banner).includes(old.lines.focus));
   // 영역 이름이 없으면 오른쪽 표시도 없다
   assert.equal(all(liveRender(focusProps({ ...liveBase, area: '' }), {}).banner, (n) => n.type === 'RoundedRectangleView').length, 0);

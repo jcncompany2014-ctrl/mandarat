@@ -53,7 +53,7 @@ function livePalette(T: Tokens, ti: number | undefined, color: string | undefine
 /** Live Activity 문구 — 함수가 아닌 글자 그대로 */
 export function focusLines(lang?: Lang): FocusActivityLines {
   const l = msg(lang).live;
-  return { left: l.left, paused: l.paused, done: l.done, focus: l.focus, label: l.label, leftShort: l.leftShort };
+  return { left: l.left, paused: l.paused, done: l.done, focus: l.focus, running: l.running, leftShort: l.leftShort };
 }
 
 /** 지금 끝 시각으로 도는 세션의 시작 시각 — 멈췄다 다시 가도 진행 막대가 25분 전체를 기준으로 남는다 */

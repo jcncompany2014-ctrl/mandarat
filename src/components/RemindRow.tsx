@@ -1,12 +1,14 @@
-// 알림 시각 한 줄 — [−] 오전 8:00 [+], 10분씩(자정을 넘으면 돌아간다).
-// 설정 › 알림(아침 · 저녁)과 편집 창의 습관 알림이 같은 모양으로 쓴다. 화면 읽기에서는 한 줄 — 위아래로 쓸어 바꾼다.
+// 알림 시각 한 줄 — tile 받침 위에 [−] 오전 8:00 [+], 10분씩(자정을 넘으면 돌아간다).
+// 설정 › 알림(시각 칩을 누르면 그 아래에 열린다)과 편집 창의 습관 알림이 같은 모양으로 쓴다. 화면 읽기에서는 한 줄 — 위아래로 쓸어 바꾼다.
+// 그림(build-plan §3 S6): tile 받침(모서리 12), 바탕 없는 −/+ 글리프, 손끝 44, 가운데 시각은 먹(숫자 고정폭).
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from './AppText';
 import { Icon } from './Icon';
 import { useMsg } from '../i18n/react';
 import { tap } from '../lib/haptics';
-import { NUM } from '../theme/type';
+import { GEO } from '../theme/tokens';
+import { NUM, ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 
 /** 한 번에 움직이는 분 */
@@ -33,6 +35,9 @@ export function minToTime(n: number): string {
 export function stepTime(v: string, dir: 1 | -1): string {
   return minToTime(timeToMin(v) + dir * REMIND_STEP);
 }
+
+/** 가운데 시각 칸의 최소 폭 — '오후 12:50' · '午後12:50' · '12:50 PM'이 흔들리지 않게 */
+const TIME_MIN_W = 104;
 
 export function RemindRow({ M, value, onChange, label, testID }: {
   M: M;
@@ -64,11 +69,11 @@ export function RemindRow({ M, value, onChange, label, testID }: {
         else if (name === 'decrement') step(-1);
       }}
       testID={testID}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }}
+      style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', borderRadius: GEO.rField, backgroundColor: M.tile }}
     >
       <StepBtn M={M} icon="minus" label={t.notify.earlier} onPress={() => step(-1)} />
       <Text
-        style={{ fontSize: 17, fontWeight: '700', color: M.ink, minWidth: 104, textAlign: 'center', ...NUM }}
+        style={{ ...ROLE.rowTitle, ...NUM, color: M.ink, minWidth: TIME_MIN_W, textAlign: 'center' }}
         accessibilityLiveRegion="polite"
         numberOfLines={1}
       >
@@ -79,7 +84,7 @@ export function RemindRow({ M, value, onChange, label, testID }: {
   );
 }
 
-/** 한 단계 — 바탕 없는 44pt 네모 칸(가는 테두리), 편집 창의 주 N회와 같은 모양 */
+/** 한 단계 — 받침 위 바탕 없는 글리프(먹 16), 손끝 44. 누르면 잠깐 흐려진다 */
 function StepBtn({ M, icon, label, onPress }: { M: M; icon: 'plus' | 'minus'; label: string; onPress: () => void }) {
   return (
     <Pressable
@@ -88,11 +93,11 @@ function StepBtn({ M, icon, label, onPress }: { M: M; icon: 'plus' | 'minus'; la
       accessibilityLabel={label}
       {...a11yLangProp()}
       style={({ pressed }) => ({
-        width: 44, height: 44, borderRadius: 6, borderWidth: 1, borderColor: M.line,
-        alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.55 : 1,
+        width: 44, height: 44,
+        alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1,
       })}
     >
-      <Icon name={icon} size={16} color={M.ink} sw={2.2} />
+      <Icon name={icon} size={16} color={M.ink} />
     </Pressable>
   );
 }

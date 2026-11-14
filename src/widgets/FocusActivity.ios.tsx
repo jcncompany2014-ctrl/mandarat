@@ -45,8 +45,8 @@ export function FocusLayout(p: Partial<FocusActivityProps>, env: LiveActivityEnv
   const leftMs = paused ? p.paused || 0 : 0;
   const area = p.area || '';
   const title = p.t || area || L.focus || '';
-  // 첫 줄 — 도는 동안 '25분 집중'(예전 스냅숏에는 label이 없어 '집중하는 중'), 멈춤 · 끝은 그 말
-  const caption = done ? L.done || '' : paused ? L.paused || '' : L.label || L.focus || '';
+  // 첫 줄 — 도는 동안 '25분 집중'(예전 props에는 running이 없어 '집중하는 중'), 멈춤 · 끝은 그 말
+  const caption = done ? L.done || '' : paused ? L.paused || '' : L.running || L.focus || '';
   const url = p.url || 'mandarat://focus';
 
   /** '24:13' — 앱의 fmtClock과 같다 */

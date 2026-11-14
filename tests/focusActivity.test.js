@@ -221,7 +221,7 @@ test('도는 중 — 타이머 글이 시작~끝으로 스스로 줄고, 진행 
   assert.ok(find(out.expandedBottom, (n) => n.type === 'ProgressView'));
   const t = texts(out.banner);
   assert.ok(t.includes('보고서 초안 쓰기'));
-  assert.ok(t.includes(p.lines.label), '도는 동안 첫 줄은 25분 집중');
+  assert.ok(t.includes(p.lines.running), '도는 동안 첫 줄은 25분 집중');
   // 영역 색은 네모 한 칸 — 아일랜드는 늘 검은 바탕이라 어두운 판의 영역 색
   const sq = find(out.compactLeading, (n) => n.type === 'RoundedRectangleView');
   assert.ok(sq.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.pal.dark.dye));

@@ -4,7 +4,7 @@
 // 칸의 약속: 가운데 = core · 영역 이름 = dye · 달성 = wash(L1 washL1) · 적은 칸 = tint · 빈 칸 = tile. 체크 · 오늘 표시는 없다.
 // 그리기: 절대 자리 View 81개(Svg 없음). 자리는 폭마다 한 번(geometry), 칸 색은 mapKey가 같으면 다시 세지 않고,
 // 칸 하나하나가 memo라 체크 하나에 바뀐 칸 하나만 다시 그려진다(§4.6).
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, PixelRatio, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '../AppText';
 import { usePalette, type M } from '../../theme/usePalette';
@@ -44,6 +44,11 @@ export interface ColourMapProps {
   accessibilityHint?: string;
   /** 처음 그릴 때 220ms 페이드 */
   fade?: boolean;
+  /**
+   * 칸은 첫 화면이 그려진 다음 프레임에 — 지도 여러 장을 한 화면에 놓을 때(한 해: L2 하나 + L1 넷 ≈ 400 View, §4.6).
+   * 그동안은 같은 크기의 빈 자리라 화면이 흔들리지 않는다
+   */
+  defer?: boolean;
   testID?: string;
   /** 블록 단추의 testID */
   blockTestID?: (b: number | 'c') => string | undefined;
@@ -129,7 +134,7 @@ const slotOf = (b: number | 'c') => (b === 'c' ? 4 : CHART_POS[b]);
  * (가운데 놓기는 PixelRatio.roundToNearestPixel((폭 − size) / 2)).
  */
 export const ColourMap = memo(function ColourMap({
-  themes = NO_THEMES, goal, level = 'L2', width, cell, focus, todayKeys, doneToday, onPressBlock, accessibilityHint, fade, testID, blockTestID, style,
+  themes = NO_THEMES, goal, level = 'L2', width, cell, focus, todayKeys, doneToday, onPressBlock, accessibilityHint, fade, defer, testID, blockTestID, style,
 }: ColourMapProps) {
   const P = usePalette();
   const m = useMsg();
@@ -172,6 +177,14 @@ export const ColourMap = memo(function ColourMap({
     a.start();
     return () => a.stop();
   }, [fade, reduced, op]);
+
+  // defer: 다음 프레임에 칸을 그린다(requestAnimationFrame — InteractionManager는 RN 0.85에서 지울 예정)
+  const [shown, setShown] = useState(!defer);
+  useEffect(() => {
+    if (shown) return;
+    const id = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(id);
+  }, [shown]);
 
   const pressRef = useRef(onPressBlock);
   pressRef.current = onPressBlock;
@@ -219,10 +232,10 @@ export const ColourMap = memo(function ColourMap({
       accessibilityLabel={imageLabel}
       style={[{ width: g.size, height: g.size, opacity: op }, style]}
     >
-      {tiles.map((t) => (
+      {shown && tiles.map((t) => (
         <Tile key={`${t.c.row}-${t.c.col}`} x={t.x} y={t.y} w={t.w} h={t.h} r={g.radius} bg={t.bg} />
       ))}
-      {labels.map((t) => (
+      {shown && labels.map((t) => (
         <Label
           key={`l${t.c.row}-${t.c.col}`}
           x={t.x} y={t.y} w={t.w} h={t.h}
