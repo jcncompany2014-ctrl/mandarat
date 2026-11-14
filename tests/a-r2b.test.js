@@ -90,3 +90,28 @@ test('Maestro 11: 지도 → 블록 크게(영역 화면) → 뒤로 지도', ()
     at = next;
   }
 });
+
+test('지운 것이 돌아오지 않는다 — 옛 보드 · 옛 부품 · 옛 무드 표 · 옛 팔레트 이름', () => {
+  for (const f of ['ChartBoard', 'SegmentedControl', 'WeekStrip', 'ProgressBar', 'AnimatedNumber', 'Pressy']) {
+    assert.equal(fs.existsSync(path.join(ROOT, 'src/components', `${f}.tsx`)), false, f);
+  }
+  assert.equal(fs.existsSync(path.join(ROOT, 'src/lib/useSettle.ts')), false);
+  const moods = require('../src/theme/moods');
+  for (const k of ['MOODS', 'withAccent', 'accentInk', 'areaInk', 'contrastEdition', 'tint', 'fade']) assert.equal(moods[k], undefined, k);
+  const palette = require('../src/theme/palette');
+  for (const k of ['ACCENTS', 'SEMANTIC', 'MOOD_COLORS', 'INK', 'readableOn']) assert.equal(palette[k], undefined, k);
+  // GOLD는 남는다 — 저장값 settings.accent의 기본값(옛 앱 · 다른 기기가 읽는다)
+  assert.equal(palette.GOLD, '#B0883C');
+  const type = require('../src/theme/type');
+  for (const k of ['TYPE', 'RHYTHM']) assert.equal(type[k], undefined, k);
+  const { PALETTE } = moods;
+  for (const k of ['bg', 'surface', 'card', 'sub', 'faint', 'line', 'tabBg', 'gold', 'goldInk', 'center', 'accent']) {
+    assert.equal(k in PALETTE.light, false, k);
+  }
+  const { msg, LANGS } = require('../src/i18n');
+  for (const l of LANGS) {
+    const m = msg(l);
+    for (const k of ['paperIvory', 'accentGold', 'shapeRound']) assert.equal(k in m.core, false, `${l} core.${k}`);
+    for (const k of ['subAccent', 'subShape', 'subPaper']) assert.equal(k in m.settings, false, `${l} settings.${k}`);
+  }
+});
