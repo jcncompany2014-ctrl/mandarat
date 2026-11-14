@@ -1,13 +1,12 @@
 // 설정 화면의 줄 — 구역 머리(SetSection) · 견본 줄 이름(SwatchHead) · 안내 한 줄(SetNote) · 정보 표 줄 · 확인 대화상자.
 // 설정 화면과 구역(src/screens/settings/*)이 같은 모양으로 쓴다. 줄 · 고르기 · 견본은 부품 상자(components/kit)에서.
 // 목업 docs/design/mockups/a/settings.html: 구역 사이 24(머리 아래 첫 구역 12), 구역 이름 줄 바로 아래 줄(사이 없음).
-// SubHead · TextLink는 예전 모양 그대로 남긴다 — 인쇄 시트(O5) · 프로 시트(O6)가 아직 쓴다.
 import React from 'react';
-import { Alert, Platform, Pressable, View } from 'react-native';
+import { Alert, Platform, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
 import { RowRule, Section } from '../../components/kit';
 import { msg } from '../../i18n';
-import { NUM, ROLE, TYPE } from '../../theme/type';
+import { NUM, ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 
 /** 설정 화면의 자리 수치(목업 settings.html) */
@@ -88,31 +87,5 @@ export function ColophonRow({ M, label, value, first }: { M: M; label: string; v
       <Text style={{ ...ROLE.label, width: SET.colophonLabelW, color: M.print }} numberOfLines={1}>{label}</Text>
       <Text style={{ ...ROLE.ledger, ...NUM, flex: 1, color: M.ink }}>{value}</Text>
     </View>
-  );
-}
-
-/** 구역 안의 작은 머리 — 예전 모양(인쇄 시트가 아직 쓴다, O5가 옮긴다) */
-export function SubHead({ M, label, first = false }: { M: M; label: string; first?: boolean }) {
-  return (
-    <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub, paddingTop: first ? 4 : 20, paddingBottom: 6 }}>
-      {label}
-    </Text>
-  );
-}
-
-/** 밑줄 글자 링크 — 예전 모양(프로 시트가 아직 쓴다, O6이 옮긴다). 설정은 부품 상자의 TextLink(먹 + 꺾쇠)를 쓴다 */
-export function TextLink({ M, label, onPress, hint }: { M: M; label: string; onPress: () => void; hint?: string }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="link"
-      accessibilityLabel={label}
-      accessibilityHint={hint}
-      {...a11yLangProp()}
-      hitSlop={{ top: 12, bottom: 12, left: 6, right: 6 }}
-      style={({ pressed }) => ({ minHeight: 24, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-    >
-      <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.ink, textDecorationLine: 'underline' }}>{label}</Text>
-    </Pressable>
   );
 }

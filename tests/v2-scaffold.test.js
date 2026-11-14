@@ -31,7 +31,7 @@ test('설정: v2 구역 자리가 정해진 순서로 있다', () => {
   assert.doesNotMatch(s, /\bMOODS\b|\bACCENTS\b|st\.subAccent|st\.subShape/);
   // 줄 모양은 settings/rows.tsx 한 곳에
   const rows = src('src/screens/settings/rows.tsx');
-  for (const name of ['SetSection', 'SwatchHead', 'SetNote', 'SubHead', 'TextLink', 'ColophonRow', 'ask']) {
+  for (const name of ['SetSection', 'SwatchHead', 'SetNote', 'ColophonRow', 'ask']) {
     assert.match(rows, new RegExp(`export function ${name}\\(`), name);
     assert.doesNotMatch(s, new RegExp(`\\nfunction ${name}\\(`), `${name}는 Settings.tsx에 다시 두지 않는다`);
   }
@@ -94,7 +94,8 @@ test('App: 오류 수집 · 언어 · 프로 · 화면 모드 공급자 순서',
   assert.match(s, /<LangRoot>\s*<Resume>/);
   assert.match(s, /const \[hint\] = useState\(takeResumeHint\);\s*return <UIProvider initialScreen=\{hint\}>/);
   assert.match(src('src/components/ErrorBoundary.tsx'), /crash\.report\(error, \{ componentStack: info\.componentStack \?\? '' \}\);/);
-  assert.match(src('src/screens/Dashboard.tsx'), /testID=\{TID\.homeSettings\}/);
+  // 홈의 설정 글리프는 머리의 동작(action) — testID는 그 동작에 실린다
+  assert.match(src('src/screens/Dashboard.tsx'), /testID: TID\.homeSettings\b|testID=\{TID\.homeSettings\}/);
 });
 
 test('뒤 꾸러미가 채울 빈 파일이 모두 있다', () => {

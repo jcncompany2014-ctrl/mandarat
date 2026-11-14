@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { LIGHT, DARK, GEO, moreContrast, desk } = require('../src/theme/tokens');
-const { ROLE, TYPE, NUM } = require('../src/theme/type');
+const { ROLE, NUM } = require('../src/theme/type');
 const { PRETENDARD } = require('../src/theme/fonts');
 const { PALETTE, paletteOf, contrastPalette } = require('../src/theme/moods');
 const { contrast } = require('../src/theme/palette');
@@ -168,12 +168,12 @@ test('대비 증가 판은 팔레트마다 한 번만 만든다 — 같은 팔�
 
 // ── §2.3 앱 팔레트(M) = 토큰 ────────────────────────────────────────────────
 
-test('paletteOf: 앱 팔레트는 토큰 그대로 — 옛 이름(bg · line · gold …)은 웨이브 4가 지웠고 sub(= ink2) 하나만 남았다', () => {
+test('paletteOf: 앱 팔레트는 토큰 그대로 — 옛 이름(bg · sub · line · gold …)은 웨이브 4가 지웠다', () => {
   for (const t of [LIGHT, DARK]) {
     const M = paletteOf(t);
     for (const k of Object.keys(t)) assert.deepEqual(M[k], t[k], k);
-    assert.equal(M.sub, t.ink2);
-    for (const k of ['bg', 'surface', 'card', 'faint', 'line', 'tabBg', 'gold', 'goldInk', 'center', 'accent']) assert.equal(k in M, false, k);
+    assert.deepEqual(Object.keys(M).sort(), Object.keys(t).sort());
+    for (const k of ['bg', 'surface', 'card', 'sub', 'faint', 'line', 'tabBg', 'gold', 'goldInk', 'center', 'accent']) assert.equal(k in M, false, k);
   }
   assert.deepEqual({ ...PALETTE.light }, { ...paletteOf(LIGHT) });
   assert.deepEqual({ ...PALETTE.dark }, { ...paletteOf(DARK) });
@@ -184,7 +184,6 @@ test('대비 증가 판: 진해진 토큰(괘선 · 흐린 글씨), 나머지는
     const E = contrastPalette(P);
     assert.equal(E.printRule, P.printMid);
     assert.equal(E.ink3, P.ink2);
-    assert.equal(E.sub, P.ink2);
     assert.equal(E.paper, P.paper);
     assert.equal(E.signal, P.signal);
   }
@@ -231,11 +230,11 @@ test('ROLE: 표의 서체 파일 · 크기 · 줄 · 자간(늘 적는다) · �
   assert.equal(ROLE.unit.marginLeft, 2, '숫자 뒤 단위는 2pt 띄운다');
 });
 
-test('NUM · 옛 TYPE은 그대로(RHYTHM은 웨이브 4가 지웠다)', () => {
-  assert.deepEqual(TYPE.title, { fontSize: 26, lineHeight: 32, fontWeight: '800' });
-  assert.deepEqual(TYPE.micro, { fontSize: 11, lineHeight: 14, fontWeight: '600' });
+test('NUM은 그대로, 옛 TYPE · RHYTHM은 웨이브 4가 지웠다', () => {
   assert.deepEqual(NUM, { fontVariant: ['tabular-nums'] });
-  assert.equal(require('../src/theme/type').RHYTHM, undefined);
+  const type = require('../src/theme/type');
+  assert.equal(type.TYPE, undefined);
+  assert.equal(type.RHYTHM, undefined);
 });
 
 // ── §2.4 화면 모드 ───────────────────────────────────────────────────────────

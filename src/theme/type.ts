@@ -1,27 +1,9 @@
 /**
- * 글자 모양 — 디자인 A의 글자 역할(ROLE, 아래)과 세로로 맞추는 숫자(NUM).
- * TYPE은 예전 일곱 단계(굵기는 faceFor가 한 단계 가볍게 그린다)로, settings/rows.tsx의 SubHead만 아직 읽는다(SubHead를 부르는 곳은 없다).
- * 새 코드는 ROLE · NUM · GEO(tokens.ts)를 쓴다.
+ * 글자 모양 — 디자인 A의 글자 역할(ROLE, 아래)과 세로로 맞추는 숫자(NUM). 자리 · 크기는 GEO(tokens.ts).
+ * 예전 일곱 단계(TYPE)와 종이 리듬(RHYTHM)은 웨이브 4(R2)가 지웠다.
  */
 import type { TextStyle } from 'react-native';
 import { PRETENDARD } from './fonts';
-
-export const TYPE = {
-  /** 큰 숫자 하나 — 홈의 오늘 날짜 '14' */
-  display: { fontSize: 56, lineHeight: 60, fontWeight: '800', letterSpacing: -1.5 },
-  /** 화면 제목 */
-  title: { fontSize: 26, lineHeight: 32, fontWeight: '800' },
-  /** 구역 제목('오늘 할 일', '8개 영역') */
-  section: { fontSize: 18, lineHeight: 24, fontWeight: '800' },
-  /** 줄 하나의 제목 — 실천 글, 설정 항목 */
-  rowTitle: { fontSize: 16, lineHeight: 21, fontWeight: '700' },
-  /** 본문·입력 */
-  body: { fontSize: 16, lineHeight: 22, fontWeight: '400' },
-  /** 보조 글 — 줄 아래 설명, 날짜, 개수 */
-  caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
-  /** 가장 작은 글 — 칸 안 이름표, 요일 머리. 이보다 작게 쓰지 않는다 */
-  micro: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
-} as const satisfies Record<string, TextStyle>;
 
 /** 자릿수 폭이 같은 숫자 — 횟수·날짜·n/8이 줄마다 흔들리지 않게 */
 export const NUM = { fontVariant: ['tabular-nums'] } satisfies TextStyle;

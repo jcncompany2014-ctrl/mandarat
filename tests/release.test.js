@@ -49,7 +49,7 @@ test('대비 증가: 괘선 · 가장자리 · 인쇄 글씨 · 흐린 글씨가
     assert.equal(E.printEdge, M.ink2, `${name} printEdge`);
     assert.equal(E.print, M.printStrong, `${name} print`);
     assert.equal(E.ink3, M.ink2, `${name} ink3`);
-    for (const k of ['paper', 'ink', 'ink2', 'tile', 'signal', 'core', 'btn', 'capsule', 'sub', 'dark']) {
+    for (const k of ['paper', 'ink', 'ink2', 'tile', 'signal', 'core', 'btn', 'capsule', 'dark']) {
       assert.equal(E[k], M[k], `${name} ${k}`);
     }
     assert.notEqual(E, M, '새 객체(원래 팔레트는 건드리지 않는다)');
