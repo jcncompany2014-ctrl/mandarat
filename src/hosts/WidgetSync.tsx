@@ -15,7 +15,7 @@ import { usePro } from '../store/ProContext';
 import { useLang } from '../i18n/react';
 import type { WidgetPattern } from '../lib/contracts';
 import { crash } from '../lib/crash';
-import { proValue } from '../lib/pro';
+import { drawnPattern } from '../lib/paper';
 import { opId, planOps, type WidgetCommand } from '../lib/widgetOps';
 import { toWidgetEntries, widgetTimeline } from '../lib/widgetSnapshot';
 import { widgetBridge } from '../widgets/bridge';
@@ -31,8 +31,8 @@ export function WidgetSync() {
   const { owned } = usePro();
   const lang = useLang();
   const onboarded = doc.onboarded;
-  // 종이 무늬는 프로 — 없으면 점(아무것도 그리지 않는다). 저장된 선택은 그대로 둔다
-  const pat: WidgetPattern = proValue<WidgetPattern>(doc.settings.paper ?? 'dots', 'dots', (p) => p !== 'dots', owned);
+  // 화면과 같은 무늬 — 고르지 않았으면 무지, 모눈 · 줄은 프로일 때만(drawnPattern). 저장된 선택은 그대로 둔다
+  const pat: WidgetPattern = drawnPattern(doc.settings.paper, owned);
 
   // 사슬 안에서 읽는 지금 값 — 사슬은 렌더보다 늦게 돌 수 있다
   const live = useRef({ ready, onboarded, pat, lang, startFocus, go });

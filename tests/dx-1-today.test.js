@@ -135,10 +135,9 @@ test('D-17: 홈의 괘선 목록은 한 글 줄(38pt) · 한 구분선(TODAY_ROW
   assert.match(prio, /inset=\{TODAY_ROW_INSET\}/);
 });
 
-test('D-23: 직접 적은 줄의 ×는 81pt 칸을 잡지 않는다(누르는 범위는 그대로)', () => {
+test('D-23: 직접 적은 줄의 ×는 누르는 범위가 넉넉하다(28pt + hitSlop 12)', () => {
+  // 오른쪽 81pt 칸은 디자인 A(패키지 K)에서 없어졌다 — ×는 줄 가운데의 글리프 하나
   const s = src('src/components/TodayRow.tsx');
-  assert.match(s, /const RIGHT_W = 81;/);
-  assert.match(s, /const REMOVE_W = 32;/);
-  assert.match(s, /width: right\?\.kind === 'remove' \? REMOVE_W : RIGHT_W/);
+  assert.match(s, /const REMOVE_BTN = 28;/);
   assert.match(s, /onPress=\{press\.remove\}\s*hitSlop=\{12\}/);
 });

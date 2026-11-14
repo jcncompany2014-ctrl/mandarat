@@ -15,6 +15,10 @@ export default {
   checked: '{t} — done',
   unchecked: '{t}, not done yet',
   progress: '{n} of {t} done today',
+  listHead: "Today's list",
+  nextHead: 'Up next',
+  leftUnit: '{n} left',
+  focus: 'Focus',
   galleryName: 'Today',
   galleryDesc: "Shows Today's list and how many are left.",
 } satisfies Like<typeof ko>;

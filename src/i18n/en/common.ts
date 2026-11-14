@@ -13,4 +13,5 @@ export default {
   back: 'Back',
   proMark: 'Pro',
   iosOnly: 'Available in the iPhone and iPad app',
+  swatchWord: 'Aa',
 } satisfies Like<typeof ko>;

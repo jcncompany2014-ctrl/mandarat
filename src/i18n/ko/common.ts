@@ -14,4 +14,6 @@ export default {
   back: '이전',
   proMark: '프로',
   iosOnly: 'iPhone·iPad 앱에서 쓸 수 있어요',
+  /** 보기 견본(kit/Swatch)의 작은 쪽에 찍힌 글자 한 자 — 화면 모드 · 종이 무늬 */
+  swatchWord: '가',
 } satisfies Namespace;

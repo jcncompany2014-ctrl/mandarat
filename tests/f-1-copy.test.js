@@ -23,7 +23,7 @@ test('R-5가 짚은 자리는 core.dot을 쓴다 — 손으로 쓴 ASCII 가운�
   const sites = {
     'src/components/TemplateSheet.tsx': [/\.join\(m\.core\.dot\)/],
     'src/screens/TodayModes.tsx': [/\$\{m\.core\.dot\}\$\{lead\.text\}/, /\{m\.core\.dot\.trim\(\)\}[\s\S]*\{m\.core\.dot\.trim\(\)\}/],
-    'src/components/TodayRow.tsx': [/\$\{area\}\$\{m\.core\.dot\}\$\{m\.sheet\.rowWritten\}/, /\{m\.core\.dot\.trim\(\)\}/],
+    'src/components/TodayRow.tsx': [/\$\{area\}\$\{m\.core\.dot\}\$\{m\.sheet\.rowWritten\}/, /\$\{area\}\$\{m\.core\.dot\}\$\{metaText\(metaLine\)\}/],
     'src/screens/Dashboard.tsx': [/\$\{m\.year\.homePrompt\}\$\{m\.core\.dot\}\$\{m\.year\.homePromptAction\}/],
     'src/screens/Stats.tsx': [/\$\{m\.core\.dot\}\$\{parts\.month\}/],
     // R-5가 짚지 않았지만 같은 모양의 자리(F-1 넘겨줄 일 2)

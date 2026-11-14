@@ -4,11 +4,30 @@ import { announce, screenReader } from '../lib/useReducedMotion';
 import { msg } from '../i18n';
 import { createOverlayQueue, OVERLAY_GAP, type OverlayQueue } from '../lib/overlayQueue';
 import type { PrintTarget, ProFeature, YearView } from '../lib/contracts';
+import { GEO } from '../theme/tokens';
 
 export type Screen = 'dashboard' | 'grid' | 'detail' | 'today' | 'stats' | 'settings' | 'year';
 
-/** 탭바 높이(아래 안전 영역 제외) — 위 여백 8 + 탭 한 칸 44. 토스트처럼 바닥에 붙는 것은 이 위에 선다 */
-export const TAB_BAR_H = 52;
+// ── 떠 있는 탭 막대의 자리(docs/design/build-plan.md §3 C) ──────────────────────
+// 종이 알약(네 곳) + 따로 선 담기 단추가 화면 바닥에서 떠 있다. 내용은 그 밑으로 흘러가고, 막대 위 40pt부터 종이로 흐려진다.
+
+/** 탭 막대 높이(알약 · 담기 단추) */
+export const TAB_BAR_H = GEO.bar.h;
+
+/** 탭 막대가 화면 바닥에서 떠 있는 거리 — 홈 표시줄이 있는 기기는 그 안전 영역에 4pt 겹쳐 앉는다 */
+export function tabBarBottom(insetBottom: number): number {
+  return Math.max(GEO.bar.bottom, insetBottom - 4);
+}
+
+/** 탭 막대 위 끝(화면 바닥에서) — 토스트처럼 막대 위에 서는 것의 기준 */
+export function tabBarTop(insetBottom: number): number {
+  return tabBarBottom(insetBottom) + TAB_BAR_H;
+}
+
+/** 탭 막대가 있는 화면의 스크롤 아래 여백 — 막대 + 떠 있는 거리 + 24(마지막 줄이 막대에 가리지 않게) */
+export function tabClearance(insetBottom: number): number {
+  return tabBarTop(insetBottom) + GEO.gutter;
+}
 
 /**
  * 시트·모달이 모두 닫힌 뒤 다음 것을 띄우기까지 기다리는 시간(ms) — lib/overlayQueue.ts.
@@ -424,6 +443,11 @@ export function useUIActions(): UIActions {
 /** UIProvider 밖(오류 화면 등)에서도 그려지는 Sheet용 — 없으면 null */
 export function useOptionalUIActions(): UIActions | null {
   return useContext(ActionsCtx);
+}
+
+/** UIProvider 밖에서도 그려지는 머리(뒤로 가기 이름표)용 — 없으면 null */
+export function useOptionalUIState(): UIState | null {
+  return useContext(StateCtx);
 }
 
 /** 지금 토스트 — 토스트가 뜨고 질 때만 다시 그려진다 */

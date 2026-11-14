@@ -63,9 +63,11 @@ test('대비 증가: 도트 종이·체크 칸 테두리가 진해진다', () =>
   const dots = read('src/components/PaperDots.tsx');
   assert.match(dots, /useIncreaseContrast\(\)/);
   assert.match(dots, /patternInk\(pattern, M\.dark \? DARK : LIGHT, more\)/);
+  // 체크 칸 테두리는 토큰 printEdge — 대비 증가 팔레트(moreContrast)에서 ink2가 된다(kit/CheckBox), 점선 칸은 checkEdge
   const check = read('src/components/Check.tsx');
-  assert.match(check, /rgba\(43,38,32,0\.70\)/);
-  assert.match(check, /width: 2/);
+  assert.match(check, /more \? T\.ink2 : T\.printEdge/);
+  assert.match(read('src/components/kit/CheckBox.tsx'), /borderColor: M\.printEdge/);
+  for (const P of [PALETTE.light, PALETTE.dark]) assert.equal(contrastPalette(P).printEdge, P.ink2);
   const pal = read('src/theme/usePalette.ts');
   assert.match(pal, /useIncreaseContrast\(\)/);
   assert.match(pal, /WeakMap/);

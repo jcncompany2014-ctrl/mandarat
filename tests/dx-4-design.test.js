@@ -18,11 +18,7 @@ function lumOver(rgba, bg) {
   return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
 }
 
-test('D-14: 탭바의 지금 탭 표시는 윗 괘선 위가 아니라 탭바 안(top: 3)', () => {
-  const s = src('src/navigation/Root.tsx');
-  assert.match(s, /position: 'absolute' as const, top: 3, left: 0, width: IND_W, height: 2/);
-  assert.doesNotMatch(s, /top: -1, left: 0, width: IND_W/);
-});
+// D-14(탭바 위 지금 탭 표시 막대)는 디자인 A의 떠 있는 탭 막대(고른 탭은 칠한 글리프)로 바뀌어 지웠다 — tests/a-chrome.test.js가 본다
 
 test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 10주 칸은 오른쪽 끝까지', () => {
   assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr=\{st\.screenTitle\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);

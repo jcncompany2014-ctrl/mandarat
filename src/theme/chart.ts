@@ -8,10 +8,11 @@
 // - 가운데 칸 = 핵심 목표(토큰 core — 어둡게도 뒤집지 않는 깊은 회색. 옛 무드 표만 다크에서 밝게 뒤집는다).
 // - 괘선은 바깥 테두리 > 블록 사이 > 칸 사이 순으로 가늘어진다.
 import type { CellShape } from '../types';
-import { PRETENDARD_GLYPHS, breakUnits, textWidth, type Glyphs } from '../lib/labelFit';
+import { breakUnits, textWidth, type Glyphs } from '../lib/labelFit';
 import { lang, msg, type Lang } from '../i18n';
 import { alpha, mix, tint, toHex } from './moods';
 import { contrast } from './palette';
+import { DEFAULT_RATIO, MAP_LABEL, MAP_MAX, mapGeometry, mapLabel, mapLabelBox } from '../components/chart/geometry';
 
 /**
  * 표 색을 고를 때 필요한 팔레트 조각 — 앱 팔레트(M)나 토큰(LIGHT · DARK)을 그대로 넘긴다.
@@ -218,24 +219,27 @@ export function estimateLines(text: string, width: number, fs: number, g?: Glyph
   return lines;
 }
 
-/** 81칸 표의 칸 글자 크기 — 영역 이름·핵심 목표(FullGrid의 머리 칸·가운데 칸) */
-export const CHART_HEAD_FS = 9.5;
+/** 색 지도(L2) 칸 글의 처음 크기 — 영역 이름 10pt(ROLE.mapHead). 넘치면 9 · 8pt(components/chart/geometry MAP_LABEL) */
+export const CHART_HEAD_FS = MAP_LABEL.head.sizes[0];
 
 /**
- * 81칸에서 영역 이름(theme)·핵심 목표(center)가 몇 줄로 보이는지 — 화면 폭 winW의 실제 칸으로 어림한다.
- * 표 폭은 winW − 22, 칸 폭은 (표 폭 − 테두리 2개) / 9, 글자 자리는 칸 안쪽 여백 2씩과 칸 사이 선을 뺀 폭.
- * 머리 칸은 3줄, 가운데 칸은 4줄까지 보인다(그 뒤는 말줄임).
+ * 색 지도(만다라트 탭의 L2)에서 영역 이름(theme)·핵심 목표(center)가 몇 줄로 보이는지 — 지도가 그리는 그대로 잰다.
+ * 지도 폭은 화면 폭 − 48(본문 폭, 아이패드는 520까지), 칸은 그 지도의 가장 좁은 칸, 글은 mapLabel이 맞추는 크기(10 → 9 → 8pt).
+ * lines: 다 담으려면 필요한 줄 수(가장 작은 크기에서), max: 칸에 드는 줄 수(이름 3줄 · 목표 4줄까지, 칸 높이만큼).
  */
-export function chartFit(text: string, kind: 'theme' | 'center', winW: number): { lines: number; max: number } {
-  const cellW = (winW - 22 - RULE.frame * 2) / 9;
-  const max = kind === 'center' ? 4 : 3;
-  return { lines: estimateLines(text.trim(), cellW - 4 - RULE.cell, CHART_HEAD_FS, PRETENDARD_GLYPHS), max };
+export function chartFit(
+  text: string, kind: 'theme' | 'center', winW: number, l: Lang = lang(), ratio: number = DEFAULT_RATIO,
+): { lines: number; max: number } {
+  const g = mapGeometry({ width: Math.max(0, Math.min(MAP_MAX, winW - 48)), ratio });
+  const box = mapLabelBox(g);
+  const lab = mapLabel(text, kind === 'center' ? 'core' : 'head', box.w, box.h, l);
+  return { lines: lab.need, max: lab.max };
 }
 
-/** 고치는 칸 아래 한 줄 — 81칸에 다 들어가는지(빈 글이면 null) */
+/** 고치는 칸 아래 한 줄 — 색 지도에 다 들어가는지(빈 글이면 null) */
 export function chartFitHint(text: string, kind: 'theme' | 'center', winW: number, l: Lang = lang()): string | null {
   if (!text.trim()) return null;
-  const { lines, max } = chartFit(text, kind, winW);
+  const { lines, max } = chartFit(text, kind, winW, l);
   const c = msg(l).core;
   return lines <= max ? c.fitAll : c.fitLines({ max });
 }

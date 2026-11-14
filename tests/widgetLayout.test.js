@@ -29,6 +29,18 @@ function doc(extra = {}) {
   };
 }
 const real = () => widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'ko' })[0].props;
+/** 예전 앱이 쓴 스냅숏(새 앱을 처음 열기 전 잠깐) — cells · names · a · r · 새 팔레트 · 새 문구가 없다 */
+function oldSnapshot() {
+  const { cells, names, ...rest } = real();
+  const oldPal = (dark) => (dark
+    ? { paper: '#0E0D14', ink: '#F1EFEA', sub: '#9C9AAA', line: '#FFFFFF1C', accent: '#CBA352' }
+    : { paper: '#FBF9F4', ink: '#2B2620', sub: '#6F6657', line: '#6E55281F', accent: '#8B6D34' });
+  const { listHead, nextHead, leftUnit, focus, ...lines } = rest.lines;
+  return {
+    ...rest, lines, pal: { light: oldPal(false), dark: oldPal(true) },
+    items: rest.items.map(({ a, r, ...i }) => ({ ...i, c: '#6B8F71' })), areas: [1, 1, 0, 0, 0, 0, 0, 0], colors: Array(8).fill('#6B8F71'),
+  };
+}
 
 test('바꾼 결과 — TodayLayout은 글자이고, 모듈 이름이나 babel 도움 함수를 부르지 않는다', () => {
   assert.equal(typeof layout, 'string');
@@ -72,12 +84,17 @@ function check(node, family, label) {
   });
   assert.equal(new Set(targets).size, targets.length, `${label}: target이 겹친다`);
   for (const t of targets) assert.equal(typeof t, 'string', `${label}: target`);
-  if (LOCK.has(family)) assert.equal(targets.length, 0, `${label}: 잠금 화면에는 버튼이 없다`);
+  // 잠금 화면에서는 네모(다음 할 일)의 체크 상자 하나만 버튼이다
+  if (family === 'accessoryRectangular') assert.ok(targets.length <= 1, `${label}: 네모의 버튼은 하나까지`);
+  else if (LOCK.has(family)) assert.equal(targets.length, 0, `${label}: 한 줄 · 동그라미에는 버튼이 없다`);
   return targets;
 }
 
-test('여섯 크기 × 빈 props · 실제 props × 밝게·어둡게 × 전체 색·틴트·잠금 화면 — 모두 그려진다', () => {
-  const propsSets = { empty: {}, real: real(), allDone: widgetTimeline(doc({ todayKeys: [], todayExtra: [] }), new Date(2026, 9, 20, 9), { pat: 'grid', lang: 'en' })[0].props };
+test('여섯 크기 × 빈 props · 실제 props · 예전 스냅숏 × 밝게·어둡게 × 전체 색·틴트·잠금 화면 — 모두 그려진다', () => {
+  const propsSets = {
+    empty: {}, real: real(), old: oldSnapshot(),
+    allDone: widgetTimeline(doc({ todayKeys: [], todayExtra: [] }), new Date(2026, 9, 20, 9), { pat: 'grid', lang: 'en' })[0].props,
+  };
   for (const family of FAMILIES) {
     for (const [name, props] of Object.entries(propsSets)) {
       for (const colorScheme of ['light', 'dark']) {
@@ -108,14 +125,18 @@ test('종이 무늬 — 모눈·줄은 괘선을 긋고, 점·민무늬는 긋�
   assert.equal(count('grid'), 60);
 });
 
-test('중간·크게는 줄마다 체크 버튼(check:<k>), 작게는 버튼 없이 표만', () => {
+test('중간(세 줄)·크게(여섯 줄)는 줄마다 체크 버튼(check:<k>), 잠금 네모는 다음 할 일 하나, 작게·동그라미·한 줄은 버튼 없이', () => {
   const p = real();
+  assert.ok(p.items.length >= 4, '줄이 셋보다 많은 날');
   const t = (family) => check(rt.render(p, { widgetFamily: family }), family, family);
   assert.deepEqual(t('systemSmall'), []);
-  const medium = t('systemMedium');
-  assert.equal(medium.length, Math.min(4, p.items.length));
-  assert.deepEqual(medium, p.items.slice(0, 4).map((i) => `check:${i.k}`));
-  assert.deepEqual(t('systemLarge'), p.items.slice(0, 8).map((i) => `check:${i.k}`));
+  assert.deepEqual(t('systemMedium'), p.items.slice(0, 3).map((i) => `check:${i.k}`));
+  assert.deepEqual(t('systemLarge'), p.items.slice(0, 6).map((i) => `check:${i.k}`));
+  assert.deepEqual(t('accessoryRectangular'), [`check:${p.items.find((i) => !i.d).k}`]);
+  assert.deepEqual(t('accessoryCircular'), []);
+  assert.deepEqual(t('accessoryInline'), []);
+  // 다 했거나 빈 날의 네모는 버튼 없이 문구만
+  assert.deepEqual(check(rt.render({ ...p, done: p.total, items: p.items.map((i) => ({ ...i, d: true })) }, { widgetFamily: 'accessoryRectangular' }), 'accessoryRectangular', 'rect/allDone'), []);
 });
 
 test('check:0-1을 누르면 done + 1, 그 줄이 했어요로, ops에 하나가 붙는다', () => {
@@ -168,15 +189,32 @@ test('글은 props의 틀에서만 — 남은 수 · 다 했어요 · 비었어�
   const p = real();
   const left = p.total - p.done;
   assert.ok(texts(p, 'accessoryInline').includes(`오늘 ${left}개 남았어요`));
-  assert.ok(texts(p, 'systemMedium').includes(`오늘 ${left}개 남았어요`));
+  // 중간: '● 오늘 할 일' … 남은 수 굵게 + '개 남음'(틀 '{n}개 남음'을 나눠 그린다)
+  const medium = texts(p, 'systemMedium');
+  for (const w of ['오늘 할 일', String(left), '개 남음']) assert.ok(medium.includes(w), `medium: ${w}`);
+  assert.ok(texts(p, 'systemSmall').includes('오늘'));
   assert.ok(texts(p, 'systemSmall').includes(`${p.done}/${p.total}`));
   assert.ok(texts(p, 'systemLarge').includes('단단한 한 해'));
+  assert.ok(texts(p, 'systemLarge').includes(`${p.done}/${p.total}`));
+  assert.ok(texts(p, 'systemLarge').includes(p.date));
   const done = { ...p, done: p.total };
   assert.ok(texts(done, 'accessoryInline').includes('오늘 할 일을 다 했어요'));
   assert.ok(texts(done, 'systemMedium').includes('오늘 할 일을 다 했어요'));
   const empty = { ...p, done: 0, total: 0, items: [], more: 0 };
   assert.ok(texts(empty, 'accessoryInline').includes('오늘 담은 일이 없어요'));
-  assert.ok(texts(p, 'accessoryRectangular').some((t) => t.startsWith('다음 할 일: ')));
+  assert.ok(texts(empty, 'systemMedium').includes('오늘 담은 일이 없어요'));
+  // 잠금 네모: '● 다음 할 일' + 할 일 글
+  const rect = texts(p, 'accessoryRectangular');
+  assert.ok(rect.includes('다음 할 일'));
+  assert.ok(rect.includes(p.items.find((i) => !i.d).t));
+  // 잠금 동그라미: '오늘' · 한 수 · '/모두'
+  const circ = texts(p, 'accessoryCircular');
+  for (const w of ['오늘', String(p.done), `/${p.total}`]) assert.ok(circ.includes(w), `circular: ${w}`);
+  // ja · en은 틀의 앞뒤가 다르다('あと{n}件' · '{n} left')
+  const ja = texts(widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'ja' })[0].props, 'systemMedium');
+  for (const w of ['今日やること', 'あと', String(left), '件']) assert.ok(ja.includes(w), `ja: ${w}`);
+  const en = texts(widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'en' })[0].props, 'systemMedium');
+  for (const w of ["Today's list", String(left), ' left']) assert.ok(en.includes(w), `en: ${w}`);
   // 빈 props는 글이 없을 뿐 깨지지 않는다
   for (const f of FAMILIES) for (const t of texts({}, f)) assert.doesNotMatch(t, /undefined|NaN|\{[nt]\}/);
 });
@@ -209,14 +247,22 @@ test('줄의 읽어 주기 — 한 일은 checked, 아직 안 한 일은 uncheck
   });
 });
 
-test('표의 읽어 주기는 빗금 없이 말로(R-7 A-4)', () => {
+test('한 수의 읽어 주기는 빗금 없이 말로(R-7 A-4) — 작게 · 크게 · 동그라미는 한 수, 중간은 남은 수', () => {
   const p = real();
   const want = `오늘 ${p.total}개 중 ${p.done}개 했어요`;
-  for (const family of ['systemSmall', 'systemMedium', 'systemLarge', 'accessoryRectangular']) {
+  const wantLeft = `오늘 ${p.total - p.done}개 남았어요`;
+  const STACKS = new Set(['VStackView', 'HStackView', 'ZStackView']);
+  for (const [family, w] of [['systemSmall', want], ['systemLarge', want], ['accessoryCircular', want], ['systemMedium', wantLeft]]) {
     const said = [];
-    walk(rt.render(p, { widgetFamily: family }), (n) => { const a = modArgs(n, 'accessibilityLabel'); if (a && (n.type === 'VStackView' || n.type === 'HStackView' || n.type === 'VStack' || n.type === 'HStack')) said.push(a[0]); });
-    assert.ok(said.includes(want), `${family}: ${said.join(' | ')}`);
+    walk(rt.render(p, { widgetFamily: family }), (n) => { const a = modArgs(n, 'accessibilityLabel'); if (a && STACKS.has(n.type)) said.push(a[0]); });
+    assert.ok(said.includes(w), `${family}: ${said.join(' | ')}`);
     for (const s of said) assert.doesNotMatch(s, /\d\/\d/, `${family}: ${s}`);
+    // 그 머리는 하나로 읽힌다(글 조각 '1/10'을 따로 읽지 않는다)
+    let combined = false;
+    walk(rt.render(p, { widgetFamily: family }), (n) => {
+      if (modArgs(n, 'accessibilityLabel')?.[0] === w && JSON.stringify(modArgs(n, 'accessibilityElement')) === '["ignore"]') combined = true;
+    });
+    assert.ok(combined, `${family}: accessibilityElement('ignore')`);
   }
   const en = widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'en' })[0].props;
   const said = [];
@@ -224,30 +270,20 @@ test('표의 읽어 주기는 빗금 없이 말로(R-7 A-4)', () => {
   assert.ok(said.includes(`${en.done} of ${en.total} done today`), said.join(' | '));
 });
 
-test('한 일 줄의 글은 sub 그대로 — 불투명도를 더 걸지 않는다(R-7 A-3b)', () => {
+test('한 일 줄의 글은 ink2 그대로 — 불투명도를 더 걸지 않는다(R-7 A-3b)', () => {
   const p = real();
-  const P = p.pal.light;
-  let seen = 0;
-  walk(rt.render(p, { widgetFamily: 'systemLarge', colorScheme: 'light' }), (n) => {
-    if (n.type !== 'TextView' || !p.items.some((i) => i.t === n.props.text)) return;
-    const it = p.items.find((i) => i.t === n.props.text);
-    assert.equal(modArgs(n, 'foregroundStyle')[0], it.d ? P.sub : P.ink, it.t);
-    assert.equal(modArgs(n, 'opacity'), null, `${it.t}: 글에 opacity 없음`);
-    seen++;
-  });
-  assert.ok(seen >= 2);
-});
-
-test("가운데 칸의 '오늘'은 9pt medium, 작은 표(32pt 이하)에서는 빠진다(R-6 D-11)", () => {
-  const p = real();
-  const captions = (family) => {
-    const out = [];
-    walk(rt.render(p, { widgetFamily: family }), (n) => { if (n.type === 'TextView' && n.props.text === '오늘') out.push(JSON.stringify(modArgs(n, 'font')[0])); });
-    return out;
-  };
-  assert.deepEqual(captions('systemSmall'), []);
-  assert.deepEqual(captions('systemMedium'), []);
-  assert.deepEqual(captions('systemLarge'), [JSON.stringify({ size: 9, weight: 'medium' })]);
+  for (const scheme of ['light', 'dark']) {
+    const P = p.pal[scheme];
+    let seen = 0;
+    walk(rt.render(p, { widgetFamily: 'systemLarge', colorScheme: scheme }), (n) => {
+      if (n.type !== 'TextView' || !p.items.some((i) => i.t === n.props.text)) return;
+      const it = p.items.find((i) => i.t === n.props.text);
+      assert.equal(modArgs(n, 'foregroundStyle')[0], it.d ? P.ink2 : P.ink, it.t);
+      assert.equal(modArgs(n, 'opacity'), null, `${it.t}: 글에 opacity 없음`);
+      seen++;
+    });
+    assert.ok(seen >= 2);
+  }
 });
 
 test('종이 무늬 선은 목록 괘선보다 옅다 — opacity 0.55(R-6 D-4)', () => {

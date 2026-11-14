@@ -12,6 +12,7 @@ const { focusProps, focusLines, focusStartOf, FOCUS_URL, FOCUS_DONE_LINGER_MS } 
 const { plistSafe } = require('../src/lib/widgetSnapshot');
 const { FOCUS_TOTAL, fmtClock } = require('../src/lib/focusClock');
 const { msg } = require('../src/i18n');
+const { LIGHT, DARK } = require('../src/theme/tokens');
 const { VIEWS, widgetRuntime, walk } = require('./helpers/widgetVm');
 
 const ROOT = path.join(__dirname, '..');
@@ -50,15 +51,25 @@ test('focusProps — plist에 그대로 들어간다(null · undefined · Date �
   assert.equal(p.url, 'mandarat://focus');
   assert.equal(FOCUS_URL, 'mandarat://focus');
   assert.equal(FOCUS_DONE_LINGER_MS, 5 * 60 * 1000);
-  // 다크 무드면 밝은 판은 미색(연꽃), 어두운 판은 다크
-  const d = focusProps({ ...base, mood: '다크' });
-  assert.equal(d.pal.light.paper, '#FBF9F4');
-  assert.equal(d.pal.dark.paper, '#0E0D14');
+  // 무드 · 포인트 컬러는 읽지 않는다 — 판은 늘 토큰(밝게 LIGHT · 어둡게 DARK)
+  for (const mood of ['연꽃', '다크']) {
+    const d = focusProps({ ...base, mood, accent: '#123456' });
+    assert.equal(d.pal.light.paper, LIGHT.paper);
+    assert.equal(d.pal.dark.paper, DARK.paper);
+    assert.deepEqual(d, focusProps({ ...base, mood: undefined, accent: undefined }));
+  }
+  // 영역 번호가 있으면 영역 색은 dye[ti](밝게 · 어둡게 따로), 없으면 넘긴 색
+  const t1 = focusProps({ ...base, ti: 1 });
+  assert.equal(t1.pal.light.dye, LIGHT.dye[1]);
+  assert.equal(t1.pal.dark.dye, DARK.dye[1]);
+  assert.equal(t1.c, LIGHT.dye[1]);
+  assert.equal(focusProps(base).pal.dark.dye, '#6B8F71');
   // 비어 있거나 이상한 값도 plist에 들어간다
-  const odd = focusProps({ text: '', area: '', color: '', mood: '없음', startAt: NaN, endAt: NaN, pausedLeft: NaN });
+  const odd = focusProps({ text: '', area: '', color: '', mood: '없음', startAt: NaN, endAt: NaN, pausedLeft: NaN, ti: 9 });
   assert.equal(plistSafe(odd), odd);
   assert.equal(odd.paused, -1);
   assert.ok(odd.start <= odd.end);
+  assert.equal(odd.pal.light.dye, LIGHT.ink2, '영역 색이 없으면 ink2');
 });
 
 test('focusProps — 멈춤과 끝', () => {
@@ -210,16 +221,16 @@ test('도는 중 — 타이머 글이 시작~끝으로 스스로 줄고, 진행 
   assert.ok(find(out.expandedBottom, (n) => n.type === 'ProgressView'));
   const t = texts(out.banner);
   assert.ok(t.includes('보고서 초안 쓰기'));
-  assert.ok(t.includes(p.lines.focus));
-  // 영역 색은 네모 한 칸
-  const sq = find(out.compactLeading, (n) => n.type === 'RectangleView');
-  assert.ok(sq.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.c));
+  assert.ok(t.includes(p.lines.label), '도는 동안 첫 줄은 25분 집중');
+  // 영역 색은 네모 한 칸 — 아일랜드는 늘 검은 바탕이라 어두운 판의 영역 색
+  const sq = find(out.compactLeading, (n) => n.type === 'RoundedRectangleView');
+  assert.ok(sq.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.pal.dark.dye));
   // 가장 작게는 영역 네모 하나 — 시계 글은 36pt 캡슐에서 잘리므로 두지 않는다(R-6 D-10)
-  assert.equal(out.minimal.type, 'RectangleView');
-  assert.ok(out.minimal.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.c));
+  assert.equal(out.minimal.type, 'RoundedRectangleView');
+  assert.ok(out.minimal.props.modifiers.some((m) => m.$type === 'foregroundStyle' && m.args[0] === p.pal.dark.dye));
   assert.equal(find(out.minimal, (n) => n.type === 'TextView'), null);
   for (const m of [focusProps({ ...base, pausedLeft: 60_000 }), focusProps({ ...base, done: true })]) {
-    assert.equal(rt.render(m, {}).minimal.type, 'RectangleView');
+    assert.equal(rt.render(m, {}).minimal.type, 'RoundedRectangleView');
   }
   // 글이 없으면 영역 이름으로
   assert.ok(texts(rt.render(focusProps({ ...base, text: '' }), {}).banner).includes('일'));

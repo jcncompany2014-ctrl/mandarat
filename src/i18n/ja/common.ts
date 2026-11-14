@@ -13,4 +13,5 @@ export default {
   back: '前へ',
   proMark: 'プロ',
   iosOnly: 'iPhone・iPadのアプリで使えます',
+  swatchWord: 'あ',
 } satisfies Like<typeof ko>;

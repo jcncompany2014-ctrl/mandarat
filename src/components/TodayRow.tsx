@@ -1,52 +1,47 @@
-import React, { memo, startTransition, useEffect, useMemo, useOptimistic, useRef } from 'react';
-import { Animated, Pressable, View } from 'react-native';
-import { useWindowDimensions } from '../lib/screen';
-import { Text } from './AppText';
-import { Check } from './Check';
+import React, { memo, startTransition, useMemo, useOptimistic, useRef } from 'react';
+import { Pressable, View } from 'react-native';
+import { Text, a11yLangProp } from './AppText';
 import { Icon } from './Icon';
-import { KindMeta, alertInk } from './KindBits';
-import { WeekStrip } from './WeekStrip';
-import { RowDivider, pressedRow } from './common';
-import { alpha, tint } from '../theme/moods';
-import { EASE } from '../theme/motion';
+import { metaText } from './KindBits';
+import { CheckBox } from './kit/CheckBox';
+import { RowMeta, RowRight, RowRule, RowTitle } from './kit/Row';
+import { CHIP, KIT_TYPE, ROW, hitFor } from './kit/metrics';
 import type { M } from '../theme/usePalette';
 import { useDoc } from '../store/MandaratContext';
-import { reducedMotion } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { checkHintText } from '../lib/todayCheck';
 import { countInfo, kindLine, type KindLine } from '../lib/kinds';
-import { daysBetween, perWeekOf, routineWeek, routineWeekCount, weekDates, ymd, type DayState, type TodayItem } from '../lib/routine';
+import { daysBetween, perWeekOf, routineWeek, weekDates, ymd, type TodayItem } from '../lib/routine';
 import { weekStripSummary, weekdayIndex } from '../lib/marks';
 import { fmtDue } from '../lib/text';
 import { tap } from '../lib/haptics';
 import { TID } from '../lib/testIds';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
 import type { Action, MandaratDoc, TodayExtra } from '../types';
-import { msg } from '../i18n';
 import { useMsg } from '../i18n/react';
 
 /**
- * 오늘 할 일 한 줄 — 홈(W3-A) · 오늘 목록(W3-B) · 오늘 보기들(W3-C)이 그대로 쓴다.
+ * 오늘 할 일 한 줄 — 홈 · 오늘 목록 · 오늘 보기들이 그대로 쓴다. 그림은 kit의 줄(A.row) 그대로.
  *
  * Props
  * - M: 팔레트
  * - item: 실천 줄(TodayItem — routine.todayItems) 또는 직접 추가한 할 일(TodayExtra — doc.todayExtra)
- * - variant: 'home' | 'list' — 남은 일 줄(두 줄 제목 + 작은 정보 줄). 지금은 같은 모양이고, 화면마다 달라질 자리로 나눠 둔다.
- *            'done' — '했어요' 묶음의 줄. 한 줄, 정보 줄 없음, 체크 칸 옅게, 제목 회색 + 먹선이 왼쪽에서 오른쪽으로 그어진다.
+ * - variant: 'home' | 'list' — 줄(제목 + 정보 줄). 지금은 같은 모양이고, 화면마다 달라질 자리로 나눠 둔다.
+ *            'done' — '했어요' 묶음의 줄: 정보 줄 없이 제목 한 줄. 끝낸 줄은 어느 variant든 제목 ink2 + 먹선.
  * - onOpen: 실천 줄 몸통을 눌렀을 때(보통 openAction(ti, ai)). 직접 추가한 할 일은 몸통을 누르면 체크한다.
- * - showRight: 오른쪽 81pt 칸(이번 주 칸 · '+1권' · 'D-3' · ×)을 그릴지. 기본 true.
+ * - showRight: 오른쪽 하나('D-3' · '+1권' · ×)를 그릴지. 기본 true.
+ * - rightPrint: 오른쪽에 인쇄된 낱말(이번 주 중점의 '중점') — 마감 'D-3' 자리를 대신한다(마감은 정보 줄로).
  * - onCheck(done): 체크를 바꾸기 바로 전에 — done은 바꾸기 전 상태. 화면이 줄을 잠깐 붙잡거나(useSettle.hold)
  *                  자리를 부드럽게 옮길 때(animateLayout) 쓴다. 기록·촉감·토스트·읽어 주기는 useTodayCheck가 맡는다.
- * - divider: 위쪽에 가는 선(글자가 시작하는 곳부터) — 묶음의 첫 줄이 아니면 true.
+ * - divider: 위쪽에 머리카락 선(글자가 시작하는 x 38부터) — 묶음의 첫 줄이 아니면 true.
  *
- * 모양: 체크 26(따로 누름, hitSlop 10) | 제목 16/21 '700' 두 줄 + 정보 줄(7×7 영역 네모 · 영역 이름 · 유형 정보 13/'500')
- *       | 오른쪽 81pt(오른쪽 맞춤): 습관 → 이번 주 칸, 쌓기 → '+1권' 버튼(다 한 줄에도), 마감 있는 한 번 → 'D-3', 직접 추가 → ×(남은 줄만).
- * 높이는 54 이상, 위아래 8(다 한 줄은 9).
+ * 모양(54 이상, 사이 14): 체크 칸 24(영역 번호의 wash · dye, 따로 누름 hitSlop 10 → 44) | 제목 rowTitle 한 줄
+ *       + 정보 줄(영역 표시 · 영역 이름 · 유형 정보 rowMeta — 습관은 '이번 주 0/3회' · '월·수·금 반복')
+ *       | 오른쪽 하나: 마감 있는 한 번 → 'D-3'(rowRight, 제목 줄 위), 쌓기 → '+1권' 칩(다 한 줄에도), 직접 추가 → ×(남은 줄만).
  *
  * 화면 읽기: 체크 칸 = 글 그대로(쌓기는 '책 읽기, 1권 더하기') + 체크 힌트(todayCheck.checkHintText).
  * 실천 줄 몸통은 버튼 하나로(글 · 영역 · 유형 정보(소리로 읽을 말) · 이번 주 · 했어요) 읽고, 사용자 지정 동작
- * '자세히 보기' · '했어요로 남기기'/'했어요 지우기'를 함께 준다. 습관 줄의 이번 주 칸은 몸통이 함께 읽으므로 따로 멈추지 않는다
- * (체크 칸 + 몸통, 두 번이면 한 줄을 다 듣는다).
+ * '자세히 보기' · '했어요로 남기기'/'했어요 지우기'를 함께 준다(체크 칸 + 몸통, 두 번이면 한 줄을 다 듣는다).
  * 직접 추가한 할 일은 체크 칸 하나로만 읽힌다(지우기는 사용자 지정 동작).
  */
 export type TodayRowItem = TodayItem | TodayExtra;
@@ -57,28 +52,21 @@ export interface TodayRowProps {
   variant: 'home' | 'list' | 'done';
   onOpen?: () => void;
   showRight?: boolean;
+  /** 오른쪽 인쇄된 낱말(중점) */
+  rightPrint?: string;
   onCheck?: (done: boolean) => void;
   divider?: boolean;
 }
 
 const isExtra = (item: TodayRowItem): item is TodayExtra => 'id' in item;
 
-/** 체크 칸 크기 · 체크 칸과 글 사이 — 줄 사이 선은 글이 시작하는 곳(26 + 12)부터 */
-const CHECK = 26;
-const GAP = 12;
-export const TODAY_ROW_INSET = CHECK + GAP;
-/** 오른쪽 칸 폭 — 이번 주 칸(WeekStrip row)과 같은 81pt */
-const RIGHT_W = 81;
-/** 직접 적은 줄의 × 칸 — 28pt 단추 + 4pt(누르는 범위는 hitSlop 12로 52pt) */
-const REMOVE_W = 32;
-/** 제목 줄 높이 — 먹선은 이 높이의 0.55 자리에 긋는다 */
-const TITLE_LH = 21;
-/** 먹선이 그어지는 시간 · 체크 획이 끝날 때까지(Check: 칠 60ms 뒤 170ms) 기다리는 시간 */
-const STRIKE_MS = 220;
-const STRIKE_DELAY = 230;
+/** 줄 사이 선의 시작 — 체크 칸 24 + 사이 14(kit ROW.inset). 홈 · 오늘 화면의 다른 줄도 이 값에 맞춘다 */
+export const TODAY_ROW_INSET = ROW.inset;
+/** 직접 적은 줄의 × — 28pt 단추(누르는 범위는 hitSlop 12로 52pt) */
+const REMOVE_BTN = 28;
 
 /**
- * 줄 하나는 둘로 나뉜다 — 바깥(TodayRow)은 문서를 읽어 그릴 값(글·색·정보 줄·이번 주 칸…)만 고르고,
+ * 줄 하나는 둘로 나뉜다 — 바깥(TodayRow)은 문서를 읽어 그릴 값(글 · 영역 · 정보 줄…)만 고르고,
  * 안쪽(RowView, memo)은 그 값이 바뀌었을 때만 다시 그린다. 다른 줄을 체크해 문서가 바뀌어도 이 줄은 그대로.
  * 누를 때 쓰는 함수는 한 번 만들어 두고 최신 item · onOpen · onCheck를 ref로 읽는다.
  *
@@ -88,7 +76,7 @@ const STRIKE_DELAY = 230;
  * onOpen · onCheck는 누를 때만 읽는다 — 부모가 그릴 때마다 같은 뜻의 새 함수를 넘겨도 줄은 다시 그리지 않는다
  * (item · variant · divider 같은 값이 그대로면). 줄마다 뜻이 다른 함수를 넘길 때는 item이 달라 그대로 맞는다.
  */
-export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showRight = true, onCheck, divider = false }: TodayRowProps) {
+export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showRight = true, rightPrint, onCheck, divider = false }: TodayRowProps) {
   const { doc, clock } = useDoc();
   const m = useMsg();
   const tc = useTodayCheck();
@@ -96,7 +84,6 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   const extra = isExtra(item);
   const ti = item.ti;
   const th = doc.themes[ti];
-  const color = th?.color ?? M.sub;
   const area = th?.title.trim() || m.sheet.areaFallback({ n: ti + 1 });
   const doneRow = variant === 'done';
 
@@ -106,7 +93,7 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   const text = extra ? item.text : a?.text ?? '';
   const seed = extra ? `x${item.id}` : item.key;
 
-  // 정보 줄 · 이번 주 칸 · 체크 이름은 이 줄의 실천(a)과 이번 주 일곱 날의 기록만 읽는다 —
+  // 정보 줄 · 체크 이름은 이 줄의 실천(a)과 이번 주 일곱 날의 기록만 읽는다 —
   // 다른 줄을 체크해 문서가 바뀌어도(그날 기록 배열만 새로 바뀐다) 이 줄은 다시 세지 않는다.
   const day = ymd(new Date());
   const week = useMemo(() => weekDates(new Date()).map(ymd), [day]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -121,8 +108,9 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   const dueDays = info?.dueDays ?? null;
   const checkLabel = useMemo(() => (it ? tc.checkLabel(it) : text), [tc, it?.key, it?.kind, a, text]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 오른쪽 칸에 그릴 것
+  // 오른쪽에 그릴 것 — 인쇄된 낱말(중점)이 마감 자리를 대신한다
   let right: RightCol = info?.right ?? null;
+  if (rightPrint && (!right || right.kind === 'due')) right = { kind: 'print', text: rightPrint };
   if (!right && showRight && extra && !done && !doneRow) right = { kind: 'remove' };
 
   // ── 누를 때 ──────────────────────────────────────────────────────────────────
@@ -159,24 +147,25 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   }), [tc]);
 
   // ── 화면 읽기 ──────────────────────────────────────────────────────────────
-  // 오른쪽 '마감 D-3'과 이번 주 칸은 화면 읽기에서 숨기고 몸통 이름에 한 번만 넣는다(소리로 읽을 말로)
-  const bodyLabel = [text, area, line?.speech, info?.weekSpeech, done ? m.sheet.rowDone : ''].filter(Boolean).join(', ');
+  // 오른쪽 '마감 D-3'은 화면 읽기에서 숨기고 몸통 이름에 한 번만 넣는다(소리로 읽을 말로)
+  const bodyLabel = [text, area, line?.speech, info?.weekSpeech, rightPrint, done ? m.sheet.rowDone : ''].filter(Boolean).join(', ');
   const toggleName = done
     ? (count ? m.sheet.rowUnlog : m.sheet.rowUndone)
     : count ? m.sheet.countPlus({ n: count.step, unit: count.unit }) : m.sheet.rowMarkDone;
+
+  // 정보 줄 — 마감은 오른쪽에 이미 있으면 되풀이하지 않는다. 직접 적은 줄은 '영역 · 직접 적음'
+  const metaLine = line && !(dueDays !== null && right?.kind === 'due') ? line : null;
+  const meta = extra ? `${area}${m.core.dot}${m.sheet.rowWritten}` : metaLine ? `${area}${m.core.dot}${metaText(metaLine)}` : area;
 
   return (
     <RowView
       M={M}
       extra={extra}
       text={text}
-      area={area}
-      color={color}
+      ti={ti}
+      meta={doneRow ? '' : meta}
       done={done}
-      doneRow={doneRow}
       seed={seed}
-      // 정보 줄 — 마감은 오른쪽 칸에 이미 있으면 되풀이하지 않는다
-      metaLine={line && !(dueDays !== null && right) ? line : null}
       right={right}
       checkLabel={checkLabel}
       hint={checkHintText(done, it ? it.kind : 'once')}
@@ -189,37 +178,31 @@ export const TodayRow = memo(function TodayRow({ M, item, variant, onOpen, showR
   );
 }, (a, b) => sameIgnoringHandlers(a, b) && !a.onOpen === !b.onOpen && !a.onCheck === !b.onCheck);
 
-/** 실천 줄 하나의 정보 줄 · 오른쪽 칸 · 이번 주 읽을 말 — TodayRow가 이 줄의 값이 바뀔 때만 다시 센다 */
+/** 실천 줄 하나의 정보 줄 · 오른쪽 · 이번 주 읽을 말 — TodayRow가 이 줄의 값이 바뀔 때만 다시 센다 */
 function rowInfo(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, it: TodayItem, a: Action, showRight: boolean, doneRow: boolean) {
   const now = new Date();
-  const line = kindLine(doc, it.ti, it.ai, now);
+  const line: KindLine | null = kindLine(doc, it.ti, it.ai, now);
   const count = it.kind === 'count' ? countInfo(a) : null;
   const dueDays = it.kind === 'once' && a.due && !a.done ? daysBetween(ymd(now), a.due) : null;
   let right: RightCol = null;
   let weekSpeech: string | undefined;
+  // 요일 습관은 정보 줄이 요일만 말한다 — 화면 읽기에는 이번 주 요일별 상태를 덧붙인다(주 N회는 정보 줄이 같은 말을 한다)
+  if (it.kind === 'habit' && !(perWeekOf(a) > 0)) {
+    const states = routineWeek(doc, it.ti, it.ai, now);
+    weekSpeech = weekStripSummary(states, states.indexOf('today') >= 0 ? states.indexOf('today') : weekdayIndex(now));
+  }
   if (showRight) {
-    if (it.kind === 'habit') {
-      // 주 N회는 정한 요일이 없어 칸만으론 몇 번 남았는지 모른다 — 이번 주에 정한 횟수(첫 주는 남은 날만큼)로 읽는다
-      const w = perWeekOf(a) > 0 ? routineWeekCount(doc, it.ti, it.ai, now) : null;
-      const states = routineWeek(doc, it.ti, it.ai, now);
-      const summary = w ? msg().sheet.rowWeek({ count: w.done, total: w.planned }) : undefined;
-      right = { kind: 'week', states, summary };
-      // 주 N회는 정보 줄(line.speech)이 같은 말을 이미 한다 — 요일 습관만 요일별 상태를 덧붙인다
-      if (!w) weekSpeech = weekStripSummary(states, states.indexOf('today') >= 0 ? states.indexOf('today') : weekdayIndex(now));
-    } else if (count) {
-      right = { kind: 'add', step: count.step, unit: count.unit };
-    } else if (dueDays !== null && !doneRow) {
-      right = { kind: 'due', text: fmtDue(dueDays, 'short'), overdue: dueDays < 0 };
-    }
+    if (count) right = { kind: 'add', step: count.step, unit: count.unit };
+    else if (dueDays !== null && !doneRow) right = { kind: 'due', text: fmtDue(dueDays, 'short') };
   }
   return { line, count, dueDays, right, weekSpeech };
 }
 
-/** 오른쪽 81pt 칸 — 이번 주 칸 · '+1권' · 'D-3' · × */
+/** 오른쪽 하나 — 'D-3'(글) · 중점(인쇄된 글) · '+1권'(칩) · ×(글리프) */
 type RightCol =
-  | { kind: 'week'; states: DayState[]; summary?: string }
+  | { kind: 'due'; text: string }
+  | { kind: 'print'; text: string }
   | { kind: 'add'; step: number; unit: string }
-  | { kind: 'due'; text: string; overdue: boolean }
   | { kind: 'remove' }
   | null;
 
@@ -234,12 +217,12 @@ interface RowViewProps {
   M: M;
   extra: boolean;
   text: string;
-  area: string;
-  color: string;
+  /** 영역 번호 — 체크 칸의 wash · dye, 영역 표시 */
+  ti: number;
+  /** 정보 줄(영역 · 유형 정보) — ''이면 정보 줄 없음 */
+  meta: string;
   done: boolean;
-  doneRow: boolean;
   seed: string;
-  metaLine: KindLine | null;
   right: RightCol;
   checkLabel: string;
   hint: string;
@@ -251,54 +234,42 @@ interface RowViewProps {
 }
 
 const RowView = memo(function RowView({
-  M, extra, text, area, color, done, doneRow, seed, metaLine, right, checkLabel, hint, bodyLabel, toggleName, canOpen, divider, press,
+  M, extra, text, ti, meta, done, seed, right, checkLabel, hint, bodyLabel, toggleName, canOpen, divider, press,
 }: RowViewProps) {
   const m = useMsg();
-  let rightEl: React.ReactNode = null;
-  if (right?.kind === 'week') {
-    // 이번 주 칸은 몸통 이름이 함께 읽는다 — 따로 멈추지 않게 숨긴다
-    rightEl = (
-      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <WeekStrip M={M} states={right.states} color={color} summary={right.summary} />
-      </View>
-    );
-  } else if (right?.kind === 'add') {
-    rightEl = (
+  // 제목 줄 위의 글(D-3 · 중점)
+  const rightText = right?.kind === 'due' || right?.kind === 'print' ? right : null;
+  // 줄 가운데의 누르는 것(+1권 · ×)
+  let trailing: React.ReactNode = null;
+  if (right?.kind === 'add') {
+    trailing = (
       <Pressable
         onPress={press.addStep}
-        hitSlop={8}
+        hitSlop={hitFor(30)}
         accessibilityRole="button"
         accessibilityLabel={`${text}, ${m.sheet.countPlus({ n: right.step, unit: right.unit })}`}
-        style={({ pressed }) => [
-          {
-            height: 30, paddingHorizontal: 10, borderRadius: 6, borderWidth: 1.2, borderColor: tint(color, 55, M.dark),
-            alignItems: 'center', justifyContent: 'center',
-          },
-          pressed ? pressedRow(M) : null,
-        ]}
+        {...a11yLangProp()}
+        style={({ pressed }) => ({
+          paddingVertical: CHIP.padY, paddingHorizontal: CHIP.padX, borderRadius: CHIP.radius, backgroundColor: M.tile,
+          opacity: pressed ? 0.6 : 1,
+        })}
       >
-        <Text style={{ fontSize: 13, fontWeight: '800', color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+        <Text style={[KIT_TYPE.chip, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {m.sheet.plusShort({ n: right.step, unit: right.unit })}
         </Text>
       </Pressable>
     );
-  } else if (right?.kind === 'due') {
-    rightEl = (
-      <Text style={{ fontSize: 13, fontWeight: '600', color: right.overdue ? alertInk(M) : M.sub }} numberOfLines={1} accessible={false}>
-        {right.text}
-      </Text>
-    );
   } else if (right?.kind === 'remove') {
-    // 지우기 — 바탕 없는 ×. 화면 읽기에는 체크 칸의 '지우기' 동작으로만 준다
-    rightEl = (
+    // 지우기 — 바탕 없는 먹 ×. 화면 읽기에는 체크 칸의 '지우기' 동작으로만 준다
+    trailing = (
       <Pressable
         onPress={press.remove}
         hitSlop={12}
         accessible={false}
         importantForAccessibility="no"
-        style={({ pressed }) => [{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }, pressed ? { opacity: 0.5 } : null]}
+        style={({ pressed }) => [{ width: REMOVE_BTN, height: REMOVE_BTN, alignItems: 'center', justifyContent: 'center' }, pressed ? { opacity: 0.5 } : null]}
       >
-        <Icon name="close" size={15} color={M.sub} sw={2.2} />
+        <Icon name="close" size={16} color={M.ink} />
       </Pressable>
     );
   }
@@ -312,27 +283,22 @@ const RowView = memo(function RowView({
       testID={TID.todayRow(seed)}
       accessible={false}
       style={({ pressed }) => [
-        {
-          flexDirection: 'row', alignItems: 'center', gap: GAP, minHeight: 54,
-          paddingVertical: doneRow ? 9 : 8,
-        },
-        pressed && (extra || canOpen) ? pressedRow(M) : null,
+        { flexDirection: 'row', alignItems: 'center', gap: ROW.gap, minHeight: ROW.h },
+        pressed && (extra || canOpen) ? { backgroundColor: M.tile } : null,
       ]}
     >
-      {divider && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-      <Pressable
+      {divider && <RowRule M={M} />}
+      <CheckBox
+        M={M}
+        state={done ? 'done' : 'open'}
+        area={ti}
         onPress={press.toggle}
-        hitSlop={10}
         testID={TID.todayCheck(seed)}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: done }}
         accessibilityLabel={checkLabel}
         accessibilityHint={hint}
         accessibilityActions={extra && !done ? [{ name: 'delete', label: m.sheet.rowDelete }] : undefined}
         onAccessibilityAction={(e) => { if (extra && e.nativeEvent.actionName === 'delete') press.remove(); }}
-      >
-        <Check on={done} color={color} dark={M.dark} seed={seed} muted={doneRow} />
-      </Pressable>
+      />
 
       <View
         style={{ flex: 1, minWidth: 0 }}
@@ -340,6 +306,7 @@ const RowView = memo(function RowView({
         accessible={!extra}
         accessibilityRole={extra ? undefined : 'button'}
         accessibilityLabel={extra ? undefined : bodyLabel}
+        {...a11yLangProp()}
         accessibilityHint={extra ? undefined : m.sheet.rowOpenHint}
         accessibilityActions={extra ? undefined : [{ name: 'activate', label: m.sheet.rowOpen }, { name: 'toggle', label: toggleName }]}
         onAccessibilityAction={extra ? undefined : (e) => {
@@ -348,85 +315,21 @@ const RowView = memo(function RowView({
         }}
         importantForAccessibility={extra ? 'no-hide-descendants' : undefined}
       >
-        <Title M={M} text={text} done={done} oneLine={doneRow} />
-        {!doneRow && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 }}>
-            <View style={{ width: 7, height: 7, borderRadius: 1.5, backgroundColor: color }} />
-            <Text style={{ flexShrink: 1, fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>
-              {extra ? `${area}${m.core.dot}${m.sheet.rowWritten}` : area}
-            </Text>
-            {metaLine && (
-              <>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.core.dot.trim()}</Text>
-                <KindMeta M={M} line={metaLine} color={color} size={13} weight="500" icon={false} />
-              </>
-            )}
-          </View>
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <RowTitle M={M} text={text} done={done} />
+          {rightText && <RowRight M={M} text={rightText.text} tone={rightText.kind === 'print' ? 'print' : 'ink'} alone={!meta} />}
+        </View>
+        {!!meta && <RowMeta M={M} area={ti} text={meta} />}
       </View>
 
-      {/* 오른쪽 칸 — 이번 주 칸·집계·마감은 81pt, 직접 적은 줄의 ×는 제 폭만(글이 일찍 꺾이지 않게) */}
-      {rightEl && <View style={{ width: right?.kind === 'remove' ? REMOVE_W : RIGHT_W, alignItems: 'flex-end', justifyContent: 'center' }}>{rightEl}</View>}
+      {trailing}
     </Pressable>
   );
 }, sameRow);
 
-/** 오른쪽 칸(이번 주 칸 상태 배열)까지 값으로 비교한다 — 나머지는 sameProps */
+/** 오른쪽(값 하나)까지 값으로 비교한다 — 나머지는 sameProps */
 function sameRow(a: RowViewProps, b: RowViewProps): boolean {
   const { right: ra, ...restA } = a;
   const { right: rb, ...restB } = b;
-  return sameProps(restA, restB) && sameRight(ra, rb);
+  return sameProps(restA, restB) && (ra === rb || (!!ra && !!rb && sameProps<object>(ra, rb)));
 }
-
-function sameRight(a: RightCol, b: RightCol): boolean {
-  if (a === b) return true;
-  if (!a || !b || a.kind !== b.kind) return false;
-  if (a.kind === 'week' && b.kind === 'week') {
-    return a.summary === b.summary && a.states.length === b.states.length && a.states.every((s, i) => s === b.states[i]);
-  }
-  return sameProps<object>(a, b);
-}
-
-/**
- * 제목 — 다 하면 회색 글자 위에 먹선 하나(55% 먹). 체크 획이 그어진 뒤 왼쪽에서 오른쪽으로 220ms에 그어진다.
- * 처음부터 다 한 줄이거나 '동작 줄이기'면 바로 다 그어진 모습.
- */
-const Title = memo(function Title({ M, text, done, oneLine }: { M: M; text: string; done: boolean; oneLine: boolean }) {
-  const strike = useRef(new Animated.Value(done ? 1 : 0)).current;
-  const shown = useRef(done);
-  // 글자 크기를 키우면 줄 높이도 함께 커진다(AppText는 2배까지) — 먹선 자리도 같은 비율로
-  const lh = TITLE_LH * Math.min(Math.max(useWindowDimensions().fontScale || 1, 1), 2);
-  useEffect(() => {
-    if (shown.current === done) return;
-    shown.current = done;
-    if (!done || reducedMotion()) {
-      strike.setValue(done ? 1 : 0);
-      return;
-    }
-    strike.setValue(0);
-    const run = Animated.timing(strike, { toValue: 1, duration: STRIKE_MS, delay: STRIKE_DELAY, easing: EASE.out, useNativeDriver: true });
-    run.start();
-    return () => run.stop();
-  }, [done, strike]);
-
-  // 두 줄 제목이면 첫 줄에만 긋는다(다 한 줄은 늘 한 줄)
-  return (
-    <View style={{ alignSelf: 'flex-start', maxWidth: '100%' }}>
-      <Text
-        style={{ fontSize: 16, lineHeight: TITLE_LH, fontWeight: '700', letterSpacing: -0.2, color: done ? M.sub : M.ink }}
-        numberOfLines={oneLine ? 1 : 2}
-      >
-        {text}
-      </Text>
-      {done && (
-        <Animated.View
-          pointerEvents="none"
-          style={{
-            position: 'absolute', left: 0, right: 0, top: Math.round(lh * 0.55 - 0.75), height: 1.5,
-            backgroundColor: alpha(M.ink, 0.55), transformOrigin: 'left', transform: [{ scaleX: strike }],
-          }}
-        />
-      )}
-    </View>
-  );
-});

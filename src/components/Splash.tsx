@@ -1,18 +1,37 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Platform, View } from 'react-native';
+import { Animated, Appearance, Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { EASE } from '../theme/motion';
+import { DARK, LIGHT, type Tokens } from '../theme/tokens';
 import { reducedMotion } from '../lib/useReducedMotion';
+import { Mark } from './chart/Mark';
 
-/** 스플래시 바탕 — app.json의 backgroundColor·expo-splash-screen 배경과 같은 흰 종이(tokens LIGHT.paper) */
-export const PAPER = '#FFFFFF';
-/** 스플래시 표의 먹 · 금색 — 앱 아이콘(assets/icon.png)과 같은 값 */
-const SPLASH_INK = '#2B2620';
-const SPLASH_GOLD = '#B0883C';
+/** 밝은 스플래시 바탕 — app.json의 backgroundColor · expo-splash-screen 배경과 같은 흰 종이 */
+export const PAPER = LIGHT.paper;
+
+/**
+ * 스플래시 마음(Mark heart: 가운데 core 둘레에 영역 색 여덟)의 한 변(pt).
+ * 런치 스크린 이미지(splash-icon.png · splash-icon-dark.png)는 tools/icons/render.js가 이 값을 읽어 같은 크기로 그린다 —
+ * 네이티브 스플래시가 걷힐 때 그림이 움직이지 않게.
+ */
+const MARK = 84;
+export const SPLASH_MARK = MARK;
+
+/**
+ * 스플래시의 색 — 저장한 화면 모드는 아직 읽기 전이라 시스템 모드를 따른다(build-plan §4.2: 밝게를 고른 사람도
+ * 시스템이 어두우면 잠깐 어두운 스플래시). 네이티브 스플래시의 dark 배경과 같다.
+ */
+function splashTokens(): Tokens {
+  try {
+    return Appearance.getColorScheme() === 'dark' ? DARK : LIGHT;
+  } catch {
+    return LIGHT;
+  }
+}
 
 // ── 네이티브 스플래시 ───────────────────────────────────────────────────────────
-// iOS 런치 스크린(흰 바탕 · 시스템이 어두우면 어두운 종이 + 인쇄된 3×3 표)을 서체·저장소가 준비될 때까지 붙잡아 두었다가,
+// iOS 런치 스크린(흰 바탕 · 시스템이 어두우면 어두운 종이 + 가운데 마크)을 서체·저장소가 준비될 때까지 붙잡아 두었다가,
 // 첫 화면이 레이아웃을 마치면 250ms 페이드로 걷는다. 웹에는 네이티브 스플래시가 없다.
 const NATIVE = Platform.OS !== 'web';
 /** 무슨 일이 있어도 이 시간이 지나면 걷는다 — 아래에는 같은 모양의 JS 스플래시가 깔려 있어 일찍 걷혀도 티가 나지 않는다 */
@@ -46,39 +65,16 @@ export function releaseNativeSplash(): void {
 // ── JS 스플래시 ────────────────────────────────────────────────────────────────
 
 /**
- * 폰트 로딩·스토어 하이드레이션 동안 보여주는 정적 스플래시 — 흰 바탕에 앱 아이콘과 같은 인쇄된 3×3 표.
+ * 폰트 로딩 · 스토어 하이드레이션 동안 보여주는 정적 스플래시 — 종이 위 가운데에 L0 마음(앱 아이콘과 같은 아홉 칸).
  * 네이티브에서는 런치 스크린 아래에 깔려 있고, 눈에 보이는 건 웹에서뿐이다.
  * (서체를 불러오기 전이라 글자는 쓰지 않는다)
  */
 export function Splash() {
+  const T = splashTokens();
   return (
-    <View style={{ flex: 1, backgroundColor: PAPER, alignItems: 'center', justifyContent: 'center' }}>
-      <StatusBar style="dark" />
-      <SplashMark />
-    </View>
-  );
-}
-
-/**
- * 런치 스크린 이미지(splash-icon.png)와 같은 표 — 1024 중 230px(imageWidth 374 → 84pt),
- * 바깥 테두리 12px(≈4.4pt) · 안쪽 괘선 7px(≈2.6pt) · 가운데 칸만 금색. 앱 아이콘과 같은 인쇄된 3×3.
- */
-const MARK = 84;
-const MARK_FRAME = 4.4;
-const MARK_RULE = 2.6;
-function SplashMark() {
-  const cell = (MARK - MARK_FRAME * 2 - MARK_RULE * 2) / 3;
-  const c1 = MARK_FRAME + cell;
-  const c2 = c1 + MARK_RULE + cell;
-  const line = (style: object) => <View style={[{ position: 'absolute', backgroundColor: SPLASH_INK }, style]} />;
-  return (
-    <View style={{ width: MARK, height: MARK }}>
-      <View style={{ position: 'absolute', left: c1 + MARK_RULE, top: c1 + MARK_RULE, width: cell, height: cell, backgroundColor: SPLASH_GOLD }} />
-      <View style={{ position: 'absolute', left: 0, top: 0, width: MARK, height: MARK, borderWidth: MARK_FRAME, borderColor: SPLASH_INK }} />
-      {line({ left: c1, top: 0, width: MARK_RULE, height: MARK })}
-      {line({ left: c2, top: 0, width: MARK_RULE, height: MARK })}
-      {line({ top: c1, left: 0, height: MARK_RULE, width: MARK })}
-      {line({ top: c2, left: 0, height: MARK_RULE, width: MARK })}
+    <View style={{ flex: 1, backgroundColor: T.paper, alignItems: 'center', justifyContent: 'center' }}>
+      <StatusBar style={T.dark ? 'light' : 'dark'} />
+      <Mark variant="heart" size={MARK} tokens={T} />
     </View>
   );
 }
@@ -86,6 +82,7 @@ function SplashMark() {
 /** 준비가 끝나면 스플래시가 살짝 커지며 걷히고, 아래에서 홈이 차례로 떠오른다 (웹, 또는 네이티브 스플래시가 먼저 걷힌 경우) */
 export function SplashFade({ onDone }: { onDone: () => void }) {
   const t = useRef(new Animated.Value(0)).current;
+  const T = useRef(splashTokens()).current;
   useEffect(() => {
     if (reducedMotion()) {
       onDone();
@@ -96,12 +93,12 @@ export function SplashFade({ onDone }: { onDone: () => void }) {
   return (
     <Animated.View
       style={{
-        pointerEvents: 'none', position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: PAPER, alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none', position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: T.paper, alignItems: 'center', justifyContent: 'center',
         opacity: t.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
       }}
     >
       <Animated.View style={{ alignItems: 'center', transform: [{ scale: t.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>
-        <SplashMark />
+        <Mark variant="heart" size={MARK} tokens={T} />
       </Animated.View>
     </Animated.View>
   );

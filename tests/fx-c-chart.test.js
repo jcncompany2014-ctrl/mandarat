@@ -23,7 +23,7 @@ test('areaLabel · areaTodayCounts — 슬래시 없이 소리 말로', () => {
   assert.deepEqual(areaTodayCounts(['0-1', '0-3', '7-0', 'x9']), [2, 0, 0, 0, 0, 0, 0, 1]);
 });
 
-test('홈 81칸은 doc 대신 themes · cellShape, 칸은 memo(MiniCell), 괘선은 Rules', () => {
+test('홈 81칸은 doc 대신 themes · cellShape, 칸은 memo(색 지도의 Tile)', () => {
   const d = src('src/screens/Dashboard.tsx');
   assert.match(d, /<MiniChart\s+themes=\{doc\.themes\}\s+cellShape=\{doc\.settings\.cellShape\}/);
   assert.match(d, /todaySig/);
@@ -31,8 +31,11 @@ test('홈 81칸은 doc 대신 themes · cellShape, 칸은 memo(MiniCell), 괘선
   assert.doesNotMatch(d, /pickSections/);
   assert.doesNotMatch(d, /disabled=\{!pressable\}/);
   const g = src('src/components/GridMark.tsx');
-  assert.match(g, /const MiniCell = memo\(/);
-  assert.match(g, /const Rules = memo\(/);
+  assert.match(g, /export const MiniChart = memo\(function MiniChart\(/);
+  assert.match(g, /<ColourMap\s+level="L1"/);
+  const c = src('src/components/chart/ColourMap.tsx');
+  assert.match(c, /export const ColourMap = memo\(function ColourMap\(/);
+  assert.match(c, /const Tile = memo\(/);
 });
 
 test('영역 보드는 칸마다 memo, 유형 한 줄은 1.3배까지, 소리 말은 speech', () => {

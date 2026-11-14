@@ -23,26 +23,14 @@ test("D-2: 템플릿 영역 이름 '사이드 프로젝트'를 되돌린다(81�
   assert.ok(!career.areas.some((a) => a.title === '부업'));
 });
 
-test('D-4: 토스트 되돌리기 글자는 포인트 컬러를 따르고, 5색 × 5무드 토스트 바탕 위 4.5:1 이상', () => {
-  const s = src('src/overlays/Snackbar.tsx');
-  assert.match(s, /actionInkFor\(M\.accent\)/);
-  assert.match(s, /mix\(a, '#FFFFFF', 0\.55\)/);
-  // Snackbar.tsx의 actionInkFor와 같은 식(RN을 불러오지 않으려고 여기서 다시 쓴다)
-  const ink = (accent) => (toHex(accent) === GOLD ? '#E2C27F' : toHex(mix(toHex(accent), '#FFFFFF', 0.55)));
-  for (const [name, M] of Object.entries(MOODS)) {
-    const bg = M.dark ? '#26242F' : M.center;
-    for (const { color, name: an } of ACCENTS) {
-      const c = contrast(ink(color), bg);
-      assert.ok(c >= 4.5, `${name} × ${an}: ${ink(color)} on ${bg} ${c.toFixed(2)}`);
-    }
-  }
-  assert.equal(ink(GOLD), '#E2C27F');
-});
+// D-4(토스트 되돌리기 글자의 포인트 컬러 대비)는 디자인 A의 토스트(종이 알약 · 먹 글씨)로 바뀌어 지웠다 — tests/a-chrome.test.js가 본다
 
 test('D-9: 마음가짐 점수는 고른 한 칸만 먹으로 — 쌓아 칠하거나 영역 색을 깔지 않는다', () => {
   const s = src('src/components/KindBits.tsx');
   assert.match(s, /const on = n === value;/);
-  assert.match(s, /backgroundColor: on \? M\.ink : 'transparent'/);
+  // 칠은 Segment 낱칸과 같은 한 곳(segmentFace: 고른 칸 먹, 아닌 칸 tile)
+  assert.match(s, /const face = segmentFace\(M, on, true\);/);
+  assert.match(src('src/components/kit/Segment.tsx'), /backgroundColor: on \? M\.ink : tiles \? M\.tile : 'transparent'/);
   assert.doesNotMatch(s, /n <= value|readableOn/);
   assert.match(s, /accessibilityRole="radio"/);
   assert.match(s, /accessibilityState=\{\{ checked: n === value \}\}/);

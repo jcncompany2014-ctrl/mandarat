@@ -1,4 +1,4 @@
-// V5-A — 두 쪽 펼침: ?layout=device로 아이패드 크기에서 왼쪽·오른쪽 쪽이 나란히 서는지, 탭 다섯 칸이 가운데 560에 모이는지 본다.
+// V5-A — 두 쪽 펼침: ?layout=device로 아이패드 크기에서 왼쪽·오른쪽 쪽이 나란히 서는지, 떠 있는 탭 막대(네 곳 + 담기)가 가운데 560 안에 서는지 본다.
 // 홈(오른쪽 81칸) · 만다라트(오른쪽 홈) · 블록 크게 보기(오른쪽 영역 화면)를 찍는다. 한 단 크기(834×1194)에서는 펼치지 않는다.
 // 끝나면 폰 크기 · 원래 주소로 돌려 다음 장면이 그대로 돌게 한다.
 const SPREAD = [[1032, 1376], [1376, 1032], [1194, 834]];
@@ -30,6 +30,9 @@ async function tabSpan(h) {
     const b = await h.tid(h.TID.tab(tab)).boundingBox();
     if (b) boxes.push(b);
   }
+  // 담기 단추도 같은 막대(560) 안에
+  const add = await h.tid(h.TID.tabAdd).boundingBox();
+  if (add) boxes.push(add);
   return { left: Math.min(...boxes.map((b) => b.x)), right: Math.max(...boxes.map((b) => b.x + b.width)) };
 }
 

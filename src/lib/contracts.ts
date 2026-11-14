@@ -20,31 +20,46 @@ export interface PrintTarget { archiveId?: string }
 // year
 export type YearView = { kind: 'review'; id: string | null } | { kind: 'shelf' } | { kind: 'sheet'; id: string };
 
-// widgets + Live Activity — props are plist/JSON-safe: no null, no undefined values, no Date (ms numbers only), colours '#RRGGBB(AA)'
+// widgets + Live Activity — props are plist/JSON-safe: no null, no undefined values, no Date (ms numbers only), colours '#RRGGBB(AA)'.
+// Still v: 1 — the layouts read every field with a default, so a snapshot written by an older app still draws (build-plan §4.1).
 export const WIDGET_KIND = 'TodayWidget';
 export const LIVE_KIND = 'FocusActivity';
 export const WIDGET_TIMELINE_KEY = '__expo_widgets_TodayWidget_timeline'; // read by native/ios Swift intents
-export interface WidgetItem { k: string /* 'ti-ai' | 'x:<extraId>' */; t: string; d: boolean; c: string /* area hex */ }
+export interface WidgetItem {
+  k: string /* 'ti-ai' | 'x:<extraId>' */; t: string; d: boolean;
+  a: number /* area index 0..7 — colours come from pal.*.dye[a] */; r: string /* right text: 'D-2' · lines.focus ('중점') · '' (then the area) */;
+}
 export interface WidgetOp { kind: 'check' | 'focus' | 'open'; k: string; on: boolean; day: string; at: number; t: string; src: 'widget' | 'siri' }
-export interface WidgetPalette { paper: string; ink: string; sub: string; line: string; accent: string }
+/** design tokens (src/theme/tokens.ts LIGHT · DARK) the widget draws with — hex only; dye · washL1 · tint by area index */
+export interface WidgetPalette {
+  paper: string; ink: string; ink2: string; print: string; printEdge: string; printRule: string; tile: string; signal: string; core: string;
+  dye: string[]; washL1: string[]; tint: string[];
+}
 export type WidgetPattern = 'dots' | 'grid' | 'lines' | 'blank';
 export interface TodayWidgetLines {
   left: string /* '오늘 {n}개 남았어요' */; allDone: string; empty: string; more: string /* '그 밖에 {n}개' */;
   leftShort: string /* '남음' */; doneShort: string /* '끝' */; today: string /* '오늘' */;
   next: string /* '다음 할 일: {t}' */; checked: string /* '{t} — 했어요' */;
   unchecked: string /* '{t}, 아직 안 했어요' */; progress: string /* '오늘 {t}개 중 {n}개 했어요' — {n} 한 수 · {t} 모두 */;
+  listHead: string /* '오늘 할 일' */; nextHead: string /* '다음 할 일' */; leftUnit: string /* '{n}개 남음' */; focus: string /* '중점' */;
 }
 export interface TodayWidgetProps {
   v: 1; day: string; date: string; done: number; total: number;
-  items: WidgetItem[]; more: number; areas: number[]; colors: string[]; goal: string;
+  items: WidgetItem[]; more: number; goal: string;
+  /** the 64 actions, area-major (ti * 8 + ai): '0' empty · '1' written · '2' achieved (lib/mapCells actionStates) */
+  cells: string;
+  /** the eight area names, by index */
+  names: string[];
   lines: TodayWidgetLines; pal: { light: WidgetPalette; dark: WidgetPalette }; pat: WidgetPattern;
   ops: WidgetOp[]; url: string;
 }
-export interface FocusActivityLines { left: string; paused: string; done: string; focus: string }
+export interface FocusActivityLines { left: string; paused: string; done: string; focus: string; label: string /* '25분 집중' */; leftShort: string /* '남음' */ }
+/** the Live Activity's tokens — dye is this session's area dye */
+export interface LivePalette { paper: string; ink: string; ink2: string; print: string; tile: string; dye: string }
 export interface FocusActivityProps {
-  v: 1; t: string; area: string; c: string; start: number; end: number;
+  v: 1; t: string; area: string; c: string /* area dye, light */; start: number; end: number;
   paused: number /* -1 = running, else ms left */; done: boolean;
-  lines: FocusActivityLines; pal: { light: WidgetPalette; dark: WidgetPalette }; url: string;
+  lines: FocusActivityLines; pal: { light: LivePalette; dark: LivePalette }; url: string;
 }
 
 // notifications

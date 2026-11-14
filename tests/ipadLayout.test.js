@@ -164,7 +164,7 @@ test('app.json: 아이패드를 지원하고 전체 화면을 강요하지 않�
   assert.notEqual(app.ios.requireFullScreen, true);
 });
 
-test('틀: 앱 · 네 오버레이는 PaperColumn, 시트는 usePanelStyle과 쪽 폭', () => {
+test('틀: 앱 · 네 오버레이는 PaperColumn, 시트는 단 폭(최대 560)과 쪽 폭', () => {
   assert.match(src('App.tsx'), /<PaperColumn bg=/);
   for (const f of ['FocusTimer', 'WeekRitual', 'Celebration', 'YearClose']) {
     const s = src(`src/overlays/${f}.tsx`);
@@ -172,7 +172,9 @@ test('틀: 앱 · 네 오버레이는 PaperColumn, 시트는 usePanelStyle과 �
     assert.ok(s.indexOf('<Modal') < s.indexOf('<PaperColumn') && s.indexOf('</PaperColumn>') < s.indexOf('</Modal>'), f);
   }
   const common = src('src/components/common.tsx');
-  assert.match(common, /const panel = usePanelStyle\(\);/);
+  // 시트 판의 폭은 단 폭에서 좌우 8씩 띄우고 560에서 멈춘다(디자인 A의 떠 있는 시트) — 안의 폭(PageSize)도 그 폭
+  assert.match(common, /const sheetW = sheetWidth\(layout\.width\);/);
+  assert.match(common, /return Math\.min\(PANEL_MAX_W, layoutWidth - 2 \* GEO\.sheet\.inset\);/);
   assert.match(common, /<PageSize\.Provider value=\{page\}>/);
   const col = src('src/components/WebColumn.tsx');
   assert.match(col, /<PageSize\.Provider value=\{page\}>/);

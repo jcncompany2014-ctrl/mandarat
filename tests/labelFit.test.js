@@ -35,8 +35,9 @@ test('글자 폭: 기본은 SVG 근사치 그대로, Pretendard는 한글 0.864e
   assert.equal(estimateLines('건강하고 활기찬 몸 만들기', 40, 9.5), estimateLines('건강하고 활기찬 몸 만들기', 40, 9.5, SVG_GLYPHS));
 });
 
-test('390pt: 81칸이 실제로 다 찍는 이름은 다 들어간다고 말한다', () => {
-  assert.deepEqual(chartFit('단단하고 다정한 나', 'center', 390), { lines: 2, max: 4 });
+test('390pt: 색 지도(L2, 본문 342pt)가 실제로 다 찍는 이름은 다 들어간다고 말한다', () => {
+  // 지도 칸 ≈ 33pt — 글은 10 → 9 → 8pt로 줄이고, 칸 높이에 드는 3줄까지(가운데 칸도 휴대폰에서는 3줄)
+  assert.deepEqual(chartFit('단단하고 다정한 나', 'center', 390), { lines: 2, max: 3 });
   assert.deepEqual(chartFit('건강하고 활기찬 몸 만들기', 'theme', 390), { lines: 3, max: 3 });
   assert.deepEqual(chartFit('마음챙김과 감정 돌보기', 'theme', 390), { lines: 3, max: 3 });
   assert.deepEqual(chartFit('사이드 프로젝트', 'theme', 390), { lines: 2, max: 3 });
@@ -48,7 +49,7 @@ test('390pt: 81칸이 실제로 다 찍는 이름은 다 들어간다고 말한�
 test('넘치면 몇 줄까지 보이는지 말한다 — 6자 규칙·잘린 글 인용 없이', () => {
   const long = '2026년엔 몸도 마음도 단단하게, 매일 조금씩 성장하는 사람 되기';
   assert.equal(chartFit(long, 'center', 390).lines, 8);
-  assert.equal(chartFitHint(long, 'center', 390), '81칸에서는 4줄까지만 보여요');
+  assert.equal(chartFitHint(long, 'center', 390), '81칸에서는 3줄까지만 보여요');
   assert.equal(chartFit('건강하고 활기찬 몸 만들기', 'theme', 375).lines, 4);
   assert.equal(chartFitHint('건강하고 활기찬 몸 만들기', 'theme', 375), '81칸에서는 3줄까지만 보여요');
   assert.equal(chartFitHint('   ', 'theme', 390), null);

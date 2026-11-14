@@ -1,19 +1,24 @@
-import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated, PanResponder, Platform, Pressable, View, useWindowDimensions as useRNWindowDimensions,
+  Animated, PanResponder, Platform, Pressable, StyleSheet, View, useWindowDimensions as useRNWindowDimensions,
   type AccessibilityRole, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView, type ViewProps,
 } from 'react-native';
-import { Text } from '../components/AppText';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { Text, a11yLangProp } from '../components/AppText';
 import { DUR, EASE, SPRING } from '../theme/motion';
-import { RHYTHM } from '../theme/type';
+import { ROLE } from '../theme/type';
+import { GEO, desk } from '../theme/tokens';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
+import { PinnedHeaderSlot } from '../components/common';
+import { PAPER_MODULE } from '../lib/paper';
+import { SVG_GLYPHS, textWidth } from '../lib/labelFit';
 import { select, success, tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
 import { SyncChoiceHost } from '../screens/settings/SyncChoiceSheet';
-import { TAB_BAR_H, isDeep, useUIActions, useUIState, type Screen } from './ui';
+import { TAB_BAR_H, isDeep, tabBarBottom, tabClearance, useUIActions, useUIState, type Screen } from './ui';
 import { TID } from '../lib/testIds';
 import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
 import { todayProgress } from '../lib/routine';
@@ -21,8 +26,7 @@ import { PageSize, useLayout } from '../lib/screen';
 import { BINDING, BINDING_W, SPREAD_TABS_W, companionFor, companionKey, modeFor, spreadPageW, type Companion } from '../lib/spread';
 import { crash } from '../lib/crash';
 import { gridMemory } from '../screens/gridMemory';
-import { mix } from '../theme/moods';
-import { msg } from '../i18n';
+import { lang, msg } from '../i18n';
 import { useMsg } from '../i18n/react';
 import type { M as Palette } from '../theme/usePalette';
 
@@ -77,23 +81,17 @@ const DetailPure = memo(Detail);
 type TabId = 'dashboard' | 'grid' | 'today' | 'stats';
 type IconName = Parameters<typeof Icon>[0]['name'];
 
-/** 탭바 다섯 칸 — 홈 · 만다라트 · 담기 · 오늘 · 통계 (가운데 칸이 오늘 할 일 담기) */
-const TABS: { id: TabId; icon: IconName; msgKey: 'tabHome' | 'tabGrid' | 'tabToday' | 'tabStats'; slot: number }[] = [
-  { id: 'dashboard', icon: 'home', msgKey: 'tabHome', slot: 0 },
-  { id: 'grid', icon: 'grid', msgKey: 'tabGrid', slot: 1 },
-  { id: 'today', icon: 'checkCircle', msgKey: 'tabToday', slot: 3 },
-  { id: 'stats', icon: 'chart', msgKey: 'tabStats', slot: 4 },
+/** 떠 있는 알약의 네 곳 — 홈 · 만다라트 · 오늘 · 통계. 담기는 알약 옆 따로 선 먹 단추 */
+const TABS: { id: TabId; icon: IconName; msgKey: 'tabHome' | 'tabGrid' | 'tabToday' | 'tabStats' }[] = [
+  { id: 'dashboard', icon: 'home', msgKey: 'tabHome' },
+  { id: 'grid', icon: 'grid', msgKey: 'tabGrid' },
+  { id: 'today', icon: 'checkCircle', msgKey: 'tabToday' },
+  { id: 'stats', icon: 'chart', msgKey: 'tabStats' },
 ];
-const SLOTS = 5;
-const ADD_SLOT = 2;
-/** 스크롤 끝이 탭바에 가리지 않도록 확보하는 여백(탭바 52 + 12) */
-const TAB_CLEARANCE = 64;
-/** 도트 종이 간격 — PaperDots에 같은 값을 넘겨야 무늬가 스크롤과 함께 움직인다 */
-const DOT = RHYTHM.dot;
+/** 종이 무늬 한 칸 — PaperDots에 같은 값을 넘겨야 무늬가 스크롤과 함께 움직인다 */
+const DOT = PAPER_MODULE;
 /** 왼쪽 가장자리에서 이만큼 안에서 오른쪽으로 쓸면 뒤로 간다 */
 const EDGE = 24;
-/** 탭바 위 활성 표시 막대 */
-const IND_W = 20;
 
 // 탭바(tabbar) 안의 버튼 — VoiceOver가 "탭, 5개 중 1번째"처럼 탭 막대로 읽는다(iOS에는 'tab' 특성이 없어
 // 그 역할을 주면 역할 없는 글로 읽힌다). 안드로이드는 'tab', 웹은 표준 ARIA대로 tablist/tab.
@@ -255,11 +253,23 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   useEffect(() => {
     if (spread) setFocusTi(typeof gridMemory.focus === 'number' ? gridMemory.focus : null);
   }, [spread]);
-  // 쪽 하나가 스크롤 없이 보여 줄 수 있는 높이(탭바를 뺀) — 81칸 표가 이 안에 들어가게 줄인다
-  const pageH = winH - insets.top - TAB_CLEARANCE - Math.max(10, insets.bottom);
+  // 쪽 하나가 스크롤 없이 보여 줄 수 있는 높이(떠 있는 탭 막대를 뺀) — 81칸 표가 이 안에 들어가게 줄인다
+  const clearance = tabClearance(insets.bottom);
+  const pageH = winH - insets.top - clearance;
+
+  // ── 고정 머리(설정) ───────────────────────────────────────────────────────
+  // <Header pinned>는 스크롤 안에 그려지지 않고 여기(PinnedHeaderHost)로 올라온다 — 화면 위에 고정되고, 스크롤은 그 높이만큼 아래에서 시작한다
+  // 머리가 자리보다 먼저 올라와도(설정에서 바로 시작) 잃지 않게 마지막 머리를 들고 있는다
+  const pinNode = useRef<React.ReactNode>(null);
+  const pinSet = useRef<((node: React.ReactNode) => void) | null>(null);
+  const setPinned = useCallback((node: React.ReactNode) => {
+    pinNode.current = node;
+    pinSet.current?.(node);
+  }, []);
+  const [pinH, setPinH] = useState(0);
 
   // ── 종이가 글과 함께 움직인다 ────────────────────────────────────────────
-  // 스크롤 y를 네이티브에서 바로 받아 점 무늬를 (y % 18)만큼 올린다 — 무늬는 18마다 되풀이되므로 한 장으로 끝없이 이어진다
+  // 스크롤 y를 네이티브에서 바로 받아 무늬를 (y % 24)만큼 올린다 — 무늬는 24마다 되풀이되므로 한 장으로 끝없이 이어진다
   const scrollY = useRef(new Animated.Value(0)).current;
   const dotsY = useMemo(
     () => Animated.modulo(scrollY, DOT).interpolate({ inputRange: [0, DOT], outputRange: [0, -DOT] }),
@@ -327,6 +337,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   }, [ui.screen, ui.ti, reduceMotion, fade, slide]);
 
   const pageStyle = useMemo(() => ({ flexGrow: 1, opacity: fade, transform: [{ translateX: slide }] }), [fade, slide]);
+  const pinStyle = useMemo(() => ({ opacity: fade, transform: [{ translateX: slide }] }), [fade, slide]);
 
   // ── 왼쪽 가장자리에서 쓸어 뒤로(상세·설정) ─────────────────────────────────
   const edgeSwipe = useMemo(() => {
@@ -400,15 +411,17 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
 
   const deep = isDeep(ui.screen);
   const showTabs = ui.screen !== 'settings';
+  const bottomPad = showTabs ? clearance : GEO.gutter + insets.bottom;
 
   const page = (
     <>
-      {/* 도트 종이는 스크롤 뒤에 화면 크기로 한 장만 — 내용 높이만큼 그리면 긴 화면에서 메모리를 크게 쓴다.
-          한 칸(18)만큼 더 길게 두고 스크롤을 따라 올린다. 더 긴 그 한 칸은 화면 틀에서 잘라 낸다 —
-          안 자르면 웹에서는 문서가 18만큼 길어져 창이 스크롤되고, 탭바가 따라 올라가며 아래에 흰 띠가 남는다 */}
+      {/* 종이 무늬는 스크롤 뒤에 화면 크기로 한 장만 — 내용 높이만큼 그리면 긴 화면에서 메모리를 크게 쓴다.
+          한 칸(24)만큼 더 길게 두고 스크롤을 따라 올린다. 더 긴 그 한 칸은 화면 틀에서 잘라 낸다 —
+          안 자르면 웹에서는 문서가 24만큼 길어져 창이 스크롤되고, 탭 막대가 따라 올라가며 아래에 흰 띠가 남는다.
+          가로 줄은 머리 아래(위 안전 영역 + 72 = 3칸)에 맞는다 */}
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}>
         <Animated.View style={dotsStyle}>
-          <PaperDotsPure M={M} gap={DOT} offsetY={insets.top % DOT} />
+          <PaperDotsPure M={M} gap={DOT} offsetY={insets.top} />
         </Animated.View>
       </View>
       <Animated.ScrollView
@@ -417,8 +430,8 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
         // flexGrow: 화면이 짧을 땐 남는 높이를 화면이 쓸 수 있게
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: insets.top,
-          paddingBottom: showTabs ? TAB_CLEARANCE + Math.max(10, insets.bottom) : 24 + insets.bottom,
+          paddingTop: insets.top + pinH,
+          paddingBottom: bottomPad,
         }}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
@@ -433,21 +446,13 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
           onAccessibilityEscape={deep ? ui.back : undefined}
           style={pageStyle}
         >
-          {screen}
+          <PinnedHeaderSlot.Provider value={setPinned}>{screen}</PinnedHeaderSlot.Provider>
         </Animated.View>
       </Animated.ScrollView>
+      <PinnedHeaderHost M={M} topInset={insets.top} style={pinStyle} register={pinSet} latest={pinNode} onHeight={setPinH} />
     </>
   );
-  const bottomPad = showTabs ? TAB_CLEARANCE + Math.max(10, insets.bottom) : 24 + insets.bottom;
-  const tabs = showTabs && (
-    <TabBar
-      active={activeTab}
-      onTab={onTab}
-      onAdd={onAdd}
-      bottomInset={insets.bottom}
-      padX={spread ? Math.max(0, (winW - SPREAD_TABS_W) / 2) : 0}
-    />
-  );
+  const tabs = showTabs && <TabBar active={activeTab} onTab={onTab} onAdd={onAdd} bottomInset={insets.bottom} />;
   const overlays = (
     <>
       <ActionSheetPure />
@@ -479,20 +484,20 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   }
 
   // ── 두 쪽 펼침 — 펼친 수첩: 책상 위에 종이 두 쪽, 가운데 제본(1·4·1pt 두 줄 괘선), 그림자 없이 ──
-  // 감싼 단 밖으로 창 폭만큼 넓혀(out) 그 위에 그린다. 탭바는 창 폭 그대로, 다섯 칸은 가운데 560에 모인다.
+  // 감싼 단 밖으로 창 폭만큼 넓혀(out) 그 위에 그린다. 탭 막대는 창 폭 위에 떠서 가운데 560에 모인다.
   // 81칸 표는 늘 한 장 — companionFor가 왼쪽이 만다라트면 오른쪽에 표를 두지 않는다.
   const companion = companionFor(ui.screen, focusTi);
   return (
     <View style={{ flex: 1 }} onLayout={onHost}>
       <StatusBar style={M.dark ? 'light' : 'dark'} />
-      <View style={{ position: 'absolute', top: 0, bottom: 0, left: -out, width: winW, backgroundColor: mix(M.bg, M.ink, 0.05) }}>
+      <View style={{ position: 'absolute', top: 0, bottom: 0, left: -out, width: winW, backgroundColor: desk(M) }}>
         {/* 화면 읽기 순서 — 왼쪽 쪽을 다 읽은 뒤 오른쪽 쪽으로(같은 높이의 줄이 두 쪽을 오가며 섞이지 않게).
             탭바·겹쳐 뜨는 것은 이 줄 밖이라 순서 목록에 매이지 않는다. 웹(react-native-web)은 이 속성을 버리고 DOM 순서 그대로 읽는다 */}
         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center' }} {...SPREAD_A11Y}>
           <View
             id={SPREAD_LEFT_ID}
             testID={TID.spreadLeft}
-            style={{ width: pageW, backgroundColor: M.bg, borderLeftWidth: margin > 0 ? 1 : 0, borderColor: M.line }}
+            style={{ width: pageW, backgroundColor: M.paper, borderLeftWidth: margin > 0 ? 1 : 0, borderColor: M.printRule }}
           >
             <PageSize.Provider value={leftSize}>{page}</PageSize.Provider>
           </View>
@@ -500,7 +505,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
           <View
             id={SPREAD_RIGHT_ID}
             testID={TID.spreadRight}
-            style={{ width: pageW, backgroundColor: M.bg, borderRightWidth: margin > 0 ? 1 : 0, borderColor: M.line }}
+            style={{ width: pageW, backgroundColor: M.paper, borderRightWidth: margin > 0 ? 1 : 0, borderColor: M.printRule }}
           >
             <PageSize.Provider value={leftSize}>
               <CompanionPage
@@ -537,8 +542,8 @@ const Binding = memo(function Binding({ M }: { M: Palette }) {
       importantForAccessibility="no-hide-descendants"
       style={{
         width: BINDING.rule * 2 + BINDING.gap,
-        borderLeftWidth: BINDING.rule, borderRightWidth: BINDING.rule, borderColor: M.line,
-        backgroundColor: mix(M.bg, M.ink, 0.05),
+        borderLeftWidth: BINDING.rule, borderRightWidth: BINDING.rule, borderColor: M.printRule,
+        backgroundColor: desk(M),
       }}
     />
   );
@@ -583,7 +588,7 @@ const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bott
     <>
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}>
         <Animated.View style={dotsStyle}>
-          <PaperDotsPure M={M} gap={DOT} offsetY={topInset % DOT} />
+          <PaperDotsPure M={M} gap={DOT} offsetY={topInset} />
         </Animated.View>
       </View>
       <Animated.ScrollView
@@ -596,7 +601,8 @@ const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bott
         automaticallyAdjustKeyboardInsets
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : Platform.OS === 'android' ? 'on-drag' : 'none'}
       >
-        <Animated.View style={bodyStyle}>{body}</Animated.View>
+        {/* 곁 쪽에는 고정 머리 자리가 없다 — 머리는 제자리에 그린다 */}
+        <Animated.View style={bodyStyle}><PinnedHeaderSlot.Provider value={null}>{body}</PinnedHeaderSlot.Provider></Animated.View>
       </Animated.ScrollView>
     </>
   );
@@ -619,93 +625,154 @@ function navOffset(prev: { screen: Screen; ti: number }, next: { screen: Screen;
 }
 
 /**
- * 하단 탭바 — 홈 · 만다라트 · 추가 · 오늘 · 통계, 다섯 칸이 똑같은 폭.
- * 종이 위에 그은 선처럼 평평하게: 그림자·솟은 버튼·받침 없이, 위쪽 실선 하나와
- * 지금 탭 위에 짧은 먹선(2×20)이 미끄러져 따라간다.
+ * 고정 머리 자리 — <Header pinned>가 올려 보낸 머리를 화면 위(위 안전 영역 아래)에 종이 바탕으로 그린다.
+ * 높이를 Root에 알려 스크롤이 그 아래에서 시작하게 한다. 화면 전환(밀려 들어오기)을 함께 탄다.
+ */
+const PinnedHeaderHost = memo(function PinnedHeaderHost({ M, topInset, style, register, latest, onHeight }: {
+  M: Palette;
+  topInset: number;
+  style: { opacity: Animated.Value; transform: { translateX: Animated.Value }[] };
+  register: React.MutableRefObject<((node: React.ReactNode) => void) | null>;
+  /** 자리가 생기기 전에 올라온 머리 */
+  latest: React.MutableRefObject<React.ReactNode>;
+  onHeight: (h: number) => void;
+}) {
+  const [node, setNode] = useState<React.ReactNode>(() => latest.current);
+  useLayoutEffect(() => {
+    register.current = setNode;
+    setNode(latest.current);
+    return () => { register.current = null; };
+  }, [register, latest]);
+  const empty = node == null;
+  useEffect(() => { if (empty) onHeight(0); }, [empty, onHeight]);
+  if (empty) return null;
+  return (
+    <Animated.View
+      onLayout={(e) => onHeight(Math.round(e.nativeEvent.layout.height))}
+      style={[{ position: 'absolute', left: 0, right: 0, top: 0, paddingTop: topInset, backgroundColor: M.paper }, style]}
+    >
+      {node}
+    </Animated.View>
+  );
+});
+
+/** 탭 글자 크기(ROLE.tab · tabOn) */
+const TAB_FS = ROLE.tab.fontSize ?? 11;
+
+/** 탭 이름이 알약 한 칸에 들어가도록 — 11pt로 어림해 넘치면 0.8배까지 줄인다(일본어 マンダラート, 375pt 화면) */
+function tabFontScale(label: string, room: number): number {
+  if (!(room > 0)) return 1;
+  const w = textWidth(label, TAB_FS, SVG_GLYPHS, lang());
+  return w <= room ? 1 : Math.max(0.8, room / w);
+}
+
+/**
+ * 떠 있는 탭 막대(A.tabBar) — 종이 알약 하나에 네 곳(홈 · 만다라트 · 오늘 · 통계) + 옆에 따로 선 먹색 담기 단추.
+ * 화면 바닥에서 떠 있고(아래 18, 홈 표시줄이 있으면 그 안에 4 겹쳐), 좌우 16, 높이 58, 사이 10. 넓은 창에서는 560에서 멈추고 가운데.
+ * 막대 뒤에는 종이로 흐려지는 막(veil) — 막대 위 40부터 막대 윗변까지 투명 → 종이, 그 아래는 종이.
  * 탭 글자는 시스템 글자 크기를 따라 커지지 않는다(높이가 정해진 막대) — 대신 길게 누르면 큰 글자 보기(iOS)가 뜬다.
  */
-const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset, padX = 0 }: {
+const TabBar = React.memo(function TabBar({ active, onTab, onAdd, bottomInset }: {
   active: Screen;
   onTab: (id: Screen) => void;
   onAdd: () => void;
   bottomInset: number;
-  /** 좌우 안쪽 여백 — 펼침에서 탭바는 창 폭 그대로 두고 다섯 칸을 가운데(560)에 모은다 */
-  padX?: number;
 }) {
   const M = usePalette();
   const m = useMsg();
-  const [width, setWidth] = useState(0);
-  const x = useRef(new Animated.Value(0)).current;
-  const placed = useRef(false);
-  const slot = TABS.find((t) => t.id === active)?.slot ?? 0;
-  const inner = width - padX * 2;
-  const cx = inner > 0 ? padX + (inner / SLOTS) * (slot + 0.5) : null;
-
-  useEffect(() => {
-    if (cx == null) return;
-    if (!placed.current || reducedMotion()) {
-      placed.current = true;
-      x.setValue(cx);
-    } else Animated.spring(x, { toValue: cx, useNativeDriver: true, ...SPRING.snappy }).start();
-  }, [cx, x]);
-  const barX = useMemo(() => Animated.add(x, new Animated.Value(-IND_W / 2)), [x]);
-  // 지금 탭 표시 — 탭바 안, 윗 괘선 3pt 아래(아이콘 위 paddingTop 8 안). 괘선 위에 두면 접힌 자리에 잘린 글 밑줄처럼 읽힌다
-  const barStyle = useMemo(
-    () => ({ position: 'absolute' as const, top: 3, left: 0, width: IND_W, height: 2, backgroundColor: M.ink, transform: [{ translateX: barX }] }),
-    [barX, M.ink],
-  );
-
-  const items = TABS.map((t) => (
-    <TabItem key={t.id} id={t.id} icon={t.icon} label={m.core[t.msgKey]} on={active === t.id} onTab={onTab} />
-  ));
-  items.splice(ADD_SLOT, 0, <AddSlot key="add" onPress={onAdd} />);
+  const bottom = tabBarBottom(bottomInset);
+  const { side, gap, addW, veil } = GEO.bar;
+  // 알약 안 한 칸의 폭 — 탭 이름을 맞추는 데 쓴다
+  const [capsuleW, setCapsuleW] = useState(0);
+  const room = capsuleW > 0 ? (capsuleW - 12) / TABS.length - 4 : 0;
 
   return (
-    <View
-      accessibilityRole={BAR_ROLE}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0,
-        paddingTop: 8, paddingBottom: Math.max(10, bottomInset), paddingHorizontal: padX,
-        backgroundColor: M.tabBg, borderTopWidth: 1, borderTopColor: M.line,
-        flexDirection: 'row',
-      }}
-    >
-      {cx != null && (
-        <Animated.View pointerEvents="none" style={barStyle} />
-      )}
-      {items}
+    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: bottom + TAB_BAR_H + veil }}>
+      <BarVeil M={M} veil={veil} />
+      <View pointerEvents="box-none" style={{ position: 'absolute', left: side, right: side, bottom, height: TAB_BAR_H, alignItems: 'center' }}>
+        <View
+          accessibilityRole={BAR_ROLE}
+          style={{ flexDirection: 'row', gap, height: TAB_BAR_H, width: '100%', maxWidth: SPREAD_TABS_W }}
+        >
+          <View
+            onLayout={(e) => setCapsuleW(e.nativeEvent.layout.width)}
+            style={{
+              flex: 1, flexDirection: 'row', paddingHorizontal: 6,
+              borderRadius: GEO.rTool, backgroundColor: M.capsule, boxShadow: M.float,
+            }}
+          >
+            {TABS.map((t) => {
+              const label = m.core[t.msgKey];
+              return <TabItem key={t.id} id={t.id} icon={t.icon} label={label} scale={tabFontScale(label, room)} on={active === t.id} onTab={onTab} />;
+            })}
+          </View>
+          <AddButton onPress={onAdd} width={addW} />
+        </View>
+      </View>
     </View>
   );
 });
 
-/** 탭 한 칸 — 아이콘 24 + 글자 11. 지금 탭은 먹색, 나머지는 보조 글자색 */
-const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
+/** 막대 뒤의 막 — 종이 색, 위에서 투명 → 막대 윗변에서 종이(react-native-svg 그라데이션). 누름은 지나간다 */
+const BarVeil = memo(function BarVeil({ M, veil }: { M: Palette; veil: number }) {
+  const id = `bar-veil-${useId().replace(/[^A-Za-z0-9_-]/g, '')}`;
+  const [h, setH] = useState(0);
+  // 막대 윗변(위에서 veil)부터 종이 — 막 높이에 맞춰 멈춤을 옮긴다(390×844에서 34.5%)
+  const solid = h > 0 ? Math.min(1, veil / h) : 0.345;
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      onLayout={(e) => setH(e.nativeEvent.layout.height)}
+      style={StyleSheet.absoluteFill}
+    >
+      <Svg width="100%" height="100%" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={M.paper} stopOpacity={0} />
+            <Stop offset={String(solid)} stopColor={M.paper} stopOpacity={1} />
+            <Stop offset="1" stopColor={M.paper} stopOpacity={1} />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${id})`} />
+      </Svg>
+    </View>
+  );
+});
+
+/** 탭 한 칸 — 글리프 24 + 글자 11. 지금 탭은 칠한 글리프 + 굵은 먹 글자, 나머지는 인쇄 색 */
+const TabItem = memo(function TabItem({ id, icon, label, scale, on, onTab }: {
   id: Screen;
   icon: IconName;
   label: string;
+  /** 글자를 줄이는 비율(0.8~1) — 알약 한 칸에 들어가게 */
+  scale: number;
   on: boolean;
   onTab: (id: Screen) => void;
 }) {
   const M = usePalette();
+  const color = on ? M.ink : M.print;
+  const type = on ? ROLE.tabOn : ROLE.tab;
   return (
     <Pressable
       onPress={() => onTab(id)}
       testID={TID.tab(id)}
       accessibilityRole={TAB_ROLE}
       accessibilityLabel={label}
+      {...a11yLangProp()}
       accessibilityState={{ selected: on }}
       accessibilityShowsLargeContentViewer
       accessibilityLargeContentTitle={label}
-      style={({ pressed }) => ({ flex: 1, height: TAB_BAR_H - 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+      style={({ pressed }) => ({ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, opacity: pressed ? 0.5 : 1 })}
     >
-      <View style={{ height: 28, justifyContent: 'center' }}>
-        <Icon name={icon} size={24} color={on ? M.ink : M.sub} sw={on ? 2.1 : 1.8} />
-      </View>
+      <Icon name={icon} size={24} color={color} active={on} ground={M.capsule} />
       <Text
         maxFontSizeMultiplier={1}
         numberOfLines={1}
-        style={{ marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: on ? '700' : '600', color: on ? M.ink : M.sub }}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={{ ...type, fontSize: TAB_FS * scale, color }}
       >
         {label}
       </Text>
@@ -713,8 +780,8 @@ const TabItem = memo(function TabItem({ id, icon, label, on, onTab }: {
   );
 });
 
-/** 가운데 '담기' 칸 — 점선 네모 안의 ＋(오늘 할 일 담기). 손으로 그린 빈칸처럼, 탭들과 같은 줄에 앉는다 */
-function AddSlot({ onPress }: { onPress: () => void }) {
+/** 담기 — 알약 옆에 따로 선 먹색 단추(66 폭, 모서리 29): ＋(2pt) + 굵은 글자. 오늘 할 일을 적어 담는 시트를 연다 */
+function AddButton({ onPress, width }: { onPress: () => void; width: number }) {
   const M = usePalette();
   const m = useMsg();
   return (
@@ -723,23 +790,22 @@ function AddSlot({ onPress }: { onPress: () => void }) {
       testID={TID.tabAdd}
       accessibilityRole="button"
       accessibilityLabel={m.core.tabAdd}
+      {...a11yLangProp()}
       accessibilityHint={m.core.tabAddHint}
       accessibilityShowsLargeContentViewer
       accessibilityLargeContentTitle={m.core.tabAdd}
-      style={({ pressed }) => ({ flex: 1, height: TAB_BAR_H - 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
+      style={({ pressed }) => ({
+        width, height: TAB_BAR_H, borderRadius: GEO.rTool, backgroundColor: M.add, boxShadow: M.float,
+        alignItems: 'center', justifyContent: 'center', gap: 3, opacity: pressed ? 0.85 : 1,
+      })}
     >
-      <View
-        style={{
-          width: 28, height: 28, borderRadius: 7, borderWidth: 1.6, borderStyle: 'dashed', borderColor: M.ink,
-          alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        <Icon name="plus" size={16} color={M.ink} sw={2.2} />
-      </View>
+      <Icon name="plus" size={24} color={M.onAdd} />
       <Text
         maxFontSizeMultiplier={1}
         numberOfLines={1}
-        style={{ marginTop: 2, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={{ ...ROLE.tabOn, color: M.onAdd }}
       >
         {m.core.tabAdd}
       </Text>

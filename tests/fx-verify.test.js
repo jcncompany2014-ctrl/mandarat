@@ -157,25 +157,23 @@ test('NEW-3(ui): 시작하기의 끝낸 단계 · 아직 먼 단계는 누르는
 });
 
 test('NEW-4(ui): + 점선 네모(홈 · 오늘 · 빈 양식)는 빈 체크 칸과 같은 테두리 — 대비 증가에서 더 진하게', () => {
-  for (const f of ['src/screens/Dashboard.tsx', 'src/screens/Today.tsx', 'src/components/EmptyState.tsx']) {
+  for (const f of ['src/screens/Dashboard.tsx', 'src/screens/Today.tsx']) {
     const s = src(f);
     assert.match(s, /const edge = checkEdge\(M\.dark, useIncreaseContrast\(\)\);/, f);
     assert.match(s, /borderWidth: edge\.width > 1\.6 \? 2 : 1\.4, borderStyle: 'dashed', borderColor: edge\.color/, f);
     assert.doesNotMatch(s, /checkBorder\(/, f);
   }
-  // 대비 증가의 진한 테두리(Check.tsx STRONG_BORDER)는 대비 증가 팔레트 종이 위 4.5:1 이상
+  // 빈 양식(EmptyState, 디자인 A): 빈 체크 칸과 같은 가장자리 토큰 printEdge — usePalette가 대비 증가에서 ink2로 진하게 한다
+  const empty = src('src/components/EmptyState.tsx');
+  assert.match(empty, /borderWidth: 1\.5, borderStyle: 'dashed', borderColor: M\.printEdge/);
+  assert.doesNotMatch(empty, /checkBorder\(/);
+  // 테두리는 토큰(패키지 K) — 평소 printEdge(종이 위 3:1 이상), 대비 증가에서는 ink2(4.5:1 이상)
   const check = src('src/components/Check.tsx');
-  const m = /STRONG_BORDER = \{ light: '([^']+)', dark: '([^']+)' \}/.exec(check);
-  assert.ok(m);
-  const over = (rgba, bg) => {
-    const [r, g, b, a] = rgba.match(/[\d.]+/g).map(Number);
-    const base = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16));
-    return toHex(`rgb(${[r, g, b].map((c, i) => Math.round(c * a + base[i] * (1 - a))).join(', ')})`);
-  };
-  for (const [name, mood] of Object.entries(MOODS)) {
-    const M = contrastEdition(mood);
-    const k = contrast(over(M.dark ? m[2] : m[1], M.bg), M.bg);
-    assert.ok(k >= 4.5, `${name}: ${k.toFixed(2)}`);
+  assert.match(check, /return \{ color: more \? T\.ink2 : T\.printEdge, width: 1\.5 \};/);
+  const { LIGHT, DARK } = require('../src/theme/tokens');
+  for (const T of [LIGHT, DARK]) {
+    assert.ok(contrast(T.printEdge, T.paper) >= 3, `printEdge ${contrast(T.printEdge, T.paper).toFixed(2)}`);
+    assert.ok(contrast(T.ink2, T.paper) >= 4.5, `ink2 ${contrast(T.ink2, T.paper).toFixed(2)}`);
   }
 });
 

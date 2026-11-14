@@ -1,4 +1,4 @@
-// 앱 아이콘 — 인쇄된 3×3 표(미색 종이 · 먹 괘선 · 가운데 금색)와 웹 '홈 화면에 추가' 설정
+// 앱 아이콘 — 흰 바탕 가운데 먹 코어와 여덟 영역 색의 둥근 타일(tools/icons/render.js가 그린다, 그림은 tests/a-n2)과 웹 '홈 화면에 추가' 설정
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -24,7 +24,7 @@ test('불투명 아이콘은 알파 없이(RGB), 비쳐야 하는 것은 RGBA �
     const h = ihdr(f);
     assert.deepEqual([h.w, h.h, h.colorType], [size, size, 2], f);
   }
-  for (const f of ['assets/icon-dark.png', 'assets/android-icon-foreground.png', 'assets/android-icon-monochrome.png', 'assets/splash-icon.png']) {
+  for (const f of ['assets/icon-dark.png', 'assets/android-icon-foreground.png', 'assets/android-icon-monochrome.png', 'assets/splash-icon.png', 'assets/splash-icon-dark.png']) {
     const h = ihdr(f);
     assert.deepEqual([h.w, h.h, h.colorType], [1024, 1024, 6], f);
   }
@@ -64,9 +64,11 @@ test('app.json: 웹 이름 · 종이색(흰 종이 LIGHT.paper), 안드로이드
   assert.doesNotMatch(html, /#fbf9f4/i, '예전 미색이 남지 않는다');
 });
 
-test('JS 스플래시 표는 아이콘과 같은 먹 · 금색, 예전 금색 타일은 쓰지 않는다', () => {
+test('JS 스플래시는 L0 마음(Mark heart)을 토큰 색으로 — 예전 먹 · 금색 표는 없다', () => {
   const s = read('src/components/Splash.tsx').toString();
-  assert.match(s, /const SPLASH_INK = '#2B2620';/);
-  assert.match(s, /const SPLASH_GOLD = '#B0883C';/);
-  assert.doesNotMatch(s, /borderRadius: 24, backgroundColor: '#B0883C'/);
+  assert.match(s, /import \{ Mark \} from '\.\/chart\/Mark';/);
+  assert.match(s, /<Mark variant="heart" size=\{MARK\} tokens=\{T\} \/>/);
+  // 색은 토큰에서만 — 시스템 모드로 LIGHT · DARK를 고른다(build-plan §4.2)
+  assert.doesNotMatch(s, /#[0-9A-Fa-f]{6}/);
+  assert.doesNotMatch(s, /SPLASH_INK|SPLASH_GOLD/);
 });

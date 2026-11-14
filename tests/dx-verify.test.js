@@ -28,11 +28,11 @@ test('D-17: 홈 시작하기 — 체크 · 숫자 칸 26pt, 줄 사이 선은 �
   assert.doesNotMatch(guide, /TODAY_ROW_INSET - 2/);
   assert.doesNotMatch(guide, /size=\{24\}/);
   assert.match(guide, /width: 26, height: 26, borderRadius: 7/);
-  // 오늘 할 일 줄과 같은 값 — 체크 26 + 사이 12
+  // 오늘 할 일 줄의 사이 선 — kit 줄과 같은 값(체크 24 + 사이 14 = 38, 패키지 K)
   const row = src('src/components/TodayRow.tsx');
-  assert.match(row, /const CHECK = 26;/);
-  assert.match(row, /export const TODAY_ROW_INSET = CHECK \+ GAP;/);
-  assert.match(src('src/components/Check.tsx'), /size = 26/);
+  assert.match(row, /export const TODAY_ROW_INSET = ROW\.inset;/);
+  assert.match(src('src/components/kit/metrics.ts'), /inset: 24 \+ 14,/);
+  assert.match(src('src/components/Check.tsx'), /size = 24/);
 });
 
 test('NEW-3: 홈 하루 마감 — 날짜 글 · 더 고르기 · 10 / 10이 같은 가장자리(오늘 화면 마감과 같다)', () => {

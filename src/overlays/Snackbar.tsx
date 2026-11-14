@@ -1,29 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Animated, Easing, Pressable, View } from 'react-native';
-import { Text } from '../components/AppText';
+import { Text, a11yLangProp } from '../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shadow } from '../theme/shadow';
-import { mix, toHex } from '../theme/moods';
-import { GOLD } from '../theme/palette';
 import { EASE } from '../theme/motion';
+import { GEO } from '../theme/tokens';
+import { ROLE } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
-import { TAB_BAR_H, useToast, useUIActions, useUIState, type Toast } from '../navigation/ui';
+import { tabBarBottom, tabBarTop, useToast, useUIActions, useUIState, type Toast } from '../navigation/ui';
 import { tap } from '../lib/haptics';
 import { reducedMotion, useScreenReader } from '../lib/useReducedMotion';
 import { TID } from '../lib/testIds';
+import { PANEL_MAX_W } from '../lib/screen';
 
-/** 되돌리기 글자(골드일 때) — 토스트 바탕(M.center, 다크 #26242F) 위 8.7:1 */
-const ACTION_INK = '#E2C27F';
-
-/**
- * 되돌리기 글자 색 — 포인트 컬러를 따른다. 골드면 늘 쓰던 #E2C27F, 다른 색이면 흰색 쪽으로 55% 섞은 색
- * (어두운 토스트 바탕 위 7.8~9.4:1 — tests/dx-3-sheets).
- */
-export function actionInkFor(accent: string): string {
-  const a = toHex(accent);
-  if (a === GOLD || !/^#[0-9A-F]{6}$/.test(a)) return ACTION_INK;
-  return toHex(mix(a, '#FFFFFF', 0.55));
-}
 /** 등장·퇴장 때 움직이는 거리 */
 const TRAVEL = 40;
 
@@ -51,10 +40,11 @@ function subscribeTop(f: () => void) {
 const getTop = () => topCount > 0;
 
 /**
- * 잠깐 떠오르는 안내 + (선택)되돌리기.
- * - placement 'bottom'(기본): 탭바 위 12 — 탭바가 없는 화면(설정·온보딩)은 바닥 안전 영역 위
+ * 잠깐 떠오르는 안내 + (선택)되돌리기 — 탭 막대와 같은 종이 알약(capsule, 모서리 29, 떠 있는 그림자), 13/18 먹 글씨,
+ * 되돌리기는 조용한 글 동작(굵은 먹).
+ * - placement 'bottom'(기본): 탭 막대 위 10 — 탭 막대가 없는 화면(설정·온보딩)은 막대가 뜨는 높이에
  * - placement 'top': 상태 표시줄 아래 8(+offset) — 시트 위에 띄울 때(시트가 아래를 덮으므로)
- * 아래 금빛 실선(도화선)이 남은 시간만큼 왼쪽으로 줄어든다. 누르고 있는 동안은 멈춘다.
+ * 아래 가는 선(도화선)이 남은 시간만큼 왼쪽으로 줄어든다. 누르고 있는 동안은 멈춘다.
  */
 export function Snackbar({ placement = 'bottom', tabBar, offset = 0 }: {
   placement?: 'bottom' | 'top';
@@ -169,33 +159,32 @@ export function Snackbar({ placement = 'bottom', tabBar, offset = 0 }: {
 
   if (!toast) return null;
 
-  const bg = M.dark ? '#26242F' : M.center;
   const edge = top
     ? { top: insets.top + 8 + offset }
-    : { bottom: overTabs ? TAB_BAR_H + 12 + Math.max(10, insets.bottom) : Math.max(16, insets.bottom) };
+    : { bottom: overTabs ? tabBarTop(insets.bottom) + 10 : tabBarBottom(insets.bottom) };
   const action = toast.action;
 
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[{ position: 'absolute', left: 16, right: 16, zIndex: 60, opacity: op, transform: [{ translateY: y }] }, edge]}
+      style={[{ position: 'absolute', left: GEO.bar.side, right: GEO.bar.side, zIndex: 60, opacity: op, transform: [{ translateY: y }] }, edge]}
     >
-      <View style={[{ borderRadius: 10, backgroundColor: bg }, shadow(12, '#000', 0.34)]}>
+      <View style={[{ borderRadius: GEO.rTool, backgroundColor: M.capsule, alignSelf: 'center', width: '100%', maxWidth: PANEL_MAX_W }, shadow(12, '#000', 0, M)]}>
         <Pressable
           accessible={false}
           onPressIn={pause}
           onPressOut={resume}
           onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-          style={{ borderRadius: 10, overflow: 'hidden' }}
+          style={{ borderRadius: GEO.rTool, overflow: 'hidden' }}
         >
           <View
             accessibilityLiveRegion={live}
             style={{
-              flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 50,
-              paddingLeft: 16, paddingRight: action ? 6 : 16, paddingVertical: 12,
+              flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48,
+              paddingLeft: 20, paddingRight: action ? 10 : 20, paddingVertical: 8,
             }}
           >
-            <Text style={{ flex: 1, color: '#FFFFFF', fontSize: 14, lineHeight: 20, fontWeight: '600' }} numberOfLines={4}>
+            <Text style={{ ...ROLE.label, flex: 1, color: M.ink }} numberOfLines={4}>
               {toast.message}
             </Text>
             {action && (
@@ -204,10 +193,11 @@ export function Snackbar({ placement = 'bottom', tabBar, offset = 0 }: {
                 testID={TID.toastAction}
                 accessibilityRole="button"
                 accessibilityLabel={action.label}
+                {...a11yLangProp()}
                 hitSlop={12}
-                style={({ pressed }) => ({ paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.6 : 1 })}
+                style={({ pressed }) => ({ paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.5 : 1 })}
               >
-                <Text style={{ color: actionInkFor(M.accent), fontSize: 14, fontWeight: '800' }}>{action.label}</Text>
+                <Text style={{ ...ROLE.quiet, color: M.ink }}>{action.label}</Text>
               </Pressable>
             )}
           </View>
@@ -216,7 +206,7 @@ export function Snackbar({ placement = 'bottom', tabBar, offset = 0 }: {
             <Animated.View
               pointerEvents="none"
               style={{
-                position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, backgroundColor: M.gold,
+                position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, backgroundColor: M.printMid,
                 transform: [{ translateX: fuseX }, { scaleX: fuse }],
               }}
             />

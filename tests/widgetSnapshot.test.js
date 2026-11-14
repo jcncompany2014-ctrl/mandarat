@@ -4,7 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { blankDoc } = require('../src/data/defaults');
 const { msg, LANGS } = require('../src/i18n');
-const { MOODS } = require('../src/theme/moods');
+const { LIGHT, DARK } = require('../src/theme/tokens');
+const { actionStates } = require('../src/lib/mapCells');
 const W = require('../src/lib/widgetSnapshot');
 
 // 2026-10-14 수요일
@@ -70,12 +71,16 @@ test('남은 것부터, 8줄까지 — 나머지는 more', () => {
   assert.equal(p.items.filter((i) => i.d).length, 0, '안 한 것이 8개를 넘으면 한 것은 보이지 않는다');
 });
 
-test('직접 추가한 할 일은 x:<id> 키, 색은 그 영역 색', () => {
+test('직접 추가한 할 일은 x:<id> 키, 영역은 번호(a) — 색은 위젯이 팔레트에서 고른다(theme.color는 넘기지 않는다)', () => {
   const p = tl()[0].props;
   const x = p.items.filter((i) => i.k.startsWith('x:'));
   assert.deepEqual(x.map((i) => i.k).sort(), ['x:a1', 'x:a2']);
-  for (const i of x) assert.equal(i.c, blankDoc().themes[3].color.toUpperCase());
-  for (const i of p.items.filter((i) => !i.k.startsWith('x:'))) assert.match(i.k, /^\d-\d$/);
+  for (const i of x) assert.equal(i.a, 3);
+  for (const i of p.items.filter((i) => !i.k.startsWith('x:'))) {
+    assert.match(i.k, /^\d-\d$/);
+    assert.equal(i.a, Number(i.k[0]));
+  }
+  for (const i of p.items) assert.deepEqual(Object.keys(i).sort(), ['a', 'd', 'k', 'r', 't']);
 });
 
 test('plist에 넣을 수 있다 — null · undefined · Date 없음, JSON으로 오가도 같다', () => {
@@ -95,27 +100,38 @@ test('plist에 넣을 수 있다 — null · undefined · Date 없음, JSON으�
 
 test('색은 모두 #RRGGBB(AA) — rgba()는 넘기지 않는다', () => {
   const p = tl()[0].props;
-  const colors = [...p.colors, ...p.items.map((i) => i.c), ...Object.values(p.pal.light), ...Object.values(p.pal.dark)];
+  const colors = [...Object.values(p.pal.light), ...Object.values(p.pal.dark)].flat();
   for (const c of colors) assert.match(c, HEX, c);
-  assert.equal(p.colors.length, 8);
-  assert.equal(p.pal.light.line, '#6E55281F', '연꽃 괘선 rgba(110,85,40,0.12)의 알파를 지킨다');
+  for (const pal of [p.pal.light, p.pal.dark]) for (const k of ['dye', 'washL1', 'tint']) assert.equal(pal[k].length, 8, k);
   assert.equal(W.widgetHex('rgba(255,255,255,0.11)'), '#FFFFFF1C');
   assert.equal(W.widgetHex('#abc'), '#AABBCC');
   assert.equal(W.widgetHex('rgb(1, 2, 3)'), '#010203');
   assert.equal(W.widgetHex('#11223380'), '#11223380');
 });
 
-test('팔레트 — 밝게는 고른 무드(다크면 연꽃), 어둡게는 다크', () => {
-  const pal = (mood) => tl(doc({ settings: { ...blankDoc().settings, mood } }))[0].props.pal;
-  assert.equal(pal('크림').light.paper, MOODS['크림'].bg);
-  assert.equal(pal('크림').dark.paper, MOODS['다크'].bg);
-  assert.equal(pal('다크').light.paper, MOODS['연꽃'].bg);
-  assert.equal(pal('연꽃').light.ink, MOODS['연꽃'].ink);
+test('팔레트 — 밝게는 LIGHT, 어둡게는 DARK 토큰(무드 · 포인트 컬러는 읽지 않는다, 위젯은 시스템을 따른다)', () => {
+  const pal = (mood, accent) => tl(doc({ settings: { ...blankDoc().settings, mood, accent } }))[0].props.pal;
+  const want = { light: W.widgetPalette(LIGHT), dark: W.widgetPalette(DARK) };
+  for (const mood of ['연꽃', '크림', '화이트', '파스텔', '다크']) assert.deepEqual(pal(mood, '#123456'), want, mood);
+  for (const [name, T] of [['light', LIGHT], ['dark', DARK]]) {
+    const P = want[name];
+    for (const k of ['paper', 'ink', 'ink2', 'print', 'printEdge', 'printRule', 'tile', 'signal', 'core']) assert.equal(P[k], T[k], `${name}.${k}`);
+    assert.deepEqual(P.dye, [...T.dye]);
+    assert.deepEqual(P.washL1, [...T.washL1]);
+    assert.deepEqual(P.tint, [...T.tint]);
+  }
 });
 
-test('영역 달성 수 · 목표 · 무늬 · 주소 · ops', () => {
+test('64칸 · 영역 이름 · 목표 · 무늬 · 주소 · ops', () => {
   const p = tl(doc(), { pat: 'grid' })[0].props;
-  assert.deepEqual(p.areas, [1, 0, 1, 0, 0, 0, 0, 0]);
+  // 실천 64칸(영역 우선): 0 빈 칸 · 1 적은 칸 · 2 달성 — mapCells.actionStates 그대로
+  assert.equal(p.cells, actionStates(doc()));
+  assert.equal(p.cells.length, 64);
+  assert.equal(p.cells.slice(0, 8), '11200000');
+  assert.equal(p.cells[2 * 8 + 4], '2');
+  assert.equal([...p.cells].filter((c) => c === '2').length, 2);
+  assert.deepEqual(p.names, doc().themes.map((t) => t.title.trim()));
+  assert.equal(p.names.length, 8);
   assert.equal(p.goal, '단단한 한 해');
   assert.equal(p.pat, 'grid');
   assert.equal(p.url, 'mandarat://today');
@@ -128,8 +144,11 @@ test('문구 — ko · ja · en 모두, 틀은 채우지 않고 넘긴다', () =
   for (const lang of LANGS) {
     const p = tl(doc(), { lang })[0].props;
     assert.deepEqual(p.lines, (({ galleryName, galleryDesc, ...lines }) => lines)(msg(lang).widget), lang); // 위젯 고르기 문구(V2-C)는 위젯에 넘기지 않는다
-    assert.deepEqual(Object.keys(p.lines).sort(), ['allDone', 'checked', 'doneShort', 'empty', 'left', 'leftShort', 'more', 'next', 'progress', 'today', 'unchecked']);
-    for (const k of ['left', 'more']) assert.ok(p.lines[k].includes('{n}'), `${lang}.${k}`);
+    assert.deepEqual(Object.keys(p.lines).sort(), [
+      'allDone', 'checked', 'doneShort', 'empty', 'focus', 'left', 'leftShort', 'leftUnit', 'listHead', 'more', 'next', 'nextHead', 'progress', 'today', 'unchecked',
+    ]);
+    for (const k of ['left', 'more', 'leftUnit']) assert.ok(p.lines[k].includes('{n}'), `${lang}.${k}`);
+    for (const k of ['listHead', 'nextHead', 'focus']) assert.ok(p.lines[k] && !/[{}]/.test(p.lines[k]), `${lang}.${k}`);
     for (const k of ['next', 'checked', 'unchecked', 'progress']) assert.ok(p.lines[k].includes('{t}'), `${lang}.${k}`);
     assert.ok(p.lines.progress.includes('{n}'), `${lang}.progress`);
     assert.ok(!p.lines.progress.includes('/'), `${lang}.progress: 빗금 없이 말로`);

@@ -5,11 +5,12 @@ import { CloseBtn, LineRow, Sheet, useSheetDismiss } from './common';
 import { TEMPLATES, type Template } from '../data/templates';
 import { TID } from '../lib/testIds';
 import { useMsg } from '../i18n/react';
+import { ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 
 /**
- * 템플릿 고르기 — 설정(템플릿으로 새로 쓰기)과 온보딩이 함께 쓰는 종이 시트.
- * 템플릿마다 괘선 한 줄: 이름 · 한 줄 설명 · 영역 8개 이름(두 줄까지). 아이콘은 두지 않는다.
+ * 템플릿 고르기 — 설정(템플릿으로 새로 쓰기)과 온보딩이 함께 쓰는 떠 있는 시트.
+ * 템플릿마다 한 줄: 이름 · 한 줄 설명 · 영역 8개 이름(두 줄까지). 아이콘은 두지 않는다.
  *
  * 고르면 onPick(t, close)만 부른다 — 확인은 부르는 쪽이 한다(지울 것이 있으면 묻기).
  * 시트는 그대로 떠 있으므로, 확인 창을 취소하면 다른 템플릿을 고를 수 있다.
@@ -25,15 +26,16 @@ export function TemplateSheet({
   returnFocusRef?: React.RefObject<View | null>;
 }) {
   return (
-    <Sheet M={M} onClose={onClose} ownClose returnFocusRef={returnFocusRef}>
+    <Sheet M={M} onClose={onClose} ownClose pad returnFocusRef={returnFocusRef}>
       <TemplateList M={M} onPick={onPick} />
     </Sheet>
   );
 }
 
 /**
- * 종이 시트의 머리 — 제목(17/'800') + 닫기(×) 한 줄, 그 아래 설명 한 줄을 시트 폭 그대로.
+ * 제목이 있는 시트의 머리 — 제목(prompt 20/30) + 닫기 글리프(44 손끝, 동그라미 없음) 한 줄, 그 아래 인쇄된 설명(13/18)을 시트 폭 그대로.
  * 템플릿 고르기 · 설정의 저장본·라이선스 · 백업 불러오기가 같은 머리를 쓴다. 시트 안에서만 쓴다(×가 시트를 내린다).
+ * 위치가 있는 시트(칸 · 영역)는 common.tsx의 SheetHeader를 쓴다.
  */
 export function SheetHead({ M, title, body, closeTestID = TID.sheetClose }: {
   M: M;
@@ -45,11 +47,13 @@ export function SheetHead({ M, title, body, closeTestID = TID.sheetClose }: {
   const dismiss = useSheetDismiss();
   return (
     <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>{title}</Text>
-        <CloseBtn M={M} onPress={() => dismiss()} testID={closeTestID} />
+      <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: body ? 4 : 8 }}>
+        <Text accessibilityRole="header" style={{ ...ROLE.prompt, flex: 1, color: M.ink }}>{title}</Text>
+        <View style={{ marginRight: -10 }}>
+          <CloseBtn M={M} onPress={() => dismiss()} testID={closeTestID} />
+        </View>
       </View>
-      {!!body && <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginBottom: 16 }}>{body}</Text>}
+      {!!body && <Text style={{ ...ROLE.noteSheet, color: M.print, marginBottom: 16 }}>{body}</Text>}
     </>
   );
 }
@@ -61,7 +65,7 @@ function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => 
   const m = useMsg();
   const ed = m.editor;
   return (
-    <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+    <View style={{ paddingBottom: 8 }}>
       <SheetHead M={M} title={ed.templateTitle} body={ed.templateBody} />
       {TEMPLATES.map((t, i) => {
         const areas = t.areas.map((a) => a.title).join(m.core.dot);
@@ -74,8 +78,8 @@ function TemplateList({ M, onPick }: { M: M; onPick: (t: Template, close: () => 
             title={t.name}
             sub={
               <>
-                <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2 }}>{t.desc}</Text>
-                <Text style={{ fontSize: 12, lineHeight: 17, fontWeight: '600', color: M.sub, marginTop: 4 }} numberOfLines={2}>
+                <Text style={{ ...ROLE.rowMeta, color: M.ink2 }}>{t.desc}</Text>
+                <Text style={{ ...ROLE.meta, color: M.ink2, marginTop: 2 }} numberOfLines={2}>
                   {areas}
                 </Text>
               </>

@@ -9,11 +9,18 @@ const babel = require('@babel/core');
 const ROOT = path.join(__dirname, '..', '..');
 const LAYOUT_FILE = path.join(ROOT, 'src/widgets/TodayWidget.ios.tsx');
 
-/** 위젯 쪽에 전역으로 있는 SwiftUI 뷰 — 이 모습이 쓰기로 한 것만 */
-const VIEWS = ['Text', 'VStack', 'HStack', 'ZStack', 'Rectangle', 'Button', 'AccessoryWidgetBackground', 'Spacer', 'Divider'];
+/**
+ * 위젯 쪽에 전역으로 있는 SwiftUI 뷰 — 이 모습들이 쓰기로 한 것만. 모두 expo-widgets의 WidgetsDynamicView가 그리는 type이다
+ * (node_modules/expo-widgets/ios/Widgets/DynamicView.swift — 거기 없는 type은 출시 빌드에서 빈 자리가 된다).
+ */
+const VIEWS = [
+  'Text', 'VStack', 'HStack', 'ZStack', 'Rectangle', 'RoundedRectangle', 'Circle', 'Image', 'Gauge', 'Button',
+  'AccessoryWidgetBackground', 'Spacer', 'Divider',
+];
 /** @expo/ui 뷰 이름 → 네이티브 뷰 이름(WidgetsDynamicView가 읽는 type) */
 const NATIVE = {
   Text: 'TextView', VStack: 'VStackView', HStack: 'HStackView', ZStack: 'ZStackView', Rectangle: 'RectangleView',
+  RoundedRectangle: 'RoundedRectangleView', Circle: 'CircleView', Image: 'ImageView', Gauge: 'GaugeView',
   Button: 'Button', AccessoryWidgetBackground: 'AccessoryWidgetBackgroundView', Spacer: 'SpacerView', Divider: 'DividerView',
 };
 

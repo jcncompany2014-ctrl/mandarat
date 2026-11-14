@@ -15,6 +15,10 @@ export default {
   checked: '{t}　できました',
   unchecked: '{t}、まだできていません',
   progress: '今日は{t}件中{n}件できました',
+  listHead: '今日やること',
+  nextHead: '次にやること',
+  leftUnit: 'あと{n}件',
+  focus: '重点',
   galleryName: '今日',
   galleryDesc: '今日やることと残りの数を表示します。',
 } satisfies Like<typeof ko>;

@@ -18,13 +18,13 @@ test('온보딩: 3×3 표는 화면 가운데에, 폭에 맞춰 크게(작은 �
 
 test('웹: 폭에 맞춰 크기를 정하는 화면은 묶인 폭(lib/screen)을 쓴다', () => {
   const files = [
-    'src/components/TodayRow.tsx', 'src/components/ChartBoard.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/FocusTimer.tsx',
+    'src/components/kit/Row.tsx', 'src/components/ChartBoard.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/FocusTimer.tsx',
     'src/overlays/ActionSheet.tsx', 'src/overlays/ShareChart.tsx', 'src/screens/TodayModes.tsx', 'src/screens/Dashboard.tsx',
     'src/screens/FullGrid.tsx', 'src/screens/Stats.tsx', 'src/screens/Onboarding.tsx',
   ];
   for (const f of files) {
     const s = src(f);
-    assert.match(s, /import \{ useWindowDimensions \} from '\.\.\/lib\/screen';/, f);
+    assert.match(s, /import \{ useWindowDimensions \} from '(\.\.\/)+lib\/screen';/, f);
     assert.doesNotMatch(s, /import \{[^}]*\buseWindowDimensions\b[^}]*\} from 'react-native'/, f);
   }
   const screen = src('src/lib/screen.ts');

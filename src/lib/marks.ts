@@ -1,84 +1,98 @@
-// 손으로 긋는 표시(체크 칸 · 주간 칸 · 동그라미)의 값과 말 — RN 의존 없는 순수 모듈(단위 테스트에서 그대로 쓴다).
-// 그리는 컴포넌트: Check.tsx · WeekStrip.tsx · MoodRow.tsx · GuideChips.tsx · KindBits.tsx(RatingBoxes).
+// 손으로 긋는 표시(체크 칸 · 요일 칸 · 동그라미)의 값과 말 — RN 의존 없는 순수 모듈(단위 테스트에서 그대로 쓴다).
+// 그리는 컴포넌트: kit/CheckBox.tsx · kit/DayBoxes.tsx · kit/ChoiceRow.tsx · Check.tsx · WeekStrip.tsx · MoodRow.tsx · GuideChips.tsx.
+// 디자인 A(docs/design/build-plan.md 패키지 K): 체크 칸은 24 상자(모서리 6, 테두리 1.5 printEdge) 위에 펜 획.
 import type { DayState } from './routine';
-import { toHex } from '../theme/moods';
-import { readableOn } from '../theme/palette';
 import { lang, msg, type Lang } from '../i18n';
 import { liveList } from '../i18n/live';
 
-// ── 체크 칸 ──────────────────────────────────────────────────────────────────
+// ── 체크 칸(kit/CheckBox) ─────────────────────────────────────────────────────
 
-/** 펜으로 긋는 체크 — 24 viewBox, 둥근 끝. 짧은 획(아래로) 다음 긴 획(오른쪽 위로) */
+/**
+ * 체크 칸의 네 모습 — 하나의 상자, 뜻이 다른 두 가지 '채운' 모습(CI-02).
+ * - open: 빈 칸(인쇄된 테두리) · done: 내가 했다(영역 wash 칠 + 영역 dye 테두리 + 칸 밖으로 뻗는 펜 획)
+ * - chosen: 이것으로 고른다(빈 칸 + 칸 안의 작은 먹 획 — 설정 켬 · 요일 고르기) · later: 아직 오지 않은 날(tile 칠, 테두리 없음)
+ */
+export type CheckState = 'open' | 'done' | 'chosen' | 'later';
+/** 체크 칸 크기 — 줄 24, 뒤쪽에 놓을 때 20, 주간 표 14 */
+export type CheckSize = 24 | 20 | 14;
+
+/**
+ * 했어요 펜 획(24 상자 기준) — 짧게 내려 긋고 길게 올려 그어 오른쪽 위 모서리 밖(27.2, −3)까지 뻗는다(목업 A.check).
+ * iOS는 Svg를 제 틀에서 자르므로, 획은 상자보다 큰 Svg에 따로 그린다(PEN_TICK_REACH).
+ */
+export const PEN_TICK = 'M5.6 12.4C8 14.2 9.6 16.2 10.8 18.6 14.6 11 19.8 3.6 27.2 -3';
+/** 펜 획 길이(≈35.5)에 둥근 끝(굵기 2)을 더한 것보다 긴 대시 — strokeDashoffset을 이 값에서 0으로 줄이면 한 획으로 그어진다 */
+export const PEN_TICK_DASH = 38;
+/** 펜 획이 상자 위 · 오른쪽으로 넘는 거리(24 단위, 굵기의 절반 포함) — 획의 Svg는 이만큼 크다 */
+export const PEN_TICK_REACH = 4.5;
+/** 고른 칸(chosen) 안의 작은 먹 획 — 상자 안에 머문다(목업 S.chosenBox) */
+export const CHOSEN_TICK = 'M6.4 12.6C8 13.8 9.2 15.2 10.2 17 12.4 12.6 15 9.2 18 6.6';
+/** 고르기 줄(ChoiceRow) 오른쪽의 펜 획 — 18pt로 그린다(목업 S.choice) */
+export const CHOICE_TICK = 'M3.5 13C6 14.8 7.8 17 9.2 19.8 12.4 12.8 16.4 7.4 21.5 3.2';
+
+/**
+ * 크기 size의 체크 칸 치수 — 24 상자의 값(모서리 6 · 테두리 1.5 · 획 2)을 비례로.
+ * reach: 펜 획 Svg가 상자 밖으로 나가는 거리(pt), hit: 44pt 누르는 자리를 만드는 사방 여유.
+ */
+export function checkGeometry(size: number): { radius: number; edge: number; tick: number; reach: number; hit: number } {
+  const k = size / 24;
+  return { radius: 6 * k, edge: 1.5 * k, tick: 2 * k, reach: PEN_TICK_REACH * k, hit: Math.max(0, (44 - size) / 2) };
+}
+
+/** 화면 읽기의 '선택됨' — 했어요(done)와 고름(chosen)만 켜진 칸이다 */
+export function isChecked(state: CheckState): boolean {
+  return state === 'done' || state === 'chosen';
+}
+
+/**
+ * 예전 체크(GuideChips의 시작하기 표시)가 쓰는 꺾은선 획 — 24 viewBox.
+ * @deprecated 새 표시는 PEN_TICK · CHOSEN_TICK(웨이브 3 O1이 GuideChips를 옮기면 지운다).
+ */
 export const TICK_PATH = 'M5 13.5 L10 18 L19.5 7';
 
-/** 체크 획 길이(≈21.3)보다 조금 긴 대시 — strokeDashoffset을 이 값에서 0으로 줄이면 한 획으로 그려진다 */
-export const TICK_DASH = 25;
-
-/**
- * 조용한 체크(muted) — '완료' 묶음처럼 한발 물러선 줄의 체크 칸 전체(칠과 획을 함께) 농도.
- * 칠만 옅게 하고 획 색을 따로 고르면(옅은 칠 위 먹색 획) 흔한 체크박스 그림처럼 보여서, 같은 표시를 통째로 옅게 한다.
- * 그 줄이 끝났다는 것은 '완료' 머리글과 취소선 글자(보조 글자색, 4.5:1 이상)가 함께 말해 준다.
- */
-export const MUTED_OPACITY = 0.55;
-
-/**
- * 체크 획의 색 — 칠한 영역 색 위에서 읽히는 색(영역 색 8가지는 모두 흰색).
- * 밝은 종이·다크 종이, 조용한 체크(muted) 모두 같은 획 색이다 — 어디서나 같은 '칠한 칸 + 흰 획'.
- */
-export function tickInk(color: string): string {
-  return readableOn(toHex(color));
-}
-
-/**
- * 빈 체크 칸·점수 칸의 테두리 — 종이 위에 겹쳐 그린 색이 바탕·면 위 3:1 이상(글씨 아닌 표시, WCAG 1.4.11).
- * 밝은 종이 넷: 먹 55%(3.4~3.5:1), 다크: 흰색 40%(3.8:1). tests/contrast.test.js가 같은 값을 잰다.
- */
-export const CHECK_BORDER = { light: 'rgba(43,38,32,0.55)', dark: 'rgba(255,255,255,0.40)' } as const;
-
-export function checkBorder(dark: boolean): string {
-  return dark ? CHECK_BORDER.dark : CHECK_BORDER.light;
-}
-
-/**
- * 같은 칸은 늘 같은 각도로 — 항목 키(seed)에서 정한 -max°~+max° 기울기(0.1° 단위).
- * 손으로 그은 체크가 줄마다 조금씩 다르게 보이도록. seed가 없으면 0(반듯하게).
- */
-export function seedTilt(seed?: string, max = 3): number {
-  if (!seed) return 0;
-  // FNV-1a 32비트
-  let h = 0x811c9dc5;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  // 마무리 섞기(murmur3 fmix32) — FNV만으로는 '3-5'·'3-6'처럼 끝 글자만 다른 짧은 키의 윗자리가 거의 같아
-  // 한 영역의 칸들이 모두 같은 쪽으로 기운다
-  h ^= h >>> 16;
-  h = Math.imul(h, 0x85ebca6b);
-  h ^= h >>> 13;
-  h = Math.imul(h, 0xc2b2ae35);
-  h ^= h >>> 16;
-  const unit = (h >>> 0) / 0xffffffff; // 0~1
-  return Math.round((unit * 2 - 1) * max * 10) / 10;
-}
-
-// ── 주간 칸(월~일) ────────────────────────────────────────────────────────────
+// ── 요일 칸(월~일) ────────────────────────────────────────────────────────────
 
 /** 월요일부터 자리 i(월 0 … 일 6) → fmt의 요일 번호(0 = 일요일) */
 const dowOf = (i: number) => (i + 1) % 7;
 
+/** 일요일의 자리(월요일부터) — 일요일 글자는 signal(주홍) */
+export const SUNDAY_INDEX = 6;
+
+/** 요일 자리 i(월 0 … 일 6)의 한 글자 — 지금 언어의 fmt.dowNarrow(월 · 月 · M) */
+export function dayLetter(i: number, l: Lang = lang()): string {
+  return msg(l).fmt.dowNarrow({ i: dowOf(i) });
+}
+
 /**
  * 월요일부터 — routineWeek()의 칸 순서와 같다(지금 언어의 fmt.dowNarrow).
- * @deprecated msg().fmt.dowNarrow({ i })를 쓴다(V8-A가 지운다).
+ * @deprecated dayLetter(i)를 쓴다(V8-A가 지운다).
  */
-export const WEEKDAY_KR: readonly string[] = liveList(() => [0, 1, 2, 3, 4, 5, 6].map((i) => msg().fmt.dowNarrow({ i: dowOf(i) })));
+export const WEEKDAY_KR: readonly string[] = liveList(() => [0, 1, 2, 3, 4, 5, 6].map((i) => dayLetter(i)));
 
 /** 날짜의 요일 자리(월 0 … 일 6) */
 export function weekdayIndex(d: Date): number {
   return (d.getDay() + 6) % 7;
 }
 
-/** 줄 오른쪽의 작은 주간 칸 — 9pt 네모 일곱 개, 사이 3pt(모두 81pt) */
+/** 요일 칸 한 날의 모습 — 체크 칸 네 모습 또는 칸 없음(쉬는 날) */
+export type DayBox = CheckState | 'none';
+
+/**
+ * 습관의 이번 주(routineWeek) → 요일 칸(kit/DayBoxes)의 모습.
+ * - 한 날: done · 누를 수 있는 날(지난날 · 오늘): open · 오늘 · 놓친 날: open
+ * - 정해 둔 앞날: later(아직 못 누른다) · 쉬는 날: none
+ */
+export function dayBoxStates(states: readonly DayState[], canPress?: (i: number) => boolean): DayBox[] {
+  return states.map((s, i) => {
+    if (s === 'done') return 'done';
+    if (canPress?.(i)) return 'open';
+    if (s === 'today' || s === 'missed') return 'open';
+    if (s === 'planned') return 'later';
+    return 'none';
+  });
+}
+
+/** 줄 오른쪽의 작은 주간 칸 — 9pt 네모 일곱 개, 사이 3pt(모두 81pt). 오늘 보기(TodayModes)의 연속 기록 줄이 쓴다 */
 export const STRIP = { box: 9, gap: 3, width: 81 } as const;
 
 /**
