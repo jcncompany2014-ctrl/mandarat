@@ -66,6 +66,7 @@
   /* controls */
   --btn: #221F1B;              /* primary button and 담기: ink fill */
   --on-btn: #F6F1E4;
+  --scrim: rgba(34, 31, 27, 0.32); /* behind an inset sheet: warm, so it does not cool the paper */
 
   /* geometry */
   --u: 6px;                    /* sub-unit. The module is 4u = 24. Rows 8u = 48, gutter 4u = 24. */
@@ -98,7 +99,7 @@
     --print: #8C9AAD;          /* 6.4:1 */
     --print-edge: #66748A;     /* 3.9:1 */
     --print-mid: #3F4854;      /* 2.0:1 */
-    --print-rule: #2B3037;     /* 1.4:1 — rules recede at night */
+    --print-rule: #30363E;     /* 1.5:1 — rules recede at night */
 
     --signal: #E2543F;         /* 4.9:1 — re-picked for the dark stock */
 
@@ -119,15 +120,16 @@
     --core-edge: #8C9AAD;      /* the core is drawn by its printed edge at night */
     --rule-frame: #66748A;
     --rule-block: #3F4854;
-    --rule-cell: #2B3037;
+    --rule-cell: #30363E;
     --tick: #ECE6D8;
 
     --btn: #ECE6D8;
     --on-btn: #171411;
+    --scrim: rgba(0, 0, 0, 0.55);
   }
 }
 
-/* 3 ── type roles. Two families, on a 6px baseline (line heights 12 · 18 · 24 · 36 only).
+/* 3 ── type roles. Two families, on a 6px baseline (line heights 12 · 18 · 24 · 36 · 42).
         MaruBuri in two weights (400, 600) and only for: the goal, the date, hero figures,
         ritual prompts. Everything else is Pretendard. ─────────────────────────────────────── */
 html, body { background: var(--paper); color: var(--ink); }
@@ -149,13 +151,13 @@ html, body { background: var(--paper); color: var(--ink); }
   color: var(--ink);
 }
 .t-headline {    /* the goal on Home: the largest text on the screen */
-  font: 600 30px/36px var(--serif);
+  font: 600 34px/42px var(--serif);
   letter-spacing: -0.015em;
   color: var(--ink);
   text-wrap: balance;
 }
 .t-figure {      /* hero figures: 1/10, 24/64 */
-  font: 400 30px/36px var(--serif);
+  font: 400 28px/36px var(--serif);
   letter-spacing: -0.01em;
   color: var(--ink);
 }
@@ -322,7 +324,9 @@ html, body { background: var(--paper); color: var(--ink); }
   font: 700 11px/12px var(--sans);
 }
 
-/* 4.12 inset sheet (for screens that need one): 8 from the edges, all four corners round */
+/* 4.12 inset sheet (for screens that need one): 8 from the edges, all four corners round.
+        Put <div class="a-scrim"></div> under it. */
+.a-scrim { position: absolute; inset: 0; background: var(--scrim); }
 .a-sheet {
   position: absolute; left: 8px; right: 8px; bottom: 8px;
   border-radius: var(--r-sheet);
@@ -341,4 +345,5 @@ html, body { background: var(--paper); color: var(--ink); }
   text-wrap: balance;
 }
 .a-cell.is-head { font-weight: 700; letter-spacing: -0.04em; color: var(--on-dye); }
+.a-cell.is-print { font-weight: 400; color: var(--print); }   /* a prompt printed in an empty cell */
 .a-cell.is-core { font: 600 11px/13px var(--serif); letter-spacing: -0.02em; color: var(--on-core); }

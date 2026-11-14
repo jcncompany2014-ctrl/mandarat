@@ -8,13 +8,14 @@
 <link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <style>
-  /* hero: the goal as the headline, the sheet in miniature, two figures */
+  /* hero: one text column on the gutter (label, the goal, two filled-in fields) and the sheet in
+     miniature tipped in on the right. Its top and bottom rules register with the chart's frame. */
   .hero { padding-top: 12px; }
   .hero-row { display: flex; gap: 24px; margin-top: 12px; }
-  .hero-figs { flex: 1; display: flex; flex-direction: column; justify-content: space-between; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--hair) solid var(--print-rule); }
-  .hero-fig { padding: 8px 0 10px; }
-  .hero-fig + .hero-fig { border-top: var(--hair) solid var(--print-rule); }
+  .hero-fields { flex: 1; display: flex; flex-direction: column; border-top: var(--rule) solid var(--print-mid); }
+  .hero-field { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 7px 0 6px; border-bottom: var(--hair) solid var(--print-rule); }
   .sec { margin-top: 18px; }
+  .hero + .sec { margin-top: 24px; }
 </style>
 </head>
 <body>
@@ -25,17 +26,17 @@
       <div class="t-label">핵심 목표</div>
       <div class="t-headline" id="goal"></div>
       <div class="hero-row">
-        <div id="chart"></div>
-        <div class="hero-figs">
-          <div class="hero-fig">
+        <div class="hero-fields">
+          <div class="hero-field">
             <div class="t-label"><i class="a-today"></i>오늘</div>
             <div class="t-figure" id="fig-today"></div>
           </div>
-          <div class="hero-fig">
+          <div class="hero-field">
             <div class="t-label">달성</div>
             <div class="t-figure" id="fig-cells"></div>
           </div>
         </div>
+        <div id="chart"></div>
       </div>
     </section>
 

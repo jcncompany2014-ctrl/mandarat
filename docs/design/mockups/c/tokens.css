@@ -79,15 +79,15 @@
     --signal: #E8573F;     /* 5.1:1 on the page */
     --on-ink: #161513;
 
-    --rule: #96948F;       /* ink 60% over the page: heavy rules stop glowing. 6.0:1 */
+    --rule: #74726E;       /* ink 44% over the page: heavy rules recede instead of glowing. 3.8:1 */
     --hair: #413F3C;       /* ink 20% over the page. 1.7:1 */
 
     --chart-frame: var(--rule);
-    --chart-block: #817F7B; /* ink 50% */
+    --chart-block: #63615E; /* ink 36%. 3.0:1 */
     --chart-hair: var(--hair);
     --core-bg: #343330;    /* raised ground, ink 14% */
     --core-fg: #ECE9E2;
-    --core-edge: #96948F;  /* 1px keyline inside the core cell */
+    --core-edge: #A19F9A;  /* 1px keyline inside the core cell */
     --dye-mix: 6%;         /* 3.1–3.7:1 against the page, --on-dye text 4.8–5.6:1 */
     --on-dye: #FBFAF7;
 
@@ -122,10 +122,11 @@ body.c-screen {
 .c-label   { font: 700 11px/14px var(--font-ui); letter-spacing: 0.01em; }    /* figure label, column head, tab label */
 .c-action  { font: 700 14px/20px var(--font-ui); letter-spacing: -0.01em; color: var(--ink); } /* tappable text: ink + chevron */
 .c-fig     { font-family: var(--font-fig); font-weight: 600; font-variant-numeric: lining-nums; letter-spacing: 0; }
-.c-fig-xl  { font-size: 56px; line-height: 48px; }  /* hero figures, at most two per screen */
-.c-fig-l   { font-size: 34px; line-height: 32px; }  /* a total */
-.c-fig-m   { font-size: 20px; line-height: 22px; }  /* trailing figure in a row (D-2) */
-.c-unit    { font: 700 12px/16px var(--font-ui); color: var(--ink); margin-left: 3px; letter-spacing: 0; }
+/* line-height = 0.8 × size puts the baseline on the bottom edge of the box, so a figure can stand on a rule */
+.c-fig-xl  { font-size: 56px; line-height: 45px; }  /* hero figures, at most two per screen */
+.c-fig-l   { font-size: 34px; line-height: 27px; }  /* a total */
+.c-fig-m   { font-size: 20px; line-height: 16px; }  /* trailing figure in a row (D-2) */
+.c-unit    { font: 700 12px/1px var(--font-ui); color: var(--ink); margin-left: 3px; letter-spacing: 0; } /* 1px line: the unit must not push the figure's box below its baseline */
 .c-strong  { color: var(--ink); font-weight: 700; }
 
 /* ── header (S3): eyebrow, title, one trailing action, 3pt bar at y = 80 ──── */
@@ -143,7 +144,7 @@ body.c-screen {
 
 /* ── rows (S5): check on the leading side, one title, one meta line, one thing on the right ── */
 .c-row { position: relative; min-height: var(--row-h); display: flex; align-items: center; gap: 14px; border-top: var(--w-hair) solid var(--hair); }
-.c-row:first-child, .c-row--first { border-top: 0; }
+.c-row:first-child, .c-sec__head + .c-row { border-top: 0; }
 .c-row__text { flex: 1; min-width: 0; padding: 8px 0 9px; }
 .c-row__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .c-row__meta { display: flex; align-items: center; gap: 6px; margin-top: 1px; white-space: nowrap; }
@@ -165,10 +166,11 @@ body.c-screen {
 .c-textaction { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; color: var(--ink); }
 
 /* figure: small heavy label over a condensed numeral */
-.c-figure { display: flex; flex-direction: column; gap: 6px; }
+.c-figure { display: flex; flex-direction: column; gap: 4px; }
 .c-figure__label { display: flex; align-items: center; gap: 6px; height: 14px; }
 .c-figure__value { display: flex; align-items: baseline; white-space: nowrap; }
-.c-figure__of { color: var(--ink-3); }
+.c-figure__of { color: var(--ink-3); }           /* 3.5:1: large figures only */
+.c-fig-m .c-figure__of { color: var(--ink-2); } /* at 20pt the second half must pass 4.5:1 */
 .c-flag { display: block; flex: none; }  /* today: a vermilion corner */
 
 /* 正 week strip: seven printed cells, the same cell as the chart's */
@@ -189,12 +191,17 @@ body.c-screen {
 .c-chart__cell--core { background: var(--core-bg); color: var(--core-fg); box-shadow: inset 0 0 0 1px var(--core-edge); }
 .c-chart__rule { position: absolute; }
 .c-chart__text { white-space: nowrap; font: 600 10px/12px var(--font-ui); letter-spacing: -0.02em; }
-.c-chart__cell--head .c-chart__text, .c-chart__cell--core .c-chart__text { font-weight: 800; font-size: 10.5px; letter-spacing: -0.03em; }
+.c-chart__cell--head .c-chart__text, .c-chart__cell--core .c-chart__text { font-weight: 800; letter-spacing: -0.03em; }
+.c-chart__cell--selected { box-shadow: inset 0 0 0 2px var(--ink); } /* selection is drawn one way: an ink frame inside the cell */
 .c-chart__flag { position: absolute; left: 0; top: 0; }
 .c-chart__tick { position: absolute; }
 
 /* ── floating bar (S4): an ink capsule with four places, and 담기 on its own ── */
-.c-tabbar { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 22px; height: 58px; display: flex; gap: 10px; z-index: 10; }
+/* the zone behind the bar: page colour fading in over 32pt (y 720–752), so content leaves the screen under the tools
+   instead of peeking round them. The one functional gradient (iOS scroll edge effect), never decoration. */
+.c-tabzone { position: absolute; left: 0; right: 0; bottom: 0; height: 124px; z-index: 10; pointer-events: none; }
+.c-tabzone__fade { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 0, var(--paper) 32px); }
+.c-tabbar { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 22px; height: 58px; display: flex; gap: 10px; }
 .c-tabbar__capsule { flex: 1; display: flex; padding: 4px; border-radius: var(--r-tool); background: var(--bar-bg); box-shadow: var(--float-shadow), inset 0 0 0 1px var(--bar-edge); }
 .c-tabbar__tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: var(--r-tool); color: var(--bar-dim); }
 .c-tabbar__tab--on { background: var(--bar-sel-bg); color: var(--bar-sel-fg); }
@@ -204,3 +211,13 @@ body.c-screen {
 /* primary button (sheets, onboarding): ink fill, paper text, capsule. Never the signal colour. */
 .c-button { height: 52px; padding: 0 24px; border-radius: var(--r-tool); background: var(--ink); color: var(--on-ink); font: 700 16px/52px var(--font-ui); text-align: center; }
 .c-button--quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+
+/* segment: the one look for "one of a few" (view modes, filters, kinds). A ruled capsule track;
+   the chosen segment is ink with paper text, the same inversion as the tab bar. */
+.c-seg { display: inline-flex; height: 36px; padding: 2px; border-radius: var(--r-tool); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.c-seg__item { display: flex; align-items: center; padding: 0 14px; border-radius: var(--r-tool); font: 600 13px/16px var(--font-ui); color: var(--ink); white-space: nowrap; }
+.c-seg__item--on { background: var(--ink); color: var(--on-ink); font-weight: 700; }
+
+/* inset sheet (S4): 8pt from the left, right and bottom edges, 28pt corners, page colour, one real shadow */
+.c-scrim { position: absolute; inset: 0; background: rgba(19, 18, 16, 0.42); z-index: 20; }
+.c-sheet { position: absolute; left: var(--sheet-inset); right: var(--sheet-inset); bottom: var(--sheet-inset); border-radius: var(--r-sheet); background: var(--paper); box-shadow: 0 16px 40px rgba(19, 18, 16, 0.28); padding: 24px 20px 20px; z-index: 21; }

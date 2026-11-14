@@ -19,8 +19,11 @@
 
    Every function returns a DOM element (nothing is appended for you).
    Index: load · header · section · row · check · tick · flag · area · figure ·
-          textAction · tally · weekStrip · tabBar · glyph · chartL0 · chartL1 ·
-          chartL2 · chartCells
+          textAction · segment · tally · weekStrip · tabBar · glyph · chartL0 ·
+          chartL1 · chartL2 · chartCells · breakLines
+   CSS-only parts in tokens.css: .c-button, .c-button--quiet, .c-sheet + .c-scrim,
+   type roles (.c-title .c-section .c-body .c-meta .c-eyebrow .c-label .c-action
+   .c-fig + .c-fig-xl/-l/-m, .c-unit).
    ───────────────────────────────────────────────────────────────────────── */
 (function (global) {
   'use strict';
@@ -80,7 +83,7 @@
     today: '<path d="M18 11.5V20H4V6h10.5"/><path d="M7.8 12.4l3.3 3.5L20.8 3.6"/>',
     stats: '<path d="M5 5h14M12 5v14M12 12h6.5M7.5 11.5V19M4 19h16"/>',
     add: '<path d="M12 4v16M4 12h16" stroke-width="2.5"/>',
-    settings: '<path d="M4 8h7M17 8h3M4 16h3M13 16h7"/><rect x="11.5" y="5.5" width="5" height="5"/><rect x="7.5" y="13.5" width="5" height="5"/>',
+    settings: '<path d="M3 8h18M3 16h18"/><rect class="f" x="13" y="5" width="6" height="6"/><rect class="f" x="5" y="13" width="6" height="6"/>',
     more: '<rect class="f" x="3.5" y="10.5" width="3" height="3"/><rect class="f" x="10.5" y="10.5" width="3" height="3"/><rect class="f" x="17.5" y="10.5" width="3" height="3"/>',
     edit: '<path d="M5 19h4L19.5 8.5l-4-4L5 15z"/><path d="M13 7l4 4" stroke-width="1.2"/>',
     chevron: '<path d="M9 5l7 7-7 7"/>',
@@ -148,6 +151,14 @@
   function textAction(label, o) {
     o = o || {};
     return h('span.c-textaction.c-action', { role: 'button' }, o.back ? glyph('back', 14) : null, label, o.back ? null : glyph('chevron', 14));
+  }
+
+  /* C.segment(labels, active = 0) → element. One of a few: a ruled capsule track, the chosen item ink-filled.
+     The only way a choice is drawn (view modes, filters, kinds). Example: C.segment(['목록', '연속 기록', '보드'], 0). */
+  function segment(labels, active) {
+    return h('div.c-seg', { role: 'tablist' }, labels.map(function (l, i) {
+      return h('div.c-seg__item' + (i === (active || 0) ? '.c-seg__item--on' : ''), { role: 'tab', 'aria-selected': i === (active || 0) ? 'true' : 'false' }, l);
+    }));
   }
 
   /* C.tally(n, { size = 20, color = 'currentColor' }) → element. 正 tally: one stroke per time, five strokes
@@ -230,16 +241,20 @@
   /* C.tabBar({ active = 'home' | 'chart' | 'today' | 'stats' }) → element (S4). Absolutely positioned at
      the bottom of the screen: an ink capsule holding the four places, and 담기 as its own ink circle on the
      trailing side. The selected place is a paper pill inside the capsule (inner radius = outer − 4).
-     Content scrolls beneath both; there is no rule and no backdrop. Append it last, to the page. */
+     Content scrolls beneath both: the page colour fades in over the last 44pt above the bar (no rule,
+     no full-width backdrop): the fade runs from y = 720 to 752 on an 844pt screen and the bar starts at
+     764, so keep the last thing you want read above y = 720. Append it last, to the page. */
   var TABS = [['home', '홈'], ['chart', '만다라트'], ['today', '오늘'], ['stats', '통계']];
   function tabBar(o) {
     o = o || {};
-    return h('nav.c-tabbar', {},
-      h('div.c-tabbar__capsule', {}, TABS.map(function (t) {
-        return h('div.c-tabbar__tab' + (t[0] === o.active ? '.c-tabbar__tab--on' : ''), { role: 'tab', 'aria-selected': t[0] === o.active ? 'true' : 'false' },
-          glyph(t[0], 22), h('span.c-label', {}, t[1]));
-      })),
-      h('div.c-tabbar__add', { role: 'button', 'aria-label': '담기' }, glyph('add', 26)));
+    return h('div.c-tabzone', {},
+      h('div.c-tabzone__fade'),
+      h('nav.c-tabbar', {},
+        h('div.c-tabbar__capsule', {}, TABS.map(function (t) {
+          return h('div.c-tabbar__tab' + (t[0] === o.active ? '.c-tabbar__tab--on' : ''), { role: 'tab', 'aria-selected': t[0] === o.active ? 'true' : 'false' },
+            glyph(t[0], 22), h('span.c-label', {}, t[1]));
+        })),
+        h('div.c-tabbar__add', { role: 'button', 'aria-label': '담기' }, glyph('add', 26))));
   }
 
   /* ── the chart (S1): one drawing at three levels of detail ──────────────────
@@ -304,16 +319,17 @@
     }
     root.append(h('div.c-chart__rule', { style: { inset: 0, border: px(g.frame) + ' solid var(--chart-frame)' } }));
   }
-  function cellBox(g, r, c, cls, extra) {
-    var style = { left: px(g.pos[c]), top: px(g.pos[r]), width: px(g.cell), height: px(g.cell) };
-    if (extra) Object.keys(extra).forEach(function (k) { style[k] = extra[k]; });
-    return h('div.c-chart__cell' + cls, { style: style });
+  function cellBox(g, r, c, cls, kind) {
+    return h('div.c-chart__cell' + cls, { 'data-r': r, 'data-c': c, 'data-kind': kind, style: { left: px(g.pos[c]), top: px(g.pos[r]), width: px(g.cell), height: px(g.cell) } });
   }
 
-  /* C.chartL2(data, { width = 382 }) → element. The sheet: 9×9 with all 81 texts in ink, 10pt.
+  /* C.chartL2(data, { width = 382, select }) → element. The sheet: 9×9 with all 81 texts in ink, 10pt.
      Rules are ink in three weights: frame 3pt, block 2pt, cell 1 device pixel. At 382pt the cells are
      41pt. The real width (snapped to pixels) is on el.dataset.size. Lines break by word, numbers stay
-     with their units, and no syllable is left alone on a last line. */
+     with their units, and no syllable is left alone on a last line.
+     select: [row, col] draws the one selection mark, an ink frame inside that cell. Every cell carries
+     data-r, data-c and data-kind ('core' | 'head' | 'action'), so a screen can find a cell and add to it:
+     el.querySelector('[data-r="0"][data-c="0"]'). The same holds for chartL1. */
   function chartL2(data, o) {
     o = o || {};
     var g = lattice(Math.round((o.width || 382) * DPR), 3 * DPR, 2 * DPR, 1);
@@ -323,14 +339,15 @@
     chartCells(data).forEach(function (line, r) {
       line.forEach(function (cell, c) {
         var cls = cell.kind === 'core' ? '.c-chart__cell--core' : cell.kind === 'head' ? '.c-chart__cell--head' : cell.done ? '.c-chart__cell--done' : '';
-        var box = cellBox(g, r, c, cls, cell.kind === 'head' ? { '--a': cell.color } : null);
+        var box = cellBox(g, r, c, cls, cell.kind);
         if (cell.kind === 'head') box.style.setProperty('--a', cell.color);
+        if (o.select && o.select[0] === r && o.select[1] === c) box.classList.add('c-chart__cell--selected');
         var lines = cell.text ? breakLines(cell.text, inner, function (s) { return measure(s, cell.kind !== 'action'); }, 3) : [];
         if (lines.length) box.append(h('div.c-chart__text', { html: lines.map(escapeHtml).join('<br>') }));
         if (cell.kind === 'action') {
           if (cell.today === 'todo') box.append(h('span.c-chart__flag', {}, flag(8)));
           var showTick = (cell.done || cell.today === 'done') && lines.length <= 2;
-          if (showTick) box.append(h('span.c-chart__tick', { style: { right: '3.5px', top: '3px' } }, tick({ size: 8, color: cell.today === 'done' ? 'var(--signal)' : 'var(--ink)' })));
+          if (showTick) box.append(h('span.c-chart__tick', { style: { right: '3.5px', top: '3px' } }, tick({ size: 6.5, color: cell.today === 'done' ? 'var(--signal)' : 'var(--ink)' })));
         }
         root.append(box);
       });
@@ -355,7 +372,7 @@
     chartCells(data).forEach(function (line, r) {
       line.forEach(function (cell, c) {
         var cls = cell.kind === 'core' ? '.c-chart__cell--core' : cell.kind === 'head' ? '.c-chart__cell--head' : (cell.done || cell.today === 'done') ? '.c-chart__cell--done' : '';
-        var box = cellBox(g, r, c, cls);
+        var box = cellBox(g, r, c, cls, cell.kind);
         if (cell.kind === 'head') box.style.setProperty('--a', cell.color);
         if (cell.kind === 'action' && cell.today === 'todo' && size >= 100) box.append(h('span.c-chart__flag', {}, flag(legs)));
         root.append(box);
@@ -369,13 +386,15 @@
      (and the app icon): the centre block alone, eight solid area cells round the ink core.
        variant 'color'  the logo: pass colors = data.areas.map(a => a.color)
        variant 'ink'    one colour (currentColor): lattice and core only, for a footer or a glyph
-     frame / rule are the outer and inner rule weights in pt; by default size/16 and size/32. */
+     frame / rule are the outer and inner rule weights in pt; by default size/16 and size/32.
+     frame: 0 lets the cells run to the edge (an app icon that iOS will crop). Colour reads from 24pt;
+     below that use the ink variant. */
   function chartL0(o) {
     o = o || {};
     var size = o.size || 32;
     var total = Math.round(size * DPR);
-    var frame = Math.max(1, Math.round((o.frame != null ? o.frame : size / 16) * DPR));
-    var rule = Math.max(1, Math.round((o.rule != null ? o.rule : size / 32) * DPR));
+    var frame = o.frame != null ? Math.round(o.frame * DPR) : Math.max(1, Math.round(size / 16 * DPR));
+    var rule = o.rule != null ? Math.round(o.rule * DPR) : Math.max(1, Math.round(size / 32 * DPR));
     var cell = Math.floor((total - 2 * frame - 2 * rule) / 3);
     var real = 3 * cell + 2 * frame + 2 * rule;
     var ink = o.variant === 'ink';
@@ -418,18 +437,20 @@
   }
   /* C.breakLines(text, maxWidth, measure, maxLines = 3) → string[]. Word-based, balanced: the fewest lines
      that fit, then the split with the shortest longest line; never one syllable alone on the last line
-     when another split exists. `measure(str)` returns a width in px. */
+     when another split exists. `measure(str)` returns a width in px. Use it for zoomed-block labels too. */
   function breakLines(text, maxW, measure, maxLines) {
     var words = bindUnits(text).split(' ').filter(Boolean);
     var best = null;
     for (var k = 1; k <= Math.min(maxLines || 3, words.length); k++) {
       var found = null;
+      // two or more words on one line must leave 5pt of air on each side, or they go on two lines
+      var limit = k === 1 && words.length > 1 ? maxW - 6 : maxW;
       splits(words, k).forEach(function (lines) {
         var widths = lines.map(measure);
         var widest = Math.max.apply(null, widths);
         var orphan = lines.length > 1 && lines[lines.length - 1].length === 1;
-        var score = widest + (orphan ? 1000 : 0) + (widest > maxW ? 10000 + widest : 0);
-        if (!found || score < found.score) found = { lines: lines, score: score, fits: widest <= maxW && !orphan };
+        var score = widest + (orphan ? 1000 : 0) + (widest > limit ? 10000 + widest : 0);
+        if (!found || score < found.score) found = { lines: lines, score: score, fits: widest <= limit && !orphan };
       });
       if (found && (!best || found.score < best.score)) best = found;
       if (found && found.fits) return found.lines;
@@ -448,7 +469,7 @@
 
   global.C = {
     h: h, load: load, glyph: glyph, tick: tick, flag: flag, check: check, area: area, figure: figure,
-    textAction: textAction, tally: tally, header: header, section: section, row: row, weekStrip: weekStrip,
+    textAction: textAction, segment: segment, tally: tally, header: header, section: section, row: row, weekStrip: weekStrip,
     tabBar: tabBar, chartCells: chartCells, chartL0: chartL0, chartL1: chartL1, chartL2: chartL2, breakLines: breakLines,
   };
 })(window);

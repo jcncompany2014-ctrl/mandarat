@@ -11,7 +11,6 @@
   .hero { display: flex; gap: 18px; padding-top: 14px; padding-bottom: 16px; }
   .hero__figs { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
   .hero__rule { height: var(--w-sub); background: var(--rule); }
-  .more { height: 44px; display: flex; align-items: center; padding-left: 38px; border-top: var(--w-hair) solid var(--hair); }
   .areas { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }
   .areas__cell { height: 40px; display: flex; align-items: center; justify-content: space-between; border-top: var(--w-hair) solid var(--hair); }
   .areas__cell:nth-child(-n+2) { border-top: 0; }
@@ -27,7 +26,7 @@ C.load().then(function (d) {
 
   // 머리: 날짜는 윗줄 한 줄, 제목은 사용자의 목표
   page.append(C.header({
-    eyebrow: v.date.month + ' ' + v.date.day + '일 ' + v.date.weekday + ' · ' + v.date.week + ' · ' + v.date.left,
+    eyebrow: [h('span.c-strong', {}, v.date.month + ' ' + v.date.day + '일 ' + v.date.weekday), ' · ' + v.date.week + ' · ' + v.date.left],
     title: d.coreGoal,
     action: 'settings',
   }));
@@ -53,11 +52,8 @@ C.load().then(function (d) {
     if (list.some(function (x) { return x.title === r.text; })) return;
     list.push({ title: r.text, area: r.area, color: d.color(r.area), meta: r.meta, right: r.right });
   });
-  var shownToday = list.filter(function (x) { return rowsByText[x.title]; }).length;
-  var sec = C.section({ title: '오늘 할 일' });
-  var rows = h('div');
-  list.forEach(function (r) { rows.append(C.row(r)); });
-  sec.append(rows, h('div.more', {}, C.textAction((v.today.of - shownToday) + '개 더 있어요')));
+  var sec = C.section({ title: '오늘 할 일', trailing: C.textAction('모두 보기') });
+  list.forEach(function (r) { sec.append(C.row(r)); });
   page.append(h('div.c-pad', {}, sec));
 
   // 이번 주: 正
@@ -67,7 +63,7 @@ C.load().then(function (d) {
 
   // 여덟 영역: 2 × 4 (첫 화면에서는 떠 있는 바 아래로 지나간다)
   var areas = C.section({ title: '8개 영역' });
-  areas.style.marginTop = '20px';
+  areas.style.marginTop = '32px';
   areas.append(h('div.areas', {}, v.areaLedger.map(function (a) {
     return h('div.areas__cell', {}, C.area({ name: a[0], color: d.color(a[0]) }),
       h('span.c-fig.c-fig-m', {}, a[1].split('/')[0], h('span.c-figure__of', {}, '/' + a[1].split('/')[1])));

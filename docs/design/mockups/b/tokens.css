@@ -31,6 +31,7 @@
   --line: #E7E3DB;         /* decorative hairline between groups */
   --raised: #F1EFEA;       /* neutral tile: future days, round tool buttons */
   --raised-2: #E8E5DF;     /* pressed, the selected tab */
+  --tile-off: #DCD8D0;     /* a tile that is only there to show the lattice (locator) */
   --on-pigment: #FFFFFF;   /* text on pigment. 4.5 to 9.8:1 */
   --core: #1F1C19;         /* the centre tile of the chart */
   --core-ink: #FBFAF6;     /* text on the core tile */
@@ -48,21 +49,21 @@
   --scrim: rgba(31, 28, 25, 0.40);
 
   /* eight dyes: wash / tint / pigment / ink */
-  --a0-wash: #E4F2E4; --a0-tint: #79B67B; --a0-pigment: #26662C; --a0-ink: #14561D; /* 쑥 건강 */
-  --a1-wash: #E7EEFF; --a1-tint: #8BA1E7; --a1-pigment: #2E419B; --a1-ink: #2D3F8D; /* 쪽빛 커리어 */
-  --a2-wash: #F8ECDD; --a2-tint: #CB9B55; --a2-pigment: #9F6C10; --a2-ink: #624000; /* 황토 자기계발 */
-  --a3-wash: #FDE8ED; --a3-tint: #DB88A1; --a3-pigment: #A9255C; --a3-ink: #7B1F44; /* 연지 관계 */
-  --a4-wash: #DDF3F1; --a4-tint: #5AB7B0; --a4-pigment: #1E847E; --a4-ink: #00534F; /* 청자 재정 */
-  --a5-wash: #F5E9F8; --a5-tint: #C38FCD; --a5-pigment: #692776; --a5-ink: #662A71; /* 오디 취미 */
-  --a6-wash: #DFF1FC; --a6-tint: #61AFD9; --a6-pigment: #03648B; --a6-ink: #004E6E; /* 비색 마음챙김 */
-  --a7-wash: #FDE9E3; --a7-tint: #DE8D75; --a7-pigment: #AD3202; --a7-ink: #7E2404; /* 주홍 모험 */
+  --a0-wash: #E8F2E8; --a0-tint: #70A672; --a0-pigment: #26662C; --a0-ink: #14561D; /* 쑥 건강 */
+  --a1-wash: #EAEEFA; --a1-tint: #7A8ECB; --a1-pigment: #2E419B; --a1-ink: #2D3F8D; /* 쪽빛 커리어 */
+  --a2-wash: #F5EDE3; --a2-tint: #D1AA73; --a2-pigment: #9F6C10; --a2-ink: #624000; /* 황토 자기계발 */
+  --a3-wash: #F8EAEE; --a3-tint: #D58A9F; --a3-pigment: #A9255C; --a3-ink: #7B1F44; /* 연지 관계 */
+  --a4-wash: #E3F2F0; --a4-tint: #71C2BB; --a4-pigment: #1E847E; --a4-ink: #00534F; /* 청자 재정 */
+  --a5-wash: #F4EBF5; --a5-tint: #AB7DB4; --a5-pigment: #692776; --a5-ink: #662A71; /* 오디 취미 */
+  --a6-wash: #E5F1F8; --a6-tint: #62A6CC; --a6-pigment: #03648B; --a6-ink: #004E6E; /* 비색 마음챙김 */
+  --a7-wash: #F9EBE7; --a7-tint: #D98F7A; --a7-pigment: #AD3202; --a7-ink: #7E2404; /* 주홍 모험 */
 
   /* geometry */
   --gutter: 20px;          /* side margin of every screen */
   --content: 350px;        /* 390 − 2 × gutter */
-  --r-box: 5px;            /* check box 24pt */
-  --r-tile: 4px;           /* a 36–40pt chart tile; shared.js scales it with the tile (about 11%) */
-  --r-plate: 12px;         /* large tiles: area tile, band, zoomed cell */
+  --r-box: 4px;            /* check box 24pt */
+  --r-tile: 3px;           /* a 36pt chart tile; shared.js scales it with the tile (8.5%, see B.radius) */
+  --r-plate: 10px;         /* large tiles: area tile, band, zoomed cell */
   --r-sheet: 28px;         /* inset sheet */
   --header-h: 84px;        /* S3: the same on every tab */
   --bar-h: 60px;           /* floating capsule and 담기 */
@@ -80,6 +81,7 @@
     --line: #2A2724;
     --raised: #24211E;
     --raised-2: #332F2A;
+    --tile-off: #3A3530;
     --on-pigment: #F6F2EA;   /* 4.6 to 5.5:1 on the dark pigments */
     --core: #403A33;         /* 1.6:1 on the page, ink text on it 9.1:1 */
     --core-ink: #ECE7DE;
@@ -95,15 +97,17 @@
     --scrim: rgba(0, 0, 0, 0.55);
 
     /* dyes at night. pigment is lifted to at least 3:1 on the page and still holds --on-pigment at 4.5:1.
-       tint (done) is the pigment at half strength over the page: deeper than pigment, brighter than wash. */
-    --a0-wash: #1B2418; --a0-tint: #244225; --a0-pigment: #327137; --a0-ink: #8EC990;
-    --a1-wash: #1E202E; --a1-tint: #2D3866; --a1-pigment: #455CB9; --a1-ink: #9EB5F8;
-    --a2-wash: #2C210F; --a2-tint: #563C09; --a2-pigment: #956300; --a2-ink: #DDAE6C;
-    --a3-wash: #321A21; --a3-tint: #68263E; --a3-pigment: #BA376A; --a3-ink: #ED9CB4;
-    --a4-wash: #142523; --a4-tint: #0F4743; --a4-pigment: #087974; --a4-ink: #6ECAC3;
-    --a5-wash: #2A1D29; --a5-tint: #512F56; --a5-pigment: #8C499A; --a5-ink: #D5A2DF;
-    --a6-wash: #162328; --a6-tint: #164154; --a6-pigment: #176D95; --a6-ink: #74C2ED;
-    --a7-wash: #311A11; --a7-tint: #64260F; --a7-pigment: #B2370C; --a7-ink: #EFA18A;
+       tint (done) is the pigment at 58% over the page: deeper than pigment, brighter than wash.
+       All eight sit in one lightness band at night (the price of one text colour on all of them),
+       so at night area identity leans on position, name and glyph more than in light. */
+    --a0-wash: #1C2419; --a0-tint: #2A4A2A; --a0-pigment: #39713C; --a0-ink: #8EC990;
+    --a1-wash: #1E202D; --a1-tint: #323E6E; --a1-pigment: #475DB0; --a1-ink: #9EB5F8;
+    --a2-wash: #2B2213; --a2-tint: #5E4316; --a2-pigment: #926519; --a2-ink: #DDAE6C;
+    --a3-wash: #311B21; --a3-tint: #712D45; --a3-pigment: #B33F6A; --a3-ink: #ED9CB4;
+    --a4-wash: #182522; --a4-tint: #1D4E4A; --a4-pigment: #227873; --a4-ink: #6ECAC3;
+    --a5-wash: #291E28; --a5-tint: #58355D; --a5-pigment: #884D94; --a5-ink: #D5A2DF;
+    --a6-wash: #192328; --a6-tint: #20485C; --a6-pigment: #276E91; --a6-ink: #74C2ED;
+    --a7-wash: #2F1B14; --a7-tint: #6C2C18; --a7-pigment: #AB3E1D; --a7-ink: #EFA18A;
   }
 }
 
@@ -130,7 +134,7 @@ body { background: var(--paper); color: var(--ink); }
 .t-row     { font-size: 16px; line-height: 22px; font-weight: 500; color: var(--ink); }
 .t-meta    { font-size: 13px; line-height: 16px; font-weight: 400; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .t-caption { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.t-cell    { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--ink); }           /* text in a zoomed cell */
+.t-cell    { font-size: 16px; line-height: 21px; font-weight: 500; color: var(--ink); }           /* the user's words in a zoomed cell */
 .t-label   { font-size: 11.5px; line-height: 13px; font-weight: 700; letter-spacing: -0.1px; }    /* area name on a map tile */
 .t-tab     { font-size: 11px; line-height: 13px; font-weight: 600; }
 .t-button  { font-size: 16px; line-height: 20px; font-weight: 700; }
@@ -159,7 +163,7 @@ body { background: var(--paper); color: var(--ink); }
 .b-tile.is-done { background: var(--tint); }
 .b-tile.is-name, .b-tile.is-ring { background: var(--pigment); color: var(--on-pigment); }
 .b-tile.is-core { background: var(--core); color: var(--core-ink); box-shadow: inset 0 0 0 1px var(--core-edge); }
-.b-tile.is-off { background: var(--raised); }                 /* locator: a block that is not the current one */
+.b-tile.is-off { background: var(--tile-off); }                 /* locator: a block that is not the current one */
 .b-tile.is-pick { box-shadow: inset 0 0 0 2px var(--ink); }    /* selection is always ink */
 .b-tile .b-dot { position: absolute; }
 .b-tile__label { white-space: pre-line; word-break: keep-all; }
@@ -177,18 +181,18 @@ body { background: var(--paper); color: var(--ink); }
 .b-cell__goal { font-size: 17px; line-height: 22px; font-weight: 800; letter-spacing: -0.3px; }
 .b-cell__meta { position: absolute; left: 8px; right: 8px; bottom: 9px; font-size: 12px; line-height: 14px; font-weight: 500; color: var(--aink); font-variant-numeric: tabular-nums; }
 .b-cell.is-done .b-cell__meta { color: var(--ink); }
-.b-cell__tick { position: absolute; left: 9px; top: 8px; color: var(--aink); }
+.b-cell__tick { position: absolute; left: 9px; top: 8px; color: var(--ink); }
 .b-cell .b-dot { position: absolute; right: 10px; top: 10px; width: 12px; height: 12px; }
 
 /* Check box (S5): a 24pt tile. Edge in pigment, wash inside; done is tint with an ink pen tick that overshoots. */
 .b-check { position: relative; flex: none; width: 24px; height: 24px; border-radius: var(--r-box); border: 1.5px solid var(--pigment); background: var(--wash); }
 .b-check.is-done { background: var(--tint); }
 .b-check svg { position: absolute; left: -1.5px; top: -7.5px; overflow: visible; color: var(--ink); }
-.b-check--sm { width: 20px; height: 20px; border-radius: 4px; }
+.b-check--sm { width: 20px; height: 20px; border-radius: 3.5px; }
 .b-check--sm svg { left: -2.5px; top: -8px; transform: scale(0.84); transform-origin: 0 100%; }
 
 /* List row (S5): check on the leading side, one title, one line of meta, at most one thing on the right. */
-.b-row { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 8px var(--gutter); }
+.b-row { display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 6px var(--gutter); }
 .b-row__body { flex: 1; min-width: 0; }
 .b-row__title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .b-row__meta { display: flex; align-items: center; gap: 4px; margin-top: 2px; white-space: nowrap; }

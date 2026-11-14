@@ -7,10 +7,13 @@
      <script>
        A.ready().then((doc) => {            // data.json loaded and fonts ready (text is measured)
          A.header('#header', { eyebrow: '2026 · 42주 · D-78', title: '10월 14일 수요일', action: 'settings' });
-         A.chart('#chart', doc, { level: 'L1', cell: 20 });
+         A.chart('#chart', doc, { level: 'L1', cell: 19 });
          A.tabBar('#bar', { active: 'home' });
        });
      </script>
+
+   Put screens inside <div class="a-page">…</div>; body text goes in <div class="a-body"> (24pt gutters).
+   _kit.html / _kit.png in this folder show every part below once, with the call that draws it.
 
    What is here (each has a usage comment above it):
      A.ready()            load data, wait for fonts
@@ -169,6 +172,11 @@
      opts.cell   cell size in pt (default 41 for L2, 20 for L1).
      opts.tick   draw the pen tick on done cells (default: true at L2, false at L1).
      opts.today  draw the today corners (default: true).
+     opts.inset  paper gap between a fill and the rules, in pt (default 1 at L2, 0.5 at L1). Leave it.
+     opts.focus  [row, col] (0..8): one cell gets an ink inset frame = "selected / write here".
+                 Selection is always ink. Use one, never 64 (first run: the next empty cell).
+     opts.print  (cell) => string: printed words for an empty action cell, set in print ink
+                 (a prompt the form itself offers, which the owner writes over). L2 only.
 
      What it draws (the same at both levels):
        structure  core = ink, the 16 area-name cells = solid dye. Constant from day 1 to day 365.
@@ -187,6 +195,7 @@
       ? { frame: px(1), block: px(0.5), hair: cellPt >= 11 ? px(0.5) : 0, inset: px(0.5), blockVar: '--rule-frame' }
       : { frame: px(1.5), block: px(1), hair: px(0.5), inset: px(1) };
     if (L1 && !w.hair) w.block = px(1);
+    if (opts.inset !== undefined) w.inset = Math.round(opts.inset * d);
     const g = grid(9, cellPt, w, 3);
     const { c, xs, total } = g;
     const cells = A.cells(doc);
@@ -194,7 +203,7 @@
     const showToday = opts.today !== false && cellPt >= 11;
 
     let fills = '', marks = '';
-    const leg = Math.round((L1 ? cellPt * 0.34 : 8) * d);
+    const leg = Math.round((L1 ? cellPt * 0.3 : 8) * d);
     cells.forEach((cell) => {
       const x = xs[cell.col], y = xs[cell.row];
       const fx = x + w.inset, fy = y + w.inset, fs = c - 2 * w.inset;
@@ -208,6 +217,10 @@
       }
       if (cell.kind === 'action' && cell.today && showToday) {
         marks += `<path data-today d="M${x} ${y}h${leg}l${-leg} ${leg}z" style="fill:var(--signal)"/>`;
+      }
+      if (opts.focus && opts.focus[0] === cell.row && opts.focus[1] === cell.col) {
+        const t = px(1.5);
+        fills += `<rect x="${fx + t / 2}" y="${fy + t / 2}" width="${fs - t}" height="${fs - t}" fill="none" style="stroke:var(--ink)" stroke-width="${t}"/>`;
       }
       if (cell.kind === 'action' && cell.done && showTick) {
         const s = 5.5 * d;
@@ -223,9 +236,10 @@
     let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" aria-hidden="true">${rulesSvg(g, 9, w, 3)}${fills}<g shape-rendering="geometricPrecision">${marks}</g></svg>`;
     if (!L1 && opts.text !== false) {
       cells.forEach((cell) => {
-        if (!cell.text) return;
-        const cls = cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
-        html += `<div class="a-cell${cls}" data-rc="${cell.row}-${cell.col}" style="left:${xs[cell.col] / d}px;top:${xs[cell.row] / d}px;width:${c / d}px;height:${c / d}px;padding:0 1.5px"><span>${esc(A.keep(cell.text))}</span></div>`;
+        const printed = !cell.text && cell.kind === 'action' && opts.print ? opts.print(cell) : '';
+        if (!cell.text && !printed) return;
+        const cls = printed ? ' is-print' : cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
+        html += `<div class="a-cell${cls}" data-rc="${cell.row}-${cell.col}" style="left:${xs[cell.col] / d}px;top:${xs[cell.row] / d}px;width:${c / d}px;height:${c / d}px;padding:0 1.5px"><span>${esc(A.keep(cell.text || printed))}</span></div>`;
       });
     }
     host.innerHTML = html;
@@ -248,6 +262,8 @@
      areaIndex 0..7, or 'core' for the centre block (the goal and the eight area names).
      opts.cell   cell size in pt (default 114, which makes a 345pt block inside the 24pt gutters).
      opts.extra  (cell) => HTML string, laid along the bottom of that cell (habit state, a count, D-day).
+     opts.focus  index 0..8 inside the block (row-major): that cell gets the ink inset frame.
+     opts.print  (cell) => string: printed words (print ink) for an empty action cell.
      Labels are 16/24 Medium (the owner's words, at least 15pt as the brief asks); the head is 18/24 Bold.
      Each returned cells[i].el is the cell's own box if you need to add more. */
   A.block = function (target, doc, areaIndex, opts) {
@@ -277,6 +293,10 @@
         marks += tickPath(x + c - w.inset - s - 7 * d, y + w.inset + 6 * d, s, 1.75 * d);
       }
       if (cell.kind === 'action' && cell.today) marks += `<path d="M${x} ${y}h${leg}l${-leg} ${leg}z" style="fill:var(--signal)"/>`;
+      if (opts.focus === row * 3 + col) {
+        const t = px(2);
+        fills += `<rect x="${fx + t / 2}" y="${fy + t / 2}" width="${fs - t}" height="${fs - t}" fill="none" style="stroke:var(--ink)" stroke-width="${t}"/>`;
+      }
     });
     const size = total / d;
     const host = el(target);
@@ -286,10 +306,11 @@
     let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" aria-hidden="true">${rulesSvg(g, 3, w, 0)}${fills}<g shape-rendering="geometricPrecision">${marks}</g></svg>`;
     cells.forEach((cell, i) => {
       const col = cell.col % 3, row = cell.row % 3;
-      const kind = cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
-      const font = cell.kind === 'core' ? 'font:600 20px/30px var(--serif)' : cell.kind === 'action' ? 'font:500 16px/24px var(--sans);letter-spacing:-0.01em' : 'font:700 18px/24px var(--sans);letter-spacing:-0.01em';
+      const printed = !cell.text && cell.kind === 'action' && opts.print ? opts.print(cell) : '';
+      const kind = printed ? ' is-print' : cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
+      const font = cell.kind === 'core' ? 'font:600 20px/30px var(--serif)' : cell.kind === 'action' ? `font:${printed ? 400 : 500} 16px/24px var(--sans);letter-spacing:-0.01em` : 'font:700 18px/24px var(--sans);letter-spacing:-0.01em';
       const extra = opts.extra ? opts.extra(cell) || '' : '';
-      html += `<div class="a-cell${kind}" data-i="${i}" style="left:${xs[col] / d}px;top:${xs[row] / d}px;width:${c / d}px;height:${c / d}px;padding:0 10px;${font}"><span>${esc(A.keep(cell.text))}</span>${extra ? `<div style="position:absolute;left:10px;right:10px;bottom:9px">${extra}</div>` : ''}</div>`;
+      html += `<div class="a-cell${kind}" data-i="${i}" style="left:${xs[col] / d}px;top:${xs[row] / d}px;width:${c / d}px;height:${c / d}px;padding:0 10px;${font}"><span>${esc(A.keep(cell.text || printed))}</span>${extra ? `<div style="position:absolute;left:10px;right:10px;bottom:9px">${extra}</div>` : ''}</div>`;
     });
     host.innerHTML = html;
     return { el: host, size, cellSize: c / d, cells: cells.map((cell, i) => ({ cell, el: host.querySelector(`[data-i="${i}"]`) })) };
@@ -304,6 +325,8 @@
                    'heart': the middle block alone, eight dye cells round the ink core. For 16–40pt.
      opts.frame    false = no frame and no rules, dyes only (default true). For an app icon that must fill
                    the square, draw your own paper ground and pass frame: false or a pad.
+     opts.lattice  true = also print the pale cell rules of the 9×9 ('sheet' with a frame only; from about
+                   120pt, where a hairline can be seen).
      opts.pad      paper margin inside the size, in pt (default 0). */
   A.mark = function (target, opts) {
     opts = opts || {};
@@ -334,12 +357,15 @@
         }
       }
       if (frameOn) {
-        const f = Math.max(0.5, s / 128), r = Math.max(0.5, s / 256);
-        let lines = '';
+        const f = Math.max(0.5, s / 128), r = Math.max(0.5, s / 256), h = Math.max(0.5, s / 512);
+        let lines = '', hairs = '';
         [3, 6].forEach((k) => {
           lines += `<rect x="${pad + k * u - r / 2}" y="${pad}" width="${r}" height="${s}"/><rect x="${pad}" y="${pad + k * u - r / 2}" width="${s}" height="${r}"/>`;
         });
-        out = `<g style="fill:var(--rule-block)">${lines}</g>` + out + `<rect x="${pad + f / 2}" y="${pad + f / 2}" width="${s - f}" height="${s - f}" fill="none" style="stroke:var(--rule-frame)" stroke-width="${f}"/>`;
+        if (opts.lattice) [1, 2, 4, 5, 7, 8].forEach((k) => {
+          hairs += `<rect x="${pad + k * u - h / 2}" y="${pad}" width="${h}" height="${s}"/><rect x="${pad}" y="${pad + k * u - h / 2}" width="${s}" height="${h}"/>`;
+        });
+        out = `<g style="fill:var(--rule-cell)">${hairs}</g><g style="fill:var(--rule-block)">${lines}</g>` + out + `<rect x="${pad + f / 2}" y="${pad + f / 2}" width="${s - f}" height="${s - f}" fill="none" style="stroke:var(--rule-frame)" stroke-width="${f}"/>`;
       }
     }
     const host = el(target);
@@ -374,7 +400,7 @@
         ? `<rect x="4" y="12" width="4.500" height="8" ${F}/><rect x="9.750" y="4" width="4.500" height="16" ${F}/><rect x="15.500" y="8" width="4.500" height="12" ${F}/>`
         : `<rect x="4.75" y="12.75" width="3.5" height="6.5" ${P}/><rect x="10.25" y="4.75" width="3.5" height="14.5" ${P}/><rect x="15.75" y="8.75" width="3.5" height="10.5" ${P}/>`,
       plus: `<path d="M12 5.500v13M5.500 12h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>`,
-      settings: `<path d="M3.5 7.75h17M3.5 16.25h17" ${P} stroke-linecap="butt"/><rect x="13.75" y="5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/><rect x="4.75" y="13.5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/>`,
+      settings: `<path d="M3.5 7.75h17M3.5 16.25h17" ${P} stroke-linecap="butt"/><rect x="12.75" y="5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/><rect x="5.75" y="13.5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/>`,
       share: `<path d="M8.500 9.750H5.750v10.500h12.500V9.750H15.500" ${P} stroke-linecap="butt"/><path d="M12 14.500V3.750M8.250 7.250 12 3.500l3.750 3.750" ${P} stroke-linecap="butt"/>`,
       edit: `<path d="M5 19l1-4.250L16.250 4.500l3.250 3.250L9.250 18z" ${P}/><path d="M13.750 7l3.250 3.250" ${P} stroke-linecap="butt"/>`,
       more: `<rect x="4" y="10.500" width="3" height="3" ${F}/><rect x="10.500" y="10.500" width="3" height="3" ${F}/><rect x="17" y="10.500" width="3" height="3" ${F}/>`,
@@ -387,10 +413,11 @@
 
   /* A.seal(opts) → SVG string. The vermilion seal: the third job of the signal colour, for a finished
      whole only (an area at 8/8, a closed day, 64/64). Abstract on purpose: a stamped ring, turned −6°.
+     A solid stamp, so it cannot be mistaken for a check box (which is an outline).
      opts.size (default 20). Never put it on a single task; a task gets the pen tick. */
   A.seal = function (opts) {
     const s = (opts && opts.size) || 20;
-    return `<svg width="${s}" height="${s}" viewBox="0 0 20 20" style="display:block;flex:none" aria-hidden="true"><g transform="rotate(-6 10 10)" fill="none" style="stroke:var(--signal)"><rect x="2.500" y="2.500" width="15" height="15" rx="2" stroke-width="1.75"/><path d="M6.200 10.300c1.100.900 1.900 1.900 2.500 3 1.300-2.600 3-5 4.900-7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+    return `<svg width="${s}" height="${s}" viewBox="0 0 20 20" style="display:block;flex:none" aria-hidden="true"><g transform="rotate(-6 10 10)"><rect x="2" y="2" width="16" height="16" rx="2" style="fill:var(--signal)"/><path d="M5.9 10.3c1.2.9 2 1.9 2.6 3 1.3-2.6 3.1-5 5.1-7" fill="none" style="stroke:var(--paper)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
   };
 
   /* ── header ────────────────────────────────────────────────────────────── */
@@ -422,7 +449,9 @@
 
   /* A.tabBar(target, opts)
      The floating layer: a paper capsule holding the four places, and 담기 as its own ink button
-     beside it. It positions itself at the bottom of .a-page (absolute); content scrolls under it.
+     beside it. It positions itself at the bottom of .a-page (absolute): the bar is at y 768–826 on an
+     844 screen, and content scrolls under it. A veil fades the page into the paper from y 728 down
+     (the scroll-edge effect), so keep anything that must be read above y 728.
      opts.active  'home' | 'chart' | 'today' | 'stats'. */
   A.tabBar = function (target, opts) {
     opts = opts || {};
