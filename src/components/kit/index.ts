@@ -3,7 +3,7 @@
 export { CheckBox, type CheckBoxProps, type CheckPaint } from './CheckBox';
 export { Row, RowMeta, RowRight, RowRule, RowTitle, type RowProps } from './Row';
 export { DyeMark } from './DyeMark';
-export { Section, TextLink } from './Section';
+export { InLink, Section, TextLink } from './Section';
 export { Segment, segmentFace, segmentRoles, type SegOption } from './Segment';
 export { Field, type FieldButton, type FieldProps } from './Field';
 export { ChoiceRow, ChoiceTick } from './ChoiceRow';
@@ -13,6 +13,8 @@ export { DayBoxes, type DayBoxesProps } from './DayBoxes';
 export { AreaPicker } from './AreaPicker';
 export { FilterLine, type FilterItem } from './FilterLine';
 export { Swatch, type SwatchKind } from './Swatch';
+export { PageHead } from './PageHead';
+export { Figure, figureRuns } from './Figure';
 export {
   AREA, CHIP, CHOICE, COUNT_BAR, DAYS, DYE, FIELD, FILTER, ROW, SECTION, SEG, SWATCH,
   hitFor, lookPages, rowInset, segmentCells, strikeBox, strikeTop, type PageInk,

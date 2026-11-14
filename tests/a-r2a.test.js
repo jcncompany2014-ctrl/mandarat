@@ -117,3 +117,29 @@ test("SheetHeader: '어디'(위치 표 + ■ 건강 / 실천 1/8)가 영역 쪽�
   assert.equal(say('en', 'Health'), 'Health area, first square of 8, open area');
   for (const l of ['ko', 'ja', 'en']) assert.doesNotMatch(say(l, 'x'), /\d\/8/, l);
 });
+
+// ── 쪽 머리 · 큰 숫자 · 앱 안 링크 ─────────────────────────────────────────────
+
+test('PageHead · Figure는 부품 상자에 — 한 주 돌아보기 · 한 해 마무리가 같은 것을 쓴다', () => {
+  const kit = src(`${KIT}/index.ts`);
+  assert.match(kit, /export \{ PageHead \} from '\.\/PageHead';/);
+  assert.match(kit, /export \{ Figure, figureRuns \} from '\.\/Figure';/);
+  for (const f of ['src/overlays/WeekRitual.tsx', 'src/overlays/YearClose.tsx']) {
+    const s = code(f);
+    assert.match(s, /import \{[^}]*\bFigure, PageHead\b[^}]*\} from '\.\.\/components\/kit';/, f);
+    assert.doesNotMatch(s, /function (PageHead|Figure|figureRuns)\(|from '\.\/WeekRitual'/, f);
+  }
+  // 숫자 조각은 그대로 — '2시간 5분' → 2 | 시간 | 5 | 분, '24/64칸' → 24/64 | 칸
+  assert.match(code(`${KIT}/Figure.tsx`), /\.split\(\/\(\\d\[\\d,\.:\/\]\*\)\/\)/);
+});
+
+test('InLink는 부품 상자에(TextLink를 button 역할로) — 통계 · 한 해 쪽이 kit에서 가져온다', () => {
+  const sec = code(`${KIT}/Section.tsx`);
+  assert.match(sec, /role\?: 'link' \| 'button';/);
+  assert.match(sec, /accessibilityRole=\{role\}/);
+  assert.match(src(`${KIT}/index.ts`), /export \{ InLink, Section, TextLink \} from '\.\/Section';/);
+  for (const f of ['src/screens/Stats.tsx', 'src/screens/year/YearReview.tsx', 'src/screens/year/YearSheet.tsx']) {
+    assert.match(code(f), /import \{[^}]*\bInLink\b[^}]*\} from '\.\.\/(\.\.\/)?components\/kit';/, f);
+  }
+  assert.doesNotMatch(code('src/components/StatsCharts.tsx'), /InLink|STATS_TYPE/);
+});

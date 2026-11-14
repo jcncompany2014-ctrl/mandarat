@@ -5,8 +5,8 @@ import { MODAL_ORIENTATIONS } from '../lib/screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, a11yLangProp } from '../components/AppText';
 import { RatingBoxes } from '../components/KindBits';
-import { Button, IconBtn } from '../components/common';
-import { CheckBox, DyeMark, Field, Row, RowMeta, RowRule, RowTitle, Section } from '../components/kit';
+import { Button } from '../components/common';
+import { CheckBox, DyeMark, Field, Figure, PageHead, Row, RowMeta, RowRule, RowTitle, Section } from '../components/kit';
 import { WeekBars, type WeekBarDay } from '../components/chart';
 import { TID } from '../lib/testIds';
 import { Snackbar } from './Snackbar';
@@ -191,77 +191,6 @@ function RitualPages({ target }: { target: RitualTarget }) {
       </View>
       </PaperColumn>
     </Modal>
-  );
-}
-
-/**
- * 전체 화면 쪽의 머리(A.header 뼈대, 72) — 위 줄(인쇄된 한 줄, 또는 lead: '‹ 이전') · 제목(title 26/36)
- * · 오른쪽 닫기 글리프(44 손끝, 오른쪽 −10 · 위 26). 쪽 수는 위 줄 오른쪽에 인쇄된 숫자로(읽을 때는 '3쪽 중 1쪽').
- * 한 해 마무리(YearClose)도 같은 머리를 쓴다. 웨이브 4(R2)에서 부품 상자로 옮길 후보.
- */
-export function PageHead({ M, eyebrow, lead, title, page, pageSay, onClose, closeLabel, closeTestID }: {
-  M: Palette;
-  /** 위 줄 왼쪽의 인쇄된 한 줄 */
-  eyebrow?: string;
-  /** 위 줄 왼쪽을 대신할 것('‹ 이전') — 있으면 eyebrow 대신 */
-  lead?: React.ReactNode;
-  title: string;
-  /** 쪽 수('1/3') — 한 쪽뿐이면 비운다 */
-  page?: string;
-  /** 쪽 수를 읽는 말('3쪽 중 1쪽') */
-  pageSay?: string;
-  onClose: () => void;
-  closeLabel: string;
-  closeTestID?: string;
-}) {
-  return (
-    <View style={{ marginHorizontal: GEO.gutter, minHeight: GEO.header, paddingTop: 12 }}>
-      <View style={{ height: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        {lead ? (
-          <View style={{ flexShrink: 1 }}>{lead}</View>
-        ) : (
-          <Text style={{ ...ROLE.folio, color: M.print, flexShrink: 1 }} numberOfLines={1} maxFontSizeMultiplier={1.4}>
-            {eyebrow ?? ''}
-          </Text>
-        )}
-        {!!page && (
-          <Text style={{ ...ROLE.folio, color: M.print }} accessibilityLabel={pageSay} maxFontSizeMultiplier={1.4}>
-            {page}
-          </Text>
-        )}
-      </View>
-      <Text accessibilityRole="header" style={{ ...ROLE.title, color: M.ink, paddingRight: 48 }} numberOfLines={2}>
-        {noOrphan(title)}
-      </Text>
-      <View style={{ position: 'absolute', right: -10, top: 26 }}>
-        <IconBtn M={M} name="close" label={closeLabel} onPress={onClose} testID={closeTestID} />
-      </View>
-    </View>
-  );
-}
-
-/** 숫자 · 단위 조각 — '2시간 5분' → 2 | 시간 | 5 | 분 (숫자는 그림 글자, 단위는 unit 13/18 ink2) */
-export function figureRuns(text: string): { text: string; num: boolean }[] {
-  return text
-    .split(/(\d[\d,.:/]*)/)
-    .filter((s) => s.length > 0)
-    .map((s) => ({ text: s, num: /^\d/.test(s) }));
-}
-
-/**
- * 큰 숫자 하나(A .t-figure) — 숫자는 고른 그림 글자(closeFigure 48/56 · figureField 22/30), 뒤의 단위(번 · 일 · 칸)는 unit.
- * 읽는 말은 부르는 쪽이 감싼 요소에 단다.
- */
-export function Figure({ M, text, size = 'close' }: { M: Palette; text: string; size?: 'close' | 'field' }) {
-  const face = size === 'close' ? ROLE.closeFigure : ROLE.figureField;
-  return (
-    <Text style={{ ...face, ...NUM, color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.2}>
-      {figureRuns(text).map((r, i) => (r.num ? r.text : (
-        <Text key={i} style={{ fontFamily: ROLE.unit.fontFamily, fontSize: ROLE.unit.fontSize, letterSpacing: 0, color: M.ink2 }}>
-          {r.text}
-        </Text>
-      )))}
-    </Text>
   );
 }
 

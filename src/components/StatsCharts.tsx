@@ -1,7 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { PixelRatio, Pressable, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { Text, a11yLangProp } from './AppText';
-import { Icon } from './Icon';
 import { DyeMark } from './kit';
 import { MAP_LABEL, mapGeometry, mapLabel } from './chart';
 import { ROLE } from '../theme/type';
@@ -20,7 +19,7 @@ import { useMsg } from '../i18n/react';
 import type { Messages } from '../i18n';
 
 // 통계 · 한 해 쪽의 부품(디자인 A, build-plan S4 · 목업 stats.png · year.png).
-// 히어로 칸(이름 · 숫자 + 단위 · 한 줄) · 숫자 글(큰 숫자 + 작은 단위) · 앱 안 링크 · 최근 10주(타일) · 닳은 자리(타일 지도) · 범례 · 기분 줄.
+// 히어로 칸(이름 · 숫자 + 단위 · 한 줄) · 숫자 글(큰 숫자 + 작은 단위) · 최근 10주(타일) · 닳은 자리(타일 지도) · 범례 · 기분 줄.
 // 색은 토큰 이름으로만(칸 진하기는 lib/statsView HEAT_TONES · WEAR_TONES), 글자는 ROLE. 카드 · 괘선 묶음 없이.
 
 const areaName = (m: Messages, doc: Pick<MandaratDoc, 'themes'>, ti: number) => doc.themes[ti]?.title.trim() || m.chart.areaN({ n: ti + 1 });
@@ -109,38 +108,6 @@ export const HeroField = memo(function HeroField({ M, label, value, note, extra,
     </View>
   );
 });
-
-// ── 앱 안 링크 ───────────────────────────────────────────────────────────────
-
-/**
- * 앱 안으로 가는 글 링크(A.link) — link 700 13/18 먹 + 꺾쇠 16. 화면 안으로 가므로 button 역할(R-6 A-6),
- * 18 높이로 그리고 위아래 13씩 더 눌린다(44).
- */
-export function InLink({ M, label, onPress, hint, testID, accessibilityLabel, style }: {
-  M: M;
-  label: string;
-  onPress: () => void;
-  hint?: string;
-  testID?: string;
-  accessibilityLabel?: string;
-  style?: StyleProp<ViewStyle>;
-}) {
-  return (
-    <Pressable
-      onPress={() => { tap(); onPress(); }}
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      {...a11yLangProp()}
-      accessibilityHint={hint}
-      hitSlop={{ top: 13, bottom: 13, left: 8, right: 8 }}
-      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 18, opacity: pressed ? 0.5 : 1 }, style]}
-    >
-      <Text style={[ROLE.link, { color: M.ink }]} numberOfLines={1}>{label}</Text>
-      <Icon name="chevR" size={16} color={M.ink} style={{ marginRight: -4 }} />
-    </Pressable>
-  );
-}
 
 // ── 이번 주 영역 표 ──────────────────────────────────────────────────────────
 

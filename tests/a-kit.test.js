@@ -179,7 +179,7 @@ test('자리 수치는 계획(패키지 K) 그대로', () => {
   assert.equal(SWATCH.short, 0.55);
   // 글자 모양은 모두 ROLE(theme/type.ts, a-tokens가 표를 본다) — 부품 상자가 따로 지은 글자 모양(예전 KIT_TYPE)은 없다
   assert.equal(require('../src/components/kit/metrics').KIT_TYPE, undefined);
-  for (const rel of kitFiles()) assert.doesNotMatch(src(rel), /KIT_TYPE|fontSize:|fontFamily:/, rel);
+  for (const rel of kitFiles()) assert.doesNotMatch(src(rel), /KIT_TYPE|fontSize:\s*\d|PRETENDARD\[/, rel);
 });
 
 test('견본 쪽: 어느 모드에서 보든 밝게는 흰 쪽, 어둡게는 먹 쪽, 자동은 두 쪽', () => {

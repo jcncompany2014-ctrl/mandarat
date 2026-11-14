@@ -3,10 +3,10 @@ import { PixelRatio, Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text, a11yLangProp } from '../components/AppText';
 import { Header, LineRow, RowDivider, pressedRow } from '../components/common';
-import { DyeMark, FilterLine, Section, type FilterItem } from '../components/kit';
+import { DyeMark, FilterLine, InLink, Section, type FilterItem } from '../components/kit';
 import { ColourMap, MAP_MAX, WeekBars, l1Width, type WeekBarDay } from '../components/chart';
 import {
-  ActivityChart, Figure, HeroField, InLink, MoodStrip, TenWeeks, WearLegend, WeekAreaKey,
+  ActivityChart, Figure, HeroField, MoodStrip, TenWeeks, WearLegend, WeekAreaKey,
 } from '../components/StatsCharts';
 import { GEO } from '../theme/tokens';
 import { ROLE } from '../theme/type';

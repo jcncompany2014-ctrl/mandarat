@@ -35,14 +35,17 @@ test('O6 공통: 색은 토큰 이름, 글자는 ROLE — 손으로 쓴 색 · �
 
 test('한 주 돌아보기: 머리(PageHead) · 마감의 한 장면(큰 숫자 · 한 문장 · 일곱 날) · 장부', () => {
   const s = code(FILES.ritual);
-  // 머리 — 위 줄에 그 주, 오른쪽 위에 쪽 수(읽을 때는 '3쪽 중 1쪽'), 닫기 글리프(TID 그대로)
-  assert.match(s, /export function PageHead\(/);
+  // 머리 — 위 줄에 그 주, 오른쪽 위에 쪽 수(읽을 때는 '3쪽 중 1쪽'), 닫기 글리프(TID 그대로). 머리 · 큰 숫자는 부품 상자의 PageHead · Figure
+  assert.match(s, /import \{ CheckBox, DyeMark, Field, Figure, PageHead, Row, RowMeta, RowRule, RowTitle, Section \} from '\.\.\/components\/kit';/);
+  assert.doesNotMatch(s, /export function (PageHead|Figure|figureRuns)\(/);
+  const head = code('src/components/kit/PageHead.tsx');
+  const figure = code('src/components/kit/Figure.tsx');
   assert.match(s, /eyebrow=\{fmtRange\(week\)\}/);
   assert.match(s, /pageSay=\{pageSpeech\(index, pages\.length\)\}/);
   assert.match(s, /closeTestID=\{TID\.ritualClose\}/);
-  assert.match(s, /<IconBtn M=\{M\} name="close" label=\{closeLabel\} onPress=\{onClose\} testID=\{closeTestID\} \/>/);
+  assert.match(head, /<IconBtn M=\{M\} name="close" label=\{closeLabel\} onPress=\{onClose\} testID=\{closeTestID\} \/>/);
   // 1쪽 — closeFigure의 큰 숫자(단위는 unit) · prompt 한 문장 · note · WeekBars
-  assert.match(s, /const face = size === 'close' \? ROLE\.closeFigure : ROLE\.figureField;/);
+  assert.match(figure, /const face = size === 'close' \? ROLE\.closeFigure : ROLE\.figureField;/);
   assert.match(s, /<Figure M=\{M\} text=\{t\.total\(\{ n: r\.total \}\)\} \/>/);
   assert.match(s, /accessibilityLabel=\{t\.totalSay\(\{ range, n: r\.total \}\)\}/);
   assert.match(s, /\.\.\.ROLE\.prompt, color: M\.ink/);
@@ -70,7 +73,8 @@ test('한 주 돌아보기: 마음가짐은 Segment 낱칸(RatingBoxes fill), �
 
 test('한 해 마무리: 같은 머리 · 다 채운 표(L2 지도 · 네 숫자) · 고르기 줄 셋 · 마무리의 작은 지도', () => {
   const s = code(FILES.year);
-  assert.match(s, /import \{ Figure, PageHead \} from '\.\/WeekRitual';/);
+  assert.match(s, /import \{ ChoiceRow, Field, Figure, PageHead, Row, Section \} from '\.\.\/components\/kit';/);
+  assert.doesNotMatch(s, /from '\.\/WeekRitual'/);
   assert.match(s, /eyebrow=\{range\}/);
   assert.match(s, /pageSay=\{m\.year\.pageSpeech\(\{ n: index \+ 1, total: PAGES\.length \}\)\}/);
   // 1쪽 — 이 표의 색 지도(본문 폭, 최대 520) · 네 숫자(figureField, 단위는 unit)

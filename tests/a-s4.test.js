@@ -248,7 +248,10 @@ test('한 해 쪽 — 같은 부품(ColourMap · BlockGrid · Section · InLink)
   assert.match(sheet, /<InLink M=\{M\} label=\{m\.year\.sheetReview\} onPress=\{\(\) => onOpen\(\{ kind: 'review', id: a\.id \}\)\} testID=\{TID\.yearSheetReview\} \/>/);
   assert.doesNotMatch(sheet, /TYPE\.|RHYTHM|M\.sub\b|M\.line\b|th\.color/);
   // 앱 안 링크는 button 역할(R-6 A-6)
-  assert.match(src('src/components/StatsCharts.tsx'), /export function InLink[\s\S]*?accessibilityRole="button"/);
+  // InLink는 부품 상자의 것(TextLink를 button 역할로, 누르면 딸깍)
+  assert.match(src('src/components/kit/Section.tsx'), /export function InLink[\s\S]*?onPress=\{\(\) => \{ tap\(\); onPress\(\); \}\}[\s\S]*?role="button"/);
+  assert.match(src('src/components/kit/Section.tsx'), /accessibilityRole=\{role\}/);
+  assert.doesNotMatch(src('src/components/StatsCharts.tsx'), /function InLink/);
 });
 
 // ── 통계 화면 ────────────────────────────────────────────────────────────────
