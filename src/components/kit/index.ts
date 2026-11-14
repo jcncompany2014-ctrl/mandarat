@@ -1,5 +1,5 @@
 // 부품 상자(kit) — 디자인 A의 작은 조작 부품(docs/design/build-plan.md 패키지 K). 웨이브 2부터 화면은 여기서 고른다.
-// 색은 팔레트(M)의 토큰 이름으로만, 글자는 ROLE(theme/type.ts) · KIT_TYPE(./metrics), 자리는 ./metrics.
+// 색은 팔레트(M)의 토큰 이름으로만, 글자는 ROLE(theme/type.ts), 자리는 ./metrics.
 export { CheckBox, type CheckBoxProps, type CheckPaint } from './CheckBox';
 export { Row, RowMeta, RowRight, RowRule, RowTitle, type RowProps } from './Row';
 export { DyeMark } from './DyeMark';
@@ -14,7 +14,7 @@ export { AreaPicker } from './AreaPicker';
 export { FilterLine, type FilterItem } from './FilterLine';
 export { Swatch, type SwatchKind } from './Swatch';
 export {
-  AREA, CHIP, CHOICE, COUNT_BAR, DAYS, DYE, FIELD, FILTER, KIT_TYPE, ROW, SECTION, SEG, SWATCH,
+  AREA, CHIP, CHOICE, COUNT_BAR, DAYS, DYE, FIELD, FILTER, ROW, SECTION, SEG, SWATCH,
   hitFor, lookPages, rowInset, segmentCells, strikeBox, strikeTop, type PageInk,
 } from './metrics';
 export {

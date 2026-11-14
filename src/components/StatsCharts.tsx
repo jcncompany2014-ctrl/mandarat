@@ -34,20 +34,6 @@ const HAIR = '\u200A';
 /** 타일 모서리 — 최근 10주 · 닳은 자리 · 범례(build-plan S4) */
 export const TILE_RADIUS = 3;
 
-const face = (w: 400 | 500 | 600 | 700, fontSize: number, lineHeight: number, letterSpacing = 0, tabular = false): TextStyle => {
-  const s: TextStyle = { fontFamily: PRETENDARD[w], fontSize, lineHeight, letterSpacing };
-  if (tabular) s.fontVariant = ['tabular-nums'];
-  return s;
-};
-
-/** ROLE에 없는 통계 글자(목업 stats.html .kind-name · .kind-fig) — 웨이브 4(R2)가 ROLE로 옮긴다 */
-export const STATS_TYPE = {
-  /** 유형 줄 이름 600 15/18 */
-  kindName: face(600, 15, 18),
-  /** 유형 줄 숫자 700 16/20 −0.16 */
-  kindFig: face(700, 16, 20, -0.16, true),
-} as const satisfies Record<string, TextStyle>;
-
 // ── 숫자 글 ──────────────────────────────────────────────────────────────────
 
 /**

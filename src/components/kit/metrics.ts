@@ -1,11 +1,8 @@
-// 부품 상자(kit)의 자리 수치와 글자 몇 가지 — 순수 모듈(react-native를 들이지 않는다; 테스트가 Node에서 require한다).
+// 부품 상자(kit)의 자리 수치 — 순수 모듈(react-native를 들이지 않는다; 테스트가 Node에서 require한다).
 // 값은 docs/design/build-plan.md 패키지 K와 목업(docs/design/mockups/a: tokens.css · shared.js · parts-*.js|css).
 // 색은 여기 없다 — 부품이 팔레트(M, 토큰 이름)에서 고른다. 머리카락 선은 쓰는 곳에서 StyleSheet.hairlineWidth.
-// ROLE(theme/type.ts)에 없는 글자 모양 몇 가지는 KIT_TYPE에 둔다 — 웨이브 4(R2)가 ROLE로 옮긴다.
-import type { TextStyle } from 'react-native';
-import { PRETENDARD } from '../../theme/fonts';
+// 글자 모양은 모두 ROLE(theme/type.ts)에 있다.
 import { GEO, LIGHT, type Tokens } from '../../theme/tokens';
-import { ROLE } from '../../theme/type';
 
 /** 줄(A.row) — 54 높이, 상자 칸 24 + 사이 14 = 줄 사이 선이 시작하는 38 */
 export const ROW = {
@@ -123,37 +120,3 @@ export const COUNT_BAR = { h: 4 } as const;
 export function hitFor(size: number): number {
   return Math.max(0, (44 - size) / 2);
 }
-
-const face = (w: 400 | 500 | 600 | 700, fontSize: number, lineHeight: number, letterSpacing = 0, tabular = false): TextStyle => {
-  const s: TextStyle = { fontFamily: PRETENDARD[w], fontSize, lineHeight, letterSpacing };
-  if (tabular) s.fontVariant = ['tabular-nums'];
-  return s;
-};
-
-/** ROLE에 없는 글자 모양 — 웨이브 4가 ROLE로 옮긴다 */
-export const KIT_TYPE = {
-  /** 거르기 낱말 500 14 · 고른 낱말 700 14 · 수 400 12 */
-  word: ROLE.segment,
-  wordOn: face(700, 14, 18),
-  count: face(400, 12, 18, 0, true),
-  /** 범위 낱말(통계: 이번 주 · 10주 · 올해) 500 15 · 고른 700 15 */
-  scope: face(500, 15, 18),
-  scopeOn: face(700, 15, 18),
-  /** 고르기 줄 제목 400 16/23 · 고른 줄 600 */
-  choice: face(400, 16, 23),
-  choiceOn: face(600, 16, 23),
-  /** 시각 칩 500 14/18 */
-  chip: face(500, 14, 18, 0, true),
-  /** 영역 고르기 이름 500 14 · 고른 700 14 */
-  area: face(500, 14, 18, -0.14),
-  areaOn: face(700, 14, 18, -0.14),
-  /** 견본 쪽의 글자 700 14/20 · 견본 이름 500 14 · 고른 700 14 */
-  swatchWord: face(700, 14, 20, -0.28),
-  swatchLabel: face(500, 14, 18),
-  swatchLabelOn: face(700, 14, 18),
-  /** 메모 칸 14/20 */
-  memo: face(500, 14, 20),
-  memoPlaceholder: face(400, 14, 20),
-  /** 한 줄 칸 자리 글 400 17/24 */
-  fieldSmallPlaceholder: face(400, 17, 24),
-} as const satisfies Record<string, TextStyle>;

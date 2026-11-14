@@ -8,7 +8,7 @@ import { Linking, Platform, View } from 'react-native';
 import { Text, a11yLangProp } from '../components/AppText';
 import { PrimaryButton, QuietAction, RuledNotice, Sheet, useSheetDismiss } from '../components/common';
 import { SheetHead } from '../components/TemplateSheet';
-import { KIT_TYPE, ROW, RowRule, RowTitle, Section, TextLink } from '../components/kit';
+import { ROW, RowRule, RowTitle, Section, TextLink } from '../components/kit';
 import { useMsg } from '../i18n/react';
 import { lang, type Messages } from '../i18n';
 import { PRIVACY_URL, privacyLink } from '../lib/appInfo';
@@ -153,7 +153,7 @@ function ProBody({ M, from }: { M: M; from: ProFeature | 'menu' }) {
               {divider && <RowRule M={M} />}
               <Text style={{ ...ROLE.rowTitle, ...NUM, width: ROW.box, textAlign: 'center', color: here ? M.ink : M.ink2 }}>{i + 1}</Text>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <RowTitle M={M} text={name} lines={2} style={here ? KIT_TYPE.choiceOn : undefined} />
+                <RowTitle M={M} text={name} lines={2} style={here ? ROLE.choiceOn : undefined} />
                 <Text style={{ ...ROLE.rowMeta, color: M.ink2 }}>{sub}</Text>
               </View>
             </View>

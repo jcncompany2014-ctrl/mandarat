@@ -3,7 +3,8 @@ import { Pressable, ScrollView, View, type StyleProp, type ViewStyle } from 'rea
 import { Text, a11yLangProp } from '../AppText';
 import { DyeMark } from './DyeMark';
 import { segmentRoles } from './Segment';
-import { FILTER, KIT_TYPE } from './metrics';
+import { FILTER } from './metrics';
+import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { select } from '../../lib/haptics';
 
@@ -57,11 +58,11 @@ export function FilterLine<K extends string>({
         style={({ pressed }) => ({ height: FILTER.h, flexDirection: 'row', alignItems: 'center', opacity: pressed && !on ? 0.6 : 1 })}
       >
         {it.area != null && <DyeMark M={M} area={it.area} />}
-        <Text style={[scope ? (on ? KIT_TYPE.scopeOn : KIT_TYPE.scope) : on ? KIT_TYPE.wordOn : KIT_TYPE.word, { color: M.ink }]} numberOfLines={1}>
+        <Text style={[scope ? (on ? ROLE.scopeOn : ROLE.scope) : on ? ROLE.wordOn : ROLE.word, { color: M.ink }]} numberOfLines={1}>
           {it.label}
         </Text>
         {it.count != null && (
-          <Text style={[KIT_TYPE.count, { color: M.ink2, marginLeft: FILTER.countGap }]} numberOfLines={1}>{String(it.count)}</Text>
+          <Text style={[ROLE.wordNum, { color: M.ink2, marginLeft: FILTER.countGap }]} numberOfLines={1}>{String(it.count)}</Text>
         )}
         {on && (
           <View

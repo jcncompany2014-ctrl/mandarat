@@ -8,7 +8,7 @@ import { PixelRatio, Pressable, View, type AccessibilityActionEvent } from 'reac
 import { Text, a11yLangProp } from '../../components/AppText';
 import { Header, Sheet, SheetHeader, useSheetDismiss } from '../../components/common';
 import { Icon } from '../../components/Icon';
-import { CheckBox, KIT_TYPE, LinkRow, Row, Section } from '../../components/kit';
+import { CheckBox, LinkRow, Row, Section } from '../../components/kit';
 import { BlockGrid, Locator, PagerMark, type BlockCellInfo } from '../../components/chart';
 import { HabitWeek } from './HabitWeek';
 import { ROLE } from '../../theme/type';
@@ -272,7 +272,7 @@ function PagerLink({ M, label, speech, dir, onPress }: {
       })}
     >
       {dir < 0 && <Icon name="chevL" size={16} color={M.ink} />}
-      <Text style={[KIT_TYPE.wordOn, { color: M.ink, flexShrink: 1 }]} numberOfLines={1}>{label}</Text>
+      <Text style={[ROLE.wordOn, { color: M.ink, flexShrink: 1 }]} numberOfLines={1}>{label}</Text>
       {dir > 0 && <Icon name="chevR" size={16} color={M.ink} />}
     </Pressable>
   );

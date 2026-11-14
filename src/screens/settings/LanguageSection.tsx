@@ -6,7 +6,8 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { a11yLang } from '../../components/AppText';
-import { ChoiceTick, KIT_TYPE, ROW, RowMeta, RowRule, RowTitle } from '../../components/kit';
+import { ChoiceTick, ROW, RowMeta, RowRule, RowTitle } from '../../components/kit';
+import { ROLE } from '../../theme/type';
 import { select } from '../../lib/haptics';
 import { TID } from '../../lib/testIds';
 import { announce } from '../../lib/useReducedMotion';
@@ -77,7 +78,7 @@ function LanguageRows({ M }: { M: M }) {
             >
               {i > 0 && <RowRule M={M} inset={0} />}
               <View style={{ flex: 1, minWidth: 0 }}>
-                <RowTitle M={M} text={label} style={on ? KIT_TYPE.choiceOn : KIT_TYPE.choice} />
+                <RowTitle M={M} text={label} style={on ? ROLE.choiceOn : ROLE.choice} />
                 {!!meta && <RowMeta M={M} text={meta} />}
               </View>
               {on && <ChoiceTick M={M} />}

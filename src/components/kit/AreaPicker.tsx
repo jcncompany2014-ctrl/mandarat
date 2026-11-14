@@ -2,7 +2,8 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from '../AppText';
 import { DyeMark } from './DyeMark';
-import { AREA, KIT_TYPE } from './metrics';
+import { AREA } from './metrics';
+import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { select } from '../../lib/haptics';
 
@@ -55,7 +56,7 @@ export function AreaPicker({
               >
                 <DyeMark M={M} area={i} />
                 <Text
-                  style={[on ? KIT_TYPE.areaOn : KIT_TYPE.area, { flexShrink: 1, color: on ? M.dyeText[i] ?? M.ink : M.ink }]}
+                  style={[on ? ROLE.areaOn : ROLE.area, { flexShrink: 1, color: on ? M.dyeText[i] ?? M.ink : M.ink }]}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={AREA.minScale}

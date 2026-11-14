@@ -223,6 +223,11 @@ test('ROLE: 표의 서체 파일 · 크기 · 줄 · 자간(늘 적는다) · �
     mapHead: [700, 10, 12, -0.4], mapCore: [700, 11, 13, -0.22],
     blockAction: [500, 16, 24, -0.16], blockHead: [700, 18, 24, -0.18], blockCore: [700, 20, 28, -0.4],
     clock: [700, 52, 60, -1.56, true], closeFigure: [700, 48, 56, -1.44, true], ledger: [500, 14, 18, 0], ledgerFigure: [500, 13, 18, 0, true],
+    // 웨이브 4(R2)가 부품 상자 · 화면에서 옮겨 온 글자(예전 KIT_TYPE · STATS_TYPE · 첫 화면)
+    word: [500, 14, 18, 0], wordOn: [700, 14, 18, 0], wordNum: [400, 12, 18, 0, true], scope: [500, 15, 18, 0], scopeOn: [700, 15, 18, 0],
+    choice: [400, 16, 23, 0], choiceOn: [600, 16, 23, 0], chip: [500, 14, 18, 0, true], area: [500, 14, 18, -0.14], areaOn: [700, 14, 18, -0.14],
+    swatchWord: [700, 14, 20, -0.28], swatch: [500, 14, 18, 0], swatchOn: [700, 14, 18, 0], memo: [500, 14, 20, 0], memoPlaceholder: [400, 14, 20, 0],
+    fieldSmallPlaceholder: [400, 17, 24, 0], kindName: [600, 15, 18, 0], kindFigure: [700, 16, 20, -0.16, true], sub: [400, 15, 24, 0], example: [400, 13, 20, 0],
   };
   assert.deepEqual(Object.keys(ROLE).sort(), Object.keys(table).sort());
   for (const [name, [face, size, line, track, tab]] of Object.entries(table)) {

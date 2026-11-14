@@ -6,7 +6,7 @@ import { Header, LineRow, RowDivider, pressedRow } from '../components/common';
 import { DyeMark, FilterLine, Section, type FilterItem } from '../components/kit';
 import { ColourMap, MAP_MAX, WeekBars, l1Width, type WeekBarDay } from '../components/chart';
 import {
-  ActivityChart, Figure, HeroField, InLink, MoodStrip, STATS_TYPE, TenWeeks, WearLegend, WeekAreaKey,
+  ActivityChart, Figure, HeroField, InLink, MoodStrip, TenWeeks, WearLegend, WeekAreaKey,
 } from '../components/StatsCharts';
 import { GEO } from '../theme/tokens';
 import { ROLE } from '../theme/type';
@@ -327,9 +327,9 @@ function KindLine({ M, r, first, onLink }: { M: M; r: KindRow; first: boolean; o
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingVertical: 6 }}>
       {!first && <RowDivider M={M} inset={0} />}
       <View accessible accessibilityLabel={said} {...a11yLangProp()} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={[STATS_TYPE.kindName, { width: KIND_NAME_W, color: M.ink }]} numberOfLines={2}>{r.label}</Text>
+        <Text style={[ROLE.kindName, { width: KIND_NAME_W, color: M.ink }]} numberOfLines={2}>{r.label}</Text>
         <Text style={[ROLE.rowRight, { flex: 1, minWidth: 0, color: M.ink2 }]} numberOfLines={2}>{r.sub}</Text>
-        {r.value != null && <Figure M={M} text={r.value} role={STATS_TYPE.kindFig} unitStyle={ROLE.meta} maxScale={1.6} />}
+        {r.value != null && <Figure M={M} text={r.value} role={ROLE.kindFigure} unitStyle={ROLE.meta} maxScale={1.6} />}
       </View>
       {link && <InLink M={M} label={linkText} hint={linkHint} onPress={() => onLink(link)} />}
     </View>

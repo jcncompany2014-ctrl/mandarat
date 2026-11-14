@@ -153,7 +153,7 @@ test('시트: 차례 네 줄은 PRO_FEATURES 순서, 연 기능의 줄은 옅은
   assert.match(s, /const here = f === from/);
   // 디자인 A: 괘선 굵기 대신 옅은 면(tile) — 테두리 없이
   assert.match(s, /here \? \{ backgroundColor: M\.tile, borderRadius: GEO\.rField/);
-  assert.match(s, /style=\{here \? KIT_TYPE\.choiceOn : undefined\}/);
+  assert.match(s, /style=\{here \? ROLE\.choiceOn : undefined\}/);
   assert.match(s, /here \? m\.pro\.featureSayHere\(\{ name, sub \}\) : m\.pro\.featureSay\(\{ name, sub \}\)/);
   assert.match(s, /\{i \+ 1\}/);
   assert.match(s, /\.\.\.NUM/);

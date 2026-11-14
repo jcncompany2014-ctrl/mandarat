@@ -3,7 +3,6 @@ import { PixelRatio, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text, a11yLangProp } from '../components/AppText';
 import { ColourMap, MAP_MAX } from '../components/chart';
-import { KIT_TYPE } from '../components/kit';
 import { ROLE } from '../theme/type';
 import { GEO } from '../theme/tokens';
 import type { M } from '../theme/usePalette';
@@ -78,7 +77,7 @@ export const FullGrid = memo(function FullGrid({
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SHEET.figureGap }}>
           <Text style={[ROLE.label, { color: M.print }]} numberOfLines={1}>{start ? m.chart.writtenFolio : m.chart.done}</Text>
           {/* 처음은 '쓴 칸 0/64'(칸이 앞에 있다), 그 뒤는 '달성 24/64칸' */}
-          <Text style={[KIT_TYPE.wordOn, tabular, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+          <Text style={[ROLE.wordOn, tabular, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
             {start ? `${n}/64` : m.chart.of64({ n })}
           </Text>
         </View>

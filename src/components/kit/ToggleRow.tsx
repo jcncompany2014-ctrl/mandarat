@@ -3,7 +3,8 @@ import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from '../AppText';
 import { CheckBox } from './CheckBox';
 import { RowMeta, RowRule, RowTitle } from './Row';
-import { CHIP, KIT_TYPE, ROW, hitFor } from './metrics';
+import { CHIP, ROW, hitFor } from './metrics';
+import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { useMsg } from '../../i18n/react';
 
@@ -24,7 +25,7 @@ export function TimeChip({
 }) {
   const chip = (
     <View style={{ paddingVertical: CHIP.padY, paddingHorizontal: CHIP.padX, borderRadius: CHIP.radius, backgroundColor: M.tile }}>
-      <Text style={[KIT_TYPE.chip, { color: on ? M.ink : M.ink2 }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>{label}</Text>
+      <Text style={[ROLE.chip, { color: on ? M.ink : M.ink2 }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>{label}</Text>
     </View>
   );
   if (!onPress) return chip;

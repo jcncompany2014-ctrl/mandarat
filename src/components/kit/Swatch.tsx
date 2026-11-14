@@ -2,7 +2,8 @@ import React, { memo, useId } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Line, Pattern, Rect } from 'react-native-svg';
 import { Text, a11yLangProp } from '../AppText';
-import { KIT_TYPE, SWATCH, lookPages, type PageInk } from './metrics';
+import { SWATCH, lookPages, type PageInk } from './metrics';
+import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { DOT_R, PATTERN_STROKE, patternInk, patternLines } from '../../lib/paper';
 import type { Look } from '../../lib/look';
@@ -18,7 +19,7 @@ function Page({ ink, word, flat, pattern }: { ink: PageInk; word: string; flat: 
     <View style={{ flex: 1, height: SWATCH.pageH, backgroundColor: ink.page, paddingTop: SWATCH.lineTop, paddingHorizontal: SWATCH.wordX, ...(flat ? null : { borderTopLeftRadius: SWATCH.pageRadius, borderTopRightRadius: SWATCH.pageRadius }), overflow: 'hidden' }}>
       {pattern}
       <Text
-        style={[KIT_TYPE.swatchWord, { position: 'absolute', left: SWATCH.wordX, top: SWATCH.wordY, color: ink.word }]}
+        style={[ROLE.swatchWord, { position: 'absolute', left: SWATCH.wordX, top: SWATCH.wordY, color: ink.word }]}
         maxFontSizeMultiplier={1}
         accessible={false}
       >
@@ -119,7 +120,7 @@ export function Swatch({
         </View>
       </View>
       <Text
-        style={[on ? KIT_TYPE.swatchLabelOn : KIT_TYPE.swatchLabel, { marginTop: SWATCH.labelGap, textAlign: 'center', color: on ? M.ink : M.ink2 }]}
+        style={[on ? ROLE.swatchOn : ROLE.swatch, { marginTop: SWATCH.labelGap, textAlign: 'center', color: on ? M.ink : M.ink2 }]}
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.8}

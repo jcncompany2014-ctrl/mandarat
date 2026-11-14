@@ -3,7 +3,7 @@ import {
   Pressable, View, type StyleProp, type TextInput as RNTextInput, type TextInputProps, type TextStyle, type ViewStyle,
 } from 'react-native';
 import { Text, TextInput, a11yLangProp } from '../AppText';
-import { FIELD, KIT_TYPE } from './metrics';
+import { FIELD } from './metrics';
 import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 
@@ -46,9 +46,9 @@ export const Field = forwardRef<RNTextInput, FieldProps>(function Field({
   const memo = variant === 'memo';
   const small = variant === 'small';
   const face: TextStyle = memo
-    ? (empty ? KIT_TYPE.memoPlaceholder : KIT_TYPE.memo)
+    ? (empty ? ROLE.memoPlaceholder : ROLE.memo)
     : small
-      ? (empty ? KIT_TYPE.fieldSmallPlaceholder : ROLE.fieldTextSmall)
+      ? (empty ? ROLE.fieldSmallPlaceholder : ROLE.fieldTextSmall)
       : (empty ? ROLE.fieldPlaceholder : ROLE.fieldText);
   const lineH = (face.lineHeight as number) ?? 24;
   const minH = memo ? FIELD.hMemo : small ? FIELD.hSmall : FIELD.h;

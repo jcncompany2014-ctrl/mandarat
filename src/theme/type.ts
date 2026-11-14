@@ -138,6 +138,38 @@ export const ROLE = {
   /** 장부 줄 [ink] · 숫자 [ink2] */
   ledger: role(500, 14, 18),
   ledgerFigure: role(500, 13, 18, 0, true),
+
+  // 부품 · 화면에서 옮겨 온 글자(웨이브 4 — 예전 kit KIT_TYPE · 통계 STATS_TYPE · 첫 화면의 두 줄)
+  /** 거르기 줄의 낱말 [ink] · 고른 낱말(밑줄과 함께) [ink] · 낱말 뒤의 수 [ink2] */
+  word: role(500, 14, 18),
+  wordOn: role(700, 14, 18),
+  wordNum: role(400, 12, 18, 0, true),
+  /** 범위 낱말(통계: 이번 주 · 10주 · 올해) [ink] · 고른 낱말 [ink] */
+  scope: role(500, 15, 18),
+  scopeOn: role(700, 15, 18),
+  /** 고르기 줄 제목 [ink] · 고른 줄 [ink] */
+  choice: role(400, 16, 23),
+  choiceOn: role(600, 16, 23),
+  /** 시각 칩 [ink, 꺼지면 ink2] */
+  chip: role(500, 14, 18, 0, true),
+  /** 영역 고르기 이름 [ink] · 고른 이름 [dyeText] */
+  area: role(500, 14, 18, -0.14),
+  areaOn: role(700, 14, 18, -0.14),
+  /** 보기 견본 쪽의 글자 '가' [쪽의 먹] · 견본 이름 [ink2] · 고른 견본 이름 [ink] */
+  swatchWord: role(700, 14, 20, -0.28),
+  swatch: role(500, 14, 18),
+  swatchOn: role(700, 14, 18),
+  /** 메모 칸 [ink] · 자리 글 [print] */
+  memo: role(500, 14, 20),
+  memoPlaceholder: role(400, 14, 20),
+  /** 한 줄 칸(fieldTextSmall)의 자리 글 [print] */
+  fieldSmallPlaceholder: role(400, 17, 24),
+  /** 통계 유형 줄 — 이름 [ink] · 숫자 [ink] */
+  kindName: role(600, 15, 18),
+  kindFigure: role(700, 16, 20, -0.16, true),
+  /** 첫 화면 — 질문 아래 한 줄 [ink2] · 예시 한 줄 [print] */
+  sub: role(400, 15, 24),
+  example: role(400, 13, 20),
 } as const satisfies Record<string, TextStyle>;
 
 export type RoleName = keyof typeof ROLE;

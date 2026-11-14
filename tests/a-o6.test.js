@@ -127,7 +127,7 @@ test('프로 시트: 시트 머리(닫기 TID) · 번호 차례 · 값 한 줄 �
   assert.match(s, /<QuietAction\s+M=\{M\}\s+testID=\{TID\.proRestore\}/);
   assert.match(s, /<PrimaryButton M=\{M\} label=\{label\} onPress=\{onBuy\} disabled=\{!canPress\} testID=\{TID\.proBuy\}/);
   // 글자 링크는 부품 상자의 것(설정 화면의 줄 모양을 빌리지 않는다)
-  assert.match(s, /import \{ KIT_TYPE, ROW, RowRule, RowTitle, Section, TextLink \} from '\.\.\/components\/kit';/);
+  assert.match(s, /import \{ ROW, RowRule, RowTitle, Section, TextLink \} from '\.\.\/components\/kit';/);
   assert.doesNotMatch(s, /screens\/settings/);
 });
 

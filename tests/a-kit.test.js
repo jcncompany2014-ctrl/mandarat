@@ -11,10 +11,9 @@ const {
   PEN_TICK, PEN_TICK_DASH, PEN_TICK_REACH, CHOSEN_TICK, CHOICE_TICK, checkGeometry, isChecked, dayBoxStates, dayLetter, SUNDAY_INDEX,
 } = require('../src/lib/marks');
 const {
-  ROW, rowInset, strikeTop, strikeBox, segmentCells, SEG, FIELD, DAYS, AREA, FILTER, SWATCH, DYE, lookPages, KIT_TYPE,
+  ROW, rowInset, strikeTop, strikeBox, segmentCells, SEG, FIELD, DAYS, AREA, FILTER, SWATCH, DYE, lookPages,
 } = require('../src/components/kit/metrics');
 const { LIGHT, DARK, GEO } = require('../src/theme/tokens');
-const { PRETENDARD } = require('../src/theme/fonts');
 const { msg, LANGS } = require('../src/i18n');
 
 const ROOT = path.join(__dirname, '..');
@@ -178,12 +177,9 @@ test('자리 수치는 계획(패키지 K) 그대로', () => {
   assert.deepEqual([DYE.size, DYE.radius, DYE.gap], [8, 2, 6]);
   assert.deepEqual([SWATCH.framePad, SWATCH.frameRadius, SWATCH.wellPad, SWATCH.wellRadius, SWATCH.pageH, SWATCH.pageRadius, SWATCH.ring], [3, 15, 8, 12, 46, 7, 1.5]);
   assert.equal(SWATCH.short, 0.55);
-  // 글자 모양은 Pretendard 파일을 직접 고르고(굵기 없이) 자간을 늘 적는다 — AppText가 더하지 않게
-  for (const [k, v] of Object.entries(KIT_TYPE)) {
-    assert.ok(Object.values(PRETENDARD).includes(v.fontFamily), k);
-    assert.equal(v.fontWeight, undefined, k);
-    assert.equal(typeof v.letterSpacing, 'number', k);
-  }
+  // 글자 모양은 모두 ROLE(theme/type.ts, a-tokens가 표를 본다) — 부품 상자가 따로 지은 글자 모양(예전 KIT_TYPE)은 없다
+  assert.equal(require('../src/components/kit/metrics').KIT_TYPE, undefined);
+  for (const rel of kitFiles()) assert.doesNotMatch(src(rel), /KIT_TYPE|fontSize:|fontFamily:/, rel);
 });
 
 test('견본 쪽: 어느 모드에서 보든 밝게는 흰 쪽, 어둡게는 먹 쪽, 자동은 두 쪽', () => {

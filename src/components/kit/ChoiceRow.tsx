@@ -2,7 +2,8 @@ import React from 'react';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Row } from './Row';
-import { CHOICE, KIT_TYPE } from './metrics';
+import { CHOICE } from './metrics';
+import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { CHOICE_TICK } from '../../lib/marks';
 import { useMsg } from '../../i18n/react';
@@ -43,7 +44,7 @@ export function ChoiceRow({
       bare
       title={title}
       meta={meta}
-      titleStyle={on ? KIT_TYPE.choiceOn : KIT_TYPE.choice}
+      titleStyle={on ? ROLE.choiceOn : ROLE.choice}
       trailing={on ? <ChoiceTick M={M} /> : null}
       divider={divider}
       onPress={() => { if (!on) onPress(); }}

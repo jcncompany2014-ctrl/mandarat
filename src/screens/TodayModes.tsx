@@ -7,7 +7,7 @@ import { EmptyState } from '../components/EmptyState';
 import { RatingBoxes, metaText } from '../components/KindBits';
 import { Icon } from '../components/Icon';
 import {
-  CHIP, CheckBox, DayBoxes, KIT_TYPE, ROW, Row, RowMeta, RowRight, RowRule, RowTitle, SECTION, Section, hitFor,
+  CHIP, CheckBox, DayBoxes, ROW, Row, RowMeta, RowRight, RowRule, RowTitle, SECTION, Section, hitFor,
 } from '../components/kit';
 import { GEO } from '../theme/tokens';
 import { ROLE } from '../theme/type';
@@ -553,7 +553,7 @@ const KanbanCard = memo(function KanbanCard({
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <Text style={[KIT_TYPE.chip, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>{m.today.focus25}</Text>
+          <Text style={[ROLE.chip, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>{m.today.focus25}</Text>
         </Pressable>
       )}
     </Pressable>

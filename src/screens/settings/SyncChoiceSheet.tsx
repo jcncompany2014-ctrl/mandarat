@@ -7,7 +7,7 @@ import React, { memo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
 import { Button, RuledNotice, Sheet, useSheetDismiss } from '../../components/common';
-import { ChoiceTick, KIT_TYPE, ROW, RowRule, RowTitle } from '../../components/kit';
+import { ChoiceTick, ROW, RowRule, RowTitle } from '../../components/kit';
 import { SheetHead } from '../../components/TemplateSheet';
 import { summarize, type BackupSummary } from '../../lib/backup';
 import { ledgerRows, LEDGER_NONE } from '../../lib/backupLedger';
@@ -104,7 +104,7 @@ function Body({ M, remote, onConfirm }: { M: M; remote: MandaratDoc | null; onCo
             >
               {i > 0 && <RowRule M={M} inset={0} />}
               <View style={{ flex: 1, minWidth: 0 }}>
-                <RowTitle M={M} text={title} lines={2} style={on ? KIT_TYPE.choiceOn : KIT_TYPE.choice} />
+                <RowTitle M={M} text={title} lines={2} style={on ? ROLE.choiceOn : ROLE.choice} />
                 <Text style={{ ...ROLE.rowMeta, color: M.ink2 }}>{sub}</Text>
               </View>
               {on && <ChoiceTick M={M} />}

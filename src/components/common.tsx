@@ -854,9 +854,6 @@ export function PaperChip({
 
 /** 줄 높이 44 — 고른 낱말 아래 1pt 먹 밑줄이 바닥에서 9 위 */
 const FILTER_H = 44;
-const WORD = ROLE.segment;
-const WORD_ON = { ...ROLE.segment, fontFamily: PRETENDARD[700] };
-const COUNT = { fontFamily: PRETENDARD[400], fontSize: 12, lineHeight: 18, letterSpacing: 0, fontVariant: ['tabular-nums' as const] };
 
 function FilterWord({ M, label, on, count, dye, a11y, onPress }: {
   M: M;
@@ -877,9 +874,9 @@ function FilterWord({ M, label, on, count, dye, a11y, onPress }: {
       style={({ pressed }) => ({ height: FILTER_H, flexDirection: 'row', alignItems: 'center', opacity: pressed && !on ? 0.6 : 1 })}
     >
       {!!dye && <Dye color={dye} />}
-      <Text style={{ ...(on ? WORD_ON : WORD), color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.6}>{label}</Text>
+      <Text style={{ ...(on ? ROLE.wordOn : ROLE.word), color: M.ink }} numberOfLines={1} maxFontSizeMultiplier={1.6}>{label}</Text>
       {count != null && (
-        <Text style={{ ...COUNT, color: M.ink2, marginLeft: 4 }} maxFontSizeMultiplier={1.6}>{count}</Text>
+        <Text style={{ ...ROLE.wordNum, color: M.ink2, marginLeft: 4 }} maxFontSizeMultiplier={1.6}>{count}</Text>
       )}
       {on && <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 9, height: 1, backgroundColor: M.ink }} />}
     </Pressable>

@@ -5,7 +5,8 @@ import { Icon } from './Icon';
 import { metaText } from './KindBits';
 import { CheckBox } from './kit/CheckBox';
 import { RowMeta, RowRight, RowRule, RowTitle } from './kit/Row';
-import { CHIP, KIT_TYPE, ROW, hitFor } from './kit/metrics';
+import { CHIP, ROW, hitFor } from './kit/metrics';
+import { ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { useDoc } from '../store/MandaratContext';
 import { useTodayCheck } from '../lib/useTodayCheck';
@@ -254,7 +255,7 @@ const RowView = memo(function RowView({
           opacity: pressed ? 0.6 : 1,
         })}
       >
-        <Text style={[KIT_TYPE.chip, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+        <Text style={[ROLE.chip, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {m.sheet.plusShort({ n: right.step, unit: right.unit })}
         </Text>
       </Pressable>

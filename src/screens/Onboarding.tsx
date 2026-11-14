@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View, type TextStyle } from 'react-native';
+import { Animated, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWindowDimensions } from '../lib/screen';
 import { Text, a11yLangProp } from '../components/AppText';
@@ -60,18 +60,6 @@ const BAR = { top: 8, gap: 14, bottom: 24, bottomShort: 16, onKeyboard: 12 } as 
 
 /** 키보드가 올라와 목표 칸을 가릴 때 — 칸 아래(예시 줄까지)에서 이만큼 더 보이게 스크롤 */
 const KEYBOARD_ROOM = 8;
-
-const face = (w: 400 | 500 | 600 | 700, fontSize: number, lineHeight: number): TextStyle => ({
-  fontFamily: PRETENDARD[w], fontSize, lineHeight, letterSpacing: 0,
-});
-
-/** ROLE에 없는 글자 모양(목업 onboarding.html) — 웨이브 4(R2)가 ROLE로 옮긴다 */
-const ONB_TYPE = {
-  /** 질문 아래 한 줄 400 15/24 ink2 */
-  sub: face(400, 15, 24),
-  /** 예시 한 줄 400 13/20 print */
-  example: face(400, 13, 20),
-} as const;
 
 interface TileLabel { text: string; fs: number; lh: number; lines: number }
 
@@ -289,7 +277,7 @@ export function Onboarding() {
     if (need > scrollTop.current) scroller.current?.scrollTo({ y: Math.min(need, y), animated: !reducedMotion() });
   }, [focused, viewH]);
 
-  const exampleText = [ONB_TYPE.example, { color: M.print }];
+  const exampleText = [ROLE.example, { color: M.print }];
 
   return (
     <View style={{ flex: 1, backgroundColor: M.paper }}>
@@ -352,7 +340,7 @@ export function Onboarding() {
           <Text accessibilityRole="header" style={[ROLE.title, { color: M.ink, marginTop: R.question }]}>
             {o.heading}
           </Text>
-          <Text style={[ONB_TYPE.sub, { color: M.ink2, marginTop: R.sub }]}>{o.headingNote}</Text>
+          <Text style={[ROLE.sub, { color: M.ink2, marginTop: R.sub }]}>{o.headingNote}</Text>
 
           {/* 핵심 목표 — 이름표 · 칸 · 예시 한 줄(낱말마다 누르면 칸을 채운다) */}
           <View
