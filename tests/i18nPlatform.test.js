@@ -178,8 +178,11 @@ test('설정 › 언어: 네 줄 · 언어 이름 · 고르면 chooseLang과 새
   assert.match(s, /export const LANG_PREFS: readonly LangPref\[\] = \['system', 'ko', 'ja', 'en'\];/);
   assert.match(s, /p === 'system' \? m\.lang\.system : LANG_NAMES\[p\]/);
   assert.match(s, /testID=\{TID\.setLang\(p\)\}/);
-  assert.match(s, /accessibilityRole="radio"/);
-  assert.match(s, /accessibilityState=\{\{ checked: on, selected: on \}\}/);
+  // 줄은 부품 상자의 고르기 줄(ChoiceRow: 라디오 + 선택됨)
+  assert.match(s, /<ChoiceRow\b/);
+  const choice = src('src/components/kit/ChoiceRow.tsx');
+  assert.match(choice, /accessibilityRole="radio"/);
+  assert.match(choice, /accessibilityState=\{\{ checked: on, selected: on \}\}/);
   assert.match(s, /chooseLang\(p\)\.then\(\(to: Lang\) => announce\(msg\(to\)\.lang\.changed\(\{ name: LANG_NAMES\[to\] \}\)\)/);
   assert.match(s, /\{m\.lang\.footnote\}/);
   assert.match(s, /process\.env\.EXPO_PUBLIC_APP_ENV/);

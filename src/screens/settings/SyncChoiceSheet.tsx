@@ -4,10 +4,10 @@
 // 닫으면(고르지 않고) 맞추기를 켜지 않는다(setChoice(null)).
 // 시트는 부품 상자의 시트(안쪽 24, 떠 있는 판) · 머리(SheetHead) · 고르기 줄(펜 획) · 검은 단추.
 import React, { memo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
 import { Button, RuledNotice, Sheet, useSheetDismiss } from '../../components/common';
-import { ChoiceTick, ROW, RowRule, RowTitle } from '../../components/kit';
+import { ChoiceRow } from '../../components/kit';
 import { SheetHead } from '../../components/TemplateSheet';
 import { summarize, type BackupSummary } from '../../lib/backup';
 import { ledgerRows, LEDGER_NONE } from '../../lib/backupLedger';
@@ -26,7 +26,7 @@ const SIDE_BY_SIDE = 520;
 /** 장부 이름 칸 · 줄 위아래 · 고르기 줄 위아래 · 묶음 사이 */
 const LEDGER_LABEL_W = 84;
 const LEDGER_PAD_Y = 8;
-const CHOICE_PAD_Y = 10;
+const CHOICE_PAD = { paddingVertical: 10 } as const;
 const GAP = 20;
 
 /**
@@ -86,29 +86,20 @@ function Body({ M, remote, onConfirm }: { M: M; remote: MandaratDoc | null; onCo
       <View style={{ marginTop: GAP }} accessibilityRole="radiogroup">
         {CHOICES.map((c, i) => {
           const { title, sub } = choiceText(c, t);
-          const on = pick === c;
-          // 고르기 줄(부품 상자 ChoiceRow의 모양) — 설명이 길어 여러 줄로 둔다
+          // 설명이 길어 제목은 두 줄까지, 설명은 다 보인다
           return (
-            <Pressable
+            <ChoiceRow
               key={c}
-              onPress={() => { if (!on) { tap(); setPick(c); } }}
-              accessibilityRole="radio"
-              accessibilityLabel={`${title}, ${sub}`}
-              {...a11yLangProp()}
-              accessibilityState={{ checked: on, selected: on }}
-              aria-checked={on}
-              style={({ pressed }) => ({
-                flexDirection: 'row', alignItems: 'center', gap: ROW.gap, minHeight: ROW.h, paddingVertical: CHOICE_PAD_Y,
-                backgroundColor: pressed && !on ? M.tile : undefined,
-              })}
-            >
-              {i > 0 && <RowRule M={M} inset={0} />}
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <RowTitle M={M} text={title} lines={2} style={on ? ROLE.choiceOn : ROLE.choice} />
-                <Text style={{ ...ROLE.rowMeta, color: M.ink2 }}>{sub}</Text>
-              </View>
-              {on && <ChoiceTick M={M} />}
-            </Pressable>
+              M={M}
+              title={title}
+              meta={sub}
+              on={pick === c}
+              onPress={() => { tap(); setPick(c); }}
+              divider={i > 0}
+              titleLines={2}
+              metaLines={0}
+              style={CHOICE_PAD}
+            />
           );
         })}
       </View>

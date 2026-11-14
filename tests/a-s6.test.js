@@ -136,7 +136,10 @@ test('시각 줄(RemindRow) — tile 받침(모서리 12), 테두리 없는 −/
 test('언어 — 고르기 줄(펜 획), 기기 설정 따르기를 고른 줄에만 지금 언어', () => {
   const s = code(`${DIR}/LanguageSection.tsx`);
   assert.match(s, /const meta = p === 'system' && on \? m\.lang\.systemNow\(\{ name: LANG_NAMES\[lang\(\)\] \}\) : undefined;/);
-  assert.match(s, /\{on && <ChoiceTick M=\{M\} \/>\}/);
+  // 고르기 줄은 부품 상자의 ChoiceRow — 언어 이름 줄은 그 언어 목소리로 읽는다(줄마다 읽는 언어)
+  assert.match(s, /<ChoiceRow\s+key=\{p\}\s+M=\{M\}\s+title=\{label\}\s+meta=\{meta\}\s+on=\{on\}/);
+  assert.match(s, /accessibilityLanguage=\{Platform\.OS === 'ios' && p !== 'system' \? p : a11yLang\(\)\}/);
+  assert.doesNotMatch(s, /ChoiceTick|<Pressable/);
   assert.equal(msg('ko').lang.systemNow({ name: '한국어' }), '지금은 한국어');
   assert.equal(msg('ja').lang.systemNow({ name: '日本語' }), '今は日本語');
 });
@@ -148,7 +151,9 @@ test('iCloud — 켜고 끄는 줄의 정보 줄에 맞춘 때, 고르기 시트
   const sheet = code(`${DIR}/SyncChoiceSheet.tsx`);
   assert.match(sheet, /<Sheet M=\{M\} ownClose pad onClose=/);
   assert.match(sheet, /<Button\s+M=\{M\}\s+label=\{t\.sync\.confirm\}/);
-  assert.match(sheet, /\{on && <ChoiceTick M=\{M\} \/>\}/);
+  // 고르기 줄은 부품 상자의 ChoiceRow — 설명이 길어 제목 두 줄 · 설명은 다 보인다
+  assert.match(sheet, /<ChoiceRow[\s\S]{0,200}on=\{pick === c\}[\s\S]{0,200}titleLines=\{2\}\s+metaLines=\{0\}/);
+  assert.doesNotMatch(sheet, /ChoiceTick|<Pressable/);
 });
 
 test('되돌리기 어려운 줄은 먹(신호색 없음), 확인 대화상자를 거친다 · 색은 모두 토큰', () => {

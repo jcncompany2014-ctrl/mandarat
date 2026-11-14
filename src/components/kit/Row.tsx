@@ -4,7 +4,7 @@ import {
   type AccessibilityActionEvent, type AccessibilityActionInfo, type AccessibilityRole, type AccessibilityState,
   type StyleProp, type TextStyle, type ViewStyle,
 } from 'react-native';
-import { Text, a11yLangProp } from '../AppText';
+import { Text, a11yLang } from '../AppText';
 import { DyeMark } from './DyeMark';
 import { ROW, rowInset, strikeBox, strikeTop } from './metrics';
 import { ROLE } from '../../theme/type';
@@ -87,12 +87,15 @@ export const RowTitle = memo(function RowTitle({ M, text, done = false, lines = 
   );
 });
 
-/** 줄의 정보 한 줄(rowMeta 400 13/18 ink2) — 영역 표시(DyeMark) + 글. 글은 부르는 쪽이 core.dot으로 잇는다 */
-export const RowMeta = memo(function RowMeta({ M, area, text }: { M: M; area?: number; text: string }) {
+/**
+ * 줄의 정보 한 줄(rowMeta 400 13/18 ink2) — 영역 표시(DyeMark) + 글. 글은 부르는 쪽이 core.dot으로 잇는다.
+ * lines: 접는 줄 수(기본 1, 0이면 다 보인다 — 설명이 긴 고르기 줄).
+ */
+export const RowMeta = memo(function RowMeta({ M, area, text, lines = 1 }: { M: M; area?: number; text: string; lines?: number }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', minWidth: 0 }}>
       {area != null && <DyeMark M={M} area={area} />}
-      <Text style={[ROLE.rowMeta, { flexShrink: 1, color: M.ink2 }]} numberOfLines={1}>
+      <Text style={[ROLE.rowMeta, { flexShrink: 1, color: M.ink2 }]} numberOfLines={lines > 0 ? lines : undefined}>
         {text}
       </Text>
     </View>
@@ -134,6 +137,8 @@ export interface RowProps {
   divider?: boolean;
   titleStyle?: StyleProp<TextStyle>;
   titleLines?: number;
+  /** 정보 줄을 접는 줄 수(기본 1, 0이면 다 보인다) */
+  metaLines?: number;
   onPress?: () => void;
   pressRef?: React.Ref<View>;
   testID?: string;
@@ -141,6 +146,10 @@ export interface RowProps {
   accessibilityState?: AccessibilityState;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  /** 이 줄을 읽는 언어(iOS) — 기본은 앱 언어. 언어 이름 줄은 그 언어 목소리로 읽는다 */
+  accessibilityLanguage?: string;
+  /** 웹의 체크 상태 — RN-web은 accessibilityState.checked를 aria-checked로 내보내지 않는다 */
+  'aria-checked'?: boolean;
   accessibilityActions?: AccessibilityActionInfo[];
   onAccessibilityAction?: (e: AccessibilityActionEvent) => void;
   style?: StyleProp<ViewStyle>;
@@ -154,8 +163,9 @@ export interface RowProps {
  */
 export function Row({
   M, title, area, areaName, meta, lead, bare = false, done = false, right, rightTone, trailing, divider = false,
-  titleStyle, titleLines = 1, onPress, pressRef, testID,
-  accessibilityRole, accessibilityState, accessibilityLabel, accessibilityHint, accessibilityActions, onAccessibilityAction, style,
+  titleStyle, titleLines = 1, metaLines = 1, onPress, pressRef, testID,
+  accessibilityRole, accessibilityState, accessibilityLabel, accessibilityHint, accessibilityLanguage, accessibilityActions, onAccessibilityAction, style,
+  'aria-checked': ariaChecked,
 }: RowProps) {
   const m = useMsg();
   const metaText = [areaName, meta].filter(Boolean).join(m.core.dot);
@@ -171,7 +181,7 @@ export function Row({
           <RowTitle M={M} text={title} done={done} lines={titleLines} style={titleStyle} />
           {!!right && <RowRight M={M} text={right} tone={rightTone} alone={!hasMeta} />}
         </View>
-        {hasMeta && <RowMeta M={M} area={area} text={metaText} />}
+        {hasMeta && <RowMeta M={M} area={area} text={metaText} lines={metaLines} />}
       </View>
       {trailing}
     </>
@@ -186,8 +196,9 @@ export function Row({
         accessible
         accessibilityRole={accessibilityRole}
         accessibilityState={accessibilityState}
+        aria-checked={ariaChecked}
         accessibilityLabel={label}
-        {...a11yLangProp()}
+        accessibilityLanguage={accessibilityLanguage ?? a11yLang()}
         accessibilityHint={accessibilityHint}
       >
         {body}
@@ -201,8 +212,9 @@ export function Row({
       testID={testID}
       accessibilityRole={accessibilityRole ?? 'button'}
       accessibilityState={accessibilityState}
+      aria-checked={ariaChecked}
       accessibilityLabel={label}
-      {...a11yLangProp()}
+      accessibilityLanguage={accessibilityLanguage ?? a11yLang()}
       accessibilityHint={accessibilityHint}
       accessibilityActions={accessibilityActions}
       onAccessibilityAction={onAccessibilityAction}

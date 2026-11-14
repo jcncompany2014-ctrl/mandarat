@@ -4,10 +4,9 @@
 // 고르기는 기기마다(AsyncStorage) — 백업·iCloud에는 들어가지 않는다.
 // 번역이 끝나기 전(I18N_READY 거짓)에는 개발 번들과 preview · e2e 빌드에서만 보인다(반쯤 번역된 앱을 내보이지 않게).
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { a11yLang } from '../../components/AppText';
-import { ChoiceTick, ROW, RowMeta, RowRule, RowTitle } from '../../components/kit';
-import { ROLE } from '../../theme/type';
+import { ChoiceRow } from '../../components/kit';
 import { select } from '../../lib/haptics';
 import { TID } from '../../lib/testIds';
 import { announce } from '../../lib/useReducedMotion';
@@ -59,30 +58,19 @@ function LanguageRows({ M }: { M: M }) {
           const on = pref === p;
           const label = p === 'system' ? m.lang.system : LANG_NAMES[p];
           const meta = p === 'system' && on ? m.lang.systemNow({ name: LANG_NAMES[lang()] }) : undefined;
-          // 고르기 줄(부품 상자 ChoiceRow의 모양)을 여기서 짠다 — 언어 이름은 그 언어 목소리로 읽어야 해서(iOS) 읽기 언어를 줄마다 정한다
           return (
-            <Pressable
+            <ChoiceRow
               key={p}
+              M={M}
+              title={label}
+              meta={meta}
+              on={on}
+              onPress={() => choose(p)}
+              divider={i > 0}
               testID={TID.setLang(p)}
-              onPress={() => { if (!on) choose(p); }}
-              accessibilityRole="radio"
-              accessibilityLabel={meta ? `${label}${m.core.listSep}${meta}` : label}
               // 언어 이름은 그 언어 목소리로 읽는다(iOS) — '시스템' 줄은 앱 언어로
               accessibilityLanguage={Platform.OS === 'ios' && p !== 'system' ? p : a11yLang()}
-              accessibilityState={{ checked: on, selected: on }}
-              aria-checked={on}
-              style={({ pressed }) => ({
-                flexDirection: 'row', alignItems: 'center', gap: ROW.gap, minHeight: ROW.h,
-                backgroundColor: pressed && !on ? M.tile : undefined,
-              })}
-            >
-              {i > 0 && <RowRule M={M} inset={0} />}
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <RowTitle M={M} text={label} style={on ? ROLE.choiceOn : ROLE.choice} />
-                {!!meta && <RowMeta M={M} text={meta} />}
-              </View>
-              {on && <ChoiceTick M={M} />}
-            </Pressable>
+            />
           );
         })}
       </View>

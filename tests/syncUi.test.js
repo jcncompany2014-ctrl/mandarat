@@ -93,7 +93,7 @@ test('choice sheet: three choices, each with its line, and none preselected', ()
   assert.match(sheet, /const \[pick, setPick\] = useState<SyncChoice \| null>\(null\);/, 'nothing picked at first');
   assert.match(sheet, /disabled=\{!pick\}/, 'confirm waits for a pick');
   assert.match(sheet, /<RuledNotice M=\{M\} title=\{t\.sync\.copyNote\} \/>/, 'the safety-copy line is under the choices');
-  assert.match(sheet, /accessibilityRole="radio"/);
+  assert.match(sheet, /<ChoiceRow\b/, 'radio rows from the kit (ChoiceRow: radio + checked)');
   assert.match(sheet, /\{CHOICES\.map\(/);
   // 닫으면 고른 것(없으면 null)을 한 번 알린다 — null은 켜지 않기
   assert.match(sheet, /onClose=\{\(\) => onAnswer\(chosen\.current\)\}/);
