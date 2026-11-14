@@ -29,6 +29,8 @@ export const TID = {
   gridTable: 'grid-table',
   gridCell: (ti: number, ai: number) => `grid-cell-${ti}-${ai}`,
   gridShare: 'grid-share',
+  /** 지도의 블록 단추 — 영역 번호(0~7) 또는 가운데 블록 'c' */
+  gridBlock: (b: number | 'c') => `grid-block-${b}`,
 
   // 영역 페이지
   detailBack: 'detail-back',

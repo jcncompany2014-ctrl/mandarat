@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { File } from 'expo-file-system';
-import { Text, TextInput } from '../components/AppText';
-import { Sheet, LineRow, PrimaryButton, useSheetDismiss } from '../components/common';
+import { Text, a11yLangProp } from '../components/AppText';
+import { Button, QuietAction, RuledNotice, Sheet, useSheetDismiss } from '../components/common';
 import { SheetHead } from '../components/TemplateSheet';
-import { alertInk } from '../components/KindBits';
-import { NUM, TYPE } from '../theme/type';
+import { Field, LinkRow, ROW, RowRule, RowTitle } from '../components/kit';
+import { PRETENDARD } from '../theme/fonts';
+import { NUM, ROLE } from '../theme/type';
 import { usePalette, type M } from '../theme/usePalette';
 import { useMandarat } from '../store/MandaratContext';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
@@ -33,6 +34,11 @@ const PICK_TYPES = Platform.OS === 'ios'
   : ['application/json', 'text/plain'];
 /** 되돌리기 토스트를 평소보다 길게 — 통째로 바뀐 뒤 무엇이 달라졌는지 둘러볼 시간 */
 const UNDO_MS = 10000;
+/** 붙여 넣기 칸의 높이 — 긴 백업 글이 시트를 밀어 내지 않게 고정(안에서 스크롤) */
+const PASTE_H = 112;
+/** 장부의 이름 칸 폭(설정 › iCloud 고르기 시트와 같은 84) · 줄 위아래 */
+const LEDGER_LABEL_W = 84;
+const LEDGER_PAD_Y = 10;
 
 /** '10월 14일 수요일에 만든 백업' — 날짜를 읽지 못하면 빈 글 */
 function fmtExported(b: Messages['backup'], iso?: string): string {
@@ -43,8 +49,8 @@ function fmtExported(b: Messages['backup'], iso?: string): string {
 }
 
 /**
- * 백업 불러오기 — 파일을 고르거나(붙여넣기는 그 아래 예비 길) 읽은 뒤,
- * 지금과 백업을 두 줄 장부로 나란히 보여 주고 바꾼다. 바꾼 직후에는 되돌릴 수 있다.
+ * 백업 불러오기 — 부품 상자의 시트(안쪽 24, 떠 있는 판): 머리(SheetHead) · 파일 고르기 줄(LinkRow)
+ * · 붙여 넣기 칸(tile 메모 칸, 예비 길) · 지금 | 백업 장부 · 주 단추 하나. 바꾼 직후에는 되돌릴 수 있다.
  */
 export function BackupImport({ onClose, returnFocusRef }: {
   onClose: () => void;
@@ -143,20 +149,19 @@ export function BackupImport({ onClose, returnFocusRef }: {
       onClose={onClose}
       maxHeightPct={0.9}
       ownClose
+      pad
       returnFocusRef={returnFocusRef}
       footer={<ApplyButton M={M} label={b.apply} ready={!!backup} onApply={apply} />}
     >
-      <View style={{ paddingHorizontal: 20, paddingBottom: 12 }}>
+      <View style={{ paddingBottom: 12 }}>
         <SheetHead M={M} title={b.sheetTitle} body={b.sheetBody} />
 
-        {/* 파일을 읽었으면 아랫줄은 바로 밑 '파일에서 읽었어요' 줄의 윗줄이 맡는다 — 두 줄을 겹쳐 긋지 않는다(줄 색이 반투명) */}
-        <LineRow
+        {/* 파일 고르기 — 글리프(가져오기) · 제목 · 설명 · 꺾쇠. 파일을 읽었으면 바로 밑에 '파일에서 읽었어요' 줄이 붙는다 */}
+        <LinkRow
           M={M}
-          first
-          last={!fromFile}
+          glyph="import"
           title={fromFile ? b.pickOther : b.pickFile}
-          sub={b.pickSub}
-          right="chevron"
+          meta={b.pickSub}
           onPress={pickFile}
           accessibilityLabel={fromFile ? b.pickOther : b.pickFile}
         />
@@ -165,31 +170,29 @@ export function BackupImport({ onClose, returnFocusRef }: {
           <FileRow M={M} name={fromFile.name} onPaste={toPaste} />
         ) : (
           <>
-            <Text style={{ fontSize: 12.5, lineHeight: 18, color: M.sub, marginTop: 16 }}>
+            <Text style={{ ...ROLE.noteSheet, color: M.print, marginTop: 16 }}>
               {b.pasteHelp}
             </Text>
-            <TextInput
+            <Field
+              M={M}
+              variant="memo"
               value={text}
               onChangeText={onText}
-              multiline
               autoCorrect={false}
               autoCapitalize="none"
               spellCheck={false}
               accessibilityLabel={b.pasteLabel}
               accessibilityHint={error ?? undefined}
               placeholder={b.pastePlaceholder}
-              placeholderTextColor={M.sub}
-              style={{
-                marginTop: 8, height: 112, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, borderWidth: 1,
-                borderColor: error ? alertInk(M) : M.line, backgroundColor: 'transparent',
-                color: M.ink, fontSize: 13, lineHeight: 18, textAlignVertical: 'top',
-              }}
+              style={{ marginTop: 8, height: PASTE_H }}
+              inputStyle={{ height: PASTE_H }}
             />
           </>
         )}
 
+        {/* 읽지 못했으면 칸 바로 밑에 한 줄 — 테두리 · 경고색 없이 먹 600 */}
         {!!error && (
-          <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: alertInk(M), marginTop: 8 }}>
+          <Text style={{ ...ROLE.label, fontFamily: PRETENDARD[600], color: M.ink, marginTop: 8 }}>
             {error}
           </Text>
         )}
@@ -201,43 +204,31 @@ export function BackupImport({ onClose, returnFocusRef }: {
 }
 
 /**
- * 파일에서 읽었을 때 붙여 넣기 칸 자리의 괘선 한 줄 — '파일에서 읽었어요' + 파일 이름, 오른쪽에 '붙여 넣기로'(예비 길).
- * 파일 고르기 줄 바로 밑에 붙어 두 줄짜리 괘선 묶음이 된다(사이 빈 띠 · 겹친 줄 없이). 읽은 내용은 바로 아래 지금 | 백업 장부가 보여 준다
+ * 파일에서 읽었을 때 붙여 넣기 칸 자리의 줄 — 파일 고르기 줄 바로 밑에 붙어(사이 머리카락 선, x 38부터) 같은 박자로 선다.
+ * 빈 상자 칸 · '파일에서 읽었어요' + 파일 이름 · 오른쪽에 조용한 '붙여 넣기로'(예비 길). 읽은 내용은 바로 아래 장부가 보여 준다
  */
 function FileRow({ M, name, onPaste }: { M: M; name: string; onPaste: () => void }) {
   const b = useMsg().backup;
   return (
-    <View
-      style={{
-        minHeight: 52, paddingVertical: 8, paddingHorizontal: 2, gap: 12,
-        borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, flexDirection: 'row', alignItems: 'center',
-      }}
-    >
-      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={name ? b.fromFileSay({ name }) : b.fromFile}>
-        <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: M.ink }}>{b.fromFile}</Text>
+    <View style={{ minHeight: ROW.h, flexDirection: 'row', alignItems: 'center', gap: ROW.gap }}>
+      <RowRule M={M} />
+      <View style={{ width: ROW.box }} />
+      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={name ? b.fromFileSay({ name }) : b.fromFile} {...a11yLangProp()}>
+        <RowTitle M={M} text={b.fromFile} />
         {!!name && (
-          <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 2 }} numberOfLines={1} ellipsizeMode="middle">{name}</Text>
+          <Text style={{ ...ROLE.rowMeta, color: M.ink2 }} numberOfLines={1} ellipsizeMode="middle">{name}</Text>
         )}
       </View>
-      <Pressable
-        onPress={onPaste}
-        accessibilityRole="button"
-        accessibilityLabel={b.toPasteLabel}
-        accessibilityHint={b.toPasteHint}
-        hitSlop={12}
-        style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
-      >
-        <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{b.toPaste}</Text>
-      </Pressable>
+      <QuietAction M={M} label={b.toPaste} onPress={onPaste} accessibilityLabel={b.toPasteLabel} accessibilityHint={b.toPasteHint} />
     </View>
   );
 }
 
-/** 아래에 붙은 주 버튼 — 읽을 수 있는 백업이 있을 때만 누를 수 있다 */
+/** 아래에 붙은 주 단추 — 읽을 수 있는 백업이 있을 때만 누를 수 있다 */
 function ApplyButton({ M, label, ready, onApply }: { M: M; label: string; ready: boolean; onApply: (dismiss: () => void) => void }) {
   const dismiss = useSheetDismiss();
   return (
-    <PrimaryButton
+    <Button
       M={M}
       label={label}
       disabled={!ready}
@@ -246,57 +237,54 @@ function ApplyButton({ M, label, ready, onApply }: { M: M; label: string; ready:
   );
 }
 
-/** 지금 | 백업 — 괘선 두 칸 장부 */
+/** 지금 | 백업 — 인쇄된 머리 줄 + 줄 사이 머리카락 선의 두 칸 장부(이름 label print · 값 ledger 먹, 없으면 ink2) */
 function Ledger({ M, now, backup }: { M: M; now: BackupSummary; backup: BackupSummary }) {
   const b = useMsg().backup;
   const exported = fmtExported(b, backup.exportedAt);
   const newer = nowIsNewer(now, backup);
   const rows = ledgerRows(now, backup);
+  const value = (v: string, text?: boolean) => [
+    { ...ROLE.ledger, flex: 1, paddingRight: 8, color: v === b.none ? M.ink2 : M.ink },
+    text ? null : NUM,
+  ];
   return (
-    <View style={{ marginTop: 18 }}>
-      <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: M.ink }}>{b.readOk}</Text>
-      {!!exported && <Text style={{ ...TYPE.caption, color: M.sub, marginTop: 2 }}>{exported}</Text>}
-      {/* 지금 기록이 더 새로우면 — 표 위, 머리 바로 밑에(작은 화면 · 큰 글자에서도 아래로 밀려 가려지지 않게, 화면 읽기도 먼저 읽는다).
+    <View style={{ marginTop: 24 }}>
+      <Text accessibilityRole="header" style={{ ...ROLE.section, color: M.printStrong }}>{b.readOk}</Text>
+      {!!exported && <Text style={{ ...ROLE.label, color: M.print, marginTop: 2 }}>{exported}</Text>}
+      {/* 지금 기록이 더 새로우면 — 표 위, 머리 바로 밑에 알림 한 장(작은 화면 · 큰 글자에서도 아래로 밀려 가려지지 않게, 화면 읽기도 먼저 읽는다).
           아래 표가 그 근거다(마지막 기록 지금 | 백업) */}
       {newer && (
-        <Text style={{ fontSize: 13, lineHeight: 18, fontWeight: '700', color: alertInk(M), marginTop: 6 }}>{b.newerNow}</Text>
+        <View style={{ marginTop: 12 }}>
+          <RuledNotice M={M} title={b.newerNow} />
+        </View>
       )}
 
-      <View style={{ marginTop: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line }}>
+      <View style={{ marginTop: 12 }}>
         <View
-          style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderColor: M.line }}
+          style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 6 }}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          <View style={{ width: 84 }} />
-          <Text style={[headCell, { color: M.sub }]}>{b.colNow}</Text>
-          <Text style={[headCell, { color: M.sub }]}>{b.colBackup}</Text>
+          <View style={{ width: LEDGER_LABEL_W }} />
+          <Text style={{ ...ROLE.label, flex: 1, paddingRight: 8, color: M.print }}>{b.colNow}</Text>
+          <Text style={{ ...ROLE.label, flex: 1, paddingRight: 8, color: M.print }}>{b.colBackup}</Text>
         </View>
-        {rows.map((r, i) => (
+        {rows.map((r) => (
           <View
             key={r.label}
             accessible
             // 소리로는 '채운 칸, 지금 64칸 중 23칸, 백업 64칸 중 41칸' — '23/64'·'10.3 (토)'를 날짜·소수로 읽지 않게
             accessibilityLabel={b.rowSay({ label: r.label, now: r.nowSay ?? r.now, backup: r.backupSay ?? r.backup })}
-            style={{
-              flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 10,
-              borderTopWidth: i === 0 ? 0 : 1, borderColor: M.line,
-            }}
+            {...a11yLangProp()}
+            style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: LEDGER_PAD_Y }}
           >
-            <Text style={{ width: 84, fontSize: 13, lineHeight: 20, color: M.sub }}>{r.label}</Text>
-            <Text style={[valueCell, { color: r.now === b.none ? M.sub : M.ink }, r.text ? null : NUM]} numberOfLines={r.text ? 2 : 1}>
-              {r.now}
-            </Text>
-            <Text style={[valueCell, { color: r.backup === b.none ? M.sub : M.ink }, r.text ? null : NUM]} numberOfLines={r.text ? 2 : 1}>
-              {r.backup}
-            </Text>
+            <RowRule M={M} inset={0} />
+            <Text style={{ ...ROLE.label, width: LEDGER_LABEL_W, color: M.print }}>{r.label}</Text>
+            <Text style={value(r.now, r.text)} numberOfLines={r.text ? 2 : 1}>{r.now}</Text>
+            <Text style={value(r.backup, r.text)} numberOfLines={r.text ? 2 : 1}>{r.backup}</Text>
           </View>
         ))}
       </View>
-
     </View>
   );
 }
-
-const headCell = { flex: 1, fontSize: 12, lineHeight: 16, fontWeight: '700', paddingRight: 8 } as const;
-const valueCell = { flex: 1, fontSize: 14, lineHeight: 20, fontWeight: '700', paddingRight: 8 } as const;

@@ -106,7 +106,8 @@ test('편집 창 — 비우는 저장이면 리턴 키·버튼 모두 다음 칸
 
 test('마감 고르기 칩은 해까지 또박또박 읽는다(점 찍은 짧은 표기 없이) (FX-VERIFY HANDOFF-A6)', () => {
   const ed = fs.readFileSync(path.join(ROOT, 'src/overlays/CellEditor.tsx'), 'utf8');
-  assert.match(ed, /accessibilityLabel=\{ed\.dueChipA11y\(\{ label: p\.label, date: fmtDateSpeech\(p\.date, now\) \}\)\}/);
+  // 마감 빠른 고르기는 분절 선택기(Segment)의 칸 — 칸마다 화면 읽기 이름(a11yLabel)
+  assert.match(ed, /a11yLabel: ed\.dueChipA11y\(\{ label: p\.label, date: fmtDateSpeech\(p\.date, now\) \}\)/);
   assert.equal(require('../src/i18n/ko/editor').default.dueChipA11y({ label: 'L', date: 'D' }), '마감 L, D');
   assert.doesNotMatch(ed, /\bdateText\(/);
   const { duePresets } = require('../src/lib/kinds');

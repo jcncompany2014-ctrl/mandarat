@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, Keyboard, Linking, Platform, Pressable, ScrollView, View, type StyleProp, type TextInput as RNTextInput, type ViewStyle } from 'react-native';
+import { Alert, AppState, Keyboard, Linking, Platform, Pressable, ScrollView, View, type TextInput as RNTextInput, type TextStyle, type ViewStyle } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Text, TextInput } from '../components/AppText';
+import { Text, a11yLangProp } from '../components/AppText';
 import { Icon } from '../components/Icon';
 import {
-  CloseBtn, PaperChip, PrimaryButton, Sheet, useKeyboardHeight, useSheetDismiss, type SheetDismissFn,
+  Button, CloseBtn, QuietAction, Sheet, useKeyboardHeight, useSheetDismiss, type SheetDismissFn,
 } from '../components/common';
-import { alertInk } from '../components/KindBits';
+import { ChoiceRow, DyeMark, Field, Row, SECTION, Segment, hitFor } from '../components/kit';
+import { Locator } from '../components/chart';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
+import { GEO } from '../theme/tokens';
+import { NUM, ROLE } from '../theme/type';
+import { PRETENDARD } from '../theme/fonts';
 import { useUIActions, useUIState, type EditorTarget } from '../navigation/ui';
 import { useMandarat } from '../store/MandaratContext';
 import type { ActionKind, MandaratDoc } from '../types';
@@ -17,7 +21,7 @@ import { tap, warn } from '../lib/haptics';
 import { GuideChips } from '../components/GuideChips';
 import { daysBetween, normalizeDays, ymd } from '../lib/routine';
 import {
-  KIND_HINT, KIND_LABEL, MAX_NUM, addDays, configOf, duePresets, fmtNum, parseNum, sameConfig, type KindConfig,
+  KIND_LABEL, MAX_NUM, addDays, configOf, duePresets, parseNum, sameConfig, type KindConfig,
 } from '../lib/kinds';
 import { fmtDateLong, fmtDateSpeech, fmtDue } from '../lib/text';
 import { suggestActions } from '../lib/suggest';
@@ -27,11 +31,9 @@ import { announce, reducedMotion } from '../lib/useReducedMotion';
 import { cellTitleSpeech, dueSpeech, nextCellSpeech } from '../lib/sheetSpeech';
 import { EDITOR_DRAFT_KEY, draftDiffers, draftFits, parseDraft, serializeDraft, type EditorDraft } from '../lib/editorDraft';
 import { Snackbar } from './Snackbar';
-import { DayPicker } from '../components/DayPicker';
-import { SegmentedControl } from '../components/SegmentedControl';
+import { DayPicker, DayPresets } from '../components/DayPicker';
 import { CLOCKWISE, chartFitHint } from '../theme/chart';
-import { Check } from '../components/Check';
-import { RemindRow } from '../components/RemindRow';
+import { RemindRow, timeToMin } from '../components/RemindRow';
 import { useMsg } from '../i18n/react';
 import { msg } from '../i18n';
 import { notifier } from '../lib/notifier';
@@ -40,17 +42,34 @@ import { TID } from '../lib/testIds';
 
 const KIND_ORDER: ActionKind[] = ['once', 'habit', 'count', 'mind'];
 
-/** 괘선 줄 — 최소 높이와 왼쪽 이름 칸 폭(색인 카드처럼) */
-const ROW_H = 52;
-const LABEL_W = 64;
-
 const IS_WEB = Platform.OS === 'web';
 
 /** 습관 알림을 처음 정할 때의 시각 */
 const HABIT_REMIND_DEFAULT = '08:00';
 
-/** 바닥 줄의 첫 글자 버튼 — 안쪽 여백 8만큼 당겨 글자를 20pt 쪽 가장자리에 맞춘다 */
-const EDGE: ViewStyle = { marginLeft: -8 };
+/**
+ * 편집 시트의 박자(editor.png · parts-sheets.css) — 머리 아래 입력 칸 6, 무리(유형 · 반복 · 알림) 사이 24,
+ * 무리 이름 아래 8, 안내 위 8, 분절 선택기와 요일 칸 사이 12, 숫자 칸 두 줄 사이 16 · 두 칸 사이 12,
+ * 본문 끝 12(+ 바닥 줄 위 12 = 24), 바닥 줄 낱말 사이 24.
+ */
+const SP = { field: 6, group: 24, label: 8, note: 8, under: 12, pair: 16, pairGap: 12, end: 12, foot: 24 } as const;
+
+/** 시트 머리(S.head) — 48 높이, 위치 표 36 뒤 12, 두 줄은 17 줄 높이(첫 줄 먹 600, 둘째 줄 인쇄 색) */
+const HEAD = { h: 48, gap: 12, closeInset: -10 } as const;
+const HEAD_TITLE: TextStyle = { ...ROLE.label, fontFamily: PRETENDARD[600], lineHeight: 17 };
+const HEAD_SUB: TextStyle = { ...ROLE.label, lineHeight: 17 };
+
+/** 무리 이름 — 입력 칸의 이름처럼 label 600 13/18 print(목업 .s-group .t-label:first-child) */
+const GROUP_LABEL: TextStyle = { ...ROLE.label, fontFamily: PRETENDARD[600] };
+
+/** 18 높이의 무리 이름 줄 안의 조용한 글 — 손끝은 44(위아래로 넘쳐 눌린다) */
+const IN_LABEL_ROW: ViewStyle = { marginVertical: -hitFor(SECTION.h) };
+
+/** 단계 칸(주 N회) — 받침 위 바탕 없는 글리프 44, 가운데 글의 최소 폭('Once a week'가 흔들리지 않게) */
+const STEP = { hit: 44, glyph: 16, valueW: 96 } as const;
+
+/** 잘못 적은 숫자 칸 — 먹 테두리 1.5(색이 아니라 테 두께로 알린다) */
+const INVALID_RING = 1.5;
 
 function meta(target: EditorTarget, doc: MandaratDoc) {
   const t = msg().editor;
@@ -186,6 +205,12 @@ export function CellEditor() {
   return <Editor editor={editor} />;
 }
 
+/**
+ * 칸 편집(editor.png) — 떠 있는 시트 한 장: 머리(위치 표 · 영역 · 실천 3/8 · 닫기), 입력 칸(글자 수) + 안내,
+ * 유형(분절 선택기) + 한 줄 안내, 그 유형에 필요한 무리만 펼친다(습관: 반복 · 알림, 한 번: 마감, 쌓기: 숫자 칸).
+ * 고르기는 세 가지뿐 — 분절 선택기(유형 · 반복 · 마감), 요일 칸, 고르기 줄(알림). 색은 이 영역의 색(표시 · 위치 표)뿐.
+ * 바닥: 조용한 글(칸 비우기 · 저장) + 먹 주 단추 하나. 핵심 목표 · 영역 이름은 같은 시트에 입력 칸만.
+ */
 function Editor({ editor }: { editor: EditorTarget }) {
   const M = usePalette();
   const ed = useMsg().editor;
@@ -200,7 +225,6 @@ function Editor({ editor }: { editor: EditorTarget }) {
   const key = targetKey(editor);
   const m = meta(editor, doc);
   const action = editor.kind === 'action' ? doc.themes[editor.ti].actions[editor.ai] : null;
-  const color = editor.kind === 'action' ? doc.themes[editor.ti].color : M.accent;
 
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<RNTextInput>(null);
@@ -488,17 +512,16 @@ function Editor({ editor }: { editor: EditorTarget }) {
     inputRef.current?.focus();
   };
 
-  // 81칸에 어떻게 보이는지 — 이 기기의 실제 칸 폭으로(머리 칸 3줄 · 가운데 칸 4줄까지 보인다)
+  // 81칸에 어떻게 보이는지 — 이 기기의 실제 칸 폭으로(머리 칸 3줄 · 가운데 칸 3줄까지 보인다)
   const preview = editor.kind === 'action' ? null : chartFitHint(text, editor.kind, winW);
   const filledAction = !!action && !!action.text.trim();
 
+  // 바닥 — 조용한 글(칸 비우기 · 저장하고 닫기) + 먹 주 단추 하나
   const footer = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-      {filledAction && (
-        <TextBtn M={M} label={ed.clearCell} color={alertInk(M)} onPress={clearCell} style={EDGE} />
-      )}
-      {goesNext && <TextBtn M={M} label={ed.save} color={M.ink} onPress={saveAndClose} style={filledAction ? undefined : EDGE} />}
-      <PrimaryButton
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.foot }}>
+      {filledAction && <QuietAction M={M} foot label={ed.clearCell} onPress={clearCell} />}
+      {goesNext && <QuietAction M={M} foot label={ed.save} onPress={saveAndClose} />}
+      <Button
         M={M}
         label={goesNext ? (editor.kind === 'theme' ? ed.saveNextArea : ed.saveNextCell) : ed.save}
         onPress={goesNext ? saveAndNext : saveAndClose}
@@ -511,7 +534,9 @@ function Editor({ editor }: { editor: EditorTarget }) {
   return (
     <Sheet
       M={M}
+      pad
       ownClose
+      header={<EditorHead M={M} editor={editor} doc={doc} speech={m.speech} />}
       maxHeightPct={0.94}
       guard={guard}
       footer={footer}
@@ -522,179 +547,163 @@ function Editor({ editor }: { editor: EditorTarget }) {
       keyboardDismissMode="on-drag"
     >
       <DismissBridge into={dismissRef} />
-      <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}>
-          <Text accessibilityRole="header" accessibilityLabel={m.speech} numberOfLines={1} style={{ flex: 1, fontSize: 17, fontWeight: '800', color: M.ink }}>
-            {m.title}
-          </Text>
-          <CloseBtn M={M} onPress={() => dismissRef.current?.()} testID={TID.editorClose} />
-        </View>
-
+      <View style={{ paddingTop: SP.field, paddingBottom: SP.end }}>
         {restore && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, borderTopWidth: 1, borderColor: M.line }}>
-            <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '600', color: M.ink }} accessibilityLiveRegion="polite">
-              {ed.draftFound}
-            </Text>
-            <TextBtn M={M} label={ed.discard} a11y={ed.draftDiscardA11y} color={M.sub} onPress={dropRestore} size={13.5} />
-            <TextBtn M={M} label={ed.draftResume} a11y={ed.draftResumeA11y} color={M.ink} onPress={takeRestore} size={13.5} />
-          </View>
+          <AskLine
+            M={M}
+            style={{ marginBottom: SP.label }}
+            text={ed.draftFound}
+            actions={[
+              { label: ed.discard, a11y: ed.draftDiscardA11y, onPress: dropRestore },
+              { label: ed.draftResume, a11y: ed.draftResumeA11y, onPress: takeRestore },
+            ]}
+          />
         )}
 
-        <View style={{ marginTop: 8, borderTopWidth: 1, borderColor: M.line }}>
-          {/* 내용 */}
-          <Row M={M} label={ed.textLabel}>
-            <TextInput
-              ref={inputRef}
-              testID={TID.editorText}
-              value={text}
-              onChangeText={setText}
-              accessibilityLabel={m.speech}
-              // 아래에 고를 실천이 나오면 그중 하나를 예로 다시 들지 않는다
-              placeholder={help.length > 0 ? ed.helpPlaceholder : m.placeholder}
-              placeholderTextColor={M.sub}
-              autoFocus={autoFocus}
-              multiline={m.multiline}
-              maxLength={m.max}
-              // 비우는 저장이면 리턴 키도 done(닫기) — '다음'이라고 해 놓고 창을 닫지 않게
-              returnKeyType={goesNext ? 'next' : 'done'}
-              submitBehavior={goesNext ? 'submit' : 'blurAndSubmit'}
-              // 웹(react-native-web)은 submitBehavior를 모른다 — Enter로 보내려면 blurOnSubmit이 있어야 한다
-              {...(IS_WEB ? { blurOnSubmit: true } : null)}
-              onSubmitEditing={goesNext ? saveAndNext : saveAndClose}
-              style={{
-                color: M.ink, fontSize: 17, fontWeight: '600', paddingVertical: 14, paddingHorizontal: 0,
-                minHeight: ROW_H, textAlignVertical: 'top',
-              }}
-            />
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingBottom: 10 }}>
-              <Text style={{ flex: 1, fontSize: 12, lineHeight: 17, color: M.sub }} numberOfLines={1} accessibilityLiveRegion="polite">
-                {preview ?? ''}
-              </Text>
-              <Text
-                style={{ fontSize: 11, fontWeight: '600', color: text.length >= m.max ? alertInk(M) : M.sub, fontVariant: ['tabular-nums'] }}
-                accessibilityLabel={ed.charCount({ n: text.length, max: m.max })}
-              >
-                {text.length}/{m.max}
-              </Text>
-            </View>
-            {action && text.trim() ? <View style={{ paddingBottom: 12, marginTop: -6 }}><GuideChips M={M} text={text} /></View> : null}
-          </Row>
+        <Field
+          ref={inputRef}
+          M={M}
+          testID={TID.editorText}
+          value={text}
+          onChangeText={setText}
+          count={`${text.length}/${m.max}`}
+          accessibilityLabel={m.speech}
+          accessibilityHint={ed.charCount({ n: text.length, max: m.max })}
+          // 아래에 고를 실천이 나오면 그중 하나를 예로 다시 들지 않는다
+          placeholder={help.length > 0 ? ed.helpPlaceholder : m.placeholder}
+          autoFocus={autoFocus}
+          multiline={m.multiline}
+          maxLength={m.max}
+          // 비우는 저장이면 리턴 키도 done(닫기) — '다음'이라고 해 놓고 창을 닫지 않게
+          returnKeyType={goesNext ? 'next' : 'done'}
+          submitBehavior={goesNext ? 'submit' : 'blurAndSubmit'}
+          // 웹(react-native-web)은 submitBehavior를 모른다 — Enter로 보내려면 blurOnSubmit이 있어야 한다
+          {...(IS_WEB ? { blurOnSubmit: true } : null)}
+          onSubmitEditing={goesNext ? saveAndNext : saveAndClose}
+        />
+        {action ? <GuideChips M={M} text={text} /> : preview ? <Note M={M} text={preview} live /> : null}
 
-          {help.length > 0 && (
-            <View style={{ borderBottomWidth: 1, borderColor: M.line, paddingTop: 14 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: M.sub, marginBottom: 2 }}>{ed.helpTitle}</Text>
+        {help.length > 0 && (
+          <Group M={M} label={ed.helpTitle}>
+            <View>
               {help.map((s, i) => (
-                <Pressable
-                  key={s}
-                  onPress={() => takeHelp(s)}
-                  accessibilityRole="button"
-                  accessibilityLabel={s}
-                  accessibilityHint={ed.helpHint}
-                  style={({ pressed }) => ({
-                    minHeight: 44, justifyContent: 'center',
-                    borderTopWidth: i === 0 ? 0 : 1, borderColor: M.line,
-                    opacity: pressed ? 0.55 : 1,
-                  })}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: M.ink }} numberOfLines={1}>{s}</Text>
-                </Pressable>
+                <Row key={s} M={M} bare title={s} divider={i > 0} onPress={() => takeHelp(s)} accessibilityHint={ed.helpHint} />
               ))}
             </View>
-          )}
+          </Group>
+        )}
 
-          {action && (
-            <KindRows
-              key={key}
-              M={M}
-              color={color}
-              cfg={cfg}
-              nums={nums}
-              setCfg={editCfg}
-              setNum={setNum}
-              onKind={pickKind}
-              auto={autoKind && !!suggestion}
-              offer={offer}
-              onTakeOffer={() => {
-                if (!offer) return;
-                tap();
-                setTouched(true);
-                applySuggestion(offer, !!action.done);
-                toBottom();
-              }}
-              onDismissOffer={() => { tap(); setTouched(true); }}
-              issue={issue}
-              onFocusBottom={toBottom}
-              onReveal={toBottom}
-            />
-          )}
-        </View>
+        {action && (
+          <KindRows
+            key={key}
+            M={M}
+            cfg={cfg}
+            nums={nums}
+            setCfg={editCfg}
+            setNum={setNum}
+            onKind={pickKind}
+            auto={autoKind && !!suggestion}
+            offer={offer}
+            onTakeOffer={() => {
+              if (!offer) return;
+              tap();
+              setTouched(true);
+              applySuggestion(offer, !!action.done);
+              toBottom();
+            }}
+            onDismissOffer={() => { tap(); setTouched(true); }}
+            issue={issue}
+            onFocusBottom={toBottom}
+            onReveal={toBottom}
+          />
+        )}
       </View>
     </Sheet>
   );
 }
 
-// ── 괘선 줄·글자 버튼 ────────────────────────────────────────────────────────
+// ── 머리 · 무리 · 안내 ──────────────────────────────────────────────────────────
 
 /**
- * 색인 카드 한 줄 — 왼쪽 64pt 이름 칸 + 내용, 아래 1px 괘선. invalid면 이름과 괘선이 경고 색.
- * stack이면 이름을 위에 두고 내용을 한 줄 너비로(요일 일곱 칸이 손끝 44pt에 가깝게)
+ * 시트 머리(S.head) — 위치 표(이 칸에 먹 테두리) + 인쇄된 두 줄(■ 영역 · 실천 3/8) + 닫기(×, 44).
+ * 핵심 목표는 가운데 블록의 위치 표 + '핵심 목표' 한 줄. 화면 읽기에서는 한 덩어리의 머리 —
+ * '3/8'은 날짜로 읽히므로 소리는 '건강 영역, 8칸 중 세 번째 칸'(meta().speech).
+ * (SheetHeader는 두 줄을 따로 읽어 이름을 줄 수 없어 여기서 그린다 — 웨이브 4가 SheetHeader에 accessibilityLabel을 더하면 옮긴다)
  */
-function Row({ M, label, children, invalid = false, center = false, stack = false }: {
-  M: M; label: string; children: React.ReactNode; invalid?: boolean; center?: boolean; stack?: boolean;
-}) {
-  const ink = invalid ? alertInk(M) : M.sub;
-  if (stack) {
-    return (
-      <View style={{ minHeight: ROW_H, borderBottomWidth: 1, borderColor: invalid ? alertInk(M) : M.line }}>
-        <Text
-          importantForAccessibility="no"
-          accessibilityElementsHidden
-          style={{ paddingTop: 14, fontSize: 12, lineHeight: 16, fontWeight: '700', color: ink }}
-        >
-          {label}
-        </Text>
-        {children}
-      </View>
-    );
-  }
+function EditorHead({ M, editor, doc, speech }: { M: M; editor: EditorTarget; doc: MandaratDoc; speech: string }) {
+  const ed = useMsg().editor;
+  const dismiss = useSheetDismiss();
+  const ti = editor.kind === 'center' ? null : editor.ti;
+  const title = editor.kind === 'center' ? ed.centerTitle : areaName(doc, editor.ti);
+  const sub = editor.kind === 'action' ? ed.actionN({ n: editor.ai + 1 }) : editor.kind === 'theme' ? ed.themeSub : '';
   return (
-    <View style={{ flexDirection: 'row', minHeight: ROW_H, borderBottomWidth: 1, borderColor: invalid ? alertInk(M) : M.line, alignItems: center ? 'center' : 'flex-start' }}>
-      <Text
-        importantForAccessibility="no"
-        accessibilityElementsHidden
-        style={{ width: LABEL_W, paddingTop: center ? 0 : 18, paddingRight: 8, fontSize: 12, lineHeight: 16, fontWeight: '700', color: ink }}
-      >
-        {label}
-      </Text>
-      <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
+    <View style={{ height: HEAD.h, flexDirection: 'row', alignItems: 'center', gap: HEAD.gap }}>
+      <Locator themes={doc.themes} block={ti ?? 'core'} at={editor.kind === 'action' ? editor.ai : 'head'} />
+      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityRole="header" accessibilityLabel={speech} {...a11yLangProp()}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {ti != null && <DyeMark M={M} area={ti} />}
+          <Text style={[HEAD_TITLE, { color: M.ink, flexShrink: 1 }]} numberOfLines={1}>{title}</Text>
+        </View>
+        {!!sub && <Text style={[HEAD_SUB, { color: M.print }]} numberOfLines={1}>{sub}</Text>}
+      </View>
+      <View style={{ marginRight: HEAD.closeInset }}>
+        <CloseBtn M={M} onPress={() => dismiss()} testID={TID.editorClose} />
+      </View>
     </View>
   );
 }
 
-/** 바탕 없는 글자 버튼 — 손끝 44pt */
-function TextBtn({ M, label, color, onPress, a11y, size = 14, style }: {
-  M: M; label: string; color: string; onPress: () => void; a11y?: string; size?: number; style?: StyleProp<ViewStyle>;
-}) {
+/** 무리(.s-group) — 위 24, 인쇄된 이름(label 600) 줄 18 + 오른쪽 하나(조용한 글), 아래 8. 선 없이 빈자리로 나눈다 */
+function Group({ M, label, right, children }: { M: M; label: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={a11y ?? label}
-      hitSlop={{ top: 4, bottom: 4 }}
-      style={({ pressed }) => [{ minHeight: 44, minWidth: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 }, style]}
-    >
-      <Text style={{ fontSize: size, fontWeight: '700', color }} numberOfLines={1}>{label}</Text>
-    </Pressable>
+    <View style={{ marginTop: SP.group }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SP.pairGap, minHeight: SECTION.h, marginBottom: SP.label }}>
+        <Text accessibilityRole="header" style={[GROUP_LABEL, { color: M.print, flexShrink: 1 }]} numberOfLines={1}>{label}</Text>
+        {right}
+      </View>
+      {children}
+    </View>
   );
 }
 
-// ── 유형 고르기 + 유형별 줄 ─────────────────────────────────────────────────────
+/** 인쇄된 안내 한 줄(시트 안내 400 13/18 print) — strong이면 먹 600(막힌 숫자처럼 꼭 읽어야 할 말) */
+function Note({ M, text, live = false, strong = false }: { M: M; text: string; live?: boolean; strong?: boolean }) {
+  return (
+    <Text
+      accessibilityLiveRegion={live ? 'polite' : undefined}
+      style={[ROLE.noteSheet, { marginTop: SP.note, color: strong ? M.ink : M.print }, strong ? { fontFamily: PRETENDARD[600] } : null]}
+    >
+      {text}
+    </Text>
+  );
+}
+
+/** 묻는 줄 — 먹 글 한 줄 + 조용한 글 동작 하나 둘(이어서 쓰기 · 유형 바꾸기 · 설정 열기) */
+function AskLine({ M, text, children, actions, style }: {
+  M: M;
+  text?: string;
+  children?: React.ReactNode;
+  actions: { label: string; a11y?: string; onPress: () => void }[];
+  style?: ViewStyle;
+}) {
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: SP.pairGap }, style]}>
+      <Text style={[ROLE.label, { flex: 1, color: M.ink }]} accessibilityLiveRegion="polite">
+        {children ?? text}
+      </Text>
+      {actions.map((a) => (
+        <QuietAction key={a.label} M={M} label={a.label} accessibilityLabel={a.a11y} onPress={a.onPress} />
+      ))}
+    </View>
+  );
+}
+
+// ── 유형 고르기 + 유형별 무리 ─────────────────────────────────────────────────────
 
 function KindRows({
-  M, color, cfg, nums, setCfg, setNum, onKind, auto, offer, onTakeOffer, onDismissOffer, issue, onFocusBottom, onReveal,
+  M, cfg, nums, setCfg, setNum, onKind, auto, offer, onTakeOffer, onDismissOffer, issue, onFocusBottom, onReveal,
 }: {
   M: M;
-  color: string;
   cfg: KindConfig;
   nums: NumTexts;
   setCfg: (fn: (c: KindConfig) => KindConfig) => void;
@@ -712,43 +721,45 @@ function KindRows({
   onReveal: () => void;
 }) {
   const ed = useMsg().editor;
+  const note = cfg.kind === 'habit'
+    ? (normalizeDays(cfg.days).length === 0 ? ed.noteHabitWeek : ed.noteHabitDays)
+    : cfg.kind === 'once' ? ed.noteOnce : cfg.kind === 'count' ? ed.noteCount : ed.noteMind;
   return (
     <>
-      <Row M={M} label={ed.kindLabel}>
-        <View style={{ marginTop: 4 }}>
-          <SegmentedControl
-            M={M}
-            variant="underline"
-            role="radio"
-            value={cfg.kind}
-            onChange={onKind}
-            options={KIND_ORDER.map((k) => ({ value: k, label: KIND_LABEL[k], a11yLabel: ed.kindA11y({ label: KIND_LABEL[k] }), testID: TID.editorKind(k) }))}
-          />
-        </View>
-        <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 2, marginBottom: 12 }}>
-          {auto ? ed.autoPicked : ''}{KIND_HINT[cfg.kind]}
-        </Text>
+      <Group M={M} label={ed.kindLabel}>
+        <Segment
+          M={M}
+          role="radio"
+          value={cfg.kind}
+          onChange={onKind}
+          options={KIND_ORDER.map((k) => ({ value: k, label: KIND_LABEL[k], a11yLabel: ed.kindA11y({ label: KIND_LABEL[k] }), testID: TID.editorKind(k) }))}
+        />
+        <Note M={M} text={`${auto ? ed.autoPicked : ''}${note}`} />
         {offer && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderColor: M.line, paddingVertical: 2, marginBottom: 4 }}>
-            <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '500', color: M.ink }} accessibilityLiveRegion="polite">
-              {ed.offerBefore}<Text style={{ fontWeight: '800' }}>{offer.label}</Text>
-              {ed.offerAfter({ label: offer.label })}
-            </Text>
-            <TextBtn M={M} label={ed.offerKeep} a11y={ed.offerKeepA11y} color={M.sub} onPress={onDismissOffer} size={13.5} />
-            <TextBtn M={M} label={ed.offerTake} a11y={ed.offerTakeA11y({ label: offer.label })} color={M.ink} onPress={onTakeOffer} size={13.5} />
-          </View>
+          <AskLine
+            M={M}
+            style={{ marginTop: SP.note }}
+            actions={[
+              { label: ed.offerKeep, a11y: ed.offerKeepA11y, onPress: onDismissOffer },
+              { label: ed.offerTake, a11y: ed.offerTakeA11y({ label: offer.label }), onPress: onTakeOffer },
+            ]}
+          >
+            {ed.offerBefore}<Text style={{ fontFamily: PRETENDARD[700] }}>{offer.label}</Text>
+            {ed.offerAfter({ label: offer.label })}
+          </AskLine>
         )}
-      </Row>
+      </Group>
 
-      {cfg.kind === 'habit' && <HabitRows M={M} color={color} cfg={cfg} setCfg={setCfg} onReveal={onReveal} />}
+      {cfg.kind === 'habit' && <HabitRows M={M} cfg={cfg} setCfg={setCfg} onReveal={onReveal} />}
       {cfg.kind === 'count' && <CountRows M={M} cfg={cfg} nums={nums} setNum={setNum} issue={issue} onFocus={onFocusBottom} />}
       {cfg.kind === 'once' && <DueRows M={M} cfg={cfg} setCfg={setCfg} onReveal={onReveal} />}
     </>
   );
 }
 
-function HabitRows({ M, color, cfg, setCfg, onReveal }: {
-  M: M; color: string; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
+/** 반복 — 매일 · 평일 · 주말(조용한 글) · 요일마다 / 횟수로(분절 선택기) · 요일 칸 또는 주 N회. 그리고 알림 */
+function HabitRows({ M, cfg, setCfg, onReveal }: {
+  M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
   const ed = useMsg().editor;
   const days = normalizeDays(cfg.days);
@@ -757,52 +768,66 @@ function HabitRows({ M, color, cfg, setCfg, onReveal }: {
   if (days.length > 0) lastDays.current = days;
   const n = cfg.perWeek && cfg.perWeek >= 1 && cfg.perWeek <= 6 ? cfg.perWeek : 3;
   const step = (d: number) => setCfg((c) => ({ ...c, perWeek: Math.max(1, Math.min(6, n + d)) }));
+  const pickMode = (mode: 'days' | 'week') => {
+    if (mode === 'days') {
+      if (!byWeek) return;
+      setCfg((c) => ({ ...c, days: lastDays.current }));
+    } else {
+      if (byWeek) return;
+      setCfg((c) => ({ ...c, days: [], perWeek: n }));
+    }
+    onReveal();
+  };
   return (
     <>
-      <Row M={M} label={ed.repeat} stack>
-        <View style={{ flexDirection: 'row', gap: 6, paddingVertical: 8 }}>
-          <PaperChip M={M} label={ed.byDays} on={!byWeek} onPress={() => { if (!byWeek) return; tap(); setCfg((c) => ({ ...c, days: lastDays.current })); onReveal(); }} />
-          <PaperChip M={M} label={ed.byCount} on={byWeek} onPress={() => { if (byWeek) return; tap(); setCfg((c) => ({ ...c, days: [], perWeek: n })); onReveal(); }} />
+      <Group
+        M={M}
+        label={ed.repeat}
+        right={<DayPresets M={M} onPick={(p) => { setCfg((c) => ({ ...c, days: p })); onReveal(); }} />}
+      >
+        <Segment
+          M={M}
+          role="radio"
+          value={byWeek ? 'week' : 'days'}
+          onChange={pickMode}
+          options={[{ value: 'days', label: ed.byDays }, { value: 'week', label: ed.byCount }]}
+        />
+        <View style={{ marginTop: SP.under }}>
+          {byWeek ? (
+            // 화면 읽기에서는 한 줄 — 위아래로 쓸어 늘리고 줄인다
+            <View
+              accessible
+              accessibilityRole="adjustable"
+              accessibilityLabel={ed.perWeekA11y}
+              {...a11yLangProp()}
+              accessibilityValue={{ text: ed.perWeekSay({ n }) }}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              onAccessibilityAction={(e) => {
+                const d = e.nativeEvent.actionName === 'increment' ? 1 : e.nativeEvent.actionName === 'decrement' ? -1 : 0;
+                if (!d || (d > 0 && n >= 6) || (d < 0 && n <= 1)) return;
+                tap();
+                step(d);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', borderRadius: GEO.rField, backgroundColor: M.tile }}
+            >
+              <StepBtn M={M} icon="minus" label={ed.perWeekLess} disabled={n <= 1} onPress={() => step(-1)} />
+              <Text style={[ROLE.rowTitle, NUM, { color: M.ink, minWidth: STEP.valueW, textAlign: 'center' }]} accessibilityLiveRegion="polite" numberOfLines={1}>
+                {ed.perWeek({ n })}
+              </Text>
+              <StepBtn M={M} icon="plus" label={ed.perWeekMore} disabled={n >= 6} onPress={() => step(1)} />
+            </View>
+          ) : (
+            // 습관은 요일이 하나는 있어야 한다 — 마지막 요일은 끌 수 없다
+            <DayPicker M={M} days={days} keepOne onChange={(d) => { if (d.length > 0) setCfg((c) => ({ ...c, days: d })); }} />
+          )}
         </View>
-      </Row>
-      {byWeek ? (
-        <Row M={M} label={ed.perWeekLabel} center>
-          {/* 화면 읽기에서는 한 줄 — 위아래로 쓸어 늘리고 줄인다 */}
-          <View
-            accessible
-            accessibilityRole="adjustable"
-            accessibilityLabel={ed.perWeekA11y}
-            accessibilityValue={{ text: ed.perWeekSay({ n }) }}
-            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-            onAccessibilityAction={(e) => {
-              const d = e.nativeEvent.actionName === 'increment' ? 1 : e.nativeEvent.actionName === 'decrement' ? -1 : 0;
-              if (!d || (d > 0 && n >= 6) || (d < 0 && n <= 1)) return;
-              tap();
-              step(d);
-            }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }}
-          >
-            <StepBtn M={M} icon="minus" label={ed.perWeekLess} disabled={n <= 1} onPress={() => step(-1)} />
-            <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, minWidth: 72, textAlign: 'center', fontVariant: ['tabular-nums'] }} accessibilityLiveRegion="polite" accessibilityLabel={ed.perWeekSay({ n })}>
-              {ed.perWeek({ n })}
-            </Text>
-            <StepBtn M={M} icon="plus" label={ed.perWeekMore} disabled={n >= 6} onPress={() => step(1)} />
-          </View>
-        </Row>
-      ) : (
-        <Row M={M} label={ed.days} stack>
-          <View style={{ paddingVertical: 10 }}>
-            {/* 습관은 요일이 하나는 있어야 한다 — 마지막 요일은 끌 수 없다 */}
-            <DayPicker M={M} days={days} color={color} onChange={(d) => { if (d.length > 0) setCfg((c) => ({ ...c, days: d })); }} hideClear />
-          </View>
-        </Row>
-      )}
+      </Group>
       <RemindRows M={M} cfg={cfg} setCfg={setCfg} onReveal={onReveal} />
     </>
   );
 }
 
-/** 습관 알림 — '없음' / '시각 정하기' 괘선 고르기 두 줄과, 고르면 10분씩 바꾸는 시각 줄. 저장은 편집 창의 저장(remindAt)과 함께 */
+/** 습관 알림 — '없음' / '시각 정하기' 고르기 줄 두 개와, 고르면 10분씩 바꾸는 시각 줄. 저장은 편집 창의 저장(remindAt)과 함께 */
 function RemindRows({ M, cfg, setCfg, onReveal }: {
   M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
@@ -841,54 +866,44 @@ function RemindRows({ M, cfg, setCfg, onReveal }: {
     setCfg((c) => ({ ...c, remindAt: undefined }));
   };
 
+  // 고른 줄의 정보 — '오후 10:30 · 정한 요일마다'
+  const at = timeToMin(cfg.remindAt ?? '');
+  const when = normalizeDays(cfg.days).length === 0 ? t.editor.remindWeek : t.editor.remindDays;
+  const pickMeta = on ? `${t.fmt.time({ h: Math.floor(at / 60), m: at % 60 })}${t.core.dot}${when}` : undefined;
+
   return (
-    <Row M={M} label={t.notify.sectionTitle} stack>
-      <View accessibilityRole="radiogroup" style={{ paddingTop: 2 }}>
-        <ChoiceRow M={M} label={t.notify.editorNone} a11y={t.notify.editorNoneA11y} on={!on} first onPress={onPickNone} />
-        <ChoiceRow M={M} label={t.notify.editorPick} a11y={t.notify.editorPickA11y} on={on} onPress={() => { void onPickTime(); }} />
+    <Group M={M} label={t.notify.sectionTitle}>
+      <View accessibilityRole="radiogroup">
+        <ChoiceRow M={M} title={t.notify.editorNone} accessibilityLabel={t.notify.editorNoneA11y} on={!on} onPress={onPickNone} />
+        <ChoiceRow
+          M={M}
+          divider
+          title={t.notify.editorPick}
+          meta={pickMeta}
+          accessibilityLabel={pickMeta ? `${t.notify.editorPickA11y}${t.core.listSep}${pickMeta}` : t.notify.editorPickA11y}
+          on={on}
+          onPress={() => { void onPickTime(); }}
+        />
       </View>
       {on && cfg.remindAt && (
-        <View style={{ paddingBottom: 10 }}>
+        <View style={{ marginTop: SP.note }}>
           <RemindRow M={M} value={cfg.remindAt} onChange={(v) => setCfg((c) => ({ ...c, remindAt: v }))} label={t.notify.habitTime} testID={TID.editorRemind} />
-          <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, marginTop: 4 }}>
-            {notifier.supported ? t.notify.habitHint : t.common.iosOnly}
-          </Text>
+          {!notifier.supported && <Note M={M} text={t.common.iosOnly} />}
         </View>
       )}
       {refused && !on && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderColor: M.line, marginBottom: 4 }}>
-          <Text style={{ flex: 1, fontSize: 13.5, fontWeight: '600', color: M.ink }} accessibilityLiveRegion="polite">
-            {t.notify.denied}
-          </Text>
-          <TextBtn M={M} label={t.common.openSettings} color={M.ink} onPress={() => { void Linking.openSettings(); }} size={13.5} />
-        </View>
+        <AskLine
+          M={M}
+          style={{ marginTop: SP.note }}
+          text={t.notify.denied}
+          actions={[{ label: t.common.openSettings, onPress: () => { void Linking.openSettings(); } }]}
+        />
       )}
-    </Row>
+    </Group>
   );
 }
 
-/** 하나만 고르는 괘선 줄 — 이름 · 오른쪽 네모 체크(칩이 아니다) */
-function ChoiceRow({ M, label, a11y, on, first = false, onPress }: {
-  M: M; label: string; a11y: string; on: boolean; first?: boolean; onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="radio"
-      accessibilityLabel={a11y}
-      accessibilityState={{ checked: on, selected: on }}
-      style={({ pressed }) => ({
-        minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12,
-        borderTopWidth: first ? 0 : 1, borderColor: M.line, opacity: pressed && !on ? 0.55 : 1,
-      })}
-    >
-      <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: M.ink }} numberOfLines={1}>{label}</Text>
-      <Check on={on} color={M.ink} dark={M.dark} size={20} />
-    </Pressable>
-  );
-}
-
-/** 주 N회 한 단계 — 바탕 없는 44pt 네모 칸(가는 테두리) */
+/** 주 N회 한 단계 — 받침 위 바탕 없는 글리프(먹 16), 손끝 44. 끝에 닿으면 글리프가 흐려진다(ink3) */
 function StepBtn({ M, icon, label, disabled, onPress }: { M: M; icon: 'plus' | 'minus'; label: string; disabled?: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -896,39 +911,49 @@ function StepBtn({ M, icon, label, disabled, onPress }: { M: M; icon: 'plus' | '
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
+      {...a11yLangProp()}
       accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => ({
-        width: 44, height: 44, borderRadius: 6, borderWidth: 1, borderColor: M.line,
-        alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.35 : pressed ? 0.55 : 1,
-      })}
+      style={({ pressed }) => ({ width: STEP.hit, height: STEP.hit, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}
     >
-      <Icon name={icon} size={16} color={M.ink} sw={2.2} />
+      <Icon name={icon} size={STEP.glyph} color={disabled ? M.ink3 : M.ink} />
     </Pressable>
   );
 }
 
-function NumRow({ M, label, value, onChange, placeholder, keyboard = 'decimal-pad', issue, onFocus, maxLength = 12 }: {
+/** 쌓기 숫자 칸 하나 — 인쇄된 이름(위) + 한 줄 칸(tile 54). 막힌 칸은 먹 테 1.5 */
+function NumField({ M, label, value, onChange, placeholder, keyboard = 'decimal-pad', issue, onFocus, maxLength = 12 }: {
   M: M; label: string; value: string; onChange: (t: string) => void; placeholder?: string;
   keyboard?: 'decimal-pad' | 'default'; issue?: string; onFocus?: () => void; maxLength?: number;
 }) {
   return (
-    <Row M={M} label={label} invalid={!!issue} center>
-      <TextInput
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <Text
+        importantForAccessibility="no"
+        accessibilityElementsHidden
+        style={[GROUP_LABEL, { color: issue ? M.ink : M.print, marginBottom: SP.label }]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      <Field
+        M={M}
+        variant="small"
         value={value}
         onChangeText={onChange}
         onFocus={onFocus}
         keyboardType={keyboard}
         placeholder={placeholder}
-        placeholderTextColor={M.sub}
         accessibilityLabel={label}
         accessibilityHint={issue}
         maxLength={maxLength}
-        style={{ color: M.ink, fontSize: 16, fontWeight: '600', minHeight: ROW_H, paddingVertical: 12, paddingHorizontal: 0, fontVariant: ['tabular-nums'] }}
+        inputStyle={keyboard === 'decimal-pad' ? NUM : undefined}
+        style={{ borderWidth: INVALID_RING, borderColor: issue ? M.ink : 'transparent' }}
       />
-    </Row>
+    </View>
   );
 }
 
+/** 쌓기 — 목표 · 단위 / 한 번에 더할 양 · 지금까지(두 칸씩 두 줄) + 남은 양 또는 막힌 까닭 한 줄 */
 function CountRows({ M, cfg, nums, setNum, issue, onFocus }: {
   M: M; cfg: KindConfig; nums: NumTexts; setNum: (field: keyof NumTexts, t: string) => void; issue: CountIssue | null; onFocus: () => void;
 }) {
@@ -941,24 +966,23 @@ function CountRows({ M, cfg, nums, setNum, issue, onFocus }: {
       ? left > 0 ? ed.left({ n: left, unit: cfg.unit ?? '' }) : ed.reached
       : null;
   const at = (f: NumField) => (issue?.field === f ? issue.message : undefined);
+  const pair = { flexDirection: 'row', gap: SP.pairGap } as const;
   return (
-    <>
-      <NumRow M={M} label={ed.goal} value={nums.goal} onChange={(t) => setNum('goal', t)} placeholder="12" issue={at('goal')} onFocus={onFocus} />
-      <NumRow M={M} label={ed.unit} value={nums.unit} onChange={(t) => setNum('unit', t)} placeholder={ed.unitPlaceholder} keyboard="default" onFocus={onFocus} maxLength={8} />
-      <NumRow M={M} label={ed.step} value={nums.step} onChange={(t) => setNum('step', t)} placeholder="1" issue={at('step')} onFocus={onFocus} />
-      <NumRow M={M} label={ed.sofar} value={nums.count} onChange={(t) => setNum('count', t)} placeholder="0" issue={at('count')} onFocus={onFocus} />
-      {note != null && (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={{ fontSize: 13, lineHeight: 18, marginTop: 10, fontWeight: issue ? '700' : '500', color: issue ? alertInk(M) : M.sub }}
-        >
-          {note}
-        </Text>
-      )}
-    </>
+    <View style={{ marginTop: SP.group, gap: SP.pair }}>
+      <View style={pair}>
+        <NumField M={M} label={ed.goal} value={nums.goal} onChange={(t) => setNum('goal', t)} placeholder="12" issue={at('goal')} onFocus={onFocus} />
+        <NumField M={M} label={ed.unit} value={nums.unit} onChange={(t) => setNum('unit', t)} placeholder={ed.unitPlaceholder} keyboard="default" onFocus={onFocus} maxLength={8} />
+      </View>
+      <View style={pair}>
+        <NumField M={M} label={ed.step} value={nums.step} onChange={(t) => setNum('step', t)} placeholder="1" issue={at('step')} onFocus={onFocus} />
+        <NumField M={M} label={ed.sofar} value={nums.count} onChange={(t) => setNum('count', t)} placeholder="0" issue={at('count')} onFocus={onFocus} />
+      </View>
+      {note != null && <Note M={M} text={note} live strong={!!issue} />}
+    </View>
   );
 }
 
+/** 마감 — 빠른 고르기(분절 선택기: 이번 주 · 이번 달 · 3개월 뒤 · 올해 안) + 정한 날짜 한 줄과 하루 · 한 주 당기기/미루기 */
 function DueRows({ M, cfg, setCfg, onReveal }: {
   M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
@@ -970,45 +994,42 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
   const set = (d: string | undefined) => setCfg((c) => ({ ...c, due: d && d < today ? today : d }));
   const days = due ? daysBetween(today, due) : 0;
   return (
-    <>
-      <Row M={M} label={ed.due} center>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 8 }}>
-          {presets.map((p) => (
-            <PaperChip
-              key={p.label}
-              M={M}
-              label={p.label}
-              on={due === p.date}
-              // 소리로는 '마감 3개월 뒤, 2027년 1월 14일 목요일' — 점 찍은 짧은 표기('1.14 (목)')는 소수로 읽힌다
-              accessibilityLabel={ed.dueChipA11y({ label: p.label, date: fmtDateSpeech(p.date, now) })}
-              onPress={() => { tap(); set(p.date); onReveal(); }}
-            />
-          ))}
-        </View>
-      </Row>
+    <Group
+      M={M}
+      label={ed.due}
+      right={due ? <QuietAction M={M} label={ed.dueClear} onPress={() => { tap(); set(undefined); }} style={IN_LABEL_ROW} /> : null}
+    >
+      {/* 고른 날짜가 빠른 고르기의 날짜와 같을 때만 그 칸이 먹 — 하루씩 옮기면 아무 칸도 고르지 않은 모습 */}
+      <Segment
+        M={M}
+        role="radio"
+        value={due ?? ''}
+        onChange={(d) => { set(d); onReveal(); }}
+        options={presets.map((p) => ({
+          value: p.date,
+          label: p.label,
+          // 소리로는 '마감 3개월 뒤, 2027년 1월 14일 목요일' — 점 찍은 짧은 표기('1.14 (목)')는 소수로 읽힌다
+          a11yLabel: ed.dueChipA11y({ label: p.label, date: fmtDateSpeech(p.date, now) }),
+        }))}
+      />
       {due ? (
-        <Row M={M} label={ed.date}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text
-              style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink, paddingVertical: 15, fontVariant: ['tabular-nums'] }}
-              accessibilityLiveRegion="polite"
-              accessibilityLabel={ed.dueA11y({ date: fmtDateSpeech(due, now), left: dueSpeech(days) })}
-            >
-              {`${fmtDateLong(due)}${core.dot}${fmtDue(days, 'long')}`}
-            </Text>
-            <TextBtn M={M} label={ed.dueClear} color={M.sub} size={12.5} onPress={() => { tap(); set(undefined); }} />
-          </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 10 }}>
+        <View style={{ marginTop: SP.under }}>
+          <Text
+            style={[ROLE.rowTitle, NUM, { color: M.ink }]}
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={ed.dueA11y({ date: fmtDateSpeech(due, now), left: dueSpeech(days) })}
+          >
+            {`${fmtDateLong(due)}${core.dot}${fmtDue(days, 'long')}`}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: SP.foot }}>
             {([[-7, ed.weekEarlier, ed.weekEarlierA11y], [-1, ed.dayEarlier, ed.dayEarlierA11y], [1, ed.dayLater, ed.dayLaterA11y], [7, ed.weekLater, ed.weekLaterA11y]] as const).map(([d, t, a11y]) => (
-              <PaperChip key={t} M={M} label={t} accessibilityLabel={a11y} onPress={() => { tap(); set(addDays(due, d)); }} />
+              <QuietAction key={t} M={M} label={t} accessibilityLabel={a11y} onPress={() => { tap(); set(addDays(due, d)); }} />
             ))}
           </View>
-        </Row>
+        </View>
       ) : (
-        <Row M={M} label={ed.date} center>
-          <Text style={{ fontSize: 15, fontWeight: '500', color: M.sub }}>{ed.noDue}</Text>
-        </Row>
+        <Note M={M} text={ed.noDue} />
       )}
-    </>
+    </Group>
   );
 }

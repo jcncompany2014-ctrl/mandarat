@@ -41,3 +41,24 @@ export function frameCell(width: number, n = 4): number {
   if (c >= 11) c = Math.floor((slot - 6) / 9);
   return Math.max(6, Math.min(16, c));
 }
+
+/** 숫자 조각 — lib/statsView figureParts와 같은 규칙(+ · − · 묶음 쉼표 · 소수점 · '24/64') */
+const FIG_NUM = /[+\-−]?\d[\d,.]*(?:\/\d[\d,.]*)?/g;
+/** 숫자 뒤 단위의 글자 크기(ROLE.unit 13) — 숫자 크기 22에서 */
+const UNIT_FS = 13;
+const FIG_MAX = 22;
+
+/**
+ * 숫자 + 작은 단위 글(Figure)의 숫자 크기 — 칸 안쪽 폭(width)에 넷 모두 한 줄로 들어가는 가장 큰 하나의 크기(STAT_MIN~max).
+ * 단위는 숫자 크기에 비례해 작아진다(13 × 크기 / 22).
+ */
+export function figureSize(texts: readonly string[], width: number, max = FIG_MAX): number {
+  let worst = 1;
+  for (const t of texts) {
+    const nums = t.match(FIG_NUM) ?? [];
+    const numEm = nums.reduce((s, n) => s + statEm(n), 0);
+    const unitEm = statEm(t.replace(FIG_NUM, ''));
+    worst = Math.max(worst, nums.length ? numEm + (unitEm * UNIT_FS) / FIG_MAX : statEm(t));
+  }
+  return Math.max(STAT_MIN, Math.min(max, Math.floor(width / worst)));
+}

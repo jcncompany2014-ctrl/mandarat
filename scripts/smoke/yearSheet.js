@@ -1,5 +1,5 @@
 // 보관함 · 지난 표 한 장(V4-B).
-// 1. 공유용 표 이미지(ChartPoster scale 1) — --compare로 V4-B 전과 바이트가 같은지 본다.
+// 1. 공유용 표 이미지(디자인 A share.png, O5에서 새로 그렸다 — 이 두 장이 새 기준) — 진행 표시와 빈 표(첫 화면의 지도).
 // 2. 지난 표 두 장을 넣은 문서로 설정 › 지난 표 보관함 → 줄 두 개. 프로가 없으면 줄을 누르면 프로 시트,
 //    EXPO_PUBLIC_PRO_PREVIEW=1 번들이면 지난 표 한 장 → 영역 줄을 펼친 읽기 전용 보드 → 맨 아래 링크.
 // 3. 개발 번들이면 잠긴 지난 표 한 장(openYear sheet)도 찍는다. 끝나면 예시 문서로 되돌린다.
@@ -48,6 +48,11 @@ module.exports = async (page, h) => {
   await h.settle();
   await h.tid(h.TID.sharePrint).waitFor({ state: 'visible', timeout: 10000 });
   await h.shot('share-poster');
+  // 빈 표 — 고르기(Segment)의 둘째 칸, 이름은 그 언어의 말
+  const c = require(`../../src/i18n/${h.lang}/chart`).default;
+  await page.getByRole('tab', { name: c.modeBlank, exact: true }).first().click();
+  await h.settle();
+  await h.shot('share-poster-blank');
 
   // 2. 보관함
   const doc = seededDoc();

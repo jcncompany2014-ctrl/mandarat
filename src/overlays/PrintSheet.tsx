@@ -1,14 +1,13 @@
 // 인쇄 시트 — 종이 크기 · 구성 · 빈 표를 고르고 인쇄하거나 PDF로 내보낸다(ui.print).
 // HTML은 printSheet.ts, 찍기는 print(.web/.native).ts, 글꼴은 printFonts(.web/.native).ts가 맡는다.
 // A4 · 레터의 표 한 장은 늘 무료 — 나머지 종이·표지 + 영역별 8쪽·지난 표는 프로(printLock).
+// 디자인 A의 시트(sheet.png 해부): 머리 줄(이름 · 고른 것 한 줄) · 고르기 줄(ChoiceRow) · 켜고 끄는 줄(ToggleRow) · 바닥의 단추.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { getLocales } from 'expo-localization';
 import { Text } from '../components/AppText';
-import { Check } from '../components/Check';
-import { LineRow, PrimaryButton, Sheet, useSheetDismiss } from '../components/common';
-import { SheetHead } from '../components/TemplateSheet';
-import { SubHead } from '../screens/settings/rows';
+import { Button, Sheet, SheetHeader, useSheetDismiss } from '../components/common';
+import { ChoiceRow, Section, ToggleRow } from '../components/kit';
 import { lang } from '../i18n';
 import { useMsg } from '../i18n/react';
 import { archiveAccess, archiveAsDoc } from '../lib/archive';
@@ -27,6 +26,8 @@ import { useUIActions, useUIState } from '../navigation/ui';
 import { useDoc } from '../store/MandaratContext';
 import { usePro } from '../store/ProContext';
 import type { MandaratDoc } from '../types';
+import { GEO } from '../theme/tokens';
+import { ROLE } from '../theme/type';
 import { usePalette } from '../theme/usePalette';
 import type { M } from '../theme/usePalette';
 import { Snackbar } from './Snackbar';
@@ -78,20 +79,11 @@ function PrintGate({ target }: { target: PrintTarget }) {
   return <PrintPanel source={archive ? archiveAsDoc(archive, doc.settings) : doc} />;
 }
 
+/** 시트 한 장 — 고른 것(저장값)과 찍는 중인지를 들고, 머리 줄 · 고르기 · 바닥 단추에 나눠 준다 */
 function PrintPanel({ source }: { source: MandaratDoc }) {
   const M = usePalette();
-  const { closePrint } = useUIActions();
-  return (
-    <Sheet M={M} onClose={closePrint} ownClose maxHeightPct={0.94} overlay={<Snackbar placement="top" />}>
-      <PrintBody M={M} source={source} />
-    </Sheet>
-  );
-}
-
-function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
   const m = useMsg();
-  const dismiss = useSheetDismiss();
-  const { openPro, showToast } = useUIActions();
+  const { closePrint, showToast } = useUIActions();
   const { owned } = usePro();
   const freePaper = useMemo(() => defaultPaper(deviceRegion()), []);
   const [stored, setStored] = useState<StoredPrint>(() => peekPrintPrefs() ?? {});
@@ -110,6 +102,61 @@ function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
     setStored(next);
     void writePrintPrefs(next);
   };
+
+  const run = async (kind: 'print' | 'pdf') => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    tap();
+    // 버튼이 흐려진 것만으로는 화면 읽기가 아무 말이 없다 — 무엇을 기다리는지 알린다
+    announce(m.print.busy);
+    let result = 'failed';
+    try {
+      const now = new Date();
+      const chosen: PrintOptions = { ...opts };
+      const fontCss = await printFonts.fontCss();
+      const { html, size } = printHtml(source, { ...chosen, now, lang: lang(), fontCss });
+      result = kind === 'pdf'
+        ? await printer.exportPdf(html, size, printFileName(now))
+        : await printer.printNow(html, size);
+    } catch (e) {
+      console.warn('[PrintSheet] print failed', e);
+    }
+    // 취소는 조용히 — 실패만 알린다(웹의 인쇄는 결과를 알 수 없어 성공 알림도 없다)
+    if (result === 'failed') showToast(m.print.failed);
+    busyRef.current = false;
+    setBusy(false);
+  };
+
+  // 고른 것 한 줄 — 종이 · 쪽 수(머리 줄의 둘째 줄, 단추의 화면 읽기 이름에도)
+  const summary = m.print.summary({ paper: m.print[`paper${opts.paper}`], n: printPages(opts.layout) });
+
+  return (
+    <Sheet
+      M={M}
+      onClose={closePrint}
+      ownClose
+      pad
+      maxHeightPct={0.94}
+      header={<SheetHeader M={M} title={m.print.sheetHead} sub={summary} />}
+      overlay={<Snackbar placement="top" />}
+      footer={<PrintActions M={M} busy={busy} summary={summary} onRun={(k) => void run(k)} />}
+    >
+      <PrintChoices M={M} opts={opts} stored={stored} owned={owned} save={save} />
+    </Sheet>
+  );
+}
+
+function PrintChoices({ M, opts, stored, owned, save }: {
+  M: M;
+  opts: PrintOptions;
+  stored: StoredPrint;
+  owned: boolean;
+  save: (next: StoredPrint) => void;
+}) {
+  const m = useMsg();
+  const dismiss = useSheetDismiss();
+  const { openPro } = useUIActions();
 
   /** 잠긴 선택 — 이 시트를 내리고 프로 시트를 연다(한 번에 시트 하나) */
   const toPro = (f: ProFeature) => {
@@ -134,39 +181,12 @@ function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
 
   const paperName = (p: PrintPaper) => m.print[`paper${p}`];
   const layoutName = (l: PrintLayout) => (l === 'areas' ? m.print.layoutAreas : m.print.layoutChart);
-
-  const run = async (kind: 'print' | 'pdf') => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    tap();
-    // 버튼이 흐려진 것만으로는 화면 읽기가 아무 말이 없다 — 무엇을 기다리는지 알린다
-    announce(m.print.busy);
-    let result = 'failed';
-    try {
-      const now = new Date();
-      const chosen: PrintOptions = { ...opts };
-      const fontCss = await printFonts.fontCss();
-      const { html, size } = printHtml(source, { ...chosen, now, lang: lang(), fontCss, accent: M.accent });
-      result = kind === 'pdf'
-        ? await printer.exportPdf(html, size, printFileName(now))
-        : await printer.printNow(html, size);
-    } catch (e) {
-      console.warn('[PrintSheet] print failed', e);
-    }
-    // 취소는 조용히 — 실패만 알린다(웹의 인쇄는 결과를 알 수 없어 성공 알림도 없다)
-    if (result === 'failed') showToast(m.print.failed);
-    busyRef.current = false;
-    setBusy(false);
-  };
-
-  const summary = m.print.summary({ paper: paperName(opts.paper), n: printPages(opts.layout) });
+  /** 잠긴 줄의 설명 끝에 '프로' — 배지 · 자물쇠 없이 인쇄된 낱말 하나 */
+  const withPro = (sub: string, locked: boolean) => (locked ? `${sub}${m.core.dot}${m.print.pro}` : sub);
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-      <SheetHead M={M} title={m.print.sheetHead} />
-
-      <SubHead M={M} label={m.print.paperHead} first />
+    <View style={{ paddingBottom: 8 }}>
+      <Section M={M} label={m.print.paperHead} style={{ marginTop: 8 }} />
       <View accessibilityRole="radiogroup">
         {PRINT_PAPERS.map((p, i) => {
           const locked = isProPaper(p) && isLocked('printSize', owned);
@@ -175,26 +195,23 @@ function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
           const sub = m.print.paperMm({ w, h });
           const name = `${paperName(p)}, ${sub}`;
           return (
-            <View key={p} testID={TID.printPaper(p)}>
-              <LineRow
-                M={M}
-                title={paperName(p)}
-                sub={sub}
-                first={i === 0}
-                last={i === PRINT_PAPERS.length - 1}
-                accessibilityRole="radio"
-                accessibilityLabel={locked ? m.print.lockedSay({ name }) : name}
-                accessibilityHint={locked ? m.print.lockedHint : undefined}
-                checked={on}
-                right={locked ? <ProMark M={M} label={m.print.pro} /> : <Check on={on} color={M.ink} dark={M.dark} size={22} />}
-                onPress={() => pickPaper(p)}
-              />
-            </View>
+            <ChoiceRow
+              key={p}
+              M={M}
+              testID={TID.printPaper(p)}
+              title={paperName(p)}
+              meta={withPro(sub, locked)}
+              on={on}
+              divider={i > 0}
+              accessibilityLabel={locked ? m.print.lockedSay({ name }) : name}
+              accessibilityHint={locked ? m.print.lockedHint : undefined}
+              onPress={() => pickPaper(p)}
+            />
           );
         })}
       </View>
 
-      <SubHead M={M} label={m.print.layoutHead} />
+      <Section M={M} label={m.print.layoutHead} style={{ marginTop: GEO.sectionGap }} />
       <View accessibilityRole="radiogroup">
         {LAYOUTS.map((l, i) => {
           const locked = l === 'areas' && isLocked('printSize', owned);
@@ -202,78 +219,62 @@ function PrintBody({ M, source }: { M: M; source: MandaratDoc }) {
           const sub = m.print.summary({ paper: paperName(opts.paper), n: printPages(l) });
           const name = `${layoutName(l)}, ${sub}`;
           return (
-            <View key={l} testID={TID.printLayout(l)}>
-              <LineRow
-                M={M}
-                title={layoutName(l)}
-                sub={sub}
-                first={i === 0}
-                last={i === LAYOUTS.length - 1}
-                accessibilityRole="radio"
-                accessibilityLabel={locked ? m.print.lockedSay({ name }) : name}
-                accessibilityHint={locked ? m.print.lockedHint : undefined}
-                checked={on}
-                right={locked ? <ProMark M={M} label={m.print.pro} /> : <Check on={on} color={M.ink} dark={M.dark} size={22} />}
-                onPress={() => pickLayout(l)}
-              />
-            </View>
+            <ChoiceRow
+              key={l}
+              M={M}
+              testID={TID.printLayout(l)}
+              title={layoutName(l)}
+              meta={withPro(sub, locked)}
+              on={on}
+              divider={i > 0}
+              accessibilityLabel={locked ? m.print.lockedSay({ name }) : name}
+              accessibilityHint={locked ? m.print.lockedHint : undefined}
+              onPress={() => pickLayout(l)}
+            />
           );
         })}
       </View>
 
-      <View testID={TID.printBlank} style={{ marginTop: 20 }}>
-        <LineRow
+      <View style={{ marginTop: GEO.sectionGap }}>
+        <ToggleRow
           M={M}
+          testID={TID.printBlank}
           title={m.print.blank}
-          sub={m.print.blankSub}
-          first
-          last
-          accessibilityRole="checkbox"
-          accessibilityLabel={`${m.print.blank}, ${m.print.blankSub}`}
-          checked={opts.blank}
-          right={<Check on={opts.blank} color={M.ink} dark={M.dark} size={22} />}
-          onPress={toggleBlank}
+          meta={m.print.blankSub}
+          on={opts.blank}
+          onToggle={toggleBlank}
         />
-      </View>
-
-      {/* 고른 것 한 줄 — 종이 · 쪽 수 */}
-      <Text
-        accessibilityLiveRegion="polite"
-        style={{ fontSize: 13, lineHeight: 18, fontWeight: '600', color: M.sub, marginTop: 16, fontVariant: ['tabular-nums'] }}
-      >
-        {summary}
-      </Text>
-
-      <View style={{ marginTop: 12, gap: 10 }}>
-        <View testID={TID.printGo}>
-          <PrimaryButton
-            M={M}
-            label={busy ? m.print.busy : m.print.printGo}
-            accessibilityLabel={busy ? m.print.busy : `${m.print.printGo}, ${summary}`}
-            onPress={() => void run('print')}
-            disabled={busy}
-          />
-        </View>
-        {CAN_EXPORT ? (
-          <View testID={TID.printPdf}>
-            <PrimaryButton
-              M={M}
-              tone="quiet"
-              label={m.print.exportPdf}
-              accessibilityLabel={`${m.print.exportPdf}, ${summary}`}
-              onPress={() => void run('pdf')}
-              disabled={busy}
-            />
-          </View>
-        ) : (
-          <Text style={{ fontSize: 13, lineHeight: 18, color: M.sub, textAlign: 'center', paddingBottom: 4 }}>{m.print.webNote}</Text>
-        )}
       </View>
     </View>
   );
 }
 
-/** 잠긴 선택의 오른쪽 — 꾸밈 없는 보조색 글씨 하나(배지·자물쇠 없음) */
-function ProMark({ M, label }: { M: M; label: string }) {
-  return <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{label}</Text>;
+/** 바닥 — 인쇄하기(주 단추) · PDF로 내보내기(iOS, 둘째 단추) 또는 웹 · 안드로이드의 안내 한 줄 */
+function PrintActions({ M, busy, summary, onRun }: { M: M; busy: boolean; summary: string; onRun: (kind: 'print' | 'pdf') => void }) {
+  const m = useMsg();
+  return (
+    <View style={{ gap: 10 }}>
+      <Button
+        M={M}
+        testID={TID.printGo}
+        label={busy ? m.print.busy : m.print.printGo}
+        accessibilityLabel={busy ? m.print.busy : `${m.print.printGo}, ${summary}`}
+        onPress={() => onRun('print')}
+        disabled={busy}
+      />
+      {CAN_EXPORT ? (
+        <Button
+          M={M}
+          testID={TID.printPdf}
+          variant="secondary"
+          label={m.print.exportPdf}
+          accessibilityLabel={`${m.print.exportPdf}, ${summary}`}
+          onPress={() => onRun('pdf')}
+          disabled={busy}
+        />
+      ) : (
+        <Text style={[ROLE.noteSheet, { color: M.print, textAlign: 'center', paddingBottom: 4 }]}>{m.print.webNote}</Text>
+      )}
+    </View>
+  );
 }

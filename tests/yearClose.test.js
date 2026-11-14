@@ -42,7 +42,7 @@ test('오버레이: 전체 화면 Modal · 네 방향 · 웹 폭 틀(WebColumn �
   const s = src('src/overlays/YearClose.tsx');
   assert.match(s, /<Modal[\s\S]*presentationStyle="fullScreen"/);
   assert.match(s, /supportedOrientations=\{MODAL_ORIENTATIONS\}/);
-  assert.match(s, /<PaperColumn bg=\{M\.bg\}/);
+  assert.match(s, /<PaperColumn bg=\{M\.paper\}/);
   assert.ok(s.indexOf('</PaperColumn>') < s.indexOf('</Modal>'));
   assert.match(s, /accessibilityViewIsModal/);
   // 세 쪽 · 버튼 testID
@@ -85,15 +85,16 @@ test('세 가지 새 표가 startNewChart에 그대로 간다', () => {
   for (const d of [keep, areas, blank]) assert.equal(d.archives.length, 1);
 });
 
-test('홈: 마무리 안내 줄은 yearClosePrompt일 때만, 머리 바로 아래 괘선 한 줄', () => {
+test('홈: 마무리 안내 줄은 yearClosePrompt일 때만, 히어로 아래 · 오늘 할 일 위의 누르는 줄(디자인 A)', () => {
   const s = src('src/screens/Dashboard.tsx');
   assert.match(s, /const yearPrompt = useMemo\(\(\) => yearClosePrompt\(doc, new Date\(\)\), \[[^\]]*\bclock\]\);/);
-  assert.match(s, /\{yearPrompt && \(\s*<Pressable\s+testID=\{TID\.homeYearPrompt\}/);
-  assert.match(s, /onPress=\{\(\) => \{ tap\(\); openYearClose\(\); \}\}/);
-  // 머리(인쇄된 두 줄) 다음, 핵심 목표 앞
-  assert.ok(s.indexOf('{yearPrompt && (') > s.indexOf('marginTop: 3 }} />'));
-  assert.ok(s.indexOf('{yearPrompt && (') < s.indexOf('<MiniChart'));
-  const row = s.slice(s.indexOf('{yearPrompt && ('), s.indexOf('<MiniChart'));
+  const row = s.slice(s.indexOf('{yearPrompt && ('), s.indexOf('{ritualWeek && ('));
+  assert.match(row, /^\{yearPrompt && \(\s*<LinkRow\b/);
+  assert.match(row, /testID=\{TID\.homeYearPrompt\}/);
+  assert.match(row, /onPress=\{\(\) => \{ tap\(\); openYearClose\(\); \}\}/);
+  // 히어로(작은 지도) 다음, 오늘 할 일 앞
+  assert.ok(s.indexOf('{yearPrompt && (') > s.indexOf('<ColourMap'));
+  assert.ok(s.indexOf('{yearPrompt && (') < s.indexOf('<TodaySection'));
   assert.doesNotMatch(row, /borderRadius|backgroundColor/);
 
   const base = { onboarded: true, chartStart: '2026-01-01', dayLog: {}, archives: undefined };

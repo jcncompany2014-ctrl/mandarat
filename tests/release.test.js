@@ -100,11 +100,14 @@ test('기분 줄은 copy.ts의 낱말을 쓰고, 쌓기 줄은 알약 모양이 
   assert.match(read('src/components/KindBits.tsx'), /borderRadius: Math\.min\(2, height \/ 2\)/);
 });
 
-test('액션 시트의 줄은 LineRow — 체크 상태를 함께 읽는다', () => {
+test('액션 시트의 체크 줄은 체크 상태를 함께 읽는다', () => {
   const sheet = read('src/overlays/ActionSheet.tsx');
   assert.doesNotMatch(sheet, /function SheetRow\(/);
-  assert.equal((sheet.match(/<LineRow/g) || []).length, 5);
-  assert.equal((sheet.match(/accessibilityRole="checkbox"/g) || []).length >= 2, true);
+  // 체크 줄은 모두 CheckRow(kit Row + CheckBox) 하나로 — 체크 상자 역할과 선택됨을 읽는다
+  const row = sheet.slice(sheet.indexOf('function CheckRow('), sheet.indexOf('\n}\n', sheet.indexOf('function CheckRow(')));
+  assert.match(row, /accessibilityRole="checkbox"/);
+  assert.match(row, /accessibilityState=\{\{ checked: state !== 'open' \}\}/);
+  assert.equal((sheet.match(/<CheckRow\b/g) || []).length >= 4, true);
   const common = read('src/components/common.tsx');
   assert.match(common, /accessibilityState=\{a11yState\}/);
 });

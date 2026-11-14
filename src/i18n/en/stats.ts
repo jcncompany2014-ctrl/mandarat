@@ -108,6 +108,7 @@ export default {
   moodDaySay: ({ date, word }) => `${date}: ${word}`,
 
   eyebrow: ({ y, w, days }) => `${fmt.weekNo({ y, w })} · ${days} ${plural(days, 'day', 'days')} left`,
+  heroCells: ({ done }) => `${done}/64`,
   monthCells: ({ n }) => `${n} ${plural(n, 'square', 'squares')} this month`,
   scopeWeek: 'This week',
   scopeTen: '10 weeks',

@@ -1,4 +1,4 @@
-// V2-D 인쇄 시트 — 무료 인쇄는 잠기지 않는다(printLock) · 저장값 읽기는 너그럽다 · 시트는 Sheet와 LineRow로 · 잠긴 선택은 openPro로
+// V2-D 인쇄 시트 — 무료 인쇄는 잠기지 않는다(printLock) · 저장값 읽기는 너그럽다 · 시트는 Sheet와 부품 상자(kit)로 · 잠긴 선택은 openPro로
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -90,12 +90,12 @@ test('저장소: mandarat:print:v1에 쓰고 다시 읽는다 · 깨진 값은 {
 
 // ── 시트 ─────────────────────────────────────────────────
 
-test('PrintSheet: Sheet · SheetHead · LineRow로 짓고, 알약·배지·둥근 카드가 없다', () => {
+test('PrintSheet: Sheet · SheetHeader · 고르기 줄(ChoiceRow) · 켜고 끄는 줄(ToggleRow)로 짓고, 알약·배지·둥근 카드가 없다', () => {
   const s = src('src/overlays/PrintSheet.tsx');
   assert.match(s, /<Sheet\b/);
-  assert.match(s, /<SheetHead\b/);
-  assert.match(s, /<LineRow\b/);
-  assert.match(s, /<Check\b/);
+  assert.match(s, /<SheetHeader\b/);
+  assert.match(s, /<ChoiceRow\b/);
+  assert.match(s, /<ToggleRow\b/);
   assert.doesNotMatch(s, /\bPill\b|AreaTag|PaperChip|SegmentedControl|LinearGradient|shadow\(/);
   for (const r of s.matchAll(/borderRadius:\s*(\d+)/g)) assert.ok(Number(r[1]) < 14, `borderRadius ${r[1]}`);
   assert.doesNotMatch(s, /\p{Extended_Pictographic}/u);
@@ -118,7 +118,7 @@ test('PrintSheet: 잠긴 종이 · 구성은 openPro(printSize)로, 지난 표�
 test('PrintSheet: 찍기 — HTML · 글꼴 · 플랫폼 인쇄, 실패만 알리고 취소는 조용히', () => {
   const s = src('src/overlays/PrintSheet.tsx');
   assert.match(s, /await printFonts\.fontCss\(\)/);
-  assert.match(s, /printHtml\(source, \{ \.\.\.chosen, now, lang: lang\(\), fontCss, accent: M\.accent \}\)/);
+  assert.match(s, /printHtml\(source, \{ \.\.\.chosen, now, lang: lang\(\), fontCss \}\)/);
   assert.match(s, /printer\.exportPdf\(html, size, printFileName\(now\)\)/);
   assert.match(s, /printer\.printNow\(html, size\)/);
   assert.match(s, /if \(result === 'failed'\) showToast\(m\.print\.failed\);/);

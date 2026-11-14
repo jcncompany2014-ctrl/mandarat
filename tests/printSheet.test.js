@@ -1,4 +1,4 @@
-// 인쇄용 HTML(src/lib/printSheet.ts) — 종이 크기 · 81칸 · 빈 표 · 금색 줄 · 언어 · 쪽 수 · 바깥 주소 · 파일 이름.
+// 인쇄용 HTML(src/lib/printSheet.ts) — 종이 크기 · 81칸 · 빈 표 · 다 이룬 블록의 먹 테두리 · 언어 · 쪽 수 · 바깥 주소 · 파일 이름.
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -7,7 +7,7 @@ const { PRINT_PAPERS } = require('../src/lib/contracts');
 const { demoDoc } = require('../scripts/smoke/demoDoc');
 
 const NOW = new Date(2026, 9, 14, 9, 30);
-const base = { paper: 'A4', layout: 'chart', blank: false, now: NOW, lang: 'ko', fontCss: '', accent: '#B0883C' };
+const base = { paper: 'A4', layout: 'chart', blank: false, now: NOW, lang: 'ko', fontCss: '' };
 const render = (doc, o = {}) => printHtml(doc, { ...base, ...o });
 const count = (s, re) => (s.match(re) || []).length;
 
@@ -71,7 +71,7 @@ test('빈 표에는 실천 글이 없다 — 이름표와 목표만', () => {
   assert.ok(filled.includes(doc.themes[0].actions[0].text.trim()));
 });
 
-test('금색 줄은 8칸을 다 달성한 영역마다 하나', () => {
+test('먹 테두리는 8칸을 다 달성한 영역마다 하나', () => {
   assert.equal(count(render(demoDoc()).html, /class="finframe"/g), 0);
   const doc = finishedDoc();
   assert.equal(count(render(doc).html, /class="finframe"/g), 1);
@@ -81,7 +81,6 @@ test('금색 줄은 8칸을 다 달성한 영역마다 하나', () => {
   });
   const { html } = render(doc);
   assert.equal(count(html, /class="finframe"/g), 2);
-  assert.equal(count(html, /class="fin"/g), 4, '두 이름표 칸(가운데 블록·그 블록 가운데) 아래 달성 표시');
   assert.equal(count(render(doc, { blank: true }).html, /class="finframe"/g), 0, '빈 표에는 없다');
 });
 

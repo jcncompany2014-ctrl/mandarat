@@ -1,220 +1,181 @@
-import React, { forwardRef, useMemo } from 'react';
-import { View } from 'react-native';
+// 표 이미지 한 장 — 디자인 A share.png(build-plan §1 share). 화면을 찍은 것이 아니라 피드에 올릴 한 장:
+// 머리 '2026 핵심 목표' · 핵심 목표가 제목 · 오른쪽 '24/64칸' · L2 색 지도(실천 64칸은 색만 — 남에게 보일 글은 영역 이름과 목표뿐)
+// · 발에 마크 + '만다라트' · 날짜. 오늘 표시 · 체크는 없다(보는 사람에게 '오늘'은 뜻이 없다).
+// 늘 밝은 토큰(LIGHT) — 다크 모드에서도 흰 종이 한 장. 빈 표(blank)는 첫 화면의 지도(실천 칸이 모두 비었다).
+// 자리 · 글자 크기는 lib/poster.ts(POSTER · posterMetrics · posterGoal · posterLabel), 지도의 자리 · 색은 G의 chart(geometry · mapFill).
+import React, { forwardRef, memo, useMemo } from 'react';
+import { PixelRatio, View } from 'react-native';
 import { Text } from './AppText';
-import { MOODS, alpha, type Palette } from '../theme/moods';
-import { GOLD } from '../theme/palette';
-import { CHART_POS, DONE_INK, coreBg, coreInk, frameRadius, headBg, headTrack, legibleMark } from '../theme/chart';
+import { Mark, mapFill, mapGeometry } from './chart';
+import { LIGHT, type Tokens } from '../theme/tokens';
+import { PRETENDARD } from '../theme/fonts';
 import { NUM } from '../theme/type';
-import { cellBreak, noOrphan } from '../lib/text';
-import { POSTER_H, POSTER_W, posterCells, posterDate, posterDone, posterFinished, type PosterCell } from '../lib/poster';
-import type { MandaratDoc } from '../types';
+import { mapCells } from '../lib/mapCells';
+import {
+  POSTER_MAP, POSTER_RATIO, posterDate, posterDone, posterFigure, posterGoal, posterLabel, posterMetrics, type PosterMetrics,
+} from '../lib/poster';
+import type { MandaratDoc, Theme } from '../types';
+import type { Lang } from '../i18n';
 import { useLang } from '../i18n/react';
 import { msg } from '../i18n';
-
-/**
- * 그림의 치수(pt) — 모두 scale에서 나온다. scale 1이 공유 이미지(360×450, 1080×1350으로 찍는다)의 원래 값 그대로,
- * 보관함의 지난 표처럼 더 크게 그릴 때는 글자·괘선까지 같은 비율로 키운다(transform으로 늘리지 않아 글자가 흐려지지 않는다).
- */
-export function posterMetrics(scale = 1) {
-  const s = scale;
-  /** 종이 여백 · 표 한 변 · 칸 한 변 */
-  const margin = 20 * s;
-  const table = POSTER_W * s - margin * 2;
-  const cell = table / 9;
-  /** 칸 글자 — 7.5pt 세 줄(크기를 줄여 맞추지 않는다. 넘치면 말줄임표) */
-  const pad = 2.5 * s;
-  return {
-    width: POSTER_W * s,
-    height: POSTER_H * s,
-    margin,
-    table,
-    cell,
-    /** 인쇄 괘선(pt) — 화면의 표보다 한 단계 가늘게: 바깥 테두리 · 블록 사이 · 칸 사이 */
-    ruleFrame: 1.5 * s,
-    ruleBlock: 1 * s,
-    ruleCell: 0.5 * s,
-    fs: 7.5 * s,
-    fsHead: 8 * s,
-    lh: 9 * s,
-    pad,
-    textW: cell - pad * 2,
-    /** 머리말 줄 · 목표(두 줄까지) 자리 높이 — 표가 늘 같은 자리에 오도록 고정 */
-    headH: 70 * s,
-    headGap: 8 * s,
-    /** 머리말 · 날짜 */
-    fsTop: 12 * s,
-    lhTop: 15 * s,
-    /** 핵심 목표(두 줄까지)와 목표가 없을 때의 밑줄 */
-    fsGoal: 22 * s,
-    lhGoal: 25 * s,
-    underline: 0.75 * s,
-    /** 다 이룬 블록 이름표 아래 '달성' */
-    fsMark: 7 * s,
-    lhMark: 8.5 * s,
-    /** 쌓기 · 이름표 막대 */
-    bar: 2 * s,
-    /** 다 이룬 블록의 안쪽 금색 줄 */
-    finishLine: 1.5 * s,
-    /** 표 모서리(칸 모서리 설정, 2pt까지) */
-    radiusMax: 2 * s,
-    /** 아래 줄 '64칸 중 n칸' · '만다라트' */
-    footGap: 7 * s,
-    fsFoot: 10 * s,
-    lhFoot: 13 * s,
-  };
-}
-
-/** 공유 이미지 한 장(scale 1)의 치수 */
-const BASE = posterMetrics(1);
-type Metrics = typeof BASE;
 
 /** 화면 크기 설정과 상관없이 늘 같은 크기로 찍힌다(그림 한 장) */
 const FIXED = { maxFontSizeMultiplier: 1, allowFontScaling: false } as const;
 
-function Cell({ c, P, k, blank, finished, gold, doneWord }: { c: PosterCell; P: Palette; k: Metrics; blank: boolean; finished: boolean; gold: string; doneWord: string }) {
-  const core = c.kind === 'core';
-  const head = c.kind === 'head';
-  const bg = blank ? 'transparent' : core ? coreBg(P) : head ? headBg(c.color, P) : c.done ? c.color : 'transparent';
-  // 이름 없는 '영역 n'도 먹 글씨(가늘게) — 보조 글씨는 이름표 바탕 위 4.5:1이 안 된다
-  const ink = !blank && core ? coreInk(P) : c.done ? DONE_INK : P.ink;
-  const fs = core || head ? k.fsHead : k.fs;
+/** 늘 밝은 종이 */
+const T: Tokens = LIGHT;
+
+/**
+ * 색 지도(L2) — G의 ColourMap과 같은 칸 · 색(mapFill)이지만 늘 LIGHT로, 이름은 피드 크기로 키워(posterLabel) 그린다.
+ * 칸 자리는 scale 1이면 그림의 픽셀(2배)에, 다른 배율(미리보기 · 지난 표)이면 기기 픽셀에 맞춘다.
+ * 글은 scale 1의 칸에서 나눠 배율만 곱한다 — 미리보기가 찍히는 그림과 같은 자리에서 끊긴다.
+ */
+const PosterMap = memo(function PosterMap({ themes, goal, blank, scale, l }: {
+  themes: readonly Theme[];
+  goal: string;
+  blank: boolean;
+  scale: number;
+  l: Lang;
+}) {
+  const g = mapGeometry({ level: 'L2', width: POSTER_MAP * scale, ratio: scale === 1 ? POSTER_RATIO : PixelRatio.get() });
+  const base = mapGeometry({ level: 'L2', width: POSTER_MAP, ratio: POSTER_RATIO });
+  const cells = useMemo(() => mapCells({ themes, centerGoal: goal }), [themes, goal]);
+  const labels = useMemo(
+    () => cells
+      .filter((c) => c.kind !== 'action' && c.text.trim())
+      .map((c) => ({ c, lab: posterLabel(c.text, c.kind === 'core' ? 'core' : 'head', base.cells[c.col], base.cells[c.row], l) })),
+    [cells, base, l],
+  );
   return (
-    <View
-      style={{
-        position: 'absolute', left: c.col * k.cell, top: c.row * k.cell, width: k.cell, height: k.cell,
-        padding: k.pad, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: bg,
-      }}
-    >
-      {c.text !== '' && (
+    <View style={{ width: g.size, height: g.size }}>
+      {cells.map((c) => (
+        <View
+          key={`${c.row}-${c.col}`}
+          style={{
+            position: 'absolute', left: g.pos[c.col], top: g.pos[c.row], width: g.cells[c.col], height: g.cells[c.row],
+            borderRadius: g.radius, backgroundColor: blank && c.kind === 'action' ? T.tile : mapFill(c, T, 'L2'),
+          }}
+        />
+      ))}
+      {labels.map(({ c, lab }) => (
+        <View
+          key={`l${c.row}-${c.col}`}
+          style={{
+            position: 'absolute', left: g.pos[c.col], top: g.pos[c.row], width: g.cells[c.col], height: g.cells[c.row],
+            paddingHorizontal: 1.5 * scale, alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+          }}
+        >
+          <Text
+            {...FIXED}
+            numberOfLines={Math.max(1, lab.lines)}
+            style={{
+              fontFamily: PRETENDARD[700], fontSize: lab.fs * scale, lineHeight: lab.lh * scale, letterSpacing: lab.letterSpacing * scale,
+              color: c.kind === 'core' ? T.onCore : T.onDye, textAlign: 'center',
+            }}
+          >
+            {lab.text}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+});
+
+/** 제목 줄 — 핵심 목표(한 줄에 들도록 44~28, 그래도 넘치면 두 줄)와 오른쪽 '24/64칸'(빈 표에는 없다) */
+function TitleLine({ goal, figure, unit, k, scale, l }: {
+  goal: string;
+  figure: string;
+  unit: string;
+  k: PosterMetrics;
+  scale: number;
+  l: Lang;
+}) {
+  const fit = posterGoal(goal, figure, unit, l);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: k.figGap, marginTop: k.headGap }}>
+      {goal ? (
         <Text
           {...FIXED}
-          numberOfLines={finished && head ? 2 : 3}
+          numberOfLines={fit.lines}
           ellipsizeMode="tail"
-          style={{ fontSize: fs, lineHeight: k.lh, fontWeight: head && c.unnamed ? '500' : core || head ? '800' : c.done ? '700' : '600', color: ink, textAlign: 'center', letterSpacing: 0 }}
+          style={{
+            flex: 1, minWidth: 0, fontFamily: PRETENDARD[700], fontSize: fit.fs * scale, lineHeight: fit.lh * scale,
+            letterSpacing: fit.letterSpacing * scale, color: T.ink,
+          }}
         >
-          {cellBreak(c.text, k.textW, fs)}
+          {goal}
         </Text>
+      ) : (
+        // 목표를 아직 정하지 않았으면 손으로 적을 밑줄 한 줄
+        <View style={{ flex: 1, height: fit.lh * scale * 0.8, borderBottomWidth: k.underline, borderBottomColor: T.printMid }} />
       )}
-      {finished && head && (
-        <Text {...FIXED} style={{ fontSize: k.fsMark, lineHeight: k.lhMark, fontWeight: '800', color: legibleMark(gold, bg, P, 4.5), letterSpacing: 0 }}>{doneWord}</Text>
-      )}
-      {c.headPct != null && (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: k.bar, backgroundColor: headTrack(c.color) }}>
-          <View style={{ width: `${c.headPct}%`, height: '100%', backgroundColor: c.color }} />
+      {!!figure && (
+        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+          <Text
+            {...FIXED}
+            style={[{ fontFamily: PRETENDARD[700], fontSize: k.figFs, lineHeight: k.figLh, letterSpacing: k.figTracking, color: T.ink }, NUM]}
+          >
+            {figure}
+          </Text>
+          <Text
+            {...FIXED}
+            style={{ fontFamily: PRETENDARD[600], fontSize: k.unitFs, lineHeight: k.unitLh, letterSpacing: 0, color: T.ink2, marginLeft: k.unitGap }}
+          >
+            {unit}
+          </Text>
         </View>
-      )}
-      {c.barPct != null && (
-        <View style={{ position: 'absolute', left: 0, bottom: 0, width: `${c.barPct}%`, height: k.bar, backgroundColor: c.color }} />
       )}
     </View>
   );
 }
 
-/** 표 안쪽 괘선 — 칸 사이는 가늘게, 세 칸마다(블록 사이) 굵게. 바깥 테두리는 따로 */
-function Rules({ P, k }: { P: Palette; k: Metrics }) {
-  const lines: React.ReactNode[] = [];
-  for (let i = 1; i < 9; i++) {
-    const block = i % 3 === 0;
-    const t = block ? k.ruleBlock : k.ruleCell;
-    const color = block ? alpha(P.ink, 0.55) : alpha(P.ink, 0.22);
-    const at = i * k.cell - t / 2;
-    lines.push(<View key={`v${i}`} style={{ position: 'absolute', top: 0, bottom: 0, left: at, width: t, backgroundColor: color }} />);
-    lines.push(<View key={`h${i}`} style={{ position: 'absolute', left: 0, right: 0, top: at, height: t, backgroundColor: color }} />);
-  }
-  return <>{lines}</>;
-}
-
 /**
- * 공유용 표 이미지 한 장 — 360×450pt(1080×1350으로 찍는다). 다크 모드에서도 늘 밝은 미색 종이(기본 무드의 색).
- * 머리말 '목표 달성표'와 날짜 · 핵심 목표 · 81칸 표 · 아래 '64칸 중 n칸'과 '만다라트'.
- * blank: 글만 찍고 칠·막대를 모두 뺀 빈 표(인쇄해 손으로 채우기).
- * gold: 8칸을 다 달성한 블록의 테두리 색(지금 포인트 컬러) — 종이 위에서 3:1이 되게 맞춘다.
- * scale: 그림 배율(기본 1 = 공유 이미지 그대로) — 모든 치수가 posterMetrics(scale)에서 나온다. 보관함의 지난 표는 쪽 폭에 맞춘다.
+ * 공유용 표 이미지 한 장 — 540×675pt(1080×1350으로 찍는다), 늘 밝은 토큰.
+ * blank: 첫 화면의 지도(실천 칸은 모두 빈 칸, 숫자 없음) — 이름표와 목표만.
+ * scale: 그림 배율(기본 1 = 공유 이미지 그대로) — 모든 치수가 posterMetrics(scale)에서 나온다(미리보기 · 지난 표).
+ * gold: 예전 금색 줄의 색 — 이제 그리지 않는다(§2.7 강조색 없음). 지난 표 화면이 아직 넘겨서 받기만 한다.
  */
 export const ChartPoster = forwardRef<View, {
-  doc: Pick<MandaratDoc, 'centerGoal' | 'themes' | 'settings'>;
+  doc: Pick<MandaratDoc, 'centerGoal' | 'themes'>;
   blank?: boolean;
   now: Date;
-  paper?: Palette;
   gold?: string;
   scale?: number;
-}>(function ChartPoster({ doc, blank = false, now, paper = MOODS['연꽃'], gold = GOLD, scale = 1 }, ref) {
-  const P = paper;
+}>(function ChartPoster({ doc, blank = false, now, scale = 1 }, ref) {
   const l = useLang();
   const m = msg(l);
-  const k = useMemo(() => (scale === 1 ? BASE : posterMetrics(scale)), [scale]);
-  const cells = useMemo(() => posterCells(doc, blank, l), [doc, blank, l]);
-  const finished = useMemo(() => posterFinished(doc, blank), [doc, blank]);
-  const done = posterDone(doc);
+  const k = useMemo(() => posterMetrics(scale), [scale]);
   const goal = doc.centerGoal.trim();
-  const mark = legibleMark(gold, P.bg, P);
-  const radius = Math.min(k.radiusMax, frameRadius(doc.settings.cellShape) * scale);
+  const figure = blank ? '' : posterFigure(posterDone(doc));
 
   return (
     <View
       ref={ref}
       collapsable={false}
-      style={{ width: k.width, height: k.height, padding: k.margin, backgroundColor: P.bg }}
+      style={{
+        width: k.width, height: k.height, paddingHorizontal: k.pad, paddingTop: k.top, paddingBottom: k.bottom,
+        backgroundColor: T.paper, overflow: 'hidden',
+      }}
     >
-      <View style={{ height: k.headH, justifyContent: 'space-between', paddingBottom: k.headGap }}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-          <Text {...FIXED} style={{ flex: 1, fontSize: k.fsTop, lineHeight: k.lhTop, fontWeight: '600', color: P.sub }}>{m.chart.posterTitle}</Text>
-          <Text {...FIXED} style={[{ fontSize: k.fsTop, lineHeight: k.lhTop, fontWeight: '600', color: P.sub }, NUM]}>{posterDate(now, l)}</Text>
-        </View>
-        {goal ? (
-          <Text {...FIXED} numberOfLines={2} style={{ fontSize: k.fsGoal, lineHeight: k.lhGoal, fontWeight: '800', color: P.ink }}>
-            {noOrphan(goal)}
+      <Text {...FIXED} numberOfLines={1} style={{ fontFamily: PRETENDARD[600], fontSize: k.eyebrowFs, lineHeight: k.eyebrowLh, letterSpacing: 0, color: T.print }}>
+        {m.print.posterEyebrow({ y: now.getFullYear() })}
+      </Text>
+      <TitleLine goal={goal} figure={figure} unit={m.print.posterUnit} k={k} scale={scale} l={l} />
+
+      <View style={{ marginTop: k.mapTop }}>
+        <PosterMap themes={doc.themes} goal={goal} blank={blank} scale={scale} l={l} />
+      </View>
+
+      <View style={{ marginTop: 'auto', height: k.footH, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: k.markGap }}>
+          <Mark variant="heart" size={k.mark} tokens={T} />
+          <Text {...FIXED} style={{ fontFamily: PRETENDARD[700], fontSize: k.wordFs, lineHeight: k.wordLh, letterSpacing: k.wordTracking, color: T.printStrong }}>
+            {m.chart.brand}
           </Text>
-        ) : (
-          // 목표를 아직 정하지 않았으면 손으로 적을 밑줄 한 줄
-          <View style={{ height: k.lhGoal, borderBottomWidth: k.underline, borderBottomColor: alpha(P.ink, 0.35) }} />
-        )}
-      </View>
-
-      <View style={{ width: k.table, height: k.table, borderRadius: radius, overflow: 'hidden', backgroundColor: P.bg }}>
-        {cells.map((c) => (
-          <Cell key={`${c.row}-${c.col}`} c={c} P={P} k={k} blank={blank} finished={c.kind === 'head' && finished.includes(c.ti)} gold={gold} doneWord={m.chart.done} />
-        ))}
-        <Rules P={P} k={k} />
-        {/* 가운데 블록은 핵심 목표 자리 — 블록 괘선과 같은 굵기로 한 번 더 감싼다 */}
-        <View
-          style={{
-            position: 'absolute', left: 3 * k.cell - k.ruleBlock / 2, top: 3 * k.cell - k.ruleBlock / 2,
-            width: 3 * k.cell + k.ruleBlock, height: 3 * k.cell + k.ruleBlock, borderWidth: k.ruleFrame, borderColor: alpha(P.ink, 0.85),
-          }}
-        />
-        {finished.map((ti) => {
-          // 8칸을 다 달성한 블록 — 괘선 안쪽에 금색 줄을 한 겹 더(바깥 테두리·블록 괘선에 가리지 않게 안으로 들인다)
-          const slot = CHART_POS[ti];
-          const col = slot % 3;
-          const row = Math.floor(slot / 3);
-          const inL = col === 0 ? k.ruleFrame : k.ruleBlock / 2;
-          const inT = row === 0 ? k.ruleFrame : k.ruleBlock / 2;
-          const inR = col === 2 ? k.ruleFrame : k.ruleBlock / 2;
-          const inB = row === 2 ? k.ruleFrame : k.ruleBlock / 2;
-          return (
-            <View
-              key={`f${ti}`}
-              style={{
-                position: 'absolute', left: col * 3 * k.cell + inL, top: row * 3 * k.cell + inT,
-                width: 3 * k.cell - inL - inR, height: 3 * k.cell - inT - inB, borderWidth: k.finishLine, borderColor: mark,
-              }}
-            />
-          );
-        })}
-        <View
-          style={{
-            position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
-            borderWidth: k.ruleFrame, borderColor: alpha(P.ink, 0.85), borderRadius: radius,
-          }}
-        />
-      </View>
-
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: k.footGap }}>
-        <Text {...FIXED} style={[{ flex: 1, fontSize: k.fsFoot, lineHeight: k.lhFoot, fontWeight: '600', color: P.sub }, NUM]}>
-          {blank ? '' : m.chart.posterDone({ done })}
+        </View>
+        <Text {...FIXED} style={[{ fontFamily: PRETENDARD[500], fontSize: k.dateFs, lineHeight: k.dateLh, letterSpacing: 0, color: T.print }, NUM]}>
+          {posterDate(now, l)}
         </Text>
-        <Text {...FIXED} style={{ fontSize: k.fsFoot, lineHeight: k.lhFoot, fontWeight: '700', color: P.sub }}>{m.chart.brand}</Text>
       </View>
     </View>
   );

@@ -1,45 +1,71 @@
 import React, { memo, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { PixelRatio, Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
-import { Text } from '../components/AppText';
-import { Header, LineRow, RowDivider, groupEdge, pressedRow } from '../components/common';
-import { ActivityChart, MoodStrip, TenWeeks, WearLegend, WeekBars } from '../components/StatsCharts';
-import { alpha } from '../theme/moods';
-import { NUM, TYPE } from '../theme/type';
+import { Text, a11yLangProp } from '../components/AppText';
+import { Header, LineRow, RowDivider, pressedRow } from '../components/common';
+import { DyeMark, FilterLine, Section, type FilterItem } from '../components/kit';
+import { ColourMap, MAP_MAX, WeekBars, l1Width, type WeekBarDay } from '../components/chart';
+import {
+  ActivityChart, Figure, HeroField, InLink, MoodStrip, STATS_TYPE, TenWeeks, WearLegend, WeekAreaKey,
+} from '../components/StatsCharts';
+import { GEO } from '../theme/tokens';
+import { ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions } from '../navigation/ui';
 import { useDoc, dateKey, totalDone, overallStreak } from '../store/MandaratContext';
 import type { MandaratDoc } from '../types';
 import { tap } from '../lib/haptics';
-import { sameProps } from '../lib/sameProps';
 import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
-import { fmtDateLong, fmtDateShort, fmtDateSpeech } from '../lib/text';
+import { fmtDateLong, fmtDateShort, fmtDateSpeech, noOrphan } from '../lib/text';
 import { chartRange, yearLabel } from '../lib/archive';
 import { TID } from '../lib/testIds';
 import { useLang, useMsg } from '../i18n/react';
 import type { Lang, Messages } from '../i18n';
 import type { YearView } from '../lib/contracts';
-import { addedLine, addedSpeech, mindLine } from '../lib/ritualView';
 import { reviewWeeks, ritualTarget } from '../lib/ritual';
-import type { HeatMap } from '../lib/statsView';
-import { calendarWeeks, cellActivity, doneThisMonth, longestStreak, weekReview, weekSentence } from '../lib/review';
+import type { HeatMap, KindLink, KindRow } from '../lib/statsView';
+import { calendarWeeks, cellActivity, doneThisMonth, longestStreak, weekReview } from '../lib/review';
+import { weekStack } from '../lib/weekStack';
 import {
-  bestLine, compareCounts, fmtMinutes, habitRow, heatMap, heatSpeech, ledgerLabel, moodSpeech, moodStrip, pickedLine, pickedSpeech,
-  recordParts, reflections, reviewRow, streakCaption, streakSpeech, weekAddedText, weekDelta, weekLead, emptyLine,
+  bestLine, compareCounts, heatMap, heatSpeech, kindRows, ledgerLabel, moodSpeech, moodStrip, pickedLine, pickedSpeech,
+  recordParts, reflections, reviewRow, statsEyebrow, streakCaption, streakSpeech, weekAddedText, weekAreaKey, weekBarsSpeech,
+  weekDelta, weekReading,
 } from '../lib/statsView';
 
 /** 돌아본 주·한 줄 회고를 처음에 몇 줄까지 보여 줄지 */
 const REVIEW_ROWS = 8;
 const NOTE_ROWS = 3;
-/** 이 글자 크기부터 큰 숫자 둘을 위아래로 쌓는다 */
+/** 이 글자 크기부터 히어로의 지도를 숫자 아래로 내린다 */
 const STACK_SCALE = 1.35;
+const GUTTER = GEO.gutter;
+/** 구역 사이(build-plan Wave 2: 30, 히어로 32) */
+const SECTION_GAP = GEO.sectionGap;
+/** 유형 줄의 이름 칸 폭(목업 .kind-name) */
+const KIND_NAME_W = 76;
+
+/** 범위 줄 — 이번 주 · 10주 · 올해(한 번에 한 기간) */
+type Scope = 'week' | 'ten' | 'year';
+const SCOPES: readonly Scope[] = ['week', 'ten', 'year'];
+
+/** 히어로 지도(L1)의 칸 — 본문이 330보다 좁으면 18(375pt 폰, build-plan §4.5), 아니면 20 */
+export function heroCell(measure: number): number {
+  return measure < 330 ? 18 : 20;
+}
+
+/** 'YYYY-MM-DD' → 그날 0시 */
+function dayOf(key: string): Date {
+  const [y, mo, d] = key.split('-').map(Number);
+  return new Date(y, mo - 1, d);
+}
 
 /**
- * 통계 — 인쇄된 장부 한 장. 질문 하나에 구역 하나:
- * 얼마나 이어 왔나(큰 숫자) → 이번 주 → 돌아본 주 → 최근 10주 → 숫자 목표·마음가짐 → 8개 영역(닳은 자리) → 회고.
- * 기록이 없으면 같은 구역을 빈 양식으로 그리고 맨 위에 한 줄만 둔다.
+ * 통계(디자인 A · stats.png) — 머리(2026 · 42주 · D-78 / 통계) · 히어로(연속 · 달성 + 작은 지도) ·
+ * 범위 줄(이번 주 · 10주 · 올해) 아래 그 기간 하나만:
+ * - 이번 주: 읽는 한 줄 + 모두 n번 · 지난주와 견줌, 영역 색으로 쌓은 일곱 막대, 영역 표, 유형 줄(습관 · 쌓기 · 마음가짐 · 집중)
+ * - 10주: 최근 10주 달력 · 8개 영역(닳은 자리)
+ * - 올해: 한 해 돌아보기 · 보관함, 숫자 목표, 마음가짐, 회고(기분 줄 · 한 줄), 돌아본 주
  */
 export const Stats = memo(function Stats() {
   const M = usePalette();
@@ -48,108 +74,355 @@ export const Stats = memo(function Stats() {
   const l = useLang();
   const { go, openAction, openRitual, openYear } = useUIActions();
   const { width: winW, fontScale } = useWindowDimensions();
-  const contentW = Math.max(0, winW - 40);
+  const contentW = Math.max(0, winW - GUTTER * 2);
+  const [scope, setScope] = useState<Scope>('week');
 
   const now = new Date();
   const tk = ymd(now);
   const done = totalDone(doc);
   const todayHas = (doc.dayLog[tk] ?? []).length > 0;
-  const hasData = done > 0 || Object.values(doc.dayLog).some((l) => l.length > 0);
+  const hasData = done > 0 || Object.values(doc.dayLog).some((x) => x.length > 0);
 
   // 기록을 훑는 계산은 문서·날짜·시계(자정 · 일요일 18시 · 앱으로 돌아올 때)가 바뀔 때만.
-  // 최근 10주에서 고른 날은 그 구역(HeatSection)이 따로 들고 있어 고를 때 이 화면 전체를 다시 그리지 않는다.
   const day = dateKey(now);
   /* eslint-disable react-hooks/exhaustive-deps */
   const streak = useMemo(() => overallStreak(doc), [doc.dayLog, day, clock]);
   const review = useMemo(() => weekReview(doc, new Date()), [doc, day, clock]);
   const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date(), l), [doc.dayLog, day, clock, l]);
-  const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc, day, clock]);
-  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, doneThisMonth(doc, new Date()), l), [doc, streak, day, clock, l]);
+  const month = useMemo(() => doneThisMonth(doc, new Date()), [doc, day, clock]);
+  const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, month, l), [doc.dayLog, streak, month, l]);
   const ritual = useMemo(() => ritualTarget(doc, new Date()), [doc, day, clock]);
+  const eyebrow = useMemo(() => statsEyebrow(new Date(), l), [day, clock, l]);
   /* eslint-enable react-hooks/exhaustive-deps */
-  const weeks = reviewWeeks(doc);
+
+  // 범위 줄 오른쪽 — 그 기간의 날짜(소리로는 또박또박)
+  const range = useMemo((): { text: string; say?: string } => {
+    if (scope === 'week') {
+      return { text: m.fmt.range({ from: dayOf(review.days[0].date), to: dayOf(review.days[6].date) }) };
+    }
+    if (scope === 'ten') {
+      const first = map.cols[0]?.[0]?.date ?? tk;
+      const last = map.cols[map.cols.length - 1]?.[6]?.date ?? tk;
+      if (!map.since) return { text: m.fmt.range({ from: dayOf(first), to: dayOf(last) }) };
+      // 소리로는 '10월 3일 토요일부터' — '10.3 (토)'는 소수로 읽힌다
+      return { text: m.stats.since({ date: fmtDateShort(map.since, l) }), say: m.stats.since({ date: fmtDateLong(map.since, l) }) };
+    }
+    const { from, to } = chartRange(doc, now);
+    return { text: m.fmt.range({ from: dayOf(from), to: dayOf(to) }) };
+  }, [scope, review, map, doc, day, m, l]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const scopes: FilterItem<Scope>[] = SCOPES.map((k) => ({
+    key: k,
+    label: k === 'week' ? m.stats.scopeWeek : k === 'ten' ? m.stats.scopeTen : m.stats.scopeYear,
+    testID: TID.statsScope(k),
+  }));
 
   return (
     <View style={{ paddingBottom: 24 }}>
-      <Header M={M} kr={m.stats.screenTitle} />
+      <Header M={M} eyebrow={eyebrow} title={m.stats.screenTitle} />
 
-      {!hasData && (
-        <Text style={{ ...TYPE.body, color: M.ink, paddingHorizontal: 20, paddingBottom: 18 }}>{emptyLine(l)}</Text>
-      )}
-
-      <Hero M={M} m={m} l={l} streak={streak} todayHas={todayHas} done={done} hasData={hasData} stacked={fontScale >= STACK_SCALE} />
-      <RecordLine M={M} parts={records} />
-
-      {/* 이번 주 */}
-      <SectionHead
+      <Hero
         M={M}
-        title={m.stats.secWeek}
-        right={ritual ? m.stats.reviewLink : undefined}
-        onRight={ritual ? () => { tap(); openRitual(ritual); } : undefined}
-        rightLabel={m.stats.reviewLinkSay}
+        m={m}
+        l={l}
+        streak={streak}
+        todayHas={todayHas}
+        done={done}
+        month={month}
+        hasData={hasData}
+        records={records}
+        themes={doc.themes}
+        measure={contentW}
+        stacked={fontScale >= STACK_SCALE}
+        go={go}
       />
-      <View style={{ paddingHorizontal: 20 }}>
-        {hasData && (
-          <Text style={{ fontSize: 17, lineHeight: 24, fontWeight: '700', color: M.ink }}>
-            {weekLead(review.total, done, weekSentence(review, doc), l)}
-          </Text>
-        )}
-        {!!weekDelta(review.total, review.prev, l) && (
-          <Text style={[{ ...TYPE.caption, color: M.sub, marginTop: 4 }, NUM]}>{weekDelta(review.total, review.prev, l)}</Text>
-        )}
-        <View style={{ marginTop: 18 }}>
-          <WeekBars M={M} days={review.days} />
-        </View>
-        <KindLedger M={M} doc={doc} review={review} />
+
+      {/* 범위 줄 — 고른 기간 하나만 아래에 그린다 */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: GUTTER, marginTop: 18 }}>
+        <FilterLine M={M} items={scopes} value={scope} onChange={setScope} variant="scope" />
+        <Text
+          style={[ROLE.label, { flex: 1, minWidth: 0, textAlign: 'right', color: M.print }]}
+          numberOfLines={1}
+          accessibilityLabel={range.say ?? range.text}
+        >
+          {range.text}
+        </Text>
       </View>
+
+      {scope === 'week' && (
+        <WeekScope
+          M={M}
+          doc={doc}
+          review={review}
+          done={done}
+          ritual={ritual}
+          onRitual={(w) => { tap(); openRitual(w); }}
+          onLink={(link) => {
+            tap();
+            if (link.kind === 'rate') openAction(link.ti, link.ai);
+            else go(link.kind === 'today' ? 'today' : 'grid');
+          }}
+        />
+      )}
+      {scope === 'ten' && (
+        <TenScope
+          M={M}
+          doc={doc}
+          map={map}
+          width={contentW}
+          hasData={hasData}
+          day={day}
+          onCell={(ti, ai) => openAction(ti, ai)}
+          onArea={(ti) => go('detail', ti)}
+        />
+      )}
+      {scope === 'year' && (
+        <YearScope
+          M={M}
+          m={m}
+          doc={doc}
+          now={now}
+          onYear={(v) => { tap(); openYear(v); }}
+          onAction={(ti, ai) => { tap(); openAction(ti, ai); }}
+          onReview={(w) => { tap(); openRitual(w, true); }}
+        />
+      )}
+    </View>
+  );
+});
+
+// ── 히어로 ───────────────────────────────────────────────────────────────────
+
+/**
+ * 히어로(홈과 같은 꼴) — 왼쪽에 연속 · 달성 두 칸(지도 높이에 위아래로 벌린다), 오른쪽에 작은 지도(L1).
+ * 기록이 없으면 연속 아래 줄은 비운다(이번 주의 첫 줄과 같은 말을 두 번 하지 않게). 큰 글자에서는 지도를 아래로.
+ * 지도의 블록을 누르면 그 영역(가운데는 만다라트) — 홈과 같다.
+ */
+const Hero = memo(function Hero({ M, m, l, streak, todayHas, done, month, hasData, records, themes, measure, stacked, go }: {
+  M: M;
+  m: Messages;
+  l: Lang;
+  streak: number;
+  todayHas: boolean;
+  done: number;
+  month: number;
+  hasData: boolean;
+  records: ReturnType<typeof recordParts>;
+  themes: MandaratDoc['themes'];
+  measure: number;
+  stacked: boolean;
+  go: ReturnType<typeof useUIActions>['go'];
+}) {
+  const cell = heroCell(measure);
+  const mapH = l1Width(cell);
+  const fields = (
+    <View style={{ flex: stacked ? undefined : 1, minWidth: 0, justifyContent: 'space-between', paddingVertical: 2, gap: 18, minHeight: stacked ? undefined : mapH }}>
+      <HeroField
+        M={M}
+        label={m.stats.heroStreak}
+        value={`${streak}${m.stats.heroDays({ n: streak })}`}
+        note={hasData ? streakCaption(streak, todayHas, l) : ''}
+        extra={records.lead}
+        extraStrong={records.best}
+        speech={streakSpeech(streak, todayHas, l)}
+        sep={m.core.listSep}
+        maxScale={STACK_SCALE}
+      />
+      <HeroField
+        M={M}
+        label={m.stats.heroDone}
+        value={m.stats.heroCells({ done })}
+        note={m.stats.monthCells({ n: month })}
+        speech={m.chart.doneOf64Say({ done })}
+        sep={m.core.listSep}
+        maxScale={STACK_SCALE}
+      />
+    </View>
+  );
+  const onBlock = (b: number | 'c') => { tap(); if (b === 'c') go('grid'); else go('detail', b); };
+  const chart = <ColourMap themes={themes} level="L1" cell={cell} onPressBlock={onBlock} />;
+  return (
+    <View style={{ flexDirection: stacked ? 'column' : 'row', gap: stacked ? 18 : 24, paddingHorizontal: GUTTER, marginTop: 18 }}>
+      {fields}
+      {chart}
+    </View>
+  );
+});
+
+// ── 이번 주 ──────────────────────────────────────────────────────────────────
+
+const WeekScope = memo(function WeekScope({ M, doc, review, done, ritual, onRitual, onLink }: {
+  M: M;
+  doc: MandaratDoc;
+  review: ReturnType<typeof weekReview>;
+  done: number;
+  ritual: string | null;
+  onRitual: (week: string) => void;
+  onLink: (link: KindLink) => void;
+}) {
+  const m = useMsg();
+  const l = useLang();
+  const reading = weekReading(review, doc, l);
+  const meta = [review.total > 0 ? m.stats.weekAll({ n: review.total }) : '', weekDelta(review.total, review.prev, l)].filter(Boolean).join(m.core.dot);
+  const stack = useMemo(() => weekStack(doc.dayLog, review.days), [doc.dayLog, review]);
+  const bars: WeekBarDay[] = review.days.map((d, i) => ({
+    label: m.fmt.dowNarrow({ i: d.dow }),
+    n: d.future ? null : d.count,
+    today: d.isToday,
+    sunday: d.dow === 0,
+    stack: stack.days[i] ?? undefined,
+  }));
+  const names = doc.themes.map((th, ti) => th.title.trim() || m.chart.areaN({ n: ti + 1 }));
+  const key = weekAreaKey(stack.counts, reading.low);
+  const keyLabel = key.map(({ ti, n }) => m.stats.areaCountSay({ name: names[ti], n })).join(m.core.listSep);
+  const rows = kindRows(review, doc, new Date(), l);
+
+  return (
+    <View style={{ paddingHorizontal: GUTTER }}>
+      {/* 읽는 한 줄 — 가장 많이 · 가장 적게 챙긴 영역(기록이 없으면 빈 양식 위의 한 줄) */}
+      <View style={{ marginTop: 10 }}>
+        <Text style={[ROLE.prompt, { color: M.ink }]}>{noOrphan(reading.text)}</Text>
+        {!!meta && <Text style={[ROLE.meta, { color: M.ink2, marginTop: 2 }]}>{meta}</Text>}
+        {review.total > 0 && done === 0 && <Text style={[ROLE.note, { color: M.print, marginTop: 2 }]}>{m.stats.doneHint}</Text>}
+      </View>
+
+      <WeekBars days={bars} variant="stack" accessibilityLabel={weekBarsSpeech(review.days, l)} style={{ marginTop: 14 }} />
+      <View style={{ marginTop: 14 }}>
+        <WeekAreaKey M={M} items={key} names={names} label={keyLabel} />
+      </View>
+
+      {/* 유형 줄 — 있는 것은 숫자, 기록이 없는 것은 한 줄 + 링크 */}
+      <View style={{ marginTop: 22 }}>
+        {rows.map((r, i) => <KindLine key={r.key} M={M} r={r} first={i === 0} onLink={onLink} />)}
+      </View>
+
+      {ritual && (
+        <View style={{ marginTop: 8 }}>
+          <LineRow M={M} first title={m.stats.reviewLinkSay} right="chevron" accessibilityLabel={m.stats.reviewLinkSay} onPress={() => onRitual(ritual)} />
+        </View>
+      )}
+    </View>
+  );
+});
+
+/** 유형 줄 하나(목업 .kind) — 이름 · 한 줄 · 오른쪽 숫자(또는 링크). 44 높이, 줄 사이 머리카락 선 */
+function KindLine({ M, r, first, onLink }: { M: M; r: KindRow; first: boolean; onLink: (link: KindLink) => void }) {
+  const m = useMsg();
+  const l = useLang();
+  const link = r.link;
+  const linkText = !link ? '' : link.kind === 'rate' ? m.stats.linkRate : link.kind === 'today' ? m.stats.linkToday : m.stats.linkSet;
+  const linkHint = !link ? undefined : link.kind === 'rate' ? m.stats.linkRateHint : link.kind === 'today' ? m.stats.linkTodayHint : m.stats.linkSetHint;
+  // say: 화면 읽기가 말할 값 — '5/7번'·'+2권 · +50만 원'을 날짜·기호로 읽지 않게(한 주 돌아보기 장부와 같은 말)
+  const said = r.value != null ? ledgerLabel({ ...r, value: r.value }, l) : [r.label, r.sub].filter(Boolean).join(m.core.listSep);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingVertical: 6 }}>
+      {!first && <RowDivider M={M} inset={0} />}
+      <View accessible accessibilityLabel={said} {...a11yLangProp()} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text style={[STATS_TYPE.kindName, { width: KIND_NAME_W, color: M.ink }]} numberOfLines={2}>{r.label}</Text>
+        <Text style={[ROLE.rowRight, { flex: 1, minWidth: 0, color: M.ink2 }]} numberOfLines={2}>{r.sub}</Text>
+        {r.value != null && <Figure M={M} text={r.value} role={STATS_TYPE.kindFig} unitStyle={ROLE.meta} maxScale={1.6} />}
+      </View>
+      {link && <InLink M={M} label={linkText} hint={linkHint} onPress={() => onLink(link)} />}
+    </View>
+  );
+}
+
+// ── 10주 ─────────────────────────────────────────────────────────────────────
+
+/**
+ * 10주 — 위 한 줄(가장 많이 한 날, 또는 고른 날) + 최근 10주 달력, 그 아래 8개 영역(닳은 자리).
+ * 고른 날은 여기서만 들고 있다(날을 고를 때 통계 전체가 아니라 이 구역만 다시 그린다).
+ */
+const TenScope = memo(function TenScope({ M, doc, map, width, hasData, day, onCell, onArea }: {
+  M: M;
+  doc: MandaratDoc;
+  map: HeatMap;
+  width: number;
+  hasData: boolean;
+  /** 오늘 — 바뀔 때만 닳은 자리를 다시 센다 */
+  day: string;
+  onCell: (ti: number, ai: number) => void;
+  onArea: (ti: number) => void;
+}) {
+  const m = useMsg();
+  const l = useLang();
+  const [picked, setPicked] = useState<string | null>(null);
+  const line = picked ? pickedLine(doc, picked, l) : bestLine(map.best, l);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const activity = useMemo(() => cellActivity(doc, new Date(), 28), [doc, day]);
+  const mapW = Math.min(width, MAP_MAX);
+  const left = PixelRatio.roundToNearestPixel((width - mapW) / 2);
+  return (
+    <View style={{ paddingHorizontal: GUTTER, marginTop: 10 }}>
+      {hasData && (
+        <Text
+          style={[ROLE.meta, { color: picked ? M.ink : M.ink2, marginBottom: 12 }]}
+          numberOfLines={2}
+          // 달력이 화면 읽기에서 고른 날을 값으로 읽으므로, 이 줄은 화면 읽기에서 겹쳐 읽지 않는다
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {line}
+        </Text>
+      )}
+      <TenWeeks
+        M={M}
+        map={map}
+        width={width}
+        picked={picked}
+        onPick={setPicked}
+        speech={heatSpeech(map, l)}
+        // 고른 날 값(소리) — 보이는 줄(pickedLine)과 같은 내용을 '10월 3일 토요일, 4번, …'으로
+        pickedText={picked ? pickedSpeech(doc, picked, l) : m.stats.noPick}
+      />
+
+      {/* 8개 영역 — 내 표가 닳은 자리(스토어 사진은 이 머리를 맨 위로 올려 찍는다 — tools/store-shots) */}
+      <View testID={TID.statsWear} style={{ marginTop: SECTION_GAP }}>
+        <Section M={M} label={m.stats.secAreas} note={m.stats.areasRight} />
+      </View>
+      <View style={{ marginLeft: left }}>
+        <ActivityChart M={M} doc={doc} activity={activity} width={mapW} onCell={onCell} onArea={onArea} />
+      </View>
+      <WearLegend M={M} />
+    </View>
+  );
+});
+
+// ── 올해 ─────────────────────────────────────────────────────────────────────
+
+/** 올해 — 한 해 돌아보기 · 보관함, 숫자 목표, 마음가짐, 회고(기분 줄 · 한 줄), 돌아본 주 */
+const YearScope = memo(function YearScope({ M, m, doc, now, onYear, onAction, onReview }: {
+  M: M;
+  m: Messages;
+  doc: MandaratDoc;
+  now: Date;
+  onYear: (v: YearView) => void;
+  onAction: (ti: number, ai: number) => void;
+  onReview: (week: string) => void;
+}) {
+  const weeks = reviewWeeks(doc);
+  return (
+    <View style={{ paddingHorizontal: GUTTER, marginTop: 10 }}>
+      {/* 한 해 — 지금 표의 한 해 돌아보기 · 지난 표 보관함 */}
+      <YearSection M={M} m={m} doc={doc} now={now} onOpen={onYear} />
+
+      {/* 숫자 목표 · 마음가짐 */}
+      {hasKind(doc, 'count') && <Section M={M} label={m.stats.secCount} note={m.stats.countRight} style={{ marginTop: SECTION_GAP }} />}
+      <CountLedger M={M} doc={doc} onOpen={onAction} />
+      {hasKind(doc, 'mind') && <Section M={M} label={m.stats.secMind} note={m.stats.last8w} style={{ marginTop: SECTION_GAP }} />}
+      <MindLedger M={M} doc={doc} onOpen={onAction} />
+
+      {/* 회고 */}
+      <Section M={M} label={m.stats.secReflect} note={m.stats.last14d} style={{ marginTop: SECTION_GAP }} />
+      <Reflections M={M} doc={doc} now={now} />
 
       {/* 돌아본 주 — 돌아본 기록이 있을 때만 */}
       {weeks.length > 0 && (
         <>
-          <SectionHead M={M} title={m.stats.secReviewed} right={m.stats.weeksN({ n: weeks.length })} />
-          <ReviewList M={M} doc={doc} weeks={weeks} onOpen={(w) => { tap(); openRitual(w, true); }} />
+          <Section M={M} label={m.stats.secReviewed} note={m.stats.weeksN({ n: weeks.length })} style={{ marginTop: SECTION_GAP }} />
+          <ReviewList M={M} doc={doc} weeks={weeks} onOpen={onReview} />
         </>
       )}
-
-      {/* 최근 10주 */}
-      <SectionHead
-        M={M}
-        title={m.stats.secTenWeeks}
-        right={map.since ? m.stats.since({ date: fmtDateShort(map.since, l) }) : undefined}
-        // 소리로는 '10월 3일 토요일부터' — '10.3 (토)'는 소수로 읽힌다
-        rightLabel={map.since ? m.stats.since({ date: fmtDateLong(map.since, l) }) : undefined}
-      />
-      <HeatSection M={M} doc={doc} map={map} width={contentW} hasData={hasData} />
-
-      {/* 숫자 목표 · 마음가짐 */}
-      {hasKind(doc, 'count') && <SectionHead M={M} title={m.stats.secCount} right={m.stats.countRight} />}
-      <CountLedger M={M} doc={doc} onOpen={(ti, ai) => { tap(); openAction(ti, ai); }} />
-      {hasKind(doc, 'mind') && <SectionHead M={M} title={m.stats.secMind} right={m.stats.last8w} />}
-      <MindLedger M={M} doc={doc} onOpen={(ti, ai) => { tap(); openAction(ti, ai); }} />
-
-      {/* 8개 영역 — 내 표가 닳은 자리(스토어 사진은 이 머리를 맨 위로 올려 찍는다 — tools/store-shots) */}
-      <View testID={TID.statsWear}>
-        <SectionHead M={M} title={m.stats.secAreas} right={m.stats.areasRight} />
-      </View>
-      <View style={{ paddingHorizontal: 20 }}>
-        <ActivityChart
-          M={M}
-          doc={doc}
-          activity={activity}
-          width={contentW}
-          onCell={(ti, ai) => openAction(ti, ai)}
-          onArea={(ti) => go('detail', ti)}
-        />
-        <WearLegend M={M} />
-      </View>
-
-      {/* 회고 */}
-      <SectionHead M={M} title={m.stats.secReflect} right={m.stats.last14d} />
-      <Reflections M={M} doc={doc} now={now} />
-
-      {/* 한 해 — 지금 표의 한 해 돌아보기 · 지난 표 보관함 */}
-      <SectionHead M={M} title={m.year.settingsHead} />
-      <YearSection M={M} m={m} doc={doc} now={now} onOpen={(v) => { tap(); openYear(v); }} />
     </View>
   );
 });
@@ -166,7 +439,7 @@ function YearSection({ M, m, doc, now, onOpen }: {
   const label = yearLabel(from, to);
   const shelf = m.year.statsShelf({ n: doc.archives?.length ?? 0 });
   return (
-    <View style={{ paddingHorizontal: 20 }}>
+    <View>
       <View testID={TID.statsYear}>
         <LineRow
           M={M}
@@ -197,164 +470,6 @@ function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
   return doc.themes.some((th) => th.actions.some((a) => a.text.trim() && kindOf(a) === kind));
 }
 
-// ── 구역 머리 ────────────────────────────────────────────────────────────────
-
-/** 종이 위 작은 제목 한 줄(카드 없이). 오른쪽 글은 설명이거나, onRight가 있으면 누르는 글 */
-const SectionHead = memo(function SectionHead({ M, title, right, onRight, rightLabel }: {
-  M: M;
-  title: string;
-  right?: string;
-  onRight?: () => void;
-  rightLabel?: string;
-}) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 34, paddingBottom: 12, minHeight: 44 }}>
-      <Text style={{ flex: 1, ...TYPE.section, color: M.ink }} accessibilityRole="header">{title}</Text>
-      {!!right && (onRight ? (
-        <Pressable
-          onPress={onRight}
-          accessibilityRole="button"
-          accessibilityLabel={rightLabel ?? right}
-          hitSlop={8}
-          style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', marginVertical: -12, opacity: pressed ? 0.5 : 1 })}
-        >
-          <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{right}</Text>
-        </Pressable>
-      ) : (
-        <Text style={[{ fontSize: 12.5, fontWeight: '600', color: M.sub }, NUM]} accessibilityLabel={rightLabel ?? right}>{right}</Text>
-      ))}
-    </View>
-  );
-});
-
-// ── 큰 숫자 둘 ───────────────────────────────────────────────────────────────
-
-function BigNumber({ M, label, value, unit, caption, captionStrong, speech, sep }: {
-  M: M;
-  label: string;
-  value: string;
-  unit: string;
-  caption: string;
-  captionStrong?: boolean;
-  speech: string;
-  /** 읽기 글을 잇는 쉼표(core.listSep) */
-  sep: string;
-}) {
-  return (
-    <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={[label, speech, caption].filter(Boolean).join(sep)}>
-      <Text style={{ ...TYPE.caption, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={STACK_SCALE}>{label}</Text>
-      <Text
-        style={[{ fontSize: 46, lineHeight: 52, fontWeight: '800', color: M.ink, letterSpacing: -1.5 }, NUM]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        maxFontSizeMultiplier={STACK_SCALE}
-      >
-        {value}
-        <Text style={[{ fontSize: 20, fontWeight: '700', color: M.sub, letterSpacing: 0 }, NUM]}>{unit}</Text>
-      </Text>
-      <Text
-        style={{ ...TYPE.caption, color: captionStrong ? M.ink : M.sub, fontWeight: captionStrong ? '600' : '500' }}
-        maxFontSizeMultiplier={STACK_SCALE}
-      >
-        {caption}
-      </Text>
-    </View>
-  );
-}
-
-/** 연속 · 달성한 칸 — 큰 글자에서는 위아래로 쌓고 사이에 가로 괘선 */
-/** 기록이 없으면 연속 아래 줄은 비운다 — 맨 위 emptyLine()과 같은 말을 두 번 하지 않게(줄 자리는 남겨 두 칸 높이를 맞춘다) */
-const Hero = memo(function Hero({ M, m, l, streak, todayHas, done, hasData, stacked }: {
-  M: M;
-  m: Messages;
-  l: Lang;
-  streak: number;
-  todayHas: boolean;
-  done: number;
-  hasData: boolean;
-  stacked: boolean;
-}) {
-  return (
-    <View style={{ flexDirection: stacked ? 'column' : 'row', paddingHorizontal: 20, paddingTop: 2 }}>
-      <BigNumber
-        M={M}
-        label={m.stats.heroStreak}
-        value={`${streak}`}
-        unit={m.stats.heroDays({ n: streak })}
-        caption={hasData ? streakCaption(streak, todayHas, l) : ''}
-        captionStrong={streak > 0 && !todayHas}
-        speech={streakSpeech(streak, todayHas, l)}
-        sep={m.core.listSep}
-      />
-      {stacked
-        ? <View style={{ height: 1, backgroundColor: M.line, marginVertical: 14 }} />
-        : <View style={{ width: 1, backgroundColor: M.line, marginHorizontal: 18 }} />}
-      <BigNumber
-        M={M}
-        label={m.stats.heroDone}
-        value={`${done}`}
-        unit="/64"
-        caption={m.stats.heroOf64}
-        speech={m.chart.doneOf64Say({ done })}
-        sep={m.core.listSep}
-      />
-    </View>
-  );
-});
-
-const RecordLine = memo(function RecordLine({ M, parts }: { M: M; parts: ReturnType<typeof recordParts> }) {
-  const m = useMsg();
-  return (
-    <Text style={[{ ...TYPE.caption, color: M.sub, paddingHorizontal: 20, marginTop: 14 }, NUM]}>
-      {!!parts.lead && (
-        <Text style={parts.best ? { color: M.ink, fontWeight: '700' } : undefined}>{parts.lead}</Text>
-      )}
-      {parts.lead ? `${m.core.dot}${parts.month}` : parts.month}
-    </Text>
-  );
-}, sameProps);
-
-// ── 이번 주 장부 ─────────────────────────────────────────────────────────────
-
-/** 습관 · 쌓은 것 · 마음가짐 · 집중 — 있는 것만 한 줄씩 */
-function KindLedger({ M, doc, review }: { M: M; doc: MandaratDoc; review: ReturnType<typeof weekReview> }) {
-  const m = useMsg();
-  const l = useLang();
-  // say: 화면 읽기가 말할 값 — '5/7번'·'+2권 · +50만 원'을 날짜·기호로 읽지 않게(한 주 돌아보기 장부와 같은 말)
-  const rows: { label: string; value: string; sub?: string; say?: string; subSay?: string }[] = [];
-  const habit = habitRow(review, l);
-  if (habit) rows.push({ label: m.kinds.labelHabit, ...habit });
-  if (review.added.length > 0) rows.push({ label: m.stats.ledgerAdded, value: addedLine(review.added), say: addedSpeech(review.added) });
-  if (review.mindTotal > 0) {
-    rows.push({
-      label: m.kinds.labelMind,
-      value: mindLine(review),
-      sub: review.mindRated > 0 ? m.stats.mindRatedOf({ total: review.mindTotal, done: review.mindRated }) : m.stats.mindNotYet,
-    });
-  }
-  if ((doc.focusMinutes ?? 0) > 0) rows.push({ label: m.stats.ledgerFocus, value: fmtMinutes(doc.focusMinutes, l), sub: m.stats.soFar });
-  if (rows.length === 0) return null;
-  return (
-    <View style={{ marginTop: 22 }}>
-      {rows.map((r, i) => (
-        <View
-          key={r.label}
-          accessible
-          accessibilityLabel={ledgerLabel(r, l)}
-          style={[groupEdge(M, i === 0, i === rows.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 2, minHeight: 48 }]}
-        >
-          {i > 0 && <RowDivider M={M} inset={0} />}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: M.ink }}>{r.label}</Text>
-            {!!r.sub && <Text style={[{ fontSize: 12, lineHeight: 16, color: M.sub, marginTop: 2 }, NUM]}>{r.sub}</Text>}
-          </View>
-          <Text style={[{ fontSize: 15, fontWeight: '800', color: M.ink, textAlign: 'right', flexShrink: 1 }, NUM]} numberOfLines={1}>{r.value}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 // ── 돌아본 주 ────────────────────────────────────────────────────────────────
 
 function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: string[]; onOpen: (week: string) => void }) {
@@ -365,25 +480,22 @@ function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: 
   const more = !all && weeks.length > REVIEW_ROWS;
   const rows = shown.map((w) => reviewRow(doc, w, l));
   return (
-    <View style={{ paddingHorizontal: 20 }}>
+    <View>
       {rows.map((r, i) => (
         <Pressable
           key={r.week}
           onPress={() => onOpen(r.week)}
           accessibilityRole="button"
           accessibilityLabel={[r.range, r.line, r.note, m.stats.openReview].filter(Boolean).join(m.core.listSep)}
-          style={({ pressed }) => [
-            groupEdge(M, i === 0, i === rows.length - 1 && !more),
-            { paddingVertical: 12, paddingHorizontal: 2, minHeight: 48, justifyContent: 'center' },
-            pressed ? pressedRow(M) : null,
-          ]}
+          {...a11yLangProp()}
+          style={({ pressed }) => [{ paddingVertical: 12, minHeight: 48, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
         >
           {i > 0 && <RowDivider M={M} inset={0} />}
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
-            <Text style={[{ flex: 1, fontSize: 13, fontWeight: '700', color: M.ink }, NUM]} numberOfLines={1}>{r.range}</Text>
-            <Text style={[{ fontSize: 12.5, fontWeight: '500', color: M.sub }, NUM]} numberOfLines={1}>{r.line}</Text>
+            <Text style={[ROLE.rowRight, { flex: 1, color: M.ink }]} numberOfLines={1}>{r.range}</Text>
+            <Text style={[ROLE.meta, { color: M.ink2 }]} numberOfLines={1}>{r.line}</Text>
           </View>
-          {!!r.note && <Text style={{ fontSize: 13, lineHeight: 19, color: M.ink, marginTop: 4 }} numberOfLines={2}>{r.note}</Text>}
+          {!!r.note && <Text style={[ROLE.body, { color: M.ink, marginTop: 2 }]} numberOfLines={2}>{r.note}</Text>}
         </Pressable>
       ))}
       {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={m.stats.moreWeeks({ n: weeks.length - REVIEW_ROWS })} />}
@@ -391,7 +503,7 @@ function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: 
   );
 }
 
-/** 목록 끝 '더 보기' — 그 자리에서 펼친다(진한 아랫줄로 묶음을 닫는다) */
+/** 목록 끝 '더 보기' — 그 자리에서 펼친다 */
 function MoreRow({ M, onPress, label }: { M: M; onPress: () => void; label: string }) {
   const m = useMsg();
   return (
@@ -399,64 +511,16 @@ function MoreRow({ M, onPress, label }: { M: M; onPress: () => void; label: stri
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [groupEdge(M, false, true), { minHeight: 44, paddingHorizontal: 2, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
+      {...a11yLangProp()}
+      style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
     >
       <RowDivider M={M} inset={0} />
-      <Text style={{ fontSize: 14, fontWeight: '700', color: M.ink }}>{m.stats.more}</Text>
+      <Text style={[ROLE.quiet, { color: M.ink }]}>{m.stats.more}</Text>
     </Pressable>
   );
 }
 
-// ── 최근 10주 ────────────────────────────────────────────────────────────────
-
-/**
- * 최근 10주 — 위 한 줄(가장 많이 한 날, 또는 고른 날) + 달력. 고른 날은 여기서만 들고 있다
- * (날을 고를 때 통계 전체가 아니라 이 구역만 다시 그린다).
- */
-const HeatSection = memo(function HeatSection({ M, doc, map, width, hasData }: {
-  M: M;
-  doc: MandaratDoc;
-  map: HeatMap;
-  width: number;
-  hasData: boolean;
-}) {
-  const m = useMsg();
-  const l = useLang();
-  const [picked, setPicked] = useState<string | null>(null);
-  const line = picked ? pickedLine(doc, picked, l) : bestLine(map.best, l);
-  return (
-    <View style={{ paddingHorizontal: 20 }}>
-      {hasData && (
-        <Text
-          style={[{ ...TYPE.caption, color: picked ? M.ink : M.sub, fontWeight: picked ? '700' : '500', marginBottom: 12 }, NUM]}
-          numberOfLines={2}
-          // 달력이 화면 읽기에서 고른 날을 값으로 읽으므로, 이 줄은 화면 읽기에서 겹쳐 읽지 않는다
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          {line}
-        </Text>
-      )}
-      <TenWeeks
-        M={M}
-        map={map}
-        width={width}
-        picked={picked}
-        onPick={setPicked}
-        speech={heatSpeech(map, l)}
-        // 고른 날 값(소리) — 보이는 줄(pickedLine)과 같은 내용을 '10월 3일 토요일, 4번, …'으로
-        pickedText={picked ? pickedSpeech(doc, picked, l) : m.stats.noPick}
-      />
-    </View>
-  );
-});
-
 // ── 숫자 목표 · 마음가짐 ─────────────────────────────────────────────────────
-
-/** 영역 색 네모 — 줄 앞에서 어느 영역의 칸인지(색만으로 뜻을 전하지 않도록 이름은 글로 읽힌다) */
-function AreaChip({ color }: { color: string }) {
-  return <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: color }} />;
-}
 
 /** 이번 달(1일~오늘) 더한 수 */
 function monthAdded(log: Record<string, number> | undefined, today: Date): number {
@@ -465,8 +529,11 @@ function monthAdded(log: Record<string, number> | undefined, today: Date): numbe
   return Object.entries(log ?? {}).reduce((s, [k, v]) => (k >= from && k <= tk ? s + (cleanNum(v) ?? 0) : s), 0);
 }
 
+/** 진행 줄 — 4 높이 tile 받침에 영역 색, 모서리 2(KindBits CountBar와 같은 그림) */
+const BAR_H = 4;
+
 /**
- * 숫자 목표 — 아직 닿지 않은 것 먼저(많이 찬 순). 지금까지 / 목표, 진행 줄(4주 전 자리에 먹색 눈금),
+ * 숫자 목표 — 아직 닿지 않은 것 먼저(많이 찬 순). 지금까지 / 목표, 진행 줄(4주 전 자리에 먹 눈금),
  * 이번 주 더한 수, 이 속도면 언제 닿는지.
  */
 function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: number, ai: number) => void }) {
@@ -479,7 +546,7 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
     .sort((x, y) => compareCounts(x.c, y.c));
   if (items.length === 0) return null;
   return (
-    <View style={{ paddingHorizontal: 20 }}>
+    <View>
       {items.map(({ a, ti, ai, th, c }, i) => {
         const week = countWeekAdded(a, now);
         const pace = countPace(a, now, 28);
@@ -501,27 +568,28 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
             onPress={() => onOpen(ti, ai)}
             accessibilityRole="button"
             accessibilityLabel={[area, a.text.trim(), said, `${c.pct}%`, right, paceSay].filter(Boolean).join(m.core.listSep)}
-            style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
+            {...a11yLangProp()}
+            style={({ pressed }) => [{ paddingVertical: 12 }, pressed ? pressedRow(M) : null]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <AreaChip color={th.color} />
-              <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{a.text.trim()}</Text>
-              <Text style={[{ minWidth: 96, textAlign: 'right', fontSize: 13, fontWeight: '800', color: M.ink }, NUM]} numberOfLines={1}>{countText(c, l)}</Text>
+              <DyeMark M={M} area={ti} style={{ marginRight: 0 }} />
+              <Text style={[ROLE.rowTitle, { flex: 1, color: M.ink }]} numberOfLines={1}>{a.text.trim()}</Text>
+              <Text style={[ROLE.rowRight, { minWidth: 96, textAlign: 'right', color: M.ink }]} numberOfLines={1}>{countText(c, l)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, paddingLeft: 17 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 16 }}>
               <View style={{ flex: 1, height: 8, justifyContent: 'center' }}>
-                <View style={{ height: 4, backgroundColor: M.line }}>
-                  <View style={{ width: `${Math.max(0, Math.min(100, c.pct))}%`, height: '100%', backgroundColor: th.color }} />
+                <View style={{ height: BAR_H, borderRadius: BAR_H / 2, backgroundColor: M.tile, overflow: 'hidden' }}>
+                  <View style={{ width: `${Math.max(0, Math.min(100, c.pct))}%`, height: '100%', backgroundColor: M.dye[ti] }} />
                 </View>
                 {tick != null && (
                   <View pointerEvents="none" style={{ position: 'absolute', left: `${tick}%`, top: 0, width: 1, height: 8, backgroundColor: M.ink }} />
                 )}
               </View>
-              <Text style={[{ minWidth: 96, textAlign: 'right', fontSize: 12, fontWeight: '600', color: M.sub }, NUM]} numberOfLines={1}>{right}</Text>
+              <Text style={[ROLE.meta, { minWidth: 96, textAlign: 'right', color: M.ink2 }]} numberOfLines={1}>{right}</Text>
             </View>
             {!!paceText && (
-              <Text style={[{ fontSize: 12, lineHeight: 16, color: M.sub, marginTop: 5, paddingLeft: 17 }, NUM]} numberOfLines={1}>{paceText}</Text>
+              <Text style={[ROLE.meta, { color: M.ink2, marginTop: 4, paddingLeft: 16 }]} numberOfLines={1}>{paceText}</Text>
             )}
           </Pressable>
         );
@@ -530,7 +598,10 @@ function CountLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: 
   );
 }
 
-/** 마음가짐 — 칸마다 최근 8주 점수 막대(0부터 점수 × 5pt), 매기지 않은 주는 3pt 눈금 */
+/** 마음가짐 막대 — 폭 7, 사이 3, 점수 × 5pt(매기지 않은 주는 3pt 눈금) */
+const MIND_BAR = { w: 7, gap: 3, unit: 5, none: 3, h: 25 } as const;
+
+/** 마음가짐 — 칸마다 최근 8주 점수 막대(이번 주는 영역 색, 지난 주들은 washL1, 매기지 않은 주는 printMid 눈금) */
 function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: number, ai: number) => void }) {
   const m = useMsg();
   const now = new Date();
@@ -538,7 +609,7 @@ function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: n
     .filter(({ a }) => a.text.trim() && kindOf(a) === 'mind');
   if (items.length === 0) return null;
   return (
-    <View style={{ paddingHorizontal: 20 }}>
+    <View>
       {items.map(({ a, ti, ai, th }, i) => {
         const hist = ratingHistory(a, now, 8);
         const score = ratingOf(a, now);
@@ -557,29 +628,31 @@ function MindLedger({ M, doc, onOpen }: { M: M; doc: MandaratDoc; onOpen: (ti: n
               score ? m.stats.mindWeekSay({ n: score }) : m.stats.mindWeekNone,
               rated.length ? m.stats.mindOf8Say({ sub }) : sub,
             ].join(m.core.listSep)}
-            style={({ pressed }) => [groupEdge(M, i === 0, i === items.length - 1), { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 2 }, pressed ? pressedRow(M) : null]}
+            {...a11yLangProp()}
+            style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }, pressed ? pressedRow(M) : null]}
           >
             {i > 0 && <RowDivider M={M} inset={0} />}
             <View style={{ flex: 1, minWidth: 0 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <AreaChip color={th.color} />
-                <Text style={{ flex: 1, fontSize: 15, fontWeight: '700', color: M.ink }} numberOfLines={1}>{a.text.trim()}</Text>
+                <DyeMark M={M} area={ti} style={{ marginRight: 0 }} />
+                <Text style={[ROLE.rowTitle, { flex: 1, color: M.ink }]} numberOfLines={1}>{a.text.trim()}</Text>
               </View>
-              <Text style={[{ fontSize: 12, lineHeight: 16, color: M.sub, marginTop: 3, paddingLeft: 17 }, NUM]} numberOfLines={1}>{sub}</Text>
+              <Text style={[ROLE.meta, { color: M.ink2, marginTop: 2, paddingLeft: 16 }]} numberOfLines={1}>{sub}</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 25 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: MIND_BAR.gap, height: MIND_BAR.h }}>
               {hist.map((h, hi) => (
                 <View
                   key={h.week}
                   style={{
-                    width: 7,
-                    height: h.score ? h.score * 5 : 3,
-                    backgroundColor: h.score ? (hi === hist.length - 1 ? th.color : alpha(th.color, 0.55)) : M.line,
+                    width: MIND_BAR.w,
+                    height: h.score ? h.score * MIND_BAR.unit : MIND_BAR.none,
+                    borderRadius: 1,
+                    backgroundColor: h.score ? (hi === hist.length - 1 ? M.dye[ti] : M.washL1[ti]) : M.printMid,
                   }}
                 />
               ))}
             </View>
-            <Text style={[{ width: 32, textAlign: 'right', fontSize: 13, fontWeight: '800', color: score ? M.ink : M.sub }, NUM]}>
+            <Text style={[ROLE.rowRight, { width: 32, textAlign: 'right', color: score ? M.ink : M.ink2 }]}>
               {score ? m.chart.points({ n: score }) : '—'}
             </Text>
           </Pressable>
@@ -601,30 +674,29 @@ function Reflections({ M, doc, now }: { M: M; doc: MandaratDoc; now: Date }) {
   const anyMood = strip.some((d) => d.mood !== null);
   if (!anyMood && entries.length === 0) {
     return (
-      <View style={{ paddingHorizontal: 20 }}>
-        <View style={[groupEdge(M, true, true), { minHeight: 48, justifyContent: 'center', paddingHorizontal: 2 }]}>
-          <Text style={{ ...TYPE.caption, color: M.sub }}>{m.stats.reflectEmpty}</Text>
-        </View>
+      <View style={{ minHeight: 44, justifyContent: 'center' }}>
+        <Text style={[ROLE.note, { color: M.print }]}>{m.stats.reflectEmpty}</Text>
       </View>
     );
   }
   const shown = all ? entries : entries.slice(0, NOTE_ROWS);
   const more = !all && entries.length > NOTE_ROWS;
   return (
-    <View style={{ paddingHorizontal: 20 }}>
+    <View style={{ marginTop: 6 }}>
       <MoodStrip M={M} days={strip} speech={moodSpeech(strip, l)} />
       {shown.length > 0 && (
-        <View style={{ marginTop: 18 }}>
+        <View style={{ marginTop: 14 }}>
           {shown.map((e, i) => (
             <View
               key={e.date}
               accessible
               accessibilityLabel={`${e.say}${m.core.listSep}${e.text}`}
-              style={[groupEdge(M, i === 0, i === shown.length - 1 && !more), { paddingVertical: 12, paddingHorizontal: 2 }]}
+              {...a11yLangProp()}
+              style={{ paddingVertical: 12 }}
             >
               {i > 0 && <RowDivider M={M} inset={0} />}
-              <Text style={[{ fontSize: 12, lineHeight: 16, fontWeight: '700', color: M.sub }, NUM]}>{e.head}</Text>
-              <Text style={{ fontSize: 14, lineHeight: 20, color: M.ink, marginTop: 3 }}>{e.text}</Text>
+              <Text style={[ROLE.meta, { color: M.ink2 }]}>{e.head}</Text>
+              <Text style={[ROLE.body, { color: M.ink, marginTop: 2 }]}>{e.text}</Text>
             </View>
           ))}
           {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={m.stats.moreNotes({ n: entries.length - NOTE_ROWS })} />}

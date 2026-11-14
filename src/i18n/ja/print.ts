@@ -42,4 +42,6 @@ export default {
   failed: 'PDFを作れませんでした',
   shareLink: '印刷用PDF ›',
   shareLinkSay: '印刷用PDF',
+  posterEyebrow: ({ y }) => `${y}年の中心の目標`,
+  posterUnit: 'マス',
 } satisfies Like<typeof ko>;

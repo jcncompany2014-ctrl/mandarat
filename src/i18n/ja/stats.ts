@@ -100,6 +100,7 @@ export default {
   moodDaySay: ({ date, word }) => `${date} ${word}`,
 
   eyebrow: ({ y, w, days }) => `${fmt.weekNo({ y, w })}・${fmt.dueShort({ days })}`,
+  heroCells: ({ done }) => `${done}/64マス`,
   monthCells: ({ n }) => `今月 ${n}マス`,
   scopeWeek: '今週',
   scopeTen: '10週',

@@ -37,20 +37,12 @@ function loadPure(rel, pass = []) {
   }
 }
 
-test('ChartPoster: scale 1은 공유 이미지의 원래 값 그대로, 다른 배율은 모든 치수가 똑같이 늘어난다', () => {
-  const { posterMetrics } = loadPure(POSTER, ['../lib/poster']);
+test('ChartPoster: scale 1은 공유 이미지(540×675) 그대로, 다른 배율은 모든 치수가 똑같이 늘어난다', () => {
+  const { posterMetrics } = require('../src/lib/poster');
   const k = posterMetrics(1);
-  assert.equal(k.width, 360);
-  assert.equal(k.height, 450);
-  assert.equal(k.margin, 20);
-  assert.equal(k.table, 320);
-  assert.equal(k.cell, 320 / 9);
-  assert.deepEqual([k.ruleFrame, k.ruleBlock, k.ruleCell], [1.5, 1, 0.5]);
-  assert.deepEqual([k.fs, k.fsHead, k.lh, k.pad], [7.5, 8, 9, 2.5]);
-  assert.equal(k.textW, 320 / 9 - 5);
-  assert.deepEqual([k.headH, k.headGap, k.fsTop, k.lhTop, k.fsGoal, k.lhGoal, k.underline], [70, 8, 12, 15, 22, 25, 0.75]);
-  assert.deepEqual([k.fsMark, k.lhMark, k.bar, k.finishLine, k.radiusMax], [7, 8.5, 2, 1.5, 2]);
-  assert.deepEqual([k.footGap, k.fsFoot, k.lhFoot], [7, 10, 13]);
+  assert.equal(k.width, 540);
+  assert.equal(k.height, 675);
+  assert.equal(k.map, 540 - 2 * k.pad);
   assert.deepEqual(posterMetrics(), k);
   for (const s of [0.5, 1.25, 2]) {
     const q = posterMetrics(s);
@@ -60,8 +52,7 @@ test('ChartPoster: scale 1은 공유 이미지의 원래 값 그대로, 다른 �
   const s = src(POSTER);
   assert.doesNotMatch(s, /transform: \[/);
   assert.match(s, /scale = 1 \}, ref\)/);
-  assert.match(s, /scale === 1 \? BASE : posterMetrics\(scale\)/);
-  assert.doesNotMatch(s, /\b(MARGIN|TABLE|CELL|RULE_FRAME|HEAD_H|TEXT_W)\b/);
+  assert.match(s, /posterMetrics\(scale\)/);
 });
 
 test('ChartBoard: readOnly는 누르기를 떼고 글로 읽힌다, asOf는 그날로 그리고 오늘 표시를 숨긴다', () => {

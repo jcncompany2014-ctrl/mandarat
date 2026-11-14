@@ -23,9 +23,11 @@ test('areaLabel · areaTodayCounts — 슬래시 없이 소리 말로', () => {
   assert.deepEqual(areaTodayCounts(['0-1', '0-3', '7-0', 'x9']), [2, 0, 0, 0, 0, 0, 0, 1]);
 });
 
-test('홈 81칸은 doc 대신 themes · cellShape, 칸은 memo(색 지도의 Tile)', () => {
+test('홈 81칸은 doc 대신 themes, 칸은 memo(색 지도의 Tile)', () => {
   const d = src('src/screens/Dashboard.tsx');
-  assert.match(d, /<MiniChart\s+themes=\{doc\.themes\}\s+cellShape=\{doc\.settings\.cellShape\}/);
+  // 디자인 A(S1): 히어로의 작은 색 지도 — ColourMap L1, 칸 20(좁은 폰 18), 문서 대신 themes만
+  assert.match(d, /<ColourMap\s+level="L1"\s+cell=\{cell\}\s+themes=\{doc\.themes\}/);
+  assert.doesNotMatch(d, /cellShape/);
   assert.match(d, /todaySig/);
   assert.match(d, /canPickAny\(doc, new Date\(\)\)/);
   assert.doesNotMatch(d, /pickSections/);

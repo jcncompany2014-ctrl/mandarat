@@ -93,9 +93,31 @@ test('편집 창 글 — ja · en (말 순서 · 복수형)', () => {
   assert.equal(en.charCount({ n: 12, max: 60 }), '12 of 60 characters');
   assert.equal(ja.charCount({ n: 12, max: 60 }), '60文字中12文字');
   assert.equal(ja.allWritten({ area: '健康' }), '「健康」の行動を8つすべて書きました');
+  assert.equal(ja.centerPlaceholder, '例）初マラソン完走');
+  assert.equal(en.centerPlaceholder, 'e.g. Finish a marathon');
 });
 
-test('예시 글은 그 언어로 색 지도에 다 들어간다(375 · 390) — 핵심 목표 예시는 한국어만', () => {
+test('편집 시트 글(디자인 A) — 머리 둘째 줄 · 점검 한 줄 · 유형 안내 · 알림 정보', () => {
+  const ko = I.msg('ko').editor;
+  const ja = I.msg('ja').editor;
+  const en = I.msg('en').editor;
+  const all = { noWhat: true, noHow: true, noWhen: true };
+  // editor.png의 안내 글 그대로 — 빠진 것만 말한다
+  assert.equal(ko.coachNote(all), '무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: false }), '얼마나를 쓰면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: true, noHow: false, noWhen: false }), '무엇을 쓰면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: true }), '얼마나, 언제·어디서를 쓰면 실천하기 쉬워요');
+  assert.equal(ja.coachNote({ noWhat: false, noHow: true, noWhen: true }), '「どれだけ」「いつ・どこで」を書くと、行動に移しやすくなります');
+  assert.equal(en.coachNote(all), 'Saying what, how much and when or where makes it easier to do');
+  assert.equal(en.coachNote({ noWhat: false, noHow: true, noWhen: false }), 'Saying how much makes it easier to do');
+  for (const l of I.LANGS) assert.equal(I.msg(l).editor.coachNote({ noWhat: false, noHow: false, noWhen: false }), '', l);
+  assert.deepEqual([ko.actionN({ n: 3 }), ja.actionN({ n: 3 }), en.actionN({ n: 3 })], ['실천 3/8', '行動 3/8', 'Action 3/8']);
+  assert.equal(ko.themeSub, '영역 이름');
+  assert.equal(ko.noteHabitDays, '정한 요일마다 ‘오늘’에 담겨요');
+  assert.equal(ko.remindDays, '정한 요일마다');
+});
+
+test('예시 글은 그 언어로 색 지도에 다 들어간다(375 · 390) — 핵심 목표 예시도 세 언어 모두', () => {
   const before = I.lang();
   try {
     for (const l of I.LANGS) {
@@ -103,10 +125,10 @@ test('예시 글은 그 언어로 색 지도에 다 들어간다(375 · 390) —
       const e = I.msg(l).editor;
       const strip = (s) => s.replace(/^(예\) |例）|e\.g\. )/, '');
       for (const w of [375, 390]) {
-        // 지도 가운데 칸은 휴대폰에서 3줄 — 일본어 · 영어의 목표 예시('初めてのマラソンを完走' · 'Run my first marathon')는
-        // 4줄이 필요해 지도에서는 말줄임표로 줄어든다(편집 창 안내가 그대로 말한다). 짧은 예시로 바꿀지는 O1(편집 창)이 정한다
+        // 지도 가운데 칸은 휴대폰에서 3줄 — 예전 일본어 · 영어 예시('初めてのマラソンを完走' · 'Run my first marathon')는
+        // 4줄이 필요해 말줄임표로 줄었다. O1이 짧은 예시('初マラソン完走' · 'Finish a marathon')로 바꿨다
         const c = chartFit(strip(e.centerPlaceholder), 'center', w);
-        if (l === 'ko') assert.ok(c.lines <= c.max, `${l} center ${w}: ${c.lines}/${c.max}`);
+        assert.ok(c.lines <= c.max, `${l} center ${w}: ${c.lines}/${c.max}`);
         const t = chartFit(strip(e.themePlaceholder), 'theme', w);
         assert.ok(t.lines <= t.max, `${l} theme ${w}: ${t.lines}/${t.max}`);
       }

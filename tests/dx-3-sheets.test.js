@@ -38,34 +38,34 @@ test('D-9: 마음가짐 점수는 고른 한 칸만 먹으로 — 쌓아 칠하�
   for (const [name, M] of Object.entries(MOODS)) assert.ok(contrast(M.bg, M.ink) >= 13, name);
 });
 
-test("D-10 · D-26 · D-29: 할 일 시트 — '마감 없음' 줄 한 겹 · 위치 표 빈 칸은 시트 바탕 · 힌트가 부제를 되풀이하지 않는다", () => {
+// D-26(위치 표 빈 칸은 시트 바탕)은 디자인 A에서 지웠다 — 위치 표는 chart/Locator(빈 칸 tile)가 그린다(tests/a-o2.test.js)
+test("D-10 · D-29: 할 일 시트 — 마감 없는 한 번 칸은 '마감 정하기 · 마감 없음' 줄 하나 · 힌트가 부제를 되풀이하지 않는다", () => {
   const s = src('src/overlays/ActionSheet.tsx');
-  assert.match(s, /<LineRow M=\{M\} title=\{m\.sheet\.noDue\}/);
+  assert.match(s, /title=\{m\.sheet\.setDueRow\} meta=\{m\.sheet\.noDue\} accessibilityLabel=\{m\.sheet\.noDueA11y\}/);
+  assert.equal((s.match(/m\.sheet\.noDue\b/g) ?? []).length, 1);
   assert.equal(require('../src/i18n/ko/sheet').default.noDue, '마감 없음');
-  assert.doesNotMatch(s, /LineRow M=\{M\} first last title=/);
-  assert.match(s, /bg: sheetBg\(M\), current: false/);
-  assert.doesNotMatch(s, /bg: M\.bg/);
   assert.doesNotMatch(s, /한 주에 한 번, 떠오르는/);
   assert.match(s, /m\.sheet\.mindPrompt/);
   assert.equal(require('../src/i18n/ko/sheet').default.mindPrompt, '떠오르는 대로 매겨요');
 });
 
-test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 바닥 괘선, 메모는 목록 위, 7×7 영역 표시, 토스트는 닫기 아래', () => {
+// 바닥 괘선 위 단추 · 7×7 영역 표시(모양만)는 디자인 A의 한 주 돌아보기(괘선 없는 엄지 자리 · DyeMark 8×8)로 바뀌어 지웠다 — tests/a-o6.test.js가 본다
+test('D-12 · D-21: 한 주 돌아보기 — 고른 수는 버튼에, 메모는 목록 위, 토스트는 닫기 아래', () => {
   const s = src('src/overlays/WeekRitual.tsx');
   assert.match(s, /t\.finishWith\(\{ n: picks\.length \}\)/);
   assert.equal(require('../src/i18n/ko/ritual').default.finishWith({ n: 2 }), '중점 2칸 · 마치기');
-  assert.match(s, /borderTopWidth: 1, borderColor: M\.line \}\}>\s*<PrimaryButton/);
   assert.ok(s.indexOf('placeholder={rt.note}') > 0 && s.indexOf('placeholder={rt.note}') < s.indexOf('{groups.map('), '메모가 영역 묶음보다 위');
   assert.equal(require('../src/i18n/ko/ritual').default.note, '한 줄 메모');
-  assert.match(s, /width: 7, height: 7, borderRadius: 1\.5/);
   assert.match(s, /<Snackbar placement="top" offset=\{TOP_BAR_H\} \/>/);
+  assert.match(s, /const TOP_BAR_H = GEO\.header;/);
   assert.match(src('src/overlays/Snackbar.tsx'), /top: insets\.top \+ 8 \+ offset/);
 });
 
-test('D-15 · D-28: 편집 창 — 바닥 첫 글자 버튼을 가장자리에, 빈 칸 안내가 아래 고르기 줄을 되풀이하지 않는다', () => {
+// D-15의 '바닥 첫 글자 버튼을 가장자리에(EDGE)'는 디자인 A의 조용한 글(QuietAction: 안쪽 여백 없이 가장자리에서 시작)로 바뀌어 지웠다 — tests/a-o1.test.js가 본다
+test('D-15 · D-28: 편집 창 — 바닥의 조용한 글(칸 비우기 · 저장), 빈 칸 안내가 아래 고르기 줄을 되풀이하지 않는다', () => {
   const s = src('src/overlays/CellEditor.tsx');
-  assert.match(s, /label=\{ed\.clearCell\}[^\n]*style=\{EDGE\}/);
-  assert.match(s, /label=\{ed\.save\}[^\n]*style=\{filledAction \? undefined : EDGE\}/);
+  assert.match(s, /<QuietAction M=\{M\} foot label=\{ed\.clearCell\} onPress=\{clearCell\} \/>/);
+  assert.match(s, /<QuietAction M=\{M\} foot label=\{ed\.save\} onPress=\{saveAndClose\} \/>/);
   assert.match(s, /placeholder=\{help\.length > 0 \? ed\.helpPlaceholder : m\.placeholder\}/);
   const ed = require('../src/i18n/ko/editor').default;
   assert.deepEqual([ed.clearCell, ed.save, ed.helpPlaceholder], ['칸 비우기', '저장', '직접 적거나 아래에서 골라요']);

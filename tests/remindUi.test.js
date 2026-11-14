@@ -51,7 +51,7 @@ test('설정 › 알림은 바구니 글(m.notify · m.common · m.fmt)만 쓴�
   // 편집 창 · 시각 줄도 한글 글자를 늘리지 않는다
   assert.doesNotMatch(code(REMIND), /[가-힣]/);
   const ed = code(EDITOR);
-  const rows = ed.slice(ed.indexOf('function RemindRows('), ed.indexOf('function ChoiceRow('));
+  const rows = ed.slice(ed.indexOf('function RemindRows('), ed.indexOf('function StepBtn('));
   assert.doesNotMatch(rows, /[가-힣]/);
 });
 
@@ -121,7 +121,7 @@ test('편집 창: 습관 줄에 알림(없음 / 시각 정하기 — 괘선 고�
   const s = code(EDITOR);
   const habit = s.slice(s.indexOf('function HabitRows('), s.indexOf('function RemindRows('));
   assert.match(habit, /<RemindRows M=\{M\} cfg=\{cfg\} setCfg=\{setCfg\} onReveal=\{onReveal\} \/>/);
-  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function ChoiceRow('));
+  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function StepBtn('));
   assert.match(rows, /<RemindRow M=\{M\} value=\{cfg\.remindAt\}/);
   assert.match(rows, /testID=\{TID\.editorRemind\}/);
   assert.match(rows, /accessibilityRole="radiogroup"/);
@@ -129,14 +129,17 @@ test('편집 창: 습관 줄에 알림(없음 / 시각 정하기 — 괘선 고�
   assert.match(rows, /t\.notify\.editorPick/);
   // 칩이 아니라 괘선 줄
   assert.doesNotMatch(rows, /PaperChip|SegmentedControl/);
-  assert.match(s.slice(s.indexOf('function ChoiceRow(')), /accessibilityRole="radio"/);
+  // 고르기 줄은 부품 상자의 ChoiceRow(O1) — 라디오로 읽힌다
+  assert.match(rows, /<ChoiceRow M=\{M\} title=\{t\.notify\.editorNone\}/);
+  assert.match(s, /import \{[^}]*\bChoiceRow\b[^}]*\} from '\.\.\/components\/kit';/);
+  assert.match(src('src/components/kit/ChoiceRow.tsx'), /accessibilityRole="radio"/);
   // 습관 유형에서만 그린다
   assert.match(s, /\{cfg\.kind === 'habit' && <HabitRows /);
 });
 
 test('remindAt은 편집 창의 설정(cfg)을 거쳐 setActionConfig로 저장된다', () => {
   const s = code(EDITOR);
-  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function ChoiceRow('));
+  const rows = s.slice(s.indexOf('function RemindRows('), s.indexOf('function StepBtn('));
   assert.match(rows, /setCfg\(\(c\) => \(\{ \.\.\.c, remindAt: last\.current \}\)\)/);
   assert.match(rows, /setCfg\(\(c\) => \(\{ \.\.\.c, remindAt: v \}\)\)/);
   assert.match(rows, /setCfg\(\(c\) => \(\{ \.\.\.c, remindAt: undefined \}\)\)/);

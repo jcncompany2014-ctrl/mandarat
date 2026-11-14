@@ -10,7 +10,7 @@ const src = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 test('웹: 폭에 맞춰 크기를 정하는 화면은 묶인 폭(lib/screen)을 쓴다', () => {
   const files = [
     'src/components/kit/Row.tsx', 'src/components/ChartBoard.tsx', 'src/overlays/CellEditor.tsx', 'src/overlays/FocusTimer.tsx',
-    'src/overlays/ActionSheet.tsx', 'src/overlays/ShareChart.tsx', 'src/screens/TodayModes.tsx', 'src/screens/Dashboard.tsx',
+    'src/overlays/ShareChart.tsx', 'src/screens/TodayModes.tsx', 'src/screens/Dashboard.tsx',
     'src/screens/FullGrid.tsx', 'src/screens/Stats.tsx', 'src/screens/Onboarding.tsx',
   ];
   for (const f of files) {

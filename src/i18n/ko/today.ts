@@ -4,7 +4,7 @@ import type { Namespace } from '../types';
 
 /** 열까지는 우리말 수(한 가지 · 열 가지), 그 위는 숫자(12가지) */
 const KO_NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
-const kinds = (n: number) => (n >= 1 && n <= 10 ? `${KO_NUM[n]} 가지` : `${n}가지`);
+const kindsOf = (n: number) => (n >= 1 && n <= 10 ? `${KO_NUM[n]} ` : String(n));
 
 export default {
   // ── 디자인 A(S3): 머리 · 보기 고르기 · 하루 마감 · 이번 주 ──
@@ -15,7 +15,7 @@ export default {
   /** 마감한 날의 한 문장 */
   closeTitle: '오늘은 여기까지예요.',
   /** '열 가지를 모두 했어요' */
-  closeAll: ({ n }: { n: number }) => (n === 1 ? '한 가지를 했어요' : `${kinds(n)}를 모두 했어요`),
+  closeAll: ({ n }: { n: number }) => (n === 1 ? '한 가지를 했어요' : `${kindsOf(n)}가지를 모두 했어요`),
   /** '오후 9:40 마감'(time은 fmt.time) */
   closeAt: ({ time }: { time: string }) => `${time} 마감`,
   /** 접은 목록 한 줄 — '이력서 갱신, 주 3회 운동 외 8개'(names는 listSep으로 이은 앞 두 줄) */
@@ -27,7 +27,6 @@ export default {
   /** 막대 하루의 화면 읽기 — '월요일 3번'(times는 fmt.times) · 오늘은 '수요일 10번, 오늘' */
   weekDay: ({ day, times }: { day: string; times: string }) => `${day} ${times}`,
   weekDayToday: ({ day, times }: { day: string; times: string }) => `${day} ${times}, 오늘`,
-
 
   // ── 머리 · 목록 ──
   /** 화면 머리 */
@@ -145,8 +144,6 @@ export default {
   /** n은 1부터 */
   quickWriteCellHint: ({ area, n }: { area: string; n: number }) => `만다라트 ${area} 영역의 ${n}번 칸에 적어요`,
   quickWroteCell: ({ area, n }: { area: string; n: number }) => `${area} ${n}번 칸에 적었어요`,
-  /** 담기 시트 머리 오른쪽 — 시트를 닫는 조용한 글(디자인 A, O3) */
-  quickDone: '완료',
   /** '어느 영역의 일인가요?' 줄 오른쪽 — 고르기 시트를 그 영역으로 연다(뒤에 꺾쇠) */
   quickPickFrom: ({ area }: { area: string }) => `${area} 실천에서 고르기`,
   /** 이 시트에서 마지막으로 담은 줄의 정보 — '커리어 · 방금' */

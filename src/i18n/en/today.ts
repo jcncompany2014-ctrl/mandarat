@@ -106,7 +106,6 @@ export default {
   quickWriteCell: ({ area }) => `Write in an empty ${area} square`,
   quickWriteCellHint: ({ area, n }) => `Writes it in square ${n} of ${area} on your chart`,
   quickWroteCell: ({ area, n }) => `Written in ${area}, square ${n}`,
-  quickDone: 'Done',
   quickPickFrom: ({ area }) => `Pick from ${area} actions`,
   quickJustNow: 'just now',
 

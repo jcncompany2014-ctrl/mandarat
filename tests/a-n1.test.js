@@ -432,10 +432,12 @@ test('다이내믹 아일랜드 — 작게 · 가장 작게 = 영역 색 12pt �
   assert.deepEqual(mod(all(out.expandedBottom, (n) => n.type === 'ProgressView')[0], 'tint'), [DARK.ink]);
 });
 
-test('FocusTimer는 지금 인자 그대로 focusProps를 부를 수 있다(무드 · 포인트 컬러는 받기만, O4까지)', () => {
+test('FocusTimer는 영역 번호(ti)로 focusProps를 부른다(O4) — 예전 인자(무드 · 포인트 컬러 · 색)도 여전히 받는다', () => {
   const s = fs.readFileSync(path.join(ROOT, 'src/overlays/FocusTimer.tsx'), 'utf8');
   const call = s.slice(s.indexOf('focusProps({'), s.indexOf('});', s.indexOf('focusProps({')));
-  for (const k of ['text:', 'area:', 'color:', 'mood:', 'accent:', 'lang:', 'startAt:', 'endAt', 'pausedLeft:', 'done:']) assert.ok(call.includes(k), k);
+  for (const k of ['text:', 'area:', 'ti:', 'lang:', 'startAt:', 'endAt', 'pausedLeft:', 'done:']) assert.ok(call.includes(k), k);
+  // O4가 무드 · 포인트 컬러 · 영역 색 글자를 더 넘기지 않는다(색은 ti의 dye)
+  for (const k of ['color:', 'mood:', 'accent:']) assert.ok(!call.includes(k), k);
   const p = focusProps({ text: 'x', area: '일', color: '#6B8F71', mood: '크림', accent: '#B0883C', lang: 'ko', startAt: focusStartOf(END), endAt: END, pausedLeft: null, done: false });
   assert.equal(p.pal.light.paper, LIGHT.paper);
   assert.equal(p.pal.light.dye, '#6B8F71', 'ti가 없으면 넘긴 영역 색');

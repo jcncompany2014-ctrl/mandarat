@@ -125,6 +125,8 @@ export default {
   /** 머리 위 줄 — '2026 · 42주 · D-78' (y · w: ISO 주, days: 올해 남은 날) */
   eyebrow: ({ y, w, days }: { y: number; w: number; days: number }) => `${fmt.weekNo({ y, w })} · ${fmt.dueShort({ days })}`,
   /** 히어로 달성 아래 — '이번 달 3칸' */
+  /** 달성 숫자 — '24/64칸'(숫자 뒤 단위는 작게) */
+  heroCells: ({ done }: { done: number }) => `${done}/64칸`,
   monthCells: ({ n }: { n: number }) => `이번 달 ${n}칸`,
   /** 범위 줄 — 한 번에 한 기간 */
   scopeWeek: '이번 주',

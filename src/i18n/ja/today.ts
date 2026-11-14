@@ -102,8 +102,7 @@ export default {
   quickWriteCell: ({ area }) => `「${area}」の空きマスに書く`,
   quickWriteCellHint: ({ area, n }) => `マンダラートの「${area}」の${n}番目のマスに書きます`,
   quickWroteCell: ({ area, n }) => `${area}の${n}番目のマスに書きました`,
-  quickDone: '完了',
-  quickPickFrom: ({ area }) => `「${area}」の行動から選ぶ`,
+  quickPickFrom: ({ area }) => `${area}の行動から選ぶ`,
   quickJustNow: 'たった今',
 
   pickTitle: '今日やることを選ぶ',

@@ -1,6 +1,7 @@
 // 'chart' 이름공간 — X-E가 채운다(docs/v2/plan.md 부록 B).
 // 81칸(FullGrid) · 블록 크게 보기 · 만다라트 탭(GridScreen) · 영역 화면(Detail · areaPage) · 표 이미지(ChartPoster · ShareChart) · 작은 표(GridMark · ChartSketch).
 import type { Namespace } from '../types';
+import { josa } from './josa';
 
 /** 고유어 서수 — '3번째'는 '삼번째'로 읽혀서(chartSpeech.ORDINAL과 같은 말) */
 const ORD = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟'];
@@ -55,6 +56,31 @@ export default {
   nextBlanks: ({ n, area }: { n: number; area: string }) => `빈 칸 ${n} · ${area}부터 채우기`,
   nextStepSay: ({ title }: { title: string }) => `다음 할 일, ${title}`,
   nextStepAreaSay: ({ title, area }: { title: string; area: string }) => `다음 할 일, ${title}, ${area}`,
+  /** 지도 위 줄 왼쪽 — '2026 만다라트' */
+  formName: ({ y }: { y: number }) => `${y} 만다라트`,
+  /** 처음(쓴 칸이 8칸 전) 지도 위 줄 오른쪽 — '쓴 칸 0/64' */
+  writtenFolio: '쓴 칸',
+  /** 지도 위 줄의 숫자 — '24/64칸' */
+  of64: ({ n }: { n: number }) => `${n}/64칸`,
+  writtenOf64Say: ({ n }: { n: number }) => `64칸 중 ${n}칸 썼어요`,
+  /** 지도 아래 한 줄 */
+  mapNote: '영역을 누르면 실천 여덟 칸이 보여요',
+  /** 지도 블록의 화면 읽기 도움말 */
+  mapBlockHint: '두 번 누르면 실천 여덟 칸을 봐요',
+  /** 처음 — 먹 테두리 칸이 어디인지: '건강 · 1번 칸부터' */
+  startFrom: ({ area, n }: { area: string; n: number }) => `${area} · ${n}번 칸부터`,
+  startPrompt: ({ area }: { area: string }) => `${josa(area, '을/를')} 위해 무엇을 해 볼까요?`,
+  startNote: '한 칸에 한 가지씩. 여덟 칸을 채우면 한 영역이 완성돼요.',
+  startWrite: '직접 쓰기',
+  /** 권하는 글 낱칸 — '주 3회 운동, 1번 칸에 쓰기' */
+  suggestSay: ({ text, n }: { text: string; n: number }) => `${text}, ${n}번 칸에 쓰기`,
+  /** 영역 화면 — 이번 주 습관 표 */
+  habitWeek: '이번 주 습관',
+  habitTimes: '횟수',
+  /** 습관 표 아래 — 한 번 · 쌓기 · 마음가짐 칸 */
+  otherActions: '그 밖의 실천',
+  /** 영역 화면 머리의 ··· */
+  areaMore: '이 영역 메뉴',
 
   // ── 영역 화면(Detail · areaPage) ──
   areaOf: ({ n }: { n: number }) => `영역 ${n} / 8`,

@@ -1,4 +1,5 @@
-// 한 해 화면(V3-D) — 지난 표 한 장을 넣은 문서로 통계 › 한 해 › 한 해 돌아보기를 375 · 390 폭에서 연다.
+// 한 해 화면(V3-D) — 지난 표 한 장을 넣은 문서로 통계 › 올해 › 한 해 돌아보기를 375 · 390 폭에서 연다.
+// 디자인 A(S4): 통계의 한 해 줄은 범위 줄의 '올해'(TID.statsScope('year')) 아래에 있다.
 // 돌아보기 맨 아래(인쇄용 PDF 링크)까지 내려 찍고, 보관함 줄도 연다. 개발 번들이면 잠긴 지난 표의 돌아보기도 찍는다.
 // 끝나면 예시 문서와 원래 폭으로 되돌려 다음 장면이 같은 문서로 시작하게 한다.
 // 판매를 끈 1.0(src/lib/pro.ts STORE_OPEN = false)은 지난 표의 돌아보기도 잠기지 않고 끝까지 열린다.
@@ -54,6 +55,8 @@ module.exports = async (page, h) => {
       await page.setViewportSize({ width, height: 844 });
       await h.tap(h.TID.tab('stats'));
       await h.settle();
+      await h.tap(h.TID.statsScope('year'));
+      await h.settle();
       await h.tap(h.TID.statsYear);
       await h.settle();
       await h.tid(h.TID.yearPage).waitFor({ state: 'visible', timeout: 10000 });
@@ -64,8 +67,10 @@ module.exports = async (page, h) => {
       if (!(await print.isVisible())) throw new Error(`${width}폭: 인쇄용 PDF 링크가 보이지 않아요`);
       await h.shot(`year-review-end-${width}`);
 
-      // 보관함 — 통계로 돌아가 '보관함 1장'
+      // 보관함 — 통계로 돌아가 '올해' › '보관함 1장'
       await h.tap(h.TID.tab('stats'));
+      await h.settle();
+      await h.tap(h.TID.statsScope('year'));
       await h.settle();
       await page.locator(`[aria-label="${m.statsShelf({ n: 1 })}"]`).first().click();
       await h.settle();

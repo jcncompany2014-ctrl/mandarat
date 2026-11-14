@@ -43,4 +43,6 @@ export default {
   failed: "Couldn't make the PDF",
   shareLink: 'Printable PDF ›',
   shareLinkSay: 'Printable PDF',
+  posterEyebrow: ({ y }) => `Core goal for ${y}`,
+  posterUnit: 'squares',
 } satisfies Like<typeof ko>;

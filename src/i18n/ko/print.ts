@@ -58,4 +58,9 @@ export default {
   /** 표 이미지 시트 아래 글자 링크 */
   shareLink: '인쇄용 PDF ›',
   shareLinkSay: '인쇄용 PDF',
+  // ── 표 이미지(ChartPoster) — chart 이름공간은 S2가 고치는 동안 여기에 둔다(wave 4 정리 때 chart로 옮긴다) ──
+  /** 표 이미지 머리 줄 — '2026 핵심 목표' */
+  posterEyebrow: ({ y }: { y: number }) => `${y} 핵심 목표`,
+  /** 표 이미지 제목 줄 오른쪽 '24/64' 뒤의 단위 */
+  posterUnit: '칸',
 } satisfies Namespace;

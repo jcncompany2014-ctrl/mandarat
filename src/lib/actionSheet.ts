@@ -82,6 +82,47 @@ export function yesterdayOffer(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: 
   return lastWeek || perWeekOf(a) > 0 || scheduledOn(a, toDate(y)) ? y : null;
 }
 
+/**
+ * '어제도 했어요' 글자 동작을 보일까 — 어제가 지난주라 이번 주 일곱 칸에 없을 때만(월요일의 어제 = 지난 일요일).
+ * 이번 주의 어제는 요일 칸을 눌러 남긴다(디자인 A sheet.png: 칸이 그 일을 맡아 따로 글자를 두지 않는다).
+ */
+export function yesterdayButton(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, ti: number, ai: number, today: Date): string | null {
+  const y = yesterdayOffer(doc, ti, ai, today);
+  return y && y < weekDayKey(today, 0) ? y : null;
+}
+
+/** 시트의 이번 주 일곱 칸 — 요일 칸의 모습(boxes), 화면 읽기에 쓸 날 상태(said), 남은 날 수(left) */
+export interface SheetWeek {
+  boxes: DayBox[];
+  said: DayState[];
+  left: number;
+}
+
+/**
+ * 습관의 이번 주(routineWeek) → 시트의 요일 칸(디자인 A sheet.png: 지난날 · 오늘은 빈 칸, 앞날은 later, 오늘 점).
+ * - 요일 습관은 lib/marks dayBoxStates 그대로(한 날 done · 누를 수 있는 지난날 · 오늘 · 놓친 날 open · 정해 둔 앞날 later · 쉬는 날 없음).
+ * - 주 N회 습관은 routineWeek이 오늘(채웠으면) · 앞날을 'off'로 준다 — 시트에서는 아직 할 수 있는 날이라
+ *   오늘은 open, 앞날은 later로 그리고 '오늘' · '예정'으로 읽는다(습관을 정한 날 전의 지난날은 그대로 없음).
+ * - left: 오늘부터 일요일까지 아직 할 수 있는 날(open · later) — '남은 날 5일'. 오늘이 없는 주(todayIndex < 0)는 0.
+ */
+export function sheetWeek(
+  states: readonly DayState[], todayIndex: number, weekly: boolean, canPress?: (i: number) => boolean,
+): SheetWeek {
+  const said = states.map((s, i): DayState => {
+    if (!weekly || s !== 'off' || todayIndex < 0 || i < todayIndex) return s;
+    return i === todayIndex ? 'today' : 'planned';
+  });
+  const boxes = dayBoxStates(said, canPress);
+  const left = todayIndex < 0 ? 0 : boxes.slice(todayIndex).filter((b) => b === 'open' || b === 'later').length;
+  return { boxes, said, left };
+}
+
+/** 이번 주 숫자 옆 한 마디 — 정한 만큼 다 했으면 '이번 주 몫을 다 했어요', 아니면 '남은 날 5일' */
+export function weekNote(done: number, planned: number, left: number, l?: Lang): string {
+  const m = msg(l).sheet;
+  return planned > 0 && done >= planned ? m.weekMet : m.daysLeft({ n: left });
+}
+
 export type Postpone = 'tomorrow' | 'nextWeek';
 
 /** 마감을 미루는 날수 */
@@ -123,12 +164,6 @@ export function goalToast(goal: number, unit: string, l?: Lang): string {
 /** 메모를 저장해야 하나 — 쓰던 글이 저장된 글과 다를 때만(같으면 문서를 건드리지 않는다) */
 export function noteChanged(draft: string, saved: string | undefined): boolean {
   return draft !== (saved ?? '');
-}
-
-/** 괘선 메모의 줄 수 — 글 높이를 덮을 만큼, 적어도 3줄 */
-export function memoRules(contentHeight: number, lineHeight: number, padTop: number, min = 3): number {
-  if (!(contentHeight > 0) || !(lineHeight > 0)) return min;
-  return Math.max(min, Math.ceil((contentHeight - padTop) / lineHeight - 0.01));
 }
 
 /** 마음가짐 지난 점수 막대의 첫 이름표 — 8주를 보이면 '7주 전'(이번 주가 0주 전) */

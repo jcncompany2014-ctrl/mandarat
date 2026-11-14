@@ -1,94 +1,191 @@
-import React, { useMemo } from 'react';
-import { Pressable, View } from 'react-native';
-import { Text } from './AppText';
-import { GrowBar } from './GrowBar';
-import { alpha, fade, mix, toHex } from '../theme/moods';
-import { NUM } from '../theme/type';
-import {
-  CENTER_SLOT, RULE, SLOT_INDEX, coreBg, coreInk, frameRadius, headBg, headTrack, legibleMark, ruleColor,
-} from '../theme/chart';
+import React, { memo, useMemo } from 'react';
+import { PixelRatio, Pressable, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Text, a11yLangProp } from './AppText';
+import { Icon } from './Icon';
+import { DyeMark } from './kit';
+import { MAP_LABEL, mapGeometry, mapLabel } from './chart';
+import { ROLE } from '../theme/type';
+import { PRETENDARD } from '../theme/fonts';
 import type { M } from '../theme/usePalette';
 import { kindOf } from '../lib/routine';
 import { countInfo } from '../lib/kinds';
-import { DAY_BIN_LABELS, dayBin, type WeekDay } from '../lib/review';
-import { barHeight, weekBarsSpeech, type HeatMap, type MoodDay } from '../lib/statsView';
-import { themeProgress, totalDone } from '../store/MandaratContext';
+import { DAY_BIN_LABELS, dayBin } from '../lib/review';
+import { HEAT_TONES, WEAR_TONES, figureParts, type HeatMap, type MoodDay } from '../lib/statsView';
+import { mapCells } from '../lib/mapCells';
+import { themeProgress } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
 import type { MandaratDoc } from '../types';
-import { useLang, useMsg } from '../i18n/react';
+import { lang } from '../i18n';
+import { useMsg } from '../i18n/react';
 import type { Messages } from '../i18n';
 
-// 통계 화면의 그림 넷 — 이번 주 막대 · 최근 10주 · 8개 영역(닳은 자리) · 기분 줄.
-// 모두 종이 위에 바로 인쇄한 모양: 카드·그림자·둥근 알약 없이, 바닥선과 네모 칸만.
+// 통계 · 한 해 쪽의 부품(디자인 A, build-plan S4 · 목업 stats.png · year.png).
+// 히어로 칸(이름 · 숫자 + 단위 · 한 줄) · 숫자 글(큰 숫자 + 작은 단위) · 앱 안 링크 · 최근 10주(타일) · 닳은 자리(타일 지도) · 범례 · 기분 줄.
+// 색은 토큰 이름으로만(칸 진하기는 lib/statsView HEAT_TONES · WEAR_TONES), 글자는 ROLE. 카드 · 괘선 묶음 없이.
 
-const areaName = (m: Messages, doc: MandaratDoc, ti: number) => doc.themes[ti]?.title.trim() || m.chart.areaN({ n: ti + 1 });
+const areaName = (m: Messages, doc: Pick<MandaratDoc, 'themes'>, ti: number) => doc.themes[ti]?.title.trim() || m.chart.areaN({ n: ti + 1 });
 
 /** 화면 읽기에서 숨기는 장식 — 범례처럼 이미 글로 읽은 것 */
 const HIDDEN = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const;
 
-// ── 이번 주 막대 ──────────────────────────────────────────────────────────────
+/** 타일 모서리 — 최근 10주 · 닳은 자리 · 범례(build-plan S4) */
+export const TILE_RADIUS = 3;
 
-const BAR_FULL = 72;
+const face = (w: 400 | 500 | 600 | 700, fontSize: number, lineHeight: number, letterSpacing = 0, tabular = false): TextStyle => {
+  const s: TextStyle = { fontFamily: PRETENDARD[w], fontSize, lineHeight, letterSpacing };
+  if (tabular) s.fontVariant = ['tabular-nums'];
+  return s;
+};
+
+/** ROLE에 없는 통계 글자(목업 stats.html .kind-name · .kind-fig) — 웨이브 4(R2)가 ROLE로 옮긴다 */
+export const STATS_TYPE = {
+  /** 유형 줄 이름 600 15/18 */
+  kindName: face(600, 15, 18),
+  /** 유형 줄 숫자 700 16/20 −0.16 */
+  kindFig: face(700, 16, 20, -0.16, true),
+} as const satisfies Record<string, TextStyle>;
+
+// ── 숫자 글 ──────────────────────────────────────────────────────────────────
 
 /**
- * 이번 주 월~일 막대 — 바닥선 하나 위에 한 날만 막대를 세운다(0인 날은 막대도 숫자도 없이 비워 둔다).
- * 오늘은 요일 글자를 먹색으로 굵게 + 아래 짧은 먹 줄. 아직 안 온 날은 요일만 흐리게.
- * 줄 전체가 그림 하나로 읽힌다('월 5번, 화 1번, 수 2번 오늘, 목요일부터는 아직').
+ * 숫자 + 작은 단위('120일' · '2시간 5분' · '24/64칸') — 숫자는 role(기본 figureField 22/30 먹), 단위는 unit(500 13/18 ink2).
+ * 단위 글자 크기는 숫자 크기에 맞춰 줄어든다(size로 숫자를 줄일 때).
  */
-export function WeekBars({ M, days }: { M: M; days: readonly WeekDay[] }) {
-  const m = useMsg();
-  const l = useLang();
-  const max = Math.max(1, ...days.map((d) => (d.future ? 0 : d.count)));
-  // 막대는 불투명한 포인트 색 — 막대가 놓인 종이(bg) 위 3:1 이상으로(옅게 비친 색은 모든 포인트 색에서 3:1에 못 미친다).
-  // 통계는 카드 없이 종이 위에 바로 그리므로 면(card)으로 재면 골드가 2.8:1에 머문다
-  const fill = legibleMark(M.gold, M.bg, M);
+export function Figure({
+  M, text, role = ROLE.figureField, size, unitStyle, numberOfLines = 1, adjust = false, maxScale, style,
+}: {
+  M: M;
+  text: string;
+  role?: TextStyle;
+  /** 숫자 글자 크기 — 칸에 맞춰 줄일 때(웹은 adjustsFontSizeToFit이 없다) */
+  size?: number;
+  unitStyle?: TextStyle;
+  numberOfLines?: number;
+  adjust?: boolean;
+  maxScale?: number;
+  style?: StyleProp<TextStyle>;
+}) {
+  const parts = figureParts(text);
+  const base = role.fontSize ?? 22;
+  const k = size ? size / base : 1;
+  const unit = unitStyle ?? ROLE.unit;
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={weekBarsSpeech(days, l)}>
-      <View style={{ flexDirection: 'row', gap: 9, height: BAR_FULL + 20, alignItems: 'flex-end' }}>
-        {days.map((d, i) => {
-          const h = d.future ? 0 : barHeight(d.count, max, BAR_FULL);
-          return (
-            <View key={d.date} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-              {h > 0 && (
-                <>
-                  <Text style={[{ fontSize: 12, lineHeight: 15, fontWeight: '600', color: M.sub, marginBottom: 4 }, NUM]} maxFontSizeMultiplier={1.2}>
-                    {d.count}
-                  </Text>
-                  <GrowBar height={h} index={i}>
-                    <View style={{ flex: 1, backgroundColor: fill }} />
-                  </GrowBar>
-                </>
-              )}
-            </View>
-          );
-        })}
-      </View>
-      {/* 바닥선 — 일곱 날을 가로지르는 한 줄 */}
-      <View style={{ height: 1, backgroundColor: alpha(M.ink, 0.3) }} />
-      <View style={{ flexDirection: 'row', gap: 9, marginTop: 7 }}>
-        {days.map((d) => (
-          <View key={d.date} style={{ flex: 1, alignItems: 'center' }}>
-            <Text
-              style={{ fontSize: 11, lineHeight: 14, fontWeight: d.isToday ? '800' : '600', color: d.isToday ? M.ink : M.sub, opacity: d.future ? 0.45 : 1 }}
-              maxFontSizeMultiplier={1.2}
-            >
-              {m.fmt.dowNarrow({ i: d.dow })}
-            </Text>
-            {d.isToday && <View style={{ width: 12, height: 2, marginTop: 3, backgroundColor: M.ink }} />}
-          </View>
-        ))}
-      </View>
-    </View>
+    <Text
+      style={[role, { color: M.ink }, size ? { fontSize: size, lineHeight: Math.round((role.lineHeight ?? base) * k) } : null, style]}
+      numberOfLines={numberOfLines}
+      adjustsFontSizeToFit={adjust}
+      minimumFontScale={adjust ? 0.7 : undefined}
+      maxFontSizeMultiplier={maxScale}
+    >
+      {parts.map((p, i) => (p.unit ? (
+        <Text key={i} style={[unit, { color: M.ink2, fontSize: Math.max(9, (unit.fontSize ?? 13) * Math.min(1, k)), letterSpacing: 0 }]}>
+          {p.t}
+        </Text>
+      ) : p.t))}
+    </Text>
   );
 }
 
+// ── 히어로 칸 ────────────────────────────────────────────────────────────────
+
+/**
+ * 히어로 칸 하나(목업 .hero-field) — 이름(label print) · 숫자 + 단위(figureField) · 한 줄(meta ink2).
+ * 칸 전체가 한 번에 읽힌다(이름 · 소리 말 · 한 줄).
+ */
+export const HeroField = memo(function HeroField({ M, label, value, note, extra, extraStrong, speech, sep, maxScale }: {
+  M: M;
+  label: string;
+  value: string;
+  note?: string;
+  /** 한 줄 아래 한 줄 더(최고 기록) */
+  extra?: string;
+  extraStrong?: boolean;
+  /** 숫자를 소리로 */
+  speech: string;
+  /** 읽기 글을 잇는 쉼표(core.listSep) */
+  sep: string;
+  maxScale?: number;
+}) {
+  return (
+    <View accessible accessibilityLabel={[label, speech, note, extra].filter(Boolean).join(sep)} {...a11yLangProp()} style={{ gap: 2 }}>
+      <Text style={[ROLE.label, { color: M.print }]} maxFontSizeMultiplier={maxScale}>{label}</Text>
+      <Figure M={M} text={value} maxScale={maxScale} />
+      {!!note && <Text style={[ROLE.meta, { color: M.ink2 }]} maxFontSizeMultiplier={maxScale}>{note}</Text>}
+      {!!extra && (
+        <Text style={[ROLE.meta, { color: extraStrong ? M.ink : M.ink2 }, extraStrong ? { fontFamily: PRETENDARD[600] } : null]} maxFontSizeMultiplier={maxScale}>
+          {extra}
+        </Text>
+      )}
+    </View>
+  );
+});
+
+// ── 앱 안 링크 ───────────────────────────────────────────────────────────────
+
+/**
+ * 앱 안으로 가는 글 링크(A.link) — link 700 13/18 먹 + 꺾쇠 16. 화면 안으로 가므로 button 역할(R-6 A-6),
+ * 18 높이로 그리고 위아래 13씩 더 눌린다(44).
+ */
+export function InLink({ M, label, onPress, hint, testID, accessibilityLabel, style }: {
+  M: M;
+  label: string;
+  onPress: () => void;
+  hint?: string;
+  testID?: string;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <Pressable
+      onPress={() => { tap(); onPress(); }}
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      {...a11yLangProp()}
+      accessibilityHint={hint}
+      hitSlop={{ top: 13, bottom: 13, left: 8, right: 8 }}
+      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 18, opacity: pressed ? 0.5 : 1 }, style]}
+    >
+      <Text style={[ROLE.link, { color: M.ink }]} numberOfLines={1}>{label}</Text>
+      <Icon name="chevR" size={16} color={M.ink} style={{ marginRight: -4 }} />
+    </Pressable>
+  );
+}
+
+// ── 이번 주 영역 표 ──────────────────────────────────────────────────────────
+
+/** 막대 아래 영역 표(목업 .wk-key) — 영역 표시 + 이름(meta ink2) + 수(600 ink). 한 덩어리로 읽힌다 */
+export const WeekAreaKey = memo(function WeekAreaKey({ M, items, names, label }: {
+  M: M;
+  items: readonly { ti: number; n: number }[];
+  names: readonly string[];
+  label: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <View accessible accessibilityLabel={label} {...a11yLangProp()} style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4 }}>
+      {items.map(({ ti, n }) => (
+        <View key={ti} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <DyeMark M={M} area={ti} />
+          <Text style={[ROLE.meta, { color: M.ink2 }]} numberOfLines={1}>{names[ti]}</Text>
+          <Text style={[ROLE.meta, { color: M.ink, fontFamily: PRETENDARD[600], marginLeft: 4 }]}>{n}</Text>
+        </View>
+      ))}
+    </View>
+  );
+});
+
 // ── 최근 10주 ────────────────────────────────────────────────────────────────
 
-const HEAT_FILL = [0, 30, 50, 70, 90] as const;
 const HEAT_GAP = 3;
 const HEAT_LABEL_W = 24;
 /** 줄 이름을 적는 요일(월 · 수 · 금, 0 = 일요일) — 나머지 줄은 비운다 */
 const HEAT_ROW_DOWS = [1, null, 3, null, 5, null, null] as const;
+/** 오늘 점 · 고른 날 고리 */
+const TODAY_DOT = 5;
+const PICK_RING = 1.5;
+const PICK_OUT = 2.5;
+const LEGEND_CELL = 11;
 
 /** 칸 한 변(pt) — 요일 라벨 자리와 칸 사이를 뺀 폭을 10주로 나눈다 */
 export function heatCellSize(width: number, weeks = 10): number {
@@ -105,11 +202,27 @@ function pickableDays(map: HeatMap): string[] {
   return out;
 }
 
+/** 진하기 범례 — '1 · 2 · 3 · 5+' 앞에 칸 하나씩(타일). 화면 읽기에서는 숨긴다(그림이 글로 읽힌다) */
+function TileLegend({ M, tones, head, last }: { M: M; tones: readonly string[]; head?: string; last?: (label: string) => string }) {
+  return (
+    <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 12 }}>
+      {!!head && <Text style={[ROLE.meta, { color: M.print, marginRight: 2 }]} maxFontSizeMultiplier={1.2}>{head}</Text>}
+      {DAY_BIN_LABELS.map((label, i) => (
+        <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 3 : 0 }}>
+          <View style={{ width: LEGEND_CELL, height: LEGEND_CELL, borderRadius: TILE_RADIUS, backgroundColor: tones[i] }} />
+          <Text style={[ROLE.meta, { color: M.print }]} maxFontSizeMultiplier={1.2}>
+            {i === DAY_BIN_LABELS.length - 1 && last ? last(label) : label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /**
- * 최근 10주 달력 — 열 = 주(월~일), 행 = 요일. 네모 칸, 한 날은 포인트 색(횟수 구간마다 진하게) +
- * 1pt 포인트 색 테두리(가장 옅은 칸도 '한 날'로 보이게 — 색 농도는 덧붙인 정보), 지난 빈 날은 가는 회색 테두리,
- * 쓰기 전 날과 아직 안 온 날은 그리지 않는다. 오늘은 먹색 테두리, 가장 많이 한 날은 칸 안 아래에 먹색 밑줄.
- * 칸을 누르면 그날을 고르고(테두리), 다시 누르면 푼다.
+ * 최근 10주 달력 — 열 = 주(월~일), 행 = 요일. 타일(모서리 3): 지난 빈 날 tile, 한 날은 횟수 구간마다
+ * printMid → printEdge → ink2 → ink(HEAT_TONES). 쓰기 전 날과 아직 안 온 날은 그리지 않는다.
+ * 오늘은 가운데 signal 점, 가장 많이 한 날은 칸 안 아래에 짧은 줄, 고른 날은 칸 밖 먹 고리. 칸을 누르면 그날을 고르고, 다시 누르면 푼다.
  *
  * 화면 읽기: 그림 전체가 조절 가능한 요소 하나 — 이름은 요약(speech), 값은 고른 날(pickedText),
  * 위·아래로 쓸면 하루씩 옮긴다(고른 날이 없으면 오늘부터).
@@ -130,12 +243,10 @@ export function TenWeeks({
 }) {
   const msgs = useMsg();
   const cell = heatCellSize(width, map.cols.length);
-  // 칸 한 변을 내림한 나머지는 요일 라벨 자리로 — 마지막 열이 범례·닳은 자리 표와 같은 오른쪽 끝(20pt)에 닿게
+  // 칸 한 변을 내림한 나머지는 요일 라벨 자리로 — 마지막 열이 본문 오른쪽 끝에 닿게
   const labelW = Math.max(HEAT_LABEL_W, Math.floor(width) - cell * map.cols.length - HEAT_GAP * (map.cols.length - 1));
-  const legendCell = 11;
   const days = useMemo(() => pickableDays(map), [map]);
-  // 기록한 날 테두리 — 칸도 종이(bg) 위에 바로 놓인다(재는 바탕이 card면 골드가 3:1에 못 미친다)
-  const inkEdge = legibleMark(M.gold, M.bg, M);
+  const tones = HEAT_TONES.map((t) => M[t]);
   const step = (dir: 1 | -1) => {
     if (days.length === 0) return;
     const i = picked ? days.indexOf(picked) : -1;
@@ -147,6 +258,7 @@ export function TenWeeks({
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={speech}
+      {...a11yLangProp()}
       accessibilityValue={{ text: pickedText }}
       accessibilityHint={msgs.stats.heatHint}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
@@ -156,13 +268,13 @@ export function TenWeeks({
       }}
     >
       {/* 달 이름 — 새 달이 시작되는 주 위에 */}
-      <View style={{ flexDirection: 'row', height: 16, marginBottom: 3 }}>
+      <View style={{ flexDirection: 'row', height: 18, marginBottom: 4 }}>
         <View style={{ width: labelW }} />
-        {map.months.map((m, w) => (
+        {map.months.map((mo, w) => (
           <View key={w} style={{ width: cell, marginLeft: w ? HEAT_GAP : 0, overflow: 'visible' }}>
-            {!!m && (
-              <Text style={[{ position: 'absolute', left: 0, width: cell * 2 + HEAT_GAP, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }, NUM]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
-                {m}
+            {!!mo && (
+              <Text style={[ROLE.meta, { position: 'absolute', left: 0, width: cell * 3 + HEAT_GAP * 2, color: M.print }]} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                {mo}
               </Text>
             )}
           </View>
@@ -170,30 +282,34 @@ export function TenWeeks({
       </View>
       {HEAT_ROW_DOWS.map((dow, d) => (
         <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginTop: d ? HEAT_GAP : 0 }}>
-          <Text style={{ width: labelW, fontSize: 11, lineHeight: 14, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1.2}>{dow == null ? '' : msgs.fmt.dowNarrow({ i: dow })}</Text>
+          <Text style={[ROLE.meta, { width: labelW, color: M.print }]} maxFontSizeMultiplier={1.2}>{dow == null ? '' : msgs.fmt.dowNarrow({ i: dow })}</Text>
           {map.cols.map((col, w) => {
             const c = col[d];
-            const on = picked === c.date;
-            const box = { width: cell, height: cell, marginLeft: w ? HEAT_GAP : 0, borderRadius: 2 };
+            const box = { width: cell, height: cell, marginLeft: w ? HEAT_GAP : 0, borderRadius: TILE_RADIUS };
             if (c.state === 'none') return <View key={w} style={box} />;
-            const ink = c.state === 'ink';
-            const outline = on ? 2 : c.today ? 1.5 : 1;
+            const on = picked === c.date;
+            const bin = c.state === 'ink' ? c.bin : 0;
             return (
               <Pressable
                 key={w}
                 onPress={() => { tap(); onPick(on ? null : c.date); }}
                 hitSlop={HEAT_SLOP}
-                style={[
-                  box,
-                  {
-                    backgroundColor: ink ? fade(M.gold, HEAT_FILL[c.bin]) : 'transparent',
-                    borderWidth: outline,
-                    borderColor: on || c.today ? M.ink : ink ? inkEdge : M.line,
-                  },
-                ]}
+                style={[box, { backgroundColor: tones[bin], alignItems: 'center', justifyContent: 'center' }]}
               >
+                {c.today && (
+                  <View pointerEvents="none" style={{ width: TODAY_DOT, height: TODAY_DOT, borderRadius: TODAY_DOT / 2, backgroundColor: M.signal }} />
+                )}
                 {c.best && (
-                  <View pointerEvents="none" style={{ position: 'absolute', left: 3, right: 3, bottom: 2, height: 2, backgroundColor: M.ink }} />
+                  <View pointerEvents="none" style={{ position: 'absolute', left: 3, right: 3, bottom: 2, height: 2, borderRadius: 1, backgroundColor: bin >= 3 ? M.paper : M.ink }} />
+                )}
+                {on && (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute', left: -PICK_OUT, top: -PICK_OUT, right: -PICK_OUT, bottom: -PICK_OUT,
+                      borderWidth: PICK_RING, borderColor: M.ink, borderRadius: TILE_RADIUS + PICK_OUT,
+                    }}
+                  />
                 )}
               </Pressable>
             );
@@ -201,189 +317,151 @@ export function TenWeeks({
         </View>
       ))}
       {/* 범례 — 실제 횟수 구간(적게/많이 대신) */}
-      <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 12 }}>
-        {DAY_BIN_LABELS.map((l, i) => (
-          <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 4 : 0 }}>
-            <View style={{ width: legendCell, height: legendCell, borderRadius: 2, borderWidth: 1, borderColor: inkEdge, backgroundColor: fade(M.gold, HEAT_FILL[i + 1]) }} />
-            <Text style={[{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub }, NUM]} maxFontSizeMultiplier={1.2}>{l}</Text>
-          </View>
-        ))}
-      </View>
+      <TileLegend M={M} tones={tones.slice(1)} />
     </View>
   );
 }
 
 // ── 8개 영역 = 닳은 자리 ─────────────────────────────────────────────────────
 
-/** 칸 진하기 0~4 → 영역 색 농도(%) */
-const WEAR_FILL = [0, 25, 45, 65, 85] as const;
-
-/** 블록 자리(0~8)마다 블록 사이 괘선 — 오른쪽·아래만(가운데 블록 둘레는 바깥 테두리 굵기) */
-function blockEdges(M: M, slot: number) {
-  const row = Math.floor(slot / 3);
-  const col = slot % 3;
-  const block = ruleColor(M, 'block');
-  const frame = ruleColor(M, 'frame');
-  const coreRight = row === 1 && col === 0;
-  const coreBottom = col === 1 && row === 0;
-  const fromCoreRight = row === 1 && col === 1;
-  const fromCoreBottom = col === 1 && row === 1;
-  return {
-    borderRightWidth: col === 2 ? 0 : coreRight || fromCoreRight ? RULE.frame : RULE.block,
-    borderBottomWidth: row === 2 ? 0 : coreBottom || fromCoreBottom ? RULE.frame : RULE.block,
-    borderRightColor: coreRight || fromCoreRight ? frame : block,
-    borderBottomColor: coreBottom || fromCoreBottom ? frame : block,
-  };
-}
+/** 쌓기 칸 진행 줄 — 칸 안쪽 아래(좌우 · 아래 4), 2 높이 */
+const BAR_INSET = 4;
 
 /**
- * 8개 영역 — 내 만다라트 81칸을 인쇄된 표 그대로 그리고, 칸마다 최근 4주 동안 한 날 수만큼 영역 색을 입힌다
- * (자주 한 칸일수록 진하게 — 손때 묻은 자리). 이름표 칸은 영역 이름과 달성률, 쌓기 칸은 맨 아래 2pt 진행 막대,
- * 가운데는 핵심 목표 자리에 전체 달성률. 칸을 누르면 그 실천을, 이름표를 누르면 그 영역을 연다.
+ * 8개 영역 — 내 만다라트 81칸을 색 지도(L2)와 같은 자리의 타일(모서리 3)로 그리고, 실천 칸마다 최근 4주 동안 한 날 수만큼
+ * 그 영역 색을 진하게(WEAR_TONES: tile → tint → wash → washL1 → dye — 자주 한 칸일수록 진하게, 손때 묻은 자리).
+ * 영역 이름 칸은 영역 색에 이름, 가운데는 core에 전체 달성률(달성한 칸이 하나도 없으면 비운다), 쌓기 칸은 아래 2pt 진행 줄.
+ * 칸을 누르면 그 실천을, 이름 칸을 누르면 그 영역을 연다(onCell · onArea가 있을 때).
  *
- * activity는 review.cellActivity(doc, today, 28) — [영역][칸] 한 날 수. 기록이 없으면 빈 표(빈 양식)로 그려진다.
+ * activity는 review.cellActivity(doc, today, 28) — [영역][칸] 한 날 수. 기록이 없으면 빈 지도(빈 양식)로 그려진다.
  */
 export function ActivityChart({
   M, doc, activity, width, onCell, onArea,
 }: {
   M: M;
-  doc: MandaratDoc;
+  doc: Pick<MandaratDoc, 'themes' | 'centerGoal'>;
   activity: number[][];
   width: number;
   onCell?: (ti: number, ai: number) => void;
   onArea?: (ti: number) => void;
 }) {
   const m = useMsg();
-  const cellRule = ruleColor(M, 'cell');
+  const l = lang();
   const side = Math.max(0, Math.floor(width));
-  const overall = Math.round((totalDone(doc) / 64) * 100);
-  // 아직 달성한 칸이 하나도 없으면 빈 양식 — '0%'를 열일곱 번 찍지 않는다(하나라도 달성하면 모든 영역이 %를 다시 적어 0%도 뜻을 갖는다)
-  const blank = totalDone(doc) === 0;
-
-  const head = (ti: number) => {
-    const th = doc.themes[ti];
-    const p = themeProgress(th);
-    const name = areaName(m, doc, ti);
-    return (
-      <Pressable
-        onPress={onArea ? () => { tap(); onArea(ti); } : undefined}
-        disabled={!onArea}
-        accessibilityRole={onArea ? 'button' : undefined}
-        accessibilityLabel={`${name} ${p.pct}%${onArea ? `${m.core.listSep}${m.stats.openArea}` : ''}`}
-        // 9pt 이름은 글자 크기를 따라 커지지 않는다 — 길게 누르면 큰 글자로 보여 준다
-        accessibilityShowsLargeContentViewer
-        accessibilityLargeContentTitle={`${name} ${p.pct}%`}
-        style={({ pressed }) => ({ flex: 1, backgroundColor: headBg(th.color, M), opacity: pressed ? 0.75 : 1 })}
-      >
-        <View style={{ flex: 1, padding: 2, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 9, lineHeight: 11, fontWeight: '800', color: M.ink, textAlign: 'center' }} numberOfLines={2} maxFontSizeMultiplier={1}>
-            {name}
-          </Text>
-          {!blank && (
-            <Text style={[{ fontSize: 9, lineHeight: 11, fontWeight: '600', color: M.ink }, NUM]} maxFontSizeMultiplier={1}>{p.pct}%</Text>
-          )}
-        </View>
-      </Pressable>
-    );
-  };
-
-  const action = (ti: number, ai: number) => {
-    const th = doc.themes[ti];
-    const a = th.actions[ai];
-    const text = a?.text.trim() ?? '';
-    if (!text) return <View style={{ flex: 1 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
-    const n = activity[ti]?.[ai] ?? 0;
-    const bin = dayBin(n);
-    const count = kindOf(a) === 'count' ? countInfo(a) : null;
-    return (
-      <Pressable
-        onPress={onCell ? () => { tap(); onCell(ti, ai); } : undefined}
-        disabled={!onCell}
-        accessibilityRole={onCell ? 'button' : undefined}
-        accessibilityLabel={[text, n > 0 ? m.stats.wearSay({ n }) : m.stats.wearNone, a.done ? m.chart.done : '', count ? `${count.pct}%` : ''].filter(Boolean).join(m.core.listSep)}
-        style={({ pressed }) => ({ flex: 1, backgroundColor: bin ? fade(th.color, WEAR_FILL[bin]) : 'transparent', opacity: pressed ? 0.7 : 1 })}
-      >
-        {/* 진행 막대는 칸 안쪽에 띄운다 — 바닥 괘선에 붙으면 100%가 아래 칸의 윗 테두리처럼 읽힌다 */}
-        {count && (
-          <View pointerEvents="none" style={{ position: 'absolute', left: 3, right: 3, bottom: 3, height: 2, backgroundColor: headTrack(th.color) }}>
-            <View style={{ width: `${Math.max(0, Math.min(100, count.pct))}%`, height: '100%', backgroundColor: th.color }} />
-          </View>
-        )}
-      </Pressable>
-    );
-  };
-
-  const core = (
-    <View
-      accessible
-      accessibilityLabel={[m.chart.coreGoal, m.chart.doneOf64Say({ done: totalDone(doc) }), `${overall}%`].join(m.core.listSep)}
-      style={{ flex: 1, backgroundColor: coreBg(M), alignItems: 'center', justifyContent: 'center' }}
-    >
-      {!blank && (
-        <Text style={[{ fontSize: 11, lineHeight: 14, fontWeight: '800', color: coreInk(M) }, NUM]} maxFontSizeMultiplier={1}>{overall}%</Text>
-      )}
-    </View>
-  );
-
-  /** 블록(자리 b) 안 칸(자리 s) */
-  const cellAt = (b: number, s: number) => {
-    const ti = SLOT_INDEX[b];
-    if (ti == null) return s === CENTER_SLOT ? core : head(SLOT_INDEX[s] as number);
-    return s === CENTER_SLOT ? head(ti) : action(ti, SLOT_INDEX[s] as number);
+  const g = mapGeometry({ level: 'L2', width: side, ratio: PixelRatio.get() });
+  const done = doc.themes.reduce((s, t) => s + t.actions.filter((a) => a.done).length, 0);
+  const overall = Math.round((done / 64) * 100);
+  // 아직 달성한 칸이 하나도 없으면 빈 양식 — 가운데에 '0%'를 찍지 않는다(화면 읽기 이름은 그대로)
+  const blank = done === 0;
+  const cells = useMemo(() => mapCells({ themes: doc.themes, centerGoal: doc.centerGoal }), [doc.themes, doc.centerGoal]);
+  /** 칸 진하기(0~4) · 영역 → 색(tile, 그다음은 그 영역의 tint · wash · washL1 · dye) */
+  const wearFill = (bin: number, ti: number): string => {
+    const t = WEAR_TONES[bin] ?? 'tile';
+    return t === 'tile' ? M.tile : M[t][ti] ?? M.tile;
   };
 
   return (
-    <View
-      style={{
-        width: side, height: side, borderWidth: RULE.frame, borderColor: ruleColor(M, 'frame'),
-        borderRadius: frameRadius(doc.settings.cellShape), overflow: 'hidden', backgroundColor: M.bg,
-      }}
-    >
-      {[0, 1, 2].map((br) => (
-        <View key={br} style={{ flex: 1, flexDirection: 'row' }}>
-          {[0, 1, 2].map((bc) => {
-            const b = br * 3 + bc;
-            return (
-              <View key={bc} style={[{ flex: 1 }, blockEdges(M, b)]}>
-                {[0, 1, 2].map((r) => (
-                  <View key={r} style={{ flex: 1, flexDirection: 'row', borderTopWidth: r ? RULE.cell : 0, borderColor: cellRule }}>
-                    {[0, 1, 2].map((c) => (
-                      <View key={c} style={{ flex: 1, borderLeftWidth: c ? RULE.cell : 0, borderColor: cellRule }}>
-                        {cellAt(b, r * 3 + c)}
-                      </View>
-                    ))}
-                  </View>
-                ))}
+    <View style={{ width: g.size, height: g.size }}>
+      {cells.map((c) => {
+        const x = g.pos[c.col];
+        const y = g.pos[c.row];
+        const w = g.cells[c.col];
+        const h = g.cells[c.row];
+        const box: ViewStyle = { position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: TILE_RADIUS };
+        const key = `${c.row}-${c.col}`;
+
+        if (c.kind === 'core') {
+          return (
+            <View
+              key={key}
+              accessible
+              accessibilityLabel={[m.chart.coreGoal, m.chart.doneOf64Say({ done }), `${overall}%`].join(m.core.listSep)}
+              {...a11yLangProp()}
+              style={[box, { backgroundColor: M.core, alignItems: 'center', justifyContent: 'center' }]}
+            >
+              {!blank && (
+                <Text style={[ROLE.mapCore, { color: M.onCore, fontVariant: ['tabular-nums'] }]} maxFontSizeMultiplier={1}>{overall}%</Text>
+              )}
+            </View>
+          );
+        }
+
+        if (c.kind !== 'action') {
+          const ti = c.ti;
+          const p = themeProgress(doc.themes[ti]);
+          const name = areaName(m, doc, ti);
+          const lab = mapLabel(name, 'head', w, h, l);
+          return (
+            <Pressable
+              key={key}
+              onPress={onArea ? () => { tap(); onArea(ti); } : undefined}
+              disabled={!onArea}
+              accessibilityRole={onArea ? 'button' : undefined}
+              accessibilityLabel={`${name} ${p.pct}%${onArea ? `${m.core.listSep}${m.stats.openArea}` : ''}`}
+              {...a11yLangProp()}
+              // 지도 글은 글자 크기를 따라 커지지 않는다 — 길게 누르면 큰 글자로 보여 준다
+              accessibilityShowsLargeContentViewer
+              accessibilityLargeContentTitle={`${name} ${p.pct}%`}
+              style={({ pressed }) => [box, { backgroundColor: M.dye[ti], paddingHorizontal: MAP_LABEL.pad, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.75 : 1 }]}
+            >
+              <Text
+                style={[ROLE.mapHead, { fontSize: lab.fs, lineHeight: lab.lh, letterSpacing: lab.letterSpacing, color: M.onDye, textAlign: 'center' }]}
+                numberOfLines={Math.max(1, lab.lines)}
+                maxFontSizeMultiplier={1}
+                accessible={false}
+              >
+                {lab.text}
+              </Text>
+            </Pressable>
+          );
+        }
+
+        const a = doc.themes[c.ti]?.actions[c.ai];
+        const text = a?.text.trim() ?? '';
+        if (!text || !a) {
+          return <View key={key} {...HIDDEN} style={[box, { backgroundColor: M.tile }]} />;
+        }
+        const n = activity[c.ti]?.[c.ai] ?? 0;
+        const count = kindOf(a) === 'count' ? countInfo(a) : null;
+        const ti = c.ti;
+        const ai = c.ai;
+        return (
+          <Pressable
+            key={key}
+            onPress={onCell ? () => { tap(); onCell(ti, ai); } : undefined}
+            disabled={!onCell}
+            accessibilityRole={onCell ? 'button' : undefined}
+            accessibilityLabel={[text, n > 0 ? m.stats.wearSay({ n }) : m.stats.wearNone, a.done ? m.chart.done : '', count ? `${count.pct}%` : ''].filter(Boolean).join(m.core.listSep)}
+            {...a11yLangProp()}
+            style={({ pressed }) => [box, { backgroundColor: wearFill(dayBin(n), ti), opacity: pressed ? 0.7 : 1 }]}
+          >
+            {/* 진행 줄은 칸 안쪽에 띄운다 */}
+            {count && (
+              <View pointerEvents="none" style={{ position: 'absolute', left: BAR_INSET, right: BAR_INSET, bottom: BAR_INSET, height: 2, borderRadius: 1, backgroundColor: M.paper }}>
+                <View style={{ width: `${Math.max(0, Math.min(100, count.pct))}%`, height: '100%', borderRadius: 1, backgroundColor: M.ink }} />
               </View>
-            );
-          })}
-        </View>
-      ))}
+            )}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
 /**
- * 닳은 자리 범례 — '최근 4주 · ■1 ■2 ■3 ■5+번'. 색은 영역마다 다르므로 중간 회색 농도로 보인다:
- * 밝은 무드는 보조 글씨색(sub), 다크는 sub를 종이 쪽으로 30% 섞은 색 — 실제 칸(영역 색 25~85%)과 밝기가 맞는다
- * (먹색을 쓰면 밝은 무드의 5+가 가운데 칸만큼 검고, 다크의 5+는 흰 가운데 칸과 같아진다)
- * head — 범례 앞 머리말(기본 '최근 4주'). 한 해 돌아보기는 제목 줄과 같은 '4주 평균'을 준다
+ * 닳은 자리 범례 — '최근 4주 · ■1 ■2 ■3 ■5+일'. 칸 색은 영역마다 다르므로 범례는 같은 밝기 차례의 회색 타일로
+ * (printRule → printMid → printEdge → ink2 — 진할수록 자주 한 칸).
+ * head — 범례 앞 머리말(기본 '최근 4주 ·'). 한 해 돌아보기는 제목 줄과 같은 '4주 평균 ·'을 준다
  */
 export function WearLegend({ M, head }: { M: M; head?: string }) {
   const m = useMsg();
-  const swatch = M.dark ? toHex(mix(M.sub, M.bg, 0.3)) : toHex(M.sub);
   return (
-    <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 10 }}>
-      <Text style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub, marginRight: 2 }} maxFontSizeMultiplier={1.2}>{head ?? m.stats.legendLast4}</Text>
-      {DAY_BIN_LABELS.map((l, i) => (
-        <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 3 : 0 }}>
-          <View style={{ width: 11, height: 11, borderRadius: 2, backgroundColor: alpha(swatch, WEAR_FILL[i + 1] / 100) }} />
-          <Text style={[{ fontSize: 10.5, lineHeight: 13, fontWeight: '600', color: M.sub }, NUM]} maxFontSizeMultiplier={1.2}>
-            {i === DAY_BIN_LABELS.length - 1 ? m.stats.legendTimes({ label: l }) : l}
-          </Text>
-        </View>
-      ))}
-    </View>
+    <TileLegend
+      M={M}
+      tones={[M.printRule, M.printMid, M.printEdge, M.ink2]}
+      head={head ?? m.stats.legendLast4}
+      last={(label) => m.stats.legendTimes({ label })}
+    />
   );
 }
 
@@ -394,19 +472,19 @@ const MOOD_DOT = 5;
 const MOOD_SCALE_W = 26;
 
 /**
- * 최근 14일 기분 — 다섯 칸 세로 눈금 위에 그날 고른 자리에 먹색 점 하나(얼굴·색 없이).
- * 바닥선 아래에 요일 한 글자. 기분을 남기지 않은 날은 비워 둔다. 줄 전체가 글 하나로 읽힌다.
+ * 최근 14일 기분 — 다섯 칸 세로 눈금 위에 그날 고른 자리에 먹 점 하나(얼굴·색 없이).
+ * 바닥 머리카락 선 아래에 요일 한 글자(오늘은 먹 700). 기분을 남기지 않은 날은 비워 둔다. 줄 전체가 글 하나로 읽힌다.
  */
 export function MoodStrip({ M, days, speech }: { M: M; days: readonly MoodDay[]; speech: string }) {
   const m = useMsg();
   const last = days.length - 1;
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={speech}>
+    <View accessible accessibilityRole="image" accessibilityLabel={speech} {...a11yLangProp()}>
       <View style={{ flexDirection: 'row' }}>
         {/* 눈금 이름 폭은 최소 MOOD_SCALE_W — 긴 낱말(ja · en)이면 그만큼 넓힌다 */}
         <View {...HIDDEN} style={{ minWidth: MOOD_SCALE_W, paddingRight: 4, height: MOOD_ROW * 5, justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1}>{m.core.mood4}</Text>
-          <Text style={{ fontSize: 10, lineHeight: 12, fontWeight: '600', color: M.sub }} maxFontSizeMultiplier={1}>{m.core.mood0}</Text>
+          <Text style={[ROLE.note, { fontSize: 10, lineHeight: 12, color: M.print }]} maxFontSizeMultiplier={1}>{m.core.mood4}</Text>
+          <Text style={[ROLE.note, { fontSize: 10, lineHeight: 12, color: M.print }]} maxFontSizeMultiplier={1}>{m.core.mood0}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', height: MOOD_ROW * 5 }}>
@@ -423,12 +501,12 @@ export function MoodStrip({ M, days, speech }: { M: M; days: readonly MoodDay[];
               </View>
             ))}
           </View>
-          <View style={{ height: 1, backgroundColor: M.line }} />
+          <View style={{ height: 1, backgroundColor: M.printRule }} />
           <View style={{ flexDirection: 'row', marginTop: 4 }}>
             {days.map((d, i) => (
               <Text
                 key={d.date}
-                style={{ flex: 1, textAlign: 'center', fontSize: 10, lineHeight: 12, fontWeight: i === last ? '800' : '600', color: i === last ? M.ink : M.sub }}
+                style={[i === last ? ROLE.weekDayToday : ROLE.weekDay, { flex: 1, textAlign: 'center', fontSize: 10, lineHeight: 12, color: i === last ? M.ink : M.print }]}
                 maxFontSizeMultiplier={1}
               >
                 {d.dow}

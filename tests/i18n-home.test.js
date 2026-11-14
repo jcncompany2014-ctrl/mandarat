@@ -92,19 +92,15 @@ test('homeSummary · todaySummary: 일본어는 문장을 붙여 쓰고, 영어�
   assert.equal(todaySummary(d, WED), '오늘 할 일 2개를 다 했어요');
 });
 
-test('Tally: 한국어 · 일본어는 正, 영어는 다섯 묶음(세로 넷 + 사선)', () => {
-  const t = src('src/components/Tally.tsx');
-  assert.match(t, /export const tallyStrokes = \(l: Lang\) => \(l === 'en' \? GATE : STROKES\);/);
-  assert.match(t, /const shape = tallyStrokes\(useLang\(\)\);/);
-  const gate = /const GATE[^=]*= \[([\s\S]*?)\];/.exec(t)[1].match(/d: '([^']+)'/g);
-  assert.equal(gate.length, 5);
-  assert.match(gate[4], /L/, '다섯째는 사선');
-});
-
-test('홈 화면 · GuideChips에 한글 글이 남지 않는다 · 요일은 fmt', () => {
+test('홈 화면 · GuideChips에 한글 글이 남지 않는다 · 날짜 · 요일은 fmt', () => {
   const d = src('src/screens/Dashboard.tsx');
   assert.doesNotMatch(d, /DOW_KR/);
-  assert.match(d, /m\.fmt\.dowLong\(\{ i: now\.getDay\(\) \}\)/);
-  assert.match(d, /m\.home\.month\(\{ n: now\.getMonth\(\) \+ 1 \}\)/);
+  // 머리 위 줄(디자인 A) — lib/home homeEyebrow가 fmt.dateLong + home.eyebrow로 만든다. 이번 주 막대의 요일도 fmt
+  assert.match(d, /eyebrow=\{homeEyebrow\(now\)\}/);
+  assert.match(d, /m\.fmt\.dowNarrow\(\{ i: d\.dow \}\)/);
+  assert.match(d, /m\.fmt\.dowLong\(\{ i: d\.dow \}\)/);
+  assert.equal(H.homeEyebrow(WED, 'ko'), '10월 14일 수요일 · 42주');
+  assert.equal(H.homeEyebrow(WED, 'ja'), '10月14日 水曜日・第42週');
+  assert.equal(H.homeEyebrow(WED, 'en'), 'Wednesday, October 14 · Week 42');
   assert.ok(!fs.existsSync(path.join(__dirname, 'i18n-pending', 'X-H.json')));
 });

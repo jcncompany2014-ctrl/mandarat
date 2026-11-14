@@ -87,12 +87,14 @@ test('A-7: 잠긴 인쇄 줄은 프로 안내가 열린다고 알려 준다', ()
 
 test('A-8: 한 해 닫기 — 둘째 쪽부터 "‹ 이전"(44pt, onBack)', () => {
   const s = src('src/overlays/YearClose.tsx');
-  const at = s.indexOf('{index > 0 && (');
+  // 디자인 A: 머리 위 줄의 '‹ 이전'(PageHead lead) — 18 높이 줄 안에서 손끝은 44
+  const at = s.indexOf('const back = index > 0 && (');
   assert.ok(at > 0);
   const btn = s.slice(at, s.indexOf('</Pressable>', at));
   assert.match(btn, /onBack\(\)/);
   assert.match(btn, /accessibilityLabel=\{m\.common\.back\}/);
   assert.match(btn, /minHeight: 44, minWidth: 44/);
+  assert.match(s, /<PageHead\s+M=\{M\}\s+lead=\{back\}/);
   assert.equal(msg('ko').common.back, '이전');
   assert.equal(msg('ja').common.back, '前へ');
   assert.equal(msg('en').common.back, 'Back');

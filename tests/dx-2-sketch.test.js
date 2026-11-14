@@ -48,7 +48,6 @@ test('D-8 · D-15: 81칸 범례는 실제 칸 모양, 글은 20pt 쪽 가장자�
   assert.doesNotMatch(f, /paddingHorizontal: 4\b/);
   assert.match(f, /const EDGE = 9;/);
   assert.match(src('src/screens/GridScreen.tsx'), /marginHorizontal: 9/);
-  // 81칸과 공유 이미지는 같은 줄바꿈 도우미
+  // 81칸의 줄바꿈 도우미(공유 이미지는 O5에서 색 지도의 글 맞추기 — posterLabel · mapLabel — 로 옮겼다)
   assert.match(f, /cellBreak\(text, textW/);
-  assert.match(src('src/components/ChartPoster.tsx'), /cellBreak\(c\.text, k\.textW, fs\)/);
 });

@@ -147,11 +147,14 @@ test('시트: 가졌으면 차례만(버튼 없이), 웹 · 안드로이드는 �
   assert.equal(msg('ko').pro.ownedHead, '프로가 열려 있어요');
 });
 
-test('시트: 차례 네 줄은 PRO_FEATURES 순서, 연 기능의 줄은 먹색으로 긋는다', () => {
+test('시트: 차례 네 줄은 PRO_FEATURES 순서, 연 기능의 줄은 옅은 면 위에 굵게(화면 읽기는 "방금 고른 기능")', () => {
   const s = code(SHEET);
   assert.match(s, /PRO_FEATURES\.map\(\(f, i\) =>/);
   assert.match(s, /const here = f === from/);
-  assert.match(s, /borderBottomWidth: here \? 2 : 1, borderColor: here \? M\.ink : M\.line/);
+  // 디자인 A: 괘선 굵기 대신 옅은 면(tile) — 테두리 없이
+  assert.match(s, /here \? \{ backgroundColor: M\.tile, borderRadius: GEO\.rField/);
+  assert.match(s, /style=\{here \? KIT_TYPE\.choiceOn : undefined\}/);
+  assert.match(s, /here \? m\.pro\.featureSayHere\(\{ name, sub \}\) : m\.pro\.featureSay\(\{ name, sub \}\)/);
   assert.match(s, /\{i \+ 1\}/);
   assert.match(s, /\.\.\.NUM/);
   const ko = msg('ko').pro;
@@ -166,7 +169,8 @@ test('testID: proBuy · proRestore · proClose · setPro · setRestore', () => {
   const section = code(SECTION);
   for (const k of ['proBuy', 'proRestore', 'proClose']) {
     assert.ok(TID[k], k);
-    assert.match(sheet, new RegExp(`testID=\\{TID\\.${k}\\}`), k);
+    // 닫기(×)는 시트 머리(SheetHead)의 closeTestID로 넘긴다
+    assert.match(sheet, new RegExp(`(testID|closeTestID)=\\{TID\\.${k}\\}`), k);
   }
   for (const k of ['setPro', 'setRestore']) {
     assert.ok(TID[k], k);

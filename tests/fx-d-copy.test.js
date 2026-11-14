@@ -79,9 +79,7 @@ test('포인트 컬러 표시(막대 · 달력 테두리 · 진행 중 표시)�
   const charts = fs.readFileSync(path.join(ROOT, 'src/components/StatsCharts.tsx'), 'utf8');
   assert.doesNotMatch(charts, /legibleMark\(M\.(accent|gold),\s*M\.card/);
   assert.equal((charts.match(/legibleMark\(M\.gold,\s*M\.bg, M\)/g) ?? []).length, 2, '막대 · 달력 테두리 — 표와 같은 표시색');
-  // 홈 날짜 숫자 아래 '하루 마감' 줄도 종이 위 3:1 (FX-VERIFY K-1)
+  // 홈 날짜 숫자 아래 '하루 마감' 줄은 디자인 A(S1)에서 큰 날짜 머리와 함께 없어졌다 — 홈은 표시색을 쓰지 않는다
   const dash = fs.readFileSync(path.join(ROOT, 'src/screens/Dashboard.tsx'), 'utf8');
-  assert.doesNotMatch(dash, /backgroundColor: M\.accent, marginTop: 1/);
-  // 표·통계와 같은 표시색(M.gold) — 파스텔·다크에서 골드를 고르면 M.accent와 달라진다(최종 점검 NEW-1)
-  assert.match(dash, /dayComplete && <View style=\{\{ height: 3, backgroundColor: legibleMark\(M\.gold, M\.bg, M\)/);
+  assert.doesNotMatch(dash, /legibleMark\(|M\.gold|M\.accent/);
 });
