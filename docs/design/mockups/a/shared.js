@@ -51,8 +51,6 @@
       await Promise.all([
         document.fonts.load('500 10px Pretendard', '가'),
         document.fonts.load('700 10px Pretendard', '가'),
-        document.fonts.load('400 26px MaruBuri', '가1'),
-        document.fonts.load('600 30px MaruBuri', '가1'),
       ]).catch(() => {});
       await document.fonts.ready;
     }
@@ -385,9 +383,9 @@
     const s = size - 2 * pad;
     const u = s / 9; // one cell of the 9×9
     let out = '';
-    const rect = (x, y, w, fill) => { out += `<rect x="${(pad + x).toFixed(3)}" y="${(pad + y).toFixed(3)}" width="${w.toFixed(3)}" height="${w.toFixed(3)}" rx="${(w * 0.12).toFixed(3)}" style="fill:${fill}"/>`; };
+    const rect = (x, y, w, fill) => { out += `<rect x="${(pad + x).toFixed(3)}" y="${(pad + y).toFixed(3)}" width="${w.toFixed(3)}" height="${w.toFixed(3)}" rx="${(w * 0.22).toFixed(3)}" style="fill:${fill}"/>`; };
     if (opts.variant === 'heart') {
-      const gap = Math.max(0.5, s * 0.035), t = (s - 2 * gap) / 3;
+      const gap = Math.max(1, s * 0.06), t = (s - 2 * gap) / 3;
       for (let i = 0; i < 9; i++) {
         const a = i < 4 ? i : i - 1;
         rect((i % 3) * (t + gap), Math.floor(i / 3) * (t + gap), t, i === 4 ? 'var(--core)' : dye(a));

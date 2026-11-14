@@ -68,7 +68,7 @@ A.ready().then((doc) => {
   A.chart('#l1e', doc, { level: 'L1', cell: 7 });
   [[16, 'heart'], [24, 'heart'], [32, 'heart'], [64, 'sheet'], [120, 'sheet']].forEach(([s, v]) => { const e = document.createElement('div'); q('#marks').appendChild(e); A.mark(e, { size: s, variant: v }); });
   q('#icons').innerHTML = ['home', 'chart', 'today', 'stats'].map((n) => A.icon(n) + A.icon(n, { active: true })).join('') + ['plus', 'settings', 'share', 'edit', 'more', 'chevron', 'back', 'close'].map((n) => A.icon(n)).join('');
-  q('#tally').innerHTML = [0, 1, 2, 3, 4, 5, 7].map((n) => A.tally(n)).join('') + '<span class="t-label"><i class="a-today"></i>오늘</span><span class="t-meta"><i class="a-dye" style="--d:var(--dye-4)"></i>관계</span>';
+  q('#tally').innerHTML = '<span class="t-label"><i class="a-today"></i>오늘</span><span class="t-meta"><i class="a-dye" style="--d:var(--dye-4)"></i>관계</span>';
   A.tabBar('#bar', { active: 'today' });
 });
 </script>

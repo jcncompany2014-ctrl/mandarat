@@ -3,7 +3,7 @@
    the shared.js calls (A.check, A.icon, A.row's classes); nothing here sets a colour of its own (the
    night swatch is drawn with the light tokens, inks swapped: see S.swatch).
 
-     S.check(on)      the check box as a switch: printed box, the owner's tick when on.
+     S.check(on)      the check box as a switch: printed box, a small ink tick inside when on.
      S.toggleRow(o)   an on/off setting: leading check box (CI-02 "check = independent yes/no"),
                       title, meta, one written value on the right (a time, in a soft tinted field
                       because it opens a picker). Unlike A.row, a ticked setting is not struck
@@ -40,12 +40,12 @@
   };
 
   /* S.check(on) — the check box as a switch. The box is printed and stays print ink (3.3:1 edge,
-     paper inside); "on" is the owner's pen tick over it, overshooting the top-right corner exactly as
-     in A.check (same 6pt corners). No wash and no ink edge: those mean "done" on a task, and a setting
-     is not done. */
+     paper inside); "on" is a small ink tick written inside the box, the same "chosen" box as the
+     editor's weekdays (S.chosenBox in parts-sheets.js). Not the done mark: no wash, no dye edge and
+     no overshoot, which mean "I did it" on a task; a setting is switched on, not done. */
   S.check = function (on) {
     const box = `<rect x=".75" y=".75" width="22.5" height="22.5" rx="6" fill="none" style="stroke:var(--print-edge)" stroke-width="1.5"/>`;
-    const tick = on ? `<path d="M5.600 12.400C8 14.200 9.600 16.200 10.800 18.600 14.600 11 19.800 3.600 27.200-3" fill="none" style="stroke:var(--tick)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : '';
+    const tick = on ? `<path d="M6.4 12.6C8 13.8 9.2 15.2 10.2 17 12.4 12.6 15 9.2 18 6.6" fill="none" style="stroke:var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : '';
     return `<svg class="a-check" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">${box}${tick}</svg>`;
   };
 

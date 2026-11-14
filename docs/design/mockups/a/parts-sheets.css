@@ -31,6 +31,7 @@
    separates one group from the next. */
 .s-group { margin-top: 24px; }
 .s-group > .a-section { margin-bottom: 8px; }
+.s-group > .a-section > .t-label:first-child { font-weight: 600; }   /* a field's label, as 핵심 목표 on onboarding */
 .s-group > .t-note { display: block; margin-top: 8px; }
 
 /* segment: a --tile track (12pt corners), equal cells, no edge and no dividers; the chosen cell is

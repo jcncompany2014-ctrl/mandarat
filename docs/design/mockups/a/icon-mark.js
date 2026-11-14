@@ -7,13 +7,15 @@
 
    AI.app(target, opts) — the app icon.
      opts.size   outer size in pt (default 512). iOS masks the corners, so the white fills the square.
-     opts.pad    white margin each side, as a fraction of size (default 0.215: the 3×3 is 57% of the
-                 icon, inside the mask's safe area with air to spare).
-     opts.gap    white between tiles, as a fraction of size (default 0.03; never under 1pt, so the
-                 tiles stay apart at 29pt).
-     opts.r      tile corner radius as a fraction of a tile (default 0.24: soft, the same family as the
+     opts.pad    white margin each side, as a fraction of size (default 0.2: the 3×3 is 60% of the
+                 icon, inside the mask's safe area with air to spare; 0.17 at 40pt and under, so the
+                 colours keep their size on Settings and Spotlight rows).
+     opts.gap    white between tiles, as a fraction of size (default 0.025: close enough that the nine
+                 read as one mark, not nine buttons; never under 1pt, so they stay apart at 29pt).
+     opts.r      tile corner radius as a fraction of a tile (default 0.22: soft, the same family as the
                  iOS mask, rounder than the chart's 0.16 because there are only nine tiles).
-   Proportions are fractions of the size, so the same drawing works from 1024 down to 29.
+   Proportions are fractions of the size, so the same drawing works from 1024 down to 29
+   (checked at 180, 120, 87, 60, 40 and 29 on white, mid-grey and light-grey wallpapers).
 
    AI.printed(target, opts) — the heart of the sheet (the core in ink, the eight areas round it in their
    dyes) as a 3×3 of soft tiles on paper.
@@ -27,11 +29,11 @@
   AI.app = function (target, opts) {
     opts = opts || {};
     const S = opts.size || 512;
-    const pad = S * (opts.pad !== undefined ? opts.pad : 0.215);
+    const pad = S * (opts.pad !== undefined ? opts.pad : S <= 40 ? 0.17 : 0.2);
     const g = S - 2 * pad;
-    const gap = Math.max(1, S * (opts.gap !== undefined ? opts.gap : 0.03));
+    const gap = Math.max(1, S * (opts.gap !== undefined ? opts.gap : 0.025));
     const t = (g - 2 * gap) / 3;
-    const rx = t * (opts.r !== undefined ? opts.r : 0.24);
+    const rx = t * (opts.r !== undefined ? opts.r : 0.22);
     let out = '';
     for (let i = 0; i < 9; i++) {
       const a = i < 4 ? i : i - 1;

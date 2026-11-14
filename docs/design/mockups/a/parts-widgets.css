@@ -15,7 +15,7 @@
 .w-head { display: flex; align-items: baseline; justify-content: space-between; height: 24px; }
 .w-head .t-label { line-height: 24px; }
 .w-fig { font: 700 19px/24px var(--sans); letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
-.w-fig small { font: 500 12px/18px var(--sans); letter-spacing: 0; color: var(--ink-2); margin-left: 2px; }
+.w-fig small { font: 500 12px/18px var(--sans); letter-spacing: 0; color: var(--ink-2); margin-left: 1px; }
 
 /* three rows, no rule on top: the space under the head line groups them. Between rows a hairline
    that starts at the title (20pt box + 10pt gap), as in .a-row */
@@ -39,7 +39,7 @@
 .w-row-area .a-dye { margin-right: 5px; }
 
 /* ── Lock Screen: vibrant rendering = opaque greys, no hue. The kit's own tokens are redefined
-      here, so A.check / A.tally / .a-today draw themselves in the grey ramp. ── */
+      here, so A.check / .a-today draw themselves in the grey ramp. ── */
 .lockscreen, .lock {
   --lock-1: #F2F2F2;   /* primary: 5.6:1 on the #5F5F5F wallpaper, 4.6:1 on the disc */
   --lock-2: #DDDDDD;   /* secondary text and the check-box edge: 4.6:1 on the wallpaper */
