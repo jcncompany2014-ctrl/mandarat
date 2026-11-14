@@ -83,7 +83,7 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
   padding-block: 8px;
   border-bottom: 1px solid var(--line);
 }
-.switch div { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); }
+.switch div { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--ink); }
 .switch button {
   font: inherit; font-size: 14px; font-weight: 600;
   padding: 10px 4px; min-height: 44px;
@@ -97,7 +97,7 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 .rows { display: flex; flex-direction: column; gap: 40px; }
 .row { display: flex; flex-direction: column; gap: 12px; }
 .row > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
-.shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
 .shots.two { grid-template-columns: repeat(2, minmax(0, 390px)); justify-content: start; }
 .shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .shot .tag { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
@@ -129,21 +129,18 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 
 <div class="wrap">
   <header class="head">
-    <p class="eyebrow">만다라트 · 디자인 개선 · A 깨끗하게</p>
-    <h1>흰 바탕, 고딕 한 가지, 덜 꽉 찬 표로 다시 그렸어요</h1>
-    <p class="lede">말씀하신 다섯 가지를 고쳐서 핵심 화면 일곱 개를 먼저 다시 그렸어요. 이 방향이 맞으면 나머지 화면도 같은 방식으로 바꿀게요.</p>
+    <p class="eyebrow">만다라트 · 디자인 개선 · A 깨끗하게 · 전체 화면</p>
+    <h1>좋다고 하신 방향으로 스무 개 화면을 모두 맞췄어요</h1>
+    <p class="lede">흰 바탕, 프리텐다드 한 가지, 색 지도 표, 정(正) 표시 없음. 화면마다 지금 앱과 새 시안을 나란히 놓았어요.</p>
     <div class="ask">
-      <b>두 가지만 골라 주세요.</b>
-      <ol>
-        <li><b>만다라트 표:</b> 색 지도(영역 이름만, 누르면 글씨) 또는 글자 표(81칸 글씨 모두). 지금은 색 지도를 권해요.</li>
-        <li><b>글꼴:</b> 프리텐다드, 수트, 원티드 산스, 라인 시드 중 하나. 아래 견본을 보고 골라 주세요.</li>
-      </ol>
-      <span>예: "지도, 수트". 그 밖에 걸리는 곳이 있으면 함께 말씀해 주세요.</span>
+      <b>전체를 한 번 훑어봐 주세요.</b>
+      <span>마음에 안 드는 화면이 있으면 이름과 함께 말씀해 주세요. 괜찮으면 다음은 앱에 실제로 적용하는 단계예요.</span>
+      <span>표는 색 지도, 글꼴은 프리텐다드로 두었어요. 글자 표나 다른 글꼴이 좋으면 아래 견본을 보고 말씀해 주세요.</span>
     </div>
   </header>
 
   <section class="head">
-    <h2>말씀하신 것과 바꾼 것</h2>
+    <h2>지난번 말씀과 바꾼 것</h2>
     <div class="tablebox">
       <table class="swap">
         <thead><tr><th>말씀</th><th>바꾼 것</th></tr></thead>
@@ -182,9 +179,9 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
   <section class="head">
     <h2>다음 순서</h2>
     <ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px">
-      <li>표 방식과 글꼴을 고르시면 나머지 열두 화면(통계, 칸 편집, 실천 시트, 집중 타이머, 하루 마감, 설정, 위젯, 앱스토어 스크린샷 등)을 같은 방식으로 바꿔요.</li>
       <li>서로 너무 비슷한 여덟 영역 색을 다시 뽑아요.</li>
-      <li>앱에 실제로 적용해요.</li>
+      <li>앱에 실제로 적용해요. 표, 홈, 탭 막대, 부품, 색, 다크 모드 순서예요.</li>
+      <li>설정에서 빠지는 꾸미기(종이 색 다섯 가지, 포인트 컬러, 칸 모서리)는 그때 함께 확인받을게요.</li>
     </ol>
   </section>
 </div>
@@ -193,16 +190,28 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 (function () {
   var COLS = [
     { key: 'cur', label: '지금 앱' },
-    { key: 'soft', label: '지난 시안' },
     { key: 'new', label: '새 시안' }
   ];
   var SCREENS = [
     { key: 'home', label: '홈', note: '목표, 오늘 숫자, 할 일, 이번 주 막대' },
-    { key: 'onboarding', label: '시작 화면', note: '질문 하나, 입력 칸 하나' },
-    { key: 'first', label: '첫 표', note: '막 시작한 빈 표' },
     { key: 'chart', label: '만다라트 표', note: '색 지도' },
     { key: 'block', label: '블록 크게 보기', note: '건강 영역의 실천 여덟 칸' },
-    { key: 'today', label: '오늘', note: '오늘 할 일 목록' }
+    { key: 'today', label: '오늘', note: '오늘 할 일 목록' },
+    { key: 'stats', label: '통계', note: '이번 주 한 문장과 막대' },
+    { key: 'onboarding', label: '시작 화면', note: '질문 하나, 입력 칸 하나' },
+    { key: 'first', label: '첫 표', note: '막 시작한 빈 표' },
+    { key: 'editor', label: '칸 편집', note: '고르는 방식 세 가지' },
+    { key: 'sheet', label: '실천 시트', note: '칸 하나를 눌렀을 때' },
+    { key: 'add', label: '담기', note: '오늘 할 일 빠르게 적기' },
+    { key: 'focus', label: '25분 집중', note: '1분에 한 칸씩 채워지는 5×5' },
+    { key: 'dayclose', label: '하루 마감', note: '다 끝낸 날' },
+    { key: 'year', label: '한 해 돌아보기', note: '지난 표와 채워진 모습' },
+    { key: 'settings', label: '설정', note: '' },
+    { key: 'home-dark', label: '다크 모드', note: '홈' },
+    { key: 'widgets', label: '위젯', note: '홈 화면과 잠금 화면', wide: true, noCur: true },
+    { key: 'store', label: '앱스토어 스크린샷', note: '지금 앱은 첫 장만', wide: true },
+    { key: 'share', label: '공유 이미지', note: '4:5', wide: true },
+    { key: 'icon', label: '앱 아이콘', note: '', wide: true }
   ];
   var rows = document.getElementById('rows');
   var sw = document.getElementById('switch');
@@ -233,12 +242,13 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
     head.appendChild(el('h3', '', s.label));
     if (s.note) head.appendChild(el('p', 'note', s.note));
     row.appendChild(head);
-    var shots = el('div', 'shots');
+    var shots = el('div', 'shots' + (s.wide ? '' : ' two'));
     COLS.forEach(function (c) {
       var fig = el('figure', 'shot');
       fig.dataset.dir = c.key;
       fig.appendChild(el('figcaption', 'tag', c.label));
-      fig.appendChild(frame('img/' + c.key + '-' + s.key + '.png', s.label + ', ' + c.label));
+      if (c.key === 'cur' && s.noCur) fig.appendChild(el('p', 'note', '지금 앱에는 비교할 화면이 없어요.'));
+      else fig.appendChild(frame('img/' + c.key + '-' + s.key + '.png', s.label + ', ' + c.label, s.wide));
       shots.appendChild(fig);
     });
     row.appendChild(shots);
