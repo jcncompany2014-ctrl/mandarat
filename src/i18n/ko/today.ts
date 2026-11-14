@@ -37,16 +37,11 @@ export default {
   areaFallback: ({ n }: { n: number }) => `영역 ${n}`,
   areaEmpty: '이 영역은 오늘 할 일이 없어요',
   pickMore: '실천에서 더 고르기',
-  /** '했어요 3' 묶음 머리(보이는 글) */
-  doneHead: ({ n }: { n: number }) => `했어요 ${n}`,
   /** 묶음 머리의 화면 읽기 */
   doneHeadLabel: ({ n }: { n: number }) => `했어요 ${n}개`,
   expand: '펼치기',
   collapse: '접기',
-  /** 집계 옆 '고르기' */
-  pick: '고르기',
   pickHint: '만다라트 실천에서 오늘 할 일을 골라요',
-  allDone: '오늘 다 했어요',
 
   // ── 빈 목록 ──
   emptyFill: '만다라트 칸을 채우면 여기 담겨요',
@@ -72,8 +67,6 @@ export default {
   mindIntro: '한 주 동안 얼마나 지켰는지 1~5점으로 매겨요',
   rateLastWeek: '지난주 점수 매기기',
   rateLastWeekHint: '한 주 돌아보기를 열어요',
-  /** 보이는 줄 — 끝에 '›' */
-  rateLastWeekLink: '지난주 점수 매기기 ›',
   /** 점수 칸 묶음의 이름 */
   mindRateLabel: ({ text }: { text: string }) => `${text} 이번 주 점수`,
   openHint: '실천 자세히 보기',
@@ -95,8 +88,6 @@ export default {
   /** '최고 9일' */
   streakBest: ({ run }: { run: string }) => `최고 ${run}`,
   streakStart: '오늘 하나 하면 시작돼요',
-  /** 요일 머리글 오른쪽 기록 칸 머리 */
-  streakCol: '연속',
   runNone: '연속 기록 아직 없음',
   runLabel: ({ run }: { run: string }) => `연속 ${run}`,
   streakLabel: ({ run, text, bestRun }: { run: string; text: string; bestRun: string }) => `지금 연속 ${run}, ${text}. 최고 ${bestRun}`,
@@ -136,8 +127,6 @@ export default {
   quickPlaceholder: '예) 서류 제출하기',
   quickCount: ({ n, max }: { n: number; max: number }) => `${n}자, 최대 ${max}자`,
   quickAreaAsk: '어느 영역의 일인가요?',
-  quickPicks: '이 영역 실천 담기',
-  quickPickHint: '오늘 할 일에 담아요',
   quickAdded: '오늘 할 일에 담았어요',
   quickSubmit: '오늘 할 일에 담기',
   quickWriteCell: ({ area }: { area: string }) => `${area} 빈 칸에 적기`,

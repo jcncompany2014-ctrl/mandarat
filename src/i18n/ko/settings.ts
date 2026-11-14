@@ -34,20 +34,8 @@ export default {
   lookDark: '어둡게',
   /** 화면 모드 견본의 화면 읽기 이름 */
   lookLabel: ({ name }: { name: string }) => `화면 모드 ${name}`,
-  // 아래 종이 · 포인트 컬러 · 칸 모서리 말은 이제 그리지 않는다(값은 문서에 남는다) — 웨이브 4(R2)가 지운다
-  subPaper: '종이',
-  /** 종이 줄의 화면 읽기 이름 — name은 core.paper* */
-  paperLabel: ({ name }: { name: string }) => `종이 ${name}`,
-  /** 종이 견본 안의 먹색 글자 한 자 */
-  swatchGlyph: '가',
-  subAccent: '포인트 컬러',
-  accentLabel: ({ name }: { name: string }) => `포인트 컬러 ${name}`,
-  subShape: '칸 모서리',
-  shapeLabel: ({ name }: { name: string }) => `칸 모서리 ${name}`,
 
   // ── 기록 › 백업 ──
-  secRecords: '기록',
-  subBackup: '백업',
   exportTitle: '백업 내보내기',
   /** age는 backupAgeLabel(마지막 백업 · 오늘 …) */
   exportHint: ({ age }: { age: string }) => `${age}. 기록을 파일로 내보내요`,

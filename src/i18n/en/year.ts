@@ -49,7 +49,6 @@ export default {
 
   // V3-D — year screen (review · Stats section)
   sheetTitle: 'Past chart',
-  loading: 'Not ready yet',
   currentChart: 'The chart in use',
   statStreak: 'Longest streak',
   calendarTitle: 'The year by day',

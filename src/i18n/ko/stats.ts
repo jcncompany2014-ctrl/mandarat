@@ -17,7 +17,6 @@ export default {
   /** 연속 큰 숫자 뒤 단위 — en은 n에 따라 day/days */
   heroDays: (_: { n: number }) => '일',
   heroDone: '달성',
-  heroOf64: '64칸 중',
   streakStart: '하나 하면 시작돼요',
   streakKept: '오늘까지 이어 왔어요',
   /** 오늘 하면 n일째 — n은 오늘 포함 */
@@ -29,8 +28,6 @@ export default {
   recordMonth: ({ n }: { n: number }) => `이번 달 달성 ${n}칸`,
 
   // ── 이번 주 ──
-  secWeek: '이번 주',
-  reviewLink: '돌아보기 ›',
   reviewLinkSay: '한 주 돌아보기',
   weekDid: ({ n }: { n: number }) => `이번 주 ${n}번 했어요`,
   /** 했지만 달성한 칸이 없을 때 — 달성이 무엇인지 */
@@ -44,7 +41,6 @@ export default {
   barFutureSay: ({ i }: { i: number }) => `${fmt.dowLong({ i })}부터는 아직`,
 
   // ── 이번 주 장부 ──
-  ledgerAdded: '쌓은 것',
   ledgerFocus: '집중',
   ledgerNone: '없음',
   /** 장부 한 줄 읽기 — '습관 9번 중 5번' */
@@ -69,7 +65,6 @@ export default {
   more: '더 보기',
 
   // ── 최근 10주 ──
-  secTenWeeks: '최근 10주',
   since: ({ date }: { date: string }) => `${date}부터`,
   /** 달 이름(n: 1~12) */
   monthLabel: ({ n }: { n: number }) => `${n}월`,

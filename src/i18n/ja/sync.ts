@@ -3,7 +3,6 @@ import type ko from '../ko/sync';
 import type { Like } from '../types';
 
 export default {
-  sectionTitle: 'iCloud',
   toggle: 'iCloudで端末どうしを同期',
   toggleSub: '同じAppleアカウントのiPhone・iPadどうしで記録を同期します',
   justNow: 'たった今同期しました',

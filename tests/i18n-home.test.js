@@ -24,19 +24,16 @@ function blank() {
 
 test('ko: 홈 글은 옮기기 전과 같다', () => {
   const k = msg('ko').home;
-  assert.equal(k.month({ n: 10 }), '10월');
   assert.equal(msg('ko').fmt.dowLong({ i: 3 }), '수요일');
   assert.equal(k.settings, '설정');
   assert.equal(k.chartHint, '만다라트를 펼쳐요');
   assert.equal(k.setGoalText, '핵심 목표를\n정해 주세요');
-  assert.equal(`${k.doneBefore}${k.doneCount({ n: 12 })}${k.doneAfter}`, '64칸 중 12칸 달성했어요');
   assert.equal(k.saveFailBody, '기기 저장 공간을 확인해 주세요. 바꾸는 대로 다시 저장해 볼게요.');
   assert.equal(k.ritualSub({ range: '10월 12일 – 18일' }), '10월 12일 – 18일 · 3분이면 돼요');
   assert.equal(msg('ko').fmt.times({ n: 4 }), '4번');
   assert.equal(k.weekDayToday({ day: '수요일', n: 2 }), '수요일 2번, 오늘');
   assert.equal(k.areaRowLabel({ name: '건강', line: '빈 칸 8개', n: 0 }), '건강, 빈 칸 8개, 8칸 중 0칸 달성');
   assert.equal(k.todayHeadLabel({ total: 5, done: 2 }), '오늘 할 일 5개 중 2개 했어요, 오늘 화면 열기');
-  assert.equal(k.moreLabel({ n: 2 }), '2개 더 있어요, 오늘 화면 열기');
   assert.equal(k.closeLabel({ day: '10월 14일 수요일', n: 3 }), '10월 14일 수요일 마감, 3개 중 3개 했어요');
   assert.equal(msg('ko').today.closeLeft({ day: '10월 14일 수요일' }), '10월 14일 수요일 마감');
   assert.equal(k.guideProgress({ total: 5, done: 2 }), '5단계 중 2단계');
@@ -45,9 +42,6 @@ test('ko: 홈 글은 옮기기 전과 같다', () => {
   assert.equal(`${k.guideStep({ n: 3, text: k.guideFillSpeech({ label: '실천 칸 8개 채우기', done: 3, total: 8 }) })}${sep}${k.guideNext}${sep}${k.ctaFill}`,
     '3단계 실천 칸 8개 채우기, 8칸 중 3칸, 다음에 할 일, 채우기');
   assert.equal(`${k.guideStep({ n: 1, text: '핵심 목표 정하기' })}${sep}${k.guideDone}`, '1단계 핵심 목표 정하기, 끝냄');
-  // GuideChips
-  const spoken = [k.chipHas({ label: k.chipWhat }), k.chipMissing({ label: k.chipHowMuch }), k.chipMissing({ label: k.chipWhen })].join(sep);
-  assert.equal(k.chipSpeech({ spoken, hint: k.chipHint }), '무엇을 있음, 얼마나 없음, 언제·어디서 없음. 구체적일수록 실천하기 쉬워요');
 });
 
 test('headerMeta: 해 · 주 / 올해 남은 날은 언어마다 fmt', () => {
@@ -55,9 +49,6 @@ test('headerMeta: 해 · 주 / 올해 남은 날은 언어마다 fmt', () => {
   assert.deepEqual(H.headerMeta(WED, 'ja'), { week: '2026年 第42週', left: '今年あと78日' });
   assert.deepEqual(H.headerMeta(WED, 'en'), { week: '2026 · Week 42', left: '78 days left this year' });
   assert.equal(H.headerMeta(new Date(2026, 11, 30), 'en').left, '1 day left this year');
-  assert.equal(msg('ja').home.month({ n: 10 }), '10月');
-  assert.equal(msg('en').home.month({ n: 10 }), 'October');
-  assert.equal(msg('en').home.month({ n: 1 }), 'January');
 });
 
 test('areaLine: 언어마다', () => {

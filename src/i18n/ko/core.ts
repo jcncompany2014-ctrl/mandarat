@@ -42,7 +42,6 @@ export default {
   repeatDow: ({ i }: { i: number }) => `${fmt.dowLong({ i })} 반복`,
   /** 매일 · 평일 · 주말 빠른 선택의 이름 */
   repeatLabel: ({ label }: { label: string }) => `${label} 반복`,
-  noRepeat: '반복 안 함',
 
   // 표 읽기 (src/lib/chartSpeech.ts)
   /** 고유어 서수 — '세'(번째). 8을 넘으면 숫자 */
@@ -80,25 +79,11 @@ export default {
   mgmtList: '목록',
   mgmtStreak: '연속 기록',
   mgmtBoard: '보드',
-  shapeRound: '둥글게',
-  shapeSquare: '반듯하게',
-  paperIvory: '미색',
-  paperCream: '크림',
-  paperGray: '회색',
-  paperLavender: '연보라',
-  paperDark: '다크',
   mood0: '힘듦',
   mood1: '별로',
   mood2: '보통',
   mood3: '좋음',
   mood4: '최고',
-
-  // 포인트 색 이름 (src/theme/palette.ts)
-  accentGold: '골드',
-  accentRouge: '연지',
-  accentMugwort: '쑥',
-  accentIndigo: '쪽빛',
-  accentMulberry: '오디',
 
   // 81칸에 들어가는지 (src/theme/chart.ts)
   fitAll: '81칸에 다 들어가요',

@@ -83,7 +83,6 @@ export default {
   rowUnlog: "Remove today's log",
   rowUndone: 'Clear Done',
   rowMarkDone: 'Mark done',
-  rowWeek: ({ count, total }) => `${count} of ${total} this week`,
   rowDelete: 'Delete',
   rowOpenHint: 'Shows action details',
   rowOpen: 'Details',

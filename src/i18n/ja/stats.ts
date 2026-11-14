@@ -11,7 +11,6 @@ export default {
   heroStreak: '連続',
   heroDays: () => '日',
   heroDone: '達成',
-  heroOf64: '64マス中',
   streakStart: 'ひとつやれば始まります',
   streakKept: '今日まで続いています',
   streakNext: ({ n }) => `今日ひとつやれば${n}日目`,
@@ -21,8 +20,6 @@ export default {
   recordBest: ({ n }) => `最高記録 ${n}日`,
   recordMonth: ({ n }) => `今月の達成 ${n}マス`,
 
-  secWeek: '今週',
-  reviewLink: 'ふりかえる ›',
   reviewLinkSay: '週のふりかえり',
   weekDid: ({ n }) => `今週は${n}回やりました`,
   weekNoDone: ({ n }) => `今週は${n}回やりました。マスは、一度きりの行動を終えるか、目標の数に届くと達成になります。`,
@@ -33,7 +30,6 @@ export default {
   barTodaySay: ({ i, n }) => `${fmt.dowLong({ i })}（今日） ${n}回`,
   barFutureSay: ({ i }) => `${fmt.dowLong({ i })}からはまだ`,
 
-  ledgerAdded: '積み上げた分',
   ledgerFocus: '集中',
   ledgerNone: 'なし',
   ledgerSay: ({ label, value }) => `${label} ${value}`,
@@ -54,7 +50,6 @@ export default {
   moreWeeks: ({ n }) => `ふりかえった週をあと${n}件見る`,
   more: 'もっと見る',
 
-  secTenWeeks: '最近10週',
   since: ({ date }) => `${date}から`,
   monthLabel: ({ n }) => `${n}月`,
   bestNone: 'まだ記録がありません',

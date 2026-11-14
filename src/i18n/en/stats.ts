@@ -18,7 +18,6 @@ export default {
   heroStreak: 'Streak',
   heroDays: ({ n }) => ` ${days(n)}`,
   heroDone: 'Achieved',
-  heroOf64: 'of 64 squares',
   streakStart: 'Do one to start',
   streakKept: 'Kept up through today',
   streakNext: ({ n }) => `Do one today for day ${n}`,
@@ -28,8 +27,6 @@ export default {
   recordBest: ({ n }) => `Best ${n} ${days(n)}`,
   recordMonth: ({ n }) => `${n} ${plural(n, 'square', 'squares')} achieved this month`,
 
-  secWeek: 'This week',
-  reviewLink: 'Review ›',
   reviewLinkSay: 'Weekly review',
   weekDid: ({ n }) => `Done ${n} ${times(n)} this week`,
   weekNoDone: ({ n }) => `Done ${n} ${times(n)} this week. A square is achieved when you finish a one-time action or reach its target.`,
@@ -40,7 +37,6 @@ export default {
   barTodaySay: ({ i, n }) => `Today, ${fmt.dowLong({ i })}: ${n} ${times(n)}`,
   barFutureSay: ({ i }) => `From ${fmt.dowLong({ i })}: not yet`,
 
-  ledgerAdded: 'Added',
   ledgerFocus: 'Focus',
   ledgerNone: 'none',
   ledgerSay: ({ label, value }) => `${label}: ${value}`,
@@ -61,7 +57,6 @@ export default {
   moreWeeks: ({ n }) => `Show ${n} more ${plural(n, 'week', 'weeks')}`,
   more: 'Show more',
 
-  secTenWeeks: 'Last 10 weeks',
   since: ({ date }) => `Since ${date}`,
   monthLabel: ({ n }) => MON[n - 1] ?? '',
   bestNone: 'No record yet',

@@ -47,7 +47,6 @@ export default {
 
   // V3-D — year screen (review · Stats section)
   sheetTitle: '過去の表',
-  loading: 'まだ準備中です',
   currentChart: '今使っている表',
   statStreak: '最長の連続',
   calendarTitle: '一年のカレンダー',

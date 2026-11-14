@@ -49,7 +49,6 @@ export default {
   draftRestored: '적던 내용을 다시 올렸어요',
 
   // ── 내용 줄 ──
-  textLabel: '내용',
   helpPlaceholder: '직접 적거나 아래에서 골라요',
   /** 글자 수를 읽는 말 — '60자 중 12자' */
   charCount: ({ n, max }: { n: number; max: number }) => `${max}자 중 ${n}자`,
@@ -89,7 +88,6 @@ export default {
   repeat: '반복',
   byDays: '요일마다',
   byCount: '횟수로',
-  perWeekLabel: '횟수',
   perWeekA11y: '주간 횟수',
   /** '주 3회' */
   perWeek: ({ n }: { n: number }) => `주 ${n}회`,
@@ -97,7 +95,6 @@ export default {
   perWeekSay: ({ n }: { n: number }) => `주 ${n}회`,
   perWeekLess: '주 1회 줄이기',
   perWeekMore: '주 1회 늘리기',
-  days: '요일',
   /** 알림 '시각 정하기' 줄의 정보 — '오후 10:30 · 정한 요일마다' */
   remindDays: '정한 요일마다',
   remindWeek: '횟수를 채울 때까지 매일',
@@ -125,7 +122,6 @@ export default {
   dueYear: '올해 안',
   /** 마감 고르기 칩을 읽는 말 — '마감 3개월 뒤, 2027년 1월 14일 목요일' */
   dueChipA11y: ({ label, date }: { label: string; date: string }) => `마감 ${label}, ${date}`,
-  date: '날짜',
   /** 정한 마감을 읽는 말 — '10월 21일 수요일, 마감 7일 남음' */
   dueA11y: ({ date, left }: { date: string; left: string }) => `${date}, ${left}`,
   dueClear: '마감 없애기',

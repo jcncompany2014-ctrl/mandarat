@@ -6,9 +6,6 @@ export default {
   cancel: '취소',
   retry: '다시 시도',
   openSettings: '설정 열기',
-  on: '켬',
-  off: '끔',
-  later: '나중에',
   undo: '되돌리기',
   /** 여러 쪽으로 된 흐름에서 한 쪽 앞으로(한 해 닫기) */
   back: '이전',

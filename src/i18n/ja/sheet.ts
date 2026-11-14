@@ -84,7 +84,6 @@ export default {
   rowUnlog: '今日足した分を戻す',
   rowUndone: '「できた」を消す',
   rowMarkDone: '「できた」にする',
-  rowWeek: ({ count, total }) => `今週${total}回中${count}回`,
   rowDelete: '消す',
   rowOpenHint: '行動の詳細を見る',
   rowOpen: '詳細を見る',

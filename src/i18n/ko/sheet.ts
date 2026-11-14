@@ -111,7 +111,6 @@ export default {
   rowUnlog: '오늘 더한 것 빼기',
   rowUndone: '했어요 지우기',
   rowMarkDone: '했어요로 남기기',
-  rowWeek: ({ count, total }: { count: number; total: number }) => `이번 주 ${total}회 중 ${count}회`,
   rowDelete: '지우기',
   rowOpenHint: '실천 자세히 보기',
   rowOpen: '자세히 보기',
