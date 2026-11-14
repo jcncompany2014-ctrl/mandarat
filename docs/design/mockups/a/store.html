@@ -32,8 +32,10 @@
   .f3 .cap { color: #CDCDCD; }
   .f3 .head { color: var(--paper); }
 
-  /* 1: a window on the L2 sheet, columns 3–7 and rows 2–8, cut in the gaps so no word is cut */
-  .win { position: absolute; left: 0; width: 430px; overflow: hidden; }
+  /* 1: a window on the L2 sheet, columns 3–7 from row 2 down, cut in the gaps at the sides so no word
+     is cut, and running off the bottom. Its sides sit on the caption's 32pt margin, so the tiles float
+     on the paper instead of being cropped hard by the frame. */
+  .win { position: absolute; left: 32px; width: 366px; top: 334px; bottom: 0; overflow: hidden; }
   .win > div { position: absolute; transform-origin: 0 0; }
 
   .folio { position: absolute; left: 32px; right: 32px; top: 292px; display: flex; justify-content: space-between; align-items: baseline; font: 500 16px/22px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
@@ -93,19 +95,16 @@ A.ready().then((doc) => {
   const v = doc.view, rows = v.today.rows;
   const find = (t) => rows.find((r) => r.text === t);
 
-  /* 1 ─ the sheet, cropped. Draw the L2 sheet as the app does, then show only the cells between
-     columns 2..6 and rows 1..7 (0-based), scaled to fill the frame's width. */
+  /* 1 ─ the sheet, cropped. Draw the L2 sheet as the app does, then show only the cells from column 2
+     to 6 and from row 1 down (0-based), scaled to the 366pt measure inside the 32pt margins. */
   const ch = A.chart('#sheet1', doc, {});
   const cells = ch.cells, xs = [];
   ch.el.querySelectorAll('.a-cell').forEach((n) => { const [r, c] = n.dataset.rc.split('-').map(Number); if (r === 0) xs[c] = parseFloat(n.style.left); });
   document.querySelector('#prog1').textContent = `${v.progress.done}/${v.progress.of}칸`;
   const cs = ch.cellSize, x0 = xs[2], x1 = xs[6] + cs;
   const ys = xs; // the sheet is square: row starts = column starts
-  const s = 430 / (x1 - x0);
-  const winH = (ys[7] + cs - ys[1]) * s;
+  const s = 366 / (x1 - x0);
   const win = document.querySelector('#win1');
-  win.style.top = (932 - winH) + 'px';
-  win.style.height = winH + 'px';
   const inner = win.firstElementChild;
   inner.style.left = (-x0 * s) + 'px';
   inner.style.top = (-ys[1] * s) + 'px';
