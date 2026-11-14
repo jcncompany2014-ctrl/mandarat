@@ -62,26 +62,18 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   max-width: 760px;
 }
 .ask b { font-weight: 700; }
+.ask ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 
-.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px 40px; }
-.cols > section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.plain { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.plain li { padding-left: 18px; position: relative; }
-.plain li::before { content: ''; position: absolute; left: 2px; top: 0.68em; width: 6px; height: 6px; background: var(--sub); }
-.plain b { font-weight: 600; }
-
-/* 바꾼 것 표 */
 .swap { width: 100%; max-width: 880px; border-collapse: collapse; font-size: 15px; }
 .swap th { text-align: left; font-weight: 600; color: var(--sub); font-size: 13px; padding: 0 12px 8px 0; border-bottom: 1px solid var(--line); }
 .swap td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 .swap td:first-child { font-weight: 600; white-space: nowrap; }
 .tablebox { overflow-x: auto; }
 
-/* 고르는 띠 — 좁은 화면에서만 */
 .switch {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
@@ -102,145 +94,119 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
 .switch button[aria-pressed="true"] { background: var(--ink); color: var(--wall); }
 .switch button:focus-visible, .zoomable:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
 
-.group { display: flex; flex-direction: column; gap: 28px; }
-.group > h2 { padding-top: 8px; border-top: 1px solid var(--line); }
+.rows { display: flex; flex-direction: column; gap: 40px; }
 .row { display: flex; flex-direction: column; gap: 12px; }
 .row > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.shots.two { grid-template-columns: repeat(2, minmax(0, 390px)); justify-content: start; }
 .shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .shot .tag { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
 .shot .tag span { font-weight: 400; color: var(--sub); }
-.shot[data-dir="cur"] .tag, .shot[data-dir="stiff"] .tag { color: var(--sub); }
+.shot[data-dir="cur"] .tag, .shot[data-dir="soft"] .tag { color: var(--sub); }
 .frame {
   display: block; width: 100%;
   background: var(--panel); box-shadow: var(--shadow); border-radius: 18px; overflow: hidden;
   padding: 0; border: 0; cursor: zoom-in;
 }
-.frame.is-wide, .frame.is-icon { border-radius: 10px; }
-.frame.is-icon { width: 60%; border-radius: 22.5%; cursor: default; }
+.frame.is-wide { border-radius: 12px; }
 .frame img { display: block; width: 100%; height: auto; }
-.none { font-size: 14px; color: var(--sub); border: 1px dashed var(--line); padding: 16px; border-radius: 12px; }
+.specimen { max-width: 800px; }
 
 .lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 15, 0.86); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
 .lightbox img { max-height: 100%; max-width: min(100%, 960px); border-radius: 14px; }
 
 @media (max-width: 860px) {
   .switch { display: block; }
-  .shots { grid-template-columns: 1fr; justify-items: center; }
+  .shots, .shots.two { grid-template-columns: 1fr; justify-items: center; }
   .shot { width: 100%; max-width: 390px; }
   .shot[hidden] { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .frame { transition: transform 0.18s ease; }
   .frame:hover { transform: translateY(-2px); }
-  .frame.is-icon:hover { transform: none; }
 }
 </style>
 
 <div class="wrap">
   <header class="head">
-    <p class="eyebrow">만다라트 · 디자인 개선 · A 부드럽게</p>
-    <h1>A를 부드럽게 다시 그렸어요</h1>
-    <p class="lede">"전체적으로 너무 딱딱해 보인다"는 말씀에 맞춰 A의 19개 화면을 모두 고쳤어요. 화면마다 지금 앱, A 처음, A 부드럽게를 나란히 놓았어요.</p>
+    <p class="eyebrow">만다라트 · 디자인 개선 · A 깨끗하게</p>
+    <h1>흰 바탕, 고딕 한 가지, 덜 꽉 찬 표로 다시 그렸어요</h1>
+    <p class="lede">말씀하신 다섯 가지를 고쳐서 핵심 화면 일곱 개를 먼저 다시 그렸어요. 이 방향이 맞으면 나머지 화면도 같은 방식으로 바꿀게요.</p>
     <div class="ask">
-      <b>이 정도 부드러움이 맞는지 봐 주세요.</b>
-      <span>"더 부드럽게", "이 정도 좋아", "표는 예전이 나았어"처럼 말씀해 주시면 그대로 맞춰요. 마음에 드시면 다음은 앱에 실제로 적용하는 단계예요.</span>
+      <b>두 가지만 골라 주세요.</b>
+      <ol>
+        <li><b>만다라트 표:</b> 색 지도(영역 이름만, 누르면 글씨) 또는 글자 표(81칸 글씨 모두). 지금은 색 지도를 권해요.</li>
+        <li><b>글꼴:</b> 프리텐다드, 수트, 원티드 산스, 라인 시드 중 하나. 아래 견본을 보고 골라 주세요.</li>
+      </ol>
+      <span>예: "지도, 수트". 그 밖에 걸리는 곳이 있으면 함께 말씀해 주세요.</span>
     </div>
   </header>
 
   <section class="head">
-    <h2>무엇을 바꿨나요</h2>
+    <h2>말씀하신 것과 바꾼 것</h2>
     <div class="tablebox">
       <table class="swap">
-        <thead><tr><th>딱딱했던 것</th><th>A 처음</th><th>A 부드럽게</th></tr></thead>
+        <thead><tr><th>말씀</th><th>바꾼 것</th></tr></thead>
         <tbody>
-          <tr><td>선 색</td><td>차가운 청회색. 크림색 종이 위에서 모눈종이처럼 보였어요.</td><td>따뜻한 연필색</td></tr>
-          <tr><td>선 개수</td><td>제목 아래, 목록 위, 칸마다 테두리, 세로 칸막이</td><td>대부분 걷어내고 간격으로 묶었어요. 할 일 사이에만 아주 옅은 선.</td></tr>
-          <tr><td>만다라트 표</td><td>테두리 친 표</td><td>살짝 둥근 타일이 조금씩 떨어진 모양</td></tr>
-          <tr><td>모서리</td><td>날카로운 네모</td><td>체크박스, 칸, 입력 칸을 살짝 둥글게</td></tr>
-          <tr><td>'오늘' 표시</td><td>잘린 모서리</td><td>작은 주홍 점</td></tr>
-          <tr><td>이름표</td><td>작고 자간이 넓은 글자</td><td>평범한 13pt 글자</td></tr>
-          <tr><td>탭 제목</td><td>가는 명조체, 청회색</td><td>굵은 고딕, 먹색. 명조체는 내 목표와 숫자에만.</td></tr>
-          <tr><td>탭 막대, 시트</td><td>선으로 두른 테두리</td><td>은은한 그림자로 떠 있어요</td></tr>
+          <tr><td>정(正) 표시가 들어간 주간 칸</td><td>요일마다 작은 막대 하나. 위에 횟수, 오늘은 진하게, 아직 안 온 날은 점.</td></tr>
+          <tr><td>글꼴이 마음에 안 듦</td><td>명조체를 모두 빼고 고딕 한 가지로. 다른 고딕 세 가지 견본도 준비했어요.</td></tr>
+          <tr><td>표가 너무 꽉 참</td><td>전체 표는 색 지도로. 영역 이름과 목표만 보이고, 칸 사이가 넓어요. 실천 글씨는 블록을 누르면 크게 보여요.</td></tr>
+          <tr><td>배경이 누런색</td><td>흰 바탕과 중성 회색. 누런 기운을 모두 뺐어요.</td></tr>
+          <tr><td>시작 화면이 짜침</td><td>진한 색 블록 아홉 개를 없앴어요. 질문 하나, 입력 칸 하나, 옅은 색의 작은 미리보기, 버튼 하나.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">예전에 정하신 대로 둥근 카드, 알약 모양 버튼, 배지, 그라데이션, 도장은 여전히 쓰지 않았어요. 부드러움은 그런 장식이 아니라 따뜻한 색, 적은 선, 여백, 살짝 둥근 모서리에서 나와요.</p>
   </section>
 
   <section class="head" id="screens">
     <h2>화면별 비교</h2>
-    <p class="note">화면을 누르면 크게 볼 수 있어요. 모든 시안은 같은 예시 데이터(목표 "단단한 한 해", 64칸 중 24칸 달성)예요.</p>
+    <p class="note">화면을 누르면 크게 볼 수 있어요. 같은 예시 데이터(목표 "단단한 한 해", 64칸 중 24칸 달성)예요.</p>
     <nav class="switch" aria-label="보여 줄 판">
       <div id="switch"></div>
     </nav>
-    <div id="groups" class="group" style="gap:48px"></div>
+    <div id="rows" class="rows"></div>
   </section>
 
-  <section class="cols">
-    <section>
-      <h2>확인받을 것</h2>
-      <ul class="plain">
-        <li><b>설정에서 빠지는 꾸미기:</b> 종이 색 다섯 가지는 화면 모드(자동·밝게·어둡게)로 바뀌어요. 포인트 컬러와 칸 모서리 설정은 없어져요. 종이 무늬(점·모눈·줄)는 그대로 둬요.</li>
-        <li><b>명조체:</b> 목표와 숫자에 네이버 마루 부리를 써요. 앱에 넣으면 약 2MB가 늘고, 출시 전에 라이선스를 확인해야 해요.</li>
-        <li><b>완성 표시:</b> 영역 하나를 다 채웠을 때의 작은 주홍 도장은 선택지로만 남겨 뒀어요. 예전에 도장은 빼기로 하셨기 때문이에요.</li>
-      </ul>
-    </section>
-    <section>
-      <h2>남은 순서</h2>
-      <ol class="plain">
-        <li>부드러움 정도를 확인받기.</li>
-        <li>여덟 영역 색 다시 뽑기. 지금 색 중 두 쌍이 서로 너무 가까워요.</li>
-        <li>앱에 적용하기. 표, 홈, 탭 막대, 부품, 색, 다크 모드 순서로요.</li>
-      </ol>
-    </section>
+  <section class="head">
+    <h2>만다라트 표: 색 지도와 글자 표</h2>
+    <p class="note">색 지도는 한눈에 어느 영역이 얼마나 찼는지 보여 주고, 덜 꽉 차 보여요. 글자 표는 81칸 글씨가 다 보이지만 칸이 작아 빽빽해요. 앱에서는 색 지도를 기본으로 두고 글자 표를 설정에서 켜게 할 수도 있어요.</p>
+    <div class="shots two" id="charts"></div>
+  </section>
+
+  <section class="head">
+    <h2>글꼴 견본</h2>
+    <p class="note">같은 홈 화면 윗부분을 글꼴만 바꿔 그렸어요. 네 가지 모두 앱에 무료로 넣을 수 있어요(OFL).</p>
+    <button class="frame is-wide zoomable specimen" type="button" id="fonts" aria-label="글꼴 견본 크게 보기"><img src="img/new-_fonts.png" alt="프리텐다드, 수트, 원티드 산스, 라인 시드로 그린 홈 화면 윗부분 견본" loading="lazy"></button>
+  </section>
+
+  <section class="head">
+    <h2>다음 순서</h2>
+    <ol class="note" style="padding-left:20px;display:flex;flex-direction:column;gap:6px">
+      <li>표 방식과 글꼴을 고르시면 나머지 열두 화면(통계, 칸 편집, 실천 시트, 집중 타이머, 하루 마감, 설정, 위젯, 앱스토어 스크린샷 등)을 같은 방식으로 바꿔요.</li>
+      <li>서로 너무 비슷한 여덟 영역 색을 다시 뽑아요.</li>
+      <li>앱에 실제로 적용해요.</li>
+    </ol>
   </section>
 </div>
 
 <script>
 (function () {
   var COLS = [
-    { key: 'cur', label: '지금 앱', short: '지금' },
-    { key: 'stiff', label: 'A 처음', short: 'A 처음' },
-    { key: 'soft', label: 'A 부드럽게', short: '부드럽게' }
+    { key: 'cur', label: '지금 앱' },
+    { key: 'soft', label: '지난 시안' },
+    { key: 'new', label: '새 시안' }
   ];
-  // wide: 폰 화면이 아닌 판(위젯, 스토어, 공유), icon: 아이콘
-  var GROUPS = [
-    { title: '매일 보는 화면', screens: [
-      { key: 'home', label: '홈', note: '앱을 열면 처음 보는 화면' },
-      { key: 'chart', label: '만다라트 표', note: '81칸 전체' },
-      { key: 'block', label: '블록 크게 보기', note: '건강 영역의 3×3과 이번 주 습관' },
-      { key: 'today', label: '오늘', note: '오늘 할 일 목록' },
-      { key: 'stats', label: '통계', note: '이번 주 한 문장과 쌓인 기록' }
-    ] },
-    { title: '처음 시작할 때', screens: [
-      { key: 'onboarding', label: '시작 화면', note: '가운데 칸에 목표를 바로 써요' },
-      { key: 'first', label: '첫 표', note: '막 시작한 빈 표' }
-    ] },
-    { title: '누르면 올라오는 시트', screens: [
-      { key: 'editor', label: '칸 편집', note: '고르는 방식을 세 가지로 줄였어요' },
-      { key: 'sheet', label: '실천 시트', note: '칸 하나를 눌렀을 때' },
-      { key: 'add', label: '담기', note: '오늘 할 일 빠르게 적기' }
-    ] },
-    { title: '특별한 순간', screens: [
-      { key: 'focus', label: '25분 집중', note: '1분에 한 칸씩 채워지는 5×5' },
-      { key: 'dayclose', label: '하루 마감', note: '다 끝낸 날' },
-      { key: 'year', label: '한 해 돌아보기', note: '지난 표와 채워진 모습' }
-    ] },
-    { title: '그 밖의 화면', screens: [
-      { key: 'settings', label: '설정', note: '' },
-      { key: 'home-dark', label: '다크 모드', note: '홈' }
-    ] },
-    { title: '앱 밖에서 보이는 것', screens: [
-      { key: 'widgets', label: '위젯', note: '홈 화면과 잠금 화면', wide: true, noCur: true },
-      { key: 'store', label: '앱스토어 스크린샷', note: '지금 앱은 첫 장만', wide: true },
-      { key: 'share', label: '공유 이미지', note: '4:5', wide: true },
-      { key: 'icon', label: '앱 아이콘', note: '', icon: true }
-    ] }
+  var SCREENS = [
+    { key: 'home', label: '홈', note: '목표, 오늘 숫자, 할 일, 이번 주 막대' },
+    { key: 'onboarding', label: '시작 화면', note: '질문 하나, 입력 칸 하나' },
+    { key: 'first', label: '첫 표', note: '막 시작한 빈 표' },
+    { key: 'chart', label: '만다라트 표', note: '색 지도' },
+    { key: 'block', label: '블록 크게 보기', note: '건강 영역의 실천 여덟 칸' },
+    { key: 'today', label: '오늘', note: '오늘 할 일 목록' }
   ];
-  var groups = document.getElementById('groups');
+  var rows = document.getElementById('rows');
   var sw = document.getElementById('switch');
-  var picked = 'soft';
+  var picked = 'new';
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -248,42 +214,45 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
     if (text) n.textContent = text;
     return n;
   }
+  function frame(src, alt, wide) {
+    var btn = el('button', 'frame zoomable' + (wide ? ' is-wide' : ''));
+    btn.type = 'button';
+    btn.setAttribute('aria-label', alt + ', 크게 보기');
+    var img = el('img');
+    img.src = src;
+    img.alt = alt;
+    img.loading = 'lazy';
+    btn.appendChild(img);
+    btn.addEventListener('click', function () { zoom(src, alt); });
+    return btn;
+  }
 
-  GROUPS.forEach(function (g) {
-    var box = el('section', 'group');
-    box.appendChild(el('h2', '', g.title));
-    g.screens.forEach(function (s) {
-      var row = el('section', 'row');
-      var head = el('header');
-      head.appendChild(el('h3', '', s.label));
-      if (s.note) head.appendChild(el('p', 'note', s.note));
-      row.appendChild(head);
-      var shots = el('div', 'shots');
-      COLS.forEach(function (c) {
-        var fig = el('figure', 'shot');
-        fig.dataset.dir = c.key;
-        fig.appendChild(el('figcaption', 'tag', c.label));
-        if (c.key === 'cur' && s.noCur) {
-          fig.appendChild(el('p', 'none', '지금 앱에는 비교할 화면이 없어요.'));
-        } else {
-          var btn = el('button', 'frame zoomable' + (s.wide ? ' is-wide' : '') + (s.icon ? ' is-icon' : ''));
-          btn.type = 'button';
-          btn.setAttribute('aria-label', s.label + ', ' + c.label + (s.icon ? '' : ', 크게 보기'));
-          var img = el('img');
-          img.src = 'img/' + c.key + '-' + s.key + '.png';
-          img.alt = s.label + ', ' + c.label;
-          img.loading = 'lazy';
-          btn.appendChild(img);
-          if (!s.icon) btn.addEventListener('click', function () { zoom(img.src, img.alt); });
-          fig.appendChild(btn);
-        }
-        shots.appendChild(fig);
-      });
-      row.appendChild(shots);
-      box.appendChild(row);
+  SCREENS.forEach(function (s) {
+    var row = el('section', 'row');
+    var head = el('header');
+    head.appendChild(el('h3', '', s.label));
+    if (s.note) head.appendChild(el('p', 'note', s.note));
+    row.appendChild(head);
+    var shots = el('div', 'shots');
+    COLS.forEach(function (c) {
+      var fig = el('figure', 'shot');
+      fig.dataset.dir = c.key;
+      fig.appendChild(el('figcaption', 'tag', c.label));
+      fig.appendChild(frame('img/' + c.key + '-' + s.key + '.png', s.label + ', ' + c.label));
+      shots.appendChild(fig);
     });
-    groups.appendChild(box);
+    row.appendChild(shots);
+    rows.appendChild(row);
   });
+
+  var charts = document.getElementById('charts');
+  [['new-chart', '색 지도 (권해요)'], ['new-chart-text', '글자 표']].forEach(function (x) {
+    var fig = el('figure', 'shot');
+    fig.appendChild(el('figcaption', 'tag', x[1]));
+    fig.appendChild(frame('img/' + x[0] + '.png', '만다라트 표, ' + x[1]));
+    charts.appendChild(fig);
+  });
+  document.getElementById('fonts').addEventListener('click', function () { zoom('img/new-_fonts.png', '글꼴 견본'); });
 
   COLS.forEach(function (c) {
     var b = el('button', '', c.label);
@@ -296,7 +265,7 @@ h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
   var narrow = window.matchMedia('(max-width: 860px)');
   function apply() {
     var one = narrow.matches;
-    document.querySelectorAll('.shot').forEach(function (f) { f.hidden = one && f.dataset.dir !== picked; });
+    document.querySelectorAll('#rows .shot').forEach(function (f) { f.hidden = one && f.dataset.dir !== picked; });
     sw.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.dir === picked)); });
   }
   narrow.addEventListener('change', apply);
