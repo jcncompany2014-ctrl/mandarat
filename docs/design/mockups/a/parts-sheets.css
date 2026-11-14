@@ -61,12 +61,9 @@
 }
 .s-days-none { display: block; width: 24px; height: 24px; }
 
-/* quiet text action: ink, underlined (for actions that do not open anything, e.g. presets, 칸 비우기) */
-.s-quiet {
-  font: 600 13px/18px var(--sans); color: var(--ink);
-  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
-  text-decoration-color: var(--print-mid);
-}
+/* quiet text action: bold ink words, no underline (ink is what you can tap; grey never is), as
+   그만하기 on focus and 완료 on 담기. For actions that do not open anything: presets, 칸 비우기. */
+.s-quiet { font: 700 13px/18px var(--sans); color: var(--ink); }
 .s-quiets { display: flex; gap: 14px; }
 
 /* choice row: no box, so the hairline between rows starts at the text (x 0), not at x 38;

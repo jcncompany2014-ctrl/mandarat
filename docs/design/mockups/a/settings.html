@@ -19,12 +19,12 @@
      does the grouping; a reminder's time sits in a soft tinted field (an input: 10pt corners). */
   .pin { position: absolute; left: 0; right: 0; top: 0; z-index: 5; background: var(--paper); }
   .scroll { position: absolute; left: 0; right: 0; top: 72px; bottom: 0; overflow: hidden; }
-  .sec { margin-top: 28px; }
-  .sec:first-child { margin-top: 14px; }
+  .sec { margin-top: 24px; }
+  .sec:first-child { margin-top: 12px; }
   .sec > .a-section { margin-bottom: 2px; }
 
   /* the goal: the owner's words, the largest and darkest thing on the page */
-  .goal { display: flex; align-items: center; gap: 12px; height: 48px; }
+  .goal { display: flex; align-items: center; gap: 12px; height: 46px; }
   .goal .t-title { flex: 1; min-width: 0; }
   .goal .s-chev { color: var(--ink); }
 
@@ -48,10 +48,10 @@
   .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 0 0; }
   .s-swatch-frame { padding: 3px; border-radius: 12px; }
   .s-swatch.is-on .s-swatch-frame { box-shadow: inset 0 0 0 1.5px var(--ink); }
-  .s-page, .s-split { height: 52px; border-radius: 9px; overflow: hidden; }
+  .s-page, .s-split { height: 50px; border-radius: 9px; overflow: hidden; }
   .s-split { display: flex; box-shadow: inset 0 0 0 1px var(--print-mid); }
   .s-split .s-page { flex: 1; border-radius: 0; box-shadow: none; }
-  .s-page { position: relative; background: var(--paper); box-shadow: inset 0 0 0 1px var(--print-mid); padding: 30px 10px 0; }
+  .s-page { position: relative; background: var(--paper); box-shadow: inset 0 0 0 1px var(--print-mid); padding: 29px 10px 0; }
   .s-page-word { position: absolute; left: 10px; top: 5px; font: 600 15px/22px var(--serif); color: var(--ink); }
   .s-page-line { display: block; height: 3px; border-radius: 1.5px; background: var(--print-mid); }
   .s-page-line + .s-page-line { margin-top: 5px; }

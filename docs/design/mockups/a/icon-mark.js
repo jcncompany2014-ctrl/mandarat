@@ -1,12 +1,14 @@
-/* 방향 A · the app-icon drawing of the L0 mark. Only icon.html (and _icon-study.html) use it.
-   Needs shared.js loaded first (for nothing but the dye variables in tokens.css).
+/* 방향 A · the app-icon drawing of the L0 mark. Only icon.html, widgets.html, store.html (and
+   _icon-study.html) use it. Needs shared.js loaded first (for nothing but the dye variables in tokens.css).
+
+   Softened with the chart (owner: "너무 딱딱해 보여"): the mark is drawn as the sheet now is, soft
+   tiles with small gaps and gentle corners on paper. No print-ink frame and no cell rules.
 
    AI.printed(target, opts) — the heart of the sheet (the core in ink, the eight areas round it in their
-   dyes) drawn as a printed 3×3 form: a print-ink frame, pale printed cell rules, and each fill inset
-   from the rules so a line of paper runs round every cell, exactly as on the L2 sheet.
+   dyes) as a 3×3 of soft tiles on paper.
      opts.size   outer size in pt (the square; iOS crops the corners, so the paper fills it).
      opts.pad    paper margin as a fraction of size (default 0.2).
-     opts.rules  false = no frame and no cell rules (default true).
+     opts.rules  accepted for older calls and ignored (there are no rules any more).
    Proportions are fractions of the 3×3, so the same drawing works from 512 down to 29. */
 (function (global) {
   'use strict';
@@ -16,26 +18,14 @@
     const S = opts.size || 512;
     const pad = S * (opts.pad !== undefined ? opts.pad : 0.2);
     const g = S - 2 * pad;                 // the 3×3
-    const frame = g * 0.03;                // print-ink frame
-    const rule = g * 0.012;                // pale cell rules
-    const inset = g * 0.028;               // paper between a fill and the rules
-    const inner = g - 2 * frame;
-    const cell = (inner - 2 * rule) / 3;
-    const rulesOn = opts.rules !== false;
+    const gap = g * 0.035;                 // paper between tiles
+    const t = (g - 2 * gap) / 3;
+    const rx = t * 0.12;
     let out = '';
-    const at = (i) => pad + frame + i * (cell + rule);
     for (let i = 0; i < 9; i++) {
       const a = i < 4 ? i : i - 1;
-      const x = at(i % 3) + inset, y = at(Math.floor(i / 3)) + inset, w = cell - 2 * inset;
-      out += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${w.toFixed(2)}" style="fill:${i === 4 ? 'var(--core)' : `var(--dye-${a + 1})`}"/>`;
-    }
-    if (rulesOn) {
-      let r = '';
-      [1, 2].forEach((k) => {
-        const p = pad + frame + k * cell + (k - 1) * rule;
-        r += `<rect x="${p.toFixed(2)}" y="${pad}" width="${rule.toFixed(2)}" height="${g}"/><rect x="${pad}" y="${p.toFixed(2)}" width="${g}" height="${rule.toFixed(2)}"/>`;
-      });
-      out = `<g style="fill:var(--rule-cell)">${r}</g>${out}<rect x="${(pad + frame / 2).toFixed(2)}" y="${(pad + frame / 2).toFixed(2)}" width="${(g - frame).toFixed(2)}" height="${(g - frame).toFixed(2)}" fill="none" style="stroke:var(--rule-frame)" stroke-width="${frame.toFixed(2)}"/>`;
+      const x = pad + (i % 3) * (t + gap), y = pad + Math.floor(i / 3) * (t + gap);
+      out += `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${t.toFixed(2)}" height="${t.toFixed(2)}" rx="${rx.toFixed(2)}" style="fill:${i === 4 ? 'var(--core)' : `var(--dye-${a + 1})`}"/>`;
     }
     const host = typeof target === 'string' ? document.querySelector(target) : target;
     host.style.width = S + 'px';
