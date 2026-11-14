@@ -36,7 +36,9 @@
   --print: #55657A;            /* 5.3:1 — labels, folio, weekday letters, the chart frame */
   --print-edge: #76869C;       /* 3.3:1 — control edges: check box, capsule, block rules */
   --print-mid: #9FADC0;        /* 2.0:1 — masthead rule, table top rule */
-  --print-rule: #C9D3E0;       /* 1.3:1 — hairlines: cell rules, row rules, ghost 正 */
+  --print-rule: #BCC7D5;       /* 1.5:1 — hairlines: cell rules, row rules. Raised from #C9D3E0 (1.34) so the
+                                  empty lattice of a blank sheet still says "write here" on a dim phone */
+  --ghost: #ACB8C9;            /* 1.8:1 — the printed ghost 正 under the inked strokes: legible as 正, below 2:1 */
 
   /* signal: vermilion (주홍, 朱). Three jobs: today, Sunday, the seal. Never on the owner's words. */
   --signal: #C4372F;           /* 4.7:1 on paper */
@@ -44,14 +46,17 @@
   /* eight dyes. --dye = the pigment (head cells; paper-coloured text on it is 4.6:1 or better).
      --wash = 34% over paper (done at L2 and in a check box; ink on it is 9.2:1 or better).
      --wash-l1 = 50% over paper (done at thumbnail size, where 34% looks empty beside the solids). */
-  --dye-1: #447753; --wash-1: #BBCBB4; --wash-l1-1: #9FB99E; /* 쑥    건강 */
-  --dye-2: #5068AB; --wash-2: #BEC2D1; --wash-l1-2: #A3ADC8; /* 쪽빛  커리어 */
-  --dye-3: #916329; --wash-3: #D7C3A5; --wash-l1-3: #C9AE87; /* 황토  자기계발 */
-  --dye-4: #A35468; --wash-4: #DFBEBD; --wash-l1-4: #D5A6AB; /* 연지  관계 */
-  --dye-5: #2E7773; --wash-5: #B2CAC0; --wash-l1-5: #93B7AF; /* 청자  재정 */
-  --dye-6: #7C5FA5; --wash-6: #CDC0D0; --wash-l1-6: #BAA9C6; /* 오디  취미 */
-  --dye-7: #38719B; --wash-7: #B6C8CF; --wash-l1-7: #98B4C5; /* 비색  마음챙김 */
-  --dye-8: #A65633; --wash-8: #DEBEA9; --wash-l1-8: #D2A68D; /* 주홍  모험 */
+  /* Washes are mixed in OKLCH, not as an sRGB overlay: the dye's hue, 60% of its chroma, and the
+     lightness of a 34% (wash) or 50% (wash-l1) overlay. So they stay eight dyes, not eight greys
+     (adjacent washes ΔE00 ≥ 8.0), at the same contrast: ink on a wash 9.2:1 or better, on wash-l1 7.3:1. */
+  --dye-1: #447753; --wash-1: #AFCFB6; --wash-l1-1: #9BBAA2; /* 쑥    건강 */
+  --dye-2: #5068AB; --wash-2: #B0C2EE; --wash-l1-2: #9BADD8; /* 쪽빛  커리어 */
+  --dye-3: #916329; --wash-3: #DFC09F; --wash-l1-3: #CBAD8C; /* 황토  자기계발 */
+  --dye-4: #A35468; --wash-4: #ECB7C1; --wash-l1-4: #D8A4AE; /* 연지  관계 */
+  --dye-5: #2E7773; --wash-5: #A4CDCA; --wash-l1-5: #8FB7B4; /* 청자  재정 */
+  --dye-6: #7C5FA5; --wash-6: #CDBCEA; --wash-l1-6: #B8A7D4; /* 오디  취미 */
+  --dye-7: #38719B; --wash-7: #A7C9E5; --wash-l1-7: #92B4CF; /* 비색  마음챙김 */
+  --dye-8: #A65633; --wash-8: #EDB7A1; --wash-l1-8: #D8A38D; /* 주홍  모험 */
   --on-dye: #F6F1E4;           /* knock-out text on a dye = the paper showing through */
 
   /* the chart */
@@ -60,12 +65,16 @@
   --core-edge: transparent;    /* dark mode gives the core a printed edge instead of a white fill */
   --rule-frame: #55657A;       /* = --print */
   --rule-block: #76869C;       /* = --print-edge */
-  --rule-cell: #C9D3E0;        /* = --print-rule */
+  --rule-cell: #BCC7D5;        /* = --print-rule */
   --tick: #221F1B;             /* the pen tick is written, so it is writing ink */
 
   /* controls */
-  --btn: #221F1B;              /* primary button and 담기: ink fill */
+  --btn: #221F1B;              /* primary button: ink fill */
   --on-btn: #F6F1E4;
+  --add: #221F1B;              /* 담기, the one heavy object on the page (ink here; quieter at night) */
+  --on-add: #F6F1E4;
+  --capsule: #F1EBDD;          /* the floating capsule: one step off the page (1.05:1) so it floats without a
+                                  shadow; its printed edge (--print-edge) is 3.1:1 on it */
   --scrim: rgba(34, 31, 27, 0.32); /* behind an inset sheet: warm, so it does not cool the paper */
 
   /* geometry */
@@ -100,24 +109,29 @@
     --print-edge: #66748A;     /* 3.9:1 */
     --print-mid: #3F4854;      /* 2.0:1 */
     --print-rule: #30363E;     /* 1.5:1 — rules recede at night */
+    --ghost: #3A424C;          /* 1.8:1 — the printed ghost 正 */
 
     --signal: #E2543F;         /* 4.9:1 — re-picked for the dark stock */
 
     /* --dye here = the dye mixed toward the page until cream ink on it reaches 4.6:1 (3.2:1 against
-       the page). --wash = 30% dye over the page: a deep shade, not a pale tint. */
-    --dye-1: #40704D; --wash-1: #253426; --wash-l1-1: #2B412F;
-    --dye-2: #4D64A3; --wash-2: #282D3F; --wash-l1-2: #2F3752;
-    --dye-3: #885D26; --wash-3: #3F2E19; --wash-l1-3: #4F381C;
-    --dye-4: #9A4F62; --wash-4: #46292E; --wash-l1-4: #59313A;
-    --dye-5: #2C706D; --wash-5: #1E3430; --wash-l1-5: #21403D;
-    --dye-6: #75599A; --wash-6: #362B3E; --wash-l1-6: #423450;
-    --dye-7: #356A92; --wash-7: #22323D; --wash-l1-7: #263E4F;
-    --dye-8: #9C5231; --wash-8: #44291C; --wash-l1-8: #563120;
+       the page). --wash = 30% dye over the page: a deep shade, not a pale tint.
+
+       --wash-l1 = 55% dye over the page (1.8:1 against it, cream ink 8.2:1), so done and empty
+       stay two separate steps at thumbnail size. */
+    --dye-1: #40704D; --wash-1: #253426; --wash-l1-1: #2E4732;
+    --dye-2: #4D64A3; --wash-2: #282D3F; --wash-l1-2: #354061;
+    --dye-3: #885D26; --wash-3: #3F2E19; --wash-l1-3: #553C1D;
+    --dye-4: #9A4F62; --wash-4: #46292E; --wash-l1-4: #5F343E;
+    --dye-5: #2C706D; --wash-5: #1E3430; --wash-l1-5: #234744;
+    --dye-6: #75599A; --wash-6: #362B3E; --wash-l1-6: #4B3A5C;
+    --dye-7: #356A92; --wash-7: #22323D; --wash-l1-7: #284358;
+    --dye-8: #9C5231; --wash-8: #44291C; --wash-l1-8: #603623;
     --on-dye: #ECE6D8;
 
-    --core: #2B2621;           /* raised paper, 1.2:1 — never a white-hot centre */
-    --on-core: #ECE6D8;        /* 12.0:1 on the core */
-    --core-edge: #8C9AAD;      /* the core is drawn by its printed edge at night */
+    --core: #5E554A;           /* warm stone, 2.5:1 against the page: the brightest neutral on the sheet,
+                                  far below the 14.7:1 cream, so never a white-hot centre */
+    --on-core: #ECE6D8;        /* 5.9:1 on the core */
+    --core-edge: #8C9AAD;      /* = --print, 1px: the printed edge keeps the heart distinct at L1 and L0 */
     --rule-frame: #66748A;
     --rule-block: #3F4854;
     --rule-cell: #30363E;
@@ -125,6 +139,10 @@
 
     --btn: #ECE6D8;
     --on-btn: #171411;
+    --add: #A8A093;            /* = --ink-2: 담기 stays the heavy object but not the brightest (7.1:1);
+                                  the goal in cream keeps the lightest mass */
+    --on-add: #171411;         /* 7.1:1 */
+    --capsule: #201C18;        /* one step off the page (1.08:1); edge 3.6:1 on it */
     --scrim: rgba(0, 0, 0, 0.55);
   }
 }
@@ -161,6 +179,7 @@ html, body { background: var(--paper); color: var(--ink); }
   letter-spacing: -0.01em;
   color: var(--ink);
 }
+.t-figure.is-field { font-size: 22px; line-height: 30px; }   /* a figure in a filled-in field (Home hero) */
 .t-figure small { /* the unit after a figure: 칸, 번 */
   font: 500 13px/18px var(--sans);
   letter-spacing: 0;
@@ -168,9 +187,9 @@ html, body { background: var(--paper); color: var(--ink); }
   margin-left: 2px;
 }
 .t-row { font: 500 16px/24px var(--sans); color: var(--ink); }           /* a task the owner wrote */
-.t-meta { font: 400 12px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.t-body { font: 400 14px/24px var(--sans); color: var(--ink); }
-.t-note { font: 400 12px/18px var(--sans); color: var(--print); }         /* printed instructions */
+.t-meta { font: 500 12px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.t-body { font: 500 14px/24px var(--sans); color: var(--ink); }
+.t-note { font: 500 12px/18px var(--sans); color: var(--print); }         /* printed instructions */
 .t-prompt { font: 400 20px/30px var(--serif); color: var(--ink); }        /* ritual prompts, empty states */
 .t-num { font-variant-numeric: tabular-nums; }
 
@@ -195,9 +214,18 @@ html, body { background: var(--paper); color: var(--ink); }
   display: flex; align-items: center; justify-content: center;
   color: var(--ink);
 }
-.a-header-back {             /* pushed or zoomed pages: a way back in the eyebrow line */
+.t-figure.is-header { position: absolute; top: 30px; font-size: 22px; }
+.a-header.is-headline { height: auto; min-height: 72px; padding-top: 11px; }   /* 11 + 18 + 42 + 1pt rule = 72 */
+.a-header.is-headline .t-headline { padding-right: 48px; }
+.a-header.is-headline .a-header-action { top: 28px; }
+.a-title-today {             /* the today corner on a printed title (오늘): the same shape as on a today cell */
+  position: absolute; left: -12px; top: 8px; width: 8px; height: 8px;
+  background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.has-today { position: relative; }
+.a-header-back {          /* pushed or zoomed pages: a way back in the eyebrow line */
   display: inline-flex; align-items: center; gap: 2px;
-  color: var(--ink); font-weight: 600; letter-spacing: 0;
+  color: var(--ink); font-weight: 700; letter-spacing: 0;
   margin-left: -4px;
 }
 
@@ -208,9 +236,11 @@ html, body { background: var(--paper); color: var(--ink); }
 }
 .a-link {                    /* tappable text: ink + chevron. Grey is never interactive. */
   display: inline-flex; align-items: center; gap: 2px;
-  font: 600 13px/18px var(--sans); color: var(--ink);
+  font: 700 13px/18px var(--sans); color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
+/* The link is drawn 18pt tall so the label row keeps its rhythm; in the app it takes hitSlop 13 above
+   and below (44pt target) and runs from its left edge to the gutter. */
 .a-link svg { margin-right: -4px; }
 
 /* 4.4 today mark: one shape (a corner), one colour (vermilion), wherever "today" is shown */
@@ -234,16 +264,30 @@ html, body { background: var(--paper); color: var(--ink); }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .a-row-meta {
-  font: 400 12px/16px var(--sans); color: var(--ink-2);
+  font: 500 12px/16px var(--sans); color: var(--ink-2);
   font-variant-numeric: tabular-nums;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.a-row-right { font: 500 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
-.a-row-right.is-print { font: 500 11px/18px var(--sans); letter-spacing: 0.04em; color: var(--print); }
-.a-row.is-done .a-row-title {
-  color: var(--ink-2);
-  text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink);
+/* the one thing on the right: one style, 13/18 Medium with tabular figures, set on the title line
+   (not the row's centre), so a figure and the title share a baseline. Ink for the owner's figure (D-2),
+   print for a printed tag (중점). An icon (a chevron) centres in the row instead. */
+.a-row-right {
+  align-self: flex-start; margin-top: 7px;
+  font: 500 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums;
 }
+.a-row.no-meta .a-row-right { margin-top: 15px; }
+.a-row-right.is-print { color: var(--print); }
+.a-row-right.is-icon { align-self: center; margin-top: 0; color: var(--ink); }
+/* a done title stays where it was, struck through: title and strike both in --ink-2, the strike a
+   1px line through the middle of the Hangul (not the Latin x-height that text-decoration uses) */
+.a-row.is-done .a-row-title { color: var(--ink-2); }
+.a-strike { position: relative; }
+.a-row.is-done .a-strike::after {
+  content: ''; position: absolute; left: -1px; right: -1px; top: 11px; height: 1px;
+  background: var(--ink-2);
+}
+/* a row with no check box (a pinned item that is not due today): the box column stays, empty */
+.a-row-slot { width: 24px; flex: none; }
 
 /* 4.6 the dye mark beside an area's name: a small printed square of the pigment */
 .a-dye {
@@ -278,14 +322,14 @@ html, body { background: var(--paper); color: var(--ink); }
   height: 36px; border-bottom: var(--hair) solid var(--print-rule);
   font: 500 14px/18px var(--sans); color: var(--ink);
 }
-.a-ledger-row b { font: 400 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.a-ledger-row b { font: 500 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
 /* 4.10 buttons. Primary = ink fill, paper text. Never the signal colour. */
 .a-btn {
   display: flex; align-items: center; justify-content: center;
   height: 52px; padding: 0 24px; border-radius: 26px;
   background: var(--btn); color: var(--on-btn);
-  font: 600 16px/24px var(--sans);
+  font: 700 16px/24px var(--sans);
 }
 .a-btn.is-secondary { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--print-edge); }
 .a-btn.is-small { height: 36px; padding: 0 16px; border-radius: 18px; font-size: 13px; }
@@ -306,7 +350,7 @@ html, body { background: var(--paper); color: var(--ink); }
   position: relative; flex: 1; display: flex; align-items: stretch;
   padding: 0 6px;
   border-radius: var(--r-tool);
-  background: var(--paper-veil);
+  background: var(--capsule);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
 }
@@ -320,7 +364,7 @@ html, body { background: var(--paper); color: var(--ink); }
   position: relative; width: 66px; flex: none;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   border-radius: var(--r-tool);
-  background: var(--btn); color: var(--on-btn);
+  background: var(--add); color: var(--on-add);
   font: 700 11px/12px var(--sans);
 }
 
@@ -345,5 +389,5 @@ html, body { background: var(--paper); color: var(--ink); }
   text-wrap: balance;
 }
 .a-cell.is-head { font-weight: 700; letter-spacing: -0.04em; color: var(--on-dye); }
-.a-cell.is-print { font-weight: 400; color: var(--print); }   /* a prompt printed in an empty cell */
+.a-cell.is-print { font-weight: 500; color: var(--print); }   /* a prompt printed in an empty cell */
 .a-cell.is-core { font: 600 11px/13px var(--serif); letter-spacing: -0.02em; color: var(--on-core); }

@@ -9,43 +9,28 @@
 <link rel="stylesheet" href="/tools/design-mockups/fonts.css">
 <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
 <style>
-  /* hero: one text column on the gutter (label, the goal, two filled-in fields) and the sheet in
-     miniature tipped in on the right. Its top and bottom rules register with the chart's frame. */
-  .hero { padding-top: 12px; }
+  /* The goal is the title (34pt, written ink); the date is only the folio line above it.
+     Hero: three filled-in fields on the gutter and the sheet in miniature on the right. The fields'
+     top rule and last hairline register with the thumbnail's frame. */
   .hero-row { display: flex; gap: 24px; margin-top: 12px; }
   .hero-fields { flex: 1; display: flex; flex-direction: column; border-top: var(--rule) solid var(--print-mid); }
-  .hero-field { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 7px 0 6px; border-bottom: var(--hair) solid var(--print-rule); }
+  .hero-field { flex: 1; display: flex; flex-direction: column; justify-content: center; border-bottom: var(--hair) solid var(--print-rule); }
   .sec { margin-top: 18px; }
-  .hero + .sec { margin-top: 24px; }
-  /* LOCAL PROPOSAL for tokens.css (dark only). At L1 the tokens' core (#2B2621 + a 0.5pt print edge)
-     reads as an outlined empty cell, so the heart of the thumbnail looks hollow. A warm stone fill,
-     no edge: 1.9:1 against the page, cream ink on it 7.6:1. Still far from a white-hot centre. */
-  @media (prefers-color-scheme: dark) {
-    :root { --core: #4A4239; --core-edge: transparent; }
-  }
+  .hero-row + .sec { margin-top: 24px; }
 </style>
 </head>
 <body>
 <div class="a-page">
   <div id="header"></div>
   <div class="a-body">
-    <section class="hero">
-      <div class="t-label">핵심 목표</div>
-      <div class="t-headline" id="goal"></div>
-      <div class="hero-row">
-        <div class="hero-fields">
-          <div class="hero-field">
-            <div class="t-label"><i class="a-today"></i>오늘</div>
-            <div class="t-figure" id="fig-today"></div>
-          </div>
-          <div class="hero-field">
-            <div class="t-label">달성</div>
-            <div class="t-figure" id="fig-cells"></div>
-          </div>
-        </div>
-        <div id="chart"></div>
+    <div class="hero-row">
+      <div class="hero-fields">
+        <div class="hero-field"><div class="t-label">오늘</div><div class="t-figure is-field" id="fig-today"></div></div>
+        <div class="hero-field"><div class="t-label">달성</div><div class="t-figure is-field" id="fig-cells"></div></div>
+        <div class="hero-field"><div class="t-label">남은 날</div><div class="t-figure is-field" id="fig-left"></div></div>
       </div>
-    </section>
+      <div id="chart"></div>
+    </div>
 
     <section class="sec">
       <div class="a-section"><span class="t-label">오늘 할 일</span><span class="a-link" id="all"></span></div>
@@ -53,7 +38,7 @@
     </section>
 
     <section class="sec">
-      <div class="a-section"><span class="t-label" id="week-label"></span><span class="t-meta" id="week-total" style="color:var(--ink);font-weight:500"></span></div>
+      <div class="a-section"><span class="t-label" id="week-label"></span><span class="t-meta" id="week-total" style="color:var(--ink)"></span></div>
       <div id="week"></div>
     </section>
 
@@ -68,28 +53,27 @@
 <script>
 A.ready().then((doc) => {
   const v = doc.view, d = v.date;
-  A.header('#header', {
-    eyebrow: `${d.year} · ${d.week} · D-${d.left.replace(/\D/g, '')}`,
-    title: `${d.month} ${d.day}일 ${d.weekday}`,
-    action: 'settings',
-  });
-  document.querySelector('#goal').textContent = doc.coreGoal;
-  A.chart('#chart', doc, { level: 'L1', cell: 19 });
+  // the date is furniture: the folio line. The title is the owner's goal.
+  A.header('#header', { eyebrow: `${d.month} ${d.day}일 ${d.weekday} · ${d.week}`, title: doc.coreGoal, headline: true, action: 'settings' });
+  A.chart('#chart', doc, { level: 'L1', cell: 20 });
   document.querySelector('#fig-today').textContent = `${v.today.done}/${v.today.of}`;
   document.querySelector('#fig-cells').innerHTML = `${v.progress.done}/${v.progress.of}<small>칸</small>`;
+  document.querySelector('#fig-left').innerHTML = `${d.left.replace(/\D/g, '')}<small>일</small>`;
 
-  // today's list: this week's two focus items pinned first, then what is next, then the one done today
+  // today's list: this week's two focus items pinned first (the same two on 오늘), then what is next,
+  // then the one done today. 친구 모임 is a focus item but not one of today's ten, so it has no box.
   const rows = v.today.rows;
   const find = (t) => rows.find((r) => r.text === t);
-  const html = [
-    A.todayRow(doc, find(v.weekFocus[0].text), { rightPrint: '중점' }),
-    A.row(doc, { text: v.weekFocus[1].text, area: v.weekFocus[1].area, rightPrint: '중점' }),
+  const pinned = v.weekFocus.map((f) => {
+    const r = find(f.text);
+    return r ? A.todayRow(doc, r, { rightPrint: '중점' }) : A.row(doc, { text: f.text, area: f.area, meta: '이번 주', check: false, rightPrint: '중점' });
+  });
+  document.querySelector('#rows').innerHTML = pinned.concat([
     A.todayRow(doc, rows[0]),
     A.todayRow(doc, rows[1]),
     A.todayRow(doc, rows.find((r) => r.doneToday)),
-  ].join('');
-  document.querySelector('#rows').innerHTML = html;
-  document.querySelector('#all').innerHTML = `전체 ${v.today.of}개${A.icon('chevron', { size: 16 })}`;
+  ]).join('');
+  document.querySelector('#all').innerHTML = `전체 보기${A.icon('chevron', { size: 16 })}`;
 
   document.querySelector('#week-label').textContent = v.week.label;
   document.querySelector('#week-total').textContent = v.week.total;
