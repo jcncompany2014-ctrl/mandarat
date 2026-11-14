@@ -17,7 +17,7 @@ import {
 } from '@expo/ui/swift-ui';
 import {
   accessibilityElement, accessibilityHidden, accessibilityLabel, buttonStyle, clipped, containerBackground, font, foregroundStyle,
-  frame, gaugeStyle, layoutPriority, lineLimit, monospacedDigit, opacity, padding, strikethrough, strokeBorder, widgetURL,
+  frame, gaugeStyle, layoutPriority, lineLimit, minimumScaleFactor, monospacedDigit, opacity, padding, strikethrough, strokeBorder, widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import type { WidgetEnvironment } from 'expo-widgets';
 import type { TodayWidgetLines, TodayWidgetProps, WidgetItem, WidgetOp, WidgetPalette } from '../lib/contracts';
@@ -187,16 +187,17 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   function todayDot(size: number) {
     return <Circle modifiers={[fg(signal, 'primary'), frame({ width: size, height: size })]} />;
   }
-  function headLabel(s: string) {
+  /** fit: 작은 위젯처럼 머리 폭이 지도 폭(91pt)에 묶일 때 — 'Today'·'今日' 같은 이름이 길어도 잘리지 않게 줄여 맞춘다 */
+  function headLabel(s: string, fit?: boolean) {
     return (
       <HStack spacing={6} alignment="center">
         {todayDot(6)}
-        {text(s, 13, 'medium', print, 'secondary')}
+        {text(s, 13, 'medium', print, 'secondary', fit ? [minimumScaleFactor(0.7)] : undefined)}
       </HStack>
     );
   }
-  function figure(s: string) {
-    return text(s, 19, 'bold', ink, 'primary', [monospacedDigit()]);
+  function figure(s: string, fit?: boolean) {
+    return text(s, 19, 'bold', ink, 'primary', fit ? [monospacedDigit(), minimumScaleFactor(0.7), layoutPriority(1)] : [monospacedDigit()]);
   }
   /** '● 오늘 … 1/10' — 작게 · 크게. 읽어 주기는 말로 한 번 */
   function todayHead(width: number) {
@@ -206,9 +207,9 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
         spacing={4}
         modifiers={[width > 0 ? frame({ width: width }) : frame({ maxWidth: 2000 }), accessibilityElement('ignore'), accessibilityLabel(spoken())]}
       >
-        {headLabel(fill(L.today, 0, ''))}
-        <Spacer minLength={4} />
-        {figure(String(done) + '/' + String(total))}
+        {headLabel(fill(L.today, 0, ''), width > 0)}
+        <Spacer minLength={width > 0 ? 2 : 4} />
+        {figure(String(done) + '/' + String(total), width > 0)}
       </HStack>
     );
   }
