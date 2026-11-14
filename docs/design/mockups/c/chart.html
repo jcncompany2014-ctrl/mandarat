@@ -30,7 +30,7 @@ C.load().then(function (d) {
   // 장부의 합계 줄
   page.append(h('div.totals.c-pad', {},
     C.figure({ label: '오늘', value: v.today.done, of: v.today.of, size: 'l', mark: 'today' }),
-    C.figure({ label: '달성', value: v.progress.done, of: v.progress.of, unit: '칸', size: 'l' })));
+    C.figure({ label: '달성', value: v.progress.done, of: v.progress.of, unit: '칸', size: 'l', mark: 'done' })));
 
   // 다음 할 일
   var next = C.section({ title: '다음 할 일' });

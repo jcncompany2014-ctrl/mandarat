@@ -440,6 +440,12 @@
      when another split exists. `measure(str)` returns a width in px. Use it for zoomed-block labels too. */
   function breakLines(text, maxW, measure, maxLines) {
     var words = bindUnits(text).split(' ').filter(Boolean);
+    // one long Hangul word that leaves under 5pt of air a side (the same test as two words on a line) splits in half,
+    // like the sheet's other two-line cells: 봉사활동 → 봉사 / 활동, 자기계발 → 자기 / 계발
+    if (words.length === 1 && (maxLines || 3) > 1 && /^[가-힣]{4,}$/.test(words[0]) && words[0].length % 2 === 0 && measure(words[0]) > maxW - 6) {
+      var half = words[0].length / 2;
+      return [words[0].slice(0, half), words[0].slice(half)];
+    }
     var best = null;
     for (var k = 1; k <= Math.min(maxLines || 3, words.length); k++) {
       var found = null;

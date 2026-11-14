@@ -1,0 +1,364 @@
+<title>만다라트 디자인 시안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* 배치: 시안이 주인공인 비교 벽 — 페이지 자체는 차가운 회색으로 물러나고, 폰 화면만 색을 가진다 */
+:root {
+  --wall: #E9ECEF;
+  --panel: #F6F7F9;
+  --ink: #171A1F;
+  --sub: #555E6B;
+  --line: #CDD3DA;
+  --mark: #1F4FD8;
+  --mark-ink: #FFFFFF;
+  --pick: #0E7A4F;
+  --shadow: 0 1px 2px rgba(23, 26, 31, 0.10), 0 10px 28px rgba(23, 26, 31, 0.12);
+  --sans: 'IBM Plex Sans KR', -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wall: #14171B; --panel: #1C2026; --ink: #EEF1F4; --sub: #A3ADB9; --line: #333B45;
+    --mark: #8FB0FF; --mark-ink: #0E1320; --pick: #5FD3A0;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --wall: #14171B; --panel: #1C2026; --ink: #EEF1F4; --sub: #A3ADB9; --line: #333B45;
+  --mark: #8FB0FF; --mark-ink: #0E1320; --pick: #5FD3A0;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-block: 28px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+}
+h1, h2, h3, p, ul, ol, figure { margin: 0; }
+h1 { font-size: clamp(26px, 5vw, 38px); line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 22px; line-height: 1.35; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+h3 { font-size: 17px; line-height: 1.4; font-weight: 700; }
+.lede { font-size: 17px; color: var(--sub); max-width: 62ch; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--sub); letter-spacing: 0.04em; }
+.head { display: flex; flex-direction: column; gap: 12px; }
+.note { font-size: 14px; color: var(--sub); max-width: 70ch; }
+
+/* 묻는 것 */
+.ask {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--mark);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 760px;
+}
+.ask b { font-weight: 700; }
+
+/* 두 단 목록 */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px 40px; }
+.cols > section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.plain { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.plain li { padding-left: 18px; position: relative; }
+.plain li::before { content: ''; position: absolute; left: 2px; top: 0.68em; width: 6px; height: 6px; background: var(--sub); }
+.plain b { font-weight: 600; }
+
+/* 방향 고르는 띠 — 좁은 화면에서만 */
+.switch {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  display: none;
+  background: var(--wall);
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.switch div { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); }
+.switch button {
+  font: inherit; font-size: 14px; font-weight: 600;
+  padding: 10px 4px; min-height: 44px;
+  color: var(--ink); background: transparent; border: 0; border-left: 1px solid var(--ink);
+  cursor: pointer;
+}
+.switch button:first-child { border-left: 0; }
+.switch button[aria-pressed="true"] { background: var(--ink); color: var(--wall); }
+.switch button:focus-visible, .zoomable:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+
+/* 화면 한 줄 */
+.screens { display: flex; flex-direction: column; gap: 40px; }
+.row { display: flex; flex-direction: column; gap: 14px; }
+.row > header { display: flex; flex-direction: column; gap: 4px; }
+.shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.shot { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.shot .tag { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
+.shot .tag span { font-weight: 400; color: var(--sub); }
+.shot[data-dir="cur"] .tag { color: var(--sub); }
+.phone {
+  display: block; width: 100%; max-width: 390px; aspect-ratio: 390 / 844;
+  background: var(--panel); box-shadow: var(--shadow); border-radius: 22px; overflow: hidden;
+  padding: 0; border: 0; cursor: zoom-in;
+}
+.phone img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.shot.icon .phone { aspect-ratio: 1 / 1; max-width: 180px; border-radius: 22.5%; cursor: default; }
+.shot[data-dir="cur"] .phone { opacity: 0.92; }
+.pending { font-size: 14px; color: var(--sub); border: 1px dashed var(--line); padding: 14px 16px; max-width: 760px; }
+
+/* 방향 설명 */
+.dirs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.dir { background: var(--panel); border: 1px solid var(--line); padding: 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dir .k { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; color: var(--sub); }
+.dir .one { font-weight: 600; }
+.dir dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 15px; }
+.dir dt { color: var(--sub); white-space: nowrap; }
+.dir dd { margin: 0; }
+.dir.lean { border-color: var(--pick); border-width: 2px; }
+.dir .badge { align-self: flex-start; font-size: 12px; font-weight: 700; color: var(--pick); border: 1.5px solid var(--pick); padding: 1px 8px; }
+
+/* 크게 보기 */
+.lightbox { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 15, 0.86); display: flex; align-items: center; justify-content: center; padding: 16px; cursor: zoom-out; }
+.lightbox img { max-height: 100%; max-width: min(100%, 520px); border-radius: 18px; }
+
+@media (max-width: 860px) {
+  .switch { display: block; }
+  .shots { grid-template-columns: 1fr; justify-items: center; }
+  .shot { width: 100%; max-width: 390px; }
+  .shot[hidden] { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .phone { transition: transform 0.18s ease; }
+  .phone:hover { transform: translateY(-2px); }
+  .shot.icon .phone:hover { transform: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <p class="eyebrow">만다라트 · 디자인 개선 · 1차 시안</p>
+    <h1>지금 디자인이 최선인지 확인했고, 세 가지 방향으로 다시 그렸어요</h1>
+    <p class="lede">레퍼런스 조사 11갈래와 현재 화면 진단 8갈래를 마친 뒤, 같은 예시 데이터로 세 방향의 시안을 그렸어요. 아래에서 지금 화면과 나란히 비교해 보세요.</p>
+    <div class="ask">
+      <b>정해 주실 것은 하나예요. A, B, C 중 어느 방향으로 갈까요?</b>
+      <span>"A로 가자"처럼 답해 주시면 그 방향으로 앱 전체를 고쳐요. "A에 B의 홈 화면"처럼 섞어도 돼요.</span>
+    </div>
+  </header>
+
+  <section class="cols">
+    <section>
+      <h2>지금 디자인에서 확인된 문제</h2>
+      <ul class="plain">
+        <li><b>주인공이 없어요.</b> 모든 화면이 같은 바탕, 같은 굵기의 선, 같은 제목 모양이라 완성된 앱보다 와이어프레임처럼 보여요.</li>
+        <li><b>표의 위계가 거꾸로예요.</b> 핵심 목표와 영역 이름이 가장 흐리고, 우연히 달성한 칸이 가장 진해요. 그래서 무작위 체크무늬처럼 보여요.</li>
+        <li><b>홈이 날짜부터 보여 줘요.</b> 사용자가 이미 아는 정보예요. 목표와 오늘 할 일은 그 아래에 평범한 크기로 있어요.</li>
+        <li><b>부품이 한 가족이 아니에요.</b> 점선 '담기' 상자, 회색 체크박스, 겨자색 버튼, 설명 글자와 똑같이 생긴 누르는 글자.</li>
+        <li><b>색이 한 계열뿐이에요.</b> 따뜻한 종이, 갈색 먹, 갈색 선, 금색. '오늘'을 알리는 신호색이 없어요.</li>
+        <li><b>여덟 영역 색 중 두 쌍은 구분이 어려워요.</b> 한 쌍은 색각 이상이 있는 사람에게 같은 색으로 보여요.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>어느 방향을 골라도 바뀌는 것</h2>
+      <ul class="plain">
+        <li><b>표:</b> 영역 이름 칸은 진한 색으로 고정하고, 달성한 칸은 옅게 표시해요. 범례와 '+' 표시는 없애요.</li>
+        <li><b>홈:</b> 표와 목표가 맨 위 주인공이 되고, 바로 아래에 오늘 할 일이 와요.</li>
+        <li><b>탭 막대:</b> 떠 있는 캡슐 모양이 되고, '담기'는 따로 떨어진 진한 버튼이 돼요.</li>
+        <li><b>부품:</b> 체크박스, 버튼, 줄을 하나의 규칙으로 통일해요. 기본 버튼은 먹색이에요.</li>
+        <li><b>다크 모드:</b> 색을 뒤집은 화면이 아니라 따뜻한 먹색으로 따로 설계해요.</li>
+        <li><b>여덟 영역 색:</b> 서로 잘 구분되게 다시 뽑아요.</li>
+      </ul>
+    </section>
+  </section>
+
+  <section class="screens" id="screens">
+    <div class="head">
+      <h2>화면별 비교</h2>
+      <p class="note">화면을 누르면 크게 볼 수 있어요. 네 화면 모두 같은 예시 데이터(목표 "단단한 한 해", 64칸 중 24칸 달성)예요.</p>
+    </div>
+    <nav class="switch" aria-label="보여 줄 방향">
+      <div id="switch"></div>
+    </nav>
+    <div id="rows" class="screens"></div>
+    <p class="pending" id="pending"></p>
+  </section>
+
+  <section class="head">
+    <h2>세 방향</h2>
+    <div class="dirs">
+      <article class="dir lean">
+        <span class="k">A</span>
+        <h3>인쇄된 한 장</h3>
+        <span class="badge">지금까지는 이쪽을 권해요</span>
+        <p class="one">고급 수첩처럼. 인쇄된 양식 위에 내가 먹으로 쓴 글.</p>
+        <dl>
+          <dt>종이</dt><dd>크림색</dd>
+          <dt>색</dt><dd>인쇄된 부분은 옅은 청회색, 내 글은 진한 먹. '오늘'은 주홍.</dd>
+          <dt>글자</dt><dd>목표와 날짜는 명조체, 나머지는 지금 서체.</dd>
+          <dt>표</dt><dd>81칸 글씨가 모두 보이는 인쇄된 양식.</dd>
+          <dt>장점</dt><dd>지금 앱의 정체성을 가장 잘 살려요. 조사 결과가 가장 강하게 뒷받침해요.</dd>
+          <dt>걱정</dt><dd>명조체 파일을 앱에 추가해야 해요(약 2MB). 가장 차분해서 첫눈에 덜 화려해요.</dd>
+        </dl>
+      </article>
+      <article class="dir">
+        <span class="k">B</span>
+        <h3>여덟 빛깔</h3>
+        <p class="one">색이 주인공. 한 해가 여덟 색 조각보로 채워져요.</p>
+        <dl>
+          <dt>종이</dt><dd>깨끗한 흰색</dd>
+          <dt>색</dt><dd>여덟 영역 색을 크게, 어디서나. 체크박스와 줄에도 영역 색이 들어가요.</dd>
+          <dt>글자</dt><dd>지금 서체 그대로, 제목은 더 굵게.</dd>
+          <dt>표</dt><dd>색 타일 모자이크. 전체 보기에는 영역 이름만 있고, 글씨는 블록을 크게 볼 때 나와요.</dd>
+          <dt>장점</dt><dd>첫인상이 가장 화사하고, 공유하고 싶은 그림이 나와요.</dd>
+          <dt>걱정</dt><dd>표 전체에서 내가 쓴 글이 한눈에 안 보여요. 색이 많아 차분함은 덜해요.</dd>
+        </dl>
+      </article>
+      <article class="dir">
+        <span class="k">C</span>
+        <h3>먹과 주홍</h3>
+        <p class="one">가장 절제된 쪽. 흰 종이, 검은 먹, 빨강 하나.</p>
+        <dl>
+          <dt>종이</dt><dd>흰색</dd>
+          <dt>색</dt><dd>거의 없어요. 영역 색은 표의 이름 칸에만. 강조는 주홍 하나.</dd>
+          <dt>글자</dt><dd>굵고 단단한 제목, 폭이 좁은 큰 숫자.</dd>
+          <dt>표</dt><dd>81칸 글씨가 모두 보이는 검은 장부.</dd>
+          <dt>장점</dt><dd>가장 또렷하고 개성이 강해요. 글자가 가장 잘 읽혀요.</dd>
+          <dt>걱정</dt><dd>매일 쓰기에는 딱딱하거나 차갑게 느껴질 수 있어요.</dd>
+        </dl>
+      </article>
+    </div>
+    <p class="note">토스 스타일(흰 바탕, 둥근 카드, 파란 버튼)은 시안에서 뺐어요. 조사에서 이미 시장의 기본값이라 따라 하면 이 앱만의 특징이 사라진다고 나왔기 때문이에요. 보고 싶으시면 말씀해 주세요.</p>
+  </section>
+
+  <section class="cols">
+    <section>
+      <h2>조사의 한계</h2>
+      <p class="note">이 작업 환경에서는 열 수 있는 사이트가 Apple 개발자 문서와 GitHub 정도로 제한돼 있고, 웹 검색 한도도 중간에 소진됐어요. 그래서 다른 앱의 실제 화면은 직접 보지 못했어요. 그 부분은 Apple 문서, 검색 요약, 이미 알고 있는 지식에 기대고 있고, 메모마다 출처에서 읽은 것과 기억에 의존한 것을 구분해 뒀어요. 반면 우리 앱 진단은 화면 270장과 코드를 직접 보고 했고, 지적 하나하나를 증거와 다시 대조했어요.</p>
+    </section>
+    <section>
+      <h2>다음 단계</h2>
+      <ol class="plain">
+        <li>나머지 화면(블록 크게 보기, 오늘, 첫 화면, 다크, 아이콘)을 그리고 비평을 거쳐 다듬어요. 끝나면 이 페이지에 올려요.</li>
+        <li>방향을 골라 주시면 앱 전체에 적용해요. 표, 홈, 탭 막대, 부품, 색, 다크 모드 순서예요.</li>
+      </ol>
+    </section>
+  </section>
+</div>
+
+<script>
+(function () {
+  var DIRS = [
+    { key: 'cur', label: '지금', sub: '현재 앱' },
+    { key: 'a', label: 'A', sub: '인쇄된 한 장' },
+    { key: 'b', label: 'B', sub: '여덟 빛깔' },
+    { key: 'c', label: 'C', sub: '먹과 주홍' }
+  ];
+  // 화면 목록 — 시안이 준비된 것만 ready: true
+  var SCREENS = [
+    { key: 'home', label: '홈', note: '앱을 열면 처음 보는 화면', ready: true },
+    { key: 'chart', label: '만다라트 표', note: '81칸 전체', ready: true },
+    { key: 'block', label: '블록 크게 보기', note: '건강 영역의 3×3', ready: false },
+    { key: 'today', label: '오늘', note: '오늘 할 일 목록', ready: false },
+    { key: 'first', label: '첫 화면', note: '막 시작한 빈 표', ready: false },
+    { key: 'home-dark', label: '다크 모드', note: '홈', ready: false },
+    { key: 'icon', label: '앱 아이콘', note: '', ready: false, icon: true }
+  ];
+  var rows = document.getElementById('rows');
+  var sw = document.getElementById('switch');
+  var picked = 'a';
+  try { picked = localStorage.getItem('dir') || 'a'; } catch (e) {}
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  }
+
+  SCREENS.filter(function (s) { return s.ready; }).forEach(function (s) {
+    var row = el('section', 'row');
+    var head = el('header');
+    head.appendChild(el('h3', '', s.label));
+    if (s.note) head.appendChild(el('p', 'note', s.note));
+    row.appendChild(head);
+    var shots = el('div', 'shots');
+    DIRS.forEach(function (d) {
+      var fig = el('figure', 'shot' + (s.icon ? ' icon' : ''));
+      fig.dataset.dir = d.key;
+      var tag = el('figcaption', 'tag', d.label);
+      tag.appendChild(el('span', '', d.sub));
+      var btn = el('button', 'phone zoomable');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', s.label + ' — ' + d.label + ' ' + d.sub + ' 크게 보기');
+      var img = el('img');
+      img.src = 'img/' + d.key + '-' + s.key + '.png';
+      img.alt = s.label + ' 화면, ' + d.sub;
+      img.loading = 'lazy';
+      btn.appendChild(img);
+      if (!s.icon) btn.addEventListener('click', function () { zoom(img.src, img.alt); });
+      fig.appendChild(tag);
+      fig.appendChild(btn);
+      shots.appendChild(fig);
+    });
+    row.appendChild(shots);
+    rows.appendChild(row);
+  });
+
+  var waiting = SCREENS.filter(function (s) { return !s.ready; }).map(function (s) { return s.label; });
+  var pending = document.getElementById('pending');
+  if (waiting.length) pending.textContent = '그리는 중: ' + waiting.join(', ') + '. 다 되면 이 페이지에 올려요.';
+  else pending.hidden = true;
+
+  DIRS.forEach(function (d) {
+    var b = el('button', '', d.label === '지금' ? '지금' : d.label + ' ' + d.sub);
+    b.type = 'button';
+    b.dataset.dir = d.key;
+    b.addEventListener('click', function () { pick(d.key); });
+    sw.appendChild(b);
+  });
+
+  var narrow = window.matchMedia('(max-width: 860px)');
+  function apply() {
+    var one = narrow.matches;
+    document.querySelectorAll('.shot').forEach(function (f) { f.hidden = one && f.dataset.dir !== picked; });
+    sw.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.dir === picked)); });
+  }
+  function pick(k) {
+    picked = k;
+    try { localStorage.setItem('dir', k); } catch (e) {}
+    apply();
+  }
+  narrow.addEventListener('change', apply);
+  apply();
+
+  function zoom(src, alt) {
+    var box = el('div', 'lightbox');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', alt);
+    box.tabIndex = -1;
+    var img = el('img');
+    img.src = src;
+    img.alt = alt;
+    box.appendChild(img);
+    function close() { box.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    box.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(box);
+    box.focus();
+  }
+})();
+</script>

@@ -17,7 +17,7 @@
   --paper: #FBFAF7;        /* white stock */
   --ink: #131210;          /* 먹. text, rules, structure, selection, primary action. 17.9:1 */
   --ink-2: #595855;        /* grey 1: secondary text. 6.8:1 on paper, 5.2:1 on wash */
-  --ink-3: #878684;        /* grey 2: marks and large figures only (3.5:1). Never text under 18pt */
+  --ink-3: #878684;        /* grey 2: marks and large figures only (3.5:1). Never text under 24pt regular / 19pt bold */
   --wash: #DDDCD9;         /* done: ink 13% over paper. Ink text on it 13.7:1 */
   --signal: #C93522;       /* 주홍. today. 5.0:1 on paper, 3.8:1 on wash */
   --on-ink: #FBFAF7;       /* text on an ink fill */

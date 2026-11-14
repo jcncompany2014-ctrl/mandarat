@@ -106,7 +106,7 @@ All rule positions are whole device pixels. The chart is laid out in device pixe
 
 **S1. One chart at three levels.**
 - Three marks, no legend, no plus signs. *Structure*: the core is solid ink and the 16 name cells are solid dye with paper-coloured ExtraBold text; they are identical on day 1 and day 365 (see the first-day sheet in `_kit.png`). *Done*: an ink wash (`--wash`) under the text, which stays ink at 13.7:1, plus a 6.5pt pen tick at the top right. No area colour is used for done. *Today*: a vermilion corner, 8pt legs, top left. When that cell is ticked today the corner goes and its tick is vermilion until the day ends.
-- **L2** (`C.chartL2`): 382pt wide, 4pt from the screen edges, 41pt cells. Frame 3pt, block rules 2pt, cell rules 1 device pixel, all ink. All 81 texts, 10/12. Text breaks by word; a number stays with its unit ("주 3회", "300만 원"); two words share a line only when 5pt of air is left on each side, otherwise they stack ("성과 / 기록"), which gives the sheet an even two-line texture instead of labels touching the rules; no syllable is left alone on a last line; three lines only when nothing else fits ("수입 / 20% / 저축"), and then the tick is not drawn.
+- **L2** (`C.chartL2`): 382pt wide, 4pt from the screen edges, 41pt cells. Frame 3pt, block rules 2pt, cell rules 1 device pixel, all ink. All 81 texts, 10/12. Text breaks by word; a number stays with its unit ("주 3회", "300만 원"); two words share a line only when 5pt of air is left on each side, otherwise they stack ("성과 / 기록"); a single even-length Hangul word that would leave under 5pt a side splits in half by the same test ("봉사 / 활동", "번지 / 점프", and the heads "자기 / 계발", "마음 / 챙김"), which gives the sheet an even two-line texture instead of labels touching the rules; no syllable is left alone on a last line; three lines only when nothing else fits ("수입 / 20% / 저축"), and then the tick is not drawn.
 - **L1** (`C.chartL1`): the same sheet without text, 64–240pt. At 180pt: 19pt cells, frame 2pt, block 1pt, hairlines, 5pt corners. Hairlines and corners appear from 100pt.
 - **L0** (`C.chartL0`): the centre block alone, eight dyes round the ink core. A colour variant (from 24pt) and a one-ink variant (lattice and core in `currentColor`) for small and monochrome uses. The 만다라트 tab glyph is the one-ink L0.
 - In the demo sheet: 24 washed cells, 23 ink ticks, 1 vermilion tick (하루 물 2L, done today), 9 vermilion corners.
@@ -118,6 +118,8 @@ All rule positions are whole device pixels. The chart is laid out in device pixe
 - 이번 주: the 正 strip as seven printed cells; today's cell has the corner. Total "7번" as a figure in the section head.
 - 8개 영역: a 2 × 4 grid of mark, name and "4/8" (in `home.html`, below the first view).
 - Each count appears once.
+
+On the 만다라트 tab the two totals under the sheet carry the same two marks as on 홈 (the corner beside 오늘, the washed cell beside 달성), so the sheet itself needs no legend.
 
 **S3. One header.** `C.header`: a 16pt eyebrow that is always reserved, a 28pt title, one 44pt trailing action, and the 3pt bar at y = 80, on every tab. Title top is the same everywhere. On 만다라트 the chart's frame takes the bar's place at the same y, so switching between 홈 and 만다라트 keeps the title and the heavy line still. Eyebrows: 홈 the date line; 만다라트 "핵심 목표 · 2026"; 오늘 the date; 통계 "2026 · 42주".
 
@@ -185,4 +187,4 @@ Build them from `tokens.css` and `shared.js`; `_kit.js` shows every call.
 7. Dark: rendered and checked through the kit and through dark renders of both screens (not kept in the folder).
 8. Against A and B: A prints pale and writes dark with a serif; B is colour in every row. This one has neither a second ink colour nor colour outside the head cells.
 
-Known limits: the 만다라트 tab leaves about 130pt of blank paper between the next-step row and the bar; four-syllable single words ("산책하기", "번지점프") have 3.6pt of air on each side in a 41pt cell; English and Japanese cell text is not tested.
+Known limits: the 만다라트 tab leaves about 130pt of blank paper between the next-step row and the bar; a four-syllable word inside a two-word text ("스트레칭", "건강검진") still has about 3.6pt of air a side, because splitting it would make a third line; English and Japanese cell text is not tested.

@@ -134,6 +134,8 @@ Nothing is under 11pt except chart cell text at 10pt. Smallest sizes found in th
   | Rule: block rule, masthead, table top | 1 | 2px | 3px | `--print-edge` on the chart, `--print-mid` on the page |
   | Heavy: chart frame, check-box edge | 1.5 | 3px | 5px | `--print` (frame), `--print-edge` (box) |
 
+  The tokens.css variables `--hair`, `--rule` and `--rule-heavy` hold the pt values; `shared.js` rounds each to whole device pixels.
+
   The thumbnail steps down one weight (frame 1pt, block and cell 0.5pt) and drops cell rules and today corners under 100pt.
 - **Radii.** Paper: 0 for cells and fills, 2 for the check box. Tools that float: capsule (29 for the 58pt bar, 26 for a 52pt button). Inset sheet: 28, 8pt from the screen edges.
 - **Touch.** Rows 48, header action 44 × 44, tabs 67 × 58, 담기 66 × 58. The "전체 10개 ›" link is 18pt tall as drawn; in the app its target is the whole 44pt label row.
@@ -199,7 +201,7 @@ All of these are suggestions that follow from the rules above; the kit has what 
 6. to 7. Belong to `first.html` and `home-dark.html`.
 8. **Confusable with B or C?** The skeleton is shared, so the block order on Home is the same as C's. I moved the hero to a text column with the sheet on the right, set the figures as filled-in form fields instead of large numerals, and kept the bar paper-coloured.
 
-Look-and-fix rounds on the two screens: five (first render; tick, veil and caption alignment; hero recomposed after comparing with C; settings glyph, thumbnail corners, seal and kit checks in light and dark; inset against butted fills and the final measurements).
+Look-and-fix rounds on the two screens: five (first render; tick, veil and caption alignment; hero recomposed after comparing with C; settings glyph, thumbnail corners, seal and kit checks in light and dark; inset against butted fills and the final measurements), then one more at handover: the scroll-edge veil now reaches solid paper at the top of the bar, so no fragment of the 8개 영역 table peeks out beside the capsule; token comments corrected (dark core text 12.0:1, heavy rule 5px at @3x). The dark set was re-checked by rendering `home.html` under `prefers-color-scheme: dark`.
 
 ## Open questions for the owner
 
@@ -208,3 +210,4 @@ Look-and-fix rounds on the two screens: five (first render; tick, veil and capti
 3. **The date as Home's title.** It is pale and printed here, which answers "Home leads with the date" by making the date quiet instead of removing it. The alternative is the goal as the title on Home too, with the date only in the folio line; that saves about 60pt.
 4. **Vermilion beside 연지 and 주홍.** The signal sits between two area colours in hue. It separates by chroma and by shape (a corner, never a cell), but I have not run a colour-blind simulation. If it fails, the 주홍 area should move toward brown, not the signal.
 5. **On a real device** the status bar takes about 59pt that these captures do not show, so on Home the fifth row and the week strip will sit lower and partly under the bar. Four rows may be the right number there.
+6. **The next-step row on 만다라트** opens its block (chevron) and has no check box, as in the current app. If you want to tick it from there, it takes the leading `A.check` like every other task row; the chevron stays as the one thing on the right.

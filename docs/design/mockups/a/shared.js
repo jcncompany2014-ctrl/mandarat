@@ -450,7 +450,7 @@
   /* A.tabBar(target, opts)
      The floating layer: a paper capsule holding the four places, and 담기 as its own ink button
      beside it. It positions itself at the bottom of .a-page (absolute): the bar is at y 768–826 on an
-     844 screen, and content scrolls under it. A veil fades the page into the paper from y 728 down
+     844 screen, and content scrolls under it. A veil fades the page into the paper from y 728 and is solid paper from the bar top (y 768) down
      (the scroll-edge effect), so keep anything that must be read above y 728.
      opts.active  'home' | 'chart' | 'today' | 'stats'. */
   A.tabBar = function (target, opts) {
@@ -458,7 +458,7 @@
     const tabs = [['home', '홈'], ['chart', '만다라트'], ['today', '오늘'], ['stats', '통계']];
     const host = el(target);
     host.classList.add('a-bar');
-    const veil = `<svg class="a-bar-veil" viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="a-veil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--paper);stop-opacity:0"/><stop offset="0.42" style="stop-color:var(--paper);stop-opacity:0.96"/><stop offset="1" style="stop-color:var(--paper);stop-opacity:1"/></linearGradient></defs><rect width="10" height="10" fill="url(#a-veil)"/></svg>`;
+    const veil = `<svg class="a-bar-veil" viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="a-veil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--paper);stop-opacity:0"/><stop offset="0.345" style="stop-color:var(--paper);stop-opacity:1"/><stop offset="1" style="stop-color:var(--paper);stop-opacity:1"/></linearGradient></defs><rect width="10" height="10" fill="url(#a-veil)"/></svg>`;
     host.innerHTML = `${veil}<div class="a-bar-capsule">${tabs.map(([k, label]) => `<div class="a-tab${k === opts.active ? ' is-active' : ''}">${A.icon(k, { active: k === opts.active })}<span>${label}</span></div>`).join('')}</div><div class="a-bar-add">${A.icon('plus')}<span>담기</span></div>`;
     return host;
   };

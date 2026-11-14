@@ -47,6 +47,7 @@
   --bar-edge: rgba(31, 28, 25, 0.09);
   --bar-shadow: 0 10px 28px rgba(31, 28, 25, 0.13), 0 1px 3px rgba(31, 28, 25, 0.08);
   --scrim: rgba(31, 28, 25, 0.40);
+  --sheet: #FBFAF6;        /* inset sheet ground: the page itself in light */
 
   /* eight dyes: wash / tint / pigment / ink */
   --a0-wash: #E8F2E8; --a0-tint: #70A672; --a0-pigment: #26662C; --a0-ink: #14561D; /* 쑥 건강 */
@@ -95,6 +96,7 @@
     --bar-edge: rgba(236, 231, 222, 0.10);
     --bar-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.30);
     --scrim: rgba(0, 0, 0, 0.55);
+    --sheet: #201D1A;        /* one step above the page so the sheet reads over the scrim */
 
     /* dyes at night. pigment is lifted to at least 3:1 on the page and still holds --on-pigment at 4.5:1.
        tint (done) is the pigment at 58% over the page: deeper than pigment, brighter than wash.
@@ -247,5 +249,4 @@ body { background: var(--paper); color: var(--ink); }
 
 /* Inset sheet (S4): floats 8pt from the edges with four round corners. Put it over .b-scrim. */
 .b-scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 20; }
-.b-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: var(--r-sheet); background: var(--paper); padding: 20px; z-index: 21; }
-@media (prefers-color-scheme: dark) { .b-sheet { background: #201D1A; } }
+.b-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: var(--r-sheet); background: var(--sheet); padding: 20px; z-index: 21; }

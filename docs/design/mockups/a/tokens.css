@@ -76,7 +76,7 @@
   --r-sheet: 28px;             /* inset sheets (8px from the screen edges) */
   --hair: 0.5px;               /* 1 device px at @2x; roundToNearestPixel(0.5) = 2px at @3x */
   --rule: 1px;                 /* 2 device px at @2x; 3px at @3x */
-  --rule-heavy: 1.5px;         /* 3 device px at @2x; 4px at @3x */
+  --rule-heavy: 1.5px;         /* 3 device px at @2x; 5px at @3x (round(4.5)) */
 
   --serif: 'MaruBuri', 'Pretendard', serif;
   --sans: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
@@ -116,7 +116,7 @@
     --on-dye: #ECE6D8;
 
     --core: #2B2621;           /* raised paper, 1.2:1 — never a white-hot centre */
-    --on-core: #ECE6D8;        /* 12.4:1 on the core */
+    --on-core: #ECE6D8;        /* 12.0:1 on the core */
     --core-edge: #8C9AAD;      /* the core is drawn by its printed edge at night */
     --rule-frame: #66748A;
     --rule-block: #3F4854;
