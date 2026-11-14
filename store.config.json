@@ -32,17 +32,17 @@
           "APP_IPHONE_67": [
             "./store/screenshots/ko/APP_IPHONE_67/01-chart.png",
             "./store/screenshots/ko/APP_IPHONE_67/02-today.png",
-            "./store/screenshots/ko/APP_IPHONE_67/03-home.png",
-            "./store/screenshots/ko/APP_IPHONE_67/04-stats.png",
-            "./store/screenshots/ko/APP_IPHONE_67/05-ritual.png",
+            "./store/screenshots/ko/APP_IPHONE_67/03-widgets.png",
+            "./store/screenshots/ko/APP_IPHONE_67/04-home.png",
+            "./store/screenshots/ko/APP_IPHONE_67/05-stats.png",
             "./store/screenshots/ko/APP_IPHONE_67/06-year.png"
           ],
           "APP_IPAD_PRO_3GEN_129": [
             "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/01-chart.png",
             "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/02-today.png",
-            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/03-home.png",
-            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/04-stats.png",
-            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/05-ritual.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/03-widgets.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/04-home.png",
+            "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/05-stats.png",
             "./store/screenshots/ko/APP_IPAD_PRO_3GEN_129/06-year.png"
           ]
         }
@@ -73,17 +73,17 @@
           "APP_IPHONE_67": [
             "./store/screenshots/ja/APP_IPHONE_67/01-chart.png",
             "./store/screenshots/ja/APP_IPHONE_67/02-today.png",
-            "./store/screenshots/ja/APP_IPHONE_67/03-home.png",
-            "./store/screenshots/ja/APP_IPHONE_67/04-stats.png",
-            "./store/screenshots/ja/APP_IPHONE_67/05-ritual.png",
+            "./store/screenshots/ja/APP_IPHONE_67/03-widgets.png",
+            "./store/screenshots/ja/APP_IPHONE_67/04-home.png",
+            "./store/screenshots/ja/APP_IPHONE_67/05-stats.png",
             "./store/screenshots/ja/APP_IPHONE_67/06-year.png"
           ],
           "APP_IPAD_PRO_3GEN_129": [
             "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/01-chart.png",
             "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/02-today.png",
-            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/03-home.png",
-            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/04-stats.png",
-            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/05-ritual.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/03-widgets.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/04-home.png",
+            "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/05-stats.png",
             "./store/screenshots/ja/APP_IPAD_PRO_3GEN_129/06-year.png"
           ]
         }
@@ -113,17 +113,17 @@
           "APP_IPHONE_67": [
             "./store/screenshots/en/APP_IPHONE_67/01-chart.png",
             "./store/screenshots/en/APP_IPHONE_67/02-today.png",
-            "./store/screenshots/en/APP_IPHONE_67/03-home.png",
-            "./store/screenshots/en/APP_IPHONE_67/04-stats.png",
-            "./store/screenshots/en/APP_IPHONE_67/05-ritual.png",
+            "./store/screenshots/en/APP_IPHONE_67/03-widgets.png",
+            "./store/screenshots/en/APP_IPHONE_67/04-home.png",
+            "./store/screenshots/en/APP_IPHONE_67/05-stats.png",
             "./store/screenshots/en/APP_IPHONE_67/06-year.png"
           ],
           "APP_IPAD_PRO_3GEN_129": [
             "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/01-chart.png",
             "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/02-today.png",
-            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/03-home.png",
-            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/04-stats.png",
-            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/05-ritual.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/03-widgets.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/04-home.png",
+            "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/05-stats.png",
             "./store/screenshots/en/APP_IPAD_PRO_3GEN_129/06-year.png"
           ]
         }
