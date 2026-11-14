@@ -426,3 +426,5 @@ From S6 (Settings): sections 핵심 목표 → 알림 → iCloud와 백업 → �
 From S5 (Onboarding): `ChartSketch.tsx` deleted; preview is a 3×3 of 64pt pale tiles (56 on 375×667); examples are one printed line (the first keeps `onbSample`); iCloud offer sits above the question. For R2: two text styles not in `ROLE` (sub 400 15/24, examples 400 13/20) are local to `Onboarding.tsx`.
 
 From S1 (Home): `Tally.tsx` deleted; `lib/home.ts` adds `HOME`, `heroMapCell`, `homeEyebrow`, `homeList`. Year-close, weekly review and start guide are tappable rows; a finished day shows one printed line. For R2: `Header` has no accessibility-label override and no tappable title, so Home wraps it and draws settings outside it.
+
+From O4 (Focus): `focusClock.clockParts` is new; `focusProps` gets `ti`. Minimising the session to a bar needs C's files, so the down glyph closes the page and keeps the minutes (as the old ×); `focusClose` sits on 그만하기. For R2: decide whether to add the minimised bar.
