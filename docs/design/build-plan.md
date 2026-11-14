@@ -371,7 +371,7 @@ Measure 327: map cells ≈ 31, L1 hero cell 18, block cells ≈ 105, minute tile
 
 ### 4.8 Other decisions taken here (owner may reverse later)
 Paper default 무지 (§2.6). Look is device-local (§2.4). Print keeps text (§2.7). Destructive actions stay ink. The Detail screen and the grid zoom are one `AreaPage`. Nothing in the data model is removed.
-Focus page: no minimised bar in this release (§6 O4, decided in wave 4). The down glyph closes the page and the minutes already done are kept, as the old × did; the timer, keep-awake, the end notification and the Live Activity behave as before. Revisit with a later release if owners ask to keep a session running behind other pages.
+Focus page: no minimised bar in this release (§6 O4, decided in wave 4). The down glyph ends the session the way 그만하기 does: the minutes already done are recorded, as the old × did. A session that keeps running behind other pages is left for a later release.
 
 ---
 
