@@ -13,7 +13,7 @@ This memo overlaps `typography.md` (TY-01, TY-02, TY-03, TY-13, TY-14, TY-19, TY
 
 ## Verdict
 
-The Korean app was translated with real care (formats, plurals, localised seed content, a glossary enforced by tests), but the chart itself was designed around Korean word length, so the English and Japanese charts, the first-run chart and the share poster break, shrink or strand text on a quarter to a third of their cells. On iPad the notebook spread is a good idea executed as two phone screens side by side: the chart, the one thing that finally has room, stays at 9 to 11pt and takes 20 to 46% of the window, and every sheet, list and the tab bar is the phone component at phone size. Neither the English or Japanese build nor the iPad layout would pass an App Store feature review today; Korean on iPhone is the only finished combination.
+The Korean app was translated with real care (formats, plurals, localised seed content, a glossary enforced by tests), but the chart itself was designed around Korean word length, so the English and Japanese charts, the first-run chart and the share poster break, shrink or strand text on a quarter to a third of their cells. On iPad the notebook spread is a good idea executed as two phone screens side by side: the chart, the one thing that finally has room, stays at 9 to 11pt and takes 20 to 46% of the window, and every sheet, list and the tab bar is the phone component at phone size. Neither the English and Japanese builds nor the iPad layout would pass an App Store feature review today; Korean on iPhone is the only finished combination.
 
 ## Strengths to keep
 
@@ -74,7 +74,7 @@ Fix: (1) Segment Japanese by phrase with BudouX (about 15KB model) inside `cellB
 
 **JEI-03. The share poster and the printed sheet break English worse than the screen does.**
 Screen: 표 이미지 (share), 인쇄, English and Japanese.
-Evidence: `jei/shots/en-ov-390x844-share.png`: about 24 of 81 cells break inside a word or are cut: "Relatio / nships" ×2, "Hobbie / s" ×2, "Advent / ure" ×2, "convers / ation", "networki / ng", "certifica / tion", "docume / ntaries", "Emerge / ncy fund", "subscrip / tions", "Voluntee / r", "spendin / g", "instrume / nt", "Meditat / e 10 min", "Gratitud / e journal", "Breathin / g practice", "langua…", "investi…". The poster uses a fixed size with no shrink (`ChartPoster.tsx:36, 91-95`). Japanese (`jei/shots/ja-ov-390x844-share.png`): "サイドプロジェク..", "ドキュメンタリーを…", "デジタルデトック..", centre "健康・仕事・人間…". The PDF sets `word-break:keep-all; overflow-wrap:anywhere` with no hyphenation (`src/lib/printSheet.ts:319`), so long English words will break the same way on paper (read from CSS, not rendered). This is the image that carries the app's name to other people, and the first store screenshot.
+Evidence: `jei/shots/en-ov-390x844-share.png`: about 24 of 81 cells break inside a word or are cut: "Relatio / nships" ×2, "Hobbie / s" ×2, "Advent / ure" ×2, "convers / ation", "networki / ng", "certifica / tion", "docume / ntaries", "Emerge / ncy fund", "subscrip / tions", "Voluntee / r", "spendin / g", "instrume / nt", "Meditat / e 10 min", "Gratitud / e journal", "Breathin / g practice", "langua…", "investi…". The poster uses a fixed size with no shrink (`ChartPoster.tsx:36, 91-95`). Japanese (`jei/shots/ja-ov-390x844-share.png`): "サイドプロジェク..", "ドキュメンタリーを…", "デジタルデトック..", centre "健康・仕事・人間…". The PDF sets `word-break:keep-all; overflow-wrap:anywhere` with no hyphenation (`src/lib/printSheet.ts:319`), so long English words will break the same way on paper (read from CSS, not rendered). This is the image that carries the app's name to other people.
 Fix: route poster cells through the same line composer as JEI-01 and JEI-02, with a per-block size and a floor of 7pt at poster scale; let the table run to the edges of the sheet (the 20pt side margins cost about 4pt of width per cell). PDF: add `hyphens:auto; -webkit-hyphens:auto` and change `overflow-wrap` to `break-word` (the `lang` attribute is already set, `printSheet.ts:397`). Add the English and Japanese poster to the visual tests.
 
 **JEI-04. iPad landscape: the chart is no bigger than on a phone, and in a short window it is smaller.**
@@ -127,7 +127,7 @@ Fix: bundle a Japanese face that shares Pretendard's Latin and digits and has re
 **JEI-13. English copy keeps Korean word order and clips words to fit.**
 Screen: Today, pick sheet, Stats, settings, editor, English.
 Evidence, with a rewrite for each:
-- "Added automatically 5 · Work out…" and "Today 5" (`en-xd-pick.png`; `en/today.ts:104-105`) → "5 added automatically · …", "5 today".
+- "Added automatically 5 · …" and "Today 5" (`en-xd-pick.png`; `en/today.ts:104-105`) → "5 added automatically · …", "5 today".
 - "10 for today · Done picking" (`en/today.ts:99`) → "Done · 10 for today".
 - "You worked on Health 5 times, and not yet on Career" (`jei/shots/en-phone-stats.png`; `en/ritual.ts:55`) → "Health 5 times. Career not yet."
 - "Busiest day Tue, Oct 13 · 3 times · this week" (`en-xf-stats-1.png`; `en/stats.ts:68`) → "Busiest day: Tue, Oct 13 (3 times)".
@@ -149,7 +149,7 @@ Fix: seed `sampleThemes(day, lang)` per language; add the first-run flow; add th
 
 ### P2
 
-**JEI-16. Japanese wording to check with a native writer.** The tab "入れる" is a bare verb between four nouns (`ja-home.png` tab bar; `ja/core.ts:11`); 追加 is the usual label. "最近10週 / 最近8週 / 最近4週" (`ja/stats.ts:57, 75, 87`) read better as 直近10週間. "数の目標" (`ja/stats.ts:72`) → 回数の目標. "保存コピー" (`ja/settings.ts:36`) → 自動保存 or 自動バックアップ. The quick-add title and its button are the same eleven characters, "今日やることを入れる" over "今日やることに入れる" (`ja-xd-quick.png`); make the button 追加. Separately, the title マンダラート is printed at 26pt on every chart screen and on the poster footer while its trademark check is still open (`docs/RELEASE_CHECKLIST.md`, row V4); a rename touches these layouts.
+**JEI-16. Japanese wording to check with a native writer.** The tab "入れる" is a bare verb between four nouns (`ja-home.png` tab bar; `ja/core.ts:11`); 追加 is the usual label. "最近10週 / 最近8週 / 最近4週" (`ja/stats.ts:57, 75, 87`) read better as 直近10週間. "数の目標" (`ja/stats.ts:72`) → 回数の目標. "保存コピー" (`ja/settings.ts:36`) → 自動保存 or 自動バックアップ. The quick-add title and its button differ by one particle, "今日やることを入れる" over "今日やることに入れる" (`ja-xd-quick.png`); make the button 追加. Separately, the title マンダラート is printed at 26pt on every chart screen and on the poster footer while its trademark check is still open (`docs/RELEASE_CHECKLIST.md`, row V4); a rename touches these layouts.
 
 **JEI-17. Template sheet lists wrap with a hanging separator.** English: all four templates end line one with "·" and drop one name to line two ("… · Mind · / New things", `en-xj-template-sheet.png`); Korean and Japanese one of four each. Fix: show each template as a small 3×3 with its eight names, which is the product's own picture and needs no wrapping rule; or keep the list and never break after a separator.
 
