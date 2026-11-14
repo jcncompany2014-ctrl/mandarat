@@ -424,3 +424,5 @@ From C (chrome): `Header` adds `eyebrow, back, title, written, headline, figure,
 From S6 (Settings): sections 핵심 목표 → 알림 → iCloud와 백업 → 보기 (화면 모드, 종이 무늬) → 언어 → 한 해 → 새로 시작 → 프로 (hidden) → 정보; header pinned. `TID.setMood`/`setShape` removed, `setLook` added; `mood`/`accent`/`cellShape` are never written and stay in the doc. Old strings stay for R2. For R2 (wave 4): kit `Swatch` has no aria-checked (wrapped locally in settings); `ChoiceRow` lacks per-row reading language and multi-line meta (built locally) — fold both into the kit.
 
 From S5 (Onboarding): `ChartSketch.tsx` deleted; preview is a 3×3 of 64pt pale tiles (56 on 375×667); examples are one printed line (the first keeps `onbSample`); iCloud offer sits above the question. For R2: two text styles not in `ROLE` (sub 400 15/24, examples 400 13/20) are local to `Onboarding.tsx`.
+
+From S1 (Home): `Tally.tsx` deleted; `lib/home.ts` adds `HOME`, `heroMapCell`, `homeEyebrow`, `homeList`. Year-close, weekly review and start guide are tappable rows; a finished day shows one printed line. For R2: `Header` has no accessibility-label override and no tappable title, so Home wraps it and draws settings outside it.

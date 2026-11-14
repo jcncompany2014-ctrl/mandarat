@@ -52,6 +52,8 @@ export interface AreaPageProps {
   headRef?: React.Ref<View>;
   /** 블록의 가장 큰 폭 — 펼침에서 쪽 높이에 맞출 때 */
   maxBlock?: number;
+  /** 블록의 testID — 만다라트 탭의 크게 보기는 TID.gridTable(지도 · 크게 보기 어느 쪽이든 탭의 표) */
+  blockTestID?: string;
 }
 
 const tabular = { fontVariant: ['tabular-nums' as const] };
@@ -68,7 +70,7 @@ function otherCells(doc: Pick<MandaratDoc, 'themes'>, ti: number): number[] {
 }
 
 export const AreaPage = memo(function AreaPage({
-  ti, part = 'all', onBack, back, backTestID, onStep, focusTitle, headRef, maxBlock,
+  ti, part = 'all', onBack, back, backTestID, onStep, focusTitle, headRef, maxBlock, blockTestID,
 }: AreaPageProps) {
   const M = usePalette();
   const m = useMsg();
@@ -164,6 +166,7 @@ export const AreaPage = memo(function AreaPage({
               onHeadLong={onHead}
               cellHint={m.chart.rowHint}
               headRef={headRef}
+              testID={blockTestID}
               cellTestID={cellTestID}
               style={{ marginTop: AREA_PAGE.blockTop, marginLeft: blockLeft }}
             />

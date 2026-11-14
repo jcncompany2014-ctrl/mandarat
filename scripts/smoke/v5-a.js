@@ -53,14 +53,21 @@ module.exports = async (page, h) => {
       await h.settle();
       await pages(h, w, ht);
       await h.shot(`spread-${w}x${ht}-grid`);
-      // 블록을 크게 보면 오른쪽 쪽이 그 영역 화면으로
-      const block = page.locator(`[data-testid="${h.TID.spreadLeft}"] [aria-label$=" 블록"], [data-testid="${h.TID.spreadLeft}"] [aria-label$="블록 크게 보기"]`).first();
-      if (await block.count()) {
-        await block.click();
-        await h.settle();
-        await pages(h, w, ht);
-        await h.shot(`spread-${w}x${ht}-zoom`);
+      // 지도의 블록(첫 영역)을 누르면 왼쪽 쪽은 그 블록을 크게, 오른쪽 쪽은 그 영역 화면의 나머지(습관 · 실천)로
+      const block = page.locator(`[data-testid="${h.TID.spreadLeft}"] [data-testid="${h.TID.gridBlock(0)}"]`).first();
+      if (!(await block.count())) throw new Error(`${w}×${ht}: 왼쪽 쪽 지도에 블록 단추가 없어요`);
+      await block.click();
+      await h.settle();
+      await pages(h, w, ht);
+      if (!(await page.locator(`[data-testid="${h.TID.spreadLeft}"] [data-testid="${h.TID.gridCell(0, 0)}"]`).count())) {
+        throw new Error(`${w}×${ht}: 크게 본 블록의 칸이 왼쪽 쪽에 없어요`);
       }
+      if (await page.locator(`[data-testid="${h.TID.spreadRight}"] [data-testid="${h.TID.gridCell(0, 0)}"]`).count()) {
+        throw new Error(`${w}×${ht}: 같은 블록이 오른쪽 쪽에도 있어요`);
+      }
+      await h.shot(`spread-${w}x${ht}-zoom`);
+      // 다음 크기를 위해 지도로 돌아간다(크게 본 블록은 앱이 켜져 있는 동안 기억된다)
+      await page.goto(`${h.url}&layout=device`);
     }
     for (const [w, ht] of COLUMN_ONLY) {
       await open(page, h, w, ht);

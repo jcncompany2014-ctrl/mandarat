@@ -190,6 +190,7 @@ function CoreZoom({ M, onBack, onArea, headRef, maxBlock }: {
           onHead={editGoal}
           onHeadLong={editGoal}
           headRef={headRef}
+          testID={TID.gridTable}
           style={{ marginTop: AREA_PAGE.blockTop, marginLeft: left }}
         />
         <View
@@ -370,6 +371,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
             onStep={stepZoom}
             headRef={headRef}
             maxBlock={maxBlock}
+            blockTestID={TID.gridTable}
           />
         )}
       </Animated.View>
