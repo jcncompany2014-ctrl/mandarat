@@ -72,3 +72,18 @@ Seen in `a/home.png`, `a/chart.png` and `_kit.png` as they stood when round 2 be
 2. Critics review every screen through four lenses (craft; concept and user; rules and buildability; one hand across all screens). A finishing designer then fixes, moving new shared parts into the kit.
 3. Steps 2 repeats until a round finds no P0 or P1, or three rounds have run.
 4. The last pass updates `direction.md` and `_kit.html` so they are the specification the app will be built from.
+
+## Decisions after the build round (art director)
+
+All twelve new screens are drawn. These decisions settle what the builders left open. Critics and finishing designers follow them.
+
+1. **종이 무늬 stays.** The app ships four paper patterns (무지, 점, 모눈, 줄) and the store text names them, so A keeps the option. A pattern is printed furniture: drawn in `--print-rule`, on the page ground only, registered to the 6pt and 24pt module so list rules land on it. Default is 무지 (what every screen shows now). Settings › 보기 gets a second swatch row for it beside 화면 모드, and `_kit.html` shows one screen (Home) on 점 and on 모눈 to prove the registration.
+2. **Options A drops, pending the owner:** the five paper colours (replaced by 화면 모드 자동 / 밝게 / 어둡게), 포인트 컬러 (the signal is always vermilion) and 칸 모서리 (cells are square). Do not draw them. List them in `direction.md` under "left out" so the owner can confirm.
+3. **One brand mark.** The icon's drawing (eight dyes round the ink core on the printed lattice) is the mark. Use the same drawing, simplified by size, on the share image's foot, the onboarding eyebrow, the store frames and the settings colophon. Retire any second variant.
+4. **No duplicate counts side by side.** On the Home Screen the medium widget says what is left ("9개 남음") while the small one says 오늘 1/10. On 하루 마감 the day's 正 appears once.
+5. **The streak on 통계** keeps the figure and the sentence. The 正 beside it goes unless a critic can show it reads at a glance to someone who has never seen the week strip.
+6. **The editor** is drawn open (all controls visible) as the specification of the controls. `direction.md` states the default: it opens with the text field and 유형 only, and 반복 and 알림 unfold when they apply.
+7. **Dark is checked on more than Home.** Add `chart-dark.html`, `today-dark.html`, `block-dark.html` and `sheet-dark.html` (the same pages with `<meta name="mock:dark" content="1">`) and fix whatever does not hold at night. A screen may not hard-code a colour.
+8. **Stress checks**, drawn once in `_stress.html` (not a screen; canvas 780×1200): the L2 sheet with English and with Japanese sample labels (use the app's own samples in `src/data` and `src/i18n/{en,ja}`), Home's hero with a long goal ("올해는 몸과 마음을 단단하게 만드는 한 해"), and Home at 375pt wide. Fix what breaks: no word split without a hyphen, no single character alone on a line, one text size per block, nothing clipped.
+9. **Empty paper is allowed, accidents are not.** Where a screen leaves a band of paper (focus, 하루 마감, the chart tab), either compose it (anchor, align, give it a job) or close the page above it. A critic should not be able to tell whether a blank band was meant.
+10. **Sunday stays vermilion everywhere a week is drawn**, including the editor. "The area's dye is the only colour" in the editor means no second accent for controls; the calendar convention is not an accent.

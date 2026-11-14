@@ -1,0 +1,72 @@
+/* 방향 A · styles for parts-widgets.js (widgets, Lock Screen, Live Activity, Dynamic Island).
+   KIT REQUEST: move into tokens.css section 4 once reviewed. Built only from tokens.css values. */
+
+/* ── Home Screen widgets: paper, 22pt corners (the system's), 16pt margins ── */
+.w { position: relative; background: var(--paper); border-radius: 22px; overflow: hidden; }
+.w-small { width: 158px; height: 158px; padding: 16px 0; display: flex; justify-content: center; }
+.w-col { width: 94px; display: flex; flex-direction: column; }
+.w-sheet { margin-top: 8px; }
+.w-medium { width: 338px; height: 158px; padding: 16px 16px 0; }
+
+.w-head { display: flex; align-items: baseline; justify-content: space-between; height: 24px; }
+.w-head .t-label { line-height: 24px; }
+.w-fig { font: 400 20px/24px var(--serif); letter-spacing: -0.01em; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.w-list { margin-top: 6px; border-top: var(--rule) solid var(--print-mid); }
+.w-row { display: flex; align-items: center; gap: 10px; height: 32px; border-bottom: var(--hair) solid var(--print-rule); }
+.w-row:last-child { border-bottom: 0; }
+.w-row-title { flex: 1; min-width: 0; font: 500 15px/20px var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w-row.is-done .w-row-title { color: var(--ink-2); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink); }
+.w-row-right { font: 500 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.w-row-right.is-print { font: 500 11px/18px var(--sans); letter-spacing: 0.04em; color: var(--print); }
+.w-row-area { font: 400 12px/16px var(--sans); color: var(--ink-2); white-space: nowrap; }
+.w-row-area .a-dye { margin-right: 5px; }
+
+/* ── Lock Screen: vibrant rendering = opaque greys, no hue. The kit's own tokens are redefined
+      here, so A.check / A.tally / .a-today draw themselves in the grey ramp. ── */
+.lockscreen, .lock {
+  --lock-1: #F2F2F2;   /* primary: 5.6:1 on the #5E6165 wallpaper, 4.5:1 on the disc */
+  --lock-2: #DCDDDF;   /* secondary text and the check-box edge: 4.6:1 on the wallpaper */
+  --lock-3: #8C8F93;   /* the printed ghost 正 on the disc: 1.6:1, below 2:1 on purpose (it is the form) */
+  --lock-disc: #6C6F73; /* AccessoryWidgetBackground, drawn opaque */
+}
+.lock {
+  --ink: var(--lock-1); --ink-2: var(--lock-2); --tick: var(--lock-1);
+  --print: var(--lock-2); --print-edge: var(--lock-2); --print-rule: var(--lock-3);
+  --signal: var(--lock-1);  /* today keeps its shape (the corner); the colour goes */
+  color: var(--lock-1);
+}
+.lock-rect { width: 156px; height: 72px; display: flex; align-items: center; gap: 10px; }
+.lock-rect .a-check { align-self: flex-start; margin-top: 26px; }  /* centred on the title line */
+.lock-rect-main { min-width: 0; }
+.lock-k { font: 600 12px/16px var(--sans); color: var(--lock-2); font-variant-numeric: tabular-nums; }
+.lock-k .a-today { width: 6px; height: 6px; margin-right: 4px; }
+.lock-t { font: 600 16px/22px var(--sans); color: var(--lock-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lock-m { font: 500 12px/16px var(--sans); color: var(--lock-2); font-variant-numeric: tabular-nums; }
+.lock-circ {
+  width: 72px; height: 72px; border-radius: 50%; background: var(--lock-disc);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.lock-circ-n { font: 600 13px/16px var(--sans); color: var(--lock-1); font-variant-numeric: tabular-nums; }
+
+/* ── the focus Live Activity, Lock Screen presentation: paper ground, 14pt margins ── */
+.live {
+  width: 358px; height: 138px; padding: 14px; border-radius: 22px;
+  background: var(--paper); display: flex; gap: 14px;
+}
+.live-main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.live-k { display: flex; justify-content: space-between; }
+.live-k .a-dye { margin-right: 5px; }
+.live-task { font: 500 17px/24px var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.live-foot { display: flex; align-items: flex-end; justify-content: space-between; }
+.live-time { font: 400 34px/36px var(--serif); letter-spacing: -0.01em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.live-time small { font: 500 12px/18px var(--sans); color: var(--ink-2); margin-left: 3px; letter-spacing: 0; }
+.live-btn { gap: 2px; padding: 0 14px 0 9px; margin-bottom: 0; }
+
+/* ── the Dynamic Island, compact: always black; trailing time in white ── */
+.island {
+  --isl-rest: #3A3A3C;
+  position: absolute; height: 37px; border-radius: 18.5px; background: #000;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 12px;
+}
+.island-time { font: 600 15px/20px var(--sans); color: #F2F2F2; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }

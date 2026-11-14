@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1290x932">
+<title>A · 앱 스토어 스크린숏 1–3</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-widgets.css">
+<style>
+  /* Three 6.9" frames (1320 × 2868 px = 440 × 956pt), drawn here at 430 × 932 each.
+     Posters, not captures. One system for all three: the caption zone is the top 300pt (a printed
+     caption, then a two-line MaruBuri headline at 2.8× the caption); below it, one picture cropped to
+     its best part. What changes per frame is the ground and the crop:
+       1 paper   the sheet itself, cropped full-bleed to the five middle columns (text legible)
+       2 ink     today's page as a paper sheet laid on the core's ink, bleeding off the bottom
+       3 wall    the Home Screen: our two widgets and the island, on the grey wallpaper
+     Grounds are the app's own: paper, the core's ink, and a phone. No dye ground: a dye means an area. */
+  html, body { width: 1290px; height: 932px; background: var(--paper); }
+  .frame { position: absolute; top: 0; width: 430px; height: 932px; overflow: hidden; }
+  .f1 { left: 0; background: var(--paper); }
+  .f2 { left: 430px; background: var(--core); }
+  .f3 { left: 860px; background: #5E6165; }
+
+  .cap { position: absolute; left: 32px; top: 76px; font: 500 15px/20px var(--sans); letter-spacing: 0.04em; color: var(--print); }
+  .head { position: absolute; left: 32px; right: 24px; top: 106px; font: 600 44px/58px var(--serif); letter-spacing: -0.02em; color: var(--ink); }
+  .f2 .cap { color: var(--print-mid); }
+  .f2 .head { color: var(--on-core); }
+  .f3 .cap { color: #C9CBCE; }
+  .f3 .head { color: var(--paper); }
+
+  /* 1: a window on the L2 sheet, columns 3–7 and rows 2–8, cut on the rules so no word is cut */
+  .win { position: absolute; left: 0; width: 430px; overflow: hidden; }
+  .win > div { position: absolute; transform-origin: 0 0; }
+
+  .folio { position: absolute; left: 32px; right: 32px; top: 292px; display: flex; justify-content: space-between; align-items: baseline; font: 500 15px/20px var(--sans); letter-spacing: 0.04em; color: var(--print); font-variant-numeric: tabular-nums; }
+  .folio b { font: 600 17px/20px var(--sans); letter-spacing: 0; color: var(--ink); margin-left: 6px; }
+
+  /* 2: today's page */
+  .page2 { position: absolute; left: 24px; top: 330px; width: 290px; height: 520px; transform-origin: 0 0; background: var(--paper); padding: 12px 0 0; }
+  .page2 .a-header { margin: 0 18px; }
+  .page2 .a-list { margin: 0 18px; border-top: 0; }  /* the masthead rule is the table's top rule: a doubled rule means a closed day in A */
+
+  /* 3: the Home Screen */
+  .home3 { position: absolute; left: 0; top: 0; width: 364px; height: 440px; transform-origin: 0 0; }
+  .app { position: absolute; width: 60px; height: 60px; border-radius: 13.5px; background: #7A7D81; overflow: hidden; }
+  .app-label { position: absolute; width: 76px; text-align: center; font: 500 11px/14px var(--sans); color: #F2F2F2; }
+</style>
+</head>
+<body>
+<section class="frame f1">
+  <div class="cap">만다라트 계획표</div>
+  <div class="head">한 해 목표를<br>한 장에 채워요</div>
+  <div class="folio"><span>2026 만다라트</span><span>달성<b id="prog1"></b></span></div>
+  <div class="win" id="win1"><div id="sheet1"></div></div>
+</section>
+
+<section class="frame f2">
+  <div class="cap">오늘 할 일</div>
+  <div class="head">표에 적은 일이<br>오늘 할 일이 돼요</div>
+  <div class="page2" id="page2"><div id="h2"></div><div class="a-list" id="rows2"></div></div>
+</section>
+
+<section class="frame f3">
+  <div class="cap">위젯</div>
+  <div class="head">홈 화면에서<br>바로 체크해요</div>
+  <div class="home3" id="home3">
+    <div id="small3" style="position:absolute;left:26px;top:0"></div>
+    <div class="app" id="icon3" style="left:212px;top:6px"></div>
+    <div class="app-label" style="left:204px;top:70px">만다라트</div>
+    <div class="app" style="left:304px;top:6px"></div>
+    <div class="app" style="left:212px;top:98px"></div>
+    <div class="app" style="left:304px;top:98px"></div>
+    <div id="medium3" style="position:absolute;left:26px;top:190px"></div>
+    <div class="app" style="left:26px;top:380px"></div>
+    <div class="app" style="left:119px;top:380px"></div>
+    <div class="app" style="left:212px;top:380px"></div>
+    <div class="app" style="left:304px;top:380px"></div>
+  </div>
+  <div id="island3"></div>
+</section>
+
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/icon-mark.js"></script>
+<script src="/docs/design/mockups/a/parts-widgets.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, rows = v.today.rows;
+  const find = (t) => rows.find((r) => r.text === t);
+
+  /* 1 ─ the sheet, cropped. Draw the L2 sheet as the app does, then show only the cells between
+     columns 2..6 and rows 1..7 (0-based), scaled to fill the frame's width. */
+  const ch = A.chart('#sheet1', doc, {});
+  const cells = ch.cells, xs = [];
+  ch.el.querySelectorAll('.a-cell').forEach((n) => { const [r, c] = n.dataset.rc.split('-').map(Number); if (r === 0) xs[c] = parseFloat(n.style.left); });
+  document.querySelector('#prog1').textContent = `${v.progress.done}/${v.progress.of}칸`;
+  const cs = ch.cellSize, x0 = xs[2], x1 = xs[6] + cs;
+  const ys = xs; // the sheet is square: row starts = column starts
+  const s = 430 / (x1 - x0);
+  const winH = (ys[7] + cs - ys[1]) * s;
+  const win = document.querySelector('#win1');
+  win.style.top = (932 - winH) + 'px';
+  win.style.height = winH + 'px';
+  const inner = win.firstElementChild;
+  inner.style.left = (-x0 * s) + 'px';
+  inner.style.top = (-ys[1] * s) + 'px';
+  inner.style.transform = `scale(${s})`;
+
+  /* 2 ─ today's page, laid on ink */
+  A.header('#h2', { eyebrow: `${v.date.month} ${v.date.day}일 ${v.date.weekday}`, title: '오늘', figure: `${v.today.done}/${v.today.of}` });
+  document.querySelector('#rows2').innerHTML = [
+    A.todayRow(doc, find(v.weekFocus[0].text), { rightPrint: '중점' }),
+    A.todayRow(doc, rows[0]),
+    A.todayRow(doc, rows[1]),
+    A.todayRow(doc, rows[3]),
+    A.todayRow(doc, rows[4]),
+    A.todayRow(doc, find('하루 물 2L')),
+  ].join('');
+  const p2 = document.querySelector('#page2');
+  p2.style.transform = `scale(${382 / 290})`;
+
+  /* 3 ─ the Home Screen widgets */
+  W.small('#small3', doc);
+  W.medium('#medium3', doc, [
+    { text: v.weekFocus[0].text, area: v.weekFocus[0].area, rightPrint: '중점' },
+    { text: rows[0].text, area: rows[0].area, right: rows[0].right },
+    Object.assign({}, find('하루 물 2L'), { done: true, right: null }),
+  ]);
+  AI.crop('#icon3', { size: 60, hair: 0.03, block: 0.06, inset: 0.06 });
+  const k = 1.12, h3 = document.querySelector('#home3');
+  h3.style.transform = `scale(${k})`;
+  h3.style.left = ((430 - 338 * k) / 2 - 26 * k) + 'px';
+  h3.style.top = '330px';
+  const isl = W.island('#island3', doc);
+  isl.style.left = '97px'; isl.style.top = '11px'; isl.style.width = '236px';
+});
+</script>
+</body>
+</html>
