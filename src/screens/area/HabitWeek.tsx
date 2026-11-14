@@ -70,7 +70,12 @@ const WeekRow = memo(function WeekRow({ M, ti, row, todayIndex, first, onToggle 
           </Pressable>
         );
       })}
-      <Text style={[ROLE.rowMeta, { width: HABIT_WEEK.fig, textAlign: 'right', color: M.ink2 }]} numberOfLines={1} accessible={false}>
+      <Text
+        style={[ROLE.rowMeta, { width: HABIT_WEEK.fig, textAlign: 'right', color: M.ink2 }]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={1.3}
+        accessible={false}
+      >
         {`${row.done}/${row.planned}`}
       </Text>
     </View>
