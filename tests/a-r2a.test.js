@@ -53,3 +53,40 @@ test('Segment: 묶음(라디오 묶음 · 탭 목록)에 이름 — 무엇을 �
   for (const k of ['kindLabel', 'repeat', 'due']) assert.match(ed, new RegExp(`accessibilityLabel=\\{ed\\.${k}\\}\\s*/>`), k);
   assert.match(code('src/overlays/ShareChart.tsx'), /<Segment[\s\S]*?accessibilityLabel=\{m\.chart\.shareTitle\}\s*\/>/);
 });
+
+// ── 화면 머리 ──────────────────────────────────────────────────────────────────
+
+test('Header: figureLabel(숫자를 읽는 말) · accessibilityLabel(머리 한 덩어리) · onTitlePress(제목 단추)', () => {
+  const c = code('src/components/common.tsx');
+  const props = c.slice(c.indexOf('type HeaderProps = {'), c.indexOf('export function Header('));
+  for (const k of ['figureLabel', 'accessibilityLabel', 'onTitlePress', 'titleLabel', 'titleHint']) assert.match(props, new RegExp(`\\b${k}\\?: `), k);
+  const body = c.slice(c.indexOf('function HeaderBody('), c.indexOf('export function IconBtn('));
+  // 숫자: 보이는 '1/10' 대신 읽는 말
+  assert.match(body, /<Text\s+accessibilityLabel=\{figureLabel\}/);
+  // 한 덩어리: 위 줄 · 제목 · 숫자를 감싼 칸이 머리 역할 + 그 말(뒤로 가기 · 제목 단추 · 동작은 그 밖)
+  assert.match(body, /accessible=\{grouped\}\s+accessibilityRole=\{grouped \? 'header' : undefined\}\s+accessibilityLabel=\{accessibilityLabel\}\s+\{\.\.\.a11yLangProp\(\)\}/);
+  const group = body.slice(body.indexOf('ref={groupRef}'), body.indexOf('{onTitlePress && ('));
+  assert.doesNotMatch(group, /BackLink|IconBtn|onTitlePress/);
+  // 제목 단추: 제목 자리(위 30부터) — 동작 · 숫자 자리(padRight)는 비킨다
+  assert.match(body, /onPress=\{onTitlePress\}\s+accessibilityRole="button"\s+accessibilityLabel=\{titleLabel \?\? words\}\s+accessibilityHint=\{titleHint\}/);
+  assert.match(body, /style=\{\{ position: 'absolute', left: 0, right: padRight, top: 30, bottom: 0 \}\}/);
+  // 처음 초점: 한 덩어리면 그 덩어리로
+  assert.match(body, /const node = grouped \? groupRef\.current : titleRef\.current;/);
+});
+
+test('머리를 쓰는 화면 — 홈은 감싼 칸 없이 Header 하나, 숫자가 있는 머리는 읽는 말을 단다', () => {
+  const home = code('src/screens/Dashboard.tsx');
+  assert.match(home, /accessibilityLabel=\{summary\}\s+action=\{action\}\s+onTitlePress=\{goal \? undefined : onSetGoal\}/);
+  assert.doesNotMatch(home, /<View accessible accessibilityRole="header"/);
+  assert.match(code('src/screens/Today.tsx'), /figureLabel=\{figureLabel\}/);
+  // 만다라트 탭: 가운데 블록 크게 보기의 '24/64' · 영역 쪽의 '4/8'
+  assert.match(code('src/screens/GridScreen.tsx'), /figureLabel=\{m\.chart\.doneOf64Say\(\{ done: totalDone\(doc\) \}\)\}/);
+  assert.match(code('src/screens/area/AreaPage.tsx'), /figureLabel=\{m\.chart\.areaDoneSay\(\{ done: p\.done, days: 0 \}\)\}/);
+  assert.match(code('src/screens/Stats.tsx'), /accessibilityLabel=\{headSay\}/);
+  const { msg } = require('../src/i18n');
+  assert.equal(msg('ko').home.todayOf({ total: 10, done: 1 }), '오늘 할 일 10개 중 1개 했어요');
+  assert.equal(msg('ko').chart.areaDoneSay({ done: 4, days: 0 }), '8칸 중 4칸 달성');
+  assert.equal(msg('ko').chart.doneOf64Say({ done: 24 }), '64칸 중 24칸 달성');
+  const { headerMeta } = require('../src/lib/home');
+  assert.equal(headerMeta(new Date(2026, 9, 14), 'ko').left, '올해 78일 남음');
+});

@@ -121,6 +121,18 @@ type HeaderProps = {
   headline?: boolean;
   /** 제목 줄 오른쪽의 숫자(1/10 · 4/8) */
   figure?: string;
+  /** 숫자를 읽는 말 — '1/10'은 날짜로 읽혀서('오늘 할 일 10개 중 1개 했어요' · '8칸 중 4칸 달성') */
+  figureLabel?: string;
+  /**
+   * 머리 한 덩어리의 읽는 말 — 주면 위 줄 · 제목 · 숫자를 한 번에 이 말로 읽는다(머리 역할, 홈: 날짜 · 핵심 목표 · 달성 · 남은 할 일).
+   * 뒤로 가기 · 제목 단추 · 오른쪽 동작은 따로 읽힌다.
+   */
+  accessibilityLabel?: string;
+  /** 제목을 누르면 — 홈의 '핵심 목표를 정해 주세요'(편집 창). 제목 자리 위에 단추를 놓는다(동작 자리는 비킨다) */
+  onTitlePress?: () => void;
+  /** 제목 단추의 읽는 말 · 도움말(읽는 말이 없으면 제목 그대로) */
+  titleLabel?: string;
+  titleHint?: string;
   /** 오른쪽 동작 하나(글리프) */
   action?: HeaderAction;
   /** 예전 오른쪽 자리 — 아무 요소나(action이 있으면 그것을 쓴다) */
@@ -140,6 +152,7 @@ type HeaderProps = {
  * 화면 머리(A.header) — 모든 탭이 같은 뼈대: 인쇄된 위 줄(늘 자리를 둔다) + 제목 + 오른쪽 동작 하나. 아래 선 없음.
  * 높이 72(제목이 접히면 늘어난다): 위 12 · 위 줄 18 · 제목 36. 좌우는 화면 여백(24).
  * 뒤로 가기는 위 줄에 '‹ 이름'. 숫자(figure)는 제목 줄 오른쪽, 동작 앞. 동작은 44 손끝에 글리프 24(오른쪽 −10, 위 26 · 헤드라인 28).
+ * 화면 읽기: 제목은 머리(header), 숫자는 figureLabel로. accessibilityLabel을 주면 위 줄 · 제목 · 숫자가 그 말 한 덩어리.
  */
 export function Header({ backTestID, pinned, ...rest }: HeaderProps) {
   const setPinned = useContext(PinnedHeaderSlot);
@@ -156,10 +169,13 @@ export function Header({ backTestID, pinned, ...rest }: HeaderProps) {
 }
 
 function HeaderBody({
-  backTestID, M, kr, title, eyebrow, sub, back, onBack, headline, figure, action, right, focusTitle,
+  backTestID, M, kr, title, eyebrow, sub, back, onBack, headline, figure, figureLabel, accessibilityLabel,
+  onTitlePress, titleLabel, titleHint, action, right, focusTitle,
 }: HeaderProps) {
   const titleRef = useRef<RNText>(null);
+  const groupRef = useRef<View>(null);
   const [rightW, setRightW] = useState(44);
+  const grouped = accessibilityLabel != null;
 
   useEffect(() => {
     if (!focusTitle || Platform.OS === 'web') return;
@@ -168,9 +184,9 @@ function HeaderBody({
     AccessibilityInfo.isScreenReaderEnabled()
       .then((on) => {
         if (!on || !alive) return;
-        // 화면 전환이 끝나 제목이 자리 잡은 뒤에 옮겨야 VoiceOver가 놓치지 않는다
+        // 화면 전환이 끝나 제목이 자리 잡은 뒤에 옮겨야 VoiceOver가 놓치지 않는다(한 덩어리로 읽는 머리면 그 덩어리로)
         timer = setTimeout(() => {
-          const node = titleRef.current;
+          const node = grouped ? groupRef.current : titleRef.current;
           if (alive && node) AccessibilityInfo.sendAccessibilityEvent(node, 'focus');
         }, 150);
       })
@@ -191,31 +207,56 @@ function HeaderBody({
 
   return (
     <View style={{ marginHorizontal: GEO.gutter, minHeight: GEO.header, paddingTop: 12 }}>
-      <View style={{ height: 18, justifyContent: 'center' }}>
-        {onBack ? (
+      {onBack && (
+        <View style={{ height: 18, justifyContent: 'center' }}>
           <BackLink M={M} label={back} onPress={onBack} testID={backTestID} />
-        ) : (
-          !!eyebrowText && (
-            <Text style={{ ...ROLE.folio, color: M.print }} numberOfLines={1} maxFontSizeMultiplier={1.4}>{eyebrowText}</Text>
-          )
+        </View>
+      )}
+      {/* 위 줄 · 제목 · 숫자 — accessibilityLabel을 주면 이 덩어리가 그 말로 한 번에 읽힌다(뒤로 가기 · 단추는 밖에) */}
+      <View
+        ref={groupRef}
+        accessible={grouped}
+        accessibilityRole={grouped ? 'header' : undefined}
+        accessibilityLabel={accessibilityLabel}
+        {...a11yLangProp()}
+      >
+        {!onBack && (
+          <View style={{ height: 18, justifyContent: 'center' }}>
+            {!!eyebrowText && (
+              <Text style={{ ...ROLE.folio, color: M.print }} numberOfLines={1} maxFontSizeMultiplier={1.4}>{eyebrowText}</Text>
+            )}
+          </View>
+        )}
+        <Text
+          ref={titleRef}
+          accessibilityRole="header"
+          style={{ ...(headline ? ROLE.headline : ROLE.title), color: M.ink, paddingRight: padRight }}
+          numberOfLines={headline ? 3 : 2}
+        >
+          {noOrphan(words)}
+        </Text>
+        {!!figure && (
+          <Text
+            accessibilityLabel={figureLabel}
+            // 제목 줄 위(머리 위에서 30) — 위 줄이 이 덩어리 안에 있으면 18 아래, 뒤로 가기 줄이 밖에 있으면 맨 위
+            style={{ ...ROLE.figureHeader, color: M.ink, position: 'absolute', top: onBack ? 0 : 18, right: hasAction ? 44 : 0 }}
+            numberOfLines={1}
+            maxFontSizeMultiplier={1.3}
+          >
+            {figure}
+          </Text>
         )}
       </View>
-      <Text
-        ref={titleRef}
-        accessibilityRole="header"
-        style={{ ...(headline ? ROLE.headline : ROLE.title), color: M.ink, paddingRight: padRight }}
-        numberOfLines={headline ? 3 : 2}
-      >
-        {noOrphan(words)}
-      </Text>
-      {!!figure && (
-        <Text
-          style={{ ...ROLE.figureHeader, color: M.ink, position: 'absolute', top: 30, right: hasAction ? 44 : 0 }}
-          numberOfLines={1}
-          maxFontSizeMultiplier={1.3}
-        >
-          {figure}
-        </Text>
+      {onTitlePress && (
+        // 제목 자리의 단추 — 동작 · 숫자 자리는 비킨다
+        <Pressable
+          onPress={onTitlePress}
+          accessibilityRole="button"
+          accessibilityLabel={titleLabel ?? words}
+          accessibilityHint={titleHint}
+          {...a11yLangProp()}
+          style={{ position: 'absolute', left: 0, right: padRight, top: 30, bottom: 0 }}
+        />
       )}
       {action && (
         <View style={{ position: 'absolute', right: -10, top }}>

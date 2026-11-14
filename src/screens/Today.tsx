@@ -90,11 +90,13 @@ export const Today = memo(function Today() {
   const listView = mgmt !== '습관 스트릭' && mgmt !== '칸반';
   // 하루 마감의 큰 숫자가 보이면 머리의 숫자는 뺀다(같은 수를 두 번 보이지 않는다)
   const figure = total > 0 && !(listView && close.shown) ? `${done}/${total}` : undefined;
+  // 소리로는 '오늘 할 일 10개 중 1개 했어요'('1/10'은 날짜로 읽힌다)
+  const figureLabel = figure ? (done >= total ? m.home.todayAll({ total }) : m.home.todayOf({ total, done })) : undefined;
   const week = useMemo(() => weekBarCounts(doc.dayLog, new Date()).map((n) => (n == null ? '' : String(n))).join(','), [doc.dayLog, day]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <View onMagicTap={onMagicTap}>
-      <PureHeader M={M} eyebrow={m.fmt.dateLong({ d: now })} title={m.today.screenTitle} figure={figure} action={action} />
+      <PureHeader M={M} eyebrow={m.fmt.dateLong({ d: now })} title={m.today.screenTitle} figure={figure} figureLabel={figureLabel} action={action} />
       {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} close={close} />}
       <DayBlock M={M} day={day} mood={meta?.mood} reflection={meta?.reflection ?? ''} week={week} todayIndex={weekdayIndex(now)} />
       {views && <ViewsSheet M={M} value={mgmt} onPick={onMode} onClose={() => setViews(false)} />}

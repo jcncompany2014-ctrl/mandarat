@@ -155,7 +155,8 @@ test('머리: 72(위 12 · 위 줄 18 · 제목 36), 여백 24, 아래 선 없�
   assert.match(body, /\{noOrphan\(words\)\}/);
   assert.match(body, /const top = headline \? 28 : 26;/);
   assert.match(body, /position: 'absolute', right: -10, top \}/);
-  assert.match(body, /\.\.\.ROLE\.figureHeader, color: M\.ink, position: 'absolute', top: 30, right: hasAction \? 44 : 0/);
+  // 숫자는 제목 줄 위(머리 위에서 30): 위 줄과 같은 덩어리 안이면 18 아래, 뒤로 가기 줄이 밖에 있으면 그 덩어리의 맨 위
+  assert.match(body, /\.\.\.ROLE\.figureHeader, color: M\.ink, position: 'absolute', top: onBack \? 0 : 18, right: hasAction \? 44 : 0/);
   assert.match(body, /\.\.\.ROLE\.folio, color: M\.print/);
   assert.doesNotMatch(body, /borderBottom|borderTop/);
   // 뒤로 가기: 위 줄에 ‹ 16 + 이름(link 13/18 700), 이름이 없으면 온 곳(탭)의 이름

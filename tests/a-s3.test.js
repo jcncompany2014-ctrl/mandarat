@@ -93,7 +93,9 @@ test('머리 — 날짜 · 오늘 · 1/10 · ···(TID.todayModes, 보기 방�
   const s = src('src/screens/Today.tsx');
   assert.match(s, /export const Today = memo\(function Today\(/);
   assert.match(s, /\{ glyph: 'dots', onPress: openViews, label: m\.today\.viewsLabel, testID: TID\.todayModes \}/);
-  assert.match(s, /<PureHeader M=\{M\} eyebrow=\{m\.fmt\.dateLong\(\{ d: now \}\)\} title=\{m\.today\.screenTitle\} figure=\{figure\} action=\{action\} \/>/);
+  assert.match(s, /<PureHeader M=\{M\} eyebrow=\{m\.fmt\.dateLong\(\{ d: now \}\)\} title=\{m\.today\.screenTitle\} figure=\{figure\} figureLabel=\{figureLabel\} action=\{action\} \/>/);
+  // 숫자는 소리로 '오늘 할 일 10개 중 1개 했어요'('1/10'은 날짜로 읽힌다)
+  assert.match(s, /const figureLabel = figure \? \(done >= total \? m\.home\.todayAll\(\{ total \}\) : m\.home\.todayOf\(\{ total, done \}\)\) : undefined;/);
   assert.match(s, /const figure = total > 0 && !\(listView && close\.shown\) \? `\$\{done\}\/\$\{total\}` : undefined;/);
   // 예전 글자 탭 · 집계 숫자 · 집계 네모는 없다
   assert.doesNotMatch(s, /TextTabs|IndexTabs|const Counter|TALLY_BOX|ProgressBar/);

@@ -105,15 +105,17 @@ test('홈의 새 말 — 세 언어, 단위는 그 언어의 셈(en 복수)', ()
 
 test('머리 — 위 줄 날짜 · 주, 제목 = 핵심 목표(헤드라인), 오른쪽 설정. 큰 날짜 · 두 줄 괘선 · 正 없음', () => {
   const s = dash();
-  assert.match(s, /<Header M=\{M\} eyebrow=\{eyebrow\} title=\{goal \|\| m\.home\.setGoalText\} written=\{!!goal\} headline right=\{ACTION_ROOM\} \/>/);
+  assert.match(s, /<Header\s+M=\{M\}\s+eyebrow=\{eyebrow\}\s+title=\{goal \|\| m\.home\.setGoalText\}\s+written=\{!!goal\}\s+headline\s+accessibilityLabel=\{summary\}\s+action=\{action\}/);
   assert.match(s, /eyebrow=\{homeEyebrow\(now\)\}/);
   // 설정 — 같은 testID · 이름표 · 글리프
-  assert.match(s, /<IconBtn M=\{M\} name="settings" label=\{m\.home\.settings\} testID=\{TID\.homeSettings\} onPress=\{onSettings\} \/>/);
+  assert.match(s, /\{ glyph: 'settings', onPress: onSettings, label: m\.home\.settings, testID: TID\.homeSettings \}/);
   assert.match(s, /const onSettings = useCallback\(\(\) => go\('settings'\), \[go\]\);/);
-  // 화면 읽기: 머리는 예전처럼 한 덩어리(homeSummary), 핵심 목표가 없으면 제목 자리가 '정하기' 단추
-  assert.match(s, /<View accessible accessibilityRole="header" accessibilityLabel=\{summary\}>/);
+  // 화면 읽기: 머리는 예전처럼 한 덩어리(homeSummary — Header의 accessibilityLabel), 핵심 목표가 없으면 제목 자리가 '정하기' 단추(onTitlePress)
+  assert.match(s, /onTitlePress=\{goal \? undefined : onSetGoal\}/);
   assert.match(s, /summary=\{homeSummary\(doc, now\)\}/);
-  assert.match(s, /accessibilityLabel=\{m\.home\.setGoal\}\s+accessibilityHint=\{m\.home\.setGoalHint\}/);
+  assert.match(s, /titleLabel=\{m\.home\.setGoal\}\s+titleHint=\{m\.home\.setGoalHint\}/);
+  // 설정을 머리 밖에 따로 그리던 자리는 없다
+  assert.doesNotMatch(s, /ACTION_ROOM|ACTION_TOP|TITLE_TOP|<IconBtn/);
   assert.match(s, /const onSetGoal = useCallback\(\(\) => \{ tap\(\); openEditor\(\{ kind: 'center' \}\); \}, \[openEditor\]\);/);
   // 지운 것
   assert.doesNotMatch(s, /Tally|正|TYPE\.display|marginTop: 3 \}\} \/>|height: 1\.5, backgroundColor/);

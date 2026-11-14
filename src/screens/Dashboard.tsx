@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text } from '../components/AppText';
-import { Header, IconBtn, RuledNotice, pressedRow } from '../components/common';
+import { Header, RuledNotice, pressedRow, type HeaderAction } from '../components/common';
 import { TID } from '../lib/testIds';
 import { Icon } from '../components/Icon';
 import { CheckBox, DyeMark, LinkRow, Row, Section, TextLink } from '../components/kit';
@@ -28,12 +28,6 @@ import type { MandaratDoc, Theme } from '../types';
 
 /** 구역 머리 아래 — 목업 home.html '.sec .a-section { margin-bottom: 4px }' */
 const SECTION_HEAD = { marginBottom: 4 } as const;
-/** 머리 오른쪽 동작 자리(44) — 설정 단추는 머리 밖에 따로 둔다(머리 한 덩어리의 읽는 말과 나누려고) */
-const ACTION_ROOM = <View style={{ width: 44, height: 44 }} />;
-/** 머리 제목(헤드라인) 줄의 동작 위치 — common Header와 같은 값(위 28, 오른쪽 −10) */
-const ACTION_TOP = 28;
-/** 머리 제목이 시작하는 y — 위 12 + 위 줄 18 */
-const TITLE_TOP = 30;
 
 /**
  * 홈 — 디자인 A(docs/design/build-plan.md §1 Home, 목업 docs/design/mockups/a/home.png · home-dark.png).
@@ -204,31 +198,31 @@ export const Dashboard = memo(function Dashboard() {
 });
 
 /**
- * 머리 — common Header(위 줄 + 헤드라인). 화면 읽기에는 예전처럼 머리 한 덩어리(homeSummary: 날짜 · 핵심 목표 · 달성 · 남은 할 일)와
- * 설정 단추가 따로 읽힌다. 핵심 목표가 없으면 제목 자리에 '핵심 목표를 정해 주세요' — 누르면 편집 창.
+ * 머리 — common Header(위 줄 + 헤드라인 + 설정 글리프). 화면 읽기에는 예전처럼 머리 한 덩어리(homeSummary: 날짜 · 핵심 목표 ·
+ * 달성 · 남은 할 일, Header의 accessibilityLabel)와 설정 단추가 따로 읽힌다.
+ * 핵심 목표가 없으면 제목 자리에 '핵심 목표를 정해 주세요' — 누르면 편집 창(Header의 onTitlePress).
  */
 const HomeHeader = memo(function HomeHeader({ M, eyebrow, goal, summary, onSettings, onSetGoal }: {
   M: M; eyebrow: string; goal: string; summary: string; onSettings: () => void; onSetGoal: () => void;
 }) {
   const m = useMsg();
+  const action = useMemo<HeaderAction>(
+    () => ({ glyph: 'settings', onPress: onSettings, label: m.home.settings, testID: TID.homeSettings }),
+    [onSettings, m],
+  );
   return (
-    <View>
-      <View accessible accessibilityRole="header" accessibilityLabel={summary}>
-        <Header M={M} eyebrow={eyebrow} title={goal || m.home.setGoalText} written={!!goal} headline right={ACTION_ROOM} />
-      </View>
-      {!goal && (
-        <Pressable
-          onPress={onSetGoal}
-          accessibilityRole="button"
-          accessibilityLabel={m.home.setGoal}
-          accessibilityHint={m.home.setGoalHint}
-          style={{ position: 'absolute', left: GEO.gutter, right: GEO.gutter + 48, top: TITLE_TOP, bottom: 0 }}
-        />
-      )}
-      <View style={{ position: 'absolute', right: GEO.gutter - 10, top: ACTION_TOP }}>
-        <IconBtn M={M} name="settings" label={m.home.settings} testID={TID.homeSettings} onPress={onSettings} />
-      </View>
-    </View>
+    <Header
+      M={M}
+      eyebrow={eyebrow}
+      title={goal || m.home.setGoalText}
+      written={!!goal}
+      headline
+      accessibilityLabel={summary}
+      action={action}
+      onTitlePress={goal ? undefined : onSetGoal}
+      titleLabel={m.home.setGoal}
+      titleHint={m.home.setGoalHint}
+    />
   );
 });
 

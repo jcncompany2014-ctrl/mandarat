@@ -256,7 +256,9 @@ test('한 해 쪽 — 같은 부품(ColourMap · BlockGrid · Section · InLink)
 test('Stats: 머리(eyebrow · 통계) · 히어로(연속 · 달성 + L1 지도) · 범위 줄 · 한 번에 한 기간', () => {
   const s = src('src/screens/Stats.tsx');
   assert.match(s, /export const Stats = memo\(function Stats\(\)/);
-  assert.match(s, /<Header M=\{M\} eyebrow=\{eyebrow\} title=\{m\.stats\.screenTitle\} \/>/);
+  assert.match(s, /<Header M=\{M\} eyebrow=\{eyebrow\} title=\{m\.stats\.screenTitle\} accessibilityLabel=\{headSay\} \/>/);
+  // 머리를 읽는 말 — 'D-78'이 아니라 '올해 78일 남음'
+  assert.match(s, /return \[m\.stats\.screenTitle, h\.week, h\.left\]\.join\(m\.core\.listSep\);/);
   assert.match(s, /const eyebrow = useMemo\(\(\) => statsEyebrow\(new Date\(\), l\), \[day, clock, l\]\);/);
   // 히어로 지도 — 칸 20(본문 330 미만 18), 블록을 누르면 그 영역 · 가운데는 만다라트(홈과 같다)
   assert.match(s, /return measure < 330 \? 18 : 20;/);

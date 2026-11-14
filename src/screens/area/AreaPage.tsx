@@ -153,6 +153,7 @@ export const AreaPage = memo(function AreaPage({
         title={title}
         written={!!th.title.trim()}
         figure={`${p.done}/8`}
+        figureLabel={m.chart.areaDoneSay({ done: p.done, days: 0 })}
         action={{ glyph: 'dots', onPress: () => { tap(); setMore(true); }, label: m.chart.areaMore }}
         focusTitle={focusTitle}
       />

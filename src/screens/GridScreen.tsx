@@ -192,6 +192,7 @@ function CoreZoom({ M, onBack, onArea, headRef, maxBlock }: {
         title={goal || m.chart.goalPrompt}
         written={!!goal}
         figure={`${totalDone(doc)}/64`}
+        figureLabel={m.chart.doneOf64Say({ done: totalDone(doc) })}
         action={{ glyph: 'pencil', onPress: editGoal, label: m.chart.editGoal }}
       />
       <View style={{ paddingHorizontal: GEO.gutter }}>

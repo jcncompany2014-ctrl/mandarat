@@ -20,6 +20,7 @@ import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { fmtDateLong, fmtDateShort, fmtDateSpeech, noOrphan } from '../lib/text';
 import { chartRange, yearLabel } from '../lib/archive';
+import { headerMeta } from '../lib/home';
 import { TID } from '../lib/testIds';
 import { useLang, useMsg } from '../i18n/react';
 import type { Lang, Messages } from '../i18n';
@@ -93,6 +94,11 @@ export const Stats = memo(function Stats() {
   const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, month, l), [doc.dayLog, streak, month, l]);
   const ritual = useMemo(() => ritualTarget(doc, new Date()), [doc, day, clock]);
   const eyebrow = useMemo(() => statsEyebrow(new Date(), l), [day, clock, l]);
+  // 머리를 읽는 말 — 'D-78'은 소리로 읽기 어려워 '올해 78일 남음'으로
+  const headSay = useMemo(() => {
+    const h = headerMeta(new Date(), l);
+    return [m.stats.screenTitle, h.week, h.left].join(m.core.listSep);
+  }, [day, clock, l, m]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   // 범위 줄 오른쪽 — 그 기간의 날짜(소리로는 또박또박)
@@ -132,7 +138,7 @@ export const Stats = memo(function Stats() {
 
   return (
     <View style={{ paddingBottom: 24 }}>
-      <Header M={M} eyebrow={eyebrow} title={m.stats.screenTitle} />
+      <Header M={M} eyebrow={eyebrow} title={m.stats.screenTitle} accessibilityLabel={headSay} />
 
       <Hero
         M={M}
