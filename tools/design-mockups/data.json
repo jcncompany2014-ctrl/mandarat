@@ -1,0 +1,689 @@
+{
+ "note": "Demo data shared by the current-app screenshots and every mockup (scripts/smoke/demoDoc.js, clock 2026-10-14 09:30 KST). Chart layout: blocks are row-major skipping the centre block (areas 0..7); inside a block the area title sits in the centre and actions 0..7 fill row-major skipping the centre. The centre block holds the core goal in the middle and the 8 area titles around it in the same order.",
+ "coreGoal": "단단한 한 해",
+ "areas": [
+  {
+   "title": "건강",
+   "color": "#478058",
+   "done": 4,
+   "of": 8,
+   "actions": [
+    {
+     "text": "주 3회 운동",
+     "done": false,
+     "kind": "habit",
+     "perWeek": 3
+    },
+    {
+     "text": "하루 물 2L",
+     "done": true,
+     "kind": "habit",
+     "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "text": "11시 취침",
+     "done": false,
+     "kind": "habit",
+     "days": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ]
+    },
+    {
+     "text": "1만보 걷기",
+     "done": true,
+     "kind": "habit",
+     "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "text": "단 음식 줄이기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "정기 건강검진",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "스트레칭 10분",
+     "done": true,
+     "kind": "habit",
+     "days": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "text": "야식 끊기",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  },
+  {
+   "title": "커리어",
+   "color": "#5068AB",
+   "done": 3,
+   "of": 8,
+   "actions": [
+    {
+     "text": "사이드 프로젝트",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "발표 1회",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "멘토 찾기",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "이력서 갱신",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "새 기술 1개",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "업계 네트워킹",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "성과 기록",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "자격증 취득",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  },
+  {
+   "title": "자기계발",
+   "color": "#9C6A2A",
+   "done": 3,
+   "of": 8,
+   "actions": [
+    {
+     "text": "책 12권 읽기",
+     "done": false,
+     "kind": "count"
+    },
+    {
+     "text": "온라인 강의",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "영어 회화",
+     "done": false,
+     "kind": "habit",
+     "perWeek": 2
+    },
+    {
+     "text": "아침 글쓰기",
+     "done": true,
+     "kind": "habit",
+     "days": [
+      1,
+      3,
+      5
+     ]
+    },
+    {
+     "text": "새 언어 배우기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "다큐 시청",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "메모 정리",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "강연 참석",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  },
+  {
+   "title": "관계",
+   "color": "#B35A72",
+   "done": 1,
+   "of": 8,
+   "actions": [
+    {
+     "text": "부모님 주 1통화",
+     "done": true,
+     "kind": "habit",
+     "perWeek": 1
+    },
+    {
+     "text": "친구 모임",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "감사 표현하기",
+     "done": false,
+     "kind": "mind"
+    },
+    {
+     "text": "데이트 나이트",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "새 친구 사귀기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "손편지 쓰기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "경청 연습",
+     "done": false,
+     "kind": "mind"
+    },
+    {
+     "text": "봉사활동",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  },
+  {
+   "title": "재정",
+   "color": "#2F7D79",
+   "done": 3,
+   "of": 8,
+   "actions": [
+    {
+     "text": "가계부 쓰기",
+     "done": true,
+     "kind": "habit",
+     "days": [
+      0
+     ]
+    },
+    {
+     "text": "비상금 300만 원",
+     "done": true,
+     "kind": "count"
+    },
+    {
+     "text": "투자 공부",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "구독 정리",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "수입 20% 저축",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "부수입 만들기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "소비 점검",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "연금 점검",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  },
+  {
+   "title": "취미",
+   "color": "#7E60A8",
+   "done": 4,
+   "of": 8,
+   "actions": [
+    {
+     "text": "사진 찍기",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "요리 10가지",
+     "done": true,
+     "kind": "count"
+    },
+    {
+     "text": "악기 배우기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "그림 그리기",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "등산 가기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "식물 키우기",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "보드게임",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "캠핑 가기",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  },
+  {
+   "title": "마음챙김",
+   "color": "#3A77A5",
+   "done": 5,
+   "of": 8,
+   "actions": [
+    {
+     "text": "명상 10분",
+     "done": true,
+     "kind": "habit",
+     "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "text": "감사일기",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "디지털 디톡스",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "호흡 연습",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "산책하기",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "일기 쓰기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "요가",
+     "done": true,
+     "kind": "once"
+    },
+    {
+     "text": "감정 체크",
+     "done": false,
+     "kind": "mind"
+    }
+   ]
+  },
+  {
+   "title": "모험",
+   "color": "#AE5A35",
+   "done": 1,
+   "of": 8,
+   "actions": [
+    {
+     "text": "새 도시 3곳",
+     "done": true,
+     "kind": "count"
+    },
+    {
+     "text": "혼자 여행",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "번지점프",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "콘서트 가기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "새 음식 도전",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "일출 보기",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "외국어 대화",
+     "done": false,
+     "kind": "once"
+    },
+    {
+     "text": "별 보기 캠핑",
+     "done": false,
+     "kind": "once"
+    }
+   ]
+  }
+ ],
+ "view": {
+  "date": {
+   "day": 14,
+   "month": "10월",
+   "weekday": "수요일",
+   "year": 2026,
+   "week": "42주",
+   "left": "올해 78일 남음"
+  },
+  "progress": {
+   "done": 24,
+   "of": 64
+  },
+  "weekFocus": [
+   {
+    "text": "11시 취침",
+    "area": "건강"
+   },
+   {
+    "text": "친구 모임",
+    "area": "관계"
+   }
+  ],
+  "today": {
+   "done": 1,
+   "of": 10,
+   "rows": [
+    {
+     "text": "이력서 갱신",
+     "area": "커리어",
+     "meta": "",
+     "right": "D-2",
+     "kind": "once"
+    },
+    {
+     "text": "주 3회 운동",
+     "area": "건강",
+     "meta": "이번 주 0/3회",
+     "kind": "count",
+     "week": "·· T ····"
+    },
+    {
+     "text": "11시 취침",
+     "area": "건강",
+     "meta": "월·화·수·목·일 반복",
+     "kind": "habit",
+     "week": "xxT o·· o (월·화 놓침, 수 오늘, 목 예정, 일 예정)"
+    },
+    {
+     "text": "1만보 걷기",
+     "area": "건강",
+     "meta": "매일 반복",
+     "kind": "habit",
+     "week": "vvT oooo (월·화 함)"
+    },
+    {
+     "text": "스트레칭 10분",
+     "area": "건강",
+     "meta": "평일 반복",
+     "kind": "habit",
+     "week": "xxT oo·· "
+    },
+    {
+     "text": "영어 회화",
+     "area": "자기계발",
+     "meta": "이번 주 0/2회",
+     "kind": "count"
+    },
+    {
+     "text": "아침 글쓰기",
+     "area": "자기계발",
+     "meta": "월·수·금 반복",
+     "kind": "habit",
+     "week": "x·T ·o·· (화에 한 번 함)"
+    },
+    {
+     "text": "부모님 주 1통화",
+     "area": "관계",
+     "meta": "이번 주 0/1회",
+     "kind": "count"
+    },
+    {
+     "text": "명상 10분",
+     "area": "마음챙김",
+     "meta": "매일 반복",
+     "kind": "habit",
+     "week": "vxT oooo"
+    },
+    {
+     "text": "하루 물 2L",
+     "area": "건강",
+     "meta": "매일 반복",
+     "kind": "habit",
+     "doneToday": true
+    }
+   ],
+   "filters": [
+    [
+     "전체",
+     10
+    ],
+    [
+     "건강",
+     5
+    ],
+    [
+     "커리어",
+     1
+    ],
+    [
+     "자기계발",
+     2
+    ],
+    [
+     "관계",
+     1
+    ],
+    [
+     "마음챙김",
+     1
+    ]
+   ],
+   "modes": [
+    "목록",
+    "연속 기록",
+    "보드"
+   ]
+  },
+  "week": {
+   "label": "이번 주",
+   "total": "7번",
+   "days": [
+    [
+     "월",
+     3
+    ],
+    [
+     "화",
+     3
+    ],
+    [
+     "수",
+     1,
+     "today"
+    ],
+    [
+     "목",
+     null
+    ],
+    [
+     "금",
+     null
+    ],
+    [
+     "토",
+     null
+    ],
+    [
+     "일",
+     null
+    ]
+   ]
+  },
+  "areaLedger": [
+   [
+    "건강",
+    "4/8",
+    "주 3회 운동"
+   ],
+   [
+    "커리어",
+    "3/8",
+    "발표 1회"
+   ],
+   [
+    "자기계발",
+    "3/8",
+    "책 12권 읽기"
+   ],
+   [
+    "관계",
+    "1/8",
+    "친구 모임"
+   ],
+   [
+    "재정",
+    "3/8",
+    "투자 공부"
+   ],
+   [
+    "취미",
+    "4/8",
+    "악기 배우기"
+   ],
+   [
+    "마음챙김",
+    "5/8",
+    "디지털 디톡스"
+   ],
+   [
+    "모험",
+    "1/8",
+    "혼자 여행"
+   ]
+  ],
+  "stats": {
+   "streak": "3일",
+   "streakNote": "오늘까지 이어 왔어요",
+   "best": "지금이 최고 기록 · 이번 달 달성 0칸",
+   "cells": "24/64",
+   "headline": "건강은 5번 챙겼고, 커리어는 아직이에요",
+   "delta": "지난주 이맘때보다 +7번",
+   "rows": [
+    [
+     "습관",
+     "6번 놓침 · 29번 남음",
+     "6/41번"
+    ],
+    [
+     "마음가짐",
+     "이번 주는 아직 매기지 않았어요",
+     "—"
+    ],
+    [
+     "집중",
+     "지금까지",
+     "2시간 5분"
+    ]
+   ],
+   "reviewed": [
+    "10월 5일 – 11일",
+    "0번 · 습관 0% · 마음가짐 4.0",
+    "아침 운동부터"
+   ]
+  },
+  "nextStep": {
+   "text": "이력서 갱신",
+   "area": "커리어"
+  },
+  "tabs": [
+   "홈",
+   "만다라트",
+   "담기",
+   "오늘",
+   "통계"
+  ]
+ }
+}
