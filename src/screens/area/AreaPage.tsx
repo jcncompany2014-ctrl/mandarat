@@ -16,7 +16,7 @@ import { GEO } from '../../theme/tokens';
 import { CELL_POS } from '../../theme/chart';
 import { usePalette, type M as Palette } from '../../theme/usePalette';
 import { useWindowDimensions } from '../../lib/screen';
-import { useUIActions } from '../../navigation/ui';
+import { useUIActions, useUIState, type EditorTarget } from '../../navigation/ui';
 import { useActions, useDoc, themeProgress } from '../../store/MandaratContext';
 import { check as checkHaptic, tap, uncheck as uncheckHaptic } from '../../lib/haptics';
 import { kindLine } from '../../lib/kinds';
@@ -58,6 +58,12 @@ export interface AreaPageProps {
 
 const tabular = { fontVariant: ['tabular-nums' as const] };
 
+/** 편집 창이 이 블록의 칸을 고치는 중이면 그 자리(0~8) — 시트 뒤 블록의 그 칸에 먹 테두리(목업 editor.png) */
+export function editorSlot(editor: EditorTarget | null, ti: number): number | null {
+  if (!editor || editor.kind === 'center' || editor.ti !== ti) return null;
+  return editor.kind === 'action' ? CELL_POS[editor.ai] ?? null : 4;
+}
+
 /** 블록 안 자리 순서(CELL_POS)로 — 습관이 아닌 글 있는 칸(한 번 · 쌓기 · 마음가짐) */
 function otherCells(doc: Pick<MandaratDoc, 'themes'>, ti: number): number[] {
   const th = doc.themes[ti];
@@ -77,6 +83,7 @@ export const AreaPage = memo(function AreaPage({
   const { doc, clock } = useDoc();
   const { toggleDone, toggleHabitOn } = useActions();
   const { openAction, openEditor } = useUIActions();
+  const { editor } = useUIState();
   const { width: winW } = useWindowDimensions();
   const [more, setMore] = useState(false);
   const th = doc.themes[ti];
@@ -158,6 +165,7 @@ export const AreaPage = memo(function AreaPage({
               width={blockW}
               todayKeys={todayKeys}
               doneToday={doneToday}
+              focus={editorSlot(editor, ti)}
               extra={extra}
               speech={speech}
               onCell={onCell}

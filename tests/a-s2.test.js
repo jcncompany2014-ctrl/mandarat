@@ -137,6 +137,17 @@ test('영역 화면(AreaPage): 칸은 TID.gridCell, 누르면 시트 · 길게 �
   assert.match(h, /col: 30, fig: 40, head: 26, row: 40, todayRadius: 8, box: 14/);
 });
 
+test('편집 창이 열려 있으면 고치는 칸에 먹 테두리 — 지도 · 크게 본 블록 · 가운데 블록(목업 editor.png)', () => {
+  const g = src('src/screens/GridScreen.tsx');
+  assert.match(g, /const \{ editor \} = useUIState\(\);/);
+  assert.match(g, /focus=\{editCell \?\? startCell\}/);
+  assert.match(g, /if \(editor\.kind === 'center'\) return \[4, 4\];/);
+  assert.match(g, /focus=\{coreSlot\(editor\)\}/);
+  const p = src('src/screens/area/AreaPage.tsx');
+  assert.match(p, /focus=\{editorSlot\(editor, ti\)\}/);
+  assert.match(p, /return editor\.kind === 'action' \? CELL_POS\[editor\.ai\] \?\? null : 4;/);
+});
+
 test('말: 세 언어에 같은 새 낱말, 한국어 조사는 끝소리대로', () => {
   const keys = ['formName', 'writtenFolio', 'of64', 'writtenOf64Say', 'mapNote', 'mapBlockHint', 'startFrom', 'startPrompt', 'startNote',
     'startWrite', 'suggestSay', 'habitWeek', 'habitTimes', 'otherActions', 'areaMore'];

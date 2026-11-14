@@ -23,7 +23,7 @@ import { ROLE } from '../theme/type';
 import { GEO } from '../theme/tokens';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
-import { useUIActions } from '../navigation/ui';
+import { useUIActions, useUIState, type EditorTarget } from '../navigation/ui';
 import { totalDone, useActions, useDoc } from '../store/MandaratContext';
 import { TID } from '../lib/testIds';
 import { useMsg } from '../i18n/react';
@@ -40,6 +40,21 @@ function cellAt(ti: number, ai: number): [number, number] {
   const b = CHART_POS[ti];
   const s = CELL_POS[ai];
   return [Math.floor(b / 3) * 3 + Math.floor(s / 3), (b % 3) * 3 + (s % 3)];
+}
+
+/** 편집 창이 고치는 칸의 9×9 자리 — 핵심 목표는 가운데, 영역 이름은 바깥 블록의 가운데, 실천은 그 칸(목업 editor.png) */
+function editorCell(editor: EditorTarget | null): [number, number] | null {
+  if (!editor) return null;
+  if (editor.kind === 'center') return [4, 4];
+  if (editor.kind === 'action') return cellAt(editor.ti, editor.ai);
+  const b = CHART_POS[editor.ti];
+  return b == null ? null : [Math.floor(b / 3) * 3 + 1, (b % 3) * 3 + 1];
+}
+
+/** 가운데 블록에서 편집 창이 고치는 자리(0~8) — 핵심 목표는 가운데, 영역 이름은 그 영역의 둘레 칸 */
+function coreSlot(editor: EditorTarget | null): number | null {
+  if (!editor || editor.kind === 'action') return null;
+  return editor.kind === 'center' ? 4 : CHART_POS[editor.ti] ?? null;
 }
 
 // ── 다음 할 일 ─────────────────────────────────────────────────────────────────
@@ -160,6 +175,7 @@ function CoreZoom({ M, onBack, onArea, headRef, maxBlock }: {
   const m = useMsg();
   const { doc, clock } = useDoc();
   const { openEditor } = useUIActions();
+  const { editor } = useUIState();
   const { width: winW } = useWindowDimensions();
   const goal = doc.centerGoal.trim();
   const todayKeys = useMemo(() => new Set(todayItems(doc, new Date()).map((it) => it.key)), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -185,6 +201,7 @@ function CoreZoom({ M, onBack, onArea, headRef, maxBlock }: {
           block="core"
           width={blockW}
           todayKeys={todayKeys}
+          focus={coreSlot(editor)}
           onRing={onArea}
           onHead={editGoal}
           onHeadLong={editGoal}
@@ -221,6 +238,10 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
   const { doc, clock } = useDoc();
   const { setActionText } = useActions();
   const { openEditor, openShare } = useUIActions();
+  // 편집 창이 열려 있으면 그 칸에 먹 테두리(시트 뒤 지도) — 값이 같으면 같은 배열
+  const { editor } = useUIState();
+  const editKey = editor ? JSON.stringify(editor) : '';
+  const editCell = useMemo(() => editorCell(editor), [editKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const [focus, setFocus] = useState<GridFocus | null>(gridMemory.focus);
   const focusRef = useRef(focus);
   focusRef.current = focus;
@@ -391,7 +412,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
         goal={doc.centerGoal}
         todayKeys={todayKeys}
         start={start}
-        focus={startCell}
+        focus={editCell ?? startCell}
         availH={availH}
         onOpen={openBlock}
         folioRef={folioRef}
