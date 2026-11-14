@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { faceFor, heavierFace, PRETENDARD } = require('../src/theme/fonts');
-const { MOODS, PALETTE, contrastPalette } = require('../src/theme/moods');
+const { PALETTE, contrastPalette } = require('../src/theme/moods');
 const { MOOD_WORDS } = require('../src/lib/copy');
 const { releaseProblems } = require('../scripts/releaseCheck');
 
@@ -42,17 +42,14 @@ test('AppText와 TextInput 모두 굵은 텍스트를 따른다', () => {
   assert.match(src, /faceFor\(weight, bold\)/);
 });
 
-test('대비 증가: 괘선 · 가장자리 · 인쇄 글씨 · 흐린 글씨가 한 단계 진해지고, 옛 이름도 따라온다 — 나머지는 그대로', () => {
+test('대비 증가: 괘선 · 가장자리 · 인쇄 글씨 · 흐린 글씨가 한 단계 진해진다 — 나머지는 그대로', () => {
   for (const [name, M] of Object.entries(PALETTE)) {
     const E = contrastPalette(M);
     assert.equal(E.printRule, M.printMid, `${name} printRule`);
     assert.equal(E.printEdge, M.ink2, `${name} printEdge`);
     assert.equal(E.print, M.printStrong, `${name} print`);
     assert.equal(E.ink3, M.ink2, `${name} ink3`);
-    // 옛 이름(line · faint)은 진해진 토큰을 가리킨다
-    assert.equal(E.line, E.printRule, `${name} line`);
-    assert.equal(E.faint, E.ink3, `${name} faint`);
-    for (const k of ['paper', 'ink', 'ink2', 'tile', 'signal', 'core', 'btn', 'bg', 'surface', 'card', 'sub', 'tabBg', 'dark', 'gold', 'goldInk', 'center', 'accent']) {
+    for (const k of ['paper', 'ink', 'ink2', 'tile', 'signal', 'core', 'btn', 'capsule', 'sub', 'dark']) {
       assert.equal(E[k], M[k], `${name} ${k}`);
     }
     assert.notEqual(E, M, '새 객체(원래 팔레트는 건드리지 않는다)');
@@ -78,7 +75,7 @@ test('대비 증가: 도트 종이·체크 칸 테두리가 진해진다', () =>
 });
 
 test('지운 코드가 돌아오지 않는다 — 히어로 색·기분 얼굴·주 N회 칸·옛 빈 상태·lucide', () => {
-  for (const P of Object.values(MOODS)) {
+  for (const P of Object.values(PALETTE)) {
     for (const k of ['hero', 'heroInk', 'heroSub', 'heroLight']) assert.equal(P[k], undefined, k);
   }
   for (const f of ['WeekDots.tsx', 'MoodFaces.tsx', 'Ring.tsx', 'Reveal.tsx']) {

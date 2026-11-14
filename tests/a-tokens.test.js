@@ -6,14 +6,14 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { LIGHT, DARK, GEO, moreContrast, desk } = require('../src/theme/tokens');
-const { ROLE, TYPE, NUM, RHYTHM } = require('../src/theme/type');
+const { ROLE, TYPE, NUM } = require('../src/theme/type');
 const { PRETENDARD } = require('../src/theme/fonts');
-const { PALETTE, paletteOf, contrastPalette, MOODS } = require('../src/theme/moods');
+const { PALETTE, paletteOf, contrastPalette } = require('../src/theme/moods');
 const { contrast } = require('../src/theme/palette');
 const { DEFAULT_LOOK, LOOKS, isDark, lookFromMood, parseLook } = require('../src/lib/look');
 const { STORE_KEYS } = require('../src/lib/contracts');
 const { DEFAULT_PATTERN, PAPER_CHOICES, drawnPattern, patternSetting, storedPattern } = require('../src/lib/paper');
-const { PAPER_OPTS, blankDoc, migrate } = require('../src/data/defaults');
+const { MOOD_OPTS, PAPER_OPTS, blankDoc, migrate } = require('../src/data/defaults');
 const { makeBackup, parseBackup } = require('../src/lib/backup');
 const { project, assemble } = require('../src/lib/syncProject');
 
@@ -166,39 +166,27 @@ test('대비 증가 판은 팔레트마다 한 번만 만든다 — 같은 팔�
   assert.notEqual(contrastPalette(PALETTE.light), PALETTE.light);
 });
 
-// ── §2.3 앱 팔레트(M) = 토큰 + 옛 이름 ───────────────────────────────────────
+// ── §2.3 앱 팔레트(M) = 토큰 ────────────────────────────────────────────────
 
-test('paletteOf: 옛 이름은 토큰을 가리킨다(bg · surface · card = paper, sub = ink2 …)', () => {
+test('paletteOf: 앱 팔레트는 토큰 그대로 — 옛 이름(bg · line · gold …)은 웨이브 4가 지웠고 sub(= ink2) 하나만 남았다', () => {
   for (const t of [LIGHT, DARK]) {
     const M = paletteOf(t);
     for (const k of Object.keys(t)) assert.deepEqual(M[k], t[k], k);
-    assert.equal(M.bg, t.paper);
-    assert.equal(M.surface, t.paper);
-    assert.equal(M.card, t.paper);
-    assert.equal(M.ink, t.ink);
     assert.equal(M.sub, t.ink2);
-    assert.equal(M.faint, t.ink3);
-    assert.equal(M.line, t.printRule);
-    assert.equal(M.tabBg, t.capsule);
-    assert.equal(M.gold, t.signal);
-    assert.equal(M.goldInk, t.ink);
-    assert.equal(M.center, t.core);
-    assert.equal(M.accent, t.btn);
-    assert.equal(M.dark, t.dark);
+    for (const k of ['bg', 'surface', 'card', 'faint', 'line', 'tabBg', 'gold', 'goldInk', 'center', 'accent']) assert.equal(k in M, false, k);
   }
   assert.deepEqual({ ...PALETTE.light }, { ...paletteOf(LIGHT) });
   assert.deepEqual({ ...PALETTE.dark }, { ...paletteOf(DARK) });
-  // 옛 화면이 쓰던 이름이 하나도 빠지지 않는다
-  for (const k of Object.keys(MOODS['연꽃'])) assert.ok(k in PALETTE.light, k);
 });
 
-test('대비 증가 판의 옛 이름도 진해진 토큰을 다시 가리킨다', () => {
+test('대비 증가 판: 진해진 토큰(괘선 · 흐린 글씨), 나머지는 그대로', () => {
   for (const P of [PALETTE.light, PALETTE.dark]) {
     const E = contrastPalette(P);
-    assert.equal(E.line, P.printMid);
-    assert.equal(E.faint, P.ink2);
-    assert.equal(E.bg, P.paper);
-    assert.equal(E.gold, P.signal);
+    assert.equal(E.printRule, P.printMid);
+    assert.equal(E.ink3, P.ink2);
+    assert.equal(E.sub, P.ink2);
+    assert.equal(E.paper, P.paper);
+    assert.equal(E.signal, P.signal);
   }
 });
 
@@ -243,11 +231,11 @@ test('ROLE: 표의 서체 파일 · 크기 · 줄 · 자간(늘 적는다) · �
   assert.equal(ROLE.unit.marginLeft, 2, '숫자 뒤 단위는 2pt 띄운다');
 });
 
-test('옛 TYPE · NUM · RHYTHM은 그대로(웨이브 4까지 옛 화면이 쓴다)', () => {
+test('NUM · 옛 TYPE은 그대로(RHYTHM은 웨이브 4가 지웠다)', () => {
   assert.deepEqual(TYPE.title, { fontSize: 26, lineHeight: 32, fontWeight: '800' });
   assert.deepEqual(TYPE.micro, { fontSize: 11, lineHeight: 14, fontWeight: '600' });
   assert.deepEqual(NUM, { fontVariant: ['tabular-nums'] });
-  assert.deepEqual({ ...RHYTHM }, { dot: 18, row: 54, gutter: 20, sectionTop: 24 });
+  assert.equal(require('../src/theme/type').RHYTHM, undefined);
 });
 
 // ── §2.4 화면 모드 ───────────────────────────────────────────────────────────
@@ -260,7 +248,7 @@ test('화면 모드 키: 기기마다(mandarat:look:v1), 기본은 auto', () => 
 
 test('lookFromMood: 다크 → dark, 고른 밝은 종이(크림 · 화이트 · 파스텔) → light, 기본(연꽃) · 그 밖 → auto', () => {
   const table = { 다크: 'dark', 크림: 'light', 화이트: 'light', 파스텔: 'light', 연꽃: 'auto' };
-  assert.deepEqual(Object.keys(table).sort(), Object.keys(MOODS).sort(), '무드 다섯 가지 모두');
+  assert.deepEqual(Object.keys(table).sort(), [...MOOD_OPTS].sort(), '무드 다섯 가지 모두');
   for (const [mood, look] of Object.entries(table)) assert.equal(lookFromMood(mood), look, mood);
   for (const junk of [undefined, null, '', 'dark', 'Dark', 3, {}]) assert.equal(lookFromMood(junk), 'auto', String(junk));
 });

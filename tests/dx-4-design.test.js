@@ -4,7 +4,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { MOODS, alpha, fade, mix, toHex } = require('../src/theme/moods');
 const { PILLAR_COLORS } = require('../src/theme/palette');
 
 const src = (rel) => fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');

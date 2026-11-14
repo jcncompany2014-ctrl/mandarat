@@ -3,7 +3,6 @@ import {
   ICON_NAMES, type Action, type ActionKind, type ArchivedChart, type CellShape, type HabitSchedule, type MandaratDoc, type Mgmt, type Mood,
   type PaperPattern, type Reminders, type Settings, type Theme, type TodayExtra, type WeekReviewEntry,
 } from '../types';
-import { MOODS } from '../theme/moods';
 import { GOLD, PILLAR_COLORS, migrateAccent, migrateAreaColor } from '../theme/palette';
 import { KINDS, normalizeDays, normalizePerWeek, ymd } from '../lib/routine';
 import { MAX_NUM, cleanNum, cleanUnit } from '../lib/kinds';
@@ -224,7 +223,8 @@ export const ARCHIVE_KEEP = 200;
 /** 지난 표를 닫으며 적는 한 줄 메모의 글자 수 상한 */
 export const ARCHIVE_NOTE_MAX = 120;
 const HEX_RE = /^#[0-9a-f]{6}$/i;
-const MOOD_OPTS = Object.keys(MOODS) as Mood[];
+/** 저장값 settings.mood가 될 수 있는 다섯 가지 — 새 앱은 쓰지 않고 그리지도 않는다(옛 앱 · 다른 기기와 처음 화면 모드를 위해 남긴다) */
+export const MOOD_OPTS: readonly Mood[] = ['연꽃', '크림', '화이트', '파스텔', '다크'];
 const MGMT_OPTS: readonly Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 const SHAPE_OPTS: readonly CellShape[] = ['둥근', '각진'];
 

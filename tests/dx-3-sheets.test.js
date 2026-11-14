@@ -4,8 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { MOODS, toHex, mix } = require('../src/theme/moods');
-const { ACCENTS, GOLD, contrast } = require('../src/theme/palette');
+const { contrast } = require('../src/theme/palette');
+const { LIGHT, DARK } = require('../src/theme/tokens');
 const { TEMPLATES } = require('../src/data/templates');
 
 const ROOT = path.join(__dirname, '..');
@@ -34,8 +34,8 @@ test('D-9: 마음가짐 점수는 고른 한 칸만 먹으로 — 쌓아 칠하�
   assert.doesNotMatch(s, /n <= value|readableOn/);
   assert.match(s, /accessibilityRole="radio"/);
   assert.match(s, /accessibilityState=\{\{ checked: n === value \}\}/);
-  // 고른 칸의 숫자(M.bg on M.ink)는 모든 무드에서 넉넉히 읽힌다
-  for (const [name, M] of Object.entries(MOODS)) assert.ok(contrast(M.bg, M.ink) >= 13, name);
+  // 고른 칸의 숫자(먹 바탕 위 종이 글씨)는 밝게 · 어둡게 모두 넉넉히 읽힌다
+  for (const T of [LIGHT, DARK]) assert.ok(contrast(T.paper, T.ink) >= 13, T.dark ? 'dark' : 'light');
 });
 
 // D-26(위치 표 빈 칸은 시트 바탕)은 디자인 A에서 지웠다 — 위치 표는 chart/Locator(빈 칸 tile)가 그린다(tests/a-o2.test.js)

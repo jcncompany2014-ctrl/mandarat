@@ -188,8 +188,8 @@ test('예시 데이터는 유형을 고루 담고, 저장·이행을 거쳐도 �
 });
 
 test('포인트 컬러: 사용자가 고른 색은 그대로 둔다(이전 원색만 옮긴다)', () => {
-  const { ACCENTS } = require('../src/theme/palette');
-  for (const { color } of ACCENTS) assert.equal(migrate({ settings: { accent: color } }).settings.accent, color);
+  // 예전 앱이 고르게 하던 다섯 가지(골드 · 연지 · 쑥 · 쪽빛 · 오디)
+  for (const color of [GOLD, '#B35A72', '#478058', '#5068AB', '#7E60A8']) assert.equal(migrate({ settings: { accent: color } }).settings.accent, color);
   assert.equal(migrate({ settings: { accent: '#123456' } }).settings.accent, '#123456');
   assert.equal(migrate({ settings: { accent: 'blue' } }).settings.accent, GOLD);
 });

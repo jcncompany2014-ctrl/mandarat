@@ -478,7 +478,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
 
   if (!spread) {
     return (
-      <View style={{ flex: 1, backgroundColor: M.bg }}>
+      <View style={{ flex: 1, backgroundColor: M.paper }}>
         <StatusBar style={M.dark ? 'light' : 'dark'} />
         {page}
         {tabs}

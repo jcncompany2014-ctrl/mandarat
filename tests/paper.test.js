@@ -15,7 +15,6 @@ const { makeBackup, parseBackup } = require('../src/lib/backup');
 const { PALETTE, contrastPalette } = require('../src/theme/moods');
 const { LIGHT, DARK, GEO } = require('../src/theme/tokens');
 const { contrast } = require('../src/theme/palette');
-const { RHYTHM } = require('../src/theme/type');
 
 const ROOT = path.join(__dirname, '..');
 const src = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
@@ -23,7 +22,7 @@ const src = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 // ── 무늬의 선 ─────────────────────────────────────────────
 
 test('patternLines: 모눈은 가로·세로, 줄은 가로만, 점·무지는 선이 없다', () => {
-  const g = RHYTHM.dot;
+  const g = 18;
   // 한 칸(gap × gap) — PaperDots의 Pattern 한 장
   assert.deepEqual(patternLines('grid', g, g, g), [
     { x1: 0, y1: g / 2, x2: g, y2: g / 2 },

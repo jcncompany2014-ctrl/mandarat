@@ -65,7 +65,7 @@ const Shell = memo(function Shell() {
     <LangRoot>
       <Resume>
         <View style={{ flex: 1 }} onLayout={releaseNativeSplash}>
-          <PaperColumn bg={desk(P)} edge={P.line}>
+          <PaperColumn bg={desk(P)} edge={P.printRule}>
             <Root />
           </PaperColumn>
           {jsFade && <SplashFade onDone={endFade} />}

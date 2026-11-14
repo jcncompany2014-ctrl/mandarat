@@ -1,27 +1,8 @@
-// 인쇄된 만다라트 표의 규칙 — 칸 자리·칸 색·괘선 굵기의 단일 출처 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
-// 81칸 표·홈의 작은 표·영역 보드·통계의 표·공유 이미지가 모두 여기서 자리와 색을 가져간다.
-//
-// 표 한 장의 약속:
-// - 칠한 칸(영역 색 그대로) = 달성. 그 밖에는 칠하지 않는다.
-// - 칸 전체에 옅게 깔리고 맨 아래에 가는 진행 막대가 붙은 칸 = 인쇄된 이름표(영역 이름) — 달성으로 읽히지 않게.
-//   칸 안에 작은 네모 테두리를 그리지 않는다(빈 체크 칸처럼 보인다).
-// - 가운데 칸 = 핵심 목표(토큰 core — 어둡게도 뒤집지 않는 깊은 회색. 옛 무드 표만 다크에서 밝게 뒤집는다).
-// - 괘선은 바깥 테두리 > 블록 사이 > 칸 사이 순으로 가늘어진다.
-import type { CellShape } from '../types';
+// 만다라트 표의 규칙 — 칸 자리와 글 맞추기의 단일 출처 (RN 의존 없는 순수 모듈 — 단위 테스트 대상).
+// 색 지도 · 크게 본 블록 · 공유 이미지 · 인쇄가 여기서 자리를 가져간다. 색은 토큰(tokens.ts)과 components/chart가 맡는다.
 import { breakUnits, textWidth, type Glyphs } from '../lib/labelFit';
 import { lang, msg, type Lang } from '../i18n';
-import { alpha, mix, tint, toHex } from './moods';
-import { contrast } from './palette';
 import { DEFAULT_RATIO, MAP_LABEL, MAP_MAX, mapGeometry, mapLabel, mapLabelBox } from '../components/chart/geometry';
-
-/**
- * 표 색을 고를 때 필요한 팔레트 조각 — 앱 팔레트(M)나 토큰(LIGHT · DARK)을 그대로 넘긴다.
- * 토큰이 있으면(paper · core …) 토큰에서 고르고, 옛 무드 표(MOODS의 Palette — 공유 이미지 · 인쇄가 웨이브 3까지 쓴다)를 넘기면 예전 값 그대로.
- */
-type Ground = {
-  dark: boolean; ink: string; center?: string;
-  paper?: string; core?: string; onCore?: string; printEdge?: string; printMid?: string;
-};
 
 // ── 자리 ────────────────────────────────────────────────────────────────────
 
@@ -67,123 +48,6 @@ export function chartCell(row: number, col: number): ChartCell | null {
   const ti = SLOT_INDEX[block] as number;
   if (slot === CENTER_SLOT) return { kind: 'head', block, slot, ti };
   return { kind: 'action', block, slot, ti, ai: SLOT_INDEX[slot] as number };
-}
-
-/**
- * 표 위 한 점(x, y) → 그 점이 든 블록: 바깥 블록이면 영역 번호(0~7), 가운데 블록이면 'c'.
- * 표 밖이거나 값이 없으면(웹 클릭처럼 위치가 안 오는 경우) null.
- */
-export function blockAt(x: number | undefined, y: number | undefined, width: number, height = width): number | 'c' | null {
-  if (x == null || y == null || !Number.isFinite(x) || !Number.isFinite(y) || width <= 0 || height <= 0) return null;
-  if (x < 0 || y < 0 || x > width || y > height) return null;
-  const col = Math.min(2, Math.floor((x / width) * 3));
-  const row = Math.min(2, Math.floor((y / height) * 3));
-  const slot = row * 3 + col;
-  return slot === CENTER_SLOT ? 'c' : (SLOT_INDEX[slot] as number);
-}
-
-/**
- * 가운데에서 바깥으로 도는 소용돌이 순번(작을수록 먼저) — 가운데 칸 0, 그다음 둘레 한 바퀴씩.
- * 한 바퀴 안에서는 그 바퀴의 왼쪽 위 모서리부터 시계 방향. 81칸 모두 서로 다른 값.
- */
-export function spiralRank(row: number, col: number): number {
-  const dr = row - 4;
-  const dc = col - 4;
-  const ring = Math.max(Math.abs(dr), Math.abs(dc));
-  if (ring === 0) return 0;
-  const side = ring * 2;
-  let t: number;
-  if (dr === -ring) t = dc + ring; // 윗변: 왼쪽 → 오른쪽
-  else if (dc === ring) t = side + (dr + ring); // 오른쪽 변: 위 → 아래
-  else if (dr === ring) t = side * 2 + (ring - dc); // 아랫변: 오른쪽 → 왼쪽
-  else t = side * 3 + (ring - dr); // 왼쪽 변: 아래 → 위
-  return ring * 100 + t;
-}
-
-// ── 색 ──────────────────────────────────────────────────────────────────────
-
-/** 칠한 칸(달성) 위의 글자·체크 — 영역 색 8가지 모두 흰 글씨가 4.5:1 이상 */
-export const DONE_INK = '#FFFFFF';
-
-/** 가운데 칸(핵심 목표) 바탕 — 토큰 core(다크는 뒤집지 않은 깊은 회색). 옛 무드 표는 다크에서 밝게 뒤집던 그대로 */
-export function coreBg(M: Ground): string {
-  if (M.core) return M.core;
-  return M.dark ? M.ink : (M.center ?? M.ink);
-}
-
-/** 가운데 칸 글자 — 토큰 onCore */
-export function coreInk(M: Ground): string {
-  if (M.onCore) return M.onCore;
-  return M.dark ? (M.center ?? '#000000') : '#FFFFFF';
-}
-
-/** 영역 색을 종이 위에 amt%만큼 — 토큰 팔레트는 지금 종이(paper) 위에, 옛 무드 표는 예전 바탕(흰색 · 다크 #1C1C22) 위에 */
-function onPaper(color: string, amt: number, M: Pick<Ground, 'dark' | 'paper'>): string {
-  return M.paper ? mix(M.paper, color, amt / 100) : tint(color, amt, M.dark);
-}
-
-/** 영역 이름표 칸의 옅은 바탕 — 인쇄된 머리 칸. 달성(칠한 칸)과 헷갈리지 않게 아주 옅게 */
-export function headBg(color: string, M: Pick<Ground, 'dark' | 'paper'>): string {
-  return onPaper(color, M.dark ? 24 : 16, M);
-}
-
-/**
- * 이름표 칸 맨 아래 진행 막대의 바탕(영역 색 25%) — 그 위에 달성 비율만큼 영역 색을 채운다.
- * 영역 보드의 머리 칸과 홈의 작은 표가 같은 막대를 쓴다(작은 표에서는 이 막대가 이름표와 쓴 칸을 가른다).
- */
-export function headTrack(color: string): string {
-  return alpha(color, 0.25);
-}
-
-/** 적어 두었지만 아직 달성하지 않은 칸(작은 표) — 이름표보다 조금 짙고, 달성보다 훨씬 옅게 */
-export function writtenBg(color: string, M: Pick<Ground, 'dark' | 'paper'>): string {
-  return onPaper(color, M.dark ? 30 : 22, M);
-}
-
-/** 괘선 굵기(pt) — 바깥 테두리 · 블록 사이 · 칸 사이 */
-export const RULE = { frame: 2, block: 1.5, cell: 0.75 } as const;
-
-export type RuleKind = keyof typeof RULE;
-
-/**
- * 괘선 색 — 토큰 팔레트는 인쇄 회색(테두리 · 블록 사이 printEdge, 칸 사이 printMid: 굵기가 위계를 맡는다).
- * 옛 무드 표는 먹색을 굵기 순서대로 옅게(다크의 칸 사이 선은 흰 선).
- */
-export function ruleColor(M: Pick<Ground, 'dark' | 'ink' | 'printEdge' | 'printMid'>, kind: RuleKind): string {
-  if (M.printEdge && M.printMid) return kind === 'cell' ? M.printMid : M.printEdge;
-  if (kind === 'frame') return alpha(M.ink, 0.85);
-  if (kind === 'block') return alpha(M.ink, 0.55);
-  return M.dark ? 'rgba(255,255,255,0.16)' : alpha(M.ink, 0.2);
-}
-
-/** 표 바깥 모서리 둥글기 — 칸 모서리 설정(반듯하게면 0) */
-export function frameRadius(shape: CellShape | undefined): number {
-  return shape === '각진' ? 0 : 3;
-}
-
-const markCache = new Map<string, string>();
-
-/**
- * 바탕 위에서 눈에 띄는 표시 색 — 글자가 아닌 표시(점·선·밑줄·테두리)는 3:1 이상이어야 보인다.
- * 이미 넉넉하면 그대로, 모자라면 같은 색조를 지키며 밝은 바탕에서는 먹색 쪽으로, 다크에서는 흰색 쪽으로 필요한 만큼만 옮긴다.
- * (미색·크림 종이 위 금색 표시는 2.7~3.1:1이라 조금 짙어진다)
- */
-export function legibleMark(color: string, bg: string, M: Pick<Ground, 'dark' | 'ink'>, min = 3): string {
-  const key = `${color}|${bg}|${M.dark ? 1 : 0}|${M.ink}|${min}`;
-  const hit = markCache.get(key);
-  if (hit) return hit;
-  const base = toHex(bg);
-  let out = color;
-  if (contrast(toHex(color), base) < min) {
-    const toward = M.dark ? '#FFFFFF' : M.ink;
-    out = toward;
-    for (let i = 1; i <= 20; i++) {
-      const c = toHex(mix(toHex(color), toward, i / 20));
-      if (contrast(c, base) >= min) { out = c; break; }
-    }
-  }
-  markCache.set(key, out);
-  return out;
 }
 
 // ── 글자 맞추기 ──────────────────────────────────────────────────────────────
@@ -244,11 +108,3 @@ export function chartFitHint(text: string, kind: 'theme' | 'center', winW: numbe
   return lines <= max ? c.fitAll : c.fitLines({ max });
 }
 
-/**
- * 칸 하나에 글을 maxLines줄 안에 담을 수 있는 가장 큰 글자 크기 — sizes는 큰 것부터.
- * 어느 크기로도 넘치면 가장 작은 크기(나머지는 말줄임표가 맡는다).
- */
-export function fitFontSize(text: string, width: number, maxLines: number, sizes: readonly number[] = [14, 13, 12, 11, 10]): number {
-  for (const fs of sizes) if (estimateLines(text, width, fs) <= maxLines) return fs;
-  return sizes[sizes.length - 1];
-}

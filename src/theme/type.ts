@@ -1,20 +1,7 @@
 /**
- * 글자 크기·줄 높이·굵기 단계(TYPE)와 종이 리듬(RHYTHM) — 화면마다 제각각이던 크기를 일곱 단계로 모은다.
- * 새 화면은 여기서 고르고, 기존 화면은 고칠 때 아래 표대로 옮긴다.
- *
- *   기존 크기                 → 단계
- *   9 · 9.5 · 10 · 10.5 · 11 · 11.5 → micro 11
- *   12 ~ 13.5                 → caption 13
- *   14 · 14.5                 → 보조 글이면 caption 13, 줄 제목·본문이면 16
- *   15 · 15.5 · 16 · 16.5     → rowTitle / body 16
- *   17                        → section 18
- *   20 ~ 34                   → title 26 (화면 제목 하나)
- *   44 ~ 56                   → display 56 (오늘 날짜 같은 큰 숫자 하나)
- *
- * 굵기: faceFor(fonts.ts)가 화면 전체를 한 단계 가볍게 그린다 — '800'은 Bold, '700'은 SemiBold, '600'은 Medium.
- * 그래서 제목은 '800'으로 둔다(실제로는 Bold로 보인다). ExtraBold 파일은 싣지 않는다.
- * 자간: display만 직접 준다. 나머지는 AppText가 크기에 맞춰 넣는다(20 이상 −0.4, 15 이상 −0.2).
- * 숫자: 세로로 맞춰야 하는 숫자(횟수·날짜·n/8)는 NUM을 더한다 — { ...TYPE.caption, ...NUM }.
+ * 글자 모양 — 디자인 A의 글자 역할(ROLE, 아래)과 세로로 맞추는 숫자(NUM).
+ * TYPE은 예전 일곱 단계(굵기는 faceFor가 한 단계 가볍게 그린다)로, settings/rows.tsx의 SubHead만 아직 읽는다(SubHead를 부르는 곳은 없다).
+ * 새 코드는 ROLE · NUM · GEO(tokens.ts)를 쓴다.
  */
 import type { TextStyle } from 'react-native';
 import { PRETENDARD } from './fonts';
@@ -36,22 +23,11 @@ export const TYPE = {
   micro: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
 } as const satisfies Record<string, TextStyle>;
 
-export type TypeRole = keyof typeof TYPE;
-
 /** 자릿수 폭이 같은 숫자 — 횟수·날짜·n/8이 줄마다 흔들리지 않게 */
 export const NUM = { fontVariant: ['tabular-nums'] } satisfies TextStyle;
 
-/**
- * 종이 리듬(pt)
- * - dot: 점 종이(PaperDots) 간격
- * - row: 줄 하나(체크 줄·설정 줄)의 높이 — 점 세 칸(3 × dot)
- * - gutter: 화면 좌우 여백
- * - sectionTop: 구역 제목 위 여백
- */
-export const RHYTHM = { dot: 18, row: 54, gutter: 20, sectionTop: 24 } as const;
-
 // ── 디자인 A의 글자 역할(ROLE) ───────────────────────────────────────────────
-// docs/design/build-plan.md §2.2. 새 코드는 ROLE · NUM · GEO(tokens.ts)를 쓴다(TYPE · RHYTHM은 옛 화면용, 웨이브 4까지).
+// docs/design/build-plan.md §2.2. 새 코드는 ROLE · NUM · GEO(tokens.ts)를 쓴다.
 // 역할마다 Pretendard 파일을 직접 고른다(fontWeight 없이) — faceFor의 '한 단계 가볍게'를 건너뛰어 목업의 굵기 그대로 그린다.
 // 굵은 텍스트 · 일본어는 AppText typeset()이 그대로 맡는다(heavierFace · jaFace). 자간은 늘 적어 둔다(없으면 0) — AppText가 더하지 않게.
 // em → pt: −0.02em × 26 = −0.52. 여기는 글자 모양만 — 색은 쓰는 곳에서 토큰으로(각 역할 옆 [색]).

@@ -9,9 +9,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { MOODS, withAccent, contrastEdition, toHex } = require('../src/theme/moods');
-const { ACCENTS, GOLD, PILLAR_COLORS, contrast } = require('../src/theme/palette');
-const { legibleMark, headBg } = require('../src/theme/chart');
 
 const ROOT = path.join(__dirname, '..');
 const src = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -46,28 +43,9 @@ test('NEW-1: 포인트 컬러 표시는 한 색 — 보드 진행 중 · 홈 마
   for (const f of ['src/screens/FullGrid.tsx', 'src/screens/GridScreen.tsx', 'src/screens/area/AreaPage.tsx']) {
     assert.doesNotMatch(src(f), /M\.goldInk|M\.gold\b|legibleMark\(/, f);
   }
-  // 파스텔 + 골드: 포인트 컬러(M.accent)와 표의 표시색(M.gold)이 다르다 — 그래서 한쪽으로 모은다
-  const P = withAccent(MOODS['파스텔'], GOLD);
-  assert.notEqual(legibleMark(P.accent, P.bg, P), legibleMark(P.gold, P.bg, P));
 });
 
-test("NEW-1: 81칸 '달성'(8pt) — 모든 무드 × 포인트 컬러 × 영역 색의 이름표 위에서 4.5:1 이상", () => {
-  let n = 0;
-  for (const [name, mood] of Object.entries(MOODS)) {
-    for (const accent of ACCENTS) {
-      for (const [ic, M] of [['', withAccent(mood, accent.color)], [' +IC', contrastEdition(withAccent(mood, accent.color))]]) {
-        for (const c of PILLAR_COLORS) {
-          const bg = toHex(headBg(c, M));
-          const label = legibleMark(M.gold, bg, M, 4.5);
-          const r = contrast(toHex(label), bg);
-          assert.ok(r >= 4.5, `${name}${ic} ${accent.name} ${c}: ${r.toFixed(2)}`);
-          n++;
-        }
-      }
-    }
-  }
-  assert.ok(n >= 400, `${n}`);
-});
+// NEW-1의 81칸 '달성'(8pt) 대비는 옛 무드 표 · 포인트 컬러 · 보드(ChartBoard)와 함께 웨이브 4(R2)가 지웠다 — 색은 토큰(tests/a-tokens)
 
 // NEW-2(보드 진행 중 · 마감 지남 여백 줄의 자리와 굵기)는 디자인 A(S3)에서 두 여백 줄과 함께 지웠다 — tests/a-s3.test.js
 
