@@ -225,14 +225,16 @@ test('PaperRows: 종이 무늬 이름 · 견본 넷 · 잠긴 견본은 프로 �
   assert.match(rows, /export function PaperRows\(\{ M \}: \{ M: M \}\)/);
   assert.match(rows, /<SwatchHead M=\{M\} label=\{m\.paper\.head\} \/>/);
   // 견본(build-plan §2.6: 같은 그림) — 부품 상자의 Swatch가 무늬를 그리고 라디오 + 선택됨으로 읽힌다
-  assert.match(rows, /<Swatch\s+M=\{M\}\s+kind=\{\{ pattern: p \}\}/);
-  assert.match(src('src/components/kit/Swatch.tsx'), /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: on \}\}/);
+  assert.match(rows, /<Swatch\s+key=\{p\}\s+M=\{M\}\s+kind=\{\{ pattern: p \}\}/);
+  assert.match(src('src/components/kit/Swatch.tsx'), /testID=\{testID\}\s+accessibilityRole="radio"\s+accessibilityState=\{\{ checked: on \}\}\s+aria-checked=\{on\}/);
   assert.match(rows, /PAPER_CHOICES\.map/);
   assert.match(rows, /useLocked\('paper'\)/);
   assert.match(rows, /proLocked && isProPattern\(p\)/, '점은 잠그지 않는다');
   assert.match(rows, /if \(locked\) \{ tap\(\); openPro\('paper'\); return; \}/, '잠긴 줄은 저장값을 바꾸지 않고 시트만 연다');
   assert.match(rows, /setSetting\('paper', patternSetting\(p\)\)/);
-  assert.match(rows, /testID=\{TID\.setPaper\(p\)\} aria-checked=\{on\}/, '웹 읽기 도구 · 스모크도 고른 견본을 안다');
+  // 웹 읽기 도구 · 스모크도 고른 견본을 안다 — testID는 aria-checked를 단 견본(라디오) 그 자체에(감싼 칸 없이)
+  assert.match(rows, /<Swatch[\s\S]{0,300}testID=\{TID\.setPaper\(p\)\}/);
+  assert.doesNotMatch(rows, /aria-checked=/);
   assert.match(rows, /const kept = on && locked;/);
   assert.match(rows, /m\.paper\.keptNote/);
   // 남겨 둔 프로 무늬: 안내 한 줄을 누르면 프로 시트

@@ -3,7 +3,7 @@
 // 종이 무늬: 웹 스크린샷용으로 EXPO_PUBLIC_PRO_PREVIEW=1로 내보낸 번들이면 네 무늬를 하나씩 골라 찍고, 끝에 기본(무지)으로 되돌린다.
 // 프로가 없으면 잠긴 견본(이름 뒤 '· 프로')을 누를 때 프로 시트가 열리고 저장값은 그대로인지 본다.
 // 판매를 끈 1.0(src/lib/pro.ts STORE_OPEN = false)은 가진 것과 같다 — 네 무늬를 모두 고를 수 있고 '프로' 표시가 없다.
-// 고른 견본은 견본을 감싼 칸의 aria-checked로 안다(src/screens/settings/LookRows.tsx · PaperRows.tsx).
+// 고른 견본은 견본(kit Swatch, 라디오)의 aria-checked로 안다 — testID가 그 견본에 달려 있다(src/screens/settings/LookRows.tsx · PaperRows.tsx).
 require('../../tests/register');
 const { PREVIEW, STORE_OPEN } = require('../../src/lib/pro');
 const { DEFAULT_PATTERN } = require('../../src/lib/paper');

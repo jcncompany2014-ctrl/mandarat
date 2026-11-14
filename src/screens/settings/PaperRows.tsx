@@ -41,17 +41,17 @@ export function PaperRows({ M }: { M: M }) {
             setSetting('paper', patternSetting(p));
           };
           return (
-            // testID와 aria-checked는 견본을 감싼 칸에 — 웹 읽기 도구 · 스모크(scripts/smoke/paper.js)가 고른 견본을 안다
-            <View key={p} testID={TID.setPaper(p)} aria-checked={on} style={{ flex: 1, minWidth: 0 }}>
-              <Swatch
-                M={M}
-                kind={{ pattern: p }}
-                label={locked ? `${name}${m.core.dot}${m.paper.pro}` : name}
-                on={on}
-                onPress={onPress}
-                accessibilityLabel={kept ? `${label}${m.core.listSep}${m.paper.keptNote}` : label}
-              />
-            </View>
+            // 견본(라디오)이 testID와 aria-checked를 함께 단다 — 웹 읽기 도구 · 스모크(scripts/smoke/paper.js)가 고른 견본을 안다
+            <Swatch
+              key={p}
+              M={M}
+              kind={{ pattern: p }}
+              label={locked ? `${name}${m.core.dot}${m.paper.pro}` : name}
+              on={on}
+              onPress={onPress}
+              testID={TID.setPaper(p)}
+              accessibilityLabel={kept ? `${label}${m.core.listSep}${m.paper.keptNote}` : label}
+            />
           );
         })}
       </View>

@@ -21,17 +21,17 @@ export function LookRows({ M }: { M: M }) {
       {LOOKS.map((l) => {
         const on = look === l;
         return (
-          // testID와 aria-checked는 견본을 감싼 칸에 — 웹 읽기 도구 · 스모크가 고른 견본을 안다(견본은 accessibilityState만 단다)
-          <View key={l} testID={TID.setLook(l)} aria-checked={on} style={{ flex: 1, minWidth: 0 }}>
-            <Swatch
-              M={M}
-              kind={{ look: l }}
-              label={names[l]}
-              on={on}
-              onPress={() => { select(); setLook(l); }}
-              accessibilityLabel={st.lookLabel({ name: names[l] })}
-            />
-          </View>
+          // 견본(라디오)이 testID와 aria-checked를 함께 단다 — 웹 읽기 도구 · 스모크가 고른 견본을 안다
+          <Swatch
+            key={l}
+            M={M}
+            kind={{ look: l }}
+            label={names[l]}
+            on={on}
+            onPress={() => { select(); setLook(l); }}
+            testID={TID.setLook(l)}
+            accessibilityLabel={st.lookLabel({ name: names[l] })}
+          />
         );
       })}
     </View>

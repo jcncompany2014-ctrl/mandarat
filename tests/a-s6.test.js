@@ -28,7 +28,9 @@ test('testID: setMood · setShape는 없고 setLook(auto · light · dark)이 �
   assert.equal(TID.setShape, undefined);
   assert.deepEqual(LOOKS.map((l) => TID.setLook(l)), ['set-look-auto', 'set-look-light', 'set-look-dark']);
   const look = code(`${DIR}/LookRows.tsx`);
-  assert.match(look, /<View key=\{l\} testID=\{TID\.setLook\(l\)\} aria-checked=\{on\}/);
+  // testID는 aria-checked를 단 견본(라디오) 그 자체에 — 감싼 칸 없이
+  assert.match(look, /<Swatch\s+key=\{l\}[\s\S]{0,300}testID=\{TID\.setLook\(l\)\}/);
+  assert.doesNotMatch(look, /aria-checked=/);
   for (const f of OWN) assert.doesNotMatch(src(f), /setMood|setShape/, f);
 });
 
@@ -102,7 +104,7 @@ test('종이 무늬 견본 — 무지 · 점 · 모눈 · 줄(무지가 기본),
   const s = code(`${DIR}/PaperRows.tsx`);
   assert.match(s, /PAPER_CHOICES\.map\(/);
   assert.match(s, /setSetting\('paper', patternSetting\(p\)\)/);
-  assert.match(s, /<Swatch\s+M=\{M\}\s+kind=\{\{ pattern: p \}\}/);
+  assert.match(s, /<Swatch\s+key=\{p\}\s+M=\{M\}\s+kind=\{\{ pattern: p \}\}/);
   // 견본 이름에 '기본'을 적지 않는다(기본이 무지로 바뀌었다)
   assert.equal(msg('ko').paper.dots, '점');
 });
