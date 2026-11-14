@@ -163,7 +163,8 @@ test('통계: 범위 줄 \'올해\'의 첫 구역 — 한 해 돌아보기(TID.s
   const count = s.indexOf('<CountLedger ', yearScope);
   const reflections = s.indexOf('<Reflections M={M} doc={doc} now={now} />', yearScope);
   assert.ok(scope > 0 && yearScope > 0 && section > yearScope && count > section && reflections > count, '올해: 한 해 → 숫자 목표 → 회고');
-  assert.match(s, /onYear=\{\(v\) => \{ tap\(\); openYear\(v\); \}\}/);
+  assert.match(s, /const onYear = useCallback\(\(v: YearView\) => \{ tap\(\); openYear\(v\); \}, \[openYear\]\);/);
+  assert.match(s, /onYear=\{onYear\}/);
   const body = s.slice(s.indexOf('function YearSection('));
   const review = body.indexOf("onOpen({ kind: 'review', id: null })");
   const shelf = body.indexOf("onOpen({ kind: 'shelf' })");

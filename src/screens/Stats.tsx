@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { PixelRatio, Pressable, View } from 'react-native';
 import { useWindowDimensions } from '../lib/screen';
 import { Text, a11yLangProp } from '../components/AppText';
@@ -111,6 +111,19 @@ export const Stats = memo(function Stats() {
     return { text: m.fmt.range({ from: dayOf(from), to: dayOf(to) }) };
   }, [scope, review, map, doc, day, m, l]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 아래 구역(memo)에 늘 같은 함수를 준다 — 범위를 바꾸거나 시계가 돌 때 구역이 다시 그려지지 않게
+  const onRitual = useCallback((w: string) => { tap(); openRitual(w); }, [openRitual]);
+  // 링크 글(InLink)이 스스로 딸깍한다
+  const onLink = useCallback((link: KindLink) => {
+    if (link.kind === 'rate') openAction(link.ti, link.ai);
+    else go(link.kind === 'today' ? 'today' : 'grid');
+  }, [openAction, go]);
+  const onCell = useCallback((ti: number, ai: number) => openAction(ti, ai), [openAction]);
+  const onArea = useCallback((ti: number) => go('detail', ti), [go]);
+  const onYear = useCallback((v: YearView) => { tap(); openYear(v); }, [openYear]);
+  const onAction = useCallback((ti: number, ai: number) => { tap(); openAction(ti, ai); }, [openAction]);
+  const onReview = useCallback((w: string) => { tap(); openRitual(w, true); }, [openRitual]);
+
   const scopes: FilterItem<Scope>[] = SCOPES.map((k) => ({
     key: k,
     label: k === 'week' ? m.stats.scopeWeek : k === 'ten' ? m.stats.scopeTen : m.stats.scopeYear,
@@ -156,12 +169,8 @@ export const Stats = memo(function Stats() {
           review={review}
           done={done}
           ritual={ritual}
-          onRitual={(w) => { tap(); openRitual(w); }}
-          onLink={(link) => {
-            tap();
-            if (link.kind === 'rate') openAction(link.ti, link.ai);
-            else go(link.kind === 'today' ? 'today' : 'grid');
-          }}
+          onRitual={onRitual}
+          onLink={onLink}
         />
       )}
       {scope === 'ten' && (
@@ -172,8 +181,8 @@ export const Stats = memo(function Stats() {
           width={contentW}
           hasData={hasData}
           day={day}
-          onCell={(ti, ai) => openAction(ti, ai)}
-          onArea={(ti) => go('detail', ti)}
+          onCell={onCell}
+          onArea={onArea}
         />
       )}
       {scope === 'year' && (
@@ -181,10 +190,10 @@ export const Stats = memo(function Stats() {
           M={M}
           m={m}
           doc={doc}
-          now={now}
-          onYear={(v) => { tap(); openYear(v); }}
-          onAction={(ti, ai) => { tap(); openAction(ti, ai); }}
-          onReview={(w) => { tap(); openRitual(w, true); }}
+          day={day}
+          onYear={onYear}
+          onAction={onAction}
+          onReview={onReview}
         />
       )}
     </View>
@@ -391,16 +400,18 @@ const TenScope = memo(function TenScope({ M, doc, map, width, hasData, day, onCe
 // ── 올해 ─────────────────────────────────────────────────────────────────────
 
 /** 올해 — 한 해 돌아보기 · 보관함, 숫자 목표, 마음가짐, 회고(기분 줄 · 한 줄), 돌아본 주 */
-const YearScope = memo(function YearScope({ M, m, doc, now, onYear, onAction, onReview }: {
+const YearScope = memo(function YearScope({ M, m, doc, day, onYear, onAction, onReview }: {
   M: M;
   m: Messages;
   doc: MandaratDoc;
-  now: Date;
+  /** 오늘(YYYY-MM-DD) — 날이 바뀔 때만 다시 센다 */
+  day: string;
   onYear: (v: YearView) => void;
   onAction: (ti: number, ai: number) => void;
   onReview: (week: string) => void;
 }) {
   const weeks = reviewWeeks(doc);
+  const now = useMemo(() => new Date(), [day]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View style={{ paddingHorizontal: GUTTER, marginTop: 10 }}>
       {/* 한 해 — 지금 표의 한 해 돌아보기 · 지난 표 보관함 */}

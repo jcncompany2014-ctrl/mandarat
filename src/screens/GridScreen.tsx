@@ -32,9 +32,8 @@ import { useMsg } from '../i18n/react';
 const INVITE = { top: 24, gap: 6, picksTop: 18, pickGap: 8, pickH: 44, pickPad: 6, pickInner: 3, ctaTop: 24, plus: 16 } as const;
 /** 다음 할 일(목업 chart.html .next) — 지도 아래 26, 줄 60, 제목 17/24(fieldTextSmall), 꺾쇠 20 */
 const NEXT = { top: 26, row: 60, chevron: 20 } as const;
-/** 크게 볼 때 새 쪽이 들어오는 거리(넘길 때) · 크게 보기가 처음 커지는 배율 */
+/** 크게 본 채로 이웃 영역으로 넘길 때 새 쪽이 들어오는 거리 */
 const SLIDE = 24;
-const ZOOM_FROM = 0.98;
 
 /** 실천 칸 (ti, ai)의 9×9 자리 [줄, 칸] */
 function cellAt(ti: number, ai: number): [number, number] {
@@ -319,10 +318,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
     return () => sub.remove();
   }, [focus]);
 
-  const pageStyle = useMemo(() => ({
-    opacity: show,
-    transform: [{ translateX: slide }, { scale: show.interpolate({ inputRange: [0, 1], outputRange: [ZOOM_FROM, 1] }) }],
-  }), [show, slide]);
+  const pageStyle = useMemo(() => ({ opacity: show, transform: [{ translateX: slide }] }), [show, slide]);
 
   // 펼침: 블록이 쪽 높이에 들어가게, 왼쪽 쪽은 블록까지(나머지는 오른쪽 쪽의 영역 화면)
   const spread = availH != null;

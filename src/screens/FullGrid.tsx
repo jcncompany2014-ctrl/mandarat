@@ -72,7 +72,7 @@ export const FullGrid = memo(function FullGrid({
         accessible
         accessibilityLabel={`${m.chart.formName({ y: new Date().getFullYear() })}${m.chart.sep}${start ? m.chart.writtenOf64Say({ n }) : m.chart.doneOf64Say({ done: n })}`}
         {...a11yLangProp()}
-        style={{ height: SHEET.line, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}
+        style={{ minHeight: SHEET.line, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: SHEET.figureGap }}
       >
         <Text style={[ROLE.label, { color: M.print, flexShrink: 1 }]} numberOfLines={1}>{m.chart.formName({ y: new Date().getFullYear() })}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SHEET.figureGap }}>
@@ -100,7 +100,7 @@ export const FullGrid = memo(function FullGrid({
       </View>
 
       {!start && (
-        <View style={{ height: SHEET.line, marginTop: SHEET.mapBottom, justifyContent: 'center' }}>
+        <View style={{ minHeight: SHEET.line, marginTop: SHEET.mapBottom, justifyContent: 'center' }}>
           <Text style={[ROLE.note, { color: M.print }]}>{m.chart.mapNote}</Text>
         </View>
       )}

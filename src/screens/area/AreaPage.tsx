@@ -164,7 +164,6 @@ export const AreaPage = memo(function AreaPage({
               onCellLong={onCellLong}
               onHead={onHead}
               onHeadLong={onHead}
-              cellHint={m.chart.rowHint}
               headRef={headRef}
               testID={blockTestID}
               cellTestID={cellTestID}

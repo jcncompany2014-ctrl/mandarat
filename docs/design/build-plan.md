@@ -428,3 +428,5 @@ From S5 (Onboarding): `ChartSketch.tsx` deleted; preview is a 3×3 of 64pt pale 
 From S1 (Home): `Tally.tsx` deleted; `lib/home.ts` adds `HOME`, `heroMapCell`, `homeEyebrow`, `homeList`. Year-close, weekly review and start guide are tappable rows; a finished day shows one printed line. For R2: `Header` has no accessibility-label override and no tappable title, so Home wraps it and draws settings outside it.
 
 From O4 (Focus): `focusClock.clockParts` is new; `focusProps` gets `ti`. Minimising the session to a bar needs C's files, so the down glyph closes the page and keeps the minutes (as the old ×); `focusClose` sits on 그만하기. For R2: decide whether to add the minimised bar.
+
+From O6 (rituals and small sheets): WeekRitual and YearClose share `PageHead` (exported from `WeekRitual.tsx`) and a local `Figure`; Celebration is 64/64 + one sentence + the L2 map + one button. For R2: fold `PageHead` and `Figure` into the kit; look at these sheets in light, dark, ja and en at 375.
