@@ -63,6 +63,9 @@
   A.areaIndex = (doc, title) => doc.areas.findIndex((a) => a.title === title);
   const dye = (i) => `var(--dye-${i + 1})`;
   const wash = (i, l1) => `var(--wash-${l1 ? 'l1-' : ''}${i + 1})`;
+  // a pale tint of the area (a written cell on the map): 14% of the dye over the page
+  const tint = (i) => `color-mix(in oklab, var(--dye-${i + 1}) 14%, var(--paper))`;
+  A.tint = tint;
 
   /* A.keep('책 12권 읽기') → '책·12권 읽기' with a no-break space at the dot.
      Binds a one-syllable word to its neighbour so no syllable stands alone on a line
@@ -218,17 +221,24 @@
     // Soft tiles: no frame and no rules. A small gap between cells, a wider one between blocks, round
     // corners. opts.cell keeps its old meaning (the ruled sheet's cell), so callers keep their size:
     // the tiles are fitted into the same outer measure.
+    // opts.map: the overview as a colour map. Names in the 16 area cells and the goal in the core; the
+    // 64 actions are colour only (pale tint = written, wash = done, grey = empty). Their text lives in
+    // the zoomed block. Wider gaps, so the sheet breathes.
+    const MAP = !!opts.map;
     const w = L1
-      ? { frame: 0, block: px(cellPt >= 14 ? 3 : 2), hair: px(cellPt >= 11 ? 1 : 0.5), inset: 0 }
-      : { frame: 0, block: px(Math.max(4, cellPt * 0.12)), hair: px(Math.max(1.5, cellPt * 0.037)), inset: 0 };
-    const fit = L1 ? 9 * cellPt + (cellPt >= 11 ? 6 : 4) : 9 * cellPt + 8;
+      ? { frame: 0, block: px(cellPt >= 14 ? 4 : 2), hair: px(cellPt >= 11 ? 1.5 : 0.75), inset: 0 }
+      : MAP
+        ? { frame: 0, block: px(Math.max(8, cellPt * 0.28)), hair: px(Math.max(3, cellPt * 0.09)), inset: 0 }
+        : { frame: 0, block: px(Math.max(6, cellPt * 0.16)), hair: px(Math.max(2, cellPt * 0.05)), inset: 0 };
+    const fit = opts.width || (L1 ? 9 * cellPt + (cellPt >= 11 ? 6 : 4) : 9 * cellPt + 8);
     const g = grid(9, cellPt, w, 3, fit);
     const { c, xs, total } = g;
-    const rx = (L1 ? Math.max(1, cellPt * 0.09) : Math.max(3, cellPt * 0.075)) * d;
+    const rx = (L1 ? Math.max(1.5, cellPt * 0.14) : MAP ? Math.max(5, cellPt * 0.16) : Math.max(4, cellPt * 0.1)) * d;
     const tile = (x, y, ww, hh, fill) => `<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="${rx}" style="fill:${fill}"/>`;
     const cells = A.cells(doc);
-    const showTick = opts.tick !== undefined ? opts.tick : !L1;
-    const showToday = opts.today !== undefined ? !!opts.today && cellPt >= 11 : !L1;
+    // the overview carries no ticks and no today marks by default: done is the wash, today lives on 오늘
+    const showTick = opts.tick !== undefined ? opts.tick : false;
+    const showToday = opts.today !== undefined ? !!opts.today && cellPt >= 11 : false;
 
     let fills = '', marks = '';
     const dotR = (L1 ? Math.max(1, cellPt * 0.1) : 2.5) * d;
@@ -242,7 +252,7 @@
       } else if (cell.kind === 'ring' || cell.kind === 'head') {
         fills += tile(fx, fy, fs, fh, dye(cell.area));
       } else {
-        fills += tile(fx, fy, fs, fh, cell.done ? wash(cell.area, L1) : 'var(--tile)');
+        fills += tile(fx, fy, fs, fh, cell.done ? wash(cell.area, L1) : (MAP || L1) && cell.text ? tint(cell.area) : 'var(--tile)');
       }
       if (cell.kind === 'action' && cell.today && showToday) {
         const o = (L1 ? cellPt * 0.22 : 5.5) * d;
@@ -269,6 +279,7 @@
       cells.forEach((cell) => {
         const printed = !cell.text && cell.kind === 'action' && opts.print ? opts.print(cell) : '';
         if (!cell.text && !printed) return;
+        if (MAP && cell.kind === 'action' && !printed) return;
         const cls = printed ? ' is-print' : cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
         html += `<div class="a-cell${cls}" data-rc="${cell.row}-${cell.col}" style="left:${xs[cell.col] / d}px;top:${xs[cell.row] / d}px;width:${g.cw[cell.col] / d}px;height:${g.cw[cell.row] / d}px;padding:0 1.5px"><span>${cls === ' is-head' || cls === ' is-core' ? headText(cell.text) : esc(A.keep(cell.text || printed))}</span></div>`;
       });
@@ -346,7 +357,7 @@
       const col = cell.col % 3, row = cell.row % 3;
       const printed = !cell.text && cell.kind === 'action' && opts.print ? opts.print(cell) : '';
       const kind = printed ? ' is-print' : cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
-      const font = cell.kind === 'core' ? 'font:600 20px/30px var(--serif)' : cell.kind === 'action' ? `font:500 16px/24px var(--sans);letter-spacing:-0.01em` : 'font:700 18px/24px var(--sans);letter-spacing:-0.01em';
+      const font = cell.kind === 'core' ? 'font:700 20px/28px var(--sans);letter-spacing:-0.02em' : cell.kind === 'action' ? `font:500 16px/24px var(--sans);letter-spacing:-0.01em` : 'font:700 18px/24px var(--sans);letter-spacing:-0.01em';
       const extra = opts.extra ? opts.extra(cell) || '' : '';
       html += `<div class="a-cell${kind}" data-i="${i}" style="left:${xs[col] / d}px;top:${xs[row] / d}px;width:${cw[col] / d}px;height:${cw[row] / d}px;padding:0 10px;${font}"><span>${esc(A.keep(cell.text || printed))}</span>${extra ? `<div style="position:absolute;left:10px;right:10px;bottom:9px">${extra}</div>` : ''}</div>`;
     });
@@ -590,11 +601,17 @@
      The week as seven printed cells: weekday letter (Sunday in vermilion), the 正 tally of that day,
      and the today corner on today's cell. week = doc.view.week ({ days: [['월', 3], ['수', 1, 'today'], …] }). */
   A.weekStrip = function (target, week) {
+    // seven small bars: the count on top, the bar, the weekday under it. A day still to come is a dot.
     const host = el(target);
     host.classList.add('a-week');
+    const max = Math.max(5, ...week.days.map((x) => x[1] || 0));
     host.innerHTML = week.days.map((day) => {
       const cls = (day[2] === 'today' ? ' is-today' : '') + (day[0] === '일' ? ' is-sunday' : '');
-      return `<div class="a-week-day${cls}"><span class="t-label">${esc(day[0])}</span>${A.tally(day[1])}</div>`;
+      const n = day[1];
+      const bar = n == null
+        ? '<i class="a-week-bar is-later"></i>'
+        : `<b class="a-week-n">${n}</b><i class="a-week-bar" style="height:${Math.max(6, Math.round((n / max) * 44))}px"></i>`;
+      return `<div class="a-week-day${cls}"><div class="a-week-plot">${bar}</div><span class="t-label">${esc(day[0])}</span></div>`;
     }).join('');
     return host;
   };

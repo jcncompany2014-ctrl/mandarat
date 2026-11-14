@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 만다라트 (글자)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* the sheet runs almost edge to edge (6.5pt margins); every line of text stays on the 24pt gutter */
+  .sheet { display: flex; flex-direction: column; align-items: center; margin-top: 18px; }
+  .sheet-line { align-self: stretch; height: 18px; margin: 0 var(--gutter); display: flex; justify-content: space-between; align-items: baseline; }
+  .sheet-line b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  #chart { margin: 12px 0 8px; }
+  .next { margin-top: 24px; }
+  .next .a-row { height: 60px; }
+  .next .a-row-title { font-size: 17px; line-height: 24px; }
+  .next .a-row-meta { line-height: 18px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="sheet">
+    <div class="sheet-line"><span class="t-label" id="form-name"></span><span class="t-label">달성 <b id="count"></b></span></div>
+    <div id="chart"></div>
+    <div class="sheet-line"><span class="t-note">블록을 누르면 크게 볼 수 있어요</span></div>
+  </div>
+  <div class="a-body next">
+    <div class="a-section"><span class="t-label is-section">다음 할 일</span></div>
+    <div class="a-list" id="next"></div>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view;
+  A.header('#header', { eyebrow: '핵심 목표', title: doc.coreGoal, written: true, action: 'share' });
+  document.querySelector('#form-name').textContent = `${v.date.year} 만다라트`;
+  document.querySelector('#count').textContent = `${v.progress.done}/${v.progress.of}칸`;
+  A.chart('#chart', doc, { level: 'L2', width: 374 });
+  const n = v.nextStep;
+  const a = A.areaIndex(doc, n.area);
+  document.querySelector('#next').innerHTML =
+    `<div class="a-row"><div class="a-row-main"><div class="a-row-title">${n.text}</div><div class="a-row-meta"><i class="a-dye" style="--d:var(--dye-${a + 1})"></i>${n.area}</div></div><div class="a-row-right">${A.icon('chevron', { size: 20 })}</div></div>`;
+  A.tabBar('#bar', { active: 'chart' });
+});
+</script>
+</body>
+</html>

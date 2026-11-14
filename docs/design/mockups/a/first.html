@@ -10,10 +10,10 @@
 <style>
   /* first run: the form arrives printed. 17 cells are already coloured (the goal, the eight areas
      twice); everything else is paper, and one cell is framed in ink: "start here". */
-  .sheet { display: flex; flex-direction: column; align-items: center; margin-top: 12px; }
-  .sheet-line { align-self: stretch; height: 18px; margin: 0 var(--gutter); display: flex; justify-content: space-between; align-items: baseline; }
-  .sheet-line b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-  #chart { margin: 6px 0 0; }
+  .sheet { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+  .sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+  .sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #chart { margin: 12px 0 0; }
   .invite { margin-top: 24px; }
   .invite .t-prompt { margin-top: 6px; }
   .invite .t-note { margin-top: 6px; }
@@ -56,9 +56,7 @@ A.ready().then((doc) => {
   document.querySelector('#count').textContent = `${v.progress.done}/${v.progress.of}`;
   // the next empty cell (1) gets the ink frame
   A.chart('#chart', blank, {
-    level: 'L2', cell: 41, focus: [0, 0],
-    // the first block is numbered like the fields of a printed form (1 = here); the other 56 are paper
-    print: (c) => (c.block !== 0 ? '' : String(c.index + 1)),
+    level: 'L2', map: true, width: 342, focus: [0, 0],
   });
   document.querySelector('#area').innerHTML = `<i class="a-dye" style="--d:var(--dye-1)"></i>${first.title} · 1번 칸부터`;
   document.querySelector('#prompt').textContent = A.keep(`${first.title}을 위해 무엇을 해 볼까요?`);
