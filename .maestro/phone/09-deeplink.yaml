@@ -15,6 +15,9 @@ tags:
 - tapOn:
     text: "열기|Open"
     optional: true
+# 통계는 범위(이번 주 · 10주 · 올해)를 하나씩 보여 준다 — '한 해' 진입은 '올해' 범위 안에 있다
+- tapOn:
+    id: "stats-scope-year"
 - scrollUntilVisible:
     element:
       id: "stats-year"
