@@ -104,3 +104,15 @@ The owner likes A but finds it too stiff overall. The kit has been softened (see
 | Hard-edged floating bar and sheets | A lighter capsule and sheets lifted by a soft warm shadow (`--float-shadow`), no outline. |
 
 Still out (owner-decisions 7): rounded cards, pill chips, badges, gradients (except the bar's scroll fade), sparkles, emoji, stamps. Softness comes from warmth, fewer lines, space and gentle corners, not from cards.
+
+## Clean round (owner: "어어 훨 낫다 좋다")
+
+After the softening pass the owner still disliked the 正 tally, the typefaces, the crowded 9×9, the cream paper and the onboarding ("너무 짜쳐"). The kit was changed again and the owner approved the result on Home, onboarding, first run, the chart, the block and Today. Every other screen now follows it.
+
+1. **White paper, neutral greys.** `--paper` is #FFFFFF, `--tile` #F3F4F6, the greys come from tokens.css. No cream, no warm tint, no hard-coded colours.
+2. **One typeface: Pretendard.** `--serif` now points at Pretendard; never set MaruBuri. Big words are Pretendard 700 with negative tracking (goal 30/40, titles 26/36, figures 26/34 tabular). No light or thin weights for figures.
+3. **No 正 anywhere.** Do not call `A.tally`. The week is `A.weekStrip` (seven small bars). A count is a number.
+4. **The 9×9 overview is a colour map** (`A.chart(target, doc, { level: 'L2', map: true, width: 342 })`): area names and the goal only. A screen that must show the whole chart small (year, share, store) uses the map or L1. The zoomed block keeps its text.
+5. **Solid dye only for the 16 area cells of the chart.** Anywhere else an area colour appears as a choice, a tag or a preview, use the pale tint (`A.tint(i)`) with the dye as the text colour, as onboarding.html does. No big saturated blocks: they read as cheap.
+6. **Calm composition.** One question or one hero per screen, generous space, one primary button. Fields and tracks are `--tile` with 12pt corners. No outlines where a tint will do.
+7. Still out: rounded cards with shadows, pill chips, badges, gradients, emoji, stamps.
