@@ -215,37 +215,42 @@
     const d = dpr();
     const cellPt = opts.cell || (L1 ? 20 : 41);
     const px = (pt) => Math.max(1, Math.round(pt * d));
+    // Soft tiles: no frame and no rules. A small gap between cells, a wider one between blocks, round
+    // corners. opts.cell keeps its old meaning (the ruled sheet's cell), so callers keep their size:
+    // the tiles are fitted into the same outer measure.
     const w = L1
-      ? { frame: px(1), block: px(0.5), hair: cellPt >= 11 ? px(0.5) : 0, inset: px(0.5), blockVar: '--rule-frame' }
-      : { frame: px(1.5), block: px(1), hair: px(0.5), inset: px(1) };
-    if (L1 && !w.hair) w.block = px(1);
-    if (opts.inset !== undefined) w.inset = Math.round(opts.inset * d);
-    const g = grid(9, cellPt, w, 3);
+      ? { frame: 0, block: px(cellPt >= 14 ? 3 : 2), hair: px(cellPt >= 11 ? 1 : 0.5), inset: 0 }
+      : { frame: 0, block: px(Math.max(4, cellPt * 0.12)), hair: px(Math.max(1.5, cellPt * 0.037)), inset: 0 };
+    const fit = L1 ? 9 * cellPt + (cellPt >= 11 ? 6 : 4) : 9 * cellPt + 8;
+    const g = grid(9, cellPt, w, 3, fit);
     const { c, xs, total } = g;
+    const rx = (L1 ? Math.max(1, cellPt * 0.09) : Math.max(3, cellPt * 0.075)) * d;
+    const tile = (x, y, ww, hh, fill) => `<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="${rx}" style="fill:${fill}"/>`;
     const cells = A.cells(doc);
     const showTick = opts.tick !== undefined ? opts.tick : !L1;
     const showToday = opts.today !== undefined ? !!opts.today && cellPt >= 11 : !L1;
 
     let fills = '', marks = '';
-    const leg = Math.round((L1 ? cellPt * 0.3 : 8) * d);
+    const dotR = (L1 ? Math.max(1, cellPt * 0.1) : 2.5) * d;
     cells.forEach((cell) => {
       const x = xs[cell.col], y = xs[cell.row];
-      const fx = x + w.inset, fy = y + w.inset, fs = c - 2 * w.inset;
+      const fx = x + w.inset, fy = y + w.inset, fs = g.cw[cell.col] - 2 * w.inset, fh = g.cw[cell.row] - 2 * w.inset;
       if (cell.kind === 'core') {
         // the core: ink on cream; at night a warm stone with a 1px printed edge (tokens.css)
-        fills += `<rect x="${fx}" y="${fy}" width="${fs}" height="${fs}" style="fill:var(--core)"/>`;
-        fills += `<rect x="${fx + 0.5}" y="${fy + 0.5}" width="${fs - 1}" height="${fs - 1}" fill="none" style="stroke:var(--core-edge)" stroke-width="1"/>`;
+        fills += tile(fx, fy, fs, fh, 'var(--core)');
+        fills += `<rect x="${fx + 0.5}" y="${fy + 0.5}" width="${fs - 1}" height="${fh - 1}" rx="${rx}" fill="none" style="stroke:var(--core-edge)" stroke-width="1"/>`;
       } else if (cell.kind === 'ring' || cell.kind === 'head') {
-        fills += `<rect x="${fx}" y="${fy}" width="${fs}" height="${fs}" style="fill:${dye(cell.area)}"/>`;
-      } else if (cell.done) {
-        fills += `<rect x="${fx}" y="${fy}" width="${fs}" height="${fs}" style="fill:${wash(cell.area, L1)}"/>`;
+        fills += tile(fx, fy, fs, fh, dye(cell.area));
+      } else {
+        fills += tile(fx, fy, fs, fh, cell.done ? wash(cell.area, L1) : 'var(--tile)');
       }
       if (cell.kind === 'action' && cell.today && showToday) {
-        marks += `<path data-today d="M${x} ${y}h${leg}l${-leg} ${leg}z" style="fill:var(--signal)"/>`;
+        const o = (L1 ? cellPt * 0.22 : 5.5) * d;
+        marks += `<circle data-today cx="${x + o}" cy="${y + o}" r="${dotR}" style="fill:var(--signal)"/>`;
       }
       if (opts.focus && opts.focus[0] === cell.row && opts.focus[1] === cell.col) {
         const t = px(1.5);
-        fills += `<rect x="${fx + t / 2}" y="${fy + t / 2}" width="${fs - t}" height="${fs - t}" fill="none" style="stroke:var(--ink)" stroke-width="${t}"/>`;
+        fills += `<rect x="${fx + t / 2}" y="${fy + t / 2}" width="${fs - t}" height="${fh - t}" rx="${rx}" fill="none" style="stroke:var(--ink)" stroke-width="${t}"/>`;
       }
       if (cell.kind === 'action' && cell.done && showTick) {
         const s = 5.5 * d;
@@ -259,13 +264,13 @@
     host.style.width = size + 'px';
     host.style.height = size + 'px';
     if (opts.center) host.style.marginLeft = Math.floor((Math.round(opts.center * d) - total) / 2) / d + 'px';
-    let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" aria-hidden="true">${rulesSvg(g, 9, w, 3)}${fills}<g shape-rendering="geometricPrecision">${marks}</g></svg>`;
+    let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" aria-hidden="true">${fills}<g>${marks}</g></svg>`;
     if (!L1 && opts.text !== false) {
       cells.forEach((cell) => {
         const printed = !cell.text && cell.kind === 'action' && opts.print ? opts.print(cell) : '';
         if (!cell.text && !printed) return;
         const cls = printed ? ' is-print' : cell.kind === 'core' ? ' is-core' : cell.kind === 'action' ? '' : ' is-head';
-        html += `<div class="a-cell${cls}" data-rc="${cell.row}-${cell.col}" style="left:${xs[cell.col] / d}px;top:${xs[cell.row] / d}px;width:${c / d}px;height:${c / d}px;padding:0 1.5px"><span>${cls === ' is-head' || cls === ' is-core' ? headText(cell.text) : esc(A.keep(cell.text || printed))}</span></div>`;
+        html += `<div class="a-cell${cls}" data-rc="${cell.row}-${cell.col}" style="left:${xs[cell.col] / d}px;top:${xs[cell.row] / d}px;width:${g.cw[cell.col] / d}px;height:${g.cw[cell.row] / d}px;padding:0 1.5px"><span>${cls === ' is-head' || cls === ' is-core' ? headText(cell.text) : esc(A.keep(cell.text || printed))}</span></div>`;
       });
     }
     host.innerHTML = html;
@@ -299,32 +304,36 @@
     const d = dpr();
     const cellPt = opts.cell || 114;
     const px = (pt) => Math.max(1, Math.round(pt * d));
-    const w = { frame: px(1.5), block: px(1), hair: px(0.5), inset: px(1.5) };
+    // soft tiles: a 6pt gap, 10pt corners, no frame or rules (the same drawing as the sheet, larger)
+    const w = { frame: 0, block: 0, hair: px(6), inset: 0 };
     const g = grid(3, cellPt, w, 0, opts.fit === undefined ? 342 : opts.fit);
     const { cw, xs, total } = g;
+    const rx = 10 * d;
+    const tile = (x, y, ww, hh, fill) => `<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="${rx}" style="fill:${fill}"/>`;
     const all = A.cells(doc);
     const blockNo = areaIndex === 'core' ? 4 : areaIndex < 4 ? areaIndex : areaIndex + 1;
     const cells = all.filter((x) => x.block === blockNo);
     let fills = '', marks = '';
-    const leg = 12 * d;
     cells.forEach((cell) => {
       const col = cell.col % 3, row = cell.row % 3;
       const x = xs[col], y = xs[row];
       const c = cw[col], ch = cw[row];
       const fx = x + w.inset, fy = y + w.inset, fs = c - 2 * w.inset, fh = ch - 2 * w.inset;
       if (cell.kind === 'core') {
-        fills += `<rect x="${fx}" y="${fy}" width="${fs}" height="${fh}" style="fill:var(--core)"/><rect x="${fx + 0.5}" y="${fy + 0.5}" width="${fs - 1}" height="${fh - 1}" fill="none" style="stroke:var(--core-edge)" stroke-width="1"/>`;
+        fills += tile(fx, fy, fs, fh, 'var(--core)') + `<rect x="${fx + 0.5}" y="${fy + 0.5}" width="${fs - 1}" height="${fh - 1}" rx="${rx}" fill="none" style="stroke:var(--core-edge)" stroke-width="1"/>`;
       } else if (cell.kind !== 'action') {
-        fills += `<rect x="${fx}" y="${fy}" width="${fs}" height="${fh}" style="fill:${dye(cell.area)}"/>`;
+        fills += tile(fx, fy, fs, fh, dye(cell.area));
       } else if (cell.done) {
-        fills += `<rect x="${fx}" y="${fy}" width="${fs}" height="${fh}" style="fill:${wash(cell.area)}"/>`;
+        fills += tile(fx, fy, fs, fh, wash(cell.area));
         const s = 13 * d;
-        marks += tickPath(x + c - w.inset - s - 7 * d, y + w.inset + 6 * d, s, 1.75 * d);
+        marks += tickPath(x + c - w.inset - s - 10 * d, y + w.inset + 10 * d, s, 1.75 * d);
+      } else {
+        fills += tile(fx, fy, fs, fh, 'var(--tile)');
       }
-      if (cell.kind === 'action' && cell.today) marks += `<path d="M${x} ${y}h${leg}l${-leg} ${leg}z" style="fill:var(--signal)"/>`;
+      if (cell.kind === 'action' && cell.today) marks += `<circle cx="${x + 14 * d}" cy="${y + 14 * d}" r="${3.5 * d}" style="fill:var(--signal)"/>`;
       if (opts.focus === row * 3 + col) {
         const t = px(2);
-        fills += `<rect x="${fx + t / 2}" y="${fy + t / 2}" width="${fs - t}" height="${fh - t}" fill="none" style="stroke:var(--ink)" stroke-width="${t}"/>`;
+        fills += `<rect x="${fx + t / 2}" y="${fy + t / 2}" width="${fs - t}" height="${fh - t}" rx="${rx}" fill="none" style="stroke:var(--ink)" stroke-width="${t}"/>`;
       }
     });
     const size = total / d;
@@ -332,7 +341,7 @@
     host.classList.add('a-chart');
     host.style.width = size + 'px';
     host.style.height = size + 'px';
-    let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" aria-hidden="true">${rulesSvg(g, 3, w, 0)}${fills}<g shape-rendering="geometricPrecision">${marks}</g></svg>`;
+    let html = `<svg width="${size}" height="${size}" viewBox="0 0 ${total} ${total}" aria-hidden="true">${fills}<g>${marks}</g></svg>`;
     cells.forEach((cell, i) => {
       const col = cell.col % 3, row = cell.row % 3;
       const printed = !cell.text && cell.kind === 'action' && opts.print ? opts.print(cell) : '';
@@ -365,7 +374,7 @@
     const s = size - 2 * pad;
     const u = s / 9; // one cell of the 9×9
     let out = '';
-    const rect = (x, y, w, fill) => { out += `<rect x="${(pad + x).toFixed(3)}" y="${(pad + y).toFixed(3)}" width="${w.toFixed(3)}" height="${w.toFixed(3)}" style="fill:${fill}"/>`; };
+    const rect = (x, y, w, fill) => { out += `<rect x="${(pad + x).toFixed(3)}" y="${(pad + y).toFixed(3)}" width="${w.toFixed(3)}" height="${w.toFixed(3)}" rx="${(w * 0.12).toFixed(3)}" style="fill:${fill}"/>`; };
     if (opts.variant === 'heart') {
       const gap = Math.max(0.5, s * 0.035), t = (s - 2 * gap) / 3;
       for (let i = 0; i < 9; i++) {
@@ -419,27 +428,27 @@
   A.icon = function (name, opts) {
     opts = opts || {};
     const s = opts.size || 24, on = !!opts.active;
-    const P = 'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter" stroke-linecap="square"';
+    const P = 'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"';
     const F = 'fill="currentColor" stroke="none"';
     const body = {
-      home: `<rect x="4.75" y="3.75" width="14.5" height="16.5" rx="1" ${P}/>` +
+      home: `<rect x="4.75" y="3.75" width="14.5" height="16.5" rx="3" ${P}/>` +
         (on ? `<rect x="4.75" y="3.75" width="14.5" height="5.5" ${F}/><path d="M8.25 13h7.5M8.25 16.5h4.5" ${P}/>` : `<path d="M4.75 9.25h14.5" ${P}/><path d="M8.25 13h7.5M8.25 16.5h4.5" ${P} stroke-width="1.25"/>`),
-      chart: `<rect x="3.75" y="3.75" width="16.5" height="16.5" rx="1" ${P}/><path d="M9.25 4.5v15M14.75 4.5v15M4.5 9.25h15M4.5 14.75h15" ${P} stroke-width="1" stroke-linecap="butt"/>` +
+      chart: `<rect x="3.75" y="3.75" width="16.5" height="16.5" rx="3" ${P}/><path d="M9.25 4.5v15M14.75 4.5v15M4.5 9.25h15M4.5 14.75h15" ${P} stroke-width="1" stroke-linecap="round"/>` +
         (on ? `<rect x="9.25" y="9.25" width="5.5" height="5.5" ${F}/>` : ''),
       today: on
-        ? `<rect x="4" y="6" width="14" height="14" rx="1" ${F}/><path d="M7.4 12.6c1.2 1 2.1 2.2 2.8 3.5 1.5-3 3.4-5.9 5.4-8.3" fill="none" style="stroke:var(--paper)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5c.9-1 1.8-1.9 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`
-        : `<rect x="4.75" y="6.75" width="12.5" height="12.5" rx="1" ${P}/><path d="M7.6 12.6c1.2 1 2.1 2.2 2.8 3.5 2.6-5.200 6-9.600 10.400-13.900" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+        ? `<rect x="4" y="6" width="14" height="14" rx="3" ${F}/><path d="M7.4 12.6c1.2 1 2.1 2.2 2.8 3.5 1.5-3 3.4-5.9 5.4-8.3" fill="none" style="stroke:var(--paper)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 5c.9-1 1.8-1.9 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`
+        : `<rect x="4.75" y="6.75" width="12.5" height="12.5" rx="3" ${P}/><path d="M7.6 12.6c1.2 1 2.1 2.2 2.8 3.5 2.6-5.200 6-9.600 10.400-13.900" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`,
       stats: on
         ? `<rect x="4" y="12" width="4.500" height="8" ${F}/><rect x="9.750" y="4" width="4.500" height="16" ${F}/><rect x="15.500" y="8" width="4.500" height="12" ${F}/>`
         : `<rect x="4.75" y="12.75" width="3.5" height="6.5" ${P}/><rect x="10.25" y="4.75" width="3.5" height="14.5" ${P}/><rect x="15.75" y="8.75" width="3.5" height="10.5" ${P}/>`,
-      plus: `<path d="M12 5.500v13M5.500 12h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>`,
-      settings: `<path d="M3.5 7.75h17M3.5 16.25h17" ${P} stroke-linecap="butt"/><rect x="12.75" y="5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/><rect x="5.75" y="13.5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/>`,
-      share: `<path d="M8.500 9.750H5.750v10.500h12.500V9.750H15.500" ${P} stroke-linecap="butt"/><path d="M12 14.500V3.750M8.250 7.250 12 3.500l3.750 3.750" ${P} stroke-linecap="butt"/>`,
-      edit: `<path d="M5 19l1-4.250L16.250 4.500l3.250 3.250L9.250 18z" ${P}/><path d="M13.750 7l3.250 3.250" ${P} stroke-linecap="butt"/>`,
+      plus: `<path d="M12 5.500v13M5.500 12h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+      settings: `<path d="M3.5 7.75h17M3.5 16.25h17" ${P} stroke-linecap="round"/><rect x="12.75" y="5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/><rect x="5.75" y="13.5" width="5.5" height="5.5" style="fill:var(--paper)" stroke="currentColor" stroke-width="1.5"/>`,
+      share: `<path d="M8.500 9.750H5.750v10.500h12.500V9.750H15.500" ${P} stroke-linecap="round"/><path d="M12 14.500V3.750M8.250 7.250 12 3.500l3.750 3.750" ${P} stroke-linecap="round"/>`,
+      edit: `<path d="M5 19l1-4.250L16.250 4.500l3.250 3.250L9.250 18z" ${P}/><path d="M13.750 7l3.250 3.250" ${P} stroke-linecap="round"/>`,
       more: `<rect x="4" y="10.500" width="3" height="3" ${F}/><rect x="10.500" y="10.500" width="3" height="3" ${F}/><rect x="17" y="10.500" width="3" height="3" ${F}/>`,
-      chevron: `<path d="M9 5.500l6.500 6.500L9 18.500" ${P} stroke-linecap="butt"/>`,
-      back: `<path d="M15 5.500 8.500 12l6.500 6.500" ${P} stroke-linecap="butt"/>`,
-      close: `<path d="M6 6l12 12M18 6 6 18" ${P} stroke-linecap="butt"/>`,
+      chevron: `<path d="M9 5.500l6.500 6.500L9 18.500" ${P} stroke-linecap="round"/>`,
+      back: `<path d="M15 5.500 8.500 12l6.500 6.500" ${P} stroke-linecap="round"/>`,
+      close: `<path d="M6 6l12 12M18 6 6 18" ${P} stroke-linecap="round"/>`,
     }[name] || '';
     return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" style="display:block;flex:none" aria-hidden="true">${body}</svg>`;
   };
@@ -516,8 +525,8 @@
     const s = opts.size || 24;
     const a = opts.area;
     const box = opts.done
-      ? `<rect x=".75" y=".75" width="22.5" height="22.5" rx="2" style="fill:${a >= 0 ? wash(a) : 'var(--print-rule)'};stroke:${a >= 0 ? dye(a) : 'var(--ink)'}" stroke-width="1.5"/>`
-      : `<rect x=".75" y=".75" width="22.5" height="22.5" rx="2" fill="none" style="stroke:var(--print-edge)" stroke-width="1.5"/>`;
+      ? `<rect x=".75" y=".75" width="22.5" height="22.5" rx="6" style="fill:${a >= 0 ? wash(a) : 'var(--print-rule)'};stroke:${a >= 0 ? dye(a) : 'var(--ink)'}" stroke-width="1.5"/>`
+      : `<rect x=".75" y=".75" width="22.5" height="22.5" rx="6" fill="none" style="stroke:var(--print-edge)" stroke-width="1.5"/>`;
     const tick = opts.done ? `<path d="M5.600 12.400C8 14.200 9.600 16.200 10.800 18.600 14.600 11 19.800 3.600 27.200-3" fill="none" style="stroke:var(--tick)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : '';
     return `<svg class="a-check" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true">${box}${tick}</svg>`;
   };
@@ -572,7 +581,7 @@
       const inked = Math.max(0, Math.min(5, n - k * 5));
       const ghost = opts.ghost === false ? '' : strokes.map((d) => `<path d="${d}" style="stroke:var(--ghost)" stroke-width="1"/>`).join('');
       const ink = strokes.slice(0, inked).map((d) => `<path d="${d}" style="stroke:var(--ink)" stroke-width="2"/>`).join('');
-      out += `<g transform="translate(${k * 22} 0)" fill="none" stroke-linecap="square">${ghost}${ink}</g>`;
+      out += `<g transform="translate(${k * 22} 0)" fill="none" stroke-linecap="round">${ghost}${ink}</g>`;
     }
     return `<svg width="${(s * (chars * 22)) / 22}" height="${s}" viewBox="0 0 ${chars * 22} 22" style="display:block" aria-hidden="true">${out}</svg>`;
   };

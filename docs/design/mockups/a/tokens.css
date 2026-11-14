@@ -8,9 +8,20 @@
      <script src="/docs/design/mockups/a/shared.js"></script>
 
    The one rule behind every value here: TWO INKS.
-     print ink   (cool blue-grey)  = everything the printer made: rules, labels, boxes, the date.
-     writing ink (warm black)      = everything the owner wrote: the goal, tasks, counts, ticks.
+     print ink   (warm pencil grey) = everything the printer made: labels, boxes, the date.
+     writing ink (warm black)       = everything the owner wrote: the goal, tasks, counts, ticks.
    Plus eight dyes (which area) and one vermilion (today, Sunday, the seal).
+
+   Softened (owner, 2026-11: "전체적으로 너무 딱딱해 보여"). What changed and why:
+     - print ink is a warm pencil grey, not a cool blue-grey: blue rules on cream read as graph paper.
+     - far fewer rules: no masthead rule, no rule on top of a list, no cell borders in the week strip,
+       row rules only between rows and inset to the text. Space does the grouping.
+     - the chart is drawn as soft tiles (small gaps, 3pt corners) on a light tint, not a ruled table.
+     - check boxes, cells and tags have small round corners (6 / 3 / 2); nothing is a sharp box.
+     - today is a small vermilion dot, not a cut corner.
+     - labels are plain 13pt words, not 11pt tracked capitals-style furniture.
+     - tab titles are Pretendard Bold in ink; MaruBuri is kept for the owner's goal and the figures.
+   Rounded cards, pill chips, badges, gradients and stamps stay out (owner-decisions 7).
 
    Parts: 1 light tokens · 2 dark tokens · 3 type roles · 4 components.
    Dark applies by itself under prefers-color-scheme: dark (render.js sets it when the page has
@@ -31,14 +42,14 @@
   --ink-2: #665D52;            /* 5.7:1  — written, secondary: row meta, units */
   --ink-3: #A39A8C;            /* 2.5:1  — not for text: disabled marks only */
 
-  /* print ink (cool blue-grey): everything the printer made */
-  --print-strong: #3D4B5F;     /* 7.9:1 — printed titles (the date, 오늘, 통계) */
-  --print: #55657A;            /* 5.3:1 — labels, folio, weekday letters, the chart frame */
-  --print-edge: #76869C;       /* 3.3:1 — control edges: check box, capsule, block rules */
-  --print-mid: #9FADC0;        /* 2.0:1 — masthead rule, table top rule */
-  --print-rule: #BCC7D5;       /* 1.5:1 — hairlines: cell rules, row rules. Raised from #C9D3E0 (1.34) so the
-                                  empty lattice of a blank sheet still says "write here" on a dim phone */
-  --ghost: #ACB8C9;            /* 1.8:1 — the printed ghost 正 under the inked strokes: legible as 正, below 2:1 */
+  /* print ink (warm pencil grey): everything the printer made */
+  --print-strong: #5A5045;     /* 7.0:1 — printed words that must read first */
+  --print: #74695B;            /* 4.8:1 — labels, folio, weekday letters, notes */
+  --print-edge: #908472;       /* 3.3:1 — control edges: check box, segment, secondary button */
+  --print-mid: #D3C9B8;        /* 1.5:1 — the few rules that close a group */
+  --print-rule: #E3DBCC;       /* 1.2:1 — hairlines between rows */
+  --ghost: #D2C7B5;            /* 1.5:1 — the printed ghost 正 under the inked strokes */
+  --tile: #EEE7D9;             /* 1.1:1 — an empty cell of the chart: a soft tint, not a ruled box */
 
   /* signal: vermilion (주홍, 朱). Three jobs: today, Sunday, the seal. Never on the owner's words. */
   --signal: #C4372F;           /* 4.7:1 on paper */
@@ -59,13 +70,13 @@
   --dye-8: #A65633; --wash-8: #EDB7A1; --wash-l1-8: #D8A38D; /* 주홍  모험 */
   --on-dye: #F6F1E4;           /* knock-out text on a dye = the paper showing through */
 
-  /* the chart */
+  /* the chart: tiles on paper. No frame and no cell rules; blocks are told apart by a wider gap. */
   --core: #221F1B;             /* centre cell */
   --on-core: #F6F1E4;
   --core-edge: transparent;    /* dark mode gives the core a printed edge instead of a white fill */
-  --rule-frame: #55657A;       /* = --print */
-  --rule-block: #76869C;       /* = --print-edge */
-  --rule-cell: #BCC7D5;        /* = --print-rule */
+  --rule-frame: transparent;
+  --rule-block: transparent;
+  --rule-cell: transparent;
   --tick: #221F1B;             /* the pen tick is written, so it is writing ink */
 
   /* controls */
@@ -73,14 +84,16 @@
   --on-btn: #F6F1E4;
   --add: #221F1B;              /* 담기, the one heavy object on the page (ink here; quieter at night) */
   --on-add: #F6F1E4;
-  --capsule: #F1EBDD;          /* the floating capsule: one step off the page (1.05:1) so it floats without a
-                                  shadow; its printed edge (--print-edge) is 3.1:1 on it */
+  --capsule: #FBF8F1;          /* the floating capsule: a lighter sheet lifted off the page by a soft shadow */
+  --float-shadow: 0 1px 2px rgba(60, 45, 25, 0.08), 0 8px 24px rgba(60, 45, 25, 0.12);
   --scrim: rgba(34, 31, 27, 0.32); /* behind an inset sheet: warm, so it does not cool the paper */
 
   /* geometry */
   --u: 6px;                    /* sub-unit. The module is 4u = 24. Rows 8u = 48, gutter 4u = 24. */
   --gutter: 24px;
-  --r-paper: 2px;              /* things printed on the page: check box, cells (0), tags */
+  --r-paper: 6px;              /* things printed on the page that you touch: the check box (24pt) */
+  --r-cell: 3px;               /* a chart cell at L2 (41pt); the zoomed block uses 10 */
+  --r-tag: 2px;                /* the dye mark beside an area's name */
   --r-tool: 29px;              /* things that float above the page: capsule = height / 2 */
   --r-sheet: 28px;             /* inset sheets (8px from the screen edges) */
   --hair: 0.5px;               /* 1 device px at @2x; roundToNearestPixel(0.5) = 2px at @3x */
@@ -104,12 +117,13 @@
     --ink-2: #A8A093;          /* 7.1:1 */
     --ink-3: #6E675D;          /* 3.3:1 */
 
-    --print-strong: #B3BFCE;   /* 9.8:1 */
-    --print: #8C9AAD;          /* 6.4:1 */
-    --print-edge: #66748A;     /* 3.9:1 */
-    --print-mid: #3F4854;      /* 2.0:1 */
-    --print-rule: #30363E;     /* 1.5:1 — rules recede at night */
-    --ghost: #3A424C;          /* 1.8:1 — the printed ghost 正 */
+    --print-strong: #C9C0B2;   /* warm pencil at night */
+    --print: #A0968A;          /* 6.3:1 */
+    --print-edge: #7A7064;     /* 3.8:1 */
+    --print-mid: #3A342D;      /* 1.5:1 */
+    --print-rule: #2C2722;     /* 1.2:1 — rules recede at night */
+    --ghost: #3E3730;          /* 1.6:1 — the printed ghost 正 */
+    --tile: #221E1A;           /* an empty cell: one step up from the page */
 
     --signal: #E2543F;         /* 4.9:1 — re-picked for the dark stock */
 
@@ -131,10 +145,10 @@
     --core: #5E554A;           /* warm stone, 2.5:1 against the page: the brightest neutral on the sheet,
                                   far below the 14.7:1 cream, so never a white-hot centre */
     --on-core: #ECE6D8;        /* 5.9:1 on the core */
-    --core-edge: #8C9AAD;      /* = --print, 1px: the printed edge keeps the heart distinct at L1 and L0 */
-    --rule-frame: #66748A;
-    --rule-block: #3F4854;
-    --rule-cell: #30363E;
+    --core-edge: #A0968A;      /* = --print, 1px: the printed edge keeps the heart distinct at L1 and L0 */
+    --rule-frame: transparent;
+    --rule-block: transparent;
+    --rule-cell: transparent;
     --tick: #ECE6D8;
 
     --btn: #ECE6D8;
@@ -142,7 +156,8 @@
     --add: #A8A093;            /* = --ink-2: 담기 stays the heavy object but not the brightest (7.1:1);
                                   the goal in cream keeps the lightest mass */
     --on-add: #171411;         /* 7.1:1 */
-    --capsule: #201C18;        /* one step off the page (1.08:1); edge 3.6:1 on it */
+    --capsule: #24201B;        /* one step off the page */
+    --float-shadow: 0 0 0 0.5px rgba(236, 230, 216, 0.10), 0 8px 24px rgba(0, 0, 0, 0.5);
     --scrim: rgba(0, 0, 0, 0.55);
   }
 }
@@ -152,20 +167,25 @@
         ritual prompts. Everything else is Pretendard. ─────────────────────────────────────── */
 html, body { background: var(--paper); color: var(--ink); }
 
-.t-folio,        /* printed furniture: folio line, section labels, column heads, weekday letters */
+.t-folio,        /* printed words: folio line, section labels, column heads, weekday letters */
 .t-label {
-  font: 500 11px/18px var(--sans);
-  letter-spacing: 0.04em;
+  font: 500 13px/18px var(--sans);
+  letter-spacing: 0;
   color: var(--print);
   font-variant-numeric: tabular-nums;
 }
-.t-title {       /* the header title on every tab: 26/36 */
-  font: 400 26px/36px var(--serif);
-  letter-spacing: -0.01em;
-  color: var(--print-strong);        /* printed: the date, 오늘, 통계 */
+.t-label.is-section {                /* a section's name: one step up, still printed */
+  font: 600 14px/18px var(--sans);
+  color: var(--print-strong);
 }
-.t-title.is-written {                /* the owner's goal as a title (만다라트 tab) */
-  font-weight: 600;
+.t-title {       /* the header title on every tab: 26/36 */
+  font: 700 26px/36px var(--sans);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.t-title.is-written {                /* the owner's words as a title (the goal on 만다라트, an area) */
+  font: 600 26px/36px var(--serif);
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 .t-headline {    /* the goal on Home: the largest text on the screen */
@@ -205,7 +225,6 @@ html, body { background: var(--paper); color: var(--ink); }
   height: 72px;
   margin: 0 var(--gutter);
   padding-top: 12px;
-  border-bottom: var(--rule) solid var(--print-mid);
 }
 .a-header .t-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 48px; }
 .a-header-action {           /* one trailing action, 44 × 44, centred on the title line */
@@ -218,9 +237,9 @@ html, body { background: var(--paper); color: var(--ink); }
 .a-header.is-headline { height: auto; min-height: 72px; padding-top: 11px; }   /* 11 + 18 + 42 + 1pt rule = 72 */
 .a-header.is-headline .t-headline { padding-right: 48px; }
 .a-header.is-headline .a-header-action { top: 28px; }
-.a-title-today {             /* the today corner on a printed title (오늘): the same shape as on a today cell */
-  position: absolute; left: -12px; top: 8px; width: 8px; height: 8px;
-  background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%);
+.a-title-today {             /* the today dot on a title (오늘): the same mark as on a today cell */
+  position: absolute; left: -12px; top: 15px; width: 6px; height: 6px;
+  background: var(--signal); border-radius: 50%;
 }
 .has-today { position: relative; }
 .a-header-back {          /* pushed or zoomed pages: a way back in the eyebrow line */
@@ -243,28 +262,32 @@ html, body { background: var(--paper); color: var(--ink); }
    and below (44pt target) and runs from its left edge to the gutter. */
 .a-link svg { margin-right: -4px; }
 
-/* 4.4 today mark: one shape (a corner), one colour (vermilion), wherever "today" is shown */
+/* 4.4 today mark: one shape (a small dot), one colour (vermilion), wherever "today" is shown */
 .a-today {
-  display: inline-block; width: 7px; height: 7px; margin-right: 5px;
-  background: var(--signal);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  vertical-align: 1px;
+  display: inline-block; width: 6px; height: 6px; margin-right: 6px;
+  background: var(--signal); border-radius: 50%;
+  vertical-align: 2px;
 }
 
-/* 4.5 list rows: ruled paper. 48 high, full-width hairlines, check box on the leading side. */
-.a-list { border-top: var(--rule) solid var(--print-mid); }
+/* 4.5 list rows: 54 high, check box on the leading side. No rule on top of a list; between rows a
+       hairline that starts at the text, not at the box (as a hand-ruled line would), none under the last. */
+.a-list { }
 .a-row {
-  display: flex; align-items: center; gap: 12px;
-  height: 48px;
-  border-bottom: var(--hair) solid var(--print-rule);
+  position: relative;
+  display: flex; align-items: center; gap: 14px;
+  height: 54px;
+}
+.a-row + .a-row::before {
+  content: ''; position: absolute; left: 38px; right: 0; top: 0; height: var(--hair);
+  background: var(--print-rule);
 }
 .a-row-main { flex: 1; min-width: 0; }
 .a-row-title {
-  font: 500 16px/22px var(--sans); color: var(--ink);
+  font: 500 16px/23px var(--sans); color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .a-row-meta {
-  font: 500 12px/16px var(--sans); color: var(--ink-2);
+  font: 400 13px/18px var(--sans); color: var(--ink-2);
   font-variant-numeric: tabular-nums;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -275,7 +298,7 @@ html, body { background: var(--paper); color: var(--ink); }
   align-self: flex-start; margin-top: 7px;
   font: 500 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums;
 }
-.a-row.no-meta .a-row-right { margin-top: 15px; }
+.a-row.no-meta .a-row-right { margin-top: 18px; }
 .a-row-right.is-print { color: var(--print); }
 .a-row-right.is-icon { align-self: center; margin-top: 0; color: var(--ink); }
 /* a done title stays where it was, struck through: title and strike both in --ink-2, the strike a
@@ -283,7 +306,7 @@ html, body { background: var(--paper); color: var(--ink); }
 .a-row.is-done .a-row-title { color: var(--ink-2); }
 .a-strike { position: relative; }
 .a-row.is-done .a-strike::after {
-  content: ''; position: absolute; left: -1px; right: -1px; top: 11px; height: 1px;
+  content: ''; position: absolute; left: -1px; right: -1px; top: 12px; height: 1px;
   background: var(--ink-2);
 }
 /* a row with no check box (a pinned item that is not due today): the box column stays, empty */
@@ -292,34 +315,32 @@ html, body { background: var(--paper); color: var(--ink); }
 /* 4.6 the dye mark beside an area's name: a small printed square of the pigment */
 .a-dye {
   display: inline-block; width: 8px; height: 8px; margin-right: 6px;
-  background: var(--d, var(--ink)); border-radius: 1px;
+  background: var(--d, var(--ink)); border-radius: var(--r-tag);
   vertical-align: -0.5px;
 }
 
 /* 4.7 check box: see A.check(). 24 in rows (pass size 20 for trailing use). */
 .a-check { display: block; flex: none; overflow: visible; }
 
-/* 4.8 the 正 week strip: seven printed cells. See A.weekStrip(). */
-.a-week { display: flex; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--hair) solid var(--print-rule); }
+/* 4.8 the 正 week strip: seven days in a row, no boxes. See A.weekStrip(). */
+.a-week { display: flex; }
 .a-week-day {
-  position: relative; flex: 1; height: 48px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border-left: var(--hair) solid var(--print-rule);
+  position: relative; flex: 1; height: 60px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
 }
-.a-week-day:first-child { border-left: 0; }
-.a-week-day .t-label { line-height: 14px; }
+.a-week-day .t-label { line-height: 16px; }
 .a-week-day.is-sunday .t-label { color: var(--signal); }
 .a-week-day.is-today .t-label { color: var(--ink); font-weight: 700; }
-.a-week-day.is-today::before {       /* the same corner as a "today" cell in the chart */
-  content: ''; position: absolute; left: 0; top: 0; width: 8px; height: 8px;
-  background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%);
+.a-week-day.is-today::after {        /* today: the vermilion dot under the tally */
+  content: ''; position: absolute; left: 50%; bottom: 0; width: 5px; height: 5px; margin-left: -2.5px;
+  background: var(--signal); border-radius: 50%;
 }
 
 /* 4.9 ledger: a table set to be read (booktabs). No vertical rules, no zebra, numerals right. */
-.a-ledger { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; border-top: var(--rule) solid var(--print-mid); }
+.a-ledger { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
 .a-ledger-row {
   display: flex; align-items: center; justify-content: space-between;
-  height: 36px; border-bottom: var(--hair) solid var(--print-rule);
+  height: 38px;
   font: 500 14px/18px var(--sans); color: var(--ink);
 }
 .a-ledger-row b { font: 500 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
@@ -331,7 +352,7 @@ html, body { background: var(--paper); color: var(--ink); }
   background: var(--btn); color: var(--on-btn);
   font: 700 16px/24px var(--sans);
 }
-.a-btn.is-secondary { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--print-edge); }
+.a-btn.is-secondary { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.25px var(--print-edge); }
 .a-btn.is-small { height: 36px; padding: 0 16px; border-radius: 18px; font-size: 13px; }
 
 /* 4.11 floating navigation. See A.tabBar(). A paper capsule with a printed edge (no shadow),
@@ -352,7 +373,7 @@ html, body { background: var(--paper); color: var(--ink); }
   border-radius: var(--r-tool);
   background: var(--capsule);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
+  box-shadow: var(--float-shadow);
 }
 .a-tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
@@ -366,6 +387,7 @@ html, body { background: var(--paper); color: var(--ink); }
   border-radius: var(--r-tool);
   background: var(--add); color: var(--on-add);
   font: 700 11px/12px var(--sans);
+  box-shadow: var(--float-shadow);
 }
 
 /* 4.12 inset sheet (for screens that need one): 8 from the edges, all four corners round.
@@ -375,7 +397,7 @@ html, body { background: var(--paper); color: var(--ink); }
   position: absolute; left: 8px; right: 8px; bottom: 8px;
   border-radius: var(--r-sheet);
   background: var(--paper);
-  box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
+  box-shadow: var(--float-shadow);
   padding: 24px;
 }
 

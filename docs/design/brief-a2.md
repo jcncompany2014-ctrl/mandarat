@@ -87,3 +87,20 @@ All twelve new screens are drawn. These decisions settle what the builders left 
 8. **Stress checks**, drawn once in `_stress.html` (not a screen; canvas 780×1200): the L2 sheet with English and with Japanese sample labels (use the app's own samples in `src/data` and `src/i18n/{en,ja}`), Home's hero with a long goal ("올해는 몸과 마음을 단단하게 만드는 한 해"), and Home at 375pt wide. Fix what breaks: no word split without a hyphen, no single character alone on a line, one text size per block, nothing clipped.
 9. **Empty paper is allowed, accidents are not.** Where a screen leaves a band of paper (focus, 하루 마감, the chart tab), either compose it (anchor, align, give it a job) or close the page above it. A critic should not be able to tell whether a blank band was meant.
 10. **Sunday stays vermilion everywhere a week is drawn**, including the editor. "The area's dye is the only colour" in the editor means no second accent for controls; the calendar convention is not an accent.
+
+## Softening pass (owner: "다 좋은데 지금 진짜 전체적으로 너무 딱딱해 보여")
+
+The owner likes A but finds it too stiff overall. The kit has been softened (see the header comment of `tokens.css`); every screen must now follow it. What made A stiff, and what replaces it:
+
+| Stiff | Soft |
+|---|---|
+| Cool blue-grey print ink on cream (graph-paper look) | Warm pencil grey (`--print` #74695B, `--print-edge` #908472, `--print-rule` #E3DBCC). Never hard-code the old blue-greys (#3D4B5F, #55657A, #76869C, #9FADC0, #BCC7D5, #C9D3E0, #ACB8C9). |
+| Rules everywhere: masthead rule, rule on top of every list, boxed cells, vertical dividers, booktabs tables | Space does the grouping. No masthead rule, no top rule on lists, no vertical rules, no boxed cells. Between list rows only a faint hairline inset to the text. A table is aligned columns with at most faint row hairlines. |
+| Sharp square boxes | Small round corners: check box 6, chart cell 3, zoomed cell 10, tags 2, segments and inputs 10. Tiles with small gaps instead of ruled grids (the chart, the 5×5 focus grid, week charts, mood choices). |
+| Today as a cut vermilion corner | A small vermilion dot (6pt; 5pt under a weekday). |
+| 11pt tracked labels | 13pt plain labels (`.t-label`), section names `.t-label.is-section` (14/600). |
+| Tab titles in MaruBuri Regular blue-grey | Tab titles Pretendard Bold in ink (`.t-title`). MaruBuri stays for the owner's goal, the owner's words as a title (`.t-title.is-written`), figures and ritual prompts. |
+| Square line caps, miter joins | Round caps and joins on glyphs and the 正 tally. |
+| Hard-edged floating bar and sheets | A lighter capsule and sheets lifted by a soft warm shadow (`--float-shadow`), no outline. |
+
+Still out (owner-decisions 7): rounded cards, pill chips, badges, gradients (except the bar's scroll fade), sparkles, emoji, stamps. Softness comes from warmth, fewer lines, space and gentle corners, not from cards.
