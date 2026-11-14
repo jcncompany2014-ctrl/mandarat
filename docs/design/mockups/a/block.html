@@ -22,17 +22,20 @@
   /* the week tracker: booktabs. 1pt rule on top, hairlines under rows, no boxes round it. */
   .sec { margin-top: 12px; }
   .wk { border-top: var(--rule) solid var(--print-mid); }
-  .wk-row { display: grid; grid-template-columns: 1fr repeat(7, 28px) 44px; align-items: center; height: 36px; border-bottom: var(--hair) solid var(--print-rule); }
+  .wk-row { display: grid; grid-template-columns: 1fr repeat(7, 30px) 40px; align-items: center; height: 36px; border-bottom: var(--hair) solid var(--print-rule); }
   .wk-row.is-head { height: 24px; }
   .wk-row > * { display: flex; justify-content: center; align-items: center; height: 100%; position: relative; }
   .wk-row > .wk-name { justify-content: flex-start; font: 500 14px/18px var(--sans); color: var(--ink); white-space: nowrap; }
   .wk-row > .wk-fig { justify-content: flex-end; font: 400 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .wk-row.is-head .t-label { line-height: 24px; }
+  /* the seven days are printed cells, as in the week strip on Home: hairlines between them */
+  .wk-row > .wk-d { border-left: var(--hair) solid var(--print-rule); }
+  .wk-row > .wk-d.is-last { border-right: var(--hair) solid var(--print-rule); }
   .wk-day.is-sunday .t-label { color: var(--signal); }
   .wk-day.is-today .t-label { color: var(--ink); font-weight: 700; }
-  .wk-day.is-today::before { content: ''; position: absolute; left: 3px; top: 3px; width: 7px; height: 7px; background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%); }
-  /* a day not yet reached: the box is printed, pale */
-  .wk-box-future rect { stroke: var(--print-rule) !important; }
+  .wk-day.is-today::before { content: ''; position: absolute; left: 0; top: 0; width: 8px; height: 8px; background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%); }
+  /* every planned day has a printed box (3.3:1); a box left empty before today is a missed day,
+     one after today is still to come. Days not planned have no box. */
   .cell-state { text-align: center; }
 </style>
 </head>
@@ -77,9 +80,8 @@ A.ready().then((doc) => {
   // The figure is the one the app's area page uses ('이번 주 2/3').
   const state = (cell) => {
     if (cell.kind !== 'action' || cell.done || cell.actKind !== 'habit') return '';
-    const row = v.today.rows.find((r) => r.text === cell.text);
     const t = cell.act.perWeek ? { done: 0, planned: cell.act.perWeek } : tally(weekOf[cell.text] || '');
-    return `<div class="t-meta cell-state">이번 주 ${t.done}/${t.planned}${row && row.kind === 'count' ? '회' : ''}</div>`;
+    return `<div class="t-meta cell-state">이번 주 ${t.done}/${t.planned}</div>`;
   };
   A.block('#block', doc, AREA, { cell: 112, extra: state });
 
@@ -100,17 +102,17 @@ A.ready().then((doc) => {
   // the week tracker
   const days = v.week.days;
   document.querySelector('#range').textContent = '10월 12일 – 18일';
-  let html = `<div class="wk-row is-head"><span></span>${days.map((d) => `<span class="wk-day${d[2] === 'today' ? ' is-today' : ''}${d[0] === '일' ? ' is-sunday' : ''}"><span class="t-label">${d[0]}</span></span>`).join('')}<span class="wk-fig"><span class="t-label">횟수</span></span></div>`;
+  let html = `<div class="wk-row is-head"><span></span>${days.map((d) => `<span class="wk-d wk-day${d[2] === 'today' ? ' is-today' : ''}${d[0] === '일' ? ' is-sunday' : ''}${d[0] === '일' ? ' is-last' : ''}"><span class="t-label">${d[0]}</span></span>`).join('')}<span class="wk-fig"><span class="t-label">횟수</span></span></div>`;
   const mark = (c) => {
     if (c === 'v' || c === 'V') return A.check({ done: true, area: AREA, size: 14 });
     if (c === 'x' || c === 'T') return A.check({ size: 14 });
-    if (c === 'o') return `<span class="wk-box-future">${A.check({ size: 14 })}</span>`;
+    if (c === 'o') return A.check({ size: 14 });
     return '';
   };
   area.actions.filter((a) => a.kind === 'habit').forEach((a) => {
     const s = weekOf[a.text];
     const t = a.perWeek ? { done: 0, planned: a.perWeek } : tally(s);
-    html += `<div class="wk-row"><span class="wk-name">${a.text}</span>${[...s].map((c) => `<span>${mark(c)}</span>`).join('')}<span class="wk-fig">${t.done}/${t.planned}</span></div>`;
+    html += `<div class="wk-row"><span class="wk-name">${a.text}</span>${[...s].map((c, i) => `<span class="wk-d${i === 6 ? ' is-last' : ''}">${mark(c)}</span>`).join('')}<span class="wk-fig">${t.done}/${t.planned}</span></div>`;
   });
   document.querySelector('#wk').innerHTML = html;
 

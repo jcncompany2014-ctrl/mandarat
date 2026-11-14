@@ -17,7 +17,7 @@
   .filter { position: relative; flex: none; display: inline-flex; align-items: center; height: 44px; font: 500 14px/18px var(--sans); color: var(--ink); }
   .filter b { font: 400 12px/18px var(--sans); color: var(--ink-2); margin-left: 4px; font-variant-numeric: tabular-nums; }
   .filter.is-on { font-weight: 700; }
-  .filter.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 8px; height: 1px; background: var(--ink); }
+  .filter.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 9px; height: 1px; background: var(--ink); }
 
   .list { margin-top: 0; }
   /* the way to add more: a written link in the check box's column, never a dashed box */
@@ -48,7 +48,9 @@ A.ready().then((doc) => {
   }).join('');
 
   const focus = new Set(v.weekFocus.map((f) => f.text));
-  document.querySelector('#rows').innerHTML = v.today.rows.map((r) => A.todayRow(doc, r, focus.has(r.text) && !r.right ? { rightPrint: '중점' } : {})).join('');
+  // this week's focus is pinned first (as on Home), then the rest in the record's order; the done row stays where it is
+  const rows = v.today.rows.filter((r) => focus.has(r.text)).concat(v.today.rows.filter((r) => !focus.has(r.text)));
+  document.querySelector('#rows').innerHTML = rows.map((r) => A.todayRow(doc, r, focus.has(r.text) && !r.right ? { rightPrint: '중점' } : {})).join('');
   document.querySelector('#plus').innerHTML = A.icon('plus', { size: 18 });
   document.querySelector('#chev').innerHTML = A.icon('chevron', { size: 16 });
 

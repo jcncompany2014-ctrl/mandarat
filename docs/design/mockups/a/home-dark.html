@@ -17,6 +17,12 @@
   .hero-field { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 7px 0 6px; border-bottom: var(--hair) solid var(--print-rule); }
   .sec { margin-top: 18px; }
   .hero + .sec { margin-top: 24px; }
+  /* LOCAL PROPOSAL for tokens.css (dark only). At L1 the tokens' core (#2B2621 + a 0.5pt print edge)
+     reads as an outlined empty cell, so the heart of the thumbnail looks hollow. A warm stone fill,
+     no edge: 1.9:1 against the page, cream ink on it 7.6:1. Still far from a white-hot centre. */
+  @media (prefers-color-scheme: dark) {
+    :root { --core: #4A4239; --core-edge: transparent; }
+  }
 </style>
 </head>
 <body>
