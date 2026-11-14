@@ -113,4 +113,10 @@ export default {
   sheetReview: '이 해 돌아보기',
   /** 잠긴 지난 표 한 장 */
   sheetLocked: '지난 표를 펼쳐 보는 건 프로에서 할 수 있어요',
+
+  // 디자인 A(build-plan S4) — 한 해 쪽의 인쇄된 머리 줄
+  /** 표 위 한 줄 — '2025년 한 해 돌아보기'(label: yearLabel) */
+  folio: ({ label }: { label: string }) => `${label} 한 해 돌아보기`,
+  /** 지난 표 한 장 위 한 줄 — '2025년 지난 표' */
+  sheetFolio: ({ label }: { label: string }) => `${label} 지난 표`,
 } satisfies Namespace;

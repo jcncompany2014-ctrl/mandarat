@@ -80,4 +80,7 @@ export default {
   areaCloseHint: '9マスを閉じます',
   sheetReview: 'この年をふりかえる',
   sheetLocked: '過去の表を広げて見るのはプロでできます',
+
+  folio: ({ label }) => `${label} 一年のふりかえり`,
+  sheetFolio: ({ label }) => `${label} 過去の表`,
 } satisfies Like<typeof ko>;

@@ -7,6 +7,16 @@ export default {
   /** 큰 날짜 숫자 옆 달 — '10월' (n은 1~12) */
   month: ({ n }: { n: number }) => `${n}월`,
   settings: '설정',
+  /** 머리 위 줄 — '10월 14일 수요일 · 42주' (day는 fmt.dateLong, w는 ISO 주 번호) */
+  eyebrow: ({ day, w }: { day: string; w: number }) => `${day} · ${w}주`,
+
+  // ── 히어로(숫자 칸 셋 + 작은 지도) ──
+  heroToday: '오늘',
+  heroDone: '달성',
+  heroLeft: '남은 날',
+  /** 숫자 뒤 단위 — '24/64칸' · '78일' */
+  unitCells: '칸',
+  unitDays: (_: { n: number }) => '일',
 
   // ── 핵심 목표 + 81칸 ──
   chartHint: '만다라트를 펼쳐요',
@@ -33,6 +43,8 @@ export default {
 
   // ── 오늘 할 일 ──
   todayTitle: '오늘 할 일',
+  /** 구역 머리 오른쪽 누르는 글 — 오늘 화면으로 */
+  seeAll: '전체 보기',
   openToday: '오늘 화면 열기',
   todayHeadLabel: ({ total, done }: { total: number; done: number }) => `오늘 할 일 ${total}개 중 ${done}개 했어요, 오늘 화면 열기`,
   more: ({ n }: { n: number }) => `${n}개 더 있어요`,
@@ -47,6 +59,8 @@ export default {
   weekTitle: '이번 주',
   weekDay: ({ day, n }: { day: string; n: number }) => `${day} ${n}번`,
   weekDayToday: ({ day, n }: { day: string; n: number }) => `${day} ${n}번, 오늘`,
+  /** 할 일을 다 해 마감한 날 — 읽는 말에 덧붙인다('월요일 3번, 마감') */
+  weekClosed: '마감',
 
   // ── 8개 영역 ──
   areasTitle: '8개 영역',

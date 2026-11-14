@@ -27,3 +27,17 @@ export function statValueSize(texts: readonly string[], width: number, max = 20)
   const em = Math.max(1, ...texts.map(statEm));
   return Math.max(STAT_MIN, Math.min(max, Math.floor(width / em)));
 }
+
+/** 표가 채워진 모습 — 네 액자 사이의 가장 좁은 틈(pt) */
+export const FRAME_GAP_MIN = 6;
+
+/**
+ * 액자 하나(L1 지도)의 칸 크기 — 본문 폭에 넷이 한 줄로(목업 year.png: 390pt에서 칸 8 · 바깥 76).
+ * 바깥 = 9c + (c ≥ 11 ? 6 : 4)(components/chart geometry l1Width). 6~16pt.
+ */
+export function frameCell(width: number, n = 4): number {
+  const slot = (width - FRAME_GAP_MIN * (n - 1)) / Math.max(1, n);
+  let c = Math.floor((slot - 4) / 9);
+  if (c >= 11) c = Math.floor((slot - 6) / 9);
+  return Math.max(6, Math.min(16, c));
+}

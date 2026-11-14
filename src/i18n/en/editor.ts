@@ -7,10 +7,12 @@ import { plural } from './plural';
 
 export default {
   centerTitle: 'Core goal',
-  centerPlaceholder: 'e.g. Run my first marathon',
+  centerPlaceholder: 'e.g. Finish a marathon',
   themeTitle: ({ n }) => `Area ${n} name`,
   themePlaceholder: 'e.g. Health',
   actionTitle: ({ area, n }) => `${area} · Action ${n}/8`,
+  actionN: ({ n }) => `Action ${n}/8`,
+  themeSub: 'Area name',
   example: ({ text }) => `e.g. ${text}`,
   areaN: ({ n }) => `Area ${n}`,
 
@@ -36,6 +38,12 @@ export default {
   charCount: ({ n, max }) => `${n} of ${max} ${plural(max, 'character', 'characters')}`,
   helpTitle: 'Some actions to try',
   helpHint: 'Fills in the text',
+  coachNote: ({ noWhat, noHow, noWhen }) => {
+    const words = [noWhat && 'what', noHow && 'how much', noWhen && 'when or where'].filter((w): w is string => !!w);
+    if (words.length === 0) return '';
+    const list = words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+    return `Saying ${list} makes it easier to do`;
+  },
 
   kindLabel: 'Type',
   kindA11y: ({ label }) => `Type: ${label}`,
@@ -46,6 +54,11 @@ export default {
   offerKeepA11y: 'Keep the current type',
   offerTake: 'Change',
   offerTakeA11y: ({ label }) => `Change to ${label}`,
+  noteOnce: 'Shows up on Today 3 days before the due date',
+  noteHabitDays: 'Shows up on Today on the days you pick',
+  noteHabitWeek: 'Shows up on Today every day until you reach the count',
+  noteCount: 'The square is achieved when you reach the goal',
+  noteMind: 'Once a week, rate how it went from 1 to 5',
 
   repeat: 'Repeat',
   byDays: 'On set days',
@@ -57,10 +70,12 @@ export default {
   perWeekLess: 'One fewer time a week',
   perWeekMore: 'One more time a week',
   days: 'Days',
+  remindDays: 'On the days you pick',
+  remindWeek: 'Daily until the count is reached',
 
   goal: 'Goal',
   unit: 'Unit',
-  unitPlaceholder: 'books, km, pages',
+  unitPlaceholder: 'books, km',
   step: 'Amount per log',
   sofar: 'So far',
   left: ({ n, unit }) => (unit ? `${fmt.count({ n, unit })} to go` : `${groupNum(n)} to go`),

@@ -220,21 +220,23 @@ test('무늬 위에서도 글씨 대비가 그대로(밝게 · 어둡게 · 대�
 
 // ── 설정 줄 ───────────────────────────────────────────────
 
-test('PaperRows: 종이 무늬 머리 · 네 줄 · 잠긴 줄은 프로 시트로 · 남겨 둔 무늬의 한 줄', () => {
+test('PaperRows: 종이 무늬 이름 · 견본 넷 · 잠긴 견본은 프로 시트로 · 남겨 둔 무늬의 한 줄', () => {
   const rows = src('src/screens/settings/PaperRows.tsx');
   assert.match(rows, /export function PaperRows\(\{ M \}: \{ M: M \}\)/);
-  assert.match(rows, /<SubHead M=\{M\} label=\{m\.paper\.head\} \/>/);
+  assert.match(rows, /<SwatchHead M=\{M\} label=\{m\.paper\.head\} \/>/);
+  // 견본(build-plan §2.6: 같은 그림) — 부품 상자의 Swatch가 무늬를 그리고 라디오 + 선택됨으로 읽힌다
+  assert.match(rows, /<Swatch\s+M=\{M\}\s+kind=\{\{ pattern: p \}\}/);
+  assert.match(src('src/components/kit/Swatch.tsx'), /accessibilityRole="radio"\s+accessibilityState=\{\{ checked: on \}\}/);
   assert.match(rows, /PAPER_CHOICES\.map/);
   assert.match(rows, /useLocked\('paper'\)/);
   assert.match(rows, /proLocked && isProPattern\(p\)/, '점은 잠그지 않는다');
   assert.match(rows, /if \(locked\) \{ tap\(\); openPro\('paper'\); return; \}/, '잠긴 줄은 저장값을 바꾸지 않고 시트만 연다');
   assert.match(rows, /setSetting\('paper', patternSetting\(p\)\)/);
-  assert.match(rows, /testID=\{TID\.setPaper\(p\)\}/);
-  assert.match(rows, /accessibilityRole="radio"/);
-  assert.match(rows, /accessibilityState=\{\{ checked: on, selected: on \}\}/);
-  assert.match(rows, /aria-checked=\{on\}/, '웹 읽기 도구도 고른 줄을 안다');
+  assert.match(rows, /testID=\{TID\.setPaper\(p\)\} aria-checked=\{on\}/, '웹 읽기 도구 · 스모크도 고른 견본을 안다');
   assert.match(rows, /const kept = on && locked;/);
   assert.match(rows, /m\.paper\.keptNote/);
+  // 남겨 둔 프로 무늬: 안내 한 줄을 누르면 프로 시트
+  assert.match(rows, /\{keptLocked && \([\s\S]{0,200}label=\{m\.paper\.keptNote\}[\s\S]{0,80}openPro\('paper'\)/);
   assert.doesNotMatch(rows, /useMandarat\(\)/);
   // 디자인 지키기 — 둥근 카드 · 그림자 · 그라데이션 · 알약
   assert.doesNotMatch(rows, /shadow|LinearGradient|borderRadius: (1[4-9]|[2-9]\d)/);
@@ -248,7 +250,9 @@ test('paper 이름공간: ko · ja · en이 같은 키, 글씨에 값·느낌표
   assert.deepEqual(Object.keys(ja), Object.keys(ko));
   assert.deepEqual(Object.keys(en), Object.keys(ko));
   assert.equal(ko.head, '종이 무늬');
-  assert.deepEqual([ko.dots, ko.grid, ko.lines, ko.blank], ['점 (기본)', '모눈', '줄', '무지']);
+  // 기본은 무지(build-plan §2.6) — 견본 이름에는 '기본'을 적지 않는다
+  assert.deepEqual([ko.dots, ko.grid, ko.lines, ko.blank], ['점', '모눈', '줄', '무지']);
+  for (const cat of [ko, ja, en]) for (const p of PAPER_CHOICES) assert.doesNotMatch(cat[p], /기본|標準|default/i, p);
   assert.equal(ko.keptNote, '프로를 열면 이 무늬로 그려져요');
   for (const p of PAPER_CHOICES) for (const cat of [ko, ja, en]) assert.equal(typeof cat[p], 'string');
   assert.equal(ko.sayLocked({ name: ko.grid }), '종이 무늬 모눈, 프로');

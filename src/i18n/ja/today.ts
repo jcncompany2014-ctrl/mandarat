@@ -4,6 +4,17 @@ import type { Like } from '../types';
 import { tsu } from './counter';
 
 export default {
+  viewsLabel: '表示のしかた',
+  listTitle: '今日やること',
+  closeTitle: '今日はここまでです。',
+  closeAll: ({ n }) => (n === 1 ? 'ひとつできました' : `${tsu(n)}、全部できました`),
+  closeAt: ({ time }) => `${time} 締め`,
+  foldTitle: ({ names, n }) => (n > 0 ? `${names} ほか${tsu(n)}` : names),
+  foldLabel: ({ n, title }) => `今日やること${tsu(n)}が全部できました。${title}`,
+  weekTitle: '今週',
+  weekDay: ({ day, times }) => `${day} ${times}`,
+  weekDayToday: ({ day, times }) => `${day} ${times}、今日`,
+
   screenTitle: '今日',
   all: 'すべて',
   areaFallback: ({ n }) => `分野${n}`,
@@ -91,6 +102,9 @@ export default {
   quickWriteCell: ({ area }) => `「${area}」の空きマスに書く`,
   quickWriteCellHint: ({ area, n }) => `マンダラートの「${area}」の${n}番目のマスに書きます`,
   quickWroteCell: ({ area, n }) => `${area}の${n}番目のマスに書きました`,
+  quickDone: '完了',
+  quickPickFrom: ({ area }) => `「${area}」の行動から選ぶ`,
+  quickJustNow: 'たった今',
 
   pickTitle: '今日やることを選ぶ',
   pickSub: '選んだものから今日のリストに入ります',

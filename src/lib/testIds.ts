@@ -83,6 +83,10 @@ export const TID = {
   statsYear: 'stats-year',
   statsWear: 'stats-wear',
   statsYearShelf: 'stats-year-shelf',
+  /** 통계 범위 줄 낱말(week · ten · year) */
+  statsScope: (k: string) => `stats-scope-${k}`,
+  /** 한 해 쪽 머리의 공유(지금 표) · 인쇄(지난 표) 글리프 */
+  yearShare: 'year-share',
   yearPage: 'year-page',
   yearBack: 'year-back',
   yearShelfRow: (id: string) => `year-shelf-row-${id}`,

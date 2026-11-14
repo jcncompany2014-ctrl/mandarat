@@ -8,7 +8,7 @@ export default {
 
   brand: '만다라트',
   heading: '올해 꼭 이루고 싶은\n목표 하나를 적어 주세요',
-  sub: '목표를 가운데에 두고, 여덟 가지를 둘러 적어요.',
+  headingNote: '목표를 가운데에 두고, 여덟 가지를 둘러 적어요.',
   goalLabel: '핵심 목표',
   goalPlaceholder: '예) 첫 마라톤 완주하기',
   exampleMark: '예)',

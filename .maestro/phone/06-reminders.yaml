@@ -8,7 +8,7 @@ tags:
     arguments:
       "-AppleLanguages": "(ko)"
       "-AppleLocale": "ko_KR"
-# 설정 › 아침 알림 켜기 → (처음 한 번 OS 허용 창) → 시간 줄이 보인다 → 끄기
+# 설정 › 아침 알림 켜기 → (처음 한 번 OS 허용 창) → 시각 칩(set-notify-morning-time, 누르면 시각 줄이 열린다)이 보인다 → 끄면 사라진다
 - runFlow: ../common/onboard.yaml
 - runFlow: ../common/settings.yaml
 - scrollUntilVisible:

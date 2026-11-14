@@ -8,7 +8,8 @@ tags:
     arguments:
       "-AppleLanguages": "(ko)"
       "-AppleLocale": "ko_KR"
-# 실천 시트 → 집중 시작 → 멈춤 → 닫기
+# 실천 시트 → 집중 시작 → 멈춤(단추가 '계속'으로) → 그만하기(focus-close, 기록은 남기고 나간다)
+# 집중 화면(디자인 A, O4): 엄지 자리에 멈추기 · 끝내기, 그 아래 가운데 그만하기
 - runFlow: ../common/onboard.yaml
 - runFlow: ../common/sample.yaml
 - tapOn:
@@ -24,8 +25,12 @@ tags:
     visible:
       id: "focus-pause"
     timeout: 10000
+- assertVisible:
+    id: "focus-finish"
 - tapOn:
     id: "focus-pause"
+- assertVisible:
+    text: "계속"
 - assertVisible:
     id: "focus-close"
 - tapOn:

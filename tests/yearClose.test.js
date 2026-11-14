@@ -104,7 +104,7 @@ test('홈: 마무리 안내 줄은 yearClosePrompt일 때만, 머리 바로 아�
 test('설정: 한 해 — 새 표 시작하기 · 지난 표 보관함(n장)', () => {
   const s = src('src/screens/settings/YearRows.tsx');
   assert.match(s, /export function YearRows\(\{ M \}: \{ M: M \}\)/);
-  assert.match(s, /<SubHead M=\{M\} label=\{m\.year\.settingsHead\} \/>/);
+  assert.match(s, /<SetSection M=\{M\} label=\{m\.year\.settingsHead\} \/>/);
   assert.match(s, /<View testID=\{TID\.setYearClose\}>[\s\S]*openYearClose\(\)/);
   assert.match(s, /<View testID=\{TID\.setYearShelf\}>[\s\S]*openYear\(\{ kind: 'shelf' \}\)/);
   assert.match(s, /m\.year\.archiveCount\(\{ n \}\)/);

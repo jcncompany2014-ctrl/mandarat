@@ -6,6 +6,13 @@ import { tsu } from './counter';
 export default {
   month: ({ n }) => `${n}月`,
   settings: '設定',
+  eyebrow: ({ day, w }) => `${day}・第${w}週`,
+
+  heroToday: '今日',
+  heroDone: '達成',
+  heroLeft: '今年の残り',
+  unitCells: 'マス',
+  unitDays: () => '日',
 
   chartHint: 'マンダラートを開きます',
   coreGoal: '中心の目標',
@@ -27,6 +34,7 @@ export default {
   actionHint: '行動の詳細を見る',
 
   todayTitle: '今日やること',
+  seeAll: 'すべて見る',
   openToday: '「今日」を開く',
   todayHeadLabel: ({ total, done }) => `今日やること${tsu(total)}のうち${tsu(done)}できました。「今日」を開く`,
   more: ({ n }) => `ほかに${tsu(n)}あります`,
@@ -39,6 +47,7 @@ export default {
   weekTitle: '今週',
   weekDay: ({ day, n }) => `${day} ${n}回`,
   weekDayToday: ({ day, n }) => `${day} ${n}回、今日`,
+  weekClosed: '締め',
 
   areasTitle: '8つの分野',
   areaRowLabel: ({ name, line, n }) => `${name}、${line}、8マス中${n}マス達成`,

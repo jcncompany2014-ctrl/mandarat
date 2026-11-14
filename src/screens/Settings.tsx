@@ -262,6 +262,7 @@ export function Settings() {
         <LinkRow
           M={M}
           glyph="export"
+          glyphTone="print"
           divider={SYNC_ROWS}
           title={st.exportTitle}
           meta={backupAge}
@@ -270,8 +271,8 @@ export function Settings() {
           onPress={onExport}
           testID={TID.setExport}
         />
-        <LinkRow M={M} glyph="import" divider title={st.importTitle} meta={st.importSub} onPress={() => { tap(); setImporting(true); }} accessibilityLabel={st.importTitle} pressRef={importRow} testID={TID.setImport} />
-        <LinkRow M={M} glyph="copies" divider title={st.snapTitle} meta={st.snapSub} onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel={st.snapTitle} accessibilityHint={st.snapSub} testID={TID.setSnapshots} />
+        <LinkRow M={M} glyph="import" glyphTone="print" divider title={st.importTitle} meta={st.importSub} onPress={() => { tap(); setImporting(true); }} accessibilityLabel={st.importTitle} pressRef={importRow} testID={TID.setImport} />
+        <LinkRow M={M} glyph="copies" glyphTone="print" divider title={st.snapTitle} meta={st.snapSub} onPress={() => { tap(); setSnapsOpen(true); }} accessibilityLabel={st.snapTitle} accessibilityHint={st.snapSub} testID={TID.setSnapshots} />
         <SetNote M={M} text={storage.note} />
 
         {/* 보기 — 화면 모드(기기마다) · 종이 무늬(문서). 견본 줄의 이름은 그 위 줄 오른쪽에 */}
@@ -293,14 +294,14 @@ export function Settings() {
 
         {/* 정보 — 마크(L0) 한 장, 판권 줄, 링크 */}
         <SetSection M={M} label={st.secInfo} />
-        <View style={{ paddingTop: SET.swatchTop, marginBottom: SET.markBottom }}>
+        <View style={{ paddingTop: SET.markTop, marginBottom: SET.markBottom }}>
           <Mark size={SET.mark} />
         </View>
         <ColophonRow M={M} first label={st.colName} value={st.appName} />
         <ColophonRow M={M} label={st.colVersion} value={APP_VERSION} />
         <ColophonRow M={M} label={st.colFont} value={st.colFontValue} />
         <ColophonRow M={M} label={st.colPlace} value={storage.place} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: SET.linksGap, rowGap: 8, marginTop: SET.linksTop }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: SET.linksGap, rowGap: SET.linksRowGap, marginTop: SET.linksTop }}>
           {!!PRIVACY_URL && <TextLink M={M} label={st.privacy} onPress={() => openLink(privacyLink(lang()))} />}
           {!!SUPPORT_EMAIL && !!mailto && <TextLink M={M} label={st.contact} hint={st.contactHint} onPress={() => openLink(mailto)} />}
           <TextLink M={M} label={st.licenses} onPress={() => { tap(); setLicensesOpen(true); }} />

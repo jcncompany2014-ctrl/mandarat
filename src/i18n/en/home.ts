@@ -8,6 +8,13 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 export default {
   month: ({ n }) => MONTHS[n - 1] ?? '',
   settings: 'Settings',
+  eyebrow: ({ day, w }) => `${day} · Week ${w}`,
+
+  heroToday: 'Today',
+  heroDone: 'Achieved',
+  heroLeft: 'Left this year',
+  unitCells: 'squares',
+  unitDays: ({ n }) => plural(n, 'day', 'days'),
 
   chartHint: 'Opens the chart',
   coreGoal: 'Core goal',
@@ -29,6 +36,7 @@ export default {
   actionHint: 'Shows the action',
 
   todayTitle: "Today's list",
+  seeAll: 'See all',
   openToday: 'Open Today',
   todayHeadLabel: ({ total, done }) => `Today's list: ${done} of ${total} done, open Today`,
   more: ({ n }) => `${n} more`,
@@ -43,6 +51,7 @@ export default {
   weekTitle: 'This week',
   weekDay: ({ day, n }) => `${day}: ${n} ${plural(n, 'time', 'times')}`,
   weekDayToday: ({ day, n }) => `${day}: ${n} ${plural(n, 'time', 'times')}, today`,
+  weekClosed: 'day closed',
 
   areasTitle: '8 areas',
   areaRowLabel: ({ name, line, n }) => `${name}, ${line}, ${n} of 8 squares achieved`,

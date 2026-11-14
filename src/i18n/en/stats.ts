@@ -106,4 +106,29 @@ export default {
   moodNoneSay: ({ days: d }) => `No mood logged in the last ${d} ${days(d)}`,
   moodSay: ({ days: d, n }) => `Mood logged on ${n} of the last ${d} ${days(d)}`,
   moodDaySay: ({ date, word }) => `${date}: ${word}`,
+
+  eyebrow: ({ y, w, days }) => `${fmt.weekNo({ y, w })} · ${days} ${plural(days, 'day', 'days')} left`,
+  monthCells: ({ n }) => `${n} ${plural(n, 'square', 'squares')} this month`,
+  scopeWeek: 'This week',
+  scopeTen: '10 weeks',
+  scopeYear: 'This year',
+  reading: ({ top, n, low, lowN }) => {
+    const did = (k: number) => (k === 1 ? 'once' : `${k} ${times(k)}`);
+    if (!low) return `You worked on ${top} ${did(n)}`;
+    if (!(lowN > 0)) return `You worked on ${top} ${did(n)}, and not yet on ${low}`;
+    return `You worked on ${top} ${did(n)} and on ${low} ${did(lowN)}`;
+  },
+  readingEven: ({ k, n }) => `You worked on ${k} areas ${n === 1 ? 'once' : `${n} ${times(n)}`} each`,
+  weekAll: ({ n }) => `${n} ${times(n)} in all`,
+  doneHint: 'A square is achieved when you finish a one-time action or reach its target.',
+  areaCountSay: ({ name, n }) => `${name}: ${n} ${times(n)}`,
+  habitNone: 'No habits set',
+  mindNone: 'No mindset squares',
+  focusNone: 'No focus time yet',
+  linkSet: 'Set up',
+  linkSetHint: 'Choose a square’s kind on the Mandalart',
+  linkRate: 'Rate',
+  linkRateHint: 'Opens a square to rate this week',
+  linkToday: 'Open Today',
+  linkTodayHint: 'Start a 25-minute focus from Today’s list',
 } satisfies Like<typeof ko>;

@@ -59,8 +59,10 @@ test('처음 켤 때는 아침 08:00 · 저녁 21:00, 돌아보기는 일요일 
   const s = code(NOTIFY);
   assert.match(s, /DEFAULT_TIME: Record<TimedKind, string> = \{ morning: '08:00', evening: '21:00' \}/);
   assert.match(s, /t\.fmt\.dowLong\(\{ i: 0 \}\), time: t\.fmt\.time\(\{ h: REVIEW_HOUR, m: 0 \}\)/);
-  // 켠 줄 아래에만 시각 고르기
-  assert.match(s, /\{on && k !== 'review' && timeLabel && \(/);
+  // 켠 줄 아래에만 시각 고르기 — 시각 칩을 눌러 열었을 때(S6), 칩은 켠 아침 · 저녁 줄에서만 누른다
+  assert.match(s, /\{on && k !== 'review' && timeLabel && shown && \(/);
+  assert.match(s, /const timed = k !== 'review' && on && !!timeLabel;\s*const shown = timed && open === k;/);
+  assert.match(s, /onPress: timed \? \(\) => onChip\(k as TimedKind\) : undefined/);
   assert.match(s, /<RemindRow M=\{M\} value=\{rem\[k\] as string\}/);
 });
 
@@ -103,8 +105,8 @@ test('notifier.request(는 설정 › 알림과 편집 창의 누름 처리에�
     assert.ok(calls.length > 0, `${f}: ${name}을 부르는 곳`);
   }
   const n = code(NOTIFY);
-  assert.match(n, /onPress=\{\(\) => onToggle\(k\)\}/);
-  assert.match(n, /onPress=\{onDevice\}/);
+  assert.match(n, /onToggle=\{\(\) => onToggle\(k\)\}/);
+  assert.match(n, /onToggle=\{onDevice\}/);
   assert.match(n, /onPress: onAllow/);
   for (const fn of ['onToggle', 'onDevice', 'onAllow']) {
     const body = n.slice(n.indexOf(`const ${fn} = `), n.indexOf(`const ${fn} = `) + 500);
@@ -172,6 +174,8 @@ test('testID: 설정 줄 · 이 기기 줄 · 편집 창 시각', () => {
   const n = code(NOTIFY);
   assert.match(n, /testID=\{TID\.setNotify\(k\)\}/);
   assert.match(n, /testID=\{TID\.setNotifyDevice\}/);
+  // 시각 칩은 켠 아침 · 저녁 줄에서만 set-notify-<k>-time(.maestro/phone/06-reminders.yaml: 켜면 보이고 끄면 사라진다)
+  assert.match(n, /testID: timed \? TID\.setNotify\(`\$\{k\}-time`\) : undefined/);
   assert.match(code(EDITOR), /TID\.editorRemind/);
 });
 

@@ -9,7 +9,7 @@ export default {
 
   brand: 'Mandalart',
   heading: 'Write down one goal\nfor this year',
-  sub: 'Put the goal in the middle and write eight things around it.',
+  headingNote: 'Put the goal in the middle and write eight things around it.',
   goalLabel: 'Core goal',
   goalPlaceholder: 'e.g. Finish my first marathon',
   exampleMark: 'e.g.',

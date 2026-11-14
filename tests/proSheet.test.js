@@ -176,7 +176,7 @@ test('testID: proBuy · proRestore · proClose · setPro · setRestore', () => {
 
 test("설정 › 프로: '프로' 줄(열려 있어요 · 값 · 한 번 결제) · '구입 복원'은 iOS에서 늘", () => {
   const s = code(SECTION);
-  assert.match(s, /<Section M=\{M\} label=\{m\.pro\.sectionTitle\} \/>/);
+  assert.match(s, /<SetSection M=\{M\} label=\{m\.pro\.sectionTitle\} \/>/);
   assert.match(s, /if \(owned\) return m\.pro\.rowOpen/);
   assert.match(s, /m\.pro\.rowPrice\(\{ price \}\)/);
   assert.match(s, /\{STORE && \(\s*<View testID=\{TID\.setRestore\}>/);

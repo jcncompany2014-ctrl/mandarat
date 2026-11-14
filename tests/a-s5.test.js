@@ -83,12 +83,10 @@ function tileLabel(text, kind, tile, l, spec, pad, lineRatio) {
 }
 
 test('S5: 미리보기 칸 글 — 기본 영역(ko · ja · en)과 모든 템플릿 영역이 64 · 56 칸에 어절을 끊지 않고 든다', () => {
-  const [, pad] = num(/const PREVIEW = \{ tile: \d+, tileShort: \d+, gap: \d+, radius: GEO\.rField, pad: (\d+), note: \d+ \}/);
-  const head = num(/head: \{ sizes: \[([\d, ]+)\], lines: (\d+), weight: 600 \}/);
+  const [pad] = num(/const PREVIEW = \{ tile: \d+, tileShort: \d+, gap: \d+, radius: GEO\.rField, pad: (\d+), note: \d+ \}/);
   assert.match(onb, /head: \{ sizes: \[13, 12, 11, 10\], lines: 3, weight: 600 \}/);
   assert.match(onb, /core: \{ sizes: \[13, 12, 11, 10, 9\], lines: 4, weight: 700 \}/);
   assert.match(onb, /lineRatio: 17 \/ 13,/);
-  assert.equal(head.length, 2);
   const spec = { sizes: [13, 12, 11, 10], lines: 3 };
   const lineRatio = 17 / 13;
   for (const l of ['ko', 'ja', 'en']) {
@@ -165,19 +163,19 @@ test('S5: 새 말(브랜드 · 설명 · 알림)은 세 언어 모두, 한국어
   const ko = msg('ko').onboarding;
   assert.equal(ko.brand, '만다라트');
   assert.equal(ko.heading, '올해 꼭 이루고 싶은\n목표 하나를 적어 주세요');
-  assert.equal(ko.sub, '목표를 가운데에 두고, 여덟 가지를 둘러 적어요.');
+  assert.equal(ko.headingNote, '목표를 가운데에 두고, 여덟 가지를 둘러 적어요.');
   assert.equal(ko.goalLabel, '핵심 목표');
   assert.equal(ko.defaultCaption, '여덟 영역은 기본으로 채워 둬요. 나중에 바꿀 수 있어요.');
   assert.equal(ko.fromTemplate, '템플릿으로 시작하기');
   assert.equal(ko.start, '시작하기');
   for (const l of ['ja', 'en']) {
     const o = msg(l).onboarding;
-    for (const k of ['brand', 'sub', 'defaultCaption']) assert.ok(o[k] && o[k] !== ko[k], `${l}.${k}`);
+    for (const k of ['brand', 'headingNote', 'defaultCaption']) assert.ok(o[k] && o[k] !== ko[k], `${l}.${k}`);
   }
   assert.equal(msg('ja').onboarding.brand, 'マンダラート');
   assert.equal(msg('en').onboarding.brand, 'Mandalart');
   // 화면에서는 이름공간의 말로만
   assert.match(onb, /\{o\.brand\}/);
-  assert.match(onb, /\{o\.sub\}/);
+  assert.match(onb, /\{o\.headingNote\}/);
   assert.match(onb, /\{t\.core\.dot\}/);
 });

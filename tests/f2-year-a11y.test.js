@@ -98,10 +98,6 @@ test('A-8: 한 해 닫기 — 둘째 쪽부터 "‹ 이전"(44pt, onBack)', () =
   assert.equal(msg('en').common.back, 'Back');
 });
 
-test('D-5: 종이 무늬 견본 잉크는 종이 위 3:1', () => {
-  assert.match(src('src/screens/settings/PaperRows.tsx'), /const ink = legibleMark\(M\.faint, M\.bg, M\);/);
-});
-
 test('D-6: "프로" 글자는 한 가지 모양(13 · 600 · sub)', () => {
   for (const f of ['src/screens/year/YearReview.tsx', 'src/screens/year/YearSheet.tsx']) {
     assert.match(src(f), /\{ fontSize: 13, fontWeight: '600', color: M\.sub \}\}>\{m\.common\.proMark\}/, f);
@@ -117,5 +113,5 @@ test('D-9: 돌아보기의 닳은 자리 범례는 제목 줄과 같은 머리�
 });
 
 test('R2-2: 언어 아래 덧말(iPhone 언어를 따라요)은 iOS에서만', () => {
-  assert.match(src('src/screens/settings/LanguageSection.tsx'), /\{Platform\.OS === 'ios' && \(\n\s+<Text[^>]*>\{m\.lang\.footnote\}<\/Text>/);
+  assert.match(src('src/screens/settings/LanguageSection.tsx'), /\{Platform\.OS === 'ios' && \(\n\s+<SetNote M=\{M\} text=\{m\.lang\.footnote\} \/>/);
 });

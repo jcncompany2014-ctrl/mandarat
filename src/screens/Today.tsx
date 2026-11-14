@@ -1,36 +1,38 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Animated, Pressable, View } from 'react-native';
-import { Text, TextInput } from '../components/AppText';
-import { ProgressBar } from '../components/ProgressBar';
-import { useSettle } from '../lib/useSettle';
+import { AppState, Pressable, View } from 'react-native';
+import { Text } from '../components/AppText';
 import { animateLayout } from '../lib/layoutAnim';
-import { Header, IndexTabs, RowDivider, TextTabs, pressedRow, type IndexTabItem } from '../components/common';
+import {
+  Header, Sheet, SheetHeader, useSheetDismiss, type HeaderAction,
+} from '../components/common';
 import { Icon } from '../components/Icon';
 import { EmptyState } from '../components/EmptyState';
 import { MoodRow } from '../components/MoodRow';
-import { TodayRow, TODAY_ROW_INSET } from '../components/TodayRow';
-import { WeekCaption } from '../components/WeekStrip';
-import { alertInk } from '../components/KindBits';
-import { mix } from '../theme/moods';
-import { EASE } from '../theme/motion';
-import { NUM } from '../theme/type';
+import { TodayRow } from '../components/TodayRow';
+import { CheckBox, ChoiceRow, DyeMark, Field, FilterLine, Row, ROW, Section, type FilterItem } from '../components/kit';
+import { WeekBars, type WeekBarDay } from '../components/chart/WeekBars';
+import { GEO } from '../theme/tokens';
+import { PRETENDARD } from '../theme/fonts';
+import { ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useActions, useDoc, dateKey } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
-import { reducedMotion, useIncreaseContrast } from '../lib/useReducedMotion';
+import { reducedMotion, screenReader } from '../lib/useReducedMotion';
 import { useTodayCheck } from '../lib/useTodayCheck';
 import { orderedTodayItems, type TodayItem } from '../lib/routine';
 import { canPickAny, firstAreaWithEmpty } from '../lib/pick';
+import { weekPriority } from '../lib/ritual';
 import { weekdayIndex } from '../lib/marks';
-import { checkEdge } from '../components/Check';
-import { todaySummary } from '../lib/a11y';
 import { MGMT_LABEL } from '../lib/copy';
 import { useMsg } from '../i18n/react';
-import { dayCloseText, effectiveArea, isOverdue, tallyShape, todayAreaTabs, todayEmptyKind } from '../lib/todayList';
+import {
+  CLOSE_WAIT, TODAY_SPACE as S, closeNote, dayCloseText, effectiveArea, focusFirst, foldTitle, todayAreaTabs, todayEmptyKind,
+  weekBarCounts, weekBarsLabel, weekDow,
+} from '../lib/todayList';
 import type { Mgmt, TodayExtra } from '../types';
-import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
+import { sameProps } from '../lib/sameProps';
 import { TID } from '../lib/testIds';
 import { showGridAt } from './gridMemory';
 import { MindWeek, TodayKanban, TodayStreak } from './TodayModes';
@@ -38,22 +40,20 @@ import { MindWeek, TodayKanban, TodayStreak } from './TodayModes';
 /** 보기 방식 — 저장 값은 그대로, 화면에는 MGMT_LABEL(목록 · 연속 기록 · 보드) */
 const MODES: readonly Mgmt[] = ['일일 체크', '습관 스트릭', '칸반'];
 
-// 값이 같으면 다시 그리지 않는 머리·탭·기분 줄 — 체크할 때마다 문서가 바뀌어도 그대로
+// 값이 같으면 다시 그리지 않는 머리 · 기분 줄 — 체크할 때마다 문서가 바뀌어도 그대로
 const PureHeader = memo(Header);
-const PureTextTabs = memo(TextTabs) as typeof TextTabs;
 const PureMoodRow = memo(MoodRow);
-const PureWeekCaption = memo(WeekCaption);
-// 영역 색인 — 칸(items)은 값으로 비교하고, onChange는 같은 뜻의 새 함수여도 그대로(고른 영역만 바꾼다)
-const PureIndexTabs = memo(IndexTabs, (a, b) => {
-  const { items: ia, ...ra } = a;
-  const { items: ib, ...rb } = b;
-  return sameIgnoringHandlers(ra, rb) && ia.length === ib.length && ia.every((x, i) => sameProps(x, ib[i]));
-});
+// 거르기 줄 — 낱말(items)은 값으로 비교하고, onChange는 같은 뜻의 새 함수여도 그대로(고른 영역만 바꾼다)
+const PureFilter = memo(FilterLine, (a, b) => (
+  a.M === b.M && a.value === b.value && a.bleed === b.bleed
+  && a.items.length === b.items.length && a.items.every((x, i) => sameProps(x, b.items[i]))
+)) as typeof FilterLine;
 
 /**
- * 오늘 — 인쇄된 기록표 한 쪽.
- * 머리(날짜 · 오늘) → 글자 탭(목록 · 연속 기록 · 보드) → 보기 → 모든 보기 아래 같은 마무리(마음가짐 · 오늘 기분 · 한 줄).
- * 보기 방식은 여기서만 고른다(설정에는 없다).
+ * 오늘(디자인 A · today.png · dayclose.png).
+ * 머리(날짜 · 오늘 · 1/10 · ···) → 보기(목록 · 연속 기록 · 보드) → 모든 보기 아래 같은 마무리(마음가짐 · 오늘 기분 · 한 줄 · 이번 주).
+ * 보기 방식은 머리의 ···(TID.todayModes)가 여는 작은 시트에서만 고른다(설정에는 없다).
+ * 목록에서 다 한 날은 하루 마감: 큰 숫자 · 한 문장 · 글, 목록은 한 줄로 접힌다(머리의 숫자는 그리로 옮겨 한 번만 보인다).
  */
 export const Today = memo(function Today() {
   const M = usePalette();
@@ -66,6 +66,12 @@ export const Today = memo(function Today() {
   // 날이 바뀌면 다시 센다(문서가 그대로여도 오늘이 달라지면 목록이 바뀐다)
   const day = dateKey(now);
   const list = useMemo(() => orderedTodayItems(doc, new Date()), [doc, day, clock]); // eslint-disable-line react-hooks/exhaustive-deps
+  const extra = doc.todayExtra;
+  const done = list.filter((it) => it.done).length + extra.filter((x) => x.done).length;
+  const total = list.length + extra.length;
+  const complete = total > 0 && done === total;
+  const close = useDayClose(complete, day, !!doc.closedDays?.includes(day));
+  const [views, setViews] = useState(false);
 
   // 두 손가락 두 번 탭(매직 탭) — 남은 일 중 맨 위 하나를 체크한다
   const onMagicTap = () => {
@@ -75,329 +81,275 @@ export const Today = memo(function Today() {
     if (x) tc.toggleExtra(x);
   };
   const onMode = useCallback((v: Mgmt) => { tap(); animateLayout(); setSetting('mgmt', v); }, [setSetting]);
+  const openViews = useCallback(() => { tap(); setViews(true); }, []);
+  const action = useMemo<HeaderAction>(
+    () => ({ glyph: 'dots', onPress: openViews, label: m.today.viewsLabel, testID: TID.todayModes }),
+    [openViews, m],
+  );
   const meta = doc.dayMeta[day];
+  const listView = mgmt !== '습관 스트릭' && mgmt !== '칸반';
+  // 하루 마감의 큰 숫자가 보이면 머리의 숫자는 뺀다(같은 수를 두 번 보이지 않는다)
+  const figure = total > 0 && !(listView && close.shown) ? `${done}/${total}` : undefined;
+  const week = useMemo(() => weekBarCounts(doc.dayLog, new Date()).map((n) => (n == null ? '' : String(n))).join(','), [doc.dayLog, day]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <View onMagicTap={onMagicTap}>
-      <PureHeader M={M} sub={m.fmt.dateLong({ d: now })} kr={m.today.screenTitle} />
-      <View style={{ paddingHorizontal: 20, paddingBottom: 6 }}>
-        <PureTextTabs M={M} options={MODES} value={mgmt} labels={MGMT_LABEL} onChange={onMode} testID={TID.todayModes} />
-      </View>
-      {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} />}
-      <DayBlock M={M} day={day} mood={meta?.mood} reflection={meta?.reflection ?? ''} />
+      <PureHeader M={M} eyebrow={m.fmt.dateLong({ d: now })} title={m.today.screenTitle} figure={figure} action={action} />
+      {mgmt === '습관 스트릭' ? <TodayStreak M={M} /> : mgmt === '칸반' ? <TodayKanban M={M} /> : <TodayList M={M} list={list} close={close} />}
+      <DayBlock M={M} day={day} mood={meta?.mood} reflection={meta?.reflection ?? ''} week={week} todayIndex={weekdayIndex(now)} />
+      {views && <ViewsSheet M={M} value={mgmt} onPick={onMode} onClose={() => setViews(false)} />}
+      <CloseWatch day={day} onClose={close.onClosed} />
     </View>
   );
 });
 
+// ── 하루 마감 ─────────────────────────────────────────────────────────────────
+
+/** 마감 시각 — 이 화면에서 마감했을 때만 적어 둔다(저장하지 않고 앱이 켜져 있는 동안만) */
+let closeMemo: { day: string; at: Date } | null = null;
+
+interface DayClose {
+  /** 하루 마감을 그린다(다 했고, 방금 다 했으면 체크 획이 그어진 뒤) */
+  shown: boolean;
+  /** 접은 목록을 펼쳤다 — 스크린리더로 마지막 하나를 체크했으면 펼친 채로(줄이 커서 밑에서 사라지지 않게) */
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  /** 마감한 시각(모르면 null) */
+  at: Date | null;
+}
+
+/**
+ * 마감 신호 지켜보기 — 아무것도 그리지 않는다. 이 화면에 있는 동안 마지막 하나를 체크하면 Root가 마감 신호
+ * (ui.dayCloseTick · closedDay)를 보낸다 — 그 시각을 적어 두고 화면에 알린다. 화면 상태(시트 열림 등)가 바뀌어도
+ * 오늘 화면 전체가 다시 그려지지 않게 따로 둔다.
+ */
+function CloseWatch({ day, onClose }: { day: string; onClose: () => void }) {
+  const { dayCloseTick, closedDay } = useUIState();
+  const prevTick = useRef(dayCloseTick);
+  useEffect(() => {
+    if (dayCloseTick === prevTick.current) return;
+    prevTick.current = dayCloseTick;
+    if (closedDay !== day) return;
+    closeMemo = { day, at: new Date() };
+    onClose();
+  }, [dayCloseTick, closedDay, day, onClose]);
+  return null;
+}
+
+/**
+ * 하루 마감 — 다 한 날이면 마감을 그린다(예전 장부 두 줄과 같은 때: 다 찼을 때. 하나라도 풀면 바로 목록으로).
+ * 방금 다 했으면 체크 획과 먹선이 그어진 뒤(CLOSE_WAIT) 목록을 한 줄로 접는다.
+ * 마감 글의 '마감' 시각은 마감한 날(Root가 남긴 closedDays)이고 이 화면에서 마감 신호를 받았을 때만(CloseWatch).
+ */
+function useDayClose(complete: boolean, day: string, closedInDoc: boolean): DayClose & { onClosed: () => void } {
+  const [shown, setShown] = useState(complete);
+  const [open, setOpen] = useState(false);
+  const [, bump] = useState(0);
+  const onClosed = useCallback(() => bump((n) => n + 1), []);
+
+  useEffect(() => {
+    if (!complete) {
+      // 푸는 쪽은 바로(목록이 부드럽게 돌아오는 animateLayout은 체크를 풀 때 이미 불렀다)
+      if (shown) setShown(false);
+      if (open) setOpen(false);
+      return;
+    }
+    if (shown) return;
+    const fold = () => {
+      if (screenReader()) setOpen(true);
+      setShown(true);
+    };
+    if (reducedMotion()) { fold(); return; }
+    const t = setTimeout(() => { animateLayout(); fold(); }, CLOSE_WAIT);
+    return () => clearTimeout(t);
+  }, [complete, shown, open]);
+
+  return { shown: shown && complete, open, setOpen, at: closedInDoc && closeMemo?.day === day ? closeMemo.at : null, onClosed };
+}
+
 // ── 목록 ──────────────────────────────────────────────────────────────────────
 
-type Row = { key: string; done: boolean; it?: TodayItem; x?: TodayExtra };
+type Line = { key: string; done: boolean; text: string; ti: number; focus: boolean; it?: TodayItem; x?: TodayExtra };
 
-function TodayList({ M, list }: { M: M; list: TodayItem[] }) {
+function TodayList({ M, list, close }: { M: M; list: TodayItem[]; close: DayClose }) {
   const m = useMsg();
   const { doc, clock } = useDoc();
   const { openAction, openPick } = useUIActions();
   const now = new Date();
   const extra = doc.todayExtra;
-  const { held, hold } = useSettle();
-  // '+ 고르기' 점선 네모 — 빈 체크 칸과 같은 테두리(대비 증가에서는 더 진하게)
-  const edge = checkEdge(M.dark, useIncreaseContrast());
 
   const done = list.filter((it) => it.done).length + extra.filter((x) => x.done).length;
   const total = list.length + extra.length;
   const complete = total > 0 && done === total;
   // 아직 오늘 목록에 없는 실천이 남아 있으면 고를 수 있다
   const canPick = useMemo(() => canPickAny(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 이번 주 중점 — 지난주를 닫으며 고른 칸(홈과 같은 셈)
+  const focus = useMemo(() => weekPriority(doc, new Date()), [doc, clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 색인 — 오늘 할 일이 있는 영역만. 고른 영역이 비면 '전체'로
+  // 거르기 — 오늘 할 일이 있는 영역만. 고른 영역이 비면 '전체'로
   const tabs = useMemo(() => todayAreaTabs(list, extra), [list, extra]);
   const [picked, setPicked] = useState<number | null>(null);
   const area = effectiveArea(picked, tabs);
   useEffect(() => {
     if (picked != null && area == null) setPicked(null);
   }, [picked, area]);
-  // 다 한 날엔 '했어요' 묶음을 접어 마감 두 줄이 첫 화면에 그어지게 — 하나라도 풀면 다시 펼친다
-  const [doneOpen, setDoneOpen] = useState(false);
-  useEffect(() => { if (!complete) setDoneOpen(false); }, [complete]);
 
   if (total === 0) return <TodayEmpty M={M} canPick={canPick} />;
 
-  const rows: Row[] = [
-    ...list.filter((it) => area == null || it.ti === area).map((it) => ({ key: `b${it.key}`, done: it.done, it })),
-    ...extra.filter((x) => area == null || x.ti === area).map((x) => ({ key: `x${x.id}`, done: x.done, x })),
-  ];
-  // 방금 체크한 줄은 잠깐 제자리에 — 체크 획과 먹선을 본 뒤 '했어요' 묶음으로 내려간다
-  const sunk = (r: Row) => r.done && !held.has(r.key);
-  const pending = rows.filter((r) => !sunk(r));
-  const finished = rows.filter(sunk);
-  // 마감한 날엔 '실천에서 더 고르기' 줄을 빼고(위 '고르기'로 충분하다) 마감 두 줄을 바로 잇는다
-  const showPick = canPick && area == null && !complete;
-  // 요일 글자는 그 아래 줄에 이번 주 칸이 있을 때만 — 남은 습관 위, 또는 펼친 '했어요' 묶음 머리 아래
-  const pendingHabit = pending.some((r) => r.it?.kind === 'habit');
-  const doneHabit = finished.some((r) => r.it?.kind === 'habit');
-  const canFold = complete && finished.length > FOLD_MIN;
-  const fold = canFold && !doneOpen;
-
-  const onPick = () => { tap(); openPick(); };
-  const tabItems: IndexTabItem[] = [
-    { key: 'all', label: m.today.all, count: total },
-    ...tabs.map((t) => ({ key: String(t.ti), label: doc.themes[t.ti]?.title.trim() || m.today.areaFallback({ n: t.ti + 1 }), color: doc.themes[t.ti]?.color, count: t.count })),
+  const areaName = (ti: number) => doc.themes[ti]?.title.trim() || m.today.areaFallback({ n: ti + 1 });
+  const focusSet = new Set(focus);
+  // 중점 줄이 먼저, 나머지는 목록 순서 — 끝낸 줄은 제자리에서 먹선만 긋는다
+  const all: Line[] = [
+    ...focusFirst(list, focus).map((it) => ({
+      key: `b${it.key}`, done: it.done, text: doc.themes[it.ti]?.actions[it.ai]?.text ?? '', ti: it.ti, focus: focusSet.has(it.key), it,
+    })),
+    ...extra.map((x) => ({ key: `x${x.id}`, done: x.done, text: x.text, ti: x.ti, focus: false, x })),
   ];
 
-  const renderRow = (r: Row, variant: 'list' | 'done', divider: boolean) => {
-    const it = r.it;
+  const renderLine = (r: Line, i: number) => (
+    <TodayRow
+      key={r.key}
+      M={M}
+      item={r.it ?? r.x!}
+      variant="list"
+      divider={i > 0}
+      rightPrint={r.focus ? m.today.weekFocusMark : undefined}
+      onOpen={r.it ? () => openAction(r.it!.ti, r.it!.ai) : undefined}
+      // 풀면 목록(또는 하루 마감에서 목록으로)이 부드럽게 — 체크는 제자리에서 획만 긋는다
+      onCheck={(wasDone) => { if (wasDone) animateLayout(); }}
+    />
+  );
+
+  // ── 하루 마감 — 큰 숫자 · 한 문장 · 글, 목록은 한 줄로 접는다 ──
+  if (close.shown) {
+    const fold = !close.open;
+    const title = foldTitle(all.map((r) => r.text));
+    const areas = tabs.map((t) => ({ ti: t.ti, name: areaName(t.ti) }));
     return (
-      <ListRow
-        key={r.key}
-        M={M}
-        rowKey={r.key}
-        item={it ?? r.x!}
-        variant={variant}
-        divider={divider}
-        overdue={!!it && variant === 'list' && !r.done && isOverdue(doc, it, now)}
-        onOpen={it ? () => openAction(it.ti, it.ai) : undefined}
-        hold={hold}
-      />
+      <View style={{ paddingHorizontal: GEO.gutter }}>
+        <CloseHero M={M} total={total} note={closeNote(total, close.at)} speech={dayCloseText(now, total).speech} />
+        <View style={{ marginTop: S.foldTop }}>
+          <Section
+            M={M}
+            label={m.today.listTitle}
+            right={<FoldToggle M={M} open={!fold} count={total} onPress={() => { tap(); animateLayout(); close.setOpen(fold); }} />}
+          />
+          {fold ? <FoldRow M={M} title={title} areas={areas} total={total} /> : <View>{all.map(renderLine)}</View>}
+        </View>
+      </View>
     );
-  };
+  }
+
+  const rows = all.filter((r) => area == null || r.ti === area);
+  // 다 한 날엔 '실천에서 더 고르기' 줄을 뺀다(하루 마감이 곧 그려진다)
+  const showPick = canPick && area == null && !complete;
+  const filters: FilterItem<string>[] = [
+    { key: 'all', label: m.today.all, a11yLabel: m.core.labelCount({ label: m.today.all, n: total }) },
+    ...tabs.map((t) => {
+      const label = areaName(t.ti);
+      return { key: String(t.ti), label, area: t.ti, count: t.count, a11yLabel: m.core.labelCount({ label, n: t.count }) };
+    }),
+  ];
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
-      <Counter M={M} done={done} total={total} complete={complete} canPick={canPick} summary={todaySummary(doc, now)} onPick={onPick} />
-
-      {tabs.length > 1 && (
-        <View style={{ marginBottom: 4 }}>
-          <PureIndexTabs
-            M={M}
-            items={tabItems}
-            value={area == null ? 'all' : String(area)}
-            onChange={(k) => { tap(); animateLayout(); setPicked(k === 'all' ? null : Number(k)); }}
-          />
-        </View>
-      )}
-
-      {/* 습관 줄의 이번 주 칸 위에 요일 글자 — 오른쪽 81pt 칸에 맞춘다 */}
-      {pendingHabit && (
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingBottom: 5 }}>
-          <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} />
-        </View>
+    <View style={{ paddingHorizontal: GEO.gutter }}>
+      {tabs.length > 1 ? (
+        <PureFilter
+          M={M}
+          items={filters}
+          value={area == null ? 'all' : String(area)}
+          bleed={GEO.gutter}
+          style={{ marginTop: S.filterTop }}
+          onChange={(k) => { animateLayout(); setPicked(k === 'all' ? null : Number(k)); }}
+        />
+      ) : (
+        <View style={{ height: S.filterTop }} />
       )}
 
       {rows.length === 0 && (
-        <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: M.line, minHeight: 54, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }}>{m.today.areaEmpty}</Text>
+        <View style={{ minHeight: ROW.h, justifyContent: 'center' }}>
+          <Text style={[ROLE.note, { color: M.print }]}>{m.today.areaEmpty}</Text>
         </View>
       )}
 
-      {/* 한 배열로 그려야 줄이 '했어요' 묶음 위아래로 옮겨 갈 때 다시 만들어지지 않고 미끄러진다 */}
-      <View>
-        {[
-          ...(pending.length > 0 || showPick
-            ? [<View key="pending-top" style={{ height: 1, backgroundColor: M.line }} />]
-            : []),
-          ...pending.map((r, i) => renderRow(r, 'list', i > 0)),
-          ...(showPick
-            ? [
-                <Pressable
-                  key="pick"
-                  onPress={() => { tap(); openPick(); }}
-                  accessibilityRole="button"
-                  accessibilityLabel={m.today.pickMore}
-                  style={({ pressed }) => [
-                    { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-                    pressed ? pressedRow(M) : null,
-                  ]}
-                >
-                  {pending.length > 0 && <RowDivider M={M} inset={TODAY_ROW_INSET} />}
-                  <View
-                    style={{
-                      width: 26, height: 26, borderRadius: 7, borderWidth: edge.width > 1.6 ? 2 : 1.4, borderStyle: 'dashed', borderColor: edge.color,
-                      alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <Icon name="plus" size={13} color={M.sub} sw={2} />
-                  </View>
-                  <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: M.sub }} numberOfLines={1}>{m.today.pickMore}</Text>
-                </Pressable>,
-              ]
-            : []),
-          ...(pending.length > 0 || showPick
-            ? [<View key="pending-bottom" style={{ height: 1, backgroundColor: M.line }} />]
-            : []),
-          ...(finished.length > 0
-            ? [
-                <DoneHead
-                  key="done-head"
-                  M={M}
-                  count={finished.length}
-                  gapAbove={pending.length > 0 || showPick}
-                  fold={canFold ? fold : undefined}
-                  onToggle={() => { tap(); animateLayout(); setDoneOpen((o) => !o); }}
-                />,
-              ]
-            : []),
-          ...(!pendingHabit && doneHabit && !fold
-            ? [
-                <View key="done-caption" style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 6, paddingBottom: 5 }}>
-                  <PureWeekCaption M={M} todayIndex={weekdayIndex(now)} />
-                </View>,
-              ]
-            : []),
-          ...(fold ? [] : finished.map((r, i) => renderRow(r, 'done', i > 0))),
-        ]}
-      </View>
+      <View>{rows.map(renderLine)}</View>
 
-      <DayClose M={M} complete={complete} total={total} />
+      {/* 더 고르기 — 체크 칸 자리에 +, 끝에 꺾쇠(점선 네모 없이 글 한 줄) */}
+      {showPick && (
+        <Row
+          M={M}
+          title={m.today.pickMore}
+          titleStyle={{ fontFamily: PRETENDARD[600] }}
+          lead={<Icon name="plus" size={18} color={M.ink} />}
+          trailing={<Icon name="chevR" size={16} color={M.ink} style={{ marginRight: -4 }} />}
+          onPress={() => { tap(); openPick(); }}
+          accessibilityRole="button"
+          accessibilityLabel={m.today.pickMore}
+          style={{ marginTop: S.moreTop }}
+        />
+      )}
     </View>
   );
 }
 
-/** 다 한 날 '했어요'가 이보다 많으면 접는다 — 마감 두 줄이 SE 첫 화면 안에 그어지도록 */
-const FOLD_MIN = 3;
-
-/**
- * '했어요 n' 묶음 머리 — 글자 뒤로 괘선 하나. fold가 있으면(다 한 날, 접을 만큼 많을 때) 눌러서 접고 펼친다.
- */
-const DoneHead = memo(function DoneHead({ M, count, gapAbove, fold, onToggle }: {
-  M: M; count: number; gapAbove: boolean; fold?: boolean; onToggle: () => void;
-}) {
+/** 하루 마감의 머리 — 큰 숫자(48/56) · '오늘은 여기까지예요.' · '열 가지를 모두 했어요 · 오후 9:40 마감' */
+const CloseHero = memo(function CloseHero({ M, total, note, speech }: { M: M; total: number; note: string; speech: string }) {
   const m = useMsg();
-  const toggle = useRef(onToggle);
-  toggle.current = onToggle;
-  const head = (
-    <>
-      <Text style={{ fontSize: 12.5, fontWeight: '800', color: M.sub, ...NUM }}>{m.today.doneHead({ n: count })}</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: M.line }} />
-    </>
+  return (
+    <View style={{ marginTop: S.heroTop }} accessible accessibilityLabel={`${m.today.closeTitle} ${speech}`}>
+      <Text style={[ROLE.closeFigure, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>{`${total}/${total}`}</Text>
+      <Text style={[ROLE.prompt, { color: M.ink, marginTop: S.promptTop }]}>{m.today.closeTitle}</Text>
+      <Text style={[ROLE.note, { color: M.print, marginTop: S.noteTop }]}>{note}</Text>
+    </View>
   );
-  const row = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginTop: gapAbove ? 22 : 0 };
-  if (fold === undefined) {
-    return (
-      <View accessible accessibilityRole="header" accessibilityLabel={m.today.doneHeadLabel({ n: count })} style={[row, { marginBottom: 2 }]}>
-        {head}
-      </View>
-    );
-  }
+});
+
+/** 접은 목록의 '펼치기 ⌄' / '접기 ⌃' — 누르는 글(link 700 13/18 + 글리프 16) */
+function FoldToggle({ M, open, count, onPress }: { M: M; open: boolean; count: number; onPress: () => void }) {
+  const m = useMsg();
+  const word = open ? m.today.collapse : m.today.expand;
   return (
     <Pressable
-      onPress={() => toggle.current()}
+      onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={m.today.doneHeadLabel({ n: count })}
-      accessibilityState={{ expanded: !fold }}
-      hitSlop={{ top: 8, bottom: 8 }}
-      style={({ pressed }) => [row, { minHeight: 44 }, pressed ? { opacity: 0.5 } : null]}
+      accessibilityLabel={`${word}${m.today.listSep}${m.today.doneHeadLabel({ n: count })}`}
+      accessibilityState={{ expanded: open }}
+      hitSlop={{ top: 13, bottom: 13, left: 8, right: 8 }}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 2, opacity: pressed ? 0.5 : 1 })}
     >
-      {head}
-      <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{fold ? m.today.expand : m.today.collapse}</Text>
+      <Text style={[ROLE.link, { color: M.ink }]} numberOfLines={1}>{word}</Text>
+      <Icon name="down" size={16} color={M.ink} style={{ marginRight: -4, transform: open ? [{ rotate: '180deg' }] : undefined }} />
     </Pressable>
   );
-}, (a, b) => a.M === b.M && a.count === b.count && a.gapAbove === b.gapAbove && a.fold === b.fold);
+}
 
-/**
- * 목록의 한 줄 — 마감이 지난 줄은 여백에 붉은 세로 줄. 값이 같으면 다시 그리지 않는다
- * (함수는 누를 때만 읽으므로 부모가 새로 만들어 넘겨도 그대로 — TodayRow와 같은 규칙).
- */
-const ListRow = memo(function ListRow({ M, rowKey, item, variant, divider, overdue, onOpen, hold }: {
-  M: M;
-  rowKey: string;
-  item: TodayItem | TodayExtra;
-  variant: 'list' | 'done';
-  divider: boolean;
-  overdue: boolean;
-  onOpen?: () => void;
-  hold: (key: string) => void;
-}) {
-  return (
-    <View>
-      {/* 마감 지남 — 여백에 붉은 세로 줄 하나 */}
-      {overdue && (
-        <View pointerEvents="none" style={{ position: 'absolute', left: -10, top: 12, bottom: 12, width: 2, backgroundColor: alertInk(M) }} />
-      )}
-      <TodayRow
-        M={M}
-        item={item}
-        variant={variant}
-        divider={divider}
-        onOpen={onOpen}
-        // 체크할 땐 잠깐 붙잡고, 풀 땐 바로 부드럽게 위로
-        onCheck={(wasDone) => { if (wasDone) animateLayout(); else hold(rowKey); }}
-      />
-    </View>
-  );
-}, (a, b) => sameIgnoringHandlers(a, b) && !a.onOpen === !b.onOpen);
-
-// ── 집계 — 큰 숫자 + 할 일 수만큼의 네모 ─────────────────────────────────────
-
-const TALLY_BOX = 10;
-const TALLY_GAP = 3;
-
-/** summary: 화면 읽기로 읽을 오늘 요약(todaySummary) — 값이 같으면 다시 그리지 않는다(onPick은 누를 때만 쓴다) */
-const Counter = memo(function Counter({ M, done, total, complete, canPick, summary, onPick }: {
-  M: M; done: number; total: number; complete: boolean; canPick: boolean; summary: string; onPick: () => void;
+/** 접은 목록 한 줄 — 줄과 같은 뼈대: 끝낸 체크 칸 | '이력서 갱신, 주 3회 운동 외 8개' + 영역 표시와 이름 */
+const FoldRow = memo(function FoldRow({ M, title, areas, total }: {
+  M: M; title: string; areas: { ti: number; name: string }[]; total: number;
 }) {
   const m = useMsg();
-  const pick = useRef(onPick);
-  pick.current = onPick;
-  const shape = tallyShape(total);
-  const pendingBorder = mix(M.bg, M.ink, 0.3);
   return (
-    <View style={{ marginBottom: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
-        <View
-          accessible
-          accessibilityLabel={summary}
-          style={{ flex: 1, minWidth: 0 }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-            <Text style={{ fontSize: 34, lineHeight: 40, fontWeight: '800', color: M.ink, letterSpacing: -0.5, ...NUM }} maxFontSizeMultiplier={1.35}>
-              {done}
-            </Text>
-            <Text style={{ fontSize: 17, fontWeight: '600', color: M.sub, ...NUM }} maxFontSizeMultiplier={1.35}>
-              {` / ${total}`}
-            </Text>
-          </View>
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center', gap: ROW.gap, minHeight: ROW.h }}
+      accessible
+      accessibilityLabel={m.today.foldLabel({ n: total, title: [title, ...areas.map((a) => a.name)].join(m.today.listSep) })}
+    >
+      <CheckBox M={M} state="done" />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={[ROLE.rowTitle, { color: M.ink }]} numberOfLines={1}>{title}</Text>
+        <View style={{ flexDirection: 'row', overflow: 'hidden' }}>
+          {areas.map((a, i) => (
+            <View key={a.ti} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0, marginLeft: i > 0 ? S.foldAreaGap : 0 }}>
+              <DyeMark M={M} area={a.ti} style={{ marginRight: S.foldDyeGap }} />
+              <Text style={[ROLE.rowMeta, { color: M.ink2 }]} numberOfLines={1}>{a.name}</Text>
+            </View>
+          ))}
         </View>
-        {canPick && (
-          <Pressable
-            onPress={() => pick.current()}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel={m.today.pick}
-            accessibilityHint={m.today.pickHint}
-            style={({ pressed }) => ({ minHeight: 32, justifyContent: 'center', marginBottom: 2, opacity: pressed ? 0.5 : 1 })}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: M.sub }}>{m.today.pick}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ marginTop: 8 }}>
-        {shape === 'boxes' && (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: TALLY_GAP }}>
-            {Array.from({ length: total }, (_, i) => (
-              <View
-                key={i}
-                style={i < done
-                  ? { width: TALLY_BOX, height: TALLY_BOX, borderRadius: 2, backgroundColor: M.ink }
-                  : { width: TALLY_BOX, height: TALLY_BOX, borderRadius: 2, borderWidth: 1, borderColor: pendingBorder }}
-              />
-            ))}
-          </View>
-        )}
-        {shape === 'bar' && (
-          <ProgressBar pct={(done / total) * 100} height={3} radius={1.5} color={M.ink} track={pendingBorder} />
-        )}
-        {complete && (
-          <Text style={{ fontSize: 13, fontWeight: '600', color: M.ink, marginTop: 8 }}>{m.today.allDone}</Text>
-        )}
       </View>
     </View>
   );
-}, (a, b) => {
-  const { onPick: _a, ...ra } = a;
-  const { onPick: _b, ...rb } = b;
-  return sameProps(ra, rb);
-});
+}, (a, b) => a.M === b.M && a.title === b.title && a.total === b.total
+  && a.areas.length === b.areas.length && a.areas.every((x, i) => x.ti === b.areas[i].ti && x.name === b.areas[i].name));
 
 // ── 빈 목록 ───────────────────────────────────────────────────────────────────
 
@@ -407,7 +359,7 @@ function TodayEmpty({ M, canPick }: { M: M; canPick: boolean }) {
   const { openPick, go } = useUIActions();
   const kind = todayEmptyKind(doc, canPick);
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: 16 }}>
+    <View style={{ paddingHorizontal: GEO.gutter, paddingTop: S.filterTop }}>
       {kind === 'fill' && (
         <EmptyState
           variant="paper"
@@ -437,105 +389,86 @@ function TodayEmpty({ M, canPick }: { M: M; canPick: boolean }) {
   );
 }
 
-// ── 하루 마감 — 장부의 두 줄 ──────────────────────────────────────────────────
+// ── 보기 고르기 — 머리 ···가 여는 작은 시트 ─────────────────────────────────────
 
-/** 마감 줄이 그어지는 시간 · 체크 획이 끝날 때까지 기다리는 시간(Root의 마감 촉감 650ms에 끝난다) · 지우는 시간 */
-const CLOSE_MS = 420;
-const CLOSE_DELAY = 230;
-const RETRACT_MS = 160;
-/** 다 찼는데 마감 신호(dayCloseTick)가 오지 않으면 — 지워서 다 찼거나 오늘 이미 마감한 날 — 이만큼 뒤 그냥 그려 둔다 */
-const TICK_WAIT = 150;
-
-const DayClose = memo(function DayClose({ M, complete, total }: { M: M; complete: boolean; total: number }) {
-  const { dayCloseTick } = useUIState();
-  const mountTick = useRef(dayCloseTick);
-  const prevTick = useRef(dayCloseTick);
-  const wasComplete = useRef(complete);
-  const [shown, setShown] = useState(complete);
-  const t = useRef(new Animated.Value(complete ? 1 : 0)).current;
-  const wait = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const tickChanged = dayCloseTick !== prevTick.current;
-    prevTick.current = dayCloseTick;
-    const became = complete && !wasComplete.current;
-    wasComplete.current = complete;
-    const clearWait = () => { if (wait.current) { clearTimeout(wait.current); wait.current = null; } };
-
-    if (!complete) {
-      clearWait();
-      if (reducedMotion()) { t.setValue(0); setShown(false); return; }
-      const a = Animated.timing(t, { toValue: 0, duration: RETRACT_MS, easing: EASE.in, useNativeDriver: true });
-      a.start(({ finished }) => { if (finished) setShown(false); });
-      return () => a.stop();
-    }
-
-    // 이번에 화면에 있는 동안 마감했다 — 왼쪽에서 오른쪽으로 긋는다
-    if (tickChanged && dayCloseTick !== mountTick.current) {
-      clearWait();
-      setShown(true);
-      if (reducedMotion()) { t.setValue(1); return; }
-      t.setValue(0);
-      const a = Animated.timing(t, { toValue: 1, duration: CLOSE_MS, delay: CLOSE_DELAY, easing: EASE.out, useNativeDriver: true });
-      a.start();
-      return () => a.stop();
-    }
-
-    // 막 다 찼다 — Root가 곧 마감 신호를 보낼 수 있으니 잠깐 기다렸다가, 오지 않으면 그려 둔 채로
-    if (became) {
-      setShown(true);
-      if (reducedMotion()) { t.setValue(1); return; }
-      t.setValue(0);
-      clearWait();
-      wait.current = setTimeout(() => { wait.current = null; t.setValue(1); }, TICK_WAIT);
-    }
-  }, [complete, dayCloseTick, t]);
-
-  useEffect(() => () => { if (wait.current) clearTimeout(wait.current); }, []);
-
-  if (!shown) return null;
-  const text = dayCloseText(new Date(), total);
+function ViewsSheet({ M, value, onPick, onClose }: { M: M; value: Mgmt; onPick: (v: Mgmt) => void; onClose: () => void }) {
+  const m = useMsg();
   return (
-    <View style={{ marginTop: 14 }} accessible accessibilityLabel={text.speech}>
-      <Animated.View style={{ transformOrigin: 'left', transform: [{ scaleX: t }] }}>
-        <View style={{ height: 1, backgroundColor: M.ink }} />
-        <View style={{ height: 1, marginTop: 2, backgroundColor: M.ink }} />
-      </Animated.View>
-      <Animated.View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8, opacity: t }}>
-        <Text style={{ fontSize: 13, fontWeight: '500', color: M.sub }} numberOfLines={1}>{text.left}</Text>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: M.ink, ...NUM }}>{text.right}</Text>
-      </Animated.View>
+    <Sheet M={M} onClose={onClose} ownClose pad header={<SheetHeader M={M} title={m.today.viewsLabel} />}>
+      <ViewChoices M={M} value={value} onPick={onPick} />
+    </Sheet>
+  );
+}
+
+/** 세 보기 — 고르기 줄(라디오). 고르면 뒤 화면이 바뀌고 시트는 내려간다 */
+function ViewChoices({ M, value, onPick }: { M: M; value: Mgmt; onPick: (v: Mgmt) => void }) {
+  const dismiss = useSheetDismiss();
+  return (
+    <View accessibilityRole="radiogroup">
+      {MODES.map((v, i) => (
+        <ChoiceRow
+          key={v}
+          M={M}
+          title={MGMT_LABEL[v]}
+          on={v === value}
+          divider={i > 0}
+          onPress={() => { onPick(v); dismiss(true); }}
+        />
+      ))}
     </View>
   );
-});
+}
 
-// ── 모든 보기 아래 — 마음가짐 · 오늘 기분 · 한 줄 ─────────────────────────────
+// ── 모든 보기 아래 — 마음가짐 · 오늘 기분 · 한 줄 · 이번 주 ─────────────────────
 
-/** 오늘 기분과 한 줄은 값으로 받는다 — 체크로 문서가 바뀌어도 이 묶음은 다시 그리지 않는다(마음가짐은 MindWeek가 따로 본다) */
-const DayBlock = memo(function DayBlock({ M, day, mood, reflection }: { M: M; day: string; mood?: number; reflection: string }) {
+/**
+ * 오늘 기분 · 한 줄 · 이번 주는 값으로 받는다 — 체크로 문서가 바뀌어도 이 묶음은 다시 그리지 않는다
+ * (마음가짐은 MindWeek가 따로 본다. 이번 주는 막대 수를 이은 글(week)로 비교한다).
+ */
+const DayBlock = memo(function DayBlock({ M, day, mood, reflection, week, todayIndex }: {
+  M: M; day: string; mood?: number; reflection: string; week: string; todayIndex: number;
+}) {
   const m = useMsg();
   const { setDayMood } = useActions();
   const onMood = useCallback((i: number) => setDayMood(i, day), [setDayMood, day]);
   return (
-    <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+    <View style={{ paddingHorizontal: GEO.gutter }}>
       <MindWeek M={M} />
-      <View style={{ marginTop: 28 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 10 }} accessibilityRole="header">{m.today.moodTitle}</Text>
+      <View style={{ marginTop: S.module }}>
+        <Section M={M} tone="label" label={m.today.moodTitle} style={{ marginBottom: S.labelGap }} />
         <PureMoodRow M={M} value={mood} onPick={onMood} />
-      </View>
-      <View style={{ marginTop: 24 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: M.ink, marginBottom: 2 }} accessibilityRole="header">{m.today.lineTitle}</Text>
+        <Section M={M} tone="label" label={m.today.lineTitle} style={{ marginTop: S.fieldGap, marginBottom: S.labelGap }} />
         <Reflection key={day} M={M} stored={reflection} />
       </View>
+      <WeekSection M={M} week={week} todayIndex={todayIndex} />
     </View>
   );
 });
+
+/** 이번 주 — 머리('이번 주' · '16번') + 막대 일곱(G WeekBars: 오늘 막대 먹, 아직 오지 않은 날은 점) */
+function WeekSection({ M, week, todayIndex }: { M: M; week: string; todayIndex: number }) {
+  const m = useMsg();
+  const counts = week.split(',').map((s) => (s === '' ? null : Number(s)));
+  const total = counts.reduce<number>((s, n) => s + (n ?? 0), 0);
+  const days: WeekBarDay[] = counts.map((n, i) => ({
+    label: m.fmt.dowNarrow({ i: weekDow(i) }),
+    n,
+    today: i === todayIndex,
+    sunday: weekDow(i) === 0,
+  }));
+  return (
+    <View style={{ marginTop: S.week }}>
+      <Section M={M} label={m.today.weekTitle} meta={m.fmt.times({ n: total })} style={{ marginBottom: S.weekHead }} />
+      <WeekBars days={days} accessibilityLabel={weekBarsLabel(counts, todayIndex)} />
+    </View>
+  );
+}
 
 /** 저장을 미루는 시간 — 글자마다 문서 전체를 다시 저장하지 않게 */
 const IDLE_MS = 400;
 
 /**
- * 한 줄 회고 — 괘선 한 줄(아랫줄만). 쓰는 동안은 화면 안에서만 들고 있다가
+ * 한 줄 회고 — kit 입력 칸(tile, 모서리 12, 52 높이, 자리 글 print). 쓰는 동안은 화면 안에서만 들고 있다가
  * 400ms 쉬면 · 칸을 떠나면 · 화면을 벗어나면 · 앱이 뒤로 가면 저장한다.
  * 저장할 날은 칸을 누른 그날 — 자정을 넘겨 써도 어제의 한 줄로 남는다.
  * 쓰고 있지 않을 때만 저장된 글(백업 불러오기 등)로 다시 맞춘다.
@@ -571,7 +504,9 @@ const Reflection = memo(function Reflection({ M, stored }: { M: M; stored: strin
   }, [commit]);
 
   return (
-    <TextInput
+    <Field
+      M={M}
+      variant="small"
       value={draft}
       onFocus={() => { focused.current = true; dayRef.current = dateKey(); }}
       onBlur={() => { focused.current = false; commit(); }}
@@ -584,10 +519,11 @@ const Reflection = memo(function Reflection({ M, stored }: { M: M; stored: strin
       }}
       accessibilityLabel={m.today.linePlaceholder}
       placeholder={m.today.linePlaceholder}
-      placeholderTextColor={M.sub}
       maxLength={120}
       returnKeyType="done"
-      style={{ borderBottomWidth: 1, borderColor: M.line, paddingVertical: 10, paddingHorizontal: 0, color: M.ink, fontSize: 15 }}
+      // 목업의 한 줄 칸 — 52 높이, 글자 16/24(rowTitle 크기)
+      style={{ minHeight: S.line }}
+      inputStyle={{ fontSize: ROLE.rowTitle.fontSize, paddingVertical: (S.line - (ROLE.fieldTextSmall.lineHeight ?? 24)) / 2 }}
     />
   );
 });

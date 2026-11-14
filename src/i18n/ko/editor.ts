@@ -19,6 +19,9 @@ export default {
   themePlaceholder: '예) 건강',
   /** 실천 칸의 제목 — '건강 · 실천 3/8' */
   actionTitle: ({ area, n }: { area: string; n: number }) => `${area} · 실천 ${n}/8`,
+  /** 시트 머리 둘째 줄(인쇄 색) — 실천 칸 '실천 3/8' · 영역 이름 칸 '영역 이름' (첫 줄은 영역 이름) */
+  actionN: ({ n }: { n: number }) => `실천 ${n}/8`,
+  themeSub: '영역 이름',
   /** 예시 자리 글 — '예) 하루 30분 걷기' */
   example: ({ text }: { text: string }) => `예) ${text}`,
   /** 이름이 빈 영역 — '영역 3' */
@@ -52,6 +55,15 @@ export default {
   charCount: ({ n, max }: { n: number; max: number }) => `${max}자 중 ${n}자`,
   helpTitle: '이런 실천은 어때요',
   helpHint: '누르면 내용에 적어요',
+  /**
+   * 실천 글 점검(GuideChips) — 입력 칸 아래 한 줄. 빠진 것만 말한다(셋 다 있으면 부르지 않는다).
+   * 셋 다 빠지면 '무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요'
+   */
+  coachNote: ({ noWhat, noHow, noWhen }: { noWhat: boolean; noHow: boolean; noWhen: boolean }) => {
+    const list = [noWhat && '무엇을', noHow && '얼마나', noWhen && '언제·어디서'].filter(Boolean).join(', ');
+    if (!list) return '';
+    return `${list.endsWith('을') ? list : josa(list, '을/를')} 쓰면 실천하기 쉬워요`;
+  },
 
   // ── 유형 ──
   kindLabel: '유형',
@@ -66,6 +78,12 @@ export default {
   offerKeepA11y: '지금 유형 그대로 두기',
   offerTake: '바꾸기',
   offerTakeA11y: ({ label }: { label: string }) => `${josa(label, '으로/로')} 바꾸기`,
+  /** 유형 고르기 아래 한 줄 — 고른 유형이 '오늘'에 어떻게 담기는지 */
+  noteOnce: '마감 사흘 전부터 ‘오늘’에 담겨요',
+  noteHabitDays: '정한 요일마다 ‘오늘’에 담겨요',
+  noteHabitWeek: '횟수를 다 할 때까지 매일 ‘오늘’에 담겨요',
+  noteCount: '목표 수에 닿으면 칸이 달성돼요',
+  noteMind: '한 주에 한 번 1~5점으로 돌아봐요',
 
   // ── 습관 ──
   repeat: '반복',
@@ -80,6 +98,9 @@ export default {
   perWeekLess: '주 1회 줄이기',
   perWeekMore: '주 1회 늘리기',
   days: '요일',
+  /** 알림 '시각 정하기' 줄의 정보 — '오후 10:30 · 정한 요일마다' */
+  remindDays: '정한 요일마다',
+  remindWeek: '횟수를 채울 때까지 매일',
 
   // ── 쌓기 ──
   goal: '목표',

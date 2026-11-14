@@ -6,10 +6,12 @@ import { groupNum } from '../num';
 
 export default {
   centerTitle: '中心の目標',
-  centerPlaceholder: '例）初めてのマラソンを完走',
+  centerPlaceholder: '例）初マラソン完走',
   themeTitle: ({ n }) => `分野${n}の名前`,
   themePlaceholder: '例）健康',
   actionTitle: ({ area, n }) => `${area}・行動 ${n}/8`,
+  actionN: ({ n }) => `行動 ${n}/8`,
+  themeSub: '分野の名前',
   example: ({ text }) => `例）${text}`,
   areaN: ({ n }) => `分野${n}`,
 
@@ -35,6 +37,10 @@ export default {
   charCount: ({ n, max }) => `${max}文字中${n}文字`,
   helpTitle: 'こんな行動はどうですか',
   helpHint: '押すと内容に入ります',
+  coachNote: ({ noWhat, noHow, noWhen }) => {
+    const list = [noWhat && '何を', noHow && 'どれだけ', noWhen && 'いつ・どこで'].filter(Boolean).map((w) => `「${w}」`).join('');
+    return list ? `${list}を書くと、行動に移しやすくなります` : '';
+  },
 
   kindLabel: '種類',
   kindA11y: ({ label }) => `種類 ${label}`,
@@ -45,6 +51,11 @@ export default {
   offerKeepA11y: '今の種類のままにする',
   offerTake: '変える',
   offerTakeA11y: ({ label }) => `${label}に変える`,
+  noteOnce: '締め切りの3日前から「今日」に入ります',
+  noteHabitDays: '決めた曜日ごとに「今日」に入ります',
+  noteHabitWeek: '回数をこなすまで毎日「今日」に入ります',
+  noteCount: '目標の数に届くと、マスが達成になります',
+  noteMind: '週に一度、1〜5点でふりかえります',
 
   repeat: '繰り返し',
   byDays: '曜日で',
@@ -56,6 +67,8 @@ export default {
   perWeekLess: '週1回減らす',
   perWeekMore: '週1回増やす',
   days: '曜日',
+  remindDays: '決めた曜日ごと',
+  remindWeek: '回数をこなすまで毎日',
 
   goal: '目標',
   unit: '単位',

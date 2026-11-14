@@ -20,8 +20,8 @@ function lumOver(rgba, bg) {
 
 // D-14(탭바 위 지금 탭 표시 막대)는 디자인 A의 떠 있는 탭 막대(고른 탭은 칠한 글리프)로 바뀌어 지웠다 — tests/a-chrome.test.js가 본다
 
-test('D-15: 설정 제목은 뒤로 가기 아래 줄(20pt 왼쪽 끝), 최근 10주 칸은 오른쪽 끝까지', () => {
-  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} kr=\{st\.screenTitle\} onBack=\{back\} focusTitle stacked backTestID=\{TID\.setBack\} \/>/);
+test('D-15: 설정 제목은 뒤로 가기 아래 줄(머리는 스크롤 밖에 고정, S6), 최근 10주 칸은 오른쪽 끝까지', () => {
+  assert.match(src('src/screens/Settings.tsx'), /<Header M=\{M\} title=\{st\.screenTitle\} onBack=\{back\} focusTitle pinned backTestID=\{TID\.setBack\} \/>/);
   const charts = src('src/components/StatsCharts.tsx');
   assert.match(charts, /const labelW = Math\.max\(HEAT_LABEL_W, Math\.floor\(width\) - cell \* map\.cols\.length - HEAT_GAP \* \(map\.cols\.length - 1\)\);/);
   assert.doesNotMatch(charts, /width: HEAT_LABEL_W/);
@@ -62,7 +62,7 @@ test('D-24: 닳은 자리 범례 견본의 밝기가 실제 칸(영역 색) 범�
   assert.match(charts, /position: 'absolute', left: 3, right: 3, bottom: 3, height: 2, backgroundColor: headTrack\(th\.color\)/);
 });
 
-test('D-31: 설정 › 기록 — 백업 묶음(+저장 위치 안내)과 새로 시작 묶음을 떼어 둔다', () => {
+test('D-31: 설정 — 백업 묶음(iCloud와 백업 + 저장 위치 안내)과 새로 시작 묶음을 떼어 둔다', () => {
   const s = src('src/screens/Settings.tsx');
   const at = (needle) => {
     const i = s.indexOf(needle);
@@ -70,9 +70,9 @@ test('D-31: 설정 › 기록 — 백업 묶음(+저장 위치 안내)과 새로
     return i;
   };
   const order = [
-    '<Section M={M} label={st.secRecords} />', '<SubHead M={M} label={st.subBackup} first />', 'title={st.exportTitle}', 'title={st.importTitle}',
-    'last title={st.snapTitle}', '{storage.note}', '<SubHead M={M} label={st.subRestart} />', 'first title={st.templateRow}',
-    'title={st.sampleRow}', 'last danger title={st.resetRow}', '<Section M={M} label={st.secInfo} />',
+    '<SetSection M={M} label={st.secCloud} />', '<SyncSection M={M} />', 'title={st.exportTitle}', 'title={st.importTitle}',
+    'glyph="copies" glyphTone="print" divider title={st.snapTitle}', '<SetNote M={M} text={storage.note} />', '<SetSection M={M} label={st.subRestart} />', 'first title={st.templateRow}',
+    'title={st.sampleRow}', 'last danger title={st.resetRow}', '<SetSection M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
 });

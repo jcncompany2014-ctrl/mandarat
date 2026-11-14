@@ -15,18 +15,23 @@ test('설정: v2 구역 자리가 정해진 순서로 있다', () => {
     assert.ok(i >= 0, needle);
     return i;
   };
+  // 디자인 A(build-plan §1 settings): 핵심 목표 · 알림 · iCloud와 백업 · 보기 · 언어 · 한 해 · 새로 시작 · 프로 · 정보
   const order = [
-    '<Section M={M} label={st.secGoal} />',
-    '<Section M={M} label={st.secView} />', '<SubHead M={M} label={st.subShape} />', '<PaperRows M={M} />',
-    '<LanguageSection M={M} />', '<NotifySection M={M} />', '<SyncSection M={M} />',
-    '<Section M={M} label={st.secRecords} />', 'last title={st.snapTitle}', '{storage.note}', '<YearRows M={M} />', '<SubHead M={M} label={st.subRestart} />',
+    '<SetSection M={M} label={st.secGoal} first />',
+    '<NotifySection M={M} />',
+    '<SetSection M={M} label={st.secCloud} />', '<SyncSection M={M} />', 'glyph="copies" glyphTone="print" divider title={st.snapTitle}', '<SetNote M={M} text={storage.note} />',
+    '<SetSection M={M} label={st.secView} note={st.subLook} />', '<LookRows M={M} />', '<PaperRows M={M} />',
+    '<LanguageSection M={M} />', '<YearRows M={M} />', '<SetSection M={M} label={st.subRestart} />',
     'last danger title={st.resetRow}', '<ProSection M={M} />',
-    '<Section M={M} label={st.secInfo} />',
+    '<SetSection M={M} label={st.secInfo} />',
   ].map(at);
   assert.deepEqual(order, [...order].sort((a, b) => a - b));
+  // 예전 종이 색 · 포인트 컬러 · 칸 모서리 줄은 없다(값은 문서에 남는다, build-plan §2.4)
+  assert.doesNotMatch(s, /setSetting\('(mood|accent|cellShape)'/);
+  assert.doesNotMatch(s, /\bMOODS\b|\bACCENTS\b|st\.subAccent|st\.subShape/);
   // 줄 모양은 settings/rows.tsx 한 곳에
   const rows = src('src/screens/settings/rows.tsx');
-  for (const name of ['Section', 'SubHead', 'RadioRow', 'TextLink', 'ColophonRow', 'rowBase', 'ask']) {
+  for (const name of ['SetSection', 'SwatchHead', 'SetNote', 'SubHead', 'TextLink', 'ColophonRow', 'ask']) {
     assert.match(rows, new RegExp(`export function ${name}\\(`), name);
     assert.doesNotMatch(s, new RegExp(`\\nfunction ${name}\\(`), `${name}는 Settings.tsx에 다시 두지 않는다`);
   }

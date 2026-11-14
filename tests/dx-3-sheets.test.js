@@ -77,13 +77,4 @@ test("D-19: 오늘 고르기 — 아무것도 없으면 '오늘 0개 · 다 골�
   assert.equal(require('../src/i18n/ko/common').default.close, '닫기');
 });
 
-test('D-22: 집중 타이머 — 멈추면 숫자가 흐려지고(4.5:1 이상) 움직임 없이도 다르게 보인다', () => {
-  const s = src('src/overlays/FocusTimer.tsx');
-  assert.match(s, /color: run \|\| finished \? '#fff' : 'rgba\(255,255,255,0\.5\)'/);
-  assert.match(s, /breath\.setValue\(run && !finished \? 0\.43 : 0\)/);
-  // 흰색 50%를 각 무드의 어두운 바탕(M.center)에 겹친 색
-  for (const [name, M] of Object.entries(MOODS)) {
-    const c = contrast(toHex(mix(M.center, '#FFFFFF', 0.5)), toHex(M.center));
-    assert.ok(c >= 4.5, `${name}: ${c.toFixed(2)}`);
-  }
-});
+// D-22(집중 타이머: 멈추면 숫자가 흐려진다)는 O4가 종이 위 새 그림으로 옮겼다 — tests/a-o4.test.js.

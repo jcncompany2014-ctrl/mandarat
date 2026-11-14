@@ -186,7 +186,7 @@ test('설정 › 언어: 네 줄 · 언어 이름 · 고르면 chooseLang과 새
   assert.match(s, /process\.env\.EXPO_PUBLIC_APP_ENV/);
   const { languageSectionShown } = loadTsx('src/screens/settings/LanguageSection.tsx', {
     '../../components/AppText': {}, '../../components/Check': {}, '../../components/common': {}, '../../lib/haptics': {},
-    '../../lib/useReducedMotion': {}, '../../i18n/react': {}, '../../i18n/prefs': {}, './rows': {},
+    '../../lib/useReducedMotion': {}, '../../i18n/react': {}, '../../i18n/prefs': {}, './rows': {}, '../../components/kit': {},
   });
   assert.equal(languageSectionShown(false, false, 'production'), false, '스토어 빌드 · Vercel 미리보기에는 아직 없다');
   assert.equal(languageSectionShown(false, false, undefined), false);

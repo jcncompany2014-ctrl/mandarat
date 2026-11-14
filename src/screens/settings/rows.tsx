@@ -25,11 +25,13 @@ export const SET = {
   noticeTop: 12,
   /** 정보: 마크 · 정보 표 이름 칸 · 링크 줄 */
   mark: 40,
+  markTop: 10,
   markBottom: 14,
   colophonLabelW: 72,
   colophonPadY: 10,
   linksTop: 16,
   linksGap: 20,
+  linksRowGap: 8,
 } as const;
 
 /** 확인 대화상자 — 웹은 window.confirm, 네이티브는 Alert(취소 단추는 지금 언어의 common.cancel) */

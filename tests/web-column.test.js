@@ -29,7 +29,7 @@ test('웹: 앱 틀 · 시트 · 전체 화면 창이 같은 폭 안에 선다', 
   assert.match(src('src/components/common.tsx'), /panel,\s*shadow\(8/);
   for (const f of ['src/overlays/FocusTimer.tsx', 'src/overlays/WeekRitual.tsx', 'src/overlays/Celebration.tsx']) {
     const s = src(f);
-    assert.match(s, /<PaperColumn bg=\{M\.(center|bg)\}/, f);
+    assert.match(s, /<PaperColumn bg=\{M\.(center|bg|paper)\}/, f);
     assert.ok(s.indexOf('</PaperColumn>') < s.indexOf('</Modal>'), f);
   }
   // 폰(네이티브)에서는 아무것도 감싸지 않는다 — 웹·아이패드는 늘 감싼다

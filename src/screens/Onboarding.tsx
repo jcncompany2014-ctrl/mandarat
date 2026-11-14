@@ -352,7 +352,7 @@ export function Onboarding() {
           <Text accessibilityRole="header" style={[ROLE.title, { color: M.ink, marginTop: R.question }]}>
             {o.heading}
           </Text>
-          <Text style={[ONB_TYPE.sub, { color: M.ink2, marginTop: R.sub }]}>{o.sub}</Text>
+          <Text style={[ONB_TYPE.sub, { color: M.ink2, marginTop: R.sub }]}>{o.headingNote}</Text>
 
           {/* 핵심 목표 — 이름표 · 칸 · 예시 한 줄(낱말마다 누르면 칸을 채운다) */}
           <View

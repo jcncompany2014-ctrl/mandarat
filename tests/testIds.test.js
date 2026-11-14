@@ -95,8 +95,11 @@ test('공통 부품은 testID를 넘겨받는다', () => {
     const head = common.slice(start, common.indexOf('{', common.indexOf(')', start)) + 1);
     assert.match(head, /testID|backTestID/, fn);
   }
-  const rows = fs.readFileSync(path.join(SRC, 'screens/settings/rows.tsx'), 'utf8');
-  assert.match(rows.slice(rows.indexOf('export function RadioRow'), rows.indexOf('export function ColophonRow')), /testID=\{testID\}/);
+  // 설정의 줄 · 견본은 부품 상자(kit) — 받은 testID를 누르는 요소에 단다
+  for (const f of ['ToggleRow', 'Row', 'Swatch']) {
+    const kit = fs.readFileSync(path.join(SRC, `components/kit/${f}.tsx`), 'utf8');
+    assert.match(kit, /testID=\{testID\}/, f);
+  }
   // Pressy는 나머지 속성을 그대로 넘긴다(testID 포함)
   const pressy = fs.readFileSync(path.join(SRC, 'components/Pressy.tsx'), 'utf8');
   assert.match(pressy, /\{\.\.\.rest\}/);

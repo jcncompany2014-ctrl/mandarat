@@ -82,4 +82,7 @@ export default {
   areaCloseHint: 'Hides the nine squares',
   sheetReview: 'Review this year',
   sheetLocked: 'Opening past charts comes with Pro',
+
+  folio: ({ label }) => `${label} in review`,
+  sheetFolio: ({ label }) => `Past chart, ${label}`,
 } satisfies Like<typeof ko>;

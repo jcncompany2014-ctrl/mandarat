@@ -9,7 +9,7 @@ export default {
 
   brand: 'マンダラート',
   heading: '今年かなえたい目標を\nひとつ書いてください',
-  sub: '目標を真ん中に置いて、そのまわりに8つを書きます。',
+  headingNote: '目標を真ん中に置いて、そのまわりに8つを書きます。',
   goalLabel: '中心の目標',
   goalPlaceholder: '例）初めてのマラソンを完走',
   exampleMark: '例）',

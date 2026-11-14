@@ -4,6 +4,19 @@ import type { Like } from '../types';
 import { plural } from './plural';
 
 export default {
+  viewsLabel: 'View',
+  listTitle: "Today's list",
+  closeTitle: "That's it for today.",
+  closeAll: ({ n }) => (n === 1 ? 'The one thing is done' : `All ${n} done`),
+  closeAt: ({ time }) => `closed at ${time}`,
+  foldTitle: ({ names, n }) => (n > 0 ? `${names} + ${n} more` : names),
+  foldLabel: ({ n, title }) => (n === 1
+    ? `The one thing on Today is done. ${title}`
+    : `All ${n} ${plural(n, 'item', 'items')} on Today are done. ${title}`),
+  weekTitle: 'This week',
+  weekDay: ({ day, times }) => `${day} ${times}`,
+  weekDayToday: ({ day, times }) => `${day} ${times}, today`,
+
   screenTitle: 'Today',
   all: 'All',
   areaFallback: ({ n }) => `Area ${n}`,
@@ -93,6 +106,9 @@ export default {
   quickWriteCell: ({ area }) => `Write in an empty ${area} square`,
   quickWriteCellHint: ({ area, n }) => `Writes it in square ${n} of ${area} on your chart`,
   quickWroteCell: ({ area, n }) => `Written in ${area}, square ${n}`,
+  quickDone: 'Done',
+  quickPickFrom: ({ area }) => `Pick from ${area} actions`,
+  quickJustNow: 'just now',
 
   pickTitle: 'Pick for Today',
   pickSub: 'What you pick goes straight onto Today',

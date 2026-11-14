@@ -1,13 +1,15 @@
 // 통계 화면에 놓을 글과 칸 (React·RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 계산 자체(weekReview · cellActivity · dayBin …)는 review.ts가 하고, 여기서는 화면 한 줄·한 칸으로 바꾼다.
 import type { MandaratDoc } from '../types';
-import { weekKey, ymd } from './routine';
-import { addDays, fmtNum } from './kinds';
+import { kindOf, weekKey, ymd } from './routine';
+import { addDays, fmtNum, ratingOf } from './kinds';
 import { fmtDateLong, fmtDateShort, fmtRange } from './text';
 import { msg, type Lang } from '../i18n';
 import { bestDay, dayBin, firstLogDay, weekReview, type WeekDay, type WeekReview } from './review';
 import { sundayOf } from './ritual';
 import { ledgerHabitSpeech } from './sheetSpeech';
+import { addedLine, addedSpeech, mindLine } from './ritualView';
+import { daysLeftInYear, isoWeek } from './home';
 
 /** 기록이 없을 때 화면 맨 위 한 줄 — 빈 양식 위에 이것 하나만 */
 export function emptyLine(l?: Lang): string {
@@ -349,3 +351,145 @@ export function reflections(dayMeta: MandaratDoc['dayMeta'], today: Date, days =
   }
   return out;
 }
+
+// ── 디자인 A(build-plan S4) ──────────────────────────────────────────────────
+
+/** 머리 위 줄 — '2026 · 42주 · D-78'(ISO 주 · 올해 남은 날) */
+export function statsEyebrow(now: Date, l?: Lang): string {
+  const w = isoWeek(now);
+  return msg(l).stats.eyebrow({ y: w.year, w: w.week, days: daysLeftInYear(now) });
+}
+
+/** 한 줄에 넣는 영역 이름의 최대 글자 수(말줄임 포함) — 한 주 돌아보기의 한 문장과 같다 */
+const NAME_MAX = 10;
+
+/** 영역 이름 — 줄인 이름(name)과 조사를 고를 원래 이름(full). 이름을 짓지 않은 영역은 '영역 3' */
+function areaNameOf(doc: Pick<MandaratDoc, 'themes'>, ti: number, l?: Lang): { name: string; full: string } {
+  const full = doc.themes[ti]?.title.trim() || msg(l).chart.areaN({ n: ti + 1 });
+  const chars = Array.from(full);
+  return { name: chars.length > NAME_MAX ? `${chars.slice(0, NAME_MAX - 1).join('').trimEnd()}…` : full, full };
+}
+
+export interface WeekReading {
+  /** 읽는 한 줄 — 기록이 없으면 emptyLine() */
+  text: string;
+  /** 가장 많이 챙긴 영역 · 가장 적게 챙긴 영역(문장에 이름이 나온 것) — 없으면 null */
+  top: number | null;
+  low: number | null;
+}
+
+/**
+ * 이번 주를 읽는 한 줄(prompt) — 그 주에 가장 많이 챙긴 영역과 가장 적게 챙긴 영역에서(i18n stats.reading).
+ * 적게 챙긴 영역은 실천을 적어 두었거나 그 주에 한 일이 있는 영역 중에서만 고른다(비어 있는 영역을 탓하지 않는다).
+ * 같은 수면 앞 영역. 고를 영역이 모두 가장 많이 한 영역과 같은 수면 'k개 영역을 n번씩'. 기록이 없으면 emptyLine().
+ */
+export function weekReading(review: Pick<WeekReview, 'total' | 'areaCounts'>, doc: Pick<MandaratDoc, 'themes'>, l?: Lang): WeekReading {
+  const s = msg(l).stats;
+  const counts = review.areaCounts;
+  if (!(review.total > 0) || !counts.some((c) => c > 0)) return { text: s.empty, top: null, low: null };
+  let top = 0;
+  counts.forEach((c, ti) => { if (c > counts[top]) top = ti; });
+  const inPlay = (ti: number) => counts[ti] > 0 || !!doc.themes[ti]?.actions.some((a) => a.text.trim() !== '');
+  let low = -1;
+  counts.forEach((c, ti) => {
+    if (ti === top || !inPlay(ti)) return;
+    if (low < 0 || c < counts[low]) low = ti;
+  });
+  const a = areaNameOf(doc, top, l);
+  if (low < 0) return { text: s.reading({ top: a.name, topFull: a.full, n: counts[top], low: '', lowFull: '', lowN: 0 }), top, low: null };
+  if (counts[low] === counts[top]) {
+    const k = counts.filter((c, ti) => inPlay(ti) && c === counts[top]).length;
+    return { text: s.readingEven({ k, n: counts[top] }), top: null, low: null };
+  }
+  const b = areaNameOf(doc, low, l);
+  return { text: s.reading({ top: a.name, topFull: a.full, n: counts[top], low: b.name, lowFull: b.full, lowN: counts[low] }), top, low };
+}
+
+/** 막대 아래 영역 표 — 그 주에 한 영역(많은 순, 같으면 영역 순) + 한 줄이 '아직'이라 부른 영역(0) */
+export function weekAreaKey(counts: readonly number[], low: number | null): { ti: number; n: number }[] {
+  const out = counts.map((n, ti) => ({ ti, n })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n || a.ti - b.ti);
+  if (low !== null && !out.some((x) => x.ti === low)) out.push({ ti: low, n: counts[low] ?? 0 });
+  return out;
+}
+
+/** 숫자 · 단위 조각 — '120일' → 120 · 일, '2시간 5분' → 2 · 시간 · 5 · 분, '6/41번' → 6/41 · 번. 숫자가 없으면 통째로 숫자 자리 */
+export interface FigurePart {
+  t: string;
+  /** 단위(작은 글자)인가 */
+  unit: boolean;
+}
+
+const FIGURE_NUM = /[+\-−]?\d[\d,.]*(?:\/\d[\d,.]*)?/g;
+
+export function figureParts(text: string): FigurePart[] {
+  const out: FigurePart[] = [];
+  let at = 0;
+  for (const m of text.matchAll(FIGURE_NUM)) {
+    const i = m.index ?? 0;
+    if (i > at) out.push({ t: text.slice(at, i), unit: true });
+    out.push({ t: m[0], unit: false });
+    at = i + m[0].length;
+  }
+  if (at < text.length) out.push({ t: text.slice(at), unit: true });
+  return out.some((p) => !p.unit) ? out : [{ t: text, unit: false }];
+}
+
+/** 유형 줄의 링크 — 만다라트에서 정하기 · 그 칸 열어 점수 매기기 · 오늘에서 집중 시작하기 */
+export type KindLink = { kind: 'set' } | { kind: 'rate'; ti: number; ai: number } | { kind: 'today' };
+
+export interface KindRow {
+  key: 'habit' | 'count' | 'mind' | 'focus';
+  label: string;
+  /** 오른쪽 숫자 — 없으면 이 유형은 기록이 없는 한 줄(link) */
+  value?: string;
+  sub: string;
+  say?: string;
+  subSay?: string;
+  link?: KindLink;
+}
+
+/**
+ * 이번 주의 유형 줄 — 습관 · 쌓기(이번 주 더한 것이 있을 때만) · 마음가짐 · 집중.
+ * 기록이 없는 유형은 한 줄 + 링크(습관 · 마음가짐 칸이 없으면 '정하기', 매기지 않은 마음가짐은 '매기기', 집중이 없으면 '오늘 보기').
+ */
+export function kindRows(
+  review: WeekReview,
+  doc: Pick<MandaratDoc, 'themes' | 'focusMinutes'>,
+  now: Date,
+  l?: Lang,
+): KindRow[] {
+  const m = msg(l);
+  const s = m.stats;
+  const k = m.kinds;
+  const rows: KindRow[] = [];
+  const habit = habitRow(review, l);
+  rows.push(habit ? { key: 'habit', label: k.labelHabit, ...habit } : { key: 'habit', label: k.labelHabit, sub: s.habitNone, link: { kind: 'set' } });
+  if (review.added.length > 0) {
+    rows.push({ key: 'count', label: k.labelCount, value: addedLine(review.added, l), sub: '', say: addedSpeech(review.added, l) });
+  }
+  if (!(review.mindTotal > 0)) {
+    rows.push({ key: 'mind', label: k.labelMind, sub: s.mindNone, link: { kind: 'set' } });
+  } else if (!(review.mindRated > 0)) {
+    let at: { ti: number; ai: number } | null = null;
+    doc.themes.forEach((th, ti) => th.actions.forEach((a, ai) => {
+      if (!at && a.text.trim() && kindOf(a) === 'mind' && !(ratingOf(a, now) > 0)) at = { ti, ai };
+    }));
+    const target = at as { ti: number; ai: number } | null;
+    rows.push({ key: 'mind', label: k.labelMind, sub: s.mindNotYet, link: target ? { kind: 'rate', ...target } : undefined });
+  } else {
+    rows.push({
+      key: 'mind', label: k.labelMind, value: mindLine(review, l),
+      sub: s.mindRatedOf({ total: review.mindTotal, done: review.mindRated }),
+    });
+  }
+  const mins = doc.focusMinutes ?? 0;
+  rows.push(mins > 0
+    ? { key: 'focus', label: s.ledgerFocus, value: fmtMinutes(mins, l), sub: s.soFar }
+    : { key: 'focus', label: s.ledgerFocus, sub: s.focusNone, link: { kind: 'today' } });
+  return rows;
+}
+
+/** 칸 진하기(dayBin 0~4) → 토큰 이름. 최근 10주(날): tile → printMid → printEdge → ink2 → ink */
+export const HEAT_TONES = ['tile', 'printMid', 'printEdge', 'ink2', 'ink'] as const;
+/** 닳은 자리(칸, 영역 색): 기록 없음 tile → tint → wash → washL1 → dye */
+export const WEAR_TONES = ['tile', 'tint', 'wash', 'washL1', 'dye'] as const;

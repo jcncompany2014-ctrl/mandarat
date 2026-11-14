@@ -1,7 +1,8 @@
 // 실천 시트(ActionSheet)의 판단과 글 — RN 의존 없는 순수 모듈(단위 테스트 대상).
 import type { Action, MandaratDoc } from '../types';
-import { doneOn, kindOf, perWeekOf, scheduledOn, weekDates, ymd } from './routine';
+import { doneOn, kindOf, perWeekOf, scheduledOn, weekDates, ymd, type DayState } from './routine';
 import { KIND_LABEL, addDays, countInfo, kindLine } from './kinds';
+import { dayBoxStates, type DayBox } from './marks';
 import { msg, type Lang } from '../i18n';
 import { liveRecord } from '../i18n/live';
 
