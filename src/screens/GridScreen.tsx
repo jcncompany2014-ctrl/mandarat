@@ -284,7 +284,6 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
     tap();
     scrollTop();
     gridMemory.focus = f;
-    gridMemory.zoomedOnce = true;
     slide.setValue(0);
     setFocus(f);
     say(f);

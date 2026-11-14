@@ -1,7 +1,6 @@
 import React from 'react';
-import { Pressable, View, type TextStyle } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from './AppText';
-import { Icon } from './Icon';
 import { segmentFace } from './kit/Segment';
 import { COUNT_BAR, SEG } from './kit/metrics';
 import type { M } from '../theme/usePalette';
@@ -11,49 +10,11 @@ import { select } from '../lib/haptics';
 import { useMsg } from '../i18n/react';
 
 /**
- * 마감이 지난 일의 글자색 — 작은 글씨라 종이 위 4.5:1을 넘게(밝게 5.3, 어둡게 8.1).
- * 예전 화면이 쓴다. 디자인 A의 주홍(signal)은 오늘 · 일요일 · 도장 셋에만 — 새 줄은 마감을 먹 'D+1'로 둔다.
- */
-export function alertInk(M: M): string {
-  return M.dark ? '#E58FA5' : '#A15166';
-}
-
-/**
  * 유형 정보의 글 — 길게('이번 주 0/3회' · '월·화·수 반복' · '마감 D-3') 또는 짧게.
  * 줄의 정보(Row meta)에 넣을 때 쓴다. 화면 읽기 이름에는 KindLine.speech를 쓴다.
  */
 export function metaText(line: KindLine, long = true): string {
   return long ? line.long : line.short;
-}
-
-/**
- * 줄 아래 작은 유형 정보 — '↻ 월·수·금 반복' · '6/12권' · '마감 D-3'(아이콘은 선 아이콘). 글자는 ink2.
- * 기본은 11.5/700. 오늘 줄처럼 글씨가 주인공인 곳은 size 13 · weight '500', 아이콘 없이(icon={false}) 쓴다.
- */
-export function KindMeta({
-  M, line, color, long = true, size = 11.5, weight = '700', icon = true, maxFontSizeMultiplier,
-}: {
-  M: M;
-  line: KindLine;
-  color: string;
-  long?: boolean;
-  size?: number;
-  weight?: TextStyle['fontWeight'];
-  /** 유형 아이콘을 앞에 붙일지 */
-  icon?: boolean;
-  /** 글자 확대 상한 — 높이가 정해진 칸(보드 칸) 안에서는 1.3으로 묶는다. 없으면 AppText 기본값 */
-  maxFontSizeMultiplier?: number;
-}) {
-  // 마감이 지난 일만 붉은 글씨로(그 밖엔 ink2 한 가지)
-  const ink = line.alert ? alertInk(M) : M.ink2;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
-      {icon && line.icon && <Icon name={line.icon} size={Math.round(size * 0.95)} color={line.alert ? ink : color} sw={2.2} />}
-      <Text style={{ flexShrink: 1, fontSize: size, fontWeight: weight, color: ink }} numberOfLines={1} maxFontSizeMultiplier={maxFontSizeMultiplier}>
-        {metaText(line, long)}
-      </Text>
-    </View>
-  );
 }
 
 /**

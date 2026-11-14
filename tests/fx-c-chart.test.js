@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { cellLabel, areaLabel, areaTodayCounts } = require('../src/lib/chartSpeech');
+const { cellLabel, areaLabel } = require('../src/lib/chartSpeech');
 
 const src = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 
@@ -16,11 +16,10 @@ test('cellLabel — 서수 · 글 · 소리 말 · 오늘 · 달성, 빈 칸', (
   assert.equal(cellLabel({ ai: 7, text: '', meta: null, isToday: false, didIt: false, done: false }), '여덟 번째 칸, 비어 있음');
 });
 
-test('areaLabel · areaTodayCounts — 슬래시 없이 소리 말로', () => {
+test('areaLabel — 슬래시 없이 소리 말로', () => {
   assert.equal(areaLabel('건강', 5, 3, 2), '건강, 8칸 중 3칸 달성, 오늘 2칸');
   assert.equal(areaLabel('건강', 5, 3, 0), '건강, 8칸 중 3칸 달성');
   assert.equal(areaLabel('영역 2', 0, 0, 0), '영역 2, 실천을 아직 적지 않았어요');
-  assert.deepEqual(areaTodayCounts(['0-1', '0-3', '7-0', 'x9']), [2, 0, 0, 0, 0, 0, 0, 1]);
 });
 
 test('홈 81칸은 doc 대신 themes, 칸은 memo(색 지도의 Tile)', () => {

@@ -255,7 +255,8 @@ test('예전 이름은 그대로 — Check · KindBits는 kit을 감싼다(Segme
   assert.match(check, /export function checkEdge\(dark: boolean, more: boolean\)/);
   assert.match(check, /<CheckBox M=\{M\} state=\{state\}/);
   const kind = src('src/components/KindBits.tsx');
-  for (const name of ['alertInk', 'metaText', 'KindMeta', 'CountBar', 'RatingBoxes']) assert.match(kind, new RegExp(`export function ${name}\\(`), name);
+  for (const name of ['metaText', 'CountBar', 'RatingBoxes']) assert.match(kind, new RegExp(`export function ${name}\\(`), name);
+  for (const name of ['alertInk', 'KindMeta']) assert.doesNotMatch(kind, new RegExp(`export function ${name}\\(`), `${name}: 쓰는 곳이 없어 R2가 지웠다`);
   assert.match(kind, /backgroundColor: M\.tile, overflow: 'hidden'/, '쌓기 막대 받침은 tile');
   // 오늘 줄은 작은 주간 칸을 그리지 않는다 — 습관의 이번 주는 정보 줄('이번 주 0/3회')이 말한다
   const row = src('src/components/TodayRow.tsx');

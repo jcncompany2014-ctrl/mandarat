@@ -40,13 +40,3 @@ export function areaLabel(name: string, written: number, done: number, today: nu
   const c = msg(l).core;
   return written === 0 ? c.areaUnwritten({ name }) : c.areaSummary({ name, done, n: today });
 }
-
-/** 오늘 할 일 칸 'ti-ai'들을 영역마다 센다 — 한 번 세어 블록·이름표가 나눠 쓴다 */
-export function areaTodayCounts(keys: Iterable<string>, areas = 8): number[] {
-  const out = new Array<number>(areas).fill(0);
-  for (const k of keys) {
-    const ti = Number(k.slice(0, k.indexOf('-')));
-    if (Number.isInteger(ti) && ti >= 0 && ti < areas) out[ti]++;
-  }
-  return out;
-}
