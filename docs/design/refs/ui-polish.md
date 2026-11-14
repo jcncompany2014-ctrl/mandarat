@@ -18,10 +18,10 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
 
 1. **The build does not fail on taste. It fails on system.** The counts are the finding: 29 font sizes [A], 25 spacing values across 606 literal declarations and no spacing tokens [M], 13 literal corner radii plus one computed [M], 9 icon sizes with 7 stroke values [A], 8 pressed opacities [A], 6 row heights [A], 6 ways to draw a selection in one sheet [A], 4 header anatomies on 4 tabs [A], and 1 rule weight used 20 to 43 times per page [A]. Every source in this memo, Apple's included, describes premium as a small fixed set of values applied without exception. Section 2 sets our counts beside the norm.
 2. **Apple's 2026 wording is aimed straight at our direction.** "When we say simple, we don't mean minimal." "Clarity is built with hierarchy, using order, spacing, and contrast to guide people to what's most important." [S] Our bans removed decoration, which was right, but they also removed surface contrast, line contrast and most size contrast, and put nothing in their place. Of Apple's three tools we use one (order).
-3. **Hierarchy should come from weight and tone before size.** Apple: "Adjust font weight, size, and color as needed to emphasize important information" and "Use style — not size — to visually distinguish the preferred choice." [S] Refactoring UI makes the same point as its first rule [R]. Today grey 13pt text is both caption and action [A CI-03], which breaks the one rule that makes tone-based hierarchy work: grey is never interactive.
+3. **Hierarchy should come from weight and tone before size.** Apple: "Adjust font weight, size, and color as needed to emphasize important information" and "Use style — not size — to visually distinguish the preferred choice among multiple options." [S] Refactoring UI makes the same point as its first rule [R]. Today grey 13pt text is both caption and action [A CI-03], which breaks the one rule that makes tone-based hierarchy work: grey is never interactive.
 4. **Colour needs one job each and a budget.** "Avoid using the same color to mean different things." "When every element is tinted, nothing stands out." [S] Gold currently means today, primary action, Stats fill and focus [A]; an area colour means "scheduled" in the editor and "done" in the week strip [A CI-02].
 5. **Lines need a hierarchy, and fewer of them.** Apple lists three grouping tools: "negative space, container shapes, or separator lines" [S]. We use only the third, at one weight and 1.19:1 contrast [A].
-6. **Shapes: three or four radii, nested concentrically.** "Concentric shapes calculate their radius by subtracting padding from the parent's." [S] A square content layer is concentric for free; the scattered rounded controls are where we break it.
+6. **Shapes: three or four radii, nested concentrically.** "…concentric shapes calculate their radius by subtracting padding from the parent's." [S] A square content layer is concentric for free; the scattered rounded controls are where we break it.
 7. **Depth without kitsch is available and sourced:** a tone step between two papers, one real shadow reserved for things that truly float, content passing beneath a floating bar, and press states that answer on touch-down. None of these is a gradient or a glow (section 5).
 8. **Tab bar:** destinations only, and Apple warns specifically about a Home tab that repeats the other tabs: "If this is your app, consider removing the Home tab altogether." [S] Our Home repeats Today, Stats and the chart [A HL-06].
 9. **Empty, sparse and dense states are where amateur shows first.** Stats draws three cells in the corner of a 350×220pt area for any new user [A HL-03] and runs past 2,600pt with ten equal sections [A HL-07]. Apple: "only the most important information should become a chart" and "Design for a variety of scenarios in your data." [S]
@@ -61,7 +61,7 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
 - **What exactly is good.**
   - Simplicity: "When we say simple, we don't mean minimal." "If you bury all your functionality inside a single place, that might make your interface look more minimal, but it doesn't make it simple." "In a simple interface, every element earns its place."
   - Hierarchy: "Clarity is built with hierarchy, using order, spacing, and contrast to guide people to what's most important." "When your hierarchy is strong, the most important item on the screen is always the most obvious one." A clear screen answers: "What do I pay attention to? What can I interact with? And how do I interact?"
-  - Craft: "the attention to detail that tells people you really care about the experience". The amateur tells it names: "You tap a button and you just have to wait for it do something. Scrolling is jittery. Icons are misaligned. You rotate your phone, and the layout gets all messed up."
+  - Craft: "Craft is the attention to detail that tells people you really care about the experience you're giving them." The amateur tells it names: "You tap a button and you just have to wait for it do something. Scrolling is jittery. Icons are misaligned. You rotate your phone, and the layout gets all messed up."
   - Delight: "The way to make a design delightful isn't by adding confetti or tacking on extra flourishes at the end of your process." It comes from "identifying the emotion you want your audience to feel" and reinforcing it.
   - Familiarity: "Simply put, things that look the same should behave the same."
 - **Link.** https://developer.apple.com/videos/play/wwdc2026/250/
@@ -85,21 +85,21 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
 
 - **What it is.** The measurable floor.
 - **What exactly is good.**
-  - Controls: 44×44pt default, 28×28pt minimum on iOS. "Consider spacing between controls as important as size": "about 12 points of padding around elements that include a bezel. For elements without a bezel, about 24 points."
+  - Controls: 44×44pt default, 28×28pt minimum on iOS. "Consider spacing between controls as important as size": "about 12 points of padding around elements that include a bezel. For elements without a bezel, about 24 points of padding works well around the element's visible edges."
   - Contrast (the values Accessibility Inspector uses): 4.5:1 for text up to 17pt, 3:1 from 18pt or for bold. Dark Mode page: "strive for a contrast ratio of 7:1, especially in small text."
   - "Convey information with more than color alone."
   - Dos and Don'ts: 44pt targets, 11pt text, "Align text, images, and buttons to show users how information is related", "puts controls close to the content they modify".
 - **Links.** https://developer.apple.com/tutorials/data/design/human-interface-guidelines/accessibility.json · https://developer.apple.com/design/tips/ · https://developer.apple.com/tutorials/data/design/human-interface-guidelines/dark-mode.json
-- **How we adopt.** Target sizes already pass [A]. What fails is the edge of controls (1.19:1 where 3:1 is the usual non-text threshold [R: WCAG 1.4.11]) and the 24pt rule for bare text actions that sit next to each other (Home's list footer has three exits within about 50pt [A HL-21]).
+- **How we adopt.** Target sizes already pass [A]. What fails is the edge of controls (1.19:1 where 3:1 is the usual non-text threshold [R: WCAG 1.4.11]). The spacing rule has not been measured; a likely fail is the action-sheet header, where the bare pencil and the close circle are roughly 15pt apart by my arithmetic on the coordinates in CI-13 (re-measure before acting).
 
 #### R4. HIG Layout and "Design foundations from idea to interface" (WWDC25, session 359) [S]
 
 - **What it is.** Apple's rules for ordering, aligning and grouping, with a worked before/after on a fictional app.
 - **What exactly is good.**
-  - "Place the most important items near the top and leading side."
+  - "…place the most important items near the top and leading side of the window or display."
   - "Align elements to make them easier to scan, and use indentation to convey hierarchy… People assume that aligned items are related to each other, and conversely, they perceive indented items as subordinate."
   - "Group related items… you might use negative space, container shapes, or separator lines."
-  - "Use progressive disclosure to make layouts cleaner."
+  - "Use progressive disclosure to make layouts cleaner and easier to interact with."
   - The session's diagnosis of its own first draft: "What's missing here is visual hierarchy." The fix: "making what's most important larger or higher in contrast, so it naturally draws attention first."
   - Lists over grids for structured text: a list "takes up less vertical space than images, which means more items can fit on the screen at once."
   - Tabs: "each extra tab means one more decision for people to make"; "tabs are for navigation, not for taking action."
@@ -129,7 +129,7 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
 - **What exactly is good.**
   - "Avoid using the same color to mean different things… if you use your brand color to indicate that a borderless button is interactive, using the same or similar color to stylize noninteractive text is confusing."
   - "Apply your app's accent color judiciously. Using your brand color too broadly can overwhelm your interface and dilute its impact. Minimize its use on controls and instead use it intentionally for primary actions or status indicators."
-  - "Tinting should only be used to bring emphasis to primary elements and actions." "Avoid tinting all your elements. When every element is tinted, nothing stands out." "To emphasize primary actions, apply color to the background rather than to symbols or text."
+  - "Tinting should only be used to bring emphasis to primary elements and actions in the UI." "Avoid tinting all your elements. When every element is tinted, nothing stands out." "To emphasize primary actions, apply color to the background rather than to symbols or text."
   - Size matters: "Prefer using color in bold text and large areas. Color in lightweight text or small areas can make them harder to see and understand." (written for visionOS; the reasoning is general)
   - The other half, from 2026: "Aim to use color in ways that create meaning such as portraying hierarchy, groupings, or indicating interaction." "Don't be afraid to use color in your app!" "use it sparingly and with intention so it has the biggest impact." Colour belongs in the content layer.
   - "Avoid offering an app-specific appearance setting."
@@ -154,7 +154,7 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
 
 - **What it is.** The behavioural rules; `ios-design-language.md` B1 covers the floating-capsule look.
 - **What exactly is good.**
-  - "Use a tab bar to support navigation, not to provide actions." "Don't disable or hide tab bar buttons." "Use single words whenever possible." "Prefer filled symbols or icons for consistency with the platform." Badges only for critical information.
+  - "Use a tab bar to support navigation, not to provide actions." "Don't disable or hide tab bar buttons, even when their content is unavailable." "Use single words whenever possible." "Prefer filled symbols or icons for consistency with the platform." Badges only for critical information.
   - Balance: "the first tab of apps tend to be loaded heaviest with features. Try to create balance in your interface by distributing functionality throughout your tabs."
   - The Home problem: "Home becomes the tab where every feature is fighting for real estate, because the tab is trying to solve a problem of discoverability." "If this is your app, consider removing the Home tab altogether." And from 2018: "an app isn't a frame containing god knows what."
   - "Never force someone to change tabs automatically." "Always keep the tab bar persistent throughout your app."
@@ -162,18 +162,19 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
   - Titles: "Don't title windows with your app name." Keep titles "under 15 characters".
 - **Links.** https://developer.apple.com/tutorials/data/design/human-interface-guidelines/tab-bars.json · https://developer.apple.com/videos/play/wwdc2022/10001/ · https://developer.apple.com/videos/play/wwdc2018/802/ · https://developer.apple.com/tutorials/data/design/human-interface-guidelines/toolbars.json
 - **How we adopt.** Four checks. (1) 담기 leaves the row of destinations (also CI-01, HL-22). (2) Home must have content of its own, or go: today's plate and the 正 week strip are its own; the repeated task list, week bars and area ledger are the "fighting for real estate" case [A HL-06]. (3) Find every row on Home that jumps to another tab ("1/10 ›" and similar) and decide whether it should push a detail instead. (4) The 만다라트 tab is titled with the app name at 26pt while the user's goal is 17pt [A HL-08]; the title should be the goal.
+- **A conflict with our own audit.** HL-23 proposes hiding the tab bar on every pushed screen. Apple says the opposite: "When using a push transition, it's really important that the tab bar remains persistently anchored to the bottom of the screen", and the HIG allows hiding only "when a modal view covers the tab bar". The consistent rule is: keep the bar on every push; if Settings should cover it, present Settings as a modal.
 - **Metrics.** Not in the HIG text. Pre-iOS 26 convention [R]: 49pt bar plus the home-indicator inset, glyphs about 25pt, 10pt medium labels. Take current values from Apple's kit.
 
 #### R9. Control vocabulary: HIG Buttons, Segmented controls, Sheets, Lists and tables; "The Life of a Button" (WWDC18, 804) [S]
 
 - **What it is.** What each control is for and how it must answer a finger.
 - **What exactly is good.**
-  - Buttons: "a hit region of at least 44x44 pt". "Always include a press state for a custom button. Without a press state, a button can feel unresponsive." "Keep the number of prominent buttons to one or two per view." "Use style — not size — to visually distinguish the preferred choice." "Don't assign the primary role to a button that performs a destructive action."
-  - Touch-down: "you might be tempted to animate the button, to have it fade in or grow very slowly, but this can make things feel unresponsive." "We're just going to highlight it instantaneously." On release: "is there a slight delay so that even fast taps can be seen?" Hit area "a little bit larger than the visual size". Dragging off cancels. "Details are designed even if they seem obvious, even if they're as simple as a button."
+  - Buttons: "a hit region of at least 44x44 pt". "Always include a press state for a custom button. Without a press state, a button can feel unresponsive, making people wonder if it's accepting their input." "Keep the number of prominent buttons to one or two per view." "Use style — not size — to visually distinguish the preferred choice among multiple options." "Don't assign the primary role to a button that performs a destructive action, even if that action is the most likely choice."
+  - Touch-down: "you might be tempted to animate the button, to have it fade in or grow very slowly, but this can make things feel unresponsive." "…we're just going to highlight it instantaneously, make it feel a little bit faster." On release: "is there a slight delay so that even fast taps can be seen?" Hit area "a little bit larger than the visual size". Dragging off cancels. "Details are designed even if they seem obvious, even if they're as simple as a button."
   - Affordance: "just a rectangle floating on a black background might not be enough"; the cue can be "the shape of the button, the manner in which is rendered or if it's used consistently enough just the color of text."
   - Segmented controls: "no more than about five segments on iPhone", equal widths, "either text or images — not a mix", nouns as labels, and never mix selection with actions in one control.
   - Lists: a list of options "highlights a row only briefly before adding an image — such as a checkmark — indicating that the item is selected."
-  - Sheets: "Include a grabber in a resizable sheet." "Display only one sheet at a time." "If you provide a Done button, always pair it with a Cancel button." "Support swiping to dismiss."
+  - Sheets: "Include a grabber in a resizable sheet." "Display only one sheet at a time from the main interface." "If you provide a Done button, always pair it with a Cancel button…" "Support swiping to dismiss a sheet."
 - **Links.** https://developer.apple.com/tutorials/data/design/human-interface-guidelines/buttons.json · https://developer.apple.com/videos/play/wwdc2018/804/ · https://developer.apple.com/tutorials/data/design/human-interface-guidelines/segmented-controls.json · https://developer.apple.com/tutorials/data/design/human-interface-guidelines/lists-and-tables.json · https://developer.apple.com/tutorials/data/design/human-interface-guidelines/sheets.json
 - **How we adopt.** This is the sourced backing for the audit's target kit [A]: one press primitive, highlight on touch-down with no fade-in, a short hold on release; a single-choice row that shows a trailing tick and no box; one segment look with five options at most; one filled button per sheet. "Consistently enough just the color of text" is the condition under which a flat text action works, and it is the condition we break by using grey for both captions and actions.
 
@@ -194,15 +195,16 @@ Research date: 2026-11-14. Scope: general interface craft (spacing, alignment, h
 
 - **What it is.** Apple's case against the dashboard, and the density trade-off stated both ways.
 - **What exactly is good.**
-  - "Not every collection of data needs to be displayed in a chart." "Only the most important information should become a chart." "Resist the temptation to pack as much data as possible into a chart."
+  - "Not every collection of data needs to be displayed in a chart." "…only the most important information should become a chart." "Resist the temptation to pack as much data as possible into a chart."
   - "An effective chart focuses on a few key pieces of information." "Too many grid lines and labels can be distracting… having seven horizontal grid lines might be overwhelming." "Some charts don't need grid lines and labels at all."
   - Headline first: a title like "Sales in the Past 30 Days" "labels the elements of the chart but doesn't communicate anything more"; better is the interpretation, "Sales for the past 30 days are up 12%, totaling 1,234 pancakes."
-  - Small then large: "Use a small static chart higher in the navigation hierarchy to offer a path to expanded versions." Small charts "don't require grid lines, labels, or interactivity".
+  - Small then large: "Use a small static chart higher in the navigation hierarchy to offer a path to expanded versions of the chart." Small charts "don't require grid lines, labels, or interactivity".
   - "When your app includes more than one chart, you've created a chart design system." "Differences matter, and the variations between charts are a signal that something has changed."
   - "It's important to test your designs with real data early." "Remember to design for a variety of scenarios in your data."
   - Category colour: "When choosing colors for categories, balance visual weight"; colour "added on top of the symbols", not alone.
   - The trade-off: "Densely packed interfaces can be overwhelming and they can slow decision-making, especially for people who are new to your app." But also: "Removing that information might reduce clutter… but it would greatly reduce usability." "Too much progressive disclosure can make work flows inefficient."
-- **Links.** https://developer.apple.com/tutorials/data/design/human-interface-guidelines/charting-data.json · https://developer.apple.com/videos/play/wwdc2022/110340/ · https://developer.apple.com/videos/play/wwdc2022/110342/ · https://developer.apple.com/videos/play/wwdc2017/802/
+  - The iPhone context (HIG "Designing for iOS"): people often "spend just a minute or two" in an app, so "help people concentrate on primary tasks and content by limiting the number of onscreen controls while making secondary details and actions discoverable with minimal interaction."
+- **Links.** https://developer.apple.com/tutorials/data/design/human-interface-guidelines/charting-data.json · https://developer.apple.com/videos/play/wwdc2022/110340/ · https://developer.apple.com/videos/play/wwdc2022/110342/ · https://developer.apple.com/videos/play/wwdc2017/802/ · https://developer.apple.com/tutorials/data/design/human-interface-guidelines/designing-for-ios.json
 - **How we adopt.** Stats: one sentence plus two numbers as the hero, then scopes (이번 주 / 10주 / 올해) as HL-07 proposes, each chart with a sentence headline (the screen already does this once, "건강은 5번 챙겼고, 커리어는 아직이에요" [A]). Every chart gets a rule for too little data, because that is what every new user sees. The eight area colours having similar lightness is right by Apple's "balance visual weight"; it means identity must also be carried by a glyph or a position.
 
 #### R12. Depth by tone: HIG Dark Mode, HIG Materials, "What's New in iOS Design" (WWDC19, 808), "Meet Liquid Glass" [S]
@@ -325,7 +327,7 @@ The direction is not wrong; it is unfinished. Print is a high-contrast medium: b
 
 What the sources say:
 
-- "Only the most important information should become a chart." "Resist the temptation to pack as much data as possible into a chart." [S, R11]
+- "…only the most important information should become a chart." "Resist the temptation to pack as much data as possible into a chart." [S, R11]
 - "Densely packed interfaces can be overwhelming and they can slow decision-making, especially for people who are new to your app." [S, R11]
 - A dashboard that scrolls, shows numbers without context, or varies chart types for no reason is making the classic mistakes. [R, Few]
 - The opposite failure is also named: "Too much progressive disclosure can make work flows inefficient." [S] Hiding everything is not the fix.
@@ -509,7 +511,7 @@ Format: the rule; **Test** (pass condition, measurable on screenshots or by grep
 23. **Targets and their spacing.**
     **Test:** every control has a hit area ≥ 44×44pt; adjacent bezelled controls are ≥ 12pt apart and adjacent bare text or icon actions ≥ 24pt apart.
     **Basis:** R3, R9.
-    **Today:** size passes [A]; spacing not measured (Home's list footer is a likely fail [A HL-21]).
+    **Today:** size passes [A]; spacing not measured (the action-sheet header is a likely fail, see R3).
 24. **Press and disabled states.**
     **Test:** every pressable goes through one primitive with ≤ 3 recipes (row, control, icon); the pressed state is visible on the first frame after touch-down, with no fade-in, and stays ≥ 100ms after release; dragging off cancels; one disabled recipe; checking a box completes its feedback in ≤ 300ms.
     **Basis:** R9 ("highlight it instantaneously"), R18.
