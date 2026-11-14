@@ -5,8 +5,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { EASE } from '../theme/motion';
 import { reducedMotion } from '../lib/useReducedMotion';
 
-/** 스플래시 바탕 — app.json의 backgroundColor·expo-splash-screen 배경과 같은 미색 */
-export const PAPER = '#FBF9F4';
+/** 스플래시 바탕 — app.json의 backgroundColor·expo-splash-screen 배경과 같은 흰 종이(tokens LIGHT.paper) */
+export const PAPER = '#FFFFFF';
 /** 스플래시 표의 먹 · 금색 — 앱 아이콘(assets/icon.png)과 같은 값 */
 const SPLASH_INK = '#2B2620';
 const SPLASH_GOLD = '#B0883C';

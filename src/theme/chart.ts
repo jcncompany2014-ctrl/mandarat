@@ -13,8 +13,14 @@ import { lang, msg, type Lang } from '../i18n';
 import { alpha, mix, tint, toHex } from './moods';
 import { contrast } from './palette';
 
-/** 표 색을 고를 때 필요한 팔레트 조각 — 무드 팔레트(Palette)나 앱 팔레트(M)를 그대로 넘긴다 */
-type Ground = { dark: boolean; ink: string; center: string };
+/**
+ * 표 색을 고를 때 필요한 팔레트 조각 — 앱 팔레트(M)나 토큰(LIGHT · DARK)을 그대로 넘긴다.
+ * 토큰이 있으면(paper · core …) 토큰에서 고르고, 옛 무드 표(MOODS의 Palette — 공유 이미지 · 인쇄가 웨이브 3까지 쓴다)를 넘기면 예전 값 그대로.
+ */
+type Ground = {
+  dark: boolean; ink: string; center?: string;
+  paper?: string; core?: string; onCore?: string; printEdge?: string; printMid?: string;
+};
 
 // ── 자리 ────────────────────────────────────────────────────────────────────
 
@@ -98,19 +104,26 @@ export function spiralRank(row: number, col: number): number {
 /** 칠한 칸(달성) 위의 글자·체크 — 영역 색 8가지 모두 흰 글씨가 4.5:1 이상 */
 export const DONE_INK = '#FFFFFF';
 
-/** 가운데 칸(핵심 목표) 바탕 — 다크 모드에선 어두운 칸이 바탕에 묻히므로 밝게 뒤집는다 */
+/** 가운데 칸(핵심 목표) 바탕 — 토큰 core(다크는 뒤집지 않은 깊은 회색). 옛 무드 표는 다크에서 밝게 뒤집던 그대로 */
 export function coreBg(M: Ground): string {
-  return M.dark ? M.ink : M.center;
+  if (M.core) return M.core;
+  return M.dark ? M.ink : (M.center ?? M.ink);
 }
 
-/** 가운데 칸 글자 */
+/** 가운데 칸 글자 — 토큰 onCore */
 export function coreInk(M: Ground): string {
-  return M.dark ? M.center : '#FFFFFF';
+  if (M.onCore) return M.onCore;
+  return M.dark ? (M.center ?? '#000000') : '#FFFFFF';
+}
+
+/** 영역 색을 종이 위에 amt%만큼 — 토큰 팔레트는 지금 종이(paper) 위에, 옛 무드 표는 예전 바탕(흰색 · 다크 #1C1C22) 위에 */
+function onPaper(color: string, amt: number, M: Pick<Ground, 'dark' | 'paper'>): string {
+  return M.paper ? mix(M.paper, color, amt / 100) : tint(color, amt, M.dark);
 }
 
 /** 영역 이름표 칸의 옅은 바탕 — 인쇄된 머리 칸. 달성(칠한 칸)과 헷갈리지 않게 아주 옅게 */
-export function headBg(color: string, M: Pick<Ground, 'dark'>): string {
-  return tint(color, M.dark ? 24 : 16, M.dark);
+export function headBg(color: string, M: Pick<Ground, 'dark' | 'paper'>): string {
+  return onPaper(color, M.dark ? 24 : 16, M);
 }
 
 /**
@@ -122,8 +135,8 @@ export function headTrack(color: string): string {
 }
 
 /** 적어 두었지만 아직 달성하지 않은 칸(작은 표) — 이름표보다 조금 짙고, 달성보다 훨씬 옅게 */
-export function writtenBg(color: string, M: Pick<Ground, 'dark'>): string {
-  return tint(color, M.dark ? 30 : 22, M.dark);
+export function writtenBg(color: string, M: Pick<Ground, 'dark' | 'paper'>): string {
+  return onPaper(color, M.dark ? 30 : 22, M);
 }
 
 /** 괘선 굵기(pt) — 바깥 테두리 · 블록 사이 · 칸 사이 */
@@ -131,8 +144,12 @@ export const RULE = { frame: 2, block: 1.5, cell: 0.75 } as const;
 
 export type RuleKind = keyof typeof RULE;
 
-/** 괘선 색 — 먹색을 굵기 순서대로 옅게(다크의 칸 사이 선은 흰 선) */
-export function ruleColor(M: Pick<Ground, 'dark' | 'ink'>, kind: RuleKind): string {
+/**
+ * 괘선 색 — 토큰 팔레트는 인쇄 회색(테두리 · 블록 사이 printEdge, 칸 사이 printMid: 굵기가 위계를 맡는다).
+ * 옛 무드 표는 먹색을 굵기 순서대로 옅게(다크의 칸 사이 선은 흰 선).
+ */
+export function ruleColor(M: Pick<Ground, 'dark' | 'ink' | 'printEdge' | 'printMid'>, kind: RuleKind): string {
+  if (M.printEdge && M.printMid) return kind === 'cell' ? M.printMid : M.printEdge;
   if (kind === 'frame') return alpha(M.ink, 0.85);
   if (kind === 'block') return alpha(M.ink, 0.55);
   return M.dark ? 'rgba(255,255,255,0.16)' : alpha(M.ink, 0.2);

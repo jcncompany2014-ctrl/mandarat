@@ -45,11 +45,23 @@ test('웹 홈 화면 아이콘 · 이름 · 매니페스트', () => {
   assert.ok(man.icons.some((i) => i.purpose === 'maskable'));
 });
 
-test('app.json: 웹 이름 · 종이색, 안드로이드 적응형 아이콘 바탕도 종이색', () => {
+test('app.json: 웹 이름 · 종이색(흰 종이 LIGHT.paper), 안드로이드 적응형 아이콘 바탕도 종이색 — 매니페스트 · index.html도', () => {
+  require('./register');
+  const { LIGHT, DARK } = require('../src/theme/tokens');
   const e = JSON.parse(read('app.json').toString()).expo;
   assert.equal(e.web.name, '만다라트');
-  assert.equal(e.web.themeColor, '#FBF9F4');
-  assert.equal(e.android.adaptiveIcon.backgroundColor, '#FBF9F4');
+  assert.equal(LIGHT.paper, '#FFFFFF');
+  assert.equal(e.web.themeColor, LIGHT.paper);
+  assert.equal(e.web.backgroundColor, LIGHT.paper);
+  assert.equal(e.android.adaptiveIcon.backgroundColor, LIGHT.paper);
+  const man = JSON.parse(read('public/manifest.webmanifest').toString());
+  assert.equal(man.background_color, LIGHT.paper);
+  assert.equal(man.theme_color, LIGHT.paper);
+  // 앱이 뜨기 전의 웹 바탕 — 밝게는 흰 종이, 시스템이 어두우면 어두운 종이
+  const html = read('public/index.html').toString();
+  assert.match(html, /background-color: #ffffff;/i);
+  assert.match(html, new RegExp(`@media \\(prefers-color-scheme: dark\\)[\\s\\S]*background-color: ${DARK.paper};`, 'i'));
+  assert.doesNotMatch(html, /#fbf9f4/i, '예전 미색이 남지 않는다');
 });
 
 test('JS 스플래시 표는 아이콘과 같은 먹 · 금색, 예전 금색 타일은 쓰지 않는다', () => {

@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated, Appearance, PanResponder, Platform, Pressable, View, useWindowDimensions as useRNWindowDimensions,
+  Animated, PanResponder, Platform, Pressable, View, useWindowDimensions as useRNWindowDimensions,
   type AccessibilityRole, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView, type ViewProps,
 } from 'react-native';
 import { Text } from '../components/AppText';
@@ -358,15 +358,7 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
     });
   }, [slide, fade]);
 
-  // ── 종이 무드를 시스템에도 — 알림창·공유 시트·키보드가 같은 밝기로 ──────────
-  useEffect(() => {
-    if (Platform.OS === 'web') return;
-    try {
-      Appearance.setColorScheme(M.dark ? 'dark' : 'light');
-    } catch {
-      // 지원하지 않는 OS 버전 — 시스템 설정을 그대로 따른다
-    }
-  }, [M.dark]);
+  // 시스템 모드(알림창 · 공유 시트 · 키보드)는 화면 모드를 따라 LookProvider(src/theme/look.tsx)가 맞춘다 — 여기서 덮어쓰면 '자동'이 시스템을 따르지 못한다
 
   // ── 탭바 ───────────────────────────────────────────────────────────────
   const activeTab: Screen = isDeep(ui.screen) ? ui.from : ui.screen;

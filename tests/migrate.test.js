@@ -287,10 +287,10 @@ test('settings.reminders: HH:MM이 맞는 아침·저녁과 참인 돌아보기�
   assert.equal('reminders' in blankDoc().settings, false);
 });
 
-test('settings.paper: 고를 수 있는 무늬만 남고, 아니면 필드가 없다(점 종이)', () => {
-  assert.deepEqual([...PAPER_OPTS], ['grid', 'lines', 'blank']);
+test('settings.paper: 고를 수 있는 무늬(무지 · 점 · 모눈 · 줄)만 남고, 아니면 필드가 없다(무지)', () => {
+  assert.deepEqual([...PAPER_OPTS], ['blank', 'dots', 'grid', 'lines']);
   for (const p of PAPER_OPTS) assert.equal(migrate({ settings: { paper: p } }).settings.paper, p);
-  for (const bad of ['dots', '', 3, null, '__proto__']) assert.equal('paper' in migrate({ settings: { paper: bad } }).settings, false);
+  for (const bad of ['wavy', '', 3, null, '__proto__', 'Dots']) assert.equal('paper' in migrate({ settings: { paper: bad } }).settings, false);
 });
 
 test('action.remindAt: 유형과 상관없이 HH:MM일 때만 남는다', () => {

@@ -213,8 +213,8 @@ const LOG_KEY_RE = /^[0-7]-(?:[0-7]|x[A-Za-z0-9_-]{1,40})$/;
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 /** 알림 시각 'HH:MM' (24시간) */
 export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-/** 종이 무늬(프로) — 없으면 점 종이 */
-export const PAPER_OPTS: readonly PaperPattern[] = ['grid', 'lines', 'blank'];
+/** 종이 무늬 — 설정에 놓이는 차례(무지 · 점 · 모눈 · 줄). 없으면 무지 */
+export const PAPER_OPTS: readonly PaperPattern[] = ['blank', 'dots', 'grid', 'lines'];
 /**
  * 지난 표의 상한 — 깨진 저장본이 끝없이 커지지 않게 막는 안전장치일 뿐, 평소에는 닿지 않는다.
  * 지난 표는 사용자가 남긴 기념물이라 조용히 버리지 않는다: 표를 닫을 때(startNewChart)도,

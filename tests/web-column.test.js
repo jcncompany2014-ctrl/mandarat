@@ -33,7 +33,8 @@ test('웹: 폭에 맞춰 크기를 정하는 화면은 묶인 폭(lib/screen)을
 });
 
 test('웹: 앱 틀 · 시트 · 전체 화면 창이 같은 폭 안에 선다', () => {
-  assert.match(src('App.tsx'), /<PaperColumn bg=\{mix\(P\.bg, P\.ink, 0\.05\)\} edge=\{P\.line\}>\s*<Root \/>/);
+  // 단 바깥은 책상(tokens desk: 밝게 tile · 어둡게 한 톤 깊게)
+  assert.match(src('App.tsx'), /<PaperColumn bg=\{desk\(P\)\} edge=\{P\.line\}>\s*<Root \/>/);
   assert.match(src('src/components/common.tsx'), /panel,\s*shadow\(8/);
   for (const f of ['src/overlays/FocusTimer.tsx', 'src/overlays/WeekRitual.tsx', 'src/overlays/Celebration.tsx']) {
     const s = src(f);

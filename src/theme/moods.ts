@@ -1,6 +1,9 @@
 // Mood palettes + color helpers (RN has no CSS color-mix, so we mix in JS).
+// 앱이 그리는 팔레트(PaletteValue)는 이제 tokens.ts의 두 벌(LIGHT · DARK) + 옛 이름(bg · sub · line · gold …)이다 — paletteOf.
+// MOODS · withAccent · accentInk는 아직 위젯 · 공유 이미지 · 인쇄가 쓰는 옛 표라 웨이브 4까지 남긴다.
 import type { Mood } from '../types';
 import { GOLD, contrast } from './palette';
+import { DARK, LIGHT, moreContrast, type Tokens } from './tokens';
 
 export interface Palette {
   bg: string;
@@ -157,12 +160,39 @@ function scaleAlpha(color: string, k: number): string {
 }
 
 /**
- * 먹을 진하게 한 판 — iOS '대비 증가'가 켜졌을 때 usePalette()가 돌려준다.
- * 같은 종이에 더 진한 펜으로 그린 수첩처럼: 괘선(line)의 알파 2배, 흐린 글씨(faint)는 보조 글씨(sub)로.
- * 색·포인트 컬러·종이는 그대로 두어 화면의 모양은 바뀌지 않는다.
+ * 옛 무드 표(MOODS)의 먹을 진하게 한 판 — 괘선(line)의 알파 2배, 흐린 글씨(faint)는 보조 글씨(sub)로.
+ * 앱 화면은 이제 contrastPalette(토큰의 moreContrast)를 쓴다. 옛 표를 쓰는 곳이 남아 있는 동안만(웨이브 4까지).
  */
 export function contrastEdition<T extends Palette>(P: T): T {
   return { ...P, line: scaleAlpha(P.line, 2), faint: P.sub };
+}
+
+// ── 앱 팔레트 = 토큰 + 옛 이름 ─────────────────────────────────────────────────
+/**
+ * usePalette()가 돌려주는 팔레트 — 토큰(새 코드는 이 이름만 읽는다) + 옛 화면이 읽는 이름.
+ * 옛 이름은 토큰을 가리킨다: bg · surface · card = paper, sub = ink2, faint = ink3, line = printRule, tabBg = capsule,
+ * gold = signal, goldInk = ink, center = core, accent = btn. 아무도 읽지 않게 되면 웨이브 4가 지운다.
+ */
+export type PaletteValue = Tokens & Palette & { accent: string };
+
+/** 토큰 한 벌 → 앱 팔레트(옛 이름을 지금 토큰 값으로 다시 맞춘다) */
+export function paletteOf(t: Tokens): PaletteValue {
+  return {
+    ...t,
+    bg: t.paper, surface: t.paper, card: t.paper, ink: t.ink, sub: t.ink2, faint: t.ink3, line: t.printRule,
+    tabBg: t.capsule, gold: t.signal, goldInk: t.ink, center: t.core, accent: t.btn, dark: t.dark,
+  };
+}
+
+/** 두 벌의 앱 팔레트 — 늘 같은 객체(memo된 화면이 다시 그려지지 않게) */
+export const PALETTE: { readonly light: PaletteValue; readonly dark: PaletteValue } = {
+  light: paletteOf(LIGHT),
+  dark: paletteOf(DARK),
+};
+
+/** iOS '대비 증가' 판 — 토큰의 moreContrast(괘선 · 가장자리 · 인쇄 글씨를 한 단계 진하게) + 옛 이름을 다시 맞춘다 */
+export function contrastPalette(P: PaletteValue): PaletteValue {
+  return paletteOf(moreContrast(P));
 }
 
 /** Mix `color` `amt`% with a light/dark base — replacement for CSS color-mix. */

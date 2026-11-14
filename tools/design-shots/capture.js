@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 디자인 점검용 화면 찍기 — 웹 스모크(scripts/web-smoke.js)가 찍지 않는 것을 더 찍는다:
-// 긴 화면(내용이 잘리지 않게 키 큰 창), 다크, 크게 본 블록, 실천 시트, 집중 타이머, 다른 무드, 작은 폰(375 × 667).
+// 긴 화면(내용이 잘리지 않게 키 큰 창), 다크, 크게 본 블록, 실천 시트, 집중 타이머, 작은 폰(375 × 667).
+// 밝게 · 어둡게는 기기의 화면 모드(mandarat:look:v1, src/theme/look.tsx)로 정한다 — 문서의 예전 무드는 그리는 데 쓰지 않는다.
 // 쓰는 법: node tools/design-shots/capture.js [--out <dir>] [--no-export]
 // 스모크와 같은 문서(scripts/smoke/demoDoc.js) · 같은 시계(2026-10-14 09:30 서울)를 써서, 고치기 전과 뒤를 나란히 볼 수 있다.
 const { execFileSync } = require('child_process');
@@ -40,20 +41,23 @@ async function main() {
   const sel = (id) => `[data-testid="${id}"]`;
   const problems = [];
 
-  /** 한 가지 꾸밈(무드 · 창 크기)으로 앱을 열고 fn을 돌린다 */
-  async function session(name, { mood, width = 390, height = 844, scale = 2 }, fn) {
+  /** 한 가지 꾸밈(화면 모드 · 창 크기)으로 앱을 열고 fn을 돌린다 */
+  async function session(name, { look = 'light', width = 390, height = 844, scale = 2 }, fn) {
     const doc = demoDoc();
-    if (mood) doc.settings = { ...doc.settings, mood };
-    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: scale, timezoneId: 'Asia/Seoul', locale: 'ko-KR', reducedMotion: 'reduce' });
-    await context.addInitScript(([d]) => {
+    const context = await browser.newContext({
+      viewport: { width, height }, deviceScaleFactor: scale, timezoneId: 'Asia/Seoul', locale: 'ko-KR', reducedMotion: 'reduce',
+      colorScheme: look === 'dark' ? 'dark' : 'light',
+    });
+    await context.addInitScript(([d, l]) => {
       try {
         if (!sessionStorage.getItem('__seeded')) {
           localStorage.setItem('mandarat:doc:v1', d);
           localStorage.setItem('mandarat:lang:v1', 'ko');
+          localStorage.setItem('mandarat:look:v1', l);
           sessionStorage.setItem('__seeded', '1');
         }
       } catch {}
-    }, [JSON.stringify(doc)]);
+    }, [JSON.stringify(doc), look]);
     const page = await context.newPage();
     await page.clock.install({ time: new Date(CLOCK) });
     const h = {
@@ -106,7 +110,7 @@ async function main() {
     }
   };
 
-  // 1. 밝은 기본(미색) — 폰 크기 그대로
+  // 1. 밝게 — 폰 크기 그대로
   await session('light', {}, async (h) => {
     await tabs(h);
     // 영역 페이지(표의 왼쪽 위 블록을 누른다) → 칸을 눌러 실천 시트 → 집중 타이머
@@ -139,7 +143,7 @@ async function main() {
     });
   });
 
-  // 2. 밝은 기본 — 키 큰 창(내용 전체)
+  // 2. 밝게 — 키 큰 창(내용 전체)
   await session('light-tall', { height: 2600, scale: 1.5 }, async (h) => {
     await tabs(h);
     await h.step('settings', async () => {
@@ -150,30 +154,19 @@ async function main() {
     });
   });
 
-  // 3. 다크
-  await session('dark', { mood: '다크' }, async (h) => {
+  // 3. 어둡게(화면 모드 dark)
+  await session('dark', { look: 'dark' }, async (h) => {
     await tabs(h);
     await h.step('detail', async () => {
       await openDetail(h);
       await h.shot('grid-zoom');
     });
   });
-  await session('dark-tall', { mood: '다크', height: 2600, scale: 1.5 }, tabs);
+  await session('dark-tall', { look: 'dark', height: 2600, scale: 1.5 }, tabs);
 
-  // 4. 다른 무드(크림 · 화이트 · 파스텔) — 홈과 표만
-  for (const mood of ['크림', '화이트', '파스텔']) {
-    await session(`mood-${mood}`, { mood }, async (h) => {
-      await h.shot('tab-dashboard');
-      await h.step('grid', async () => {
-        await h.tid(TID.tab('grid')).click();
-        await h.settle();
-        await h.shot('tab-grid');
-      });
-    });
-  }
-
-  // 5. 작은 폰(iPhone SE)
+  // 4. 작은 폰(iPhone SE) — 밝게 · 어둡게
   await session('se', { width: 375, height: 667 }, tabs);
+  await session('se-dark', { look: 'dark', width: 375, height: 667 }, tabs);
 
   await browser.close();
   server.close();

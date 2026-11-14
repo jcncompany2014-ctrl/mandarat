@@ -11,7 +11,9 @@ const ROOT = path.join(__dirname, '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const app = JSON.parse(read('app.json')).expo;
 const plist = app.ios.infoPlist;
-const PAPER = '#FBF9F4';
+// 흰 종이 — tokens LIGHT.paper. 시스템이 어두우면 런치 스크린만 어두운 종이(DARK.paper)
+const PAPER = '#FFFFFF';
+const DARK_PAPER = '#121316';
 
 test('app.json: SDK 56 스키마에 없는 키는 지우고, 링크용 scheme은 남긴다', () => {
   assert.equal('newArchEnabled' in app, false);
@@ -25,7 +27,9 @@ test('iOS: 아이클라우드 백업에 기록이 들어가고, 번들은 한국
   assert.equal(plist.RCTAsyncStorageExcludeFromBackup, false);
   assert.equal(plist.CFBundleDevelopmentRegion, 'ko');
   assert.deepEqual(plist.CFBundleLocalizations, ['ko', 'ja', 'en']);
-  assert.equal(plist.UIStatusBarStyle, 'UIStatusBarStyleDarkContent');
+  // 상태 막대 글씨는 화면 모드를 따른다(밝게 검정 · 어둡게 흰색 — LookProvider의 StatusBar가 맞춘다)
+  assert.equal(plist.UIStatusBarStyle, 'UIStatusBarStyleDefault');
+  assert.equal(app.userInterfaceStyle, 'automatic', '자동 모드가 시스템 모드를 받으려면');
   assert.equal(plist.CFBundleDisplayName, '만다라트');
   assert.equal(plist.ITSAppUsesNonExemptEncryption, false);
 });
@@ -72,13 +76,14 @@ function opaqueWidth(file) {
   return { tile: x1 - x0 + 1, width: w };
 }
 
-test('런치 스크린: 미색 바탕에 JS 스플래시와 같은 84pt 표', () => {
+test('런치 스크린: 흰 바탕(어두운 시스템은 어두운 종이)에 JS 스플래시와 같은 84pt 표', () => {
   const entry = app.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-splash-screen');
   assert.ok(entry, 'expo-splash-screen 플러그인 설정이 있어야 한다');
   const opts = entry[1];
   assert.equal(opts.backgroundColor, PAPER);
   assert.equal(opts.resizeMode, 'contain');
-  assert.equal('dark' in opts, false, '바탕은 시스템이 아니라 앱 안의 종이가 정한다');
+  // 시스템이 어두우면 어두운 종이 — 앱의 자동 모드(LookProvider)가 첫 화면을 어둡게 그리는 것과 맞춘다
+  assert.deepEqual(opts.dark, { backgroundColor: DARK_PAPER });
   const { tile, width } = opaqueWidth(path.join(ROOT, opts.image));
   const splashSrc = read('src/components/Splash.tsx');
   const jsTile = Number(/const MARK = (\d+);/.exec(splashSrc)?.[1]);
