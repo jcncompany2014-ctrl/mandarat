@@ -11,11 +11,12 @@
   /* The goal is the title (34pt, written ink); the date is only the folio line above it.
      Hero: three filled-in fields on the gutter and the sheet in miniature on the right. The fields'
      top rule and last hairline register with the thumbnail's frame. */
-  .hero-row { display: flex; gap: 24px; margin-top: 12px; }
-  .hero-fields { flex: 1; display: flex; flex-direction: column; border-top: var(--rule) solid var(--print-mid); }
-  .hero-field { flex: 1; display: flex; flex-direction: column; justify-content: center; border-bottom: var(--hair) solid var(--print-rule); }
-  .sec { margin-top: 18px; }
-  .hero-row + .sec { margin-top: 24px; }
+  .hero-row { display: flex; gap: 24px; margin-top: 18px; }
+  .hero-fields { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0; }
+  .hero-field { display: flex; flex-direction: column; gap: 2px; }
+  .sec { margin-top: 30px; }
+  .hero-row + .sec { margin-top: 32px; }
+  .sec .a-section { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -32,17 +33,17 @@
     </div>
 
     <section class="sec">
-      <div class="a-section"><span class="t-label">오늘 할 일</span><span class="a-link" id="all"></span></div>
+      <div class="a-section"><span class="t-label is-section">오늘 할 일</span><span class="a-link" id="all"></span></div>
       <div class="a-list" id="rows"></div>
     </section>
 
     <section class="sec">
-      <div class="a-section"><span class="t-label" id="week-label"></span><span class="t-meta" id="week-total" style="color:var(--ink)"></span></div>
+      <div class="a-section"><span class="t-label is-section" id="week-label"></span><span class="t-meta" id="week-total" style="color:var(--ink)"></span></div>
       <div id="week"></div>
     </section>
 
     <section class="sec">
-      <div class="a-section"><span class="t-label">8개 영역</span></div>
+      <div class="a-section"><span class="t-label is-section">8개 영역</span></div>
       <div id="ledger"></div>
     </section>
   </div>

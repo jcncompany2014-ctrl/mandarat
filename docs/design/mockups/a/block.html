@@ -20,20 +20,19 @@
   .pager-where { display: flex; align-items: center; gap: 8px; }
 
   /* the week tracker: booktabs. 1pt rule on top, hairlines under rows, no boxes round it. */
-  .sec { margin-top: 12px; }
-  .wk { border-top: var(--rule) solid var(--print-mid); }
-  .wk-row { display: grid; grid-template-columns: 1fr repeat(7, 30px) 40px; align-items: center; height: 36px; border-bottom: var(--hair) solid var(--print-rule); }
-  .wk-row.is-head { height: 24px; }
+  .sec { margin-top: 20px; }
+  .wk { }
+  .wk-row { position: relative; display: grid; grid-template-columns: 1fr repeat(7, 30px) 40px; align-items: center; height: 40px; }
+  .wk-row + .wk-row:not(.is-first)::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: var(--hair); background: var(--print-rule); }
+  .wk-row.is-head { height: 26px; }
   .wk-row > * { display: flex; justify-content: center; align-items: center; height: 100%; position: relative; }
   .wk-row > .wk-name { justify-content: flex-start; font: 500 14px/18px var(--sans); color: var(--ink); white-space: nowrap; }
   .wk-row > .wk-fig { justify-content: flex-end; font: 400 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .wk-row.is-head .t-label { line-height: 24px; }
-  /* the seven days are printed cells, as in the week strip on Home: hairlines between them */
-  .wk-row > .wk-d { border-left: var(--hair) solid var(--print-rule); }
-  .wk-row > .wk-d.is-last { border-right: var(--hair) solid var(--print-rule); }
+  /* the seven days are columns, not boxes; today's column is a soft tint behind the boxes */
   .wk-day.is-sunday .t-label { color: var(--signal); }
   .wk-day.is-today .t-label { color: var(--ink); font-weight: 700; }
-  .wk-day.is-today::before { content: ''; position: absolute; left: 0; top: 0; width: 8px; height: 8px; background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%); }
+  .wk-today-col { position: absolute; top: 0; bottom: 0; width: 30px; border-radius: 8px; background: var(--tile); }
   /* every planned day has a printed box (3.3:1); a box left empty before today is a missed day,
      one after today is still to come. Days not planned have no box. */
   .cell-state { text-align: center; }
@@ -52,7 +51,7 @@
     </div>
 
     <section class="sec">
-      <div class="a-section"><span class="t-label">이번 주 습관</span><span class="t-label" id="range"></span></div>
+      <div class="a-section"><span class="t-label is-section">이번 주 습관</span><span class="t-label" id="range"></span></div>
       <div class="wk" id="wk"></div>
     </section>
   </div>
@@ -95,7 +94,7 @@ A.ready().then((doc) => {
   for (let b = 0; b < 9; b++) {
     const x = (b % 3) * (u + gap), y = Math.floor(b / 3) * (u + gap);
     const fill = b === 4 ? 'var(--core)' : b === (AREA < 4 ? AREA : AREA + 1) ? `var(--dye-${AREA + 1})` : 'var(--print-rule)';
-    m += `<rect x="${x}" y="${y}" width="${u}" height="${u}" style="fill:${fill}"/>`;
+    m += `<rect x="${x}" y="${y}" width="${u}" height="${u}" rx="1.5" style="fill:${fill}"/>`;
   }
   document.querySelector('#where').innerHTML = `<svg width="22" height="22" viewBox="0 0 22 22" style="display:block" aria-hidden="true">${m}</svg><span class="t-label">1 / 8</span>`;
 
@@ -109,12 +108,22 @@ A.ready().then((doc) => {
     if (c === 'o') return A.check({ size: 14 });
     return '';
   };
-  area.actions.filter((a) => a.kind === 'habit').forEach((a) => {
+  area.actions.filter((a) => a.kind === 'habit').forEach((a, n) => {
     const s = weekOf[a.text];
     const t = a.perWeek ? { done: 0, planned: a.perWeek } : tally(s);
-    html += `<div class="wk-row"><span class="wk-name">${a.text}</span>${[...s].map((c, i) => `<span class="wk-d${i === 6 ? ' is-last' : ''}">${mark(c)}</span>`).join('')}<span class="wk-fig">${t.done}/${t.planned}</span></div>`;
+    html += `<div class="wk-row${n === 0 ? ' is-first' : ''}"><span class="wk-name">${a.text}</span>${[...s].map((c, i) => `<span class="wk-d${i === 6 ? ' is-last' : ''}">${mark(c)}</span>`).join('')}<span class="wk-fig">${t.done}/${t.planned}</span></div>`;
   });
-  document.querySelector('#wk').innerHTML = html;
+  const wk = document.querySelector('#wk');
+  wk.innerHTML = html;
+  // today's column: one soft tint from the weekday letter down through every row
+  const t = wk.querySelector('.wk-day.is-today');
+  if (t) {
+    wk.style.position = 'relative';
+    const col = document.createElement('div');
+    col.className = 'wk-today-col';
+    col.style.left = t.offsetLeft + 'px';
+    wk.prepend(col);
+  }
 
   A.tabBar('#bar', { active: 'chart' });
 });
