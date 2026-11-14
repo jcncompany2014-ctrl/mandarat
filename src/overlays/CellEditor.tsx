@@ -986,10 +986,14 @@ function CountRows({ M, cfg, nums, setNum, issue, onFocus }: {
 function DueRows({ M, cfg, setCfg, onReveal }: {
   M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
-  const { editor: ed, core } = useMsg();
+  const { editor: ed, core, kinds } = useMsg();
   const now = new Date();
   const today = ymd(now);
   const presets = duePresets(now);
+  // 네 칸에 들어가는 짧은 이름(영어 'In 3 months'는 375 폭의 한 칸을 넘는다) — 읽는 말은 긴 이름 그대로
+  const short: Record<string, string> = {
+    [kinds.presetWeek]: ed.dueWeek, [kinds.presetMonth]: ed.dueMonth, [kinds.preset3Months]: ed.due3Months, [kinds.presetYear]: ed.dueYear,
+  };
   const due = cfg.due;
   const set = (d: string | undefined) => setCfg((c) => ({ ...c, due: d && d < today ? today : d }));
   const days = due ? daysBetween(today, due) : 0;
@@ -1007,7 +1011,7 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
         onChange={(d) => { set(d); onReveal(); }}
         options={presets.map((p) => ({
           value: p.date,
-          label: p.label,
+          label: short[p.label] ?? p.label,
           // 소리로는 '마감 3개월 뒤, 2027년 1월 14일 목요일' — 점 찍은 짧은 표기('1.14 (목)')는 소수로 읽힌다
           a11yLabel: ed.dueChipA11y({ label: p.label, date: fmtDateSpeech(p.date, now) }),
         }))}

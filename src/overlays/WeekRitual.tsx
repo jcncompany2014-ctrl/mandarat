@@ -35,6 +35,8 @@ import type { MandaratDoc } from '../types';
 const TOP_BAR_H = GEO.header;
 /** 장부 한 줄의 높이 */
 const LEDGER_ROW_H = 44;
+/** 머리 아래 마감의 한 장면까지(dayclose.png .close margin-top 30) */
+const HERO_TOP = 30;
 const PAGE_TITLE = { week: 'pageWeek', mind: 'pageMind', next: 'pageNext' } as const satisfies Record<RitualPage, keyof Messages['ritual']>;
 
 /**
@@ -312,7 +314,7 @@ function WeekPage({ M, doc, week, readOnly }: { M: Palette; doc: MandaratDoc; we
   return (
     <View>
       {/* 큰 숫자 하나와 한 문장 — 읽을 거리가 있으면 그 문장이, 없으면 지난주와 견준 한 줄이 문장 자리에 */}
-      <View style={{ marginTop: 18, alignSelf: 'flex-start' }} accessible accessibilityLabel={t.totalSay({ range, n: r.total })} {...a11yLangProp()}>
+      <View style={{ marginTop: HERO_TOP, alignSelf: 'flex-start' }} accessible accessibilityLabel={t.totalSay({ range, n: r.total })} {...a11yLangProp()}>
         <Figure M={M} text={t.total({ n: r.total })} />
       </View>
       <Text style={{ ...ROLE.prompt, color: M.ink, marginTop: 4 }}>{noOrphan(sentence || delta)}</Text>

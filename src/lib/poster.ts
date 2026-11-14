@@ -18,10 +18,10 @@ export const POSTER_RATIO = POSTER_PX.width / POSTER_W;
 
 /** 공유 이미지의 자리(pt, scale 1) — 목업 share.html의 값 */
 export const POSTER = {
-  /** 좌우 여백 · 위 · 아래 */
+  /** 좌우 여백 · 위 · 아래(발 줄의 가운데가 아래 끝에서 30 — share.png) */
   pad: 36,
   top: 34,
-  bottom: 30,
+  bottom: 18,
   /** 머리 줄 '2026 핵심 목표' — 600 15/20 print */
   eyebrowFs: 15,
   eyebrowLh: 20,

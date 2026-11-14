@@ -76,11 +76,7 @@ test('D-11: 연속 기록 정보 줄 — 영역과 반복 일정을 core.dot으�
 });
 
 // D-25의 연속 기록 큰 숫자(46/52)는 디자인 A(S3)에서 figure(26/34) + 단위로 바뀌며 지웠다 — tests/a-s3.test.js. 통계 쪽은 그대로 둔다
-test('D-25: 통계 큰 숫자 — 46/52 숫자, 20pt 회색 단위', () => {
-  const stats = src('src/screens/Stats.tsx');
-  assert.match(stats, /fontSize: 46, lineHeight: 52, fontWeight: '800', color: M\.ink, letterSpacing: -1\.5/);
-  assert.match(stats, /fontSize: 20, fontWeight: '700', color: M\.sub, letterSpacing: 0/);
-});
+// D-25의 통계 큰 숫자(46/52)도 디자인 A(S4)에서 히어로 칸(figureField 22/30 + 단위)으로 바뀌며 지웠다 — tests/a-s4.test.js
 
 // D-17(홈 괘선 목록의 26pt 자리 · 구분선 inset)은 디자인 A(S1)에서 kit 줄(Row · TodayRow, 줄 사이 선 38)로 바뀌며 지웠다 — tests/a-s1.test.js
 

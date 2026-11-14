@@ -86,6 +86,10 @@ export default {
   sofarNumbers: 'Use only numbers for "So far"',
 
   due: 'Due',
+  dueWeek: 'Week',
+  dueMonth: 'Month',
+  due3Months: '3 months',
+  dueYear: 'Year',
   dueChipA11y: ({ label, date }) => `Due ${label}, ${date}`,
   date: 'Date',
   dueA11y: ({ date, left }) => `${date}, ${left}`,

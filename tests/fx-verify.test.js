@@ -75,8 +75,9 @@ test('HANDOFF-B1: 준비됐는지만 읽는 useReady — 문지기(Gate)는 문�
 // ── 화면 읽기 ─────────────────────────────────────────────────────────────────
 
 test('NEW-2 · NEW-5(ui): 칸·영역 자리는 어디서나 고유어 서수 — 81칸 줌 머리 · 실천 시트 머리', () => {
-  const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /m\.chart\.areaOrdinalSay\(\{ n: focus \+ 1 \}\)/);
+  // 크게 본 영역의 넘기기 줄(디자인 A, S2: 영역 화면 AreaPage의 Pager)
+  const grid = src('src/screens/area/AreaPage.tsx');
+  assert.match(grid, /m\.chart\.areaOrdinalSay\(\{ n: ti \+ 1 \}\)/);
   assert.equal(require('../src/i18n').msg('ko').chart.areaOrdinalSay({ n: 3 }), '8개 영역 중 세 번째');
   const sheet = src('src/overlays/ActionSheet.tsx');
   assert.match(sheet, /m\.sheet\.headA11y\(\{ area, ordinal: m\.fmt\.ordinalCell\(\{ n: ai \+ 1 \}\) \}\)/);
@@ -121,14 +122,16 @@ test('HANDOFF-A9 · NEW-1: 통계는 날짜를 또박또박 읽는다(속도 · 
   assert.doesNotMatch(s, /right, paceText\]/);
   assert.match(s, /pickedText=\{picked \? pickedSpeech\(doc, picked, l\) : m\.stats\.noPick\}/);
   assert.match(s, /accessibilityLabel=\{`\$\{e\.say\}\$\{m\.core\.listSep\}\$\{e\.text\}`\}/);
-  assert.match(s, /rightLabel=\{map\.since \? m\.stats\.since\(\{ date: fmtDateLong\(map\.since, l\) \}\) : undefined\}/);
+  // 범위 줄 오른쪽(10주) — 기록이 그 안에서 시작했으면 '…부터', 소리로는 긴 날짜(디자인 A S4)
+  assert.match(s, /say: m\.stats\.since\(\{ date: fmtDateLong\(map\.since, l\) \}\)/);
   const ko = require('../src/i18n/ko/stats').default;
   assert.equal(ko.pace({ date: '10월 20일 화요일' }), '이 속도면 10월 20일 화요일');
   assert.equal(ko.noPick, '고른 날 없음');
   assert.equal(ko.since({ date: '10월 3일 토요일' }), '10월 3일 토요일부터');
-  const head = slice(s, 'const SectionHead = memo(', '// ── 큰 숫자 둘');
-  assert.match(head, /NUM\]\} accessibilityLabel=\{rightLabel \?\? right\}>\{right\}<\/Text>/);
-  assert.match(s, /accessibilityLabel=\{ledgerLabel\(r, l\)\}/);
+  assert.match(s, /accessibilityLabel=\{range\.say \?\? range\.text\}/);
+  // 유형 줄 — 숫자가 있으면 장부 소리 말(ledgerLabel), 기록이 없는 줄은 이름 · 한 줄
+  assert.match(s, /const said = r\.value != null \? ledgerLabel\(\{ \.\.\.r, value: r\.value \}, l\) : \[r\.label, r\.sub\]/);
+  assert.match(s, /accessibilityLabel=\{said\}/);
 });
 
 // ── 누르기 · 표시 ─────────────────────────────────────────────────────────────

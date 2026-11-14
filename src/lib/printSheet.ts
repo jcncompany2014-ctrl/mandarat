@@ -12,7 +12,7 @@ import type { PrintOptions, PrintPaper } from './contracts';
 import { msg, type Lang } from '../i18n';
 import { CHART_POS } from '../theme/chart';
 import { LIGHT } from '../theme/tokens';
-import { markTiles } from '../components/chart/geometry';
+import { keepWords, markTiles } from '../components/chart/geometry';
 import { posterCells, posterDone, posterFinished, type PosterCell } from './poster';
 import { kindOf, ymd } from './routine';
 
@@ -94,9 +94,12 @@ export function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 }
 
-/** 여러 줄 글 — 줄바꿈은 <br>로 */
+/**
+ * 여러 줄 글 — 줄바꿈은 <br>로. 한국어 글은 한 음절 낱말을 옆 낱말에 붙인다(목업 A.keep: '부모님 / 주 1통화',
+ * '새 친구 / 사귀기') — 칸이 좁아 어떤 음절도 줄에 홀로 남지 않게
+ */
 function escLines(s: string): string {
-  return esc(s).replace(/\r?\n/g, '<br>');
+  return s.split(/\r?\n/).map((line) => esc(keepWords(line))).join('<br>');
 }
 
 /** 'mandarat-chart-YYYY-MM-DD.pdf' — 영문·숫자만(backupFileName과 같은 까닭: 파일 이름이 깨지지 않게) */
@@ -368,8 +371,8 @@ table{border-collapse:separate;border-spacing:0;table-layout:fixed}
 td,th{padding:0;vertical-align:middle;text-align:center}
 .in{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
 .t{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-.t81 .in{font-size:${pt(Math.max(6.5, 8.5 * k))};line-height:1.2;font-weight:500;letter-spacing:-0.02em;height:${pt(chart.cell)};border-radius:${pt(chart.radius)};padding:${s(3)}}
-.t81 .head .in,.t81 .core .in{font-size:${pt(Math.max(7, 9 * k))};font-weight:700}
+.t81 .in{font-size:${pt(Math.max(6.5, 9.5 * k))};line-height:1.2;font-weight:500;letter-spacing:-0.02em;height:${pt(chart.cell)};border-radius:${pt(chart.radius)};padding:${s(3)}}
+.t81 .head .in,.t81 .core .in{font-size:${pt(Math.max(7, 10 * k))};font-weight:700}
 .t81 .head .in{letter-spacing:-0.04em}
 .t81 .head.unnamed .in{font-weight:500}
 .empty .in{border:0.5pt solid ${T.printMid}}

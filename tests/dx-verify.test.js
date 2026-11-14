@@ -42,9 +42,10 @@ test('NEW-1: 포인트 컬러 표시는 한 색 — 보드 진행 중 · 홈 마
   assert.doesNotMatch(src('src/screens/TodayModes.tsx'), /legibleMark\(|M\.gold|M\.accent/);
   // 홈의 마감 밑줄 · 시작하기 색 체크는 디자인 A(S1)에서 없어졌다 — 홈은 표시색을 쓰지 않는다(체크는 kit CheckBox)
   assert.doesNotMatch(src('src/screens/Dashboard.tsx'), /legibleMark\(/);
-  const grid = src('src/screens/FullGrid.tsx');
-  assert.doesNotMatch(grid, /M\.goldInk/);
-  assert.match(grid, /legibleMark\(M\.gold, bg, M, 4\.5\)/);
+  // 81칸 표의 '달성' 글 · 오늘 표시는 디자인 A(S2)에서 색 지도(ColourMap)가 되며 없어졌다 — 지도는 표시색을 쓰지 않는다
+  for (const f of ['src/screens/FullGrid.tsx', 'src/screens/GridScreen.tsx', 'src/screens/area/AreaPage.tsx']) {
+    assert.doesNotMatch(src(f), /M\.goldInk|M\.gold\b|legibleMark\(/, f);
+  }
   // 파스텔 + 골드: 포인트 컬러(M.accent)와 표의 표시색(M.gold)이 다르다 — 그래서 한쪽으로 모은다
   const P = withAccent(MOODS['파스텔'], GOLD);
   assert.notEqual(legibleMark(P.accent, P.bg, P), legibleMark(P.gold, P.bg, P));

@@ -77,7 +77,10 @@ export const FullGrid = memo(function FullGrid({
         <Text style={[ROLE.label, { color: M.print, flexShrink: 1 }]} numberOfLines={1}>{m.chart.formName({ y: new Date().getFullYear() })}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SHEET.figureGap }}>
           <Text style={[ROLE.label, { color: M.print }]} numberOfLines={1}>{start ? m.chart.writtenFolio : m.chart.done}</Text>
-          <Text style={[KIT_TYPE.wordOn, tabular, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>{m.chart.of64({ n })}</Text>
+          {/* 처음은 '쓴 칸 0/64'(칸이 앞에 있다), 그 뒤는 '달성 24/64칸' */}
+          <Text style={[KIT_TYPE.wordOn, tabular, { color: M.ink }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+            {start ? `${n}/64` : m.chart.of64({ n })}
+          </Text>
         </View>
       </View>
 

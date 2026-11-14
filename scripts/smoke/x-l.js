@@ -16,8 +16,9 @@ module.exports = async (page, h) => {
       await h.shot(`xl-page-${i + 2}`);
     }
     // 마지막 쪽(다음 주 중점) — 칸 하나를 골라 버튼 글을 본다
-    // 칸 고르기는 testID가 없는 checkbox — 뒤에 깔린 오늘 화면의 체크(testID 있음)를 집지 않게
-    const box = page.locator('[role="checkbox"]:not([data-testid]):visible').first();
+    // 칸 고르기는 testID가 없는 checkbox 줄 — 모달은 문서 맨 끝에 붙으므로 마지막 것을 집는다
+    // (뒤에 깔린 오늘 화면의 줄을 집지 않게)
+    const box = page.locator('[role="checkbox"]:not([data-testid]):visible').last();
     if ((await box.count()) > 0) {
       await box.click();
       await h.settle();

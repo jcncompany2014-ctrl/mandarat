@@ -24,10 +24,7 @@ test('D-13: 8칸 다 달성한 블록은 크게 보기·영역 화면에서도 �
   assert.match(b, /\{finished && \(\s*<Text[^>]*>\s*\{m\.chart\.done\}/);
   assert.equal(require('../src/i18n').msg('ko').chart.done, '달성');
   assert.match(b, /borderWidth: 2, borderColor: legibleMark\(M\.gold, M\.bg, M\)/);
-  // 81칸 표의 '달성'도 크게 보기와 같은 꼴 — 이름표 바탕(bg = headBg) 위 4.5:1, 포인트 색(최종 점검 NEW-1)
-  const grid = src('src/screens/FullGrid.tsx');
-  assert.match(grid, /color: legibleMark\(M\.gold, bg, M, 4\.5\), marginTop: 1 \}\} maxFontSizeMultiplier=\{1\}>\{m\.chart\.done\}/);
-  assert.doesNotMatch(grid, /color: M\.goldInk/);
+  // 81칸 표는 디자인 A(S2)에서 색 지도(ColourMap)가 되어 '달성' 글 · 금색 테두리가 없다(달성은 wash 칠)
   assert.match(b, /legibleMark\(M\.gold, headBg\(color, M\), M, 4\.5\)/);
 });
 
@@ -38,16 +35,4 @@ test('D-16: 보드 칸의 오늘 · 이번 주 표시는 가장자리에 따로,
   assert.match(b, /position: 'absolute', top: PAD, left: PAD, right: PAD, height: TODAY_ROW - 3/);
   assert.match(b, /position: 'absolute', left: 0, right: 0, bottom: PAD, alignItems: 'center'/);
 });
-
-test('D-8 · D-15: 81칸 범례는 실제 칸 모양, 글은 20pt 쪽 가장자리에', () => {
-  const f = src('src/screens/FullGrid.tsx');
-  const legend = f.slice(f.indexOf('범례 한 줄'), f.indexOf('블록을 누르면 크게'));
-  assert.doesNotMatch(legend, /borderWidth: 1, borderColor: M\.sub/);
-  assert.doesNotMatch(legend, /backgroundColor: M\.sub/);
-  assert.match(legend, /headBg\(keyColor, M\)/);
-  assert.doesNotMatch(f, /paddingHorizontal: 4\b/);
-  assert.match(f, /const EDGE = 9;/);
-  assert.match(src('src/screens/GridScreen.tsx'), /marginHorizontal: 9/);
-  // 81칸의 줄바꿈 도우미(공유 이미지는 O5에서 색 지도의 글 맞추기 — posterLabel · mapLabel — 로 옮겼다)
-  assert.match(f, /cellBreak\(text, textW/);
-});
+// D-8 · D-15(81칸 범례 · 9pt 내민 표)은 디자인 A(S2)에서 범례와 함께 지웠다 — 지도 아래 한 줄은 tests/a-s2.test.js

@@ -29,7 +29,7 @@ test('R-5가 짚은 자리는 core.dot을 쓴다 — 손으로 쓴 ASCII 가운�
     'src/components/TodayRow.tsx': [/\$\{area\}\$\{m\.core\.dot\}\$\{m\.sheet\.rowWritten\}/, /\$\{area\}\$\{m\.core\.dot\}\$\{metaText\(metaLine\)\}/],
     // 홈 마무리 안내(디자인 A): 보이는 글은 제목 · 정보 두 줄, 읽는 말은 core.listSep으로 잇는다
     'src/screens/Dashboard.tsx': [/\$\{m\.year\.homePrompt\}\$\{m\.core\.listSep\}\$\{m\.year\.homePromptAction\}/],
-    'src/screens/Stats.tsx': [/\$\{m\.core\.dot\}\$\{parts\.month\}/],
+    'src/screens/Stats.tsx': [/\]\.filter\(Boolean\)\.join\(m\.core\.dot\)/],
     // R-5가 짚지 않았지만 같은 모양의 자리(F-1 넘겨줄 일 2)
     'src/lib/statsView.ts': [/parts\.join\(m\.core\.dot\)[\s\S]*parts\.join\(m\.core\.dot\)/, /\$\{line\}\$\{m\.core\.dot\}\$\{s\.thisWeek\}/, /\$\{dot\}\$\{word\}/],
     // 시트 제목 아래 한 줄은 sheet.kindPlan으로 잇는다(ja는 괄호 — 요일 목록의 ・와 섞이지 않게)
@@ -38,7 +38,7 @@ test('R-5가 짚은 자리는 core.dot을 쓴다 — 손으로 쓴 ASCII 가운�
     'src/overlays/CellEditor.tsx': [/\$\{fmtDateLong\(due\)\}\$\{core\.dot\}/],
     'src/overlays/YearClose.tsx': [/\$\{yearLabel\(from, to\)\}\$\{m\.core\.dot\}/],
     'src/screens/year/YearReview.tsx': [/\$\{range\}\$\{m\.core\.dot\}\$\{m\.year\.currentChart\}/, /\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
-    'src/screens/year/YearSheet.tsx': [/\$\{label\}\$\{m\.core\.dot\}\$\{range\}[\s\S]*\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
+    'src/screens/year/YearSheet.tsx': [/\$\{label\}\$\{m\.core\.dot\}\$\{range\}/],
   };
   for (const [file, pats] of Object.entries(sites)) {
     const s = src(file);

@@ -136,10 +136,10 @@ test('장부: 13달 · 윤년 2월 29일 · 없는 날은 칸이 없다', () => 
   assert.equal(ledgerCellSize(350), 10);
   assert.equal(ledgerCellSize(100), 6);
   assert.equal(ledgerCellSize(1000), 16);
-  // 칸 사이 머리카락 괘선 · 둥근 모서리 없음
+  // 디자인 A(S4): 칸은 타일(모서리 2, 사이 1.5) — 통계의 최근 10주와 같은 진하기 차례(HEAT_TONES)
   const s = src('src/components/YearLedger.tsx');
-  assert.match(s, /borderRightWidth: rule/);
-  assert.doesNotMatch(s, /borderRadius/);
+  assert.match(s, /const LEDGER_RADIUS = 2;/);
+  assert.match(s, /backgroundColor: tones\[c \?\? 0\] \?\? M\.tile/);
 });
 
 test('디자인 가드: 새 파일에 둥근 카드 · 그림자 · 그라데이션 · 이모지가 없다', () => {

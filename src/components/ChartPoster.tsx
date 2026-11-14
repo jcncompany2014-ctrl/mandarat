@@ -6,7 +6,7 @@
 import React, { forwardRef, memo, useMemo } from 'react';
 import { PixelRatio, View } from 'react-native';
 import { Text } from './AppText';
-import { Mark, mapFill, mapGeometry } from './chart';
+import { Mark, keepWords, mapFill, mapGeometry } from './chart';
 import { LIGHT, type Tokens } from '../theme/tokens';
 import { PRETENDARD } from '../theme/fonts';
 import { NUM } from '../theme/type';
@@ -103,7 +103,7 @@ function TitleLine({ goal, figure, unit, k, scale, l }: {
             letterSpacing: fit.letterSpacing * scale, color: T.ink,
           }}
         >
-          {goal}
+          {keepWords(goal)}
         </Text>
       ) : (
         // 목표를 아직 정하지 않았으면 손으로 적을 밑줄 한 줄
@@ -132,14 +132,13 @@ function TitleLine({ goal, figure, unit, k, scale, l }: {
 /**
  * 공유용 표 이미지 한 장 — 540×675pt(1080×1350으로 찍는다), 늘 밝은 토큰.
  * blank: 첫 화면의 지도(실천 칸은 모두 빈 칸, 숫자 없음) — 이름표와 목표만.
- * scale: 그림 배율(기본 1 = 공유 이미지 그대로) — 모든 치수가 posterMetrics(scale)에서 나온다(미리보기 · 지난 표).
- * gold: 예전 금색 줄의 색 — 이제 그리지 않는다(§2.7 강조색 없음). 지난 표 화면이 아직 넘겨서 받기만 한다.
+ * scale: 그림 배율(기본 1 = 공유 이미지 그대로) — 모든 치수가 posterMetrics(scale)에서 나온다(시트의 미리보기).
+ * 강조색(예전 금색 줄)은 없다(§2.7).
  */
 export const ChartPoster = forwardRef<View, {
   doc: Pick<MandaratDoc, 'centerGoal' | 'themes'>;
   blank?: boolean;
   now: Date;
-  gold?: string;
   scale?: number;
 }>(function ChartPoster({ doc, blank = false, now, scale = 1 }, ref) {
   const l = useLang();

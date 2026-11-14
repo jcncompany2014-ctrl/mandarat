@@ -48,7 +48,9 @@ function finishedDoc() {
 
 test('표 이미지의 자리 — share.html 값 그대로, 지도는 본문 폭 468', () => {
   assert.deepEqual([P.POSTER_W, P.POSTER_H, P.POSTER_RATIO], [540, 675, 2]);
-  assert.deepEqual([P.POSTER.pad, P.POSTER.top, P.POSTER.bottom, P.POSTER.mapTop, P.POSTER.footH], [36, 34, 30, 22, 24]);
+  assert.deepEqual([P.POSTER.pad, P.POSTER.top, P.POSTER.mapTop, P.POSTER.footH], [36, 34, 22, 24]);
+  // 발 줄의 가운데가 아래 끝에서 30
+  assert.equal(P.POSTER.bottom + P.POSTER.footH / 2, 30);
   assert.equal(P.POSTER_MAP, 468);
   assert.deepEqual([P.POSTER.eyebrowFs, P.POSTER.eyebrowLh, P.POSTER.figFs, P.POSTER.figLh, P.POSTER.unitFs, P.POSTER.mark], [15, 20, 24, 30, 14, 22]);
   // 지도는 2배 픽셀에 맞춰도 바깥 크기가 468 그대로
@@ -93,7 +95,7 @@ test('ChartPoster: 늘 LIGHT · G의 지도 칸 색(mapFill) · 마크 · 날짜
   const s = src('src/components/ChartPoster.tsx');
   assert.match(s, /const T: Tokens = LIGHT;/);
   assert.doesNotMatch(s, /usePalette|MOODS|GOLD|legibleMark|headBg|DONE_INK/);
-  assert.match(s, /import \{ Mark, mapFill, mapGeometry \} from '\.\/chart';/);
+  assert.match(s, /import \{ Mark, keepWords, mapFill, mapGeometry \} from '\.\/chart';/);
   assert.match(s, /mapFill\(c, T, 'L2'\)/);
   assert.match(s, /blank && c\.kind === 'action' \? T\.tile/);
   assert.match(s, /<Mark variant="heart" size=\{k\.mark\} tokens=\{T\} \/>/);

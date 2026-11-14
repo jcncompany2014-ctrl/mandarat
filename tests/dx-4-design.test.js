@@ -34,33 +34,17 @@ test('D-15: 설정 제목은 뒤로 가기 아래 줄(머리는 스크롤 밖에
   }
 });
 
-test('D-20: 달성한 칸이 없으면 닳은 자리 표에 0%를 찍지 않는다(화면 읽기 이름은 그대로)', () => {
+test('D-20: 달성한 칸이 없으면 닳은 자리 지도에 0%를 찍지 않는다(화면 읽기 이름은 그대로)', () => {
+  // 디자인 A(S4): 이름 칸은 영역 이름만(지도와 같은 글), %는 가운데 칸 하나와 화면 읽기 이름에
   const charts = src('src/components/StatsCharts.tsx');
-  assert.match(charts, /const blank = totalDone\(doc\) === 0;/);
-  assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 2, '영역 이름표 % · 가운데 %');
+  assert.match(charts, /const blank = done === 0;/);
+  assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 1, '가운데 %');
   assert.match(charts, /accessibilityLabel=\{`\$\{name\} \$\{p\.pct\}%/);
   const stats = src('src/screens/Stats.tsx');
-  assert.match(stats, /caption=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);
+  assert.match(stats, /note=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);
 });
 
-test('D-24: 닳은 자리 범례 견본의 밝기가 실제 칸(영역 색) 범위에 든다 — 다크의 5+가 흰 가운데 칸처럼 보이지 않는다', () => {
-  const WEAR_FILL = [25, 45, 65, 85];
-  for (const [name, M] of Object.entries(MOODS)) {
-    const swatch = M.dark ? toHex(mix(M.sub, M.bg, 0.3)) : toHex(M.sub);
-    WEAR_FILL.forEach((f) => {
-      const legend = lumOver(alpha(swatch, f / 100), M.bg);
-      const cells = PILLAR_COLORS.map((c) => lumOver(fade(c, f), M.bg));
-      const lo = Math.min(...cells);
-      const hi = Math.max(...cells);
-      // 견본은 칸 범위에서 10% 안쪽(사람 눈에 같은 단계로 보이게)
-      assert.ok(legend >= lo * 0.9 && legend <= hi * 1.1, `${name} ${f}%: 견본 ${legend.toFixed(3)} / 칸 ${lo.toFixed(3)}~${hi.toFixed(3)}`);
-    });
-  }
-  const charts = src('src/components/StatsCharts.tsx');
-  assert.doesNotMatch(charts, /alpha\(M\.ink, WEAR_FILL/);
-  // 쌓기 칸의 진행 막대는 칸 안쪽에 띄운다(바닥 괘선 위 100% 막대가 아래 칸 테두리처럼 읽히지 않게)
-  assert.match(charts, /position: 'absolute', left: 3, right: 3, bottom: 3, height: 2, backgroundColor: headTrack\(th\.color\)/);
-});
+// D-24(닳은 자리 범례 견본의 밝기 · 쌓기 칸 진행 막대 자리)는 디자인 A(S4)의 타일 지도와 회색 타일 범례로 바뀌어 지웠다 — tests/a-s4.test.js가 본다
 
 test('D-31: 설정 — 백업 묶음(iCloud와 백업 + 저장 위치 안내)과 새로 시작 묶음을 떼어 둔다', () => {
   const s = src('src/screens/Settings.tsx');

@@ -92,7 +92,8 @@ test('YearShelf: 늘 보이고(무료), 열 수 있으면 지난 표 한 장 · 
   assert.doesNotMatch(s, /useEffect/);
   assert.match(s, /onPress=\{\(\) => \{ tap\(\); onPick\(a\.id\); \}\}/);
   assert.match(s, /testID=\{TID\.yearShelfRow\(a\.id\)\}/);
-  assert.match(s, /<MiniChart themes=\{a\.themes\} cellShape=\{cellShape\} size=\{MINI\} \/>/);
+  // 디자인 A(S4): 줄 왼쪽은 작은 색 지도(L1, 56pt) — 줄이 많아도 첫 화면 다음 프레임에
+  assert.match(s, /<ColourMap themes=\{a\.themes\} level="L1" width=\{MINI\} defer \/>/);
   assert.match(s, /const MINI = 56;/);
   assert.match(s, /m\.year\.shelfLine\(\{ n: posterDone\(a\), days: recordDays\(a\) \}\)/);
   assert.match(s, /useDoc\(\)/);
@@ -106,18 +107,18 @@ test('YearShelf: 순서 · 기록한 날 수', () => {
   assert.equal(recordDays({ dayLog: { '2025-01-01': ['0-1'], '2025-01-02': [], '2025-01-03': ['1-1', '2-2'] } }), 2);
 });
 
-test('YearSheet: 쪽 폭의 표 그림(scale = 폭 / POSTER_W, 날짜는 닫은 날) · 영역 장부 · 읽기만 하는 보드 · 두 링크', () => {
+test('YearSheet: 색 지도(L2, 본문 폭 · 520까지) · 영역 장부 · 읽기만 하는 블록 · 두 링크(디자인 A S4)', () => {
   const s = src(SHEET);
-  const { sheetScale } = loadPure(SHEET, ['../../lib/poster']);
-  assert.equal(sheetScale(360), 1);
-  assert.equal(sheetScale(350), 350 / 360);
-  assert.equal(sheetScale(2000), 2); // 720pt까지
-  assert.match(s, /<ChartPoster doc=\{poster\} now=\{closed\} gold=\{M\.accent\} scale=\{scale\} \/>/);
-  assert.match(s, /const closed = useMemo\(\(\) => dayOf\(a\.to\), \[a\.to\]\);/);
-  assert.match(s, /<ChartBoard M=\{M\} doc=\{view\} ti=\{ti\} asOf=\{closed\} readOnly \/>/);
+  // 화면에 그리는 표는 ColourMap · BlockGrid(공유 이미지 · 인쇄의 ChartPoster는 O5)
+  assert.doesNotMatch(s, /components\/Chart(Poster|Board)'/);
+  assert.match(s, /const mapW = Math\.min\(contentW, MAP_MAX\);/);
+  assert.match(s, /<ColourMap themes=\{a\.themes\} goal=\{a\.centerGoal\} level="L2" width=\{mapW\} \/>/);
+  assert.match(s, /accessibilityLabel=\{m\.year\.sheetSpeech\(\{ label, goal: a\.centerGoal\.trim\(\), n: done \}\)\}/);
+  // 펼친 영역 — 누를 것 없는 블록(읽기만, 오늘 표시 없음)
+  assert.match(s, /<BlockGrid themes=\{a\.themes\} goal=\{a\.centerGoal\} block=\{ti\} width=\{Math\.min\(contentW, BOARD_MAX\)\} \/>/);
   assert.match(s, /accessibilityState=\{\{ expanded: open \}\}/);
   assert.match(s, /onOpen\(\{ kind: 'review', id: a\.id \}\)/);
-  assert.match(s, /<View testID=\{TID\.yearPrint\}>\s*<SheetLink M=\{M\} text=\{m\.year\.printLink\} onPress=\{\(\) => openPrint\(\{ archiveId: a\.id \}\)\} \/>/);
+  assert.match(s, /<View testID=\{TID\.yearPrint\}>\s*<InLink M=\{M\} label=\{m\.year\.printLink\} onPress=\{\(\) => openPrint\(\{ archiveId: a\.id \}\)\} \/>/);
   // 잠금 · 없는 지난 표
   assert.match(s, /if \(!a\) return <YearShelf M=\{M\} onOpen=\{onOpen\} \/>;/);
   assert.match(s, /if \(!archiveAccess\(owned\)\.open\) return <LockedSheet/);

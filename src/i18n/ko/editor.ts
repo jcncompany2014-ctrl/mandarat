@@ -118,6 +118,11 @@ export default {
 
   // ── 마감 ──
   due: '마감',
+  /** 마감 빠른 고르기 칸에 보이는 짧은 이름(분절 선택기 네 칸) — 읽는 말은 kinds.preset*의 긴 이름(dueChipA11y) */
+  dueWeek: '이번 주',
+  dueMonth: '이번 달',
+  due3Months: '3개월 뒤',
+  dueYear: '올해 안',
   /** 마감 고르기 칩을 읽는 말 — '마감 3개월 뒤, 2027년 1월 14일 목요일' */
   dueChipA11y: ({ label, date }: { label: string; date: string }) => `마감 ${label}, ${date}`,
   date: '날짜',

@@ -101,6 +101,24 @@ test('O1: 알림 고르기 줄 — 고른 줄의 정보는 시각 · 언제(오�
   assert.equal(`${ko.fmt.time({ h: 22, m: 30 })}${ko.core.dot}${ko.editor.remindDays}`, '오후 10:30 · 정한 요일마다');
 });
 
+test('O1: 마감 빠른 고르기 — 네 칸에 짧은 이름이 375 폭에 들어가고(웹은 줄이지 못한다), 읽는 말은 긴 이름', () => {
+  require('./register');
+  const I = require('../src/i18n');
+  const { textWidth, PRETENDARD_GLYPHS } = require('../src/lib/labelFit');
+  const { segmentCells } = require('../src/components/kit/metrics');
+  const { GEO } = require('../src/theme/tokens');
+  const room = segmentCells(375 - 2 * GEO.sheet.inset - 2 * GEO.sheet.pad, 4).cell - 12;
+  for (const l of I.LANGS) {
+    const e = I.msg(l).editor;
+    for (const t of [e.dueWeek, e.dueMonth, e.due3Months, e.dueYear]) {
+      assert.ok(textWidth(t, 14, PRETENDARD_GLYPHS, l) <= room, `${l} '${t}' > ${room}`);
+    }
+  }
+  const d = fn('DueRows');
+  assert.match(d, /label: short\[p\.label\] \?\? p\.label,/);
+  assert.match(d, /a11yLabel: ed\.dueChipA11y\(\{ label: p\.label, date: fmtDateSpeech\(p\.date, now\) \}\)/);
+});
+
 test('O1: 핵심 목표 · 영역 이름 예시는 세 언어 모두 짧다(지도 가운데 칸 3줄 · 머리 칸)', () => {
   assert.equal(msg('ko').editor.centerPlaceholder, '예) 첫 마라톤 완주하기');
   assert.equal(msg('ja').editor.centerPlaceholder, '例）初マラソン完走');

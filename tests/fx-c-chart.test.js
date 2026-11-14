@@ -47,9 +47,12 @@ test('영역 보드는 칸마다 memo, 유형 한 줄은 1.3배까지, 소리 �
   assert.match(b, /META_ROW \* fit\.metaScale/);
   assert.match(b, /useScreenReader\(\)/);
   assert.doesNotMatch(b, /cellSpeech\(|blockSummary\(/);
+  // 디자인 A(S2): 81칸은 색 지도(ColourMap — 칸마다 memo). 지도 묶음(FullGrid) · 영역 화면(AreaPage)도 memo,
+  // 크게 보기 · 접기의 화면 읽기 초점 옮기기는 GridScreen
   const f = src('src/screens/FullGrid.tsx');
-  assert.match(f, /const Block = memo\(/);
-  assert.match(f, /sendAccessibilityEvent\(node, 'focus'\)/);
+  assert.match(f, /export const FullGrid = memo\(function FullGrid\(/);
+  assert.match(src('src/screens/area/AreaPage.tsx'), /export const AreaPage = memo\(function AreaPage\(/);
+  assert.match(src('src/screens/GridScreen.tsx'), /sendAccessibilityEvent\(node, 'focus'\)/);
   assert.doesNotMatch(f, /금색 네모는 오늘/);
 });
 

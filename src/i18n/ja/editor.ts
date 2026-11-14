@@ -83,6 +83,10 @@ export default {
   sofarNumbers: '「これまで」には数字だけを入力してください',
 
   due: '締め切り',
+  dueWeek: '今週中',
+  dueMonth: '今月中',
+  due3Months: '3か月後',
+  dueYear: '年内',
   dueChipA11y: ({ label, date }) => `締め切り ${label}、${date}`,
   date: '日付',
   dueA11y: ({ date, left }) => `${date}、${left}`,
