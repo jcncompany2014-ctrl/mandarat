@@ -100,9 +100,6 @@ test('공통 부품은 testID를 넘겨받는다', () => {
     const kit = fs.readFileSync(path.join(SRC, `components/kit/${f}.tsx`), 'utf8');
     assert.match(kit, /testID=\{testID\}/, f);
   }
-  // Pressy는 나머지 속성을 그대로 넘긴다(testID 포함)
-  const pressy = fs.readFileSync(path.join(SRC, 'components/Pressy.tsx'), 'utf8');
-  assert.match(pressy, /\{\.\.\.rest\}/);
   const tsheet = fs.readFileSync(path.join(SRC, 'components/TemplateSheet.tsx'), 'utf8');
   assert.match(tsheet, /closeTestID = TID\.sheetClose/);
 });

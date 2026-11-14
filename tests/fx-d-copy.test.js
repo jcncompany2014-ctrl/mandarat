@@ -15,9 +15,8 @@ const { legibleMark } = require('../src/theme/chart');
 const ROOT = path.join(__dirname, '..');
 const FILES = [
   'src/screens/Today.tsx', 'src/screens/TodayModes.tsx', 'src/screens/Stats.tsx',
-  'src/components/TodayRow.tsx', 'src/components/WeekStrip.tsx', 'src/components/KindBits.tsx',
-  'src/components/StatsCharts.tsx', 'src/components/MoodRow.tsx', 'src/components/SegmentedControl.tsx',
-  'src/components/AnimatedNumber.tsx', 'src/components/LineIcons.tsx',
+  'src/components/TodayRow.tsx', 'src/components/KindBits.tsx',
+  'src/components/StatsCharts.tsx', 'src/components/MoodRow.tsx', 'src/components/LineIcons.tsx',
 ];
 const STEMS = ['완료', '탭해', '이뤘', '이룬', '셉니다', '직접 추가'];
 const RULES = [/칸을\s*(다\s*)?채웠/];

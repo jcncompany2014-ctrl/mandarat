@@ -1,5 +1,5 @@
 // 손으로 긋는 표시(체크 칸 · 요일 칸 · 동그라미)의 값과 말 — RN 의존 없는 순수 모듈(단위 테스트에서 그대로 쓴다).
-// 그리는 컴포넌트: kit/CheckBox.tsx · kit/DayBoxes.tsx · kit/ChoiceRow.tsx · Check.tsx · WeekStrip.tsx · MoodRow.tsx · GuideChips.tsx.
+// 그리는 컴포넌트: kit/CheckBox.tsx · kit/DayBoxes.tsx · kit/ChoiceRow.tsx · Check.tsx · MoodRow.tsx · GuideChips.tsx.
 // 디자인 A(docs/design/build-plan.md 패키지 K): 체크 칸은 24 상자(모서리 6, 테두리 1.5 printEdge) 위에 펜 획.
 import type { DayState } from './routine';
 import { lang, msg, type Lang } from '../i18n';

@@ -222,7 +222,7 @@ test('화면 읽기 역할: 체크 칸 · 켜고 끄는 줄은 체크 상자(선
 test('이름표를 단 View · Pressable은 화면 읽기 언어도 단다(a11y-lang A-1과 같은 규칙)', () => {
   const HOST = new Set(['View', 'Pressable', 'Animated.View', 'ScrollView']);
   const bad = [];
-  for (const rel of [...kitFiles(), 'src/components/TodayRow.tsx', 'src/components/KindBits.tsx', 'src/components/WeekStrip.tsx']) {
+  for (const rel of [...kitFiles(), 'src/components/TodayRow.tsx', 'src/components/KindBits.tsx']) {
     const text = src(rel);
     const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
     const visit = (node) => {
@@ -246,25 +246,21 @@ test('이름표를 단 View · Pressable은 화면 읽기 언어도 단다(a11y-
 
 test('부품 상자에는 손으로 적은 색이 없다(모두 팔레트의 토큰 이름)', () => {
   const hits = [];
-  for (const rel of [...kitFiles(), 'src/components/Check.tsx', 'src/components/SegmentedControl.tsx', 'src/components/WeekStrip.tsx']) {
+  for (const rel of [...kitFiles(), 'src/components/Check.tsx']) {
     const code = src(rel).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     for (const m of code.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g)) hits.push(`${rel}: ${m[0]}`);
   }
   assert.deepEqual(hits, []);
 });
 
-test('예전 이름은 그대로 — Check · SegmentedControl · KindBits · WeekStrip은 kit을 감싼다', () => {
+test('예전 이름은 그대로 — Check · KindBits는 kit을 감싼다(SegmentedControl · WeekStrip은 쓰는 곳이 없어 R2가 지웠다)', () => {
   const check = src('src/components/Check.tsx');
   assert.match(check, /export const Check = memo\(function Check\(/);
   assert.match(check, /export function checkEdge\(dark: boolean, more: boolean\)/);
   assert.match(check, /<CheckBox M=\{M\} state=\{state\}/);
-  assert.match(src('src/components/SegmentedControl.tsx'), /return <Segment /);
   const kind = src('src/components/KindBits.tsx');
   for (const name of ['alertInk', 'metaText', 'KindMeta', 'CountBar', 'RatingBoxes']) assert.match(kind, new RegExp(`export function ${name}\\(`), name);
   assert.match(kind, /backgroundColor: M\.tile, overflow: 'hidden'/, '쌓기 막대 받침은 tile');
-  const strip = src('src/components/WeekStrip.tsx');
-  assert.match(strip, /<DayBoxes/);
-  assert.match(strip, /export function WeekCaption\(/);
   // 오늘 줄은 작은 주간 칸을 그리지 않는다 — 습관의 이번 주는 정보 줄('이번 주 0/3회')이 말한다
   const row = src('src/components/TodayRow.tsx');
   assert.doesNotMatch(row, /WeekStrip/);

@@ -31,8 +31,8 @@ import { useMsg } from '../i18n/react';
  * - onOpen: 실천 줄 몸통을 눌렀을 때(보통 openAction(ti, ai)). 직접 추가한 할 일은 몸통을 누르면 체크한다.
  * - showRight: 오른쪽 하나('D-3' · '+1권' · ×)를 그릴지. 기본 true.
  * - rightPrint: 오른쪽에 인쇄된 낱말(이번 주 중점의 '중점') — 마감 'D-3' 자리를 대신한다(마감은 정보 줄로).
- * - onCheck(done): 체크를 바꾸기 바로 전에 — done은 바꾸기 전 상태. 화면이 줄을 잠깐 붙잡거나(useSettle.hold)
- *                  자리를 부드럽게 옮길 때(animateLayout) 쓴다. 기록·촉감·토스트·읽어 주기는 useTodayCheck가 맡는다.
+ * - onCheck(done): 체크를 바꾸기 바로 전에 — done은 바꾸기 전 상태. 화면이 자리를 부드럽게 옮길 때(animateLayout) 쓴다.
+ *                  기록·촉감·토스트·읽어 주기는 useTodayCheck가 맡는다.
  * - divider: 위쪽에 머리카락 선(글자가 시작하는 x 38부터) — 묶음의 첫 줄이 아니면 true.
  *
  * 모양(54 이상, 사이 14): 체크 칸 24(영역 번호의 wash · dye, 따로 누름 hitSlop 10 → 44) | 제목 rowTitle 한 줄

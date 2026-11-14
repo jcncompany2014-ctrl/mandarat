@@ -107,7 +107,6 @@ test('화면 읽기 언어: iOS에서 앱 언어가 기기 언어와 다를 때�
   assert.equal(AT.a11yLang('ja', 'android', 'ko'), undefined);
   const s = src('src/components/AppText.tsx');
   assert.match(s, /accessibilityLanguage=\{accessibilityLanguage \?\? \(nested \? undefined : a11yLang\(l\)\)\}/);
-  assert.match(src('src/components/Pressy.tsx'), /accessibilityLanguage=\{accessibilityLanguage \?\? a11yLang\(lang\(\)\)\}/);
 });
 
 // ── 일본어 줄바꿈(금칙) ───────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
-// 오늘 목록 화면(Today.tsx)의 순수 계산 — 색인 탭 · 마감 지남 · 집계 칸 · 빈 상태 · 마감 줄 글,
+// 오늘 목록 화면(Today.tsx)의 순수 계산 — 색인 탭 · 빈 상태 · 마감 줄 글,
 // 디자인 A(S3)의 자리 수치 · 중점 먼저 · 접은 줄 · 마감 글 · 이번 주 막대.
 // React Native에 기대지 않아 Node 테스트에서 바로 부른다(tests/todayList.test.js · tests/a-s3.test.js).
-import { daysBetween, kindOf, weekDates, ymd } from './routine';
+import { weekDates, ymd } from './routine';
 import { msg, type Lang } from '../i18n';
 import type { MandaratDoc } from '../types';
 
@@ -95,9 +95,6 @@ export function weekBarsLabel(counts: readonly (number | null)[], todayIndex: nu
   return [`${m.today.weekTitle} ${m.fmt.times({ n: total })}`, ...days].join(m.core.listSep);
 }
 
-/** 집계 네모를 그리는 최대 개수 — 이보다 많으면 가는 막대 하나로 */
-export const TALLY_MAX = 30;
-
 /** 색인 탭 한 칸 — 오늘 할 일이 하나라도 있는 영역과 그 개수(실천 줄 + 직접 추가) */
 export interface AreaTab {
   ti: number;
@@ -115,19 +112,6 @@ export function todayAreaTabs(items: readonly { ti: number }[], extras: readonly
 export function effectiveArea(selected: number | null, tabs: readonly AreaTab[]): number | null {
   if (selected == null) return null;
   return tabs.some((t) => t.ti === selected && t.count > 0) ? selected : null;
-}
-
-/** 마감이 지났는데 아직 끝내지 않은 한 번짜리 실천인가 */
-export function isOverdue(doc: Pick<MandaratDoc, 'themes'>, item: { ti: number; ai: number }, now: Date): boolean {
-  const a = doc.themes[item.ti]?.actions[item.ai];
-  if (!a || kindOf(a) !== 'once' || !a.due || a.done) return false;
-  return daysBetween(ymd(now), a.due) < 0;
-}
-
-/** 집계 칸 — 30개까지는 네모 하나씩, 넘으면 막대 */
-export function tallyShape(total: number): 'boxes' | 'bar' | 'none' {
-  if (total <= 0) return 'none';
-  return total > TALLY_MAX ? 'bar' : 'boxes';
 }
 
 /**

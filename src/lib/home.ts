@@ -92,15 +92,6 @@ export function headerMeta(d: Date, l: Lang = lang()): { week: string; left: str
   return { week: f.weekNo({ y: w.year, w: w.week }), left: f.daysLeftYear({ n: daysLeftInYear(d) }) };
 }
 
-/** 正 한 자에 긋는 획 수 — 홈은 正를 그리지 않는다(디자인 A). 웨이브 4(R2)가 지운다 */
-export const TALLY_MAX = 5;
-
-/** 正 세기 — 그을 획 수(최대 5)와 넘친 수('+n'). 웨이브 4(R2)가 지운다 */
-export function tallyMarks(n: number): { strokes: number; extra: number } {
-  const v = Math.max(0, Math.floor(Number.isFinite(n) ? n : 0));
-  return { strokes: Math.min(v, TALLY_MAX), extra: Math.max(0, v - TALLY_MAX) };
-}
-
 /**
  * 영역 줄의 한 줄 — 무엇이 다음인지.
  * 8칸 다 달성 → '8칸 모두 달성했어요' · 적어 두고 아직 달성하지 않은 첫 칸 → '다음 · {글}' · 그 밖 → '빈 칸 n개'

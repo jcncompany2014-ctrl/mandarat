@@ -24,7 +24,7 @@ import type { TodayExtra } from '../types';
  * - checkLabel(it): 체크 칸의 화면 읽기 이름 — 글 그대로, 쌓기는 '책 읽기, 1권 더하기'.
  * 체크해서 '했어요'가 되면, 화면 읽기가 켜져 있을 때 '물 마시기, 했어요. 오늘 3개 남았어요'를 읽어 준다.
  * 함수들은 누르는 순간의 문서를 읽으므로 앱이 도는 내내 같은 객체다 — 줄(memo)이 체크마다 다시 그려지지 않게.
- * 줄이 내려가는 애니메이션(useSettle · animateLayout)은 화면이 맡는다 — 지우기·되살리기만 여기서 부드럽게 잇는다.
+ * 줄이 옮겨 가는 애니메이션(animateLayout)은 화면이 맡는다 — 지우기·되살리기만 여기서 부드럽게 잇는다.
  */
 export interface TodayCheck {
   toggle: (it: TodayItem) => void;

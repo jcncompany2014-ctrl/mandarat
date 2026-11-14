@@ -23,15 +23,6 @@ test('headerMeta — 해 · 주 / 올해 남은 날', () => {
   assert.deepEqual(H.headerMeta(new Date(2026, 9, 14)), { week: '2026 · 42주', left: '올해 78일 남음' });
 });
 
-test('tallyMarks — 다섯 획까지, 넘치면 +n', () => {
-  assert.deepEqual(H.tallyMarks(0), { strokes: 0, extra: 0 });
-  assert.deepEqual(H.tallyMarks(3), { strokes: 3, extra: 0 });
-  assert.deepEqual(H.tallyMarks(5), { strokes: 5, extra: 0 });
-  assert.deepEqual(H.tallyMarks(8), { strokes: 5, extra: 3 });
-  assert.deepEqual(H.tallyMarks(-1), { strokes: 0, extra: 0 });
-  assert.deepEqual(H.tallyMarks(NaN), { strokes: 0, extra: 0 });
-});
-
 const cell = (text, done = false) => ({ text, note: '', done });
 
 test('areaLine — 다음 할 칸 · 빈 칸 · 모두 이룸', () => {

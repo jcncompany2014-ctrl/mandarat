@@ -40,13 +40,7 @@ test('홈 81칸은 doc 대신 themes, 칸은 memo(색 지도의 Tile)', () => {
   assert.match(c, /const Tile = memo\(/);
 });
 
-test('영역 보드는 칸마다 memo, 유형 한 줄은 1.3배까지, 소리 말은 speech', () => {
-  const b = src('src/components/ChartBoard.tsx');
-  assert.match(b, /const BoardCell = memo\(/);
-  assert.match(b, /maxFontSizeMultiplier=\{META_MAX_SCALE\}/);
-  assert.match(b, /META_ROW \* fit\.metaScale/);
-  assert.match(b, /useScreenReader\(\)/);
-  assert.doesNotMatch(b, /cellSpeech\(|blockSummary\(/);
+test('지도 묶음 · 영역 화면은 memo, 크게 보기 · 접기의 화면 읽기 초점은 GridScreen', () => {
   // 디자인 A(S2): 81칸은 색 지도(ColourMap — 칸마다 memo). 지도 묶음(FullGrid) · 영역 화면(AreaPage)도 memo,
   // 크게 보기 · 접기의 화면 읽기 초점 옮기기는 GridScreen
   const f = src('src/screens/FullGrid.tsx');

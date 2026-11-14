@@ -1,6 +1,6 @@
 import React, { createContext, forwardRef, useCallback, useContext, useLayoutEffect, useRef } from 'react';
 import {
-  Animated, Platform, StyleSheet, Text as RNText, TextInput as RNTextInput,
+  Platform, StyleSheet, Text as RNText, TextInput as RNTextInput,
   type TextInputProps, type TextProps, type TextStyle,
 } from 'react-native';
 import { getLocales } from 'expo-localization';
@@ -215,4 +215,3 @@ export const TextInput = forwardRef<RNTextInput, TextInputProps>(function TextIn
   );
 });
 
-export const AnimatedText = Animated.createAnimatedComponent(Text);

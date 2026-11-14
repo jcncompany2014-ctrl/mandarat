@@ -1,4 +1,4 @@
-// V4-B — 보관함(YearShelf) · 지난 표 한 장(YearSheet) · ChartPoster scale · ChartBoard asOf/readOnly.
+// V4-B — 보관함(YearShelf) · 지난 표 한 장(YearSheet) · ChartPoster scale. (ChartBoard asOf/readOnly는 R2가 보드와 함께 지웠다)
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -12,7 +12,6 @@ const src = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const { msg } = require('../src/i18n');
 
 const POSTER = 'src/components/ChartPoster.tsx';
-const BOARD = 'src/components/ChartBoard.tsx';
 const SHELF = 'src/screens/year/YearShelf.tsx';
 const SHEET = 'src/screens/year/YearSheet.tsx';
 
@@ -53,34 +52,6 @@ test('ChartPoster: scale 1은 공유 이미지(540×675) 그대로, 다른 배�
   assert.doesNotMatch(s, /transform: \[/);
   assert.match(s, /scale = 1 \}, ref\)/);
   assert.match(s, /posterMetrics\(scale\)/);
-});
-
-test('ChartBoard: readOnly는 누르기를 떼고 글로 읽힌다, asOf는 그날로 그리고 오늘 표시를 숨긴다', () => {
-  const { boardMode } = loadPure(BOARD);
-  const clock = new Date(2026, 9, 14);
-  const fn = () => {};
-  const live = boardMode({ onCell: fn, onCellLong: fn, onHead: fn }, clock);
-  assert.deepEqual(live, { now: clock, live: true, canPress: true, canLong: true, canHead: true, role: 'button' });
-  const ro = boardMode({ readOnly: true, onCell: fn, onCellLong: fn, onHead: fn, onHeadLong: fn }, clock);
-  assert.equal(ro.canPress, false);
-  assert.equal(ro.canLong, false);
-  assert.equal(ro.canHead, false);
-  assert.equal(ro.role, 'text');
-  const to = new Date(2025, 11, 31);
-  const past = boardMode({ asOf: to }, clock);
-  assert.equal(past.now, to);
-  assert.equal(past.live, false);
-
-  const s = src(BOARD);
-  // 오늘 할 일은 asOf면 늘 빈 묶음, 이번 주 · 마감은 mode.now로
-  assert.match(s, /!mode\.live \? NO_TODAY : todaySet \?\?/);
-  assert.match(s, /const now = mode\.now;/);
-  assert.match(s, /routineWeek\(doc, ti, ai, now\)/);
-  // 읽기만 하는 칸은 Pressable이 아닌 View(text), 이름표는 onPress를 떼고 text
-  assert.match(s, /if \(readOnly\) \{\n\s+return \(\n\s+<View\n\s+accessible\n\s+accessibilityRole="text"/);
-  assert.match(s, /onPress=\{readOnly \? undefined : onPress\}/);
-  assert.match(s, /accessibilityRole=\{readOnly \? 'text' : 'button'\}/);
-  assert.match(s, /if \(readOnly\) return <View style=\{\{ flex: 1 \}\}/);
 });
 
 test('YearShelf: 늘 보이고(무료), 열 수 있으면 지난 표 한 장 · 아니면 openPro(\'archive\') — 누를 때만', () => {
@@ -143,7 +114,7 @@ test('세 언어 — V4-B 글', () => {
 });
 
 test('디자인: 둥근 카드 · 그림자 · 그라데이션 · 이모지 · 도장이 없다', () => {
-  for (const f of [POSTER, BOARD, SHELF, SHEET]) {
+  for (const f of [POSTER, SHELF, SHEET]) {
     const s = src(f);
     for (const r of s.matchAll(/borderRadius: (\d+)/g)) assert.ok(Number(r[1]) < 14, `${f}: borderRadius ${r[1]}`);
     assert.doesNotMatch(s, /shadow\(|LinearGradient|rgba\(0,0,0,0\.04\)/, f);
