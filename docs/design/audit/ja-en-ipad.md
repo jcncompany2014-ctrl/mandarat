@@ -179,3 +179,72 @@ Folder (session scratch, may be cleared): `/tmp/claude-0/-home-user-mandarat/508
 - `onb.js`: onboarding and the first Home at four iPad sizes.
 - `breaks.js`: for each language and seven window sizes, walks the text nodes of `grid-table`, groups characters into lines by their client rects, and counts cells below 9px, breaks inside a Latin word, one-character last lines and clipped cells (`breaks.json`).
 - Limits: the web build stands in for iOS. Japanese falls back to Noto Sans CJK on this machine, so JEI-12 needs a device check. The PDF in JEI-03 was read from its CSS, not printed. Physical sizes use 163 pt per inch for iPad mini and 153 for a 6.1-inch iPhone.
+
+## Verification
+
+Independent pass, 2026-11-14. I opened every cited screenshot (the auditor's renders in `jei/shots/` and the `/tmp/web-smoke` files), read `breaks.json` and the five `report-*.json` files, read every cited file and line, and re-ran the grep in JEI-21.
+
+Result: 21 confirmed, 1 overstated (JEI-04), 0 wrong, 0 unchecked. The counts and sizes reproduce. The corrections are about one headline, one count and two limits of the evidence.
+
+What I re-derived instead of reading:
+
+- The poster count in JEI-03, cell by cell: 24 of 81, as claimed.
+- The window shares in JEI-04, from the report sizes: all match.
+- The three replacement names in JEI-01, through the app's own fitting rule (`longestWord`, phone cell text width 35.9pt): People, Explore and Play all stay at 9.5pt.
+- The PDF in JEI-03, which the auditor had only read from CSS. Another verifier had rendered the app's real print HTML with English and Japanese sample content (`/tmp/claude-0/-home-user-mandarat/508ae579-68a8-5b07-b53e-085438bf79ba/scratchpad/verify/print-{en,ja}-{A4,A5}.png`, script `printshot.js` in the same folder; temporary). I used those.
+
+Limits. The web build stands in for iOS, as the memo says. Two parts of JEI-12 rest on code alone (which Hiragino weight each string gets, and the size of a Pretendard JP subset). The wording calls in JEI-13 and JEI-16 look right to me but are not a native writer's review. Web search was not available in this pass (the session's search budget was used up), so the trademark point in M2 comes from this repo's own reference notes and from memory.
+
+### Verdicts
+
+| ID | Verdict | Note |
+|---|---|---|
+| JEI-01 | confirmed | First run shows "Relations / hips" and "Adventur / e" twice each. Sample chart: 27 cells below 9px (5 + 8 + 10 + 4 in `report-en-phone.json`), 10 mid-word breaks, centre goal cut. iPad mini landscape 7, 11-inch landscape 3. Code as cited. By the app's own glyph table the seed widths are 7.7 em (English) and 4.4 em (Korean), not 8.1 and 5.0; the ratio is the same. One addition: on iPad mini landscape "Adventure" sits on one line in the outer block and breaks in the centre block (`en-ipad-1133x744-dashboard.png`). The centre block has 2pt edges on all four sides (`FullGrid.tsx:456-461`) and the fitting width assumes one 1.5pt rule (`FullGrid.tsx:674`), so the rule says "fits" for a cell that is narrower. |
+| JEI-02 | confirmed | 26, 27, 22 and 17 one-character last lines in `breaks.json`; 7 cut cells on the phone; first-run breaks as described. `cellBreak` returns Japanese text untouched (`src/lib/text.ts:32`), so nothing composes these lines. The result will be the same on iOS because kana and kanji are 1 em wide in any face. |
+| JEI-03 | confirmed | 24 broken or cut cells on the English poster, 4 cut on the Japanese one. The Japanese poster also has the one-character last lines of JEI-02 ("11時に寝 / る", "発表を1 / 回"). The PDF, now rendered: English A4 breaks 5 words with no hyphen ("Relationshi / ps" twice, "conversatio / n", "documentari / es", "subscription / s"), A5 breaks 6. Paper breaks less than the poster, but a default area name breaks on every sheet. The Japanese PDF has a second, larger problem: M1. |
+| JEI-04 | overstated | Every size and share reproduces. The headline does not. "No bigger than on a phone" is true on iPad mini landscape (380pt against 368pt; 59mm against 61mm) and in windows under about 1,000pt wide. On 11-inch landscape the chart is 456pt, 24% wider than the phone in points and about 88mm against 61mm on glass; on 13-inch landscape it is 617pt. What does not grow is the text: 9pt at four of the five spread sizes. I would split the finding. (a) Text size and the 20 to 32% share are P1 design work, answered by JEI-05 and JEI-06. (b) The band from 960 to about 1,130pt wide is a bug: the spread turns on at 960×600 (`screen.ts:17, 44`) and gives cells of 31 to 42pt. At 1000×620 English has 15 cut cells and Korean drops below 9pt in 15 cells (`report-ko-en-ipad.json`). Stopgap: stay in the single column until the fitted chart is at least 400pt wide. |
+| JEI-05 | confirmed | All six measurements reproduce (132pt mini chart, 555 to 600pt rows, 340pt heat-map box with three 42pt squares, 204×244pt zoom cells, about 420pt blank under the 13-inch portrait chart, the duplicated eight actions). On the duplicate: the right page adds check boxes and status, so it is the working list; the 3×3 on the left is the redundant one. One addition: the two pages share no header line. The left page's double rule is at y=78 and the right page's rule at y=106, and nothing below them aligns across the binding (`ko-spread-1194x834.png`). |
+| JEI-06 | confirmed | Same two pages, sides swapped. `companionFor` as cited. |
+| JEI-07 | confirmed | 277pt of desk on each side (46%) on 11-inch landscape, 54% on 13-inch; 300pt grid; buttons 353pt below the caption; 52pt slivers on iPad mini portrait; about 570pt blank on the first Home. |
+| JEI-08 | confirmed | Editor at x 317 to 877, y 100 to 834; it covers 45% of the chart's width. Timer close button at (879, 32). All five sheets are the same 560pt bottom panel. |
+| JEI-09 | confirmed | Five tabs 112pt apart between x 317 and 877; the bar is 62pt high. |
+| JEI-10 | confirmed | "Mon, Tue, Wed, Thu, S" is cut with its icon gone; "月・火・水・木・日" runs edge to edge with the icon under the gold bar; the streak row ends in "…"; the gap around "・" is about 24pt. |
+| JEI-11 | confirmed | All four examples are on screen exactly as quoted. |
+| JEI-12 | confirmed | Seen: the "3" of "3日" is a different face from "24/64" beside it (crop against the English shot); rows step 58pt against 55pt and "行動からもっと選ぶ" is cut by the tab bar; the weekday header is set solid; cells are 9/10.5. From code only: style weights 500, 600 and 700 all become Hiragino W6 (`fonts.ts:27-31`, then `AppText.tsx:95-98`), so an open cell (600) and a done cell (700) lose their difference. "Nearly everything" is too broad: default-weight text becomes W3. This cannot be seen in a web render; check on a device. The 1.5MB estimate is not measured. |
+| JEI-13 | confirmed | Every string is in the code and on screen as cited. One correction: no single screen shows three phrasings of weekly progress. Each shows two (cell and list, or Today and cell); there are three across the app. One more for the writer: the glossary word "achieved" for a finished square ("24 of 64 squares achieved", the legend "Achieved") is stiff English. Goals are achieved; squares are done or completed. |
+| JEI-14 | confirmed | Nothing in English states the structure. The five-step "Get started" list on the first Home ("Name 8 areas", "Fill in 8 action squares") teaches by doing, which is a reason to keep the added line to one sentence. |
+| JEI-15 | confirmed | `demoDoc()` calls `sampleThemes(DEMO_DAY)` with no language and a Korean goal. `layout=device` appears only in `v4-d.js` and `v5-a.js`: six scenes at four sizes. |
+| JEI-16 | confirmed | Strings as cited. One suggestion needs care: "回数の目標" is narrower than the feature, which counts books, dishes and yen; 数値目標 is the usual term. The name question at the end is not a P2 wording item: see M2. |
+| JEI-17 | confirmed | 4 of 4 in English, 1 of 4 in Korean and in Japanese. |
+| JEI-18 | confirmed | Grid top at y=280 against 248. The examples are plain text, not chips. |
+| JEI-19 | confirmed | As described. |
+| JEI-20 | confirmed | As described. |
+| JEI-21 | confirmed | The grep returns only a local variable named `cursor`. There is also nothing for Apple Pencil or drag and drop: see M5. |
+| JEI-22 | confirmed | The English snackbar fits on one line; the Japanese one covers the text of the 次にやること row. |
+
+### Missed
+
+**M1. [P1] The Japanese PDF sets every phrase in two typefaces, and breaks lines against Japanese rules.**
+Screen: 인쇄 PDF, Japanese.
+Evidence: `scratchpad/verify/print-ja-A4.png` and `print-ja-crop.png` (the app's print HTML with Japanese sample content). In "夜食をやめる", "業界の交流会" and "週3回の運動" the kana and digits are Pretendard Medium and the kanji are a lighter device face. Cause: the print font stack lists the embedded Pretendard first (`src/lib/printSheet.ts:26`), and Pretendard has hiragana and katakana (U+3041 to 3094 and U+30A1 to 30FE, checked with `fc-query`) but no kanji. The comment on line 25 assumes kana fall through to the device font. On iOS the kanji would be Hiragino W3 beside Medium kana. Second cause: `word-break:keep-all` (`printSheet.ts:319`) is the Korean rule. On Japanese it removes every normal break, so each break is an overflow break: before a small kana ("サイドプロジ / ェクト", "デジタルデト / ックス"), inside a number ("ストレッチ1 / 0分" at A5), and nine one-kana last lines at A4. The app's screens avoid the first problem by switching whole strings to the Japanese face; the PDF does not.
+Fix: for `lang=ja`, limit the embedded Pretendard to Latin and digits with `unicode-range`, or list the Japanese face first, and use weights the device has (W3 and W6). If JEI-12 bundles Pretendard JP, embed the same subset in the PDF. Set `word-break:normal; overflow-wrap:break-word; line-break:strict` for Japanese and send cells through the composer from JEI-02. Add the Japanese and English PDFs to the visual tests.
+
+**M2. [P1] The Japanese product name is a release gate, not a wording item (under-ranked in JEI-16).**
+Screen: chart title, tab bar, poster, PDF, Home Screen name, Siri, Japanese.
+Evidence: マンダラート is the 26pt title of the chart screen and a tab label (`jei/shots/ja-first-grid.png`), the poster footer (`jei/shots/ja-ov-390x844-share.png`), the PDF footer (`print-ja-A4.png`), the Home Screen name (`locales/ja.json`) and part of the Siri phrases (`docs/v2/review-notes.md:87`). This repo's reference notes say マンダラチャート is a registered mark with published usage rules, and that マンダラート is the name of a different originator's method whose status they could not confirm (`docs/design/refs/korea-japan.md:259-265, 427`; `docs/design/refs/mandalart-apps.md:228`). Checklist row V4 is open. From memory both are registered in Japan; I could not check J-PlatPat in this pass.
+Fix: decide before any Japanese layout work. Make the design independent of the answer: title the chart screen with the user's goal in all three languages (the JEI-14 fix), label the tab 表 or チャート, and keep the product name to one small wordmark in the poster and PDF footer and in About. Shortlist neutral names (目標達成シート, 81マスの目標表) and check each on J-PlatPat in classes 9 and 42.
+
+**M3. [P2] Weeks start on Monday and carry an ISO week number in every region.**
+Screen: Home masthead, week strips, heat map, weekly counts, English and Japanese.
+Evidence: Monday-first order and ISO week numbers are fixed in code (`src/lib/routine.ts:25, 131`; `src/lib/home.ts:7-11`). Nothing reads the device's first weekday (grep for `firstWeekday` and `getCalendars` returns nothing). A US user sees "2026 · Week 42" in the masthead (`jei/shots/en-phone-dashboard.png`), strips that start on Monday ("M T W T F S S", `jei/shots/en-ipad-744x1133-today.png`) and "0/3 times this week" counts that reset on Monday, while their Calendar starts on Sunday. Japanese gets "2026年 第42週" (`jei/shots/ja-phone-dashboard.png`). Week numbers are not part of everyday use in the US or Japan. Strength 2 in this memo ("formats are native") does not cover this.
+Fix: follow the device's First Day of Week (`getCalendars()[0].firstWeekday` in expo-localization) for the strips, the heat-map rows and the weekly boundary, or keep Monday as a stated planner choice and offer a setting. In English and Japanese replace the week number in the masthead with the week's dates ("Oct 12–18", "10月12日〜18日").
+
+**M4. [P2] The Lock Screen widget cuts its Japanese text, and no widget or Live Activity was reviewed in any language.**
+Screen: Lock Screen rectangular widget, Japanese. From code, not rendered.
+Evidence: the widget sets its status line at 14pt semibold on one line (`src/widgets/TodayWidget.ios.tsx:251`). The Japanese status strings are 12 to 14 full-width characters (`src/i18n/ja/widget.ts`: "今日やることは全部できました" is 196pt wide, "今日やることはありません" 168pt) and the widget is about 160pt wide. English ("All done for today", about 125pt) and Korean fit. The second line spends 84pt on the prefix "次にやること：" before the action name (`TodayWidget.ios.tsx:252`), against about 30pt for "Next: ". Neither evidence folder holds a widget, Live Activity or Dynamic Island image.
+Fix: Japanese "全部できました", "今日はなし" and "次：{t}"; add `minimumScaleFactor(0.85)` to both lines. Render the six widget families and the Live Activity in three languages and add them to the evidence set. After install these are the surfaces a user sees most.
+
+**M5. [P2] The paper notebook has no pen on iPad.**
+Screen: 만다라트 and the cell editor, iPad.
+Evidence: the only way to write in a square is the bottom sheet with one text field (`jei/shots/en-ov-1194x834-editor.png`). A grep of `src`, `plugins` and `app.json` for Pencil, Scribble and drag returns only the pencil icon. The concept is a printed chart filled in by hand, so writing on the chart with Apple Pencil is the first thing an iPad user will try.
+Fix: no drawing canvas in 1.0. With the inspector from JEI-08 open beside the chart, keep its text field focused for the selected square. A standard text field accepts Scribble with no extra code, and Return already moves to the next square (`CellEditor.tsx:559-563`). Writing directly on a chart cell needs a small native module (`UIIndirectScribbleInteraction`) and can come later, with dragging a square onto 오늘.
