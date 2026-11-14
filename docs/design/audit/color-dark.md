@@ -215,3 +215,72 @@ Text and mark contrast by paper (`src/theme/moods.ts`):
 Area colours against grounds: on 미색 4.32 to 5.11:1; on the dark page 3.60 to 4.25:1; `areaInk` text 5.60 to 6.47:1 light and 7.17 to 7.72:1 dark, with chroma falling to 0.054 to 0.074 in dark because it is mixed toward white.
 
 Working files (crops, simulations, the calculation script) are in `/tmp/claude-0/-home-user-mandarat/508ae579-68a8-5b07-b53e-085438bf79ba/scratchpad/color/`; `grid-cvd.png` shows the chart in normal, deuteranopia and greyscale side by side, and `dots-both.png` the area picker in normal and deuteranopia.
+
+## Verification
+
+Independent check of CD-01 to CD-14, done on 2026-11-14 by a second reviewer.
+Every cited screenshot was opened, the pixel values were re-sampled with Pillow, and the contrast, OKLCH and ΔE figures were recomputed from the hex values with a separate script (`/tmp/claude-0/-home-user-mandarat/508ae579-68a8-5b07-b53e-085438bf79ba/scratchpad/vcolor/`).
+The cited code lines were read in the working tree.
+
+Result: 13 confirmed, 1 overstated (CD-05), none wrong, none unchecked.
+The measurements in this memo are reliable: every sampled hex and almost every ratio reproduced to the last digit.
+The weak spots are in three places: a few evidence items point at dead code, several proposed fixes break the repo's own contrast floor, and all evidence is from the web build, so colour that only exists on a device was never looked at.
+
+Two limits on the evidence, which apply to the whole memo:
+
+- Every screenshot in both folders is a react-native-web capture in Chromium (`tools/design-shots/capture.js:31`). The launch screen, the widget, the Live Activity, the keyboard, system alerts and the text caret are not in the evidence.
+- Dark is covered by nine captures (four tabs, four tall tabs, one zoomed block). No dark sheet, editor, onboarding, settings or stats detail was captured, so CD-06 and CD-07 are verified on those screens only.
+
+### Verdicts
+
+| Id | Verdict | Note |
+|---|---|---|
+| CD-01 | confirmed | All five code references hold. `app.json:9` even says `userInterfaceStyle: automatic`, and `Root.tsx:365` overrides it. The cream flash is two layers deep: the native splash (`app.json:94-101`) and the JS splash, which is also hard-coded cream (`src/components/Splash.tsx:9`). Wording: `setColorScheme` overrides the app's own interface style, not the OS. The launch flash cannot be seen in web captures; the code is unambiguous. |
+| CD-02 | confirmed | Name cells sample `#E2EBE4` to `#F3E5E8`, ΔE 5.1 to 5.9 and 1.16 to 1.18:1 against the paper. Onboarding contains one chromatic colour, the gold cell edge. The guide mini chart has sixteen tinted cells, not eight (immaterial). Fix caveat: the 8% wash is ΔE 3.3 to 3.7 from the paper, fainter than the 16% tint this finding calls a whisper, and the washes of adjacent blocks differ by only ΔE 0.7 to 1.6, under the just-noticeable 2 (1.5 to 3.2 even at 16%). At 8% the chart would read as one faintly tinted sheet, not eight territories. The `label` step, the coloured "+" and a full-strength mark per block (a pigment rule or the area number in `areaInk`) have to carry day one; mock at real size before adopting. |
+| CD-03 | confirmed | Recomputed: L 0.530 to 0.581, hue gaps 39, 26, 83, 38, 53, 24, 34, 62, minimum pairwise ΔE 4.9 / 0.3 / 0.5. The auditor's own simulation (`grid-cvd.png`) shows the three groups. The proposed set reproduces 10.3 / 5.9 / 6.1. Fix caveat: four of the eight proposed colours are 2.45 to 2.90:1 on a dark page, so a separate dark ramp is mandatory, not optional. |
+| CD-04 | confirmed | Every sample holds (`#B0883C` bars, `#9C6A2A` goal bar, `#C3A56A` underline, 3.10:1, 3.26:1). Three corrections. Gold has more jobs than listed: the "진행 중" status square in Board mode, the closed-day underline on Home, the year calendar, see M3. The Stats collision is between the gold heat-map legend and the 황토 goal bar directly below it; the weekly bars are about 700 pt further up. The 저장 slab in the editor is 286 × 52 pt, not 350. Fix caveat: `#B2841C` is ΔE 8.4 from 황토, no better than today's 8.8; only emptying the hue band separates them. |
+| CD-05 | overstated | The core is real: destructive and error text is `#A15166`, the hue of 연지 (5° against 4°, ΔE 4.4); the accent picker offers four area colours; the editor sheet has ink, area-colour and gold selections; the `<Check>` count is exactly 12 / 9 / 1. Four evidence items do not hold. `SEMANTIC.done`, `SEMANTIC.danger` and `MOOD_COLORS` are dead exports, referenced only by tests. The mood and rating scale is already drawn in ink (`src/components/KindBits.tsx:104-110`), so that part of the fix is moot. The legend swatch is the first area's colour used as a sample cell (`src/screens/FullGrid.tsx:669`), not a global done-green. Overdue dates do get colour: rouge text (`src/components/TodayRow.tsx:287`) and a 2 pt bar (`src/screens/Today.tsx:314`); only a date that is not yet due is grey. Fix caveat: the reserved red `#B93A26` is ΔE 6.2 from 주홍 and 2.7 under deuteranopia, below this memo's own threshold of 10. |
+| CD-06 | confirmed | Hues 288 to 292 for bg, surface, card, tab bar, sub and faint; ink at 89. Ratios 1.10, 1.14, 1.05 and the scrim result `#0D0B15` all reproduce. Two caveats. The proposed surface step is 1.09:1, lower than the 1.10 this finding calls "no elevation"; iOS steps are about 1.23 and 1.51, so the sheet and tab bar need about `#2A2622` (1.24). "Dots read as dust" is a judgement: the dark dot peaks at 1.20:1, the same as the light dot (1.22:1). "Two darks" is true on 미색 only; on the other papers `center` is violet too. |
+| CD-07 | confirmed | Centre `#F1EFEA` at 16.8:1, frame `#CFCCCA` at 12.1:1, `#478058` on the same 271,210 pixels in both zoom captures, tint chroma 0.021 to 0.040, name against written ΔE 2.0 to 2.4, sparkline `#683648` at 2.03:1. Fix caveat: `#EBE7DF` text on today's fills is 3.68 to 4.36:1, under the 4.5 floor the tests enforce for 9.5 pt cell text. Keep white, or darken the dark-mode pigments first. |
+| CD-08 | confirmed | ΔE ranges reproduce exactly for all four papers; `#EAE6F1` on `#F0ECFA` and `#E3E7F2` on `#F4EEE3` sampled as stated. Further evidence: the four thumbnails in `ko-year-review-390.png` (y 628 to 708), where the first three are the same pastel quilt. |
+| CD-09 | confirmed | 미색 against 크림 is ΔE 3.3; lavender mark 2.83:1 and ΔE 10.6 from 오디. One more defect: on 크림 the centre cell is violet `#221F2E` (hue 293) while its ink is warm `#211F1A`, sampled at (355,700) in `mood-크림-tab-grid.png`. "Faint text 2.14:1" is overstated as a text problem: `faint` is used for three chevrons and one disabled label. Removing accents and papers reverses a recorded owner decision (`tests/palette.test.js:22`), so it needs the owner's sign-off. |
+| CD-10 | confirmed | Stronger than stated. At @2x the paper dot peaks at `#E6E3DB` (1.22:1) and the off-day mark is `#E9E4DB` (1.20:1); the `#F0EDE7` figure comes from the 1.5× tall capture. Sizes confirmed: 3 pt squares at a 12 pt pitch over dots at an 18 pt pitch. No dots on the sheet. |
+| CD-11 | confirmed | All six samples hold. One is worse than stated: future weekdays are `sub` at 45% opacity (`src/components/StatsCharts.tsx:72`), which is `#BCB7AD` at 1.90:1, not `faint` at 2.46. Fix caveat: an ink fill at 30% with paper text gives a 1.84:1 label, less legible than today's; use an ink fill at 12% with `sub` text (4.29:1). |
+| CD-12 | confirmed | Sampled `#8E8B8E`, computed `#8D8B8E`. It is a near-neutral grey with a faint violet cast (chroma 0.006, hue 326), so the effect is small. P2 is the right level. |
+| CD-13 | confirmed | Weekly bars and heat-map are gold only. Fix caveat: stacking by area works only after CD-03; with today's palette the segments share one lightness and neighbours differ by ΔE 5. |
+| CD-14 | confirmed | `surface` is read once outside the theme (`src/components/common.tsx:237`); all listed hexes exist, and `#A15166` is also in `src/components/ErrorBoundary.tsx`. The file is `src/overlays/Snackbar.tsx`, and the `chart.ts` line numbers in this memo are three too high (`DONE_INK` is line 99). Fix caveat: `onFill` set to the paper colour puts 쑥, 황토 and 연지 at 4.32 to 4.44:1; do it only with the re-derived palette. |
+
+### Missed
+
+**M1 (P1). On a device the text caret and selection are the system tint, blue by default.**
+Evidence: no `selectionColor` anywhere in `src` (0 matches), and the shared input wrapper passes none (`src/components/AppText.tsx:207`).
+The web captures show an ink caret (`ko-xi-onboarding.png`, centre cell at (194,397)) because a browser draws the caret in the text colour; iOS draws it in the tint colour.
+The first onboarding screen focuses a field, so the first thing that blinks in a warm paper app is a blue bar next to a gold cell edge.
+The same goes for the two native alerts (`src/overlays/CellEditor.tsx:156`, `src/screens/settings/rows.tsx:19`).
+This is read from code, not from a device capture.
+Fix: default `selectionColor` to the theme's ink in the wrapper, and add a simulator pass to the capture tool (launch, caret, alert, keyboard, widget, Live Activity) so native colour is in the evidence.
+
+**M2 (P1). The app icon and the chart disagree about what gold means.**
+Evidence: the icon, the launch image and the JS splash paint the centre cell gold (`assets/icon.png`, `assets/splash-icon.png`, `src/components/Splash.tsx:12`).
+In the chart the centre cell is ink (`#2B2620` at (355,700) in `light-tab-grid.png`), white in dark, violet on the other papers, and gold means "today".
+None of the eight area colours appears in the icon or the splash.
+If CD-04 is adopted as written, the icon's gold centre refers to nothing in the app.
+Fix: decide once. Either the core goal is the one gold thing everywhere (icon, splash, chart, mini chart, widget, poster) and "today" becomes an ink corner mark, or gold stays "today" and the icon is redrawn with an ink centre. Mock both; the first keeps the icon and also removes the dark-mode white centre of CD-07.
+
+**M3 (P2). Board mode uses the area square to show status, and "in progress" is gold.**
+Evidence: `ko-xd-board.png`: the "진행 중" header square is `#B0883C` at (18,699), directly under rows whose 자기계발 squares are `#9C6A2A` (y 481 to 545). "할 일" is `#6F6657` and "했어요" is `#2B2620` (`ko-xd-board-bottom.png`, y 219).
+One mark, a 6 pt square before a label, means "area" in the rows and "status" in the headers.
+Gold has two more jobs the audit did not list: the closed-day underline under the date (`ko-xh-closed.png`, (20,68) to (90,70)) and the year calendar (`ko-year-review-390.png`, y 549).
+Fix: status headers carry no colour. Use type and count only, or an ink glyph ramp (empty box, half box, solid box).
+
+**M4 (P2). The contrast tests guard tokens the app does not paint.**
+Evidence: `SEMANTIC` and `MOOD_COLORS` have no reference in `src` outside `palette.ts`; they exist for `tests/palette.test.js:19,50` and `tests/contrast.test.js:66`.
+Every sub-3:1 mark in CD-11 comes from an alpha or opacity path the tests never see: `fade(M.gold, 30)` gives 1.35:1, `opacity: 0.45` gives 1.90:1, the muted check at 55% gives 2.10:1, and tints over the non-white papers give ΔE 1.9.
+Strength 3 above is right about the pipeline and too generous about its coverage.
+Fix: delete the dead exports. Add a painted-colour test that composites each helper's output over each theme's background and asserts marks at 3:1, text at 4.5:1 and tints at a minimum ΔE, next to the palette ΔE targets of CD-03.
+
+**M5 (P2). The printed chart has no black-and-white path.**
+Evidence: achieved cells print as the area colour with white text and `print-color-adjust: exact` (`src/lib/printSheet.ts:145`, `:256`, `:318`), with cell text down to 6.5 pt.
+All eight colours share one lightness (CD-03), so a mono laser prints every area as the same mid grey with small reversed type on a halftone.
+The print sheet offers paper size and layout and nothing about colour (`ko-print.png`).
+Fix: add a "색 / 흑백" row. In 흑백, an achieved cell is a 12% ink tint with bold ink text and a corner tick, and the area is identified by its printed number. The lightness tiers of CD-03 improve the colour print in greyscale as a side effect.

@@ -1,0 +1,344 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   방향 A · 인쇄된 한 장 (the printed sheet) — tokens and base components.
+
+   Load order in every screen:
+     <link rel="stylesheet" href="/tools/design-mockups/kit.css">
+     <link rel="stylesheet" href="/tools/design-mockups/fonts.css">   (MaruBuri)
+     <link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+     <script src="/docs/design/mockups/a/shared.js"></script>
+
+   The one rule behind every value here: TWO INKS.
+     print ink   (cool blue-grey)  = everything the printer made: rules, labels, boxes, the date.
+     writing ink (warm black)      = everything the owner wrote: the goal, tasks, counts, ticks.
+   Plus eight dyes (which area) and one vermilion (today, Sunday, the seal).
+
+   Parts: 1 light tokens · 2 dark tokens · 3 type roles · 4 components.
+   Dark applies by itself under prefers-color-scheme: dark (render.js sets it when the page has
+   <meta name="mock:dark" content="1">). Nothing in shared.js hard-codes a colour, so a dark screen
+   needs no other change.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* 1 ── light: 미색 stock ─────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* paper. One stock. Every surface is this colour: no white cards. */
+  --paper: #F6F1E4;            /* true cream, OKLCH C ≈ 0.018 */
+  --paper-veil: rgba(246, 241, 228, 0.94); /* the floating bar only */
+
+  /* writing ink (warm black): the owner's words, figures, ticks, primary button, selection */
+  --ink: #221F1B;              /* 14.6:1 on paper */
+  --ink-2: #665D52;            /* 5.7:1  — written, secondary: row meta, units */
+  --ink-3: #A39A8C;            /* 2.5:1  — not for text: disabled marks only */
+
+  /* print ink (cool blue-grey): everything the printer made */
+  --print-strong: #3D4B5F;     /* 7.9:1 — printed titles (the date, 오늘, 통계) */
+  --print: #55657A;            /* 5.3:1 — labels, folio, weekday letters, the chart frame */
+  --print-edge: #76869C;       /* 3.3:1 — control edges: check box, capsule, block rules */
+  --print-mid: #9FADC0;        /* 2.0:1 — masthead rule, table top rule */
+  --print-rule: #C9D3E0;       /* 1.3:1 — hairlines: cell rules, row rules, ghost 正 */
+
+  /* signal: vermilion (주홍, 朱). Three jobs: today, Sunday, the seal. Never on the owner's words. */
+  --signal: #C4372F;           /* 4.7:1 on paper */
+
+  /* eight dyes. --dye = the pigment (head cells; paper-coloured text on it is 4.6:1 or better).
+     --wash = 34% over paper (done at L2 and in a check box; ink on it is 9.2:1 or better).
+     --wash-l1 = 50% over paper (done at thumbnail size, where 34% looks empty beside the solids). */
+  --dye-1: #447753; --wash-1: #BBCBB4; --wash-l1-1: #9FB99E; /* 쑥    건강 */
+  --dye-2: #5068AB; --wash-2: #BEC2D1; --wash-l1-2: #A3ADC8; /* 쪽빛  커리어 */
+  --dye-3: #916329; --wash-3: #D7C3A5; --wash-l1-3: #C9AE87; /* 황토  자기계발 */
+  --dye-4: #A35468; --wash-4: #DFBEBD; --wash-l1-4: #D5A6AB; /* 연지  관계 */
+  --dye-5: #2E7773; --wash-5: #B2CAC0; --wash-l1-5: #93B7AF; /* 청자  재정 */
+  --dye-6: #7C5FA5; --wash-6: #CDC0D0; --wash-l1-6: #BAA9C6; /* 오디  취미 */
+  --dye-7: #38719B; --wash-7: #B6C8CF; --wash-l1-7: #98B4C5; /* 비색  마음챙김 */
+  --dye-8: #A65633; --wash-8: #DEBEA9; --wash-l1-8: #D2A68D; /* 주홍  모험 */
+  --on-dye: #F6F1E4;           /* knock-out text on a dye = the paper showing through */
+
+  /* the chart */
+  --core: #221F1B;             /* centre cell */
+  --on-core: #F6F1E4;
+  --core-edge: transparent;    /* dark mode gives the core a printed edge instead of a white fill */
+  --rule-frame: #55657A;       /* = --print */
+  --rule-block: #76869C;       /* = --print-edge */
+  --rule-cell: #C9D3E0;        /* = --print-rule */
+  --tick: #221F1B;             /* the pen tick is written, so it is writing ink */
+
+  /* controls */
+  --btn: #221F1B;              /* primary button and 담기: ink fill */
+  --on-btn: #F6F1E4;
+
+  /* geometry */
+  --u: 6px;                    /* sub-unit. The module is 4u = 24. Rows 8u = 48, gutter 4u = 24. */
+  --gutter: 24px;
+  --r-paper: 2px;              /* things printed on the page: check box, cells (0), tags */
+  --r-tool: 29px;              /* things that float above the page: capsule = height / 2 */
+  --r-sheet: 28px;             /* inset sheets (8px from the screen edges) */
+  --hair: 0.5px;               /* 1 device px at @2x; roundToNearestPixel(0.5) = 2px at @3x */
+  --rule: 1px;                 /* 2 device px at @2x; 3px at @3x */
+  --rule-heavy: 1.5px;         /* 3 device px at @2x; 4px at @3x */
+
+  --serif: 'MaruBuri', 'Pretendard', serif;
+  --sans: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+}
+
+/* 2 ── dark: 먹지 stock. A designed night version, not an inversion: the same warm temperature,
+        print ink that recedes, dyes mixed into the page, no white cell anywhere. ────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --paper: #171411;          /* warm near-black */
+    --paper-veil: rgba(23, 20, 17, 0.92);
+
+    --ink: #ECE6D8;            /* 14.7:1 on paper — cream ink, not white */
+    --ink-2: #A8A093;          /* 7.1:1 */
+    --ink-3: #6E675D;          /* 3.3:1 */
+
+    --print-strong: #B3BFCE;   /* 9.8:1 */
+    --print: #8C9AAD;          /* 6.4:1 */
+    --print-edge: #66748A;     /* 3.9:1 */
+    --print-mid: #3F4854;      /* 2.0:1 */
+    --print-rule: #2B3037;     /* 1.4:1 — rules recede at night */
+
+    --signal: #E2543F;         /* 4.9:1 — re-picked for the dark stock */
+
+    /* --dye here = the dye mixed toward the page until cream ink on it reaches 4.6:1 (3.2:1 against
+       the page). --wash = 30% dye over the page: a deep shade, not a pale tint. */
+    --dye-1: #40704D; --wash-1: #253426; --wash-l1-1: #2B412F;
+    --dye-2: #4D64A3; --wash-2: #282D3F; --wash-l1-2: #2F3752;
+    --dye-3: #885D26; --wash-3: #3F2E19; --wash-l1-3: #4F381C;
+    --dye-4: #9A4F62; --wash-4: #46292E; --wash-l1-4: #59313A;
+    --dye-5: #2C706D; --wash-5: #1E3430; --wash-l1-5: #21403D;
+    --dye-6: #75599A; --wash-6: #362B3E; --wash-l1-6: #423450;
+    --dye-7: #356A92; --wash-7: #22323D; --wash-l1-7: #263E4F;
+    --dye-8: #9C5231; --wash-8: #44291C; --wash-l1-8: #563120;
+    --on-dye: #ECE6D8;
+
+    --core: #2B2621;           /* raised paper, 1.2:1 — never a white-hot centre */
+    --on-core: #ECE6D8;        /* 12.4:1 on the core */
+    --core-edge: #8C9AAD;      /* the core is drawn by its printed edge at night */
+    --rule-frame: #66748A;
+    --rule-block: #3F4854;
+    --rule-cell: #2B3037;
+    --tick: #ECE6D8;
+
+    --btn: #ECE6D8;
+    --on-btn: #171411;
+  }
+}
+
+/* 3 ── type roles. Two families, on a 6px baseline (line heights 12 · 18 · 24 · 36 only).
+        MaruBuri in two weights (400, 600) and only for: the goal, the date, hero figures,
+        ritual prompts. Everything else is Pretendard. ─────────────────────────────────────── */
+html, body { background: var(--paper); color: var(--ink); }
+
+.t-folio,        /* printed furniture: folio line, section labels, column heads, weekday letters */
+.t-label {
+  font: 500 11px/18px var(--sans);
+  letter-spacing: 0.04em;
+  color: var(--print);
+  font-variant-numeric: tabular-nums;
+}
+.t-title {       /* the header title on every tab: 26/36 */
+  font: 400 26px/36px var(--serif);
+  letter-spacing: -0.01em;
+  color: var(--print-strong);        /* printed: the date, 오늘, 통계 */
+}
+.t-title.is-written {                /* the owner's goal as a title (만다라트 tab) */
+  font-weight: 600;
+  color: var(--ink);
+}
+.t-headline {    /* the goal on Home: the largest text on the screen */
+  font: 600 30px/36px var(--serif);
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.t-figure {      /* hero figures: 1/10, 24/64 */
+  font: 400 30px/36px var(--serif);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.t-figure small { /* the unit after a figure: 칸, 번 */
+  font: 500 13px/18px var(--sans);
+  letter-spacing: 0;
+  color: var(--ink-2);
+  margin-left: 2px;
+}
+.t-row { font: 500 16px/24px var(--sans); color: var(--ink); }           /* a task the owner wrote */
+.t-meta { font: 400 12px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.t-body { font: 400 14px/24px var(--sans); color: var(--ink); }
+.t-note { font: 400 12px/18px var(--sans); color: var(--print); }         /* printed instructions */
+.t-prompt { font: 400 20px/30px var(--serif); color: var(--ink); }        /* ritual prompts, empty states */
+.t-num { font-variant-numeric: tabular-nums; }
+
+/* 4 ── components ───────────────────────────────────────────────────────── */
+
+/* 4.1 page. A 390 × 844 sheet; content scrolls under the floating bar. */
+.a-page { position: absolute; inset: 0; overflow: hidden; background: var(--paper); }
+.a-body { padding: 0 var(--gutter); }
+
+/* 4.2 header: eyebrow (18) + title (36) + masthead rule at y = 72 on every tab. See A.header(). */
+.a-header {
+  position: relative;
+  height: 72px;
+  margin: 0 var(--gutter);
+  padding-top: 12px;
+  border-bottom: var(--rule) solid var(--print-mid);
+}
+.a-header .t-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 48px; }
+.a-header-action {           /* one trailing action, 44 × 44, centred on the title line */
+  position: absolute; right: -10px; top: 26px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink);
+}
+.a-header-back {             /* pushed or zoomed pages: a way back in the eyebrow line */
+  display: inline-flex; align-items: center; gap: 2px;
+  color: var(--ink); font-weight: 600; letter-spacing: 0;
+  margin-left: -4px;
+}
+
+/* 4.3 section label row: a printed label on the left, at most one written action on the right */
+.a-section {
+  display: flex; align-items: baseline; justify-content: space-between;
+  height: 18px; margin-bottom: 6px;
+}
+.a-link {                    /* tappable text: ink + chevron. Grey is never interactive. */
+  display: inline-flex; align-items: center; gap: 2px;
+  font: 600 13px/18px var(--sans); color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.a-link svg { margin-right: -4px; }
+
+/* 4.4 today mark: one shape (a corner), one colour (vermilion), wherever "today" is shown */
+.a-today {
+  display: inline-block; width: 7px; height: 7px; margin-right: 5px;
+  background: var(--signal);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  vertical-align: 1px;
+}
+
+/* 4.5 list rows: ruled paper. 48 high, full-width hairlines, check box on the leading side. */
+.a-list { border-top: var(--rule) solid var(--print-mid); }
+.a-row {
+  display: flex; align-items: center; gap: 12px;
+  height: 48px;
+  border-bottom: var(--hair) solid var(--print-rule);
+}
+.a-row-main { flex: 1; min-width: 0; }
+.a-row-title {
+  font: 500 16px/22px var(--sans); color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.a-row-meta {
+  font: 400 12px/16px var(--sans); color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.a-row-right { font: 500 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.a-row-right.is-print { font: 500 11px/18px var(--sans); letter-spacing: 0.04em; color: var(--print); }
+.a-row.is-done .a-row-title {
+  color: var(--ink-2);
+  text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink);
+}
+
+/* 4.6 the dye mark beside an area's name: a small printed square of the pigment */
+.a-dye {
+  display: inline-block; width: 8px; height: 8px; margin-right: 6px;
+  background: var(--d, var(--ink)); border-radius: 1px;
+  vertical-align: -0.5px;
+}
+
+/* 4.7 check box: see A.check(). 24 in rows (pass size 20 for trailing use). */
+.a-check { display: block; flex: none; overflow: visible; }
+
+/* 4.8 the 正 week strip: seven printed cells. See A.weekStrip(). */
+.a-week { display: flex; border-top: var(--rule) solid var(--print-mid); border-bottom: var(--hair) solid var(--print-rule); }
+.a-week-day {
+  position: relative; flex: 1; height: 48px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-left: var(--hair) solid var(--print-rule);
+}
+.a-week-day:first-child { border-left: 0; }
+.a-week-day .t-label { line-height: 14px; }
+.a-week-day.is-sunday .t-label { color: var(--signal); }
+.a-week-day.is-today .t-label { color: var(--ink); font-weight: 700; }
+.a-week-day.is-today::before {       /* the same corner as a "today" cell in the chart */
+  content: ''; position: absolute; left: 0; top: 0; width: 8px; height: 8px;
+  background: var(--signal); clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+/* 4.9 ledger: a table set to be read (booktabs). No vertical rules, no zebra, numerals right. */
+.a-ledger { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; border-top: var(--rule) solid var(--print-mid); }
+.a-ledger-row {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 36px; border-bottom: var(--hair) solid var(--print-rule);
+  font: 500 14px/18px var(--sans); color: var(--ink);
+}
+.a-ledger-row b { font: 400 13px/18px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* 4.10 buttons. Primary = ink fill, paper text. Never the signal colour. */
+.a-btn {
+  display: flex; align-items: center; justify-content: center;
+  height: 52px; padding: 0 24px; border-radius: 26px;
+  background: var(--btn); color: var(--on-btn);
+  font: 600 16px/24px var(--sans);
+}
+.a-btn.is-secondary { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--print-edge); }
+.a-btn.is-small { height: 36px; padding: 0 16px; border-radius: 18px; font-size: 13px; }
+
+/* 4.11 floating navigation. See A.tabBar(). A paper capsule with a printed edge (no shadow),
+        and 담기 as its own ink button. The veil may use real glass in the app. */
+.a-bar {
+  position: absolute; left: 16px; right: 16px; bottom: 18px; height: 58px;
+  display: flex; gap: 10px; z-index: 10;
+}
+.a-bar-veil {                /* scroll-edge effect: content fades into the paper as it passes under the bar.
+                                The one functional gradient (react-native-svg LinearGradient in the app). */
+  position: absolute; left: -16px; right: -16px; top: -40px; bottom: -18px;
+  width: calc(100% + 32px); height: calc(100% + 58px);
+  pointer-events: none;
+}
+.a-bar-capsule {
+  position: relative; flex: 1; display: flex; align-items: stretch;
+  padding: 0 6px;
+  border-radius: var(--r-tool);
+  background: var(--paper-veil);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
+}
+.a-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  color: var(--print);
+  font: 500 11px/12px var(--sans);
+}
+.a-tab.is-active { color: var(--ink); font-weight: 700; }
+.a-bar-add {
+  position: relative; width: 66px; flex: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border-radius: var(--r-tool);
+  background: var(--btn); color: var(--on-btn);
+  font: 700 11px/12px var(--sans);
+}
+
+/* 4.12 inset sheet (for screens that need one): 8 from the edges, all four corners round */
+.a-sheet {
+  position: absolute; left: 8px; right: 8px; bottom: 8px;
+  border-radius: var(--r-sheet);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 var(--rule) var(--print-edge);
+  padding: 24px;
+}
+
+/* 4.13 the chart. Drawn by A.chart(); these are only the text styles laid over the SVG. */
+.a-chart { position: relative; flex: none; }
+.a-chart svg { position: absolute; left: 0; top: 0; display: block; }
+.a-cell {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  text-align: center; overflow: hidden;
+  font: 500 10px/12px var(--sans); letter-spacing: -0.02em; color: var(--ink);
+  text-wrap: balance;
+}
+.a-cell.is-head { font-weight: 700; letter-spacing: -0.04em; color: var(--on-dye); }
+.a-cell.is-core { font: 600 11px/13px var(--serif); letter-spacing: -0.02em; color: var(--on-core); }
