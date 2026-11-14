@@ -66,8 +66,6 @@ module.exports = async (page, h) => {
         throw new Error(`${w}×${ht}: 같은 블록이 오른쪽 쪽에도 있어요`);
       }
       await h.shot(`spread-${w}x${ht}-zoom`);
-      // 다음 크기를 위해 지도로 돌아간다(크게 본 블록은 앱이 켜져 있는 동안 기억된다)
-      await page.goto(`${h.url}&layout=device`);
     }
     for (const [w, ht] of COLUMN_ONLY) {
       await open(page, h, w, ht);
