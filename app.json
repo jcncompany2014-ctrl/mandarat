@@ -155,6 +155,28 @@
           "native/ios"
         ]
       }
+    },
+    "extra": {
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "ExpoWidgetsTarget",
+                  "bundleIdentifier": "com.jcncompany.mandarat.widgets",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.jcncompany.mandarat"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "7b6549f4-bb9f-4c25-88d7-76089dcea7f2"
+      }
     }
   }
 }

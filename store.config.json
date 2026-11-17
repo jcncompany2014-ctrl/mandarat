@@ -48,7 +48,7 @@
         }
       },
       "ja": {
-        "title": "マンダラート プランナー",
+        "title": "マンダラート: 81マスの計画帳",
         "subtitle": "81マスで立てる一年の計画",
         "promoText": "まん中に目標をひとつ、まわりに分野を8つ、その外に行動を64。一年の計画を81マスの一枚に書き、今日やることからひとつずつ進めます。",
         "description": "まん中のマスに一年の中心の目標を、まわりの8マスに分野を、その外の64マスに行動を書きます。紙に書いていたマンダラートの表をそのまま、81マスの一枚で一年を計画します。\n\n表ができあがったら、毎日使う手帳になります。\n\n今日やること\n繰り返す習慣と締め切りの近い行動が、今日のリストに自然に入ります。自分で選んで入れることもできます。\n\n一日の締め\nぜんぶ終えたら、帳簿のように二本線を引いて一日を締めます。ひとことメモも残せます。\n\n記録\nよく取り組んだマスほど表が濃くなり、どの分野に力を注ぎ、どこが手つかずかがひと目でわかります。連続記録や分野ごとの回数も見られます。\n\n週のふりかえり\n日曜の夜、数分で先週をふりかえり、来週の重点を選びます。\n\n一年のふりかえり\n一年の記録を一枚でふりかえり、使い終えた表は閉じて保管します。\n\nそのほか\n・通知：朝は今日やること、夜は残り、日曜は週のふりかえりをお知らせします。\n・ウィジェット：ホーム画面とロック画面で今日やることを見て、その場でチェックできます。\n・集中タイマー：25分間ひとつのことに集中し、残り時間をロック画面で確認できます。\n・Siriとショートカット：「マンダラートで今日を見る」「マンダラートで次を『できた』にする」のように声で開いたり、チェックしたりできます。\n・印刷：81マスの表と分野ごとのページを、A4・レター・A3・A5・B5のPDFにして印刷や共有ができます。\n・紙の柄：ドット・方眼・罫線・無地から選べます。ウィジェットにも同じ柄が描かれます。\n・iCloud：同じApple AccountのiPhoneとiPadのあいだで記録を同期します。\n・iPad：広い画面では、開いた手帳のように2ページを並べて表示します。\n・日本語、韓国語、英語\n\nログインはありません。記録は端末の中に保存され、iCloud同期をオンにしたときだけ、ご自身のiCloudに保存されます。\n\n機能はすべて無料です。課金も広告もありません。",
@@ -89,7 +89,7 @@
         }
       },
       "en-US": {
-        "title": "Mandalart Planner",
+        "title": "Mandarat Planner",
         "subtitle": "Plan your year in 81 squares",
         "promoText": "One goal in the middle, eight areas around it, 64 actions around those. Write your year on a single 81-square chart, then work through it one day at a time.",
         "description": "Write your core goal for the year in the center square, eight areas around it, and 64 actions around those. It is the Mandalart chart you may have drawn on paper, kept as one page of 81 squares.\n\nOnce the chart is filled in, it becomes a notebook you use every day.\n\nToday\nRepeating habits and actions that are coming due land on Today’s list on their own. You can add anything else yourself.\n\nClose the day\nWhen everything is done, draw two lines under it like a ledger and close the day. Leave a one-line note if you like.\n\nRecords\nThe squares you work on most grow darker, so you can see where your effort went and which areas are still empty. Streaks and counts per area are there too.\n\nWeekly review\nOn Sunday evening, take a few minutes to look back on the week and pick next week’s focus.\n\nThe year in review\nSee your whole year on one page, then close the chart and keep it.\n\nAlso\n• Reminders: Today’s list in the morning, what’s left in the evening, and the weekly review on Sunday.\n• Widgets: see Today’s list on the Home Screen and Lock Screen and check things off there.\n• Focus timer: 25 minutes on one thing, with the time left on the Lock Screen.\n• Siri and Shortcuts: say “Show Today in Mandalart” or “Check off the next one in Mandalart”.\n• Print: turn the 81-square chart and a page per area into a Letter, A4, A3, A5 or B5 PDF to print or share.\n• Paper patterns: dots, grid, lined or plain. Widgets are drawn on the same pattern.\n• iCloud: keep your records in sync between iPhone and iPad on the same Apple Account.\n• iPad: on a wide screen, two pages side by side like an open notebook.\n• English, Japanese and Korean\n\nThere is no sign-in. Your records are stored on your device, and only go to your own iCloud if you turn on iCloud sync.\n\nEvery feature is free. There are no purchases and no ads.",
@@ -128,6 +128,15 @@
           ]
         }
       }
-    }
+    },
+    "copyright": "© 2026 FOLDRY",
+    "review": {
+      "firstName": "성민",
+      "lastName": "안",
+      "email": "jcncompany2014@gmail.com",
+      "demoRequired": false,
+      "notes": "Thank you for reviewing Mandalart (만다라트).\n\nNO LOGIN, NO SERVER\nThe app has no accounts and no sign-in. All data is stored on the device. No demo account is needed. Optional iCloud sync uses the user's own iCloud container (no server of ours).\n\nNO PURCHASES\nThe app has no in-app purchases and no ads. Every feature is free.\n\nSUGGESTED TEST PATH (about 5 minutes)\n1. First run: enter a goal and start. To fill the chart quickly: Settings › Records › \"Fill in examples\".\n2. Home and Today: check off an item; the day closes with a double rule after the last one.\n3. Chart tab: tap a block to open its 3x3 page. Tap the share icon › \"Printable PDF ›\" to print or export a PDF (AirPrint).\n4. Settings › Appearance › Paper pattern: Dots / Grid / Lined / Plain.\n5. Settings › Reminders: turning on a reminder asks for notification permission (never at launch). Notifications are local only.\n6. Focus timer: open any action and tap \"Focus for 25 min\". On iPhone, a Live Activity appears on the Lock Screen and in the Dynamic Island.\n\nWIDGETS (iOS 17+ interactive, iOS 16.4+ view only)\nAdd the \"Today\" widget (Korean: 오늘) from the Home Screen widget gallery: small, medium and large on the Home Screen, and inline, circular and rectangular on the Lock Screen. On iOS 17+, the squares in the medium and large widgets check items off without opening the app.\nPlease open the app once before adding the widget. The widget draws the list that the app writes at launch.\n\nLIVE ACTIVITY\nThe 25-minute focus timer shows a Live Activity with a self-updating countdown. No push notifications are used. When Live Activities are off, a local notification marks the end.\n\nSIRI AND SHORTCUTS\nApp Shortcuts (App Intents). No SiriKit entitlement is used. Open the app once first, so Today's list exists. Phrases (the device language decides the set):\n- \"What's left today in Mandalart\" / \"Show Today in Mandalart\" / \"Check off the next one in Mandalart\" / \"Start focus in Mandalart\"\n- Korean: \"만다라트 오늘 남은 일\" / \"만다라트 오늘 보기\" / \"만다라트 다음 할 일 체크\" / \"만다라트 집중 시작\"\n- Japanese: \"マンダラートで今日の残り\" / \"マンダラートで今日を見る\" / \"マンダラートで次を「できた」にする\" / \"マンダラートで集中を始める\"\nThey are also listed in the Shortcuts app › App Shortcuts › Mandalart.\n\nICLOUD SYNC (optional, off by default)\nSettings › iCloud › \"Sync devices with iCloud\". Syncing needs two devices signed in to the same Apple Account (for example an iPhone and an iPad). With one device, the switch and its status can still be seen. Data goes to the app's hidden iCloud container and never to a server of ours.\n\nPRIVACY\nThe app collects no data: it has no server, no crash-reporting or analytics SDK, no tracking and no ads. Records stay on the device and, if the user turns on iCloud sync, in their own iCloud.\n\nLanguages: Korean (primary), Japanese, English. iPhone and iPad.\nContact: ian020529@gmail.com"
+    },
+    "version": "1.0"
   }
 }
