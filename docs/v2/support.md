@@ -29,7 +29,7 @@
 - 앱 버전(앱의 설정 › 정보에 있는 ‘버전’)
 - 어느 화면에서 무엇을 했을 때 생긴 일인지
 
-앱의 설정 › 정보 › 문의하기를 누르면 제목에 앱 버전이 적힌 메일이 바로 열려요.
+앱의 설정 › 정보 › 문의하기를 누르면 제목에 앱 버전이 적힌 메일이 바로 열려요. 이 기기에 남은 짧은 오류 기록이 메일 본문에 함께 들어갈 수 있는데, 보내기 전에 지워도 괜찮아요.
 
 ### 자주 묻는 질문
 
@@ -95,7 +95,7 @@ iCloud에 동기화한 기록은 iPhone 설정 › Apple 계정 › iCloud › �
 - アプリのバージョン（アプリの「設定」›「情報」にある「バージョン」）
 - どの画面で、何をしたときに起きたか
 
-アプリの「設定」›「情報」›「お問い合わせ」をタップすると、件名にアプリのバージョンが入ったメールが開きます。
+アプリの「設定」›「情報」›「お問い合わせ」をタップすると、件名にアプリのバージョンが入ったメールが開きます。この端末に残っている短いエラーの記録がメールの本文に入ることがありますが、送る前に消しても大丈夫です。
 
 ### よくある質問
 
@@ -161,7 +161,7 @@ We can look into it faster if you include:
 - The app version (Settings › About › Version in the app)
 - Which screen you were on and what you did
 
-In the app, Settings › About › Contact us opens an email with the app version already in the subject.
+In the app, Settings › About › Contact us opens an email with the app version already in the subject. The draft may include a short error log kept on this device, and you can delete it before sending.
 
 ### Common questions
 
@@ -217,7 +217,7 @@ No. There is no account and no sign-in, and every feature is free. There are no 
 
 | Answer | Source in the repo |
 |---|---|
-| Contact: the version is the 버전 line under Settings › 정보, and 문의하기 opens a mail with the version in the subject | `src/screens/Settings.tsx` (정보 section: `ColophonRow` `colVersion` = `APP_VERSION`; `TextLink` `contact` opens `supportMailto()`), `src/lib/appInfo.ts` (`mailSubject({ version })`). |
+| Contact: the version is the 버전 line under Settings › 정보, and 문의하기 opens a mail with the version in the subject | `src/screens/Settings.tsx` (정보 section: `ColophonRow` `colVersion` = `APP_VERSION`; `TextLink` `contact` opens `supportMailto()`), `src/lib/appInfo.ts` (`mailSubject({ version })`; when the device's error log `logText()` from `src/lib/crashLog.ts` is not empty, `mailLogBody` puts it in the mail body under the line `settings.mailLogHead`, cut to `MAIL_BODY_CAP`. The app sends nothing itself). |
 | Widget: open the app once, then add it | `src/widgets/bridge.ios.ts`: `createWidget` writes the widget layout to the App Group when the app first loads, so a widget added before the first launch has nothing to draw. `src/hosts/WidgetSync.tsx` writes the timeline only after onboarding. The empty line is `widget.empty` (`src/widgets/TodayWidget.ios.tsx`). Also in `docs/v2/review-notes.md`. |
 | iCloud sync: off by default, same Apple Account, iCloud Drive on, first-time choice | `src/screens/settings/SyncSection.tsx` (toggle `sync.toggle` under `settings.secCloud`, row `sync.now` while on), `src/screens/settings/syncView.ts` (`noAccount`, `driveOff`, `accountChanged`, `newerApp` notices under the rows), `src/screens/settings/SyncChoiceSheet.tsx` (`merge` · `adopt` · `mine`, `copyNote`). |
 | Devices differ: when it syncs, later change stays | `src/hosts/ICloudSync.tsx` (pull at boot and on foreground, push 5 s after an edit and on background), `sync.mergeSub`, `docs/v2/V4-A.md`. |

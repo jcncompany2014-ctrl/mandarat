@@ -102,6 +102,23 @@ test('전체 초기화의 답 — 지우는 것 · 남는 것 · 다른 기기�
   assert.match(src('src/lib/syncEngine.ts'), /if \(meta && merged\.epoch > meta\.epoch\) \{\s*const kept = await port\.keepCopy\(\);/);
 });
 
+test('문의하기 — 메일 초안에 이 기기의 오류 기록이 들어갈 수 있고 지워도 된다고 적는다(앱이 초안에 적는 말과 같은 낱말)', () => {
+  const { supportMailto } = require('../src/lib/appInfo');
+  // 앱의 사실: 기록이 있으면 본문에 안내 한 줄과 함께 붙고, 없으면 제목뿐이다
+  const withLog = supportMailto('a@b.co', '1.0.0', 'TypeError: x');
+  assert.ok(decodeURIComponent(withLog.split('&body=')[1] ?? '').includes(msg().settings.mailLogHead));
+  assert.doesNotMatch(supportMailto('a@b.co', '1.0.0', ''), /&body=/);
+  const noun = { ko: '오류 기록', ja: 'エラーの記録', en: 'error log' };
+  const erase = { ko: /지워도 괜찮아요/, ja: /消しても大丈夫です/, en: /delete it before sending/ };
+  for (const l of LANGS) {
+    // 문의하기 구역(첫 h3 다음 ~ 둘째 h3 앞)
+    const contact = plain(part(page, l).split('<h3>')[1]);
+    assert.ok(msg(l).settings.mailLogHead.includes(noun[l]), `${l}: 앱의 말`);
+    assert.ok(contact.includes(noun[l]), `${l}: '${noun[l]}'`);
+    assert.match(contact, erase[l], `${l}: 지워도 된다`);
+  }
+});
+
 test('답이 기대는 앱의 사실 — 바뀌면 support.md도 함께 고친다', () => {
   // 저장본 7일치 · 알림은 2주치를 미리 건다 · 결제 없음 · 전체 초기화는 지난 표를 남긴다
   assert.match(src('src/store/MandaratContext.tsx'), /const SNAP_KEEP = 7;/);
