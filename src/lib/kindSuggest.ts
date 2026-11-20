@@ -28,6 +28,28 @@ const perWeek = (n: number): Guess => (n >= 7 ? habitDays(EVERY_DAY) : { kind: '
 const counted = (n: number, unit: string): Guess => ({ kind: 'count', goal: n, unit, step: 1, count: 0 });
 const own = <T>(o: Readonly<Record<string, T>>, k: string): T | undefined => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
 
+/** 걸린 시간을 재는 목표를 알아보는 말 무리 — 세 언어의 자료(kindSuggest.data)가 같은 이름으로 갖는다 */
+interface TimedRules {
+  DURATION: RegExp;
+  TIME_LIMIT: RegExp;
+  RECORD: RegExp;
+  RACE: RegExp;
+  ROUTINE: RegExp;
+  SUB_TIME: RegExp;
+}
+
+/**
+ * 걸린 시간을 재는 목표인가 — '하프 마라톤 2시간 안에 완주' · '10km 55분 안에' · '풀코스 4시간 30분'.
+ * 시간 길이에 한도('안에' · '이내' · '까지')가 붙었거나, 시간 길이가 기록의 말 · 경기 · 거리와 함께 나올 때다.
+ * 한 번 해내면 끝나는 일이라, 짧은 시간('공부 2시간' · '10분')을 날마다 하는 일로 읽는 규칙보다 먼저 본다.
+ * 잠드는 시각 · 연습 같은 말(ROUTINE)이 있으면 날마다 하는 일로 남긴다. 반복하는 말(매일 · 주 N회 · 요일)은 이보다 앞에서 읽는다.
+ */
+function timedResult(t: string, r: TimedRules): boolean {
+  if (r.SUB_TIME.test(t)) return true;
+  if (r.ROUTINE.test(t)) return false;
+  return r.TIME_LIMIT.test(t) || (r.DURATION.test(t) && (r.RECORD.test(t) || r.RACE.test(t)));
+}
+
 /** 글의 글자 → 규칙의 언어 */
 export function textLang(text: string): Lang {
   if (HANGUL.test(text)) return 'ko';
@@ -94,6 +116,8 @@ function suggestKo(t: string): Guess | null {
 
   // 3) 날마다
   if (KO.DAILY_WORDS.test(t)) return habitDays(EVERY_DAY);
+  // 걸린 시간을 재는 목표는 한 번 — 아래의 짧은 시간 · 분 규칙이 날마다 하는 일로 읽기 전에
+  if (!KO.WEEKLY.test(t) && timedResult(t, KO)) return { kind: 'once' };
   const hours = t.match(KO.HOURS);
   if (hours && Number(hours[1]) < 10) return habitDays(EVERY_DAY);
   if (KO.DAILY_HINTS.some((re) => re.test(t))) return habitDays(EVERY_DAY);
@@ -107,6 +131,9 @@ function suggestKo(t: string): Guess | null {
     const unit = KO.MONEY_SPACE.get(raw) ?? KO.UNIT_ALIAS.get(raw) ?? raw;
     if (n !== undefined && n > 0) {
       if (n === 1 && KO.SINGLE_UNITS.has(unit)) return { kind: 'once' };
+      // 닿을 수준은 쌓는 수가 아니다 — 몸무게 · 드는 무게(덜고 더하는 말이 없을 때), 한 번에 해내는 운동 횟수
+      if (unit === 'kg' && (!KO.KG_CHANGE.test(t) || KO.KG_TARGET.test(t))) return { kind: 'once' };
+      if (KO.REP_UNITS.has(unit) && KO.REPS.test(t)) return { kind: 'once' };
       if (unit === 'km' && n < KO.SHORT_KM) return null;
       return counted(n, unit);
     }
@@ -114,8 +141,8 @@ function suggestKo(t: string): Guess | null {
 
   // 5) 마음가짐 — 태도와 생각
   if (KO.MIND.test(t)) return { kind: 'mind' };
-  // 6) 끝이 있는 일
-  if (KO.ONCE.test(t)) return { kind: 'once' };
+  // 6) 끝이 있는 일 · 닿을 수준('토익 900점' · '체지방 15%')
+  if (KO.ONCE.test(t) || KO.LEVEL.test(t)) return { kind: 'once' };
   return null;
 }
 
@@ -155,6 +182,8 @@ function suggestJa(text: string): Guess | null {
 
   // 3) 毎日
   if (JA.DAILY_WORDS.test(t)) return habitDays(EVERY_DAY);
+  // かかった時間を測る目標は一度きり — 下の短い時間・分の規則が毎日の行動と読む前に
+  if (!JA.WEEKLY.test(t) && timedResult(t, JA)) return { kind: 'once' };
   const hours = t.match(JA.HOURS);
   if (hours && Number(hours[1]) < 10) return habitDays(EVERY_DAY);
   if (JA.DAILY_HINTS.some((re) => re.test(t))) return habitDays(EVERY_DAY);
@@ -170,6 +199,9 @@ function suggestJa(text: string): Guess | null {
     else if (unit === 'キロ') unit = JA.KG_CONTEXT.test(t) ? 'kg' : JA.KM_CONTEXT.test(t) ? 'km' : unit;
     if (n !== undefined && n > 0) {
       if (n === 1 && JA.SINGLE_UNITS.has(unit)) return { kind: 'once' };
+      // 届く水準は積み上げる数ではない — 体重・持ち上げる重さ（減らす・増やす語がないとき）、一度にこなす運動の回数
+      if (unit === 'kg' && (!JA.KG_CHANGE.test(t) || JA.KG_TARGET.test(t))) return { kind: 'once' };
+      if (JA.REP_UNITS.has(unit) && JA.REPS.test(t)) return { kind: 'once' };
       if (unit === 'km' && n < JA.SHORT_KM) return null;
       return counted(n, unit);
     }
@@ -177,8 +209,8 @@ function suggestJa(text: string): Guess | null {
 
   // 5) 心がけ
   if (JA.MIND.test(t)) return { kind: 'mind' };
-  // 6) 終わりのあること
-  if (JA.ONCE.test(t)) return { kind: 'once' };
+  // 6) 終わりのあること・届く水準（「TOEIC 900点」「体脂肪率15%」）
+  if (JA.ONCE.test(t) || JA.LEVEL.test(t)) return { kind: 'once' };
   return null;
 }
 
@@ -235,6 +267,8 @@ function suggestEn(original: string): Guess | null {
 
   // 3) Every day
   if (EN.DAILY_WORDS.test(t)) return habitDays(EVERY_DAY);
+  // A goal measured by the time it takes is one-time — before the short-duration rules below read it as daily
+  if (!EN.WEEKLY.test(t) && timedResult(t, EN)) return { kind: 'once' };
   const hours = t.match(EN.HOURS);
   if (hours && Number(hours[1]) < 10) return habitDays(EVERY_DAY);
   if (EN.DAILY_HINTS.some((re) => re.test(t))) return habitDays(EVERY_DAY);
@@ -252,6 +286,8 @@ function suggestEn(original: string): Guess | null {
     const unit = own(EN.UNIT_ALIAS, cm[3]) ?? cm[3];
     if (n !== undefined && n > 0) {
       if (n === 1 && EN.SINGLE_UNITS.has(unit)) return { kind: 'once' };
+      // A level to reach is not a count: body weight or a lifted weight, unless a word for losing or gaining is there
+      if (EN.WEIGHT_UNITS.has(unit) && (!EN.WEIGHT_CHANGE.test(t) || EN.WEIGHT_TARGET.test(t))) return { kind: 'once' };
       const short = own(EN.SHORT_DISTANCE, unit);
       if (short !== undefined && n < short) return null;
       return counted(n, unit);
@@ -260,7 +296,7 @@ function suggestEn(original: string): Guess | null {
 
   // 5) Mindset — attitudes and thoughts
   if (EN.MIND.test(t)) return { kind: 'mind' };
-  // 6) Things that end
-  if (EN.ONCE.test(t)) return { kind: 'once' };
+  // 6) Things that end, and levels to reach ('body fat 15%', '10 pull-ups')
+  if (EN.ONCE.test(t) || EN.LEVEL.test(t) || EN.REPS.test(t)) return { kind: 'once' };
   return null;
 }
