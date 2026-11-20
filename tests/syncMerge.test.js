@@ -665,6 +665,19 @@ test('materialize only adds: count logs show in the day log; a logged extra is d
   }
 });
 
+test('audit r01: materialize does not log a finished todo again on a day it was not done (it is already in another day’s log)', () => {
+  const x = { id: 'x1abc', ti: 2, text: 'Call the bank', done: true };
+  const key = extraLogKey(2, 'x1abc');
+  // 어제 끝낸 할 일이 오늘 목록에 '한 것'으로 들어왔다(다른 기기의 지난 복제본) — 오늘 기록에 넣지 않는다
+  const d = { ...migrate({ ...blankDoc(), onboarded: true }), todayDate: '2026-11-19', todayExtra: [x], dayLog: { '2026-11-18': [key] } };
+  assert.equal(materialize(d), d);
+  // 어느 날에도 기록이 없으면 지금처럼 오늘 기록에 넣는다
+  assert.deepEqual(materialize({ ...d, dayLog: {} }).dayLog, { '2026-11-19': [key] });
+  // 내일 날짜로 기록된 것(시간대가 앞선 기기에서 끝냈다)도 오늘에 또 넣지 않는다
+  const ahead = { ...d, dayLog: { '2026-11-20': [key] } };
+  assert.equal(materialize(ahead), ahead);
+});
+
 // ── 복제본 파일 ──────────────────────────────────────────────────────────────
 
 test('replica files round-trip, carry the schema, and are named per device', () => {

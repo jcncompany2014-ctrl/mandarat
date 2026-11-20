@@ -99,8 +99,16 @@ export function tick<T extends ClockState>(meta: T, wall: number): { meta: T; st
 export function observe<T extends ClockState>(meta: T, remoteMax: Stamp, wall: number): T {
   if (!isStamp(remoteMax)) return meta;
   if (msOf(remoteMax) > wall + MAX_SKEW_MS) return meta;
-  if (hlcPart(remoteMax) <= hlcPart(meta.last)) return meta;
-  return { ...meta, last: enc(msOf(remoteMax), ctrOf(remoteMax), meta.tag) };
+  return follow(meta, remoteMax);
+}
+
+/**
+ * 이 도장 뒤로 시계를 당긴다 — 벽시계와 견주지 않는다. 이 기기가 그 도장이 붙은 값을 덮어쓸 때만 쓴다(stampLocal):
+ * observe가 받아들이지 않은 도장(24시간 넘게 앞선 시계)이라도, 그 값을 고친 새 도장은 그것보다 커야 고침이 남는다.
+ */
+export function follow<T extends ClockState>(meta: T, s: Stamp): T {
+  if (!isStamp(s) || hlcPart(s) <= hlcPart(meta.last)) return meta;
+  return { ...meta, last: enc(msOf(s), ctrOf(s), meta.tag) };
 }
 
 /** 도장이 붙은 복제본의 모양 — 판(epoch)과 경로별 도장 */

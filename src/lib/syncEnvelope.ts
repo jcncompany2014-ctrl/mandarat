@@ -10,12 +10,13 @@
 //   먼저 밀린 바뀜을 한 번에 찍는다(stampPending). 누르기 한 번이 시계 전체를 베끼지 않는다.
 import type { MandaratDoc } from '../types';
 import { migrate } from '../data/defaults';
-import { rolloverToday } from './routine';
+import { extraLogKey, kindOf, rolloverToday } from './routine';
 import { unionArchives } from './archive';
 import { cleanSyncMeta, type SyncMeta } from './syncMeta';
-import { changedPaths, epochReset, stampLocal } from './syncLocal';
+import { changedPaths, dayStartOf, epochReset, stampDayRoll, stampLocal } from './syncLocal';
 import { adoptMerged, isNewer, materialize, mergeAll, replicaOf, topStamp, type NewerReplica, type Replica } from './syncMerge';
-import { observe, type Stamp } from './syncStamp';
+import { pathOf } from './syncProject';
+import { msOf, observe, type Stamp } from './syncStamp';
 import { SYNC_FIELD } from './syncCommitBase';
 
 // 봉투의 JSON은 웹과 함께 쓴다(syncCommitBase — 웹 번들은 이 파일을 불러오지 않는다)
@@ -29,8 +30,11 @@ export function parseStored(raw: string): { doc: MandaratDoc; meta: SyncMeta | n
   return { doc: migrate(parsed), meta };
 }
 
-/** 저장소의 한 번 바꾸기가 메타를 어떻게 바꾸는가 — 보통은 도장, 초기화는 새 판, 받은 것을 넣을 때는 그대로 */
-export type CommitHow = 'stamp' | 'epoch' | 'none';
+/**
+ * 저장소의 한 번 바꾸기가 메타를 어떻게 바꾸는가 — 보통은 도장, 초기화는 새 판, 받은 것을 넣을 때는 그대로,
+ * 하루 정리(rolloverToday)는 오늘이 시작된 때의 도장('day')
+ */
+export type CommitHow = 'stamp' | 'epoch' | 'none' | 'day';
 
 /**
  * 한 번 바꾸기의 메타 몫(곧바로) — 메타가 있을 때만. 저장소는 commitMeta로 'epoch' · 'none'에만 부르고, 앱을 열 때 정리(openStored)도 쓴다.
@@ -38,9 +42,12 @@ export type CommitHow = 'stamp' | 'epoch' | 'none';
  * - 'stamp': 바뀐 경로에 이 기기 도장(stampLocal)
  * - 'epoch': 새 판을 올리고 next(남기는 문서)의 모든 경로를 새 판 위에 찍는다(epochReset — 다시 stampLocal하지 않는다)
  * - 'none': 그대로(applyRemote가 이미 메타를 맞췄다)
+ * - 'day': 하루 정리 — 오늘 목록에서 뺀 것은 오늘(next.todayDate)이 시작된 때의 도장(stampDayRoll). 늦게 연 기기의 정리가
+ *   다른 기기에서 오늘 먼저 담은 칸을 지우지 않는다
  */
 export function stampCommit(prev: MandaratDoc, next: MandaratDoc, meta: SyncMeta | null, how: CommitHow, wall: number): SyncMeta | null {
   if (!meta || next === prev || how === 'none') return meta;
+  if (how === 'day') return stampDayRoll(prev, next, meta, wall, dayStartOf(next.todayDate ?? '', wall));
   return how === 'epoch' ? epochReset(meta, wall, next) : stampLocal(prev, next, meta, wall);
 }
 
@@ -56,7 +63,7 @@ export function stampPending(stamped: MandaratDoc, latest: MandaratDoc, meta: Sy
 /**
  * 저장소 commit의 메타 몫(prev = 지금 문서, stamped = 메타의 짝 문서) — 돌려준 meta · stamped를 그대로 둔다.
  * - 'stamp': 아무것도 하지 않는다(도장은 다음 저장 · 손잡이 읽기가 stampPending으로) — 누르기마다 O(1)
- * - 'epoch' · 'none': 밀린 도장을 먼저 찍고(stampPending) stampCommit, 그 뒤 메타의 짝은 next
+ * - 'epoch' · 'none' · 'day': 밀린 도장을 먼저 찍고(stampPending) stampCommit, 그 뒤 메타의 짝은 next
  */
 export function commitMeta(
   prev: MandaratDoc,
@@ -93,7 +100,8 @@ export function undoResetMeta(mark: ResetMark | null, current: SyncMeta | null):
 }
 
 /**
- * 앱을 열 때 — 저장된 값을 읽어 오늘로 정리한다. 정리(rolloverToday)로 바뀐 것에만 도장을 찍는다.
+ * 앱을 열 때 — 저장된 값을 읽어 오늘로 정리한다. 정리(rolloverToday)로 바뀐 것에만 도장을 찍는다 —
+ * 연 시각이 아니라 오늘이 시작된 때의 도장('day'): 다른 기기에서 오늘 먼저 담은 칸을 늦게 연 이 기기의 정리가 지우지 않게.
  * makeMeta가 null이면(웹·안드로이드) 메타 없이. 메타가 없거나 깨졌으면 makeMeta()로 새로(동기화는 꺼진 채 —
  * 다시 켜면 엔진이 고르기를 묻고, 고르기 전에 저장본을 남긴다).
  */
@@ -106,13 +114,53 @@ export function openStored(
   const { doc, meta: stored } = parseStored(raw);
   const meta = makeMeta ? stored ?? makeMeta() : null;
   const rolled = rolloverToday(doc, todayKey);
-  return { doc: rolled, meta: stampCommit(doc, rolled, meta, 'stamp', wall) };
+  return { doc: rolled, meta: stampCommit(doc, rolled, meta, 'day', wall) };
+}
+
+/**
+ * 합친 문서의 하루 정리(M3) — 오늘 목록(담은 칸 · 직접 추가한 할 일)은 날마다의 것인데 경로에는 날짜가 없다.
+ * 그래서 도장으로 가린다: 오늘(이 기기의 날 dayStart)이 시작되기 전에 담은 칸 · 끝낸 할 일은 지난 날의 것이고,
+ * rolloverToday와 같은 규칙으로 뺀다(끝내지 않은 한 번 칸과 끝내지 않은 할 일만 넘어온다).
+ * - 이 기기가 이미 오늘로 정리한 뒤에 다른 기기의 지난 복제본에서 들어온 것도 뺀다 — 어제 끝낸 할 일이 오늘 목록에
+ *   '한 것'으로 남아 오늘 기록에 또 들어가거나, 어제 담은 칸이 오늘 목록으로 되살아나지 않는다.
+ * - 오늘 시작 뒤의 도장이 붙은 것(다른 기기에서 오늘 담은 칸 · 오늘 끝낸 것)은 이 기기의 정리가 아직이어도 남긴다.
+ * - 도장이 없는 것(맞추기 전부터 있던 값)은 나이를 모른다: 이 기기의 정리가 아직이면 지난 것으로, 이미 지났으면 오늘 것으로 본다.
+ *   다만 끝낸 할 일은 그날 기록으로도 가린다 — 오늘 기록에 없고 지난 날 기록에만 있으면 그날 끝낸 것이다.
+ * 날짜가 없던 문서 · 기기 날짜보다 앞선 날짜는 rolloverToday처럼 아무것도 빼지 않고 오늘로 맞춘다. 바뀐 게 없으면 같은 객체.
+ */
+export function rollMerged(doc: MandaratDoc, clock: Readonly<Record<string, Stamp>>, todayKey: string, dayStart: number): MandaratDoc {
+  if (!doc.todayDate || todayKey < doc.todayDate || !Number.isFinite(dayStart)) return rolloverToday(doc, todayKey);
+  const unrolled = doc.todayDate !== todayKey;
+  const stampOf = (path: string): Stamp => (Object.prototype.hasOwnProperty.call(clock, path) ? clock[path] : '');
+  const fresh = (path: string): boolean => {
+    const s = stampOf(path);
+    return s ? msOf(s) >= dayStart : !unrolled;
+  };
+  const todayKeys = doc.todayKeys.filter((k) => {
+    if (fresh(pathOf('tk', k))) return true;
+    const [ti, ai] = k.split('-').map(Number);
+    const a = doc.themes[ti]?.actions[ai];
+    if (!a || !a.text.trim() || kindOf(a) !== 'once') return false;
+    return !a.done || fresh(pathOf('c', k, 'done'));
+  });
+  const todayExtra = doc.todayExtra.filter((x) => {
+    if (!x.done) return true;
+    const path = pathOf('x', x.id, 'done');
+    if (stampOf(path) || unrolled) return fresh(path);
+    const key = extraLogKey(x.ti, x.id);
+    if ((doc.dayLog[todayKey] ?? []).includes(key)) return true;
+    return !Object.keys(doc.dayLog).some((day) => day < todayKey && doc.dayLog[day].includes(key));
+  });
+  const same = todayKeys.length === doc.todayKeys.length && todayExtra.length === doc.todayExtra.length;
+  if (same) return unrolled ? { ...doc, todayDate: todayKey } : doc;
+  return { ...doc, todayKeys, todayExtra, todayDate: todayKey };
 }
 
 /**
  * 다른 기기의 복제본을 지금 이 기기의 문서·메타와 합친다(순수). 받은 복제본이 더 새 앱의 것이면 아무것도 바꾸지 않는다.
- * 합친 뒤 materialize(M1–M2)와 이 기기 날짜로 하루 정리(M3)를 하고, 그 둘로 바뀐 것에만 이 기기 도장을 찍는다
- * (정리로 뺀 오늘 담은 칸에 지운 표시가 없으면 다른 기기가 다음에 되살린다). 시계는 받은 가장 큰 도장 뒤로 당긴다.
+ * 합친 뒤 materialize(M1–M2)와 이 기기 날짜로 하루 정리(M3, rollMerged)를 하고, 그 둘로 바뀐 것에만 이 기기 도장을 찍는다
+ * (정리로 뺀 오늘 담은 칸에 지운 표시가 없으면 다른 기기가 다음에 되살린다) — 다듬기는 지금 도장, 정리로 뺀 것은
+ * 오늘이 시작된 때의 도장(stampDayRoll). 시계는 받은 가장 큰 도장 뒤로 당긴다.
  * changed: 문서가 바뀌었는가 — 아니면 doc은 localDoc 그대로(같은 객체).
  */
 export function joinRemote(
@@ -125,8 +173,11 @@ export function joinRemote(
   if (isNewer(remote)) return { doc: localDoc, meta: localMeta, changed: false };
   const m = mergeAll(replicaOf(localDoc, localMeta), [remote]);
   if (isNewer(m)) return { doc: localDoc, meta: localMeta, changed: false };
-  const next = rolloverToday(materialize(m.doc), todayKey);
-  const meta = observe(stampLocal(m.doc, next, adoptMerged(localMeta, m), wall), topStamp(m), wall);
+  const dayStart = dayStartOf(todayKey, wall);
+  const tidy = materialize(m.doc);
+  const tidied = stampLocal(m.doc, tidy, adoptMerged(localMeta, m), wall);
+  const next = rollMerged(tidy, tidied.clock, todayKey, dayStart);
+  const meta = observe(stampDayRoll(tidy, next, tidied, wall, dayStart), topStamp(m), wall);
   const changed = next.todayDate !== localDoc.todayDate || changedPaths(localDoc, next).size > 0;
   return { doc: changed ? next : localDoc, meta, changed };
 }
@@ -224,10 +275,15 @@ export function makeSyncPort(host: SyncPortHost): SyncPort {
       void keepCopy();
       const { archives: _theirs, ...rest } = remote.doc;
       const archives = unionArchives(local.archives, remote.doc.archives);
-      // 날짜 정리 상태(todayDate)는 이 기기의 것 — 그다음 이 기기 날짜로 하루 정리
-      const doc = rolloverToday({ ...rest, ...(archives ? { archives } : {}), todayDate: local.todayDate }, host.today());
+      const now = host.now();
+      const today = host.today();
+      const dayStart = dayStartOf(today, now);
+      // 날짜 정리 상태(todayDate)는 이 기기의 것 — 그다음 이 기기 날짜로 하루 정리(받은 기록의 지난 날 오늘 목록도 뺀다)
+      const taken: MandaratDoc = { ...rest, ...(archives ? { archives } : {}), todayDate: local.todayDate };
       // 받은 시계·몫·판을 쓰고, 그 위에 이 기기에서 더한 것(남긴 지난 표 · 하루 정리)만 도장 — 다른 기기로 퍼지게
-      host.putMerged(doc, observe(stampLocal(remote.doc, doc, adoptMerged(meta, remote), host.now()), topStamp(remote), host.now()));
+      const kept = stampLocal(remote.doc, taken, adoptMerged(meta, remote), now);
+      const doc = rollMerged(taken, kept.clock, today, dayStart);
+      host.putMerged(doc, observe(stampDayRoll(taken, doc, kept, now, dayStart), topStamp(remote), now));
       return true;
     },
     epochReset() {

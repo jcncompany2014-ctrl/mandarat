@@ -415,7 +415,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   // 날짜가 바뀌면 '오늘' 목록 정리 — 처음 읽었을 때와 앱으로 돌아올 때. 켜 둔 채 자정을 넘기는 것은 아래 시계 눈금이 맡는다
   useEffect(() => {
     if (!ready) return;
-    const roll = () => commit(rolloverToday(latest.current, dateKey()));
+    const roll = () => commit(rolloverToday(latest.current, dateKey()), 'day');
     roll();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') roll();
@@ -436,7 +436,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       const next = sunday > now.getTime() ? Math.min(midnight, sunday) : midnight;
       // setTimeout은 2^31-1ms를 넘기면 바로 불리므로, 길어도 하루를 넘지 않는 위 값만 쓴다
       timer = setTimeout(() => {
-        commit(rolloverToday(latest.current, dateKey()));
+        commit(rolloverToday(latest.current, dateKey()), 'day');
         setClock((c) => c + 1);
         arm();
       }, Math.max(1000, next - now.getTime()));
@@ -447,7 +447,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     const guard = setInterval(() => {
       const k = dateKey();
       if (k === latest.current.todayDate) return;
-      commit(rolloverToday(latest.current, k));
+      commit(rolloverToday(latest.current, k), 'day');
       setClock((c) => c + 1);
       arm();
     }, 60_000);

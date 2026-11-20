@@ -7,7 +7,7 @@
 import type { Action, ArchivedChart, MandaratDoc, Settings, TodayExtra, WeekReviewEntry } from '../types';
 import { ymd } from './routine';
 import type { Parts, PNPart, SyncMeta } from './syncMeta';
-import { msOf, tick, type Stamp } from './syncStamp';
+import { enc, follow, msOf, tick, type Stamp } from './syncStamp';
 import { CFG_KEYS, canon, isCounterPath, isElementPath, pathOf, project, toUnits } from './syncProject';
 
 /** 지운 표시를 남겨 두는 날 수 — 이보다 오래 받지 않은 기기는 묻고 합친다(isStale, V4-A) */
@@ -192,13 +192,19 @@ function copyClock(c: Readonly<Record<string, Stamp>>): Record<string, Stamp> {
 }
 
 /**
- * 이 기기에서 prev → next로 고쳤다 — 바뀐 경로마다 같은 도장 하나(없어진 경로는 지운 표시), 카운터는 내 몫에.
- * 바뀐 것이 없으면 meta를 그대로 돌려준다.
+ * 바뀐 경로마다 같은 새 도장 하나 — 그 도장은 덮어쓰는 도장들과 판(epoch)보다 늘 크다.
+ * 다른 기기의 시계가 24시간 넘게 앞서 있었으면 observe는 그 도장을 받아들이지 않아 last가 그 앞에 머문다. 그대로 tick하면
+ * 그 값을 고친 새 도장이 덮어쓴 도장보다 작아, 다음 합치기에서 나중에 고친 쪽이 사라진다. 그래서 고치는 경로의 지금 도장
+ * 뒤로 먼저 시계를 당긴다(follow) — 고치지 않는 경로의 앞선 도장에는 24시간 한계가 그대로다.
  */
-export function stampLocal(prev: MandaratDoc, next: MandaratDoc, meta: SyncMeta, wall: number): SyncMeta {
-  const changes = changedPaths(prev, next);
+function stampChanges(changes: Changes, meta: SyncMeta, wall: number): SyncMeta {
   if (changes.size === 0) return meta;
-  const { meta: ticked, stamp } = tick(meta, wall);
+  let top = meta.epoch;
+  for (const p of changes.keys()) {
+    const s = own(meta.clock, p) ? meta.clock[p] : '';
+    if (s > top) top = s;
+  }
+  const { meta: ticked, stamp } = tick(follow(meta, top), wall);
   const clock = copyClock(meta.clock);
   let parts: Parts = meta.parts;
   for (const [p, { from, to }] of changes) {
@@ -206,6 +212,62 @@ export function stampLocal(prev: MandaratDoc, next: MandaratDoc, meta: SyncMeta,
     if (isCounterPath(p)) parts = reattribute(parts, meta.dev, p, from, to);
   }
   return { ...ticked, clock, parts };
+}
+
+/**
+ * 이 기기에서 prev → next로 고쳤다 — 바뀐 경로마다 같은 도장 하나(없어진 경로는 지운 표시), 카운터는 내 몫에.
+ * 바뀐 것이 없으면 meta를 그대로 돌려준다.
+ */
+export function stampLocal(prev: MandaratDoc, next: MandaratDoc, meta: SyncMeta, wall: number): SyncMeta {
+  return stampChanges(changedPaths(prev, next), meta, wall);
+}
+
+/** 오늘 목록의 경로인가 — 담은 칸(tk/<칸>)과 직접 추가한 할 일(x/<id> · x/<id>/done) */
+function isTodayListPath(p: string): boolean {
+  return p.startsWith('tk/') || p.startsWith('x/');
+}
+
+/**
+ * 그 날('YYYY-MM-DD')이 이 기기에서 시작된 때(이 기기 시간대의 자정, ms) — wall보다 늦지 않다.
+ * 날짜가 아니거나 wall보다 뒤면 wall이 속한 날의 시작.
+ */
+export function dayStartOf(todayKey: string, wall: number): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayKey);
+  if (m) {
+    const at = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+    if (at <= wall) return at;
+  }
+  const d = new Date(wall);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/**
+ * 하루 정리(rolloverToday · syncEnvelope rollMerged)로 오늘 목록에서 뺀 것의 도장 — '지금'이 아니라 오늘이 시작된 때(dayStart)로 찍는다.
+ * 지금으로 찍으면, 늦게 연 기기의 하루 정리가 다른 기기에서 오늘 먼저 다시 담은 같은 칸을 지운다(더 늦은 지운 표시가 이긴다).
+ * 오늘이 시작된 때의 지운 표시는 어제까지 담은 것만 이기고, 오늘 담은 것에는 진다.
+ * - 오늘 목록의 경로(tk/… · x/…)가 없어졌고, 그 경로의 지금 도장과 판이 오늘의 시작보다 앞설 때만 그렇게 찍는다.
+ * - 그 밖의 바뀜(과 오늘 시작 뒤의 도장이 붙은 것을 빼는 일)은 stampLocal과 같다 — 지금 도장.
+ * 바뀐 것이 없으면 meta를 그대로 돌려준다.
+ */
+export function stampDayRoll(prev: MandaratDoc, next: MandaratDoc, meta: SyncMeta, wall: number, dayStart: number): SyncMeta {
+  const changes = changedPaths(prev, next);
+  if (changes.size === 0) return meta;
+  const ms = Math.floor(dayStart);
+  const s0 = Number.isSafeInteger(ms) && ms >= 0 && ms <= wall ? enc(ms, 0, meta.tag) : '';
+  const rolled: string[] = [];
+  if (s0 > meta.epoch) {
+    for (const [p, ch] of changes) {
+      if (ch.to !== undefined || !isTodayListPath(p)) continue;
+      if (s0 > (own(meta.clock, p) ? meta.clock[p] : '')) rolled.push(p);
+    }
+  }
+  if (rolled.length === 0) return stampChanges(changes, meta, wall);
+  for (const p of rolled) changes.delete(p);
+  const rest = stampChanges(changes, meta, wall);
+  const clock = rest === meta ? copyClock(meta.clock) : rest.clock;
+  for (const p of rolled) clock[p] = s0;
+  // last는 이 기기가 낸 모든 도장 이상으로 둔다(저장했다 읽어도 같은 메타 — cleanSyncMeta)
+  return { ...follow(rest, s0), clock };
 }
 
 /**

@@ -265,8 +265,10 @@ export function mergeAll(local: Replica | null, remotes: readonly (Replica | New
 /**
  * 합친 문서를 앱이 쓰는 모양으로 맞춘다. 더하기만 한다(어느 기기의 기록도 지우지 않는다).
  * - M1 쌓기 칸: 그날 더한 수가 있는 날은 그날 기록(dayLog)에도 그 칸이 있다.
- * - M2 직접 추가한 할 일: 오늘(todayDate) 기록에 있으면 한 것, 한 것이면 오늘 기록에도 있다.
- * - M3 하루 정리(rolloverToday)는 기기 날짜로 저장소가 한다 — 여기서 하지 않는다.
+ * - M2 직접 추가한 할 일: 오늘(todayDate) 기록에 있으면 한 것, 한 것인데 어느 날에도 기록이 없으면 오늘 기록에 넣는다.
+ *   다른 날에 이미 기록된 할 일은 그날 한 것이다(어제 끝낸 할 일을 다른 기기가 오늘 먼저 받은 경우) — 오늘 기록에 또 넣지 않는다.
+ *   그런 할 일을 오늘 목록에서 빼는 것은 하루 정리(M3)가 한다.
+ * - M3 하루 정리는 기기 날짜로 저장소(rolloverToday)와 받은 것을 넣는 곳(syncEnvelope rollMerged)이 한다 — 여기서 하지 않는다.
  * 바뀐 것이 없으면 같은 객체.
  */
 export function materialize(doc: MandaratDoc): MandaratDoc {
@@ -289,7 +291,12 @@ export function materialize(doc: MandaratDoc): MandaratDoc {
     const logged = new Set(own(dayLog, today) ? dayLog[today] : []);
     todayExtra = doc.todayExtra.map((x) => (!x.done && logged.has(extraLogKey(x.ti, x.id)) ? { ...x, done: true } : x));
     if (todayExtra.every((x, i) => x === doc.todayExtra[i])) todayExtra = doc.todayExtra;
-    for (const x of todayExtra) if (x.done) addKey(today, extraLogKey(x.ti, x.id));
+    for (const x of todayExtra) {
+      if (!x.done) continue;
+      const key = extraLogKey(x.ti, x.id);
+      if (logged.has(key) || Object.keys(dayLog).some((day) => day !== today && dayLog[day].includes(key))) continue;
+      addKey(today, key);
+    }
   }
   if (dayLog === doc.dayLog && todayExtra === doc.todayExtra) return doc;
   return { ...doc, dayLog, todayExtra };

@@ -47,7 +47,7 @@ test('NEW-5(code): 화면을 켜 둔 채 날짜가 바뀌면 1분 안에 오늘�
   const s = src('src/store/MandaratContext.tsx');
   const effect = slice(s, '// 시계 눈금 — 다음 자정', 'const update = useCallback');
   assert.match(effect, /const guard = setInterval\(\(\) => \{\s*const k = dateKey\(\);\s*if \(k === latest\.current\.todayDate\) return;/);
-  assert.match(effect, /commit\(rolloverToday\(latest\.current, k\)\);\s*setClock\(\(c\) => c \+ 1\);\s*arm\(\);\s*\}, 60_000\);/);
+  assert.match(effect, /commit\(rolloverToday\(latest\.current, k\), 'day'\);\s*setClock\(\(c\) => c \+ 1\);\s*arm\(\);\s*\}, 60_000\);/);
   assert.match(effect, /clearInterval\(guard\);/);
   // 시계를 되돌려도 rolloverToday가 todayDate를 오늘로 맞춰 다음 눈금에서 다시 돌지 않는다
   const doc = { themes: [], todayKeys: [], todayExtra: [], todayDate: '2026-10-15' };
