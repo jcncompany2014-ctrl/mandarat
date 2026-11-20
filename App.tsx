@@ -29,6 +29,10 @@ installWebStyles();
 
 // Pretendard — 쓰는 굵기 4개(400·500·600·700). 이름은 src/theme/fonts.ts의 PRETENDARD와 같아야 한다.
 // (800은 화면을 한 단계 가볍게 그리는 faceFor에서 Bold로 그려서 파일을 싣지 않는다)
+// iOS · 안드로이드 빌드에는 expo-font 플러그인이 같은 파일 넷을 앱에 싣는다(app.json plugins의 fonts — iOS는 Info.plist UIAppFonts).
+// 실린 서체는 그 PostScript 이름(= 아래 열쇠, tests/startup.test.js가 파일에서 읽어 확인한다)으로 곧바로 쓸 수 있어
+// useFonts가 처음 그릴 때부터 '불러옴'으로 답한다(expo-font isLoadedNative) — 파일을 읽느라 첫 화면을 기다리지 않는다.
+// 아래 불러오기는 그대로 둔다: 웹은 늘 이 길이고, 기기에서도 이름이 어긋나면 이 길로 불러온다.
 const FONT_FILES = {
   'Pretendard-Regular': require('pretendard/dist/public/static/Pretendard-Regular.otf'),
   'Pretendard-Medium': require('pretendard/dist/public/static/Pretendard-Medium.otf'),

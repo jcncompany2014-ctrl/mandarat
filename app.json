@@ -89,7 +89,17 @@
       "backgroundColor": "#FFFFFF"
     },
     "plugins": [
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/pretendard/dist/public/static/Pretendard-Regular.otf",
+            "./node_modules/pretendard/dist/public/static/Pretendard-Medium.otf",
+            "./node_modules/pretendard/dist/public/static/Pretendard-SemiBold.otf",
+            "./node_modules/pretendard/dist/public/static/Pretendard-Bold.otf"
+          ]
+        }
+      ],
       [
         "expo-splash-screen",
         {
