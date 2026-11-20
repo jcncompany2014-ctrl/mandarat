@@ -69,9 +69,44 @@ test('메뉴 이름은 앱이 그 언어로 보이는 이름과 같다', () => {
   }
 });
 
+test('앱이 지금 쓰는 말 그대로 — 동기화 · 自動保存 · タップ · Apple Account · 굽은 따옴표', () => {
+  const text = Object.fromEntries(LANGS.map((l) => [l, plain(part(page, l))]));
+  // ko: iCloud는 동기화(맞추기라고 하지 않는다), 버전 줄은 ‘버전’
+  assert.doesNotMatch(text.ko, /맞추|맞춰|맞출|맞춘|‘판’/);
+  // ja: 保存コピー → 自動保存、押す → タップ、版 → バージョン
+  assert.doesNotMatch(text.ja, /保存コピー|保存版|「版」|(?<!長)押(す|し|せ)/);
+  // en: 굽은 따옴표(곧은 따옴표는 주소 속에도 없다)
+  assert.doesNotMatch(text.en, /'/);
+  // Apple 계정의 이름은 한 가지로 — 기기 설정의 길에서도
+  const account = { ko: 'Apple 계정', ja: 'Apple Account', en: 'Apple Account' };
+  for (const l of LANGS) {
+    assert.ok(text[l].includes(account[l]), `${l}: ${account[l]}`);
+    assert.doesNotMatch(text[l].split(account[l]).join(''), /Apple|アップル|애플/, `${l}: Apple 계정의 다른 적기`);
+  }
+});
+
+test('전체 초기화의 답 — 지우는 것 · 남는 것 · 다른 기기를 앱의 확인 글과 같은 말로 적는다', () => {
+  for (const l of LANGS) {
+    const m = msg(l);
+    const html = part(page, l);
+    // 여섯 번째 질문(기록을 모두 지우고 싶어요)의 답 — 다음 질문 머리 앞까지
+    const answer = plain(html.split('<h4>')[6].split('</h4>')[1]);
+    for (const n of [m.settings.subRestart, m.settings.resetRow, m.year.shelf]) assert.ok(answer.includes(n), `${l}: '${n}'`);
+    assert.ok(answer.toLowerCase().includes(m.settings.snapTitle.toLowerCase()), `${l}: ${m.settings.snapTitle}`);
+    assert.match(answer, /iCloud/, `${l}: 동기화를 켰을 때 다른 기기`);
+    // 확인 글의 낱말 그대로 — 지우는 세 가지
+    const erased = m.settings.resetAskBody.split(/[.。]/)[0].replace(/^Your /, '').replace(/ will be erased$/, '').replace(/(이 지워져요|が消えます)$/, '');
+    assert.ok(answer.includes(erased), `${l}: '${erased}'`);
+  }
+  // 글이 기대는 코드 — 다른 기기는 높은 판(초기화)을 받기 전에 저장본을 남긴다
+  assert.match(src('src/lib/syncEngine.ts'), /if \(meta && merged\.epoch > meta\.epoch\) \{\s*const kept = await port\.keepCopy\(\);/);
+});
+
 test('답이 기대는 앱의 사실 — 바뀌면 support.md도 함께 고친다', () => {
   // 저장본 7일치 · 알림은 2주치를 미리 건다 · 결제 없음 · 전체 초기화는 지난 표를 남긴다
   assert.match(src('src/store/MandaratContext.tsx'), /const SNAP_KEEP = 7;/);
+  // 7일은 달력의 7일이 아니라 저장본이 있는 날 가운데 최근 일곱 — 열쇠를 날짜순으로 늘어놓고 앞의 일곱만 둔다
+  assert.match(src('src/store/MandaratContext.tsx'), /\.sort\(\)\.reverse\(\)\.slice\(0, SNAP_KEEP\)/);
   assert.equal(REMINDER_DAYS, 14);
   assert.equal(STORE_OPEN, false);
   assert.match(src('src/lib/archive.ts'), /return \{ \.\.\.blankDoc\(\), settings: d\.settings, \.\.\.\(d\.archives && d\.archives\.length > 0 \? \{ archives: d\.archives \} : \{\}\) \};/);
