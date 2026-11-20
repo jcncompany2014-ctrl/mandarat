@@ -24,7 +24,7 @@ v2 계획과 작업 기록은 `docs/v2/`(계획 `plan.md`, owner 결정 `owner-d
 | **일본어·영어** | 타입 있는 카탈로그(`src/i18n/{ko,ja,en}`), 기기마다 언어 선택, 대체 언어 ko | 무료 |
 | **iPad** | 가운데 단, 큰 화면은 두 쪽 펼침(spread), 시트 560pt | 무료 |
 | **프로** | 한 번 결제 `com.jcncompany.mandarat.pro`(StoreKit 2, `modules/pro-store`). 설정 › 프로. 지금 무료인 기능은 계속 무료 | — |
-| **오류 수집** | 1.0은 없음 — Sentry를 빼고 낸다(`src/lib/crash.ts`는 아무것도 하지 않는 자리). 다시 켜는 법은 RELEASE_CHECKLIST v2-3 | — |
+| **오류 수집** | 1.0은 없음 — Sentry를 빼고 낸다. 오류는 이 기기에만 마지막 20건을 남기고(`src/lib/crashLog.ts`, 내가 적은 글은 남기지 않는다) 어디에도 보내지 않는다 — 설정 › 문의하기의 메일에 붙여 직접 보낼 때만 나간다. 다시 켜는 법은 RELEASE_CHECKLIST v2-3 | — |
 
 개인정보 처리방침 초안은 `docs/v2/privacy.md`, App Review 노트는 `docs/v2/review-notes.md`에 있습니다.
 
@@ -89,9 +89,9 @@ v2 계획과 작업 기록은 `docs/v2/`(계획 `plan.md`, owner 결정 `owner-d
 **백업 불러오기**(붙여넣기 또는 파일 선택 → 요약 확인 → 바꾸기, 잠시 되돌리기 가능)를 지원합니다.
 불러온 백업은 모든 필드를 검증해 손상된 값이 있어도 앱이 멈추지 않습니다.
 
-부가 기능: 실천 시트(유형별 — 습관 이번 주 칸·쌓기 더하기/빼기·마감 미루기·마음가짐 점수와 8주 흐름, 괘선 메모, 오늘 담기, 집중 25분), 탭바 가운데 ＋(빠른 추가 — 할 일 적기·빈 칸에 적기·영역의 남은 실천 담기), 칸 편집 창(적는 대로 유형 제안, Return으로 다음 빈 칸), 되돌리기 토스트, 목적별 템플릿, 크래시 복구 화면(기록 내보내기).
+부가 기능: 실천 시트(유형별 — 습관 이번 주 칸·쌓기 더하기/빼기·마감 미루기·마음가짐 점수와 8주 흐름, 괘선 메모, 오늘 담기, 집중 25분), 탭바 가운데 ＋(빠른 추가 — 할 일 적기·빈 칸에 적기·영역의 남은 실천 담기), 칸 편집 창(적는 대로 유형 제안, Return으로 다음 빈 칸), 되돌리기 토스트, 목적별 템플릿, 크래시 복구(화면 하나·시트 하나의 오류는 그 자리에서, 앱 전체는 복구 화면 — 기록 내보내기·저장본으로 열기·오류 내용 복사).
 
-견고성: 필드 단위 저장본 검증·이행, 지운 칸의 기록은 지우지 않고 보관, 날마다 저장본 사본, iCloud 기기 백업 포함, ErrorBoundary.
+견고성: 필드 단위 저장본 검증·이행, 지운 칸의 기록은 지우지 않고 보관, 날마다 저장본 사본, iCloud 기기 백업 포함, ErrorBoundary(앱 · 화면 · 시트 세 겹), 기기에만 남는 오류 기록.
 
 ## 기술 스택
 
@@ -99,7 +99,7 @@ v2 계획과 작업 기록은 `docs/v2/`(계획 `plan.md`, owner 결정 `owner-d
 - **로컬 저장**: `@react-native-async-storage/async-storage` (단일 JSON 문서, 디바운스 저장)
 - **그래픽**: `react-native-svg` (체크 획·차트·도트 종이), `react-native-view-shot` (표 이미지)
 - **아이콘**: 앱 안에 옮긴 선 아이콘 24개(`src/components/LineIcons.tsx`, Lucide 도형 ISC) + 영역 아이콘 8개. 아이콘 패키지는 싣지 않는다
-- **폰트**: Pretendard 4굵기(SIL OFL) — `pretendard` 패키지의 파일을 `expo-font`로 불러오고, `src/components/AppText.tsx`가 fontWeight를 해당 굵기 파일로 바꿔 끼운다(굵은 텍스트면 한 단계 굵게)
+- **폰트**: Pretendard 4굵기(SIL OFL) — `pretendard` 패키지의 파일을 `expo-font` 플러그인이 빌드에 싣고(app.json `fonts`, 웹과 이름이 어긋난 경우에는 `useFonts`로 불러온다), `src/components/AppText.tsx`가 fontWeight를 해당 굵기 파일로 바꿔 끼운다(굵은 텍스트면 한 단계 굵게)
 - **v2 네이티브**: expo-notifications · expo-widgets + @expo/ui(위젯·Live Activity) · expo-print · expo-localization · 로컬 모듈 `modules/pro-store`(StoreKit 2)·`modules/icloud-sync`(iCloud) · App Intents(`native/ios`, inline modules)
 - **그 밖**: expo-haptics · expo-keep-awake(집중 중 화면 꺼짐 막기) · expo-file-system(백업 파일) · expo-splash-screen · expo-system-ui
 
