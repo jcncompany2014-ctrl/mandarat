@@ -141,7 +141,10 @@ test('히어로 — 숫자 칸 셋(label · figureField + unit, 소리 말) | L1
   // 소리 말 — '1/10'이 날짜로 읽히지 않게 예전 문장으로
   assert.match(s, /todaySay=\{todaySummary\(doc, now\)\}/);
   assert.match(s, /say=\{m\.home\.sumDone\(\{ n: done \}\)\}/);
-  assert.match(s, /leftSay=\{headerMeta\(now\)\.left\}/);
+  // 남은 날 — 지금 표의 해가 끝날 때까지(lib/home heroLeft: 수 · 칸 이름 · 읽는 말)
+  assert.match(s, /const left = heroLeft\(doc, now\);/);
+  assert.match(s, /left=\{left\.n\}\s+leftLabel=\{left\.label\}\s+leftSay=\{left\.say\}/);
+  assert.match(s, /<HeroField M=\{M\} label=\{leftLabel\} figure=\{`\$\{left\}`\}/);
 });
 
 test('누르는 줄 — 한 해 마무리 · 한 주 돌아보기는 LinkRow(같은 testID), 시작하기는 kit 줄', () => {

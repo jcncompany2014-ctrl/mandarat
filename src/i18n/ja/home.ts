@@ -69,4 +69,6 @@ export default {
   todayAll: ({ total }) => `今日やること${tsu(total)}が全部できました`,
   todayOf: ({ total, done }) => `今日やること${tsu(total)}のうち${tsu(done)}できました`,
 
+  heroLeftIn: ({ y }) => `${y}年の残り`,
+  leftSayIn: ({ y, n }) => `${y}年あと${n}日`,
 } satisfies Like<typeof ko>;

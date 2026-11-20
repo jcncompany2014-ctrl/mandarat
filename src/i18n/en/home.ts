@@ -73,4 +73,6 @@ export default {
   todayAll: ({ total }) => (total === 1 ? "Today's list: 1 of 1 done" : `Today's list: all ${total} done`),
   todayOf: ({ total, done }) => `Today's list: ${done} of ${total} done`,
 
+  heroLeftIn: ({ y }) => `Left in ${y}`,
+  leftSayIn: ({ y, n }) => `${n} ${plural(n, 'day', 'days')} left in ${y}`,
 } satisfies Like<typeof ko>;

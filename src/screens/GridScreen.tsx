@@ -10,6 +10,7 @@ import { FullGrid } from './FullGrid';
 import { gridMemory, stepArea, swipeStep, type GridFocus } from './gridMemory';
 import { nextStep } from '../lib/nextStep';
 import { suggestActions } from '../lib/suggest';
+import { chartYear } from '../lib/archive';
 import { GUIDE_FILL_TARGET, firstAreaWithEmpty } from '../lib/pick';
 import { areaTitle } from '../lib/areaPage';
 import { todayItems } from '../lib/routine';
@@ -416,6 +417,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
         M={M}
         themes={doc.themes}
         goal={doc.centerGoal}
+        year={chartYear(doc, new Date())}
         todayKeys={todayKeys}
         start={start}
         focus={editCell ?? startCell}

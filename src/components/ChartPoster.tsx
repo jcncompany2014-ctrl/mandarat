@@ -13,6 +13,7 @@ import { NUM } from '../theme/type';
 import {
   POSTER_LABEL, POSTER_MAP, POSTER_RATIO, posterDate, posterDone, posterFigure, posterGoal, posterMetrics, type PosterMetrics,
 } from '../lib/poster';
+import { chartYear } from '../lib/archive';
 import type { MandaratDoc } from '../types';
 import type { Lang } from '../i18n';
 import { useLang } from '../i18n/react';
@@ -79,7 +80,8 @@ function TitleLine({ goal, figure, unit, k, scale, l }: {
  * 강조색(예전 금색 줄)은 없다(§2.7).
  */
 export const ChartPoster = forwardRef<View, {
-  doc: Pick<MandaratDoc, 'centerGoal' | 'themes'>;
+  /** 시작한 날 · 기록 · 지난 표는 머리의 해(chartYear)를 정하는 데만 쓴다 */
+  doc: Pick<MandaratDoc, 'centerGoal' | 'themes' | 'chartStart' | 'dayLog' | 'archives'>;
   blank?: boolean;
   now: Date;
   scale?: number;
@@ -100,7 +102,7 @@ export const ChartPoster = forwardRef<View, {
       }}
     >
       <Text {...FIXED} numberOfLines={1} style={{ fontFamily: PRETENDARD[600], fontSize: k.eyebrowFs, lineHeight: k.eyebrowLh, letterSpacing: 0, color: T.print }}>
-        {m.print.posterEyebrow({ y: now.getFullYear() })}
+        {m.print.posterEyebrow({ y: chartYear(doc, now) })}
       </Text>
       <TitleLine goal={goal} figure={figure} unit={m.print.posterUnit} k={k} scale={scale} l={l} />
 

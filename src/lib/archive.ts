@@ -4,7 +4,7 @@
 // - 기록은 이름을 바꾸기 전에 잘라 담는다 — 지난 표 안에서는 칸 키 "ti-ai"가 그 칸에 붙어 있다.
 // - 지금 문서의 기록은 지우지 않고 칸에서 떼어 둔다(history.archiveAllCells) — 히트맵·영역 기록은 이어진다.
 // - 아이디는 시작한 날로 정해진다('y' + from) — 두 기기에서 같은 표를 닫아도 지난 표 하나로 남는다.
-// 화면 글은 여기서 만들지 않는다(yearLabel만 fmt로 해 표기를 돌려준다).
+// 화면 글은 여기서 만들지 않는다(yearLabel · chartRangeLabel만 fmt로 해 · 기간 표기를 돌려준다).
 import type { Action, ArchivedChart, MandaratDoc, Settings, Theme, WeekReviewEntry } from '../types';
 import { ARCHIVE_KEEP, ARCHIVE_NOTE_MAX, blankDoc, cleanArchives, scaffoldThemes } from '../data/defaults';
 import { archiveAllCells, detachReviewPicks, firstLogDay, isArchivedKey } from './history';
@@ -282,10 +282,72 @@ export function yearClosePrompt(doc: Pick<MandaratDoc, 'onboarded' | 'chartStart
   return !(doc.archives ?? []).some((a) => a.to >= winFrom && a.to <= winTo);
 }
 
-/** 표의 해 표기 — 한 해 안이면 '2026년', 해를 넘기면 '2026년 – 2027년' (fmt.year · fmt.yearSpan) */
+/** 한 해의 몫으로 치는 날 수 — 두 해에 걸친 표는 두 해 모두 이만큼은 써야 두 해 이름('2026년 – 2027년')을 얻는다 */
+export const YEAR_SHARE_DAYS = 45;
+/** 이날(12월 15일)부터 시작한 표는 다음 해의 표다 — 한 해 마무리를 권하는 기간(yearClosePrompt)의 첫날 */
+const NEXT_YEAR_FROM = '12-15';
+
+/** 'YYYY-MM-DD' → 날 번호(하루에 1씩) */
+function dayNo(key: string): number {
+  const [y, m, d] = key.split('-').map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+}
+
+/**
+ * 표의 해 — 날이 가장 많이 든 해 하나(y). 두 해 모두 한 해의 몫(YEAR_SHARE_DAYS일)만큼 썼을 때만 두 해(y ~ y2).
+ * 표를 닫은 날(to)은 다음 표가 시작한 날(from)이기도 해서, 달력 해로만 가르면 12월에 닫으면 새 표가, 1월에 닫으면
+ * 닫은 표가 두 해 이름을 얻는다. 그래서 날 수로 고른다 — 12월 15일 ~ 1월 31일 어느 날 닫아도 닫은 표는 그해, 새 표는 다음 해.
+ * - 12월 15일부터 시작한 표는 다음 해의 표다 — 그해 12월의 며칠은 다음 해 몫으로 센다(12월 29일에 시작한 표는 2027년).
+ * - 어느 해도 한 해의 몫이 안 되는 짧은 표는 날이 많은 해, 같으면 앞 해(12월 1일에 시작해 1월 31일에 닫은 표는 시작한 해).
+ * - 같은 표는 지금 쓰는 동안에도 닫은 뒤에도 같은 기간이면 같은 해로 적힌다(지금 표는 to가 오늘).
+ */
+export function chartYears(from: string, to: string): { y: number; y2?: number } {
+  const end = to >= from ? to : from;
+  const y0 = Number(from.slice(0, 4));
+  const y1 = Number(end.slice(0, 4));
+  // 해마다 든 날 수(시작한 날 · 끝 날 포함)
+  const days = new Map<number, number>();
+  for (let y = y0; y <= y1; y++) {
+    days.set(y, dayNo(y === y1 ? end : `${y}-12-31`) - dayNo(y === y0 ? from : `${y}-01-01`) + 1);
+  }
+  if (from.slice(5) >= NEXT_YEAR_FROM) {
+    days.set(y0 + 1, (days.get(y0 + 1) ?? 0) + (days.get(y0) ?? 0));
+    days.delete(y0);
+  }
+  const years = [...days.keys()].sort((a, b) => a - b);
+  if (years.length === 0) return { y: y0 };
+  const full = years.filter((y) => (days.get(y) ?? 0) >= YEAR_SHARE_DAYS);
+  if (full.length > 1) return { y: full[0], y2: full[full.length - 1] };
+  return { y: years.reduce((best, y) => ((days.get(y) ?? 0) > (days.get(best) ?? 0) ? y : best), years[0]) };
+}
+
+/** 표의 해 표기 — '2026년', 두 해 모두 한 해의 몫만큼 쓴 표만 '2026년 – 2027년' (chartYears · fmt.year · fmt.yearSpan) */
 export function yearLabel(from: string, to: string, l?: Lang): string {
-  const y = Number(from.slice(0, 4));
-  const y2 = Number(to.slice(0, 4));
+  const { y, y2 } = chartYears(from, to);
   const f = msg(l).fmt;
-  return y === y2 ? f.year({ y }) : f.yearSpan({ y, y2 });
+  return y2 === undefined ? f.year({ y }) : f.yearSpan({ y, y2 });
+}
+
+/**
+ * 지금 쓰는 표가 어느 해의 표인가 — 만다라트 탭의 '2027 만다라트', 표 이미지의 '2027 핵심 목표', 홈의 '남은 날'이 모두 이 해를 쓴다.
+ * 오늘의 달력 해다. 다만 올해 12월 15일부터 시작한 표는 다음 해의 표라, 그해가 끝날 때까지를 센다(chartYears와 같은 규칙).
+ */
+export function chartYear(doc: Pick<MandaratDoc, 'chartStart' | 'dayLog' | 'archives'>, now: Date): number {
+  const y = now.getFullYear();
+  return chartRange(doc, now).from >= `${y}-${NEXT_YEAR_FROM}` ? y + 1 : y;
+}
+
+/**
+ * 표의 기간 표기 — '1월 5일 – 12월 20일'(fmt.range). 하루뿐인 기간은 '12월 29일 – 29일'로 적지 않는다:
+ * 지금 쓰는 표(open)는 '12월 29일부터'(year.rangeFrom), 닫은 표는 그날 하나 '12월 29일'.
+ */
+export function chartRangeLabel(from: string, to: string, open: boolean, l?: Lang): string {
+  const m = msg(l);
+  const day = (key: string) => {
+    const [y, mo, d] = key.split('-').map(Number);
+    return new Date(y, mo - 1, d);
+  };
+  if (to > from) return m.fmt.range({ from: day(from), to: day(to) });
+  const date = m.fmt.monthDay({ d: day(from) });
+  return open ? m.year.rangeFrom({ date }) : date;
 }

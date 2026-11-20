@@ -83,4 +83,8 @@ export default {
   todayNone: '오늘 할 일이 아직 없어요',
   todayAll: ({ total }: { total: number }) => `오늘 할 일 ${total}개를 다 했어요`,
   todayOf: ({ total, done }: { total: number; done: number }) => `오늘 할 일 ${total}개 중 ${done}개 했어요`,
+  /** 히어로 '남은 날' — 지금 표가 다음 해의 표일 때(12월 15일부터 시작한 표)의 이름 '2027년 남은 날' */
+  heroLeftIn: ({ y }: { y: number }) => `${y}년 남은 날`,
+  /** 그때 읽는 말 — '2027년 367일 남음'(올해면 fmt.daysLeftYear) */
+  leftSayIn: ({ y, n }: { y: number; n: number }) => `${y}년 ${n}일 남음`,
 } satisfies Namespace;

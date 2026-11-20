@@ -84,4 +84,5 @@ export default {
 
   folio: ({ label }) => `${label} in review`,
   sheetFolio: ({ label }) => `Past chart, ${label}`,
+  rangeFrom: ({ date }) => `From ${date}`,
 } satisfies Like<typeof ko>;
