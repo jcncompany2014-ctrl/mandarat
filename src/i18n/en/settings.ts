@@ -56,7 +56,7 @@ export default {
     `Your records are saved on ${thisDevice(device)} and in iCloud Backup. If iCloud Backup is off, export a backup before you switch devices.`,
   storagePlaceBackup: ({ device }) => `${device === 'iPad' ? 'This iPad' : 'This iPhone'} and iCloud Backup`,
   storageNoteSync: ({ device }) =>
-    `Your records are saved on ${thisDevice(device)} and in iCloud, and stay in sync across iPhone and iPad with the same Apple Account. To move to Android or the web, export a backup.`,
+    `Your records are saved on ${thisDevice(device)} and in iCloud, and stay in sync across iPhone and iPad with the same Apple Account. To move your records anywhere else, export a backup.`,
   storagePlaceSync: ({ device }) => `${device === 'iPad' ? 'This iPad' : 'This iPhone'} and iCloud`,
 
   subRestart: 'Start over',

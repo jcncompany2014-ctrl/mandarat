@@ -13,6 +13,7 @@ module.exports = (ctx, assert) => {
   const keys = Object.keys(ctx.entitlements).sort();
   assert.deepEqual(keys, [
     'aps-environment',
+    'com.apple.developer.icloud-container-environment',
     'com.apple.developer.icloud-container-identifiers',
     'com.apple.developer.icloud-services',
     'com.apple.developer.ubiquity-container-identifiers',

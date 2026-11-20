@@ -72,7 +72,7 @@ export default {
   storagePlaceBackup: ({ device }: { device: string }) => `${thisDevice(device)} iCloud 백업`,
   /** iPhone · iPad, iCloud로 맞추기 켜짐 */
   storageNoteSync: ({ device }: { device: string }) =>
-    `기록은 ${thisDevice(device)} iCloud에 저장되고, 같은 Apple 계정의 iPhone·iPad끼리 맞춰요. 안드로이드나 웹으로 옮길 때는 백업을 내보내 두세요.`,
+    `기록은 ${thisDevice(device)} iCloud에 저장되고, 같은 Apple 계정의 iPhone·iPad끼리 맞춰요. 다른 기기로 옮길 때는 백업을 내보내 두세요.`,
   storagePlaceSync: ({ device }: { device: string }) => `${thisDevice(device)} iCloud`,
 
   // ── 기록 › 새로 시작 ──

@@ -56,7 +56,7 @@ export default {
     `記録は${thisDevice(device)}とiCloudバックアップに保存されます。iCloudバックアップをオフにしている場合は、端末を替える前にバックアップを書き出しておいてください。`,
   storagePlaceBackup: ({ device }) => `${thisDevice(device)}とiCloudバックアップ`,
   storageNoteSync: ({ device }) =>
-    `記録は${thisDevice(device)}とiCloudに保存され、同じAppleアカウントのiPhone・iPadどうしで同期します。AndroidやWebに移すときは、バックアップを書き出してください。`,
+    `記録は${thisDevice(device)}とiCloudに保存され、同じAppleアカウントのiPhone・iPadどうしで同期します。ほかの端末に移すときは、バックアップを書き出してください。`,
   storagePlaceSync: ({ device }) => `${thisDevice(device)}とiCloud`,
 
   subRestart: '新しく始める',
