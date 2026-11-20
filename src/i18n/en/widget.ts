@@ -21,4 +21,5 @@ export default {
   focus: 'Focus',
   galleryName: 'Today',
   galleryDesc: "Shows Today's list and how many are left.",
+  stale: "Open the app to see Today's list",
 } satisfies Like<typeof ko>;

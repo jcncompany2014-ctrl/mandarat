@@ -1,5 +1,5 @@
 // 단축어 · Siri(V3-B)가 읽고 쓰는 '오늘' — 위젯과 같은 App Group 타임라인(expo-widgets가 저장한 배열)을 그대로 쓴다.
-// 앱(WidgetSync)이 8칸(지금 + 다음 자정 7번)을 쓰고, 위젯 버튼과 Siri는 그 칸의 props.ops에 덧붙인다.
+// 앱(WidgetSync)이 30칸(지금 + 다음 자정 29번 — widgetSnapshot WIDGET_DAYS)을 쓰고, 위젯 버튼과 Siri는 그 칸의 props.ops에 덧붙인다.
 // 앱이 다음에 앞으로 나올 때 ops를 읽어 문서에 반영하고 타임라인을 다시 쓴다(src/hosts/WidgetSync.tsx, src/lib/widgetOps.ts).
 // 열쇠와 모양은 src/lib/contracts.ts(APP_GROUP · WIDGET_TIMELINE_KEY · TodayWidgetProps · WidgetOp) — tests/shortcuts.test.js가 지킨다.
 import Foundation
@@ -39,7 +39,7 @@ enum TodayRead {
   case ok(TodaySnapshot)
   /// 타임라인이 없다(앱을 아직 안 열었거나 온보딩 전) — "open_app_first"
   case missing
-  /// 가장 새 칸이 오늘이 아니다(앱을 7일 넘게 안 열었다) — "open_app_first"
+  /// 가장 새 칸이 오늘이 아니다(앱을 29일 넘게 안 열었다) — "open_app_first"
   case stale
 }
 
@@ -73,7 +73,7 @@ enum TodayStore {
   }
 
   /// 지금 보이는 칸 — timestamp ≤ now인 마지막 칸, 그 props.day가 오늘일 때만.
-  /// 하루 지난 칸으로 남은 일을 읽거나 체크하지 않는다(앱을 7일 넘게 안 열면 가장 새 칸도 지난날이다).
+  /// 하루 지난 칸으로 남은 일을 읽거나 체크하지 않는다(앱을 29일 넘게 안 열면 가장 새 칸도 지난날이다). 위젯 버튼도 같은 규칙이다(TodayWidget.ios.tsx의 stale).
   static func current(now: Date = Date()) -> TodayRead {
     guard let entries = timeline(), !entries.isEmpty else { return .missing }
     let nowMs = Int(now.timeIntervalSince1970 * 1000)

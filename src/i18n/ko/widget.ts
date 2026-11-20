@@ -32,4 +32,6 @@ export default {
   galleryName: '오늘',
   /** 위젯 고르기 화면의 설명 — app.json expo-widgets description과 같아야 한다 */
   galleryDesc: '오늘 할 일과 남은 수를 보여 줘요.',
+  /** 지난 칸이 보일 때(앱을 한 달 넘게 열지 않았거나 시계 · 시간대가 바뀌었다) 목록 대신 보이는 한 줄 — 작은 위젯에서는 두 줄로 접힌다 */
+  stale: '앱을 열면 오늘 할 일이 보여요',
 } satisfies Namespace;

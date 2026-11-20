@@ -143,7 +143,6 @@ test('check:0-1을 누르면 done + 1, 그 줄이 했어요로, ops에 하나가
   const p = real();
   const before = p.items.find((i) => i.k === '0-1');
   assert.ok(before && !before.d, '물 마시기는 아직 안 했다');
-  const t0 = Date.now();
   const out = rt.press(p, { widgetFamily: 'systemMedium' }, 'check:0-1');
   assert.ok(out, '눌린 버튼이 있다');
   assert.deepEqual(Object.keys(out).sort(), ['done', 'items', 'ops']);
@@ -153,7 +152,8 @@ test('check:0-1을 누르면 done + 1, 그 줄이 했어요로, ops에 하나가
   assert.equal(out.ops.length, 1);
   const op = out.ops[0];
   assert.deepEqual({ ...op, at: 0 }, { kind: 'check', k: '0-1', on: true, day: '2026-10-14', at: 0, t: '물 마시기', src: 'widget' });
-  assert.ok(op.at >= t0 && op.at <= Date.now());
+  // at은 누른 때 — 위젯 쪽 시계(시험대는 따로 주지 않으면 그 칸의 시각으로 정해 둔다)
+  assert.equal(op.at, NOW.getTime());
   // expo-widgets AppIntent처럼 원래 props에 합치면 다시 그릴 수 있고, 다시 누르면 되돌린다
   const merged = { ...p, ...out };
   const again = rt.press(merged, { widgetFamily: 'systemMedium' }, 'check:0-1');

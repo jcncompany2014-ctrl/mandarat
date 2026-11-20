@@ -42,6 +42,7 @@ export interface TodayWidgetLines {
   next: string /* '다음 할 일: {t}' */; checked: string /* '{t} — 했어요' */;
   unchecked: string /* '{t}, 아직 안 했어요' */; progress: string /* '오늘 {t}개 중 {n}개 했어요' — {n} 한 수 · {t} 모두 */;
   listHead: string /* '오늘 할 일' */; nextHead: string /* '다음 할 일' */; leftUnit: string /* '{n}개 남음' */; focus: string /* '중점' */;
+  stale: string /* '앱을 열면 오늘 할 일이 보여요' — the entry on screen is not today's (the app was not opened for a month) */;
 }
 export interface TodayWidgetProps {
   v: 1; day: string; date: string; done: number; total: number;
