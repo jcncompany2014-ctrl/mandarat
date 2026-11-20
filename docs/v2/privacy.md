@@ -33,6 +33,7 @@
 
 **3. 오류 기록을 보내지 않아요**
 앱이 멈추거나 오류가 나도, 이 앱은 오류 기록을 따로 보내지 않아요. iPhone 설정 › 개인정보 보호 및 보안 › 분석 및 향상에서 '앱 개발자와 공유'를 켜 두었다면, Apple이 이름 없는 충돌 기록을 우리에게 전해 줄 수 있어요. 이 기록은 Apple이 모으고 전하며, 내가 적은 글은 들어가지 않아요.
+오류가 났을 때의 기술 정보(오류 이름, 코드 위치, 앱과 iOS 버전)는 이 기기 안에만 마지막 20건까지 남아요. 내가 적은 글은 들어가지 않아요. 설정 › 정보 › 문의하기로 메일을 쓸 때 본문에 붙고, 보내기 전에 지울 수 있어요.
 
 **4. 결제가 없어요**
 이 앱에는 앱 내 구입이 없고, 모든 기능이 무료예요. 나중에 앱 내 구입이 생기면 결제는 Apple(App Store)이 처리하고, 이 방침을 먼저 고쳐 알려 드려요.
@@ -79,6 +80,7 @@
 
 **3. エラー記録は送りません**
 アプリが停止したりエラーが起きたりしても、本アプリがエラー記録を独自に送ることはありません。iPhoneの設定 › プライバシーとセキュリティ › 解析および改善で「App デベロッパと共有」をオンにしている場合は、Appleが匿名のクラッシュレポートを運営者に提供することがあります。この記録はAppleが収集・提供するもので、ご自身が書いた文は含まれません。
+エラーが起きたときの技術情報(エラーの名前、コード上の位置、アプリとiOSのバージョン)は、この端末の中にだけ、直近20件まで残ります。ご自身が書いた文は含まれません。設定 › 情報 › お問い合わせからメールを書くときに本文に添えられ、送る前に削除できます。
 
 **4. 課金はありません**
 本アプリにはアプリ内課金がなく、すべての機能を無料で使えます。今後アプリ内課金を加える場合、決済はApple(App Store)が行い、このポリシーを事前に改めてお知らせします。
@@ -125,6 +127,7 @@ If you turn on “Sync devices with iCloud” in Settings › iCloud and backup,
 
 **3. No error reports from the app**
 The app does not send crash or error reports of its own. If you turned on Share With App Developers in iPhone Settings › Privacy & Security › Analytics & Improvements, Apple may give us anonymous crash reports. Apple collects and delivers those reports, and they do not include anything you write.
+When an error happens, technical details (the error’s name, where in the code it happened, the app and iOS versions) are kept on this device only, up to the last 20. They do not include anything you write. They are added to the message when you write to us from Settings › About › Contact us, and you can delete them before sending.
 
 **4. No purchases**
 The app has no in-app purchases; every feature is free. If purchases are added later, Apple (the App Store) will handle payment, and this policy will be updated first.
@@ -160,7 +163,7 @@ If this policy changes, the new version is posted on this page with a new effect
 |---|---|
 | Local storage: the doc, daily copies, and per-device preferences | AsyncStorage keys `mandarat:doc:v1`, `mandarat:doc:v1:corrupt:<ms>` (a copy of an unreadable doc, kept for recovery), `mandarat:snap:YYYY-MM-DD` (7 days), `mandarat:lang:v1`, `mandarat:pro:v1`, `mandarat:notify:v1`, `mandarat:crash:v1`, `mandarat:print:v1`, `mandarat.editorDraft.v1`. They are included in iCloud device backup (`RCTAsyncStorageExcludeFromBackup: false`). |
 | iCloud: the user's own container, no server, off by default | `modules/icloud-sync`: container `iCloud.com.jcncompany.mandarat`, one file per device at `Sync/v1/<device>.jsonz` in the hidden Data scope, not visible in Files. Sync is opt-in: the `sync.toggle` row under Settings › iCloud와 백업 (`settings.secCloud`, V5-E). No iCloud call is made while sync is off, except the onboarding "가져오기" probe (V4-A). The device key is a random UUID excluded from backup; the account check uses a 16-hex hash of `ubiquityIdentityToken` that stays on the device. |
-| No crash-reporting SDK | 1.0 ships without Sentry (owner decision, 2026-11): `@sentry/react-native` is not a dependency, `app.json` has no Sentry plugin, and `src/lib/crash.ts` is a no-op on every platform. Crash reports, if any, come only from Apple's opt-in "Share With App Developers", which Apple collects and does not need to be declared. To bring Sentry back, restore the V4-F files (`crash.native.ts`, `CrashRow.tsx`, `crashPrefs.ts`) and the Sentry wording of this policy from git history. |
+| No crash-reporting SDK | 1.0 ships without Sentry (owner decision, 2026-11): `@sentry/react-native` is not a dependency, `app.json` has no Sentry plugin, and `src/lib/crash.ts` writes only to an on-device log (`src/lib/crashLog.ts`: the last 20 errors, scrubbed of the user's own text; no network code). It leaves the device only inside a mail the user chooses to send from Settings › About › Contact us, or when the user copies it on the crash screen. Crash reports, if any, come only from Apple's opt-in "Share With App Developers", which Apple collects and does not need to be declared. To bring Sentry back, restore the V4-F files (`crash.native.ts`, `CrashRow.tsx`, `crashPrefs.ts`) and the Sentry wording of this policy from git history. |
 | No purchases in 1.0 | `STORE_OPEN = false` in `src/lib/pro.ts` (owner decision, 2026-11): every Pro feature is open, `ProContext` never calls StoreKit, and the Settings › 프로 section and Pro sheet never show. `modules/pro-store` is still compiled but unused. When sales open, restore the Apple-handles-payment wording here and in section 4. |
 | Local notifications only | `src/lib/notifier.native.ts`: `expo-notifications` local schedule, at most 60 pending, ids `mandarat.*`. Permission is asked only from a user gesture (tests). There is no push server; `aps-environment` is present only because the plugins write it. |
 | Widget, Siri, App Group | `group.com.jcncompany.mandarat`, key `__expo_widgets_TodayWidget_timeline`: an 8-entry timeline holding today's items. `native/ios/TodayStore.swift` reads it and appends ops there. Nothing leaves the device. |

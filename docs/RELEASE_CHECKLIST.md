@@ -54,7 +54,7 @@ EAS does most of this on the **first** build (v2-5), and only when that build is
 
 ## v2-3. Sentry — deferred
 
-1.0 ships without crash reporting (owner decision, 2026-11). `@sentry/react-native`, its config plugin, the Metro wrapper, the 오류 기록 보내기 row and the Sentry build phases are removed; `src/lib/crash.ts` stays as a no-op that every caller still uses. Crash reports for 1.0 come only from Apple: App Store Connect › TestFlight/App Analytics and Xcode › Organizer › Crashes, for users who share analytics with developers.
+1.0 ships without crash reporting (owner decision, 2026-11). `@sentry/react-native`, its config plugin, the Metro wrapper, the 오류 기록 보내기 row and the Sentry build phases are removed; `src/lib/crash.ts` now writes to an on-device log only (`src/lib/crashLog.ts`: the last 20 errors, scrubbed of the user's own text, no network code); the log is added to the mail a user sends from Settings › About › Contact us and can be copied on the crash screen. Crash reports that reach us without the user's action come only from Apple: App Store Connect › TestFlight/App Analytics and Xcode › Organizer › Crashes, for users who share analytics with developers.
 
 To bring Sentry back in an update:
 1. An org owner or manager creates the project in sentry.io (org **`farmerstail`**, US region): **React Native**, name **`mandarat`**. Members cannot create projects in this org.
