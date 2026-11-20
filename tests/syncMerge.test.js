@@ -11,7 +11,7 @@ const { rng, fuzzDoc, fullDoc, mutate, canonArrays, withoutLocal } = require('./
 const { blankDoc, migrate, sampleThemes } = require('../src/data/defaults');
 const { resetDoc, startNewChart } = require('../src/lib/archive');
 const { addCount, clearedAction } = require('../src/lib/kinds');
-const { archiveCellLog } = require('../src/lib/history');
+const { archiveCellLog, configCell, isArchivedKey } = require('../src/lib/history');
 const { extraLogKey, setDayLog, toggleDayLog, ymd } = require('../src/lib/routine');
 const { canon, project, isCounterPath, counterTotal, pathOf, COUNTER_SCALE } = require('../src/lib/syncProject');
 const { cleanSyncMeta } = require('../src/lib/syncMeta');
@@ -741,3 +741,44 @@ test('a heavy 3-year doc merges in under 600 ms in Node', () => {
   assert.equal(m.doc.themes[3].actions[3].count, 401);
 });
 
+// ── 다시 쌓기가 된 칸(감사 c03) ──────────────────────────────────────────────
+
+test('audit c03: a cell changed count → habit → count (or → once → count) is not counted twice by materialize', () => {
+  const count = { kind: 'count', goal: 12, unit: 'books', step: 1, count: 0 };
+  let doc = editCell(migrate({ ...blankDoc(), onboarded: true }), 0, 0, (a) => ({ ...a, text: 'Read' }));
+  doc = configCell(doc, 0, 0, count, '2026-11-01', 1);
+  doc = addCount(addCount(doc, 0, 0, 1, '2026-11-02'), 0, 0, 1, '2026-11-03');
+  assert.deepEqual(doc.dayLog, { '2026-11-02': ['0-0'], '2026-11-03': ['0-0'] });
+  // 쌓기 → 습관: 쌓은 날의 기록은 칸에서 떼어 둔다(하루에 하나 그대로)
+  const habit = configCell(doc, 0, 0, { kind: 'habit', days: [1, 2, 3, 4, 5] }, '2026-11-10', 1000);
+  const perDay = (d) => Object.fromEntries(Object.entries(d.dayLog).map(([day, keys]) => [day, keys.length]));
+  assert.deepEqual(perDay(habit), { '2026-11-02': 1, '2026-11-03': 1 });
+  assert.ok(Object.values(habit.dayLog).every(([k]) => isArchivedKey(k)));
+  assert.equal(materialize(habit), habit, 'a habit cell is not a count cell — nothing to add');
+  // 습관으로 지낸 날의 체크는 칸 키로 남는다
+  const checked = { ...habit, dayLog: toggleDayLog(habit.dayLog, '0-0', '2026-11-11') };
+  // 다시 쌓기: 떼어 둔 날의 '그날 더한 수'는 함께 떼어져, 다듬기(M1)가 칸 키를 다시 넣지 않는다
+  const back = configCell(checked, 0, 0, { ...count, count: 2 }, '2026-11-12', 2000);
+  assert.equal(back.themes[0].actions[0].count, 2, 'the running total stays');
+  assert.equal(back.themes[0].actions[0].log, undefined, 'no per-day amounts are left for days whose cell key was detached');
+  assert.deepEqual(perDay(back), { '2026-11-02': 1, '2026-11-03': 1, '2026-11-11': 1 });
+  assert.equal(materialize(back), back, 'any merge leaves each old day counted once');
+  // 그 뒤 더한 것은 평소대로 그날 기록과 그날 더한 수에
+  const more = addCount(back, 0, 0, 1, '2026-11-12');
+  assert.deepEqual(more.themes[0].actions[0].log, { '2026-11-12': 1 });
+  assert.deepEqual(more.dayLog['2026-11-12'], ['0-0']);
+  assert.equal(materialize(more), more);
+  // 같은 날 습관으로 체크한 날은 칸 키가 남아 있어 그날 더한 수도 남는다(그날은 떼어 둔 것 하나 + 체크 하나)
+  const sameDay = configCell({ ...habit, dayLog: toggleDayLog(habit.dayLog, '0-0', '2026-11-03') }, 0, 0, { ...count, count: 2 }, '2026-11-12', 2000);
+  assert.deepEqual(sameDay.themes[0].actions[0].log, { '2026-11-03': 1 });
+  assert.equal(materialize(sameDay), sameDay);
+  // 쌓기 → 한 번 → 쌓기(같은 날): 모든 날을 떼어 두었으니 더한 수도 남지 않는다
+  const once = configCell(doc, 0, 0, { kind: 'once' }, '2026-11-03', 3000);
+  const again = configCell(once, 0, 0, { ...count, count: 2 }, '2026-11-03', 4000);
+  assert.equal(again.themes[0].actions[0].log, undefined);
+  assert.deepEqual(perDay(again), { '2026-11-02': 1, '2026-11-03': 1 });
+  assert.equal(materialize(again), again);
+  // 쌓기인 채로 설정만 고치면(목표) 그날 더한 수는 그대로다
+  const goal = configCell(doc, 0, 0, { ...count, goal: 20, count: 2 }, '2026-11-04', 5000);
+  assert.deepEqual(goal.themes[0].actions[0].log, { '2026-11-02': 1, '2026-11-03': 1 });
+});
