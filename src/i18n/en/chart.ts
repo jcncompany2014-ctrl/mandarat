@@ -78,4 +78,5 @@ export default {
   markTodaySay: ({ total, done }) => `, ${done} of ${total} on Today's list done`,
   sketchSay: ({ goal, areas }) => `Mandalart chart, center square ${goal}, areas ${areas}`,
   sketchEmpty: 'empty',
+  pickedAs: ({ label, today }) => `Saved as ${label}${today ? " · on Today's list" : ''}`,
 } satisfies Like<typeof ko>;

@@ -26,7 +26,7 @@ import {
 import { fmtDateLong, fmtDateSpeech, fmtDue } from '../lib/text';
 import { suggestActions } from '../lib/suggest';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
-import { suggestKind, type KindSuggestion } from '../lib/kindSuggest';
+import { suggestKind, withSuggestion, type KindSuggestion } from '../lib/kindSuggest';
 import { announce, reducedMotion } from '../lib/useReducedMotion';
 import { cellTitleSpeech, dueSpeech, nextCellSpeech } from '../lib/sheetSpeech';
 import { EDITOR_DRAFT_KEY, draftDiffers, draftFits, parseDraft, serializeDraft, type EditorDraft } from '../lib/editorDraft';
@@ -114,13 +114,6 @@ function nextTarget(doc: MandaratDoc, t: EditorTarget): EditorTarget | null {
 
 function targetKey(t: EditorTarget): string {
   return t.kind === 'center' ? 'c' : t.kind === 'theme' ? `t${t.ti}` : `a${t.ti}-${t.ai}`;
-}
-
-/** 글에서 알아본 유형을 지금 설정 위에 얹는다(다른 유형의 값은 그대로 둔다) */
-function withSuggestion(c: KindConfig, s: KindSuggestion): KindConfig {
-  if (s.kind === 'habit') return { ...c, kind: 'habit', days: s.days ?? [], perWeek: s.perWeek ?? c.perWeek };
-  if (s.kind === 'count') return { ...c, kind: 'count', goal: s.goal, unit: s.unit };
-  return { ...c, kind: s.kind };
 }
 
 /** 쌓기 숫자 칸에 적힌 글자 그대로(‘1.’ 같은 중간 상태도) */

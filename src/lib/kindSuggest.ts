@@ -3,9 +3,11 @@
 // 글의 글자로 규칙을 고른다: 한글이 있으면 한국어, 가나·한자가 있으면 일본어, 그 밖은 영어.
 // 규칙의 말 무리는 src/i18n/<언어>/kindSuggest.data.ts에 있다. 이름(label)은 글의 언어가 아니라 앱 언어(msg().kinds)로 붙는다.
 // 확실하지 않으면 아무것도 고르지 않는다(null) — 사람이 고르면 된다.
+import type { MandaratDoc } from '../types';
 import type { KindConfig } from './kinds';
-import { parseNum } from './kinds';
-import { normalizeDays } from './routine';
+import { configOf, parseNum } from './kinds';
+import { computeTodayItems, normalizeDays, ymd } from './routine';
+import { configCell } from './history';
 import { lang as appLang, msg, type Lang } from '../i18n';
 import * as KO from '../i18n/ko/kindSuggest.data';
 import * as JA from '../i18n/ja/kindSuggest.data';
@@ -299,4 +301,38 @@ function suggestEn(original: string): Guess | null {
   // 6) Things that end, and levels to reach ('body fat 15%', '10 pull-ups')
   if (EN.ONCE.test(t) || EN.LEVEL.test(t) || EN.REPS.test(t)) return { kind: 'once' };
   return null;
+}
+
+// ── 제안을 칸에 입히기 ─────────────────────────────────────────────────────────
+
+/** 글에서 알아본 유형을 지금 설정 위에 얹는다(다른 유형의 값은 그대로 둔다) — 편집 창의 저장과 권하는 글 한 번 누르기가 같은 규칙을 쓴다 */
+export function withSuggestion(c: KindConfig, s: KindSuggestion): KindConfig {
+  if (s.kind === 'habit') return { ...c, kind: 'habit', days: s.days ?? [], perWeek: s.perWeek ?? c.perWeek };
+  if (s.kind === 'count') return { ...c, kind: 'count', goal: s.goal, unit: s.unit };
+  return { ...c, kind: s.kind };
+}
+
+/**
+ * 권하는 글을 눌러 빈 칸에 바로 적을 때(만다라트 처음 화면) — 편집 창이 새 칸을 저장할 때와 같은 규칙으로 유형 · 일정을 함께 정한다.
+ * 글만 적으면 모든 칸이 '한 번'으로 남아 '주 3회 30분 유산소'도 '오늘'에 담기지 않는다.
+ * - cfg: 칸에 입힐 설정. 글에서 유형을 알아보지 못했거나 한 번 하는 일이면 null(새 칸은 이미 '한 번'이다).
+ * - line: 확인 한 줄 — '주 3회 습관으로 담았어요 · ‘오늘’에 보여요'(chart.pickedAs). cfg가 null이면 ''.
+ *   '오늘'에 보인다는 말은 그 칸이 정말 오늘 목록에 담길 때만 붙인다(주말 습관을 수요일에 적으면 붙이지 않는다).
+ */
+export function pickedConfig(
+  doc: Pick<MandaratDoc, 'themes' | 'dayLog' | 'todayKeys'>,
+  ti: number,
+  ai: number,
+  text: string,
+  now: Date,
+  l: Lang = appLang(),
+): { cfg: KindConfig | null; line: string } {
+  const a = doc.themes[ti]?.actions[ai];
+  const s = a ? suggestKind(text, l) : null;
+  if (!a || !s || s.kind === 'once') return { cfg: null, line: '' };
+  const cfg = withSuggestion(configOf(a), s);
+  const written = { ...doc, themes: doc.themes.map((th, i) => (i === ti ? { ...th, actions: th.actions.map((x, j) => (j === ai ? { ...x, text } : x)) } : th)) };
+  const next = configCell(written, ti, ai, cfg, ymd(now), now.getTime());
+  const today = computeTodayItems(next, now).some((it) => it.ti === ti && it.ai === ai);
+  return { cfg, line: msg(l).chart.pickedAs({ label: s.label, today }) };
 }
