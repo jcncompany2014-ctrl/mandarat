@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, BackHandler, PanResponder, PixelRatio, Pressable, View } from 'react-native';
+import { AccessibilityInfo, Animated, BackHandler, PanResponder, PixelRatio, View } from 'react-native';
 import { Text, a11yLangProp } from '../components/AppText';
 import { Button, Header } from '../components/common';
 import { Icon } from '../components/Icon';
@@ -9,7 +9,7 @@ import { AREA_BLOCK_CHROME, AREA_PAGE, AreaPage } from './area/AreaPage';
 import { FullGrid } from './FullGrid';
 import { gridMemory, stepArea, swipeStep, type GridFocus } from './gridMemory';
 import { nextStep } from '../lib/nextStep';
-import { suggestActions } from '../lib/suggest';
+import { exampleGroup, suggestActions } from '../lib/suggest';
 import { GUIDE_FILL_TARGET, firstAreaWithEmpty } from '../lib/pick';
 import { areaTitle } from '../lib/areaPage';
 import { todayItems } from '../lib/routine';
@@ -28,8 +28,8 @@ import { totalDone, useActions, useDoc } from '../store/MandaratContext';
 import { TID } from '../lib/testIds';
 import { useMsg } from '../i18n/react';
 
-/** 처음 화면의 자리(목업 first.html .invite) — 지도 아래 24, 줄 사이 6, 권하는 글 위 18 · 사이 8 · 높이 44, 단추 위 24 */
-const INVITE = { top: 24, gap: 6, picksTop: 18, pickGap: 8, pickH: 44, pickPad: 6, pickInner: 3, ctaTop: 24, plus: 16 } as const;
+/** 처음 화면의 자리(목업 first.html .invite) — 지도 아래 24, 줄 사이 6, 권하는 글(줄 셋) 위 18 · 줄 끝의 + 16, 단추 위 24 */
+const INVITE = { top: 24, gap: 6, picksTop: 18, ctaTop: 24, plus: 16 } as const;
 /** 다음 할 일(목업 chart.html .next) — 지도 아래 26, 줄 60, 제목 17/24(fieldTextSmall), 꺾쇠 20 */
 const NEXT = { top: 26, row: 60, chevron: 20 } as const;
 /** 크게 본 채로 이웃 영역으로 넘길 때 새 쪽이 들어오는 거리 */
@@ -97,32 +97,11 @@ const NextStepRow = memo(function NextStepRow({ M }: { M: M }) {
 
 // ── 처음 화면 ──────────────────────────────────────────────────────────────────
 
-/** 권하는 글 낱칸 — 누르면 먹 테두리 칸에 그대로 적힌다 */
-function SuggestTile({ M, text, n, onPick }: { M: M; text: string; n: number; onPick: (text: string) => void }) {
-  const m = useMsg();
-  return (
-    <Pressable
-      onPress={() => onPick(text)}
-      accessibilityRole="button"
-      accessibilityLabel={m.chart.suggestSay({ text, n })}
-      {...a11yLangProp()}
-      style={({ pressed }) => ({
-        flex: 1, minWidth: 0, height: INVITE.pickH, borderRadius: GEO.rChip, backgroundColor: M.tile,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: INVITE.pickInner, paddingHorizontal: INVITE.pickPad,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <Icon name="plus" size={INVITE.plus} color={M.print} />
-      <Text style={[ROLE.segment, { color: M.ink, flexShrink: 1 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
-        {text}
-      </Text>
-    </Pressable>
-  );
-}
-
 /**
  * 처음 화면(목업 first.png) — 쓴 칸이 8칸이 되기 전. 먹 테두리 칸이 어디인지('■ 건강 · 1번 칸부터'),
  * 묻는 말, 안내, 권하는 글 셋(누르면 그 칸에 적히고 테두리가 다음 빈 칸으로), '직접 쓰기'(그 칸의 편집 창, 차례로 쓰기).
+ * 권하는 글은 한 줄에 하나씩 본문 폭 그대로(칸 편집 창의 '이런 실천은 어때요' 줄과 같은 kit Row) — 세 칸을 옆으로 나누면
+ * '주 3회 30분…'처럼 셋 다 잘린다. 이름을 바꿔 맞는 예시가 없는 영역에는 범용 예시를 권하지 않는다(묻는 말과 '직접 쓰기'만).
  */
 const FirstRun = memo(function FirstRun({ M, ti, ai, area, taken, onPick, onWrite }: {
   M: M;
@@ -136,6 +115,8 @@ const FirstRun = memo(function FirstRun({ M, ti, ai, area, taken, onPick, onWrit
 }) {
   const m = useMsg();
   const picks = useMemo(() => {
+    // 영역 이름에 맞는 예시 무리가 없으면(주인이 바꾼 이름) '주 3회 실천하기' 같은 범용 예시는 내놓지 않는다
+    if (!exampleGroup(area)) return [];
     const have = new Set(taken.split('\n').filter(Boolean));
     return suggestActions(area).filter((t) => !have.has(t)).slice(0, 3);
   }, [area, taken]);
@@ -150,8 +131,19 @@ const FirstRun = memo(function FirstRun({ M, ti, ai, area, taken, onPick, onWrit
       </Text>
       <Text style={[ROLE.note, { color: M.print, marginTop: INVITE.gap }]}>{m.chart.startNote}</Text>
       {picks.length > 0 && (
-        <View style={{ flexDirection: 'row', gap: INVITE.pickGap, marginTop: INVITE.picksTop }}>
-          {picks.map((t) => <SuggestTile key={t} M={M} text={t} n={ai + 1} onPick={onPick} />)}
+        <View style={{ marginTop: INVITE.picksTop }}>
+          {picks.map((t, i) => (
+            <Row
+              key={t}
+              M={M}
+              bare
+              title={t}
+              divider={i > 0}
+              trailing={<Icon name="plus" size={INVITE.plus} color={M.ink} />}
+              onPress={() => onPick(t)}
+              accessibilityLabel={m.chart.suggestSay({ text: t, n: ai + 1 })}
+            />
+          ))}
         </View>
       )}
       <Button M={M} label={m.chart.startWrite} onPress={onWrite} style={{ marginTop: INVITE.ctaTop }} />
