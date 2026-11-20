@@ -127,6 +127,9 @@ async function main() {
         await focus.click();
         await h.settle();
         await h.shot('focus-timer');
+        // 집중은 앱을 다시 열어도 이어진다(lib/focusSession) — 닫지 않고 홈으로 가면 타이머가 다시 떠서 다음 장면을 가린다
+        const close = h.tid(TID.focusClose);
+        if (await close.count()) { await close.click(); await h.settle(); }
       }
     });
     await h.step('add', async () => {
