@@ -22,7 +22,7 @@ import { lang, type Lang } from '../i18n';
 import { useMandarat } from '../store/MandaratContext';
 import { templateThemes, type Template } from '../data/templates';
 import { tap } from '../lib/haptics';
-import { announce, reducedMotion, useReducedMotion } from '../lib/useReducedMotion';
+import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { getSyncStatus, probeRemote, setSyncEnabled } from '../lib/syncStatus';
 import { TID } from '../lib/testIds';
 import { useMsg } from '../i18n/react';
@@ -57,6 +57,8 @@ const TILE_TEXT = {
 
 /** 아래 막대 — 위 8, 단추와 글 링크 사이 14, 아래 24(홈 표시줄이 있으면 그 높이 · 작은 화면 16 · 키보드 위 12) */
 const BAR = { top: 8, gap: 14, bottom: 24, bottomShort: 16, onKeyboard: 12 } as const;
+/** 글 링크 둘('템플릿으로 시작하기' · '목표는 나중에 쓸게요') 사이 — 좁아서 두 줄로 접히면 줄 사이는 BAR.gap */
+const LINK_GAP = 24;
 
 /** 키보드가 올라와 목표 칸을 가릴 때 — 칸 아래(예시 줄까지)에서 이만큼 더 보이게 스크롤 */
 const KEYBOARD_ROOM = 8;
@@ -172,8 +174,10 @@ function TileText({ lab, kind, color }: { lab: TileLabel; kind: 'head' | 'core';
  * 처음 화면(docs/design/build-plan.md §1 onboarding) — 질문 하나, 목표 칸 하나, 가운데 블록의 작고 차분한 미리보기, 주 단추 하나.
  * 위에서부터: 브랜드 줄(마크 + 만다라트) · (iOS) iCloud 기록 가져오기 · 질문 · 한 줄 설명 · 핵심 목표 칸 · 예시 한 줄 ·
  * 3×3 미리보기(영역은 옅은 색 + 영역 색 글자, 가운데는 먹 위의 목표) · 알림 한 줄.
- * 아래 막대(스크롤 밖, 키보드 위): 주 단추 — 비어 있으면 '목표는 나중에 쓸게요', 적으면 '시작하기', 템플릿을 고르면 '이 표로 시작하기' —
- * 와 글 링크 '템플릿으로 시작하기'. 키보드가 올라와 목표 칸을 가리면 칸이 보이게 스크롤한다(375 × 667에서도).
+ * 들어오면 목표 칸에 커서가 놓인다(기기는 키보드가 올라온다 — 화면 읽기를 쓰면 질문부터 듣도록 그대로 둔다).
+ * 아래 막대(스크롤 밖, 키보드 위): 주 단추는 늘 '시작하기'(템플릿을 고르면 '이 표로 시작하기') — 적거나 고르기 전에는 꺼진 모습(옅은 면),
+ * 적으면 먹 단추. 그 아래 글 링크 '템플릿으로 시작하기'와, 아직 비어 있을 때만 '목표는 나중에 쓸게요'(목표 없이 시작).
+ * 키보드가 올라와 목표 칸을 가리면 칸이 보이게 스크롤한다(375 × 667에서도).
  */
 export function Onboarding() {
   const M = usePalette();
@@ -186,6 +190,8 @@ export function Onboarding() {
   const { doc, completeOnboarding, applyTemplate, recoveredCopy, dismissRecovered } = useMandarat();
   const [goal, setGoal] = useState('');
   const [focused, setFocused] = useState(false);
+  // 들어오자마자 목표 칸에 커서 — 화면 읽기를 쓰면 초점이 질문을 건너뛰지 않게 그대로 둔다(처음 한 번 정한다)
+  const [autoFocus] = useState(() => !screenReader());
   // 고른 템플릿 — 바로 시작하지 않고 미리보기에 영역을 먼저 보여 준다
   const [picked, setPicked] = useState<Template | null>(null);
   const [sheet, setSheet] = useState(false);
@@ -259,11 +265,12 @@ export function Onboarding() {
     areas: areas.map((a) => a.trim()).filter(Boolean).join(t.chart.sep),
   });
 
+  // 주 단추는 늘 '시작하기' — 목표를 적었거나 템플릿을 골랐을 때만 켜진다(비어 있을 때의 길은 글 링크 '목표는 나중에 쓸게요')
+  const ready = !!typed || !!picked;
   // 스크린리더 이름은 보이는 글 그대로(음성 제어로 부를 수 있게) — 덧붙일 말은 힌트로
-  let cta: { label: string; hint: string };
-  if (picked) cta = { label: o.startTemplate, hint: o.startTemplateHint({ name: picked.name }) };
-  else if (typed) cta = { label: o.start, hint: o.startHint };
-  else cta = { label: o.later, hint: o.laterHint };
+  const cta = picked
+    ? { label: o.startTemplate, hint: o.startTemplateHint({ name: picked.name }) }
+    : { label: o.start, hint: o.startHint };
 
   // 키보드가 올라와(스크롤 창이 줄어) 목표 칸이 가려지면 칸 아래 끝(예시 줄까지)이 보이게 올린다 — 칸 위가 넘어가지 않을 만큼만
   const scroller = useRef<ScrollView>(null);
@@ -363,6 +370,7 @@ export function Onboarding() {
               onBlur={() => setFocused(false)}
               accessibilityLabel={o.goalLabel}
               placeholder={o.goalPlaceholder}
+              autoFocus={autoFocus}
               maxLength={40}
               returnKeyType="done"
               submitBehavior="blurAndSubmit"
@@ -425,23 +433,30 @@ export function Onboarding() {
             paddingBottom: keyboard > 0 ? BAR.onKeyboard : Math.max(short ? BAR.bottomShort : BAR.bottom, insets.bottom),
           }}
         >
-          {/* 적었거나 템플릿을 골랐으면 '시작', 비어 있으면 '다음'(목표는 나중에) */}
+          {/* 주 단추 — 적었거나 템플릿을 골랐을 때만 켜진다(그 전에는 옅은 면의 꺼진 모습) */}
           <Button
-            testID={typed || picked ? TID.onbStart : TID.onbNext}
+            testID={TID.onbStart}
             M={M}
             label={cta.label}
             accessibilityHint={cta.hint}
+            disabled={!ready}
             onPress={start}
             style={{ alignSelf: 'stretch' }}
           />
-          <View ref={templateBtn} collapsable={false}>
-            <TextLink
-              M={M}
-              testID={TID.onbTemplate(picked ? picked.id : 'pick')}
-              label={picked ? o.otherTemplate : o.fromTemplate}
-              onPress={() => { tap(); Keyboard.dismiss(); setSheet(true); }}
-              icon={null}
-            />
+          {/* 글 링크 — 템플릿, 그리고 아직 비어 있을 때만 '목표는 나중에'(목표 없이 시작). 좁으면 두 줄로 접힌다 */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: LINK_GAP, rowGap: BAR.gap }}>
+            <View ref={templateBtn} collapsable={false}>
+              <TextLink
+                M={M}
+                testID={TID.onbTemplate(picked ? picked.id : 'pick')}
+                label={picked ? o.otherTemplate : o.fromTemplate}
+                onPress={() => { tap(); Keyboard.dismiss(); setSheet(true); }}
+                icon={null}
+              />
+            </View>
+            {!ready && (
+              <TextLink M={M} testID={TID.onbNext} label={o.later} hint={o.laterHint} onPress={start} icon={null} role="button" />
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
