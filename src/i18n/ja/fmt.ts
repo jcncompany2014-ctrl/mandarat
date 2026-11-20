@@ -54,4 +54,5 @@ export default {
   },
   weekNo: ({ y, w }) => `${y}年 第${w}週`,
   daysLeftYear: ({ n }) => `今年あと${n}日`,
+  dueOver: ({ days }) => `${Math.abs(Math.round(days))}日超過`,
 } satisfies Like<typeof ko>;

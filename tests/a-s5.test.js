@@ -29,8 +29,9 @@ test('S5: ChartSketch는 없어졌고, 처음 화면은 부품 상자(Field · T
   assert.match(onb, /import \{ Button, RuledNotice, useKeyboardHeight \} from '\.\.\/components\/common';/);
   assert.match(onb, /<Mark size=\{BRAND\.mark\} \/>/);
   assert.match(onb, /<Field\s+M=\{M\}\s+testID=\{TID\.onbGoal\}/);
-  // 주 단추 하나 — 늘 primary(비어 있으면 '목표는 나중에' 글), 템플릿은 글 링크
-  assert.match(onb, /<Button\s+testID=\{typed \|\| picked \? TID\.onbStart : TID\.onbNext\}/);
+  // 주 단추 하나 — 늘 primary '시작하기'(적거나 고르기 전에는 꺼진 모습), 템플릿 · '목표는 나중에'는 글 링크
+  assert.match(onb, /<Button\s+testID=\{TID\.onbStart\}/);
+  assert.match(onb, /<TextLink M=\{M\} testID=\{TID\.onbNext\} label=\{o\.later\}/);
   assert.doesNotMatch(onb, /variant="secondary"|tone="quiet"|tone: 'quiet'/);
   assert.match(onb, /<TextLink\s+M=\{M\}\s+testID=\{TID\.onbTemplate\(picked \? picked\.id : 'pick'\)\}/);
   // 색은 토큰 이름으로만

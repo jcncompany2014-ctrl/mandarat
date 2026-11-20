@@ -308,7 +308,9 @@ test('그리는 파일: 색은 토큰 이름으로만(hex 없음), 지도는 Svg
   const block = src('src/components/chart/BlockGrid.tsx');
   assert.match(block, /const Cell = memo\(/);
   assert.match(block, /cellLabel\(/);
-  assert.match(block, /maxFontSizeMultiplier=\{1\}/);
+  // 칸 글은 '더 큰 텍스트'를 크기 후보에서 따른다(scaledSizes, 1.3배까지) — 그린 뒤에 또 키우지 않는다
+  assert.match(block, /allowFontScaling=\{false\}/);
+  assert.doesNotMatch(block, /maxFontSizeMultiplier=\{1\}/);
   const minutes = src('src/components/chart/MinuteGrid.tsx');
   assert.match(minutes, /transformOrigin: 'bottom', transform: \[\{ scaleY: fill \}\]/);
   assert.match(minutes, /useNativeDriver: true/);

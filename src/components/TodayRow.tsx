@@ -18,7 +18,9 @@ import { fmtDue } from '../lib/text';
 import { tap } from '../lib/haptics';
 import { TID } from '../lib/testIds';
 import { sameIgnoringHandlers, sameProps } from '../lib/sameProps';
+import { useWindowDimensions } from '../lib/screen';
 import type { Action, MandaratDoc, TodayExtra } from '../types';
+import { msg } from '../i18n';
 import { useMsg } from '../i18n/react';
 
 /**
@@ -37,8 +39,10 @@ import { useMsg } from '../i18n/react';
  * - divider: 위쪽에 머리카락 선(글자가 시작하는 x 38부터) — 묶음의 첫 줄이 아니면 true.
  *
  * 모양(54 이상, 사이 14): 체크 칸 24(영역 번호의 wash · dye, 따로 누름 hitSlop 10 → 44) | 제목 rowTitle 한 줄
+ *       (더 큰 텍스트 1.35배부터는 세 줄까지 — 주인이 쓴 글이 여덟 자에서 잘리지 않게)
  *       + 정보 줄(영역 표시 · 영역 이름 · 유형 정보 rowMeta — 습관은 '이번 주 0/3회' · '월·수·금 반복')
- *       | 오른쪽 하나: 마감 있는 한 번 → 'D-3'(rowRight, 제목 줄 위), 쌓기 → '+1권' 칩(다 한 줄에도), 직접 추가 → ×(남은 줄만).
+ *       | 오른쪽 하나: 마감 있는 한 번 → 'D-3'(rowRight, 제목 줄 위; 지난 마감은 신호색 '2일 지남'), 쌓기 → '+1권' 칩(다 한 줄에도),
+ *       직접 추가 → ×(남은 줄만).
  *
  * 화면 읽기: 체크 칸 = 글 그대로(쌓기는 '책 읽기, 1권 더하기') + 체크 힌트(todayCheck.checkHintText).
  * 실천 줄 몸통은 버튼 하나로(글 · 영역 · 유형 정보(소리로 읽을 말) · 이번 주 · 했어요) 읽고, 사용자 지정 동작
@@ -65,6 +69,9 @@ const isExtra = (item: TodayRowItem): item is TodayExtra => 'id' in item;
 export const TODAY_ROW_INSET = ROW.inset;
 /** 직접 적은 줄의 × — 28pt 단추(누르는 범위는 hitSlop 12로 52pt) */
 const REMOVE_BTN = 28;
+/** 글자를 이만큼 키우면(더 큰 텍스트) 제목을 한 줄에 묶지 않는다 — 2배에서 390pt 화면 한 줄은 한글 여덟 자쯤 */
+const TITLE_WRAP_SCALE = 1.35;
+const TITLE_WRAP_LINES = 3;
 
 /**
  * 줄 하나는 둘로 나뉜다 — 바깥(TodayRow)은 문서를 읽어 그릴 값(글 · 영역 · 정보 줄…)만 고르고,
@@ -194,14 +201,18 @@ function rowInfo(doc: Pick<MandaratDoc, 'themes' | 'dayLog'>, it: TodayItem, a: 
   }
   if (showRight) {
     if (count) right = { kind: 'add', step: count.step, unit: count.unit };
-    else if (dueDays !== null && !doneRow) right = { kind: 'due', text: fmtDue(dueDays, 'short') };
+    else if (dueDays !== null && !doneRow) {
+      // 지난 마감은 'D+2'가 아니라 말로('2일 지남') — 'D-2'와 한눈에 갈리게, 색도 신호색으로(RowView)
+      const over = dueDays < 0;
+      right = { kind: 'due', text: over ? msg().fmt.dueOver({ days: dueDays }) : fmtDue(dueDays, 'short'), over };
+    }
   }
   return { line, count, dueDays, right, weekSpeech };
 }
 
-/** 오른쪽 하나 — 'D-3'(글) · 중점(인쇄된 글) · '+1권'(칩) · ×(글리프) */
+/** 오른쪽 하나 — 'D-3'(글, 지난 마감 over는 '2일 지남') · 중점(인쇄된 글) · '+1권'(칩) · ×(글리프) */
 type RightCol =
-  | { kind: 'due'; text: string }
+  | { kind: 'due'; text: string; over: boolean }
   | { kind: 'print'; text: string }
   | { kind: 'add'; step: number; unit: string }
   | { kind: 'remove' }
@@ -238,8 +249,11 @@ const RowView = memo(function RowView({
   M, extra, text, ti, meta, done, seed, right, checkLabel, hint, bodyLabel, toggleName, canOpen, divider, press,
 }: RowViewProps) {
   const m = useMsg();
+  // 글자를 크게 쓰면 제목이 세 줄까지 접힌다(한 줄에 묶으면 2배에서 여덟 자쯤만 보인다)
+  const fontScale = useWindowDimensions().fontScale || 1;
   // 제목 줄 위의 글(D-3 · 중점)
   const rightText = right?.kind === 'due' || right?.kind === 'print' ? right : null;
+  const rightTone = rightText?.kind === 'print' ? 'print' : rightText?.kind === 'due' && rightText.over ? 'signal' : 'ink';
   // 줄 가운데의 누르는 것(+1권 · ×)
   let trailing: React.ReactNode = null;
   if (right?.kind === 'add') {
@@ -317,8 +331,8 @@ const RowView = memo(function RowView({
         importantForAccessibility={extra ? 'no-hide-descendants' : undefined}
       >
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <RowTitle M={M} text={text} done={done} />
-          {rightText && <RowRight M={M} text={rightText.text} tone={rightText.kind === 'print' ? 'print' : 'ink'} alone={!meta} />}
+          <RowTitle M={M} text={text} done={done} lines={fontScale >= TITLE_WRAP_SCALE ? TITLE_WRAP_LINES : 1} />
+          {rightText && <RowRight M={M} text={rightText.text} tone={rightTone} alone={!meta} />}
         </View>
         {!!meta && <RowMeta M={M} area={ti} text={meta} />}
       </View>

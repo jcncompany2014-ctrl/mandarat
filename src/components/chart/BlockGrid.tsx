@@ -14,7 +14,8 @@ import { areaLabel, cellLabel } from '../../lib/chartSpeech';
 import { areaCounts, blockCells, mapCells, mapKey, type MapCell } from '../../lib/mapCells';
 import { PRETENDARD_GLYPHS } from '../../lib/labelFit';
 import { fitBox, noOrphan } from '../../lib/text';
-import { BLOCK, TICK_PATH, blockGeometry, keepWords } from './geometry';
+import { useWindowDimensions } from '../../lib/screen';
+import { BLOCK, TICK_PATH, blockGeometry, keepWords, scaledSizes } from './geometry';
 import type { Theme } from '../../types';
 
 /** 블록 칸 하나 — 부르는 쪽(extra · print · speech · 누르기)이 받는 값 */
@@ -109,7 +110,8 @@ const Cell = memo(function Cell({
         <Text
           style={[SIZES[kind].role, { fontSize: fs, lineHeight: lh, letterSpacing: ls, color: textColor, textAlign: 'center' }]}
           numberOfLines={lines}
-          maxFontSizeMultiplier={1}
+          // 글자 배율은 크기 후보에 이미 곱했다(scaledSizes — 1.3배까지, 칸에 맞춘 크기) — 여기서 또 키우지 않는다
+          allowFontScaling={false}
           accessible={false}
         >
           {text}
@@ -178,6 +180,7 @@ export function blockOf(themes: readonly Theme[], block: number | 'core', goal =
  * 크게 본 블록 — 바깥 크기는 width 그대로(기기 픽셀에 맞춘 3칸, 남는 픽셀은 가운데 칸에).
  * 칸 글: 실천 16/24 · 영역 이름 18/24 · 핵심 목표 20/28, 좌우 10, 한 음절 낱말은 옆에 붙여(A.keep) 홀로 남지 않게.
  * 넘치면 칸에 드는 크기까지 줄이고(fitBox), 그래도 넘치면 말줄임표.
+ * '더 큰 텍스트'는 1.3배까지 따른다 — 크기 후보에 배율을 곱해 같은 법으로 맞춘다(영역의 실천 여덟 칸을 읽는 곳은 여기뿐이다).
  */
 export const BlockGrid = memo(function BlockGrid({
   themes = NO_THEMES, goal, block, width, todayKeys, doneToday, focus, extra, print, speech,
@@ -187,6 +190,7 @@ export const BlockGrid = memo(function BlockGrid({
   const m = useMsg();
   const l = lang();
   const ratio = PixelRatio.get();
+  const fontScale = useWindowDimensions().fontScale || 1;
   const g = blockGeometry(width, ratio);
   const key = mapKey({ themes });
   const names = themes.map((t) => t.title).join('\n');
@@ -240,7 +244,8 @@ export const BlockGrid = memo(function BlockGrid({
         const pad = Math.max(top, bottom);
         const spec = SIZES[kind];
         const text = noOrphan(keepWords(raw));
-        const fit = fitBox(text, w - 2 * BLOCK.pad, Math.max(spec.sizes[0] * spec.ratio, h - 2 * pad), spec.sizes, MAX_LINES, spec.ratio, PRETENDARD_GLYPHS, l);
+        const room = Math.max(spec.sizes[0] * spec.ratio, h - 2 * pad);
+        const fit = fitBox(text, w - 2 * BLOCK.pad, room, scaledSizes(spec.sizes, fontScale, spec.ratio, room), MAX_LINES, spec.ratio, PRETENDARD_GLYPHS, l);
         const role = spec.role as { letterSpacing?: number; fontSize?: number };
         const ls = ((role.letterSpacing ?? 0) / (role.fontSize ?? fit.fs)) * fit.fs;
         const bg = c.kind === 'core' ? P.core : c.kind === 'action' ? (done ? P.wash[c.ti] : P.tile) : P.dye[c.ti];

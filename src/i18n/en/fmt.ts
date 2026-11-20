@@ -62,4 +62,5 @@ export default {
   },
   weekNo: ({ y, w }) => `${y} · Week ${w}`,
   daysLeftYear: ({ n }) => `${n} ${plural(n, 'day', 'days')} left this year`,
+  dueOver: ({ days }) => `${Math.abs(Math.round(days))}d overdue`,
 } satisfies Like<typeof ko>;

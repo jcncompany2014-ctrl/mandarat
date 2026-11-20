@@ -77,19 +77,23 @@ const TAB_LABEL: Partial<Record<Screen, 'tabHome' | 'tabGrid' | 'tabToday' | 'ta
   dashboard: 'tabHome', grid: 'tabGrid', today: 'tabToday', stats: 'tabStats',
 };
 
-/** 뒤로 가기 — 머리 위 줄(eyebrow)에 ‹ + 돌아갈 곳의 이름. 이름을 주지 않으면 온 곳(탭)의 이름 */
+/**
+ * 뒤로 가기 — 머리 위 줄(eyebrow)에 ‹ + 돌아갈 곳의 이름. 이름을 주지 않으면 온 곳(탭)의 이름.
+ * 화면 읽기: 하는 일을 먼저, 그다음 돌아갈 곳('뒤로 가기, 홈') — 이름만('홈') 읽으면 탭 단추와 가려지지 않는다. 도움말은 없다.
+ */
 function BackLink({ M, label, onPress, testID }: { M: M; label?: string; onPress: () => void; testID?: string }) {
   const m = useMsg();
   const ui = useOptionalUIState();
   const key = ui ? TAB_LABEL[ui.from] : undefined;
   const text = label ?? (key ? m.core[key] : m.common.back);
+  // 돌아갈 곳의 이름이 없으면(보이는 글이 그냥 '이전') 같은 말을 두 번 하지 않는다
+  const say = text && text !== m.common.back ? `${m.core.back}${m.core.listSep}${text}` : m.core.back;
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={text}
-      accessibilityHint={m.core.back}
+      accessibilityLabel={say}
       {...a11yLangProp()}
       hitSlop={{ top: 13, bottom: 13, left: 10, right: 10 }}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 2, marginLeft: -4, alignSelf: 'flex-start', opacity: pressed ? 0.5 : 1 })}
@@ -150,7 +154,7 @@ type HeaderProps = {
 
 /**
  * 화면 머리(A.header) — 모든 탭이 같은 뼈대: 인쇄된 위 줄(늘 자리를 둔다) + 제목 + 오른쪽 동작 하나. 아래 선 없음.
- * 높이 72(제목이 접히면 늘어난다): 위 12 · 위 줄 18 · 제목 36. 좌우는 화면 여백(24).
+ * 높이 72(제목이 접히면 늘어난다): 위 12 · 위 줄 18(글자를 키우면 1.4배까지 함께 늘어난다) · 제목 36. 좌우는 화면 여백(24).
  * 뒤로 가기는 위 줄에 '‹ 이름'. 숫자(figure)는 제목 줄 오른쪽, 동작 앞. 동작은 44 손끝에 글리프 24(오른쪽 −10, 위 26 · 헤드라인 28).
  * 화면 읽기: 제목은 머리(header), 숫자는 figureLabel로. accessibilityLabel을 주면 위 줄 · 제목 · 숫자가 그 말 한 덩어리.
  */
@@ -208,7 +212,7 @@ function HeaderBody({
   return (
     <View style={{ marginHorizontal: GEO.gutter, minHeight: GEO.header, paddingTop: 12 }}>
       {onBack && (
-        <View style={{ height: 18, justifyContent: 'center' }}>
+        <View style={{ minHeight: 18, justifyContent: 'center' }}>
           <BackLink M={M} label={back} onPress={onBack} testID={backTestID} />
         </View>
       )}
@@ -221,7 +225,7 @@ function HeaderBody({
         {...a11yLangProp()}
       >
         {!onBack && (
-          <View style={{ height: 18, justifyContent: 'center' }}>
+          <View style={{ minHeight: 18, justifyContent: 'center' }}>
             {!!eyebrowText && (
               <Text style={{ ...ROLE.folio, color: M.print }} numberOfLines={1} maxFontSizeMultiplier={1.4}>{eyebrowText}</Text>
             )}
@@ -623,8 +627,11 @@ export function Sheet({
   );
 }
 
+/** 시트 머리 두 줄(13/17)이 '더 큰 텍스트'를 따르는 한도 — 1.6배(두 줄 54.4)까지, 줄은 그만큼 늘어난다(48은 가장 낮은 높이) */
+const SHEET_HEAD_SCALE = 1.6;
+
 /**
- * 시트의 머리 줄(S.head) — 48 높이: 앞 자리(위치 표 · locator) + 인쇄된 두 줄(첫 줄 먹 600, 물감 네모 선택 · 둘째 줄 인쇄 색)
+ * 시트의 머리 줄(S.head) — 48 높이(글자를 키우면 늘어난다): 앞 자리(위치 표 · locator) + 인쇄된 두 줄(첫 줄 먹 600, 물감 네모 선택 · 둘째 줄 인쇄 색)
  * + 닫기 글리프(44 손끝, 동그라미 없음). Sheet의 header로 넘기면 스크롤 밖 위에 고정된다.
  * - accessibilityLabel: 앞 자리와 두 줄을 이 말 한 덩어리로 읽는다 — '실천 3/8'은 날짜로 읽혀서 말로('건강 영역, 8칸 중 세 번째 칸').
  *   누를 수 없으면 머리(header)로 읽힌다.
@@ -662,14 +669,14 @@ export function SheetHeader({
       {!!title && (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {!!mark && <Dye color={mark} />}
-          <Text style={{ ...ROLE.label, fontFamily: PRETENDARD[600], lineHeight: 17, color: M.ink, flexShrink: 1 }} numberOfLines={1}>{title}</Text>
+          <Text style={{ ...ROLE.label, fontFamily: PRETENDARD[600], lineHeight: 17, color: M.ink, flexShrink: 1 }} numberOfLines={1} maxFontSizeMultiplier={SHEET_HEAD_SCALE}>{title}</Text>
         </View>
       )}
-      {!!sub && <Text style={{ ...ROLE.label, lineHeight: 17, color: M.print }} numberOfLines={1}>{sub}</Text>}
+      {!!sub && <Text style={{ ...ROLE.label, lineHeight: 17, color: M.print }} numberOfLines={1} maxFontSizeMultiplier={SHEET_HEAD_SCALE}>{sub}</Text>}
     </>
   );
   return (
-    <View style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+    <View style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       {onPress ? (
         <Pressable
           onPress={onPress}
