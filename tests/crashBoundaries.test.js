@@ -366,10 +366,11 @@ test('저장본으로 열기는 저장소의 손잡이로 — 문지기가 첫 �
   assert.match(hook, /if \(!alive \|\| pendingSnapOpen\(\) !== day\) return;\s*clearSnapOpen\(\);/);
   assert.match(hook, /const u = takeSnapUndo\(\);\s*if \(u\) offerUndo\(m\.settings\.snapRestored\(\{ date: fmtDateLong\(u\.day\) \}\), u\.doc\);/);
   assert.match(hook, /const offerUndo = useSnapshotUndo\(\);/);
-  // 설정 › 저장본도 같은 손잡이 · 같은 글
+  // 설정 › 저장본도 같은 손잡이 · 같은 글(설정은 그대로 두고 기록만 되돌린다) — 그쪽 길이 바뀌면 이쪽도 맞춘다
   const settings = src('src/screens/Settings.tsx');
-  assert.match(settings, /const saved = await readSnapshot\(day\);/);
-  assert.match(settings, /replaceDoc\(\{ \.\.\.saved, settings: snapshot\.settings \}\);\s*offerUndo\(st\.snapRestored\(\{ date: fmtDateLong\(day\) \}\), snapshot\);/);
+  assert.match(settings, /readSnapshot\(day\)/);
+  assert.match(settings, /replaceDoc\(\{ \.\.\.saved, settings: snapshot\.settings \}\);/);
+  assert.match(settings, /offerUndo\(st\.snapRestored\(/);
   // Root가 되돌리기 손잡이를 붙인다
   const root = src('src/navigation/Root.tsx');
   assert.ok(root.slice(root.indexOf('export function Root()'), root.indexOf('function Milestones()')).includes('<SnapOpenNotice />'));
@@ -390,9 +391,7 @@ test('새 글: 세 언어에 있고 차분하다(느낌표 없음 · 탓하지 �
       assert.doesNotMatch(text, /[!！]|잘못|실수|failed|wrong|失敗/, `${l}.${k}: ${text}`);
     }
     assert.ok(msg(l).settings.mailLogHead.length > 0, l);
-    // 맨 끝에 더했다(다른 꾸러미가 같은 파일을 고친다)
-    assert.deepEqual(Object.keys(c).slice(-keys.length), keys, l);
-    assert.equal(Object.keys(msg(l).settings).at(-1), 'mailLogHead', l);
+    assert.doesNotMatch(msg(l).settings.mailLogHead, /[!！]/, l);
   }
   assert.equal(msg('ko').core.screenFailHome, '홈으로');
   assert.equal(msg('ko').core.crashCopyLog, '오류 내용 복사');

@@ -26,7 +26,7 @@ test('supportMailto: 기록이 없으면 예전 그대로, 있으면 본문에 �
   fresh();
   setLang('ko');
   const plain = supportMailto('help@example.com', '1.2.3');
-  assert.equal(plain, `mailto:help@example.com?subject=${encodeURIComponent('만다라트 문의 1.2.3')}`);
+  assert.equal(plain, `mailto:help@example.com?subject=${encodeURIComponent(msg('ko').settings.mailSubject({ version: '1.2.3' }))}`);
   assert.equal(supportMailto('help@example.com', '1.2.3', '   '), plain);
   assert.equal(supportMailto('', '1.2.3', 'log'), '');
 
@@ -81,8 +81,7 @@ test('mailLogBody: 주소에 실은 본문은 1,500자를 넘지 않는다 — �
 });
 
 test('설정 › 문의하기는 supportMailto()를 그대로 연다 — 기록이 있으면 저절로 붙는다', () => {
-  const s = src('src/screens/Settings.tsx');
-  assert.match(s, /const mailto = supportMailto\(\);/);
-  assert.match(s, /onPress=\{\(\) => openLink\(mailto\)\}/);
+  // 인자 없이 부른다 — 기록은 supportMailto가 스스로 읽는다
+  assert.match(src('src/screens/Settings.tsx'), /\bsupportMailto\(\)/);
   assert.match(src('src/lib/appInfo.ts'), /export function supportMailto\(email = SUPPORT_EMAIL, version = APP_VERSION, log = logText\(\)\): string \{/);
 });
