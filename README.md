@@ -26,7 +26,7 @@ v2 계획과 작업 기록은 `docs/v2/`(계획 `plan.md`, owner 결정 `owner-d
 | **프로** | 한 번 결제 `com.jcncompany.mandarat.pro`(StoreKit 2, `modules/pro-store`). 설정 › 프로. 지금 무료인 기능은 계속 무료 | — |
 | **오류 수집** | 1.0은 없음 — Sentry를 빼고 낸다(`src/lib/crash.ts`는 아무것도 하지 않는 자리). 다시 켜는 법은 RELEASE_CHECKLIST v2-3 | — |
 
-개인정보 처리방침 초안은 `docs/v2/privacy.md`, App Review 노트는 `docs/v2/review-notes.md`에 있습니다.
+개인정보 처리방침 초안은 `docs/v2/privacy.md`, 도움말과 문의 페이지의 글은 `docs/v2/support.md`, App Review 노트는 `docs/v2/review-notes.md`에 있습니다. 두 웹 페이지(`public/privacy.html` · `public/support.html`)는 그 글에서 `npm run privacy-page` · `npm run support-page`로 만듭니다.
 
 ## 핵심 구조
 
