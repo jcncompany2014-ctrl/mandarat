@@ -133,7 +133,7 @@
             {
               "name": "TodayWidget",
               "displayName": "오늘",
-              "description": "오늘 할 일과 남은 수를 보여 줘요.",
+              "description": "오늘 할 일과 남은 개수를 보여 줘요.",
               "ios": {
                 "supportedFamilies": [
                   "systemSmall",

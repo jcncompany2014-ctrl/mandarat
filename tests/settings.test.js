@@ -57,8 +57,8 @@ test('글 백업의 머리말에는 중괄호가 없고, 붙은 채로 불러올
   const r = parseBackup(prefix + makeBackup(doc, now, true));
   assert.equal(r.ok, true);
   assert.equal(r.doc.centerGoal, '마라톤 완주');
-  // 한국어 머리말은 추출 전 그대로
-  assert.equal(prefix, '만다라트 백업 · 2026년 10월 14일\n설정 › 백업 불러오기에 이 글 전체를 붙여 넣으면 돼요.\n\n');
+  // 한국어 머리말(불러오기는 첫 '{'부터 읽으므로, 예전 글('붙여 넣으면')로 내보낸 백업도 그대로 읽힌다)
+  assert.equal(prefix, '만다라트 백업 · 2026년 10월 14일\n설정 › 백업 불러오기에 이 글 전체를 붙여넣으면 돼요.\n\n');
 });
 
 test('backupAgeLabel · 글 백업 머리말 — ja · en (X-K)', () => {

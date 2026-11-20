@@ -75,7 +75,7 @@ test('유형 이름 · 설명 · 마감 빠른 선택 · 점수 글 · 연도가
   assert.deepEqual(K.kindLabels('ko'), { once: '한 번', habit: '습관', count: '쌓기', mind: '마음가짐' });
   assert.deepEqual(K.kindLabels('ja'), { once: '単発', habit: '習慣', count: '累計', mind: '心がけ' });
   assert.deepEqual(K.kindLabels('en'), { once: 'Once', habit: 'Habit', count: 'Count', mind: 'Mindset' });
-  assert.equal(K.kindHints('ko').habit, '정한 요일마다 ‘오늘’에 담겨요. 주 N회로 정하면 횟수를 다 할 때까지 매일 담겨요.');
+  assert.equal(K.kindHints('ko').habit, '정한 요일마다 ‘오늘’에 담겨요. 주 N회로 정하면 횟수를 채울 때까지 매일 담겨요.');
   assert.equal(K.kindHints('ko').count, '숫자를 쌓아 가는 실천이에요. 목표 수에 닿으면 칸이 달성돼요.');
   assert.deepEqual(K.duePresets(WED, 'ja').map((p) => p.label), ['今週中', '今月中', '3か月後', '年内']);
   assert.deepEqual(K.duePresets(WED, 'en').map((p) => p.label), ['This week', 'This month', 'In 3 months', 'By year end']);

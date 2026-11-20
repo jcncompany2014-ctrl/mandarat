@@ -32,10 +32,10 @@ test('ko: 홈 글은 옮기기 전과 같다', () => {
   assert.equal(k.ritualSub({ range: '10월 12일 – 18일' }), '10월 12일 – 18일 · 3분이면 돼요');
   assert.equal(msg('ko').fmt.times({ n: 4 }), '4번');
   assert.equal(k.weekDayToday({ day: '수요일', n: 2 }), '수요일 2번, 오늘');
-  assert.equal(k.areaRowLabel({ name: '건강', line: '빈 칸 8개', n: 0 }), '건강, 빈 칸 8개, 8칸 중 0칸 달성');
+  assert.equal(k.areaRowLabel({ name: '건강', line: '빈칸 8개', n: 0 }), '건강, 빈칸 8개, 8칸 중 0칸 달성');
   assert.equal(k.todayHeadLabel({ total: 5, done: 2 }), '오늘 할 일 5개 중 2개 했어요, 오늘 화면 열기');
-  assert.equal(k.closeLabel({ day: '10월 14일 수요일', n: 3 }), '10월 14일 수요일 마감, 3개 중 3개 했어요');
-  assert.equal(msg('ko').today.closeLeft({ day: '10월 14일 수요일' }), '10월 14일 수요일 마감');
+  assert.equal(k.closeLabel({ day: '10월 14일 수요일', n: 3 }), '10월 14일 수요일 하루 마감, 3개 중 3개 했어요');
+  assert.equal(msg('ko').today.closeLeft({ day: '10월 14일 수요일' }), '10월 14일 수요일 하루 마감');
   assert.equal(k.guideProgress({ total: 5, done: 2 }), '5단계 중 2단계');
   assert.equal(k.guideFillLabel({ label: '실천 칸 8개 채우기', done: 3, total: 8 }), '실천 칸 8개 채우기 · 3/8');
   const sep = msg('ko').core.listSep;
@@ -45,7 +45,7 @@ test('ko: 홈 글은 옮기기 전과 같다', () => {
 });
 
 test('headerMeta: 해 · 주 / 올해 남은 날은 언어마다 fmt', () => {
-  assert.deepEqual(H.headerMeta(WED, 'ko'), { week: '2026 · 42주', left: '올해 78일 남음' });
+  assert.deepEqual(H.headerMeta(WED, 'ko'), { week: '2026 · 42주차', left: '올해 78일 남음' });
   assert.deepEqual(H.headerMeta(WED, 'ja'), { week: '2026年 第42週', left: '今年あと78日' });
   assert.deepEqual(H.headerMeta(WED, 'en'), { week: '2026 · Week 42', left: '78 days left this year' });
   assert.equal(H.headerMeta(new Date(2026, 11, 30), 'en').left, '1 day left this year');
@@ -90,7 +90,7 @@ test('홈 화면 · GuideChips에 한글 글이 남지 않는다 · 날짜 · �
   assert.match(d, /eyebrow=\{homeEyebrow\(now\)\}/);
   assert.match(d, /m\.fmt\.dowNarrow\(\{ i: d\.dow \}\)/);
   assert.match(d, /m\.fmt\.dowLong\(\{ i: d\.dow \}\)/);
-  assert.equal(H.homeEyebrow(WED, 'ko'), '10월 14일 수요일 · 42주');
+  assert.equal(H.homeEyebrow(WED, 'ko'), '10월 14일 수요일 · 42주차');
   assert.equal(H.homeEyebrow(WED, 'ja'), '10月14日 水曜日・第42週');
   assert.equal(H.homeEyebrow(WED, 'en'), 'Wednesday, October 14 · Week 42');
   assert.ok(!fs.existsSync(path.join(__dirname, 'i18n-pending', 'X-H.json')));

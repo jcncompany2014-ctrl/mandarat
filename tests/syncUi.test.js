@@ -55,11 +55,11 @@ test('every phase renders a catalog string (or nothing), in ko, ja and en', () =
 
 test('status line: just now, then the date and time; nothing when sync is off', () => {
   const t = msg('ko');
-  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at: NOW - 5000 }, NOW, t), '방금 맞췄어요');
+  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at: NOW - 5000 }, NOW, t), '방금 동기화했어요');
   const at = new Date(2026, 9, 14, 21, 0).getTime();
-  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at }, at + 2 * 60_000, t), '10월 14일 오후 9:00에 맞췄어요');
-  assert.equal(view.statusLine({ phase: 'checking', enabled: true }, NOW, t), '맞추는 중이에요');
-  assert.equal(view.statusLine({ phase: 'syncing', enabled: true }, NOW, t), '맞추는 중이에요');
+  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at }, at + 2 * 60_000, t), '10월 14일 오후 9:00에 동기화했어요');
+  assert.equal(view.statusLine({ phase: 'checking', enabled: true }, NOW, t), '동기화하는 중이에요');
+  assert.equal(view.statusLine({ phase: 'syncing', enabled: true }, NOW, t), '동기화하는 중이에요');
   assert.equal(view.statusLine({ phase: 'off', enabled: false, at: NOW - 5000 }, NOW, t), null, 'off: no time line');
 });
 
@@ -67,7 +67,7 @@ test('problem rows: the plan wording; sign-in and Drive open Settings, ioError c
   const t = msg('ko');
   assert.deepEqual(view.problemLine('noAccount', t), { title: 'iCloud에 로그인되어 있지 않아요', body: t.sync.settingsBody, action: 'settings' });
   assert.deepEqual(view.problemLine('driveOff', t), { title: 'iCloud Drive가 꺼져 있어요', body: t.sync.settingsBody, action: 'settings' });
-  assert.equal(view.problemLine('accountChanged', t).title, '다른 iCloud 계정이에요 — 다시 켜면 이 계정 기록과 맞춰요');
+  assert.equal(view.problemLine('accountChanged', t).title, '다른 iCloud 계정이에요. 다시 켜면 이 계정의 기록과 동기화해요');
   assert.equal(view.problemLine('ioError', t).action, 'retry');
   assert.equal(view.problemLine('tooLarge', t).action, undefined);
 });
@@ -78,7 +78,7 @@ test('the newerApp problem renders its catalog string', () => {
     assert.equal(view.problemLine('newerApp', t).title, t.sync.newerApp);
     assert.equal(view.problemLine('newerApp', t).action, undefined, 'nothing to press: update the app');
   }
-  assert.equal(msg('ko').sync.newerApp, '다른 기기의 앱이 더 새 버전이에요. 이 기기도 업데이트하면 다시 맞춰요');
+  assert.equal(msg('ko').sync.newerApp, '다른 기기의 앱이 더 새 버전이에요. 이 기기도 업데이트하면 다시 동기화해요');
 });
 
 test('choice sheet: three choices, each with its line, and none preselected', () => {

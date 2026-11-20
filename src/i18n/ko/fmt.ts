@@ -77,8 +77,8 @@ export default {
     if (d.join() === '0,6') return '주말';
     return WEEK.filter((x) => d.includes(x)).map((x) => DOW[x]).join('·');
   },
-  /** '2026 · 42주' */
-  weekNo: ({ y, w }: { y: number; w: number }) => `${y} · ${w}주`,
+  /** '2026 · 42주차' */
+  weekNo: ({ y, w }: { y: number; w: number }) => `${y} · ${w}주차`,
   /** '올해 78일 남음' */
   daysLeftYear: ({ n }: { n: number }) => `올해 ${n}일 남음`,
 } satisfies Namespace;

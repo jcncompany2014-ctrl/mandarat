@@ -102,11 +102,11 @@ test('편집 시트 글(디자인 A) — 머리 둘째 줄 · 점검 한 줄 · 
   const ja = I.msg('ja').editor;
   const en = I.msg('en').editor;
   const all = { noWhat: true, noHow: true, noWhen: true };
-  // editor.png의 안내 글 그대로 — 빠진 것만 말한다
-  assert.equal(ko.coachNote(all), '무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요');
-  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: false }), '얼마나를 쓰면 실천하기 쉬워요');
-  assert.equal(ko.coachNote({ noWhat: true, noHow: false, noWhen: false }), '무엇을 쓰면 실천하기 쉬워요');
-  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: true }), '얼마나, 언제·어디서를 쓰면 실천하기 쉬워요');
+  // 빠진 것만 말한다 — 낱말은 따옴표로 묶어 조사가 어긋나지 않게('얼마나를'이 되지 않는다)
+  assert.equal(ko.coachNote(all), '‘무엇을’ · ‘얼마나’ · ‘언제·어디서’도 적으면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: false }), '‘얼마나’도 적으면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: true, noHow: false, noWhen: false }), '‘무엇을’도 적으면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: true }), '‘얼마나’ · ‘언제·어디서’도 적으면 실천하기 쉬워요');
   assert.equal(ja.coachNote({ noWhat: false, noHow: true, noWhen: true }), '「どれだけ」「いつ・どこで」を書くと、行動に移しやすくなります');
   assert.equal(en.coachNote(all), 'Saying what, how much and when or where makes it easier to do');
   assert.equal(en.coachNote({ noWhat: false, noHow: true, noWhen: false }), 'Saying how much makes it easier to do');

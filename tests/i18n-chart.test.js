@@ -18,7 +18,7 @@ test('ko: 옮기기 전 글 그대로', () => {
     centerBlockSay: '가운데 블록, 핵심 목표와 8개 영역', zoomCenterSay: '가운데 블록을 크게 봐요', wholeSay: '81칸 전체를 봐요', centerBlock: '가운데 블록', tabTitle: '만다라트',
     shareSay: '표 이미지로 공유', editGoal: '핵심 목표 고치기', next: '다음 할 일', emptyHint: '칸을 눌러 실천 8개를 채워요', undoDone: '달성 풀기', markDone: '달성으로 표시',
     rowHint: '자세히 봐요', brand: '만다라트', shareTitle: '표 이미지', shareWebOnly: '앱에서 이미지로 공유할 수 있어요', previewBlankSay: '표 이미지 미리보기, 빈 표',
-    modeProgress: '진행 표시', modeBlank: '빈 표', making: '이미지를 만드는 중이에요', makeFailed: '이미지를 만들지 못했어요', shareFailed: '공유하지 못했어요', saveShare: '이미지 저장·공유',
+    modeProgress: '달성 표시', modeBlank: '빈 표', making: '이미지를 만드는 중이에요', makeFailed: '이미지를 만들지 못했어요', shareFailed: '공유하지 못했어요', saveShare: '이미지 저장·공유',
     sketchEmpty: '비어 있음',
   };
   for (const [k, v] of Object.entries(same)) assert.equal(ko[k], v, k);
@@ -30,8 +30,8 @@ test('ko: 옮기기 전 글 그대로', () => {
   assert.equal(ko.coreSay({ goal: '건강한 한 해' }), '핵심 목표, 건강한 한 해');
   assert.equal(ko.zoomBlockSay({ name: '건강' }), '건강 블록을 크게 봐요');
   assert.equal(ko.doneOf64Say({ done: 12 }), '64칸 중 12칸 달성');
-  assert.equal(ko.nextBlanks({ n: 12, area: '건강' }), '빈 칸 12 · 건강부터 채우기');
-  assert.equal(ko.nextStepSay({ title: '빈 칸 12 · 건강부터 채우기' }), '다음 할 일, 빈 칸 12 · 건강부터 채우기');
+  assert.equal(ko.nextBlanks({ n: 12, area: '건강' }), '빈칸 12 · 건강부터 채우기');
+  assert.equal(ko.nextStepSay({ title: '빈칸 12 · 건강부터 채우기' }), '다음 할 일, 빈칸 12 · 건강부터 채우기');
   assert.equal(ko.nextStepAreaSay({ title: '물 2L', area: '건강' }), '다음 할 일, 물 2L, 건강');
   assert.equal(ko.areaOf({ n: 3 }), '영역 3 / 8');
   assert.equal(ko.areaDoneSay({ done: 3, days: 0 }), '8칸 중 3칸 달성');

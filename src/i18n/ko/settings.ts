@@ -66,13 +66,13 @@ export default {
   /** 안드로이드 · 웹 — 이 기기에만 */
   storageNoteLocal: '기록은 이 기기에 저장돼요. 기기를 바꾸기 전에 백업을 내보내 두세요.',
   storagePlaceLocal: '이 기기',
-  /** iPhone · iPad, iCloud로 맞추기 꺼짐 — iCloud 기기 백업 */
+  /** iPhone · iPad, iCloud 동기화 꺼짐 — iCloud 기기 백업 */
   storageNoteBackup: ({ device }: { device: string }) =>
     `기록은 ${thisDevice(device)} iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.`,
   storagePlaceBackup: ({ device }: { device: string }) => `${thisDevice(device)} iCloud 백업`,
-  /** iPhone · iPad, iCloud로 맞추기 켜짐 */
+  /** iPhone · iPad, iCloud 동기화 켜짐 */
   storageNoteSync: ({ device }: { device: string }) =>
-    `기록은 ${thisDevice(device)} iCloud에 저장되고, 같은 Apple 계정의 iPhone·iPad끼리 맞춰요. 안드로이드나 웹으로 옮길 때는 백업을 내보내 두세요.`,
+    `기록은 ${thisDevice(device)} iCloud에 저장되고, 같은 Apple 계정의 iPhone·iPad끼리 동기화해요. 안드로이드나 웹으로 옮길 때는 백업을 내보내 두세요.`,
   storagePlaceSync: ({ device }: { device: string }) => `${thisDevice(device)} iCloud`,
 
   // ── 기록 › 새로 시작 ──
@@ -102,7 +102,7 @@ export default {
   secInfo: '정보',
   colName: '이름',
   appName: '만다라트',
-  colVersion: '판',
+  colVersion: '버전',
   colFont: '서체',
   /** 판권 줄의 서체 값 — 글꼴 이름과 라이선스 */
   colFontValue: 'Pretendard · SIL OFL 1.1',
@@ -114,7 +114,7 @@ export default {
   licensesBody: '이 앱은 아래 오픈소스를 쓰고 있어요.',
   /** LICENSES의 Lucide 줄 이름 — 다른 이름은 고유 이름이라 그대로 */
   licLucide: 'Lucide 아이콘 도형',
-  /** 문의 메일 제목 — version은 app.json의 판 */
+  /** 문의 메일 제목 — version은 app.json의 버전 */
   mailSubject: ({ version }: { version: string }) => `만다라트 문의 ${version}`,
   openFail: '열 수 없어요',
 } satisfies Namespace;

@@ -27,7 +27,7 @@ module.exports = (ctx, assert) => {
     const rel = `${TARGET}/${l}.lproj/Localizable.strings`;
     assert.ok(ctx.exists(rel), `${rel} 있음`);
     assert.equal(ctx.read(rel), expected[l], `${rel} 내용`);
-    assert.match(ctx.read(rel), /^"오늘" = ".+";\n"오늘 할 일과 남은 수를 보여 줘요\." = ".+";\n$/, `${rel} 열쇠`);
+    assert.match(ctx.read(rel), /^"오늘" = ".+";\n"오늘 할 일과 남은 개수를 보여 줘요\." = ".+";\n$/, `${rel} 열쇠`);
   }
 
   const pbx = ctx.pbxproj;

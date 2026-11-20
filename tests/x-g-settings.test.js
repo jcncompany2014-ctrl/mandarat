@@ -43,7 +43,7 @@ test('한국어 값 = 옮기기 전 글', () => {
     sampleDone: '예시로 채웠어요', resetRow: '전체 초기화', resetRowSub: '모든 목표와 기록을 지워요',
     resetAskTitle: '모든 기록을 지울까요?', resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.',
     resetAskOk: '지우기', resetDone: '모든 기록을 지웠어요',
-    secInfo: '정보', colName: '이름', appName: '만다라트', colVersion: '판', colFont: '서체', colPlace: '저장 위치',
+    secInfo: '정보', colName: '이름', appName: '만다라트', colVersion: '버전', colFont: '서체', colPlace: '저장 위치',
     privacy: '개인정보 처리방침', contact: '문의하기', contactHint: '메일 앱이 열려요', licenses: '오픈소스 라이선스',
     licensesBody: '이 앱은 아래 오픈소스를 쓰고 있어요.', licLucide: 'Lucide 아이콘 도형', openFail: '열 수 없어요',
   };

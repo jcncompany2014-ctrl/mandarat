@@ -38,8 +38,8 @@ export default {
   device: '이 기기에서 알림 받기',
   denied: '이 기기에서는 알림이 꺼져 있어요',
   deniedBody: '기기 설정에서 알림을 켜면 울려요',
-  undetermined: '이 기기에서는 알림을 아직 허락하지 않았어요',
-  allow: '알림 허락하기',
+  undetermined: '이 기기에서는 알림을 아직 허용하지 않았어요',
+  allow: '알림 허용하기',
   /** 시각 고르기(10분씩) */
   earlier: '10분 앞당기기',
   later: '10분 늦추기',

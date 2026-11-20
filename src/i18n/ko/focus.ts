@@ -4,8 +4,8 @@ import type { Namespace } from '../types';
 
 export default {
   /** 끝내기 버튼 — 도는 중 */
-  endAchieve: '끝내고 달성',
-  endCheck: '끝내고 했어요',
+  endAchieve: '달성으로 끝내기',
+  endCheck: '했어요로 끝내기',
   endHere: '여기서 끝내기',
   /** 끝내기 버튼 — 25분을 다 채운 뒤 */
   markAchieved: '달성으로 표시',

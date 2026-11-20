@@ -63,7 +63,7 @@ test('접은 줄 — 앞 두 줄 + 외 n개(ko · ja · en)', () => {
 });
 
 test('마감 글 — 우리말 수, 마감 시각은 알 때만', () => {
-  assert.equal(L.closeNote(10, WED, 'ko'), '열 가지를 모두 했어요 · 오후 9:40 마감');
+  assert.equal(L.closeNote(10, WED, 'ko'), '열 가지를 모두 했어요 · 오후 9:40에 하루 마감');
   assert.equal(L.closeNote(10, null, 'ko'), '열 가지를 모두 했어요');
   assert.equal(L.closeNote(1, null, 'ko'), '한 가지를 했어요');
   assert.equal(L.closeNote(3, null, 'ko'), '세 가지를 모두 했어요');

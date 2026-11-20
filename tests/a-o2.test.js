@@ -88,7 +88,7 @@ test('새 말 — 세 언어에 있고, 한국어는 목업 그대로', () => {
   assert.equal(ko.achieve, '이 칸 달성하기');
   assert.equal(ko.achieveHabitHint, '몸에 뱄다면 눌러 주세요');
   assert.equal(ko.focusRow, '25분 집중하기');
-  assert.equal(ko.editRow, '칸 편집하기');
+  assert.equal(ko.editRow, '칸 고치기');
   assert.equal(ko.memo, '메모');
   assert.equal(ko.memoPlaceholder, '어떻게 했는지 한 줄 남겨 두세요');
   const keys = ['headSub', 'autoMeta', 'weekFigure', 'weekUnit', 'daysLeft', 'weekMet', 'countSoFar', 'countFigure', 'due', 'setDueRow', 'mindRecent', 'editRow', 'memoPlaceholder'];

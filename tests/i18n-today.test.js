@@ -18,7 +18,7 @@ test('ko — 예전 글 그대로(바이트 같음)', () => {
   assert.equal(T.columnHead(t.colDoing, 2, 'ko'), '진행 중 2개');
   assert.equal(T.mindProgress(4, 1, 'ko'), '4개 중 1개 매겼어요');
   assert.deepEqual(dayCloseText(WED, 10, 'ko'), {
-    left: '10월 14일 수요일 마감', right: '10 / 10', speech: '10월 14일 수요일 마감, 오늘 할 일 10개를 다 했어요',
+    left: '10월 14일 수요일 하루 마감', right: '10 / 10', speech: '10월 14일 수요일 하루 마감, 오늘 할 일 10개를 다 했어요',
   });
   assert.equal(autoLine({ autoCount: 4, autoNames: ['산책', '물', '일기', '독서'] }, 'ko'), '저절로 담김 4 · 산책, 물 외 2');
   assert.equal(t.quickCount({ n: 45, max: 60 }), '45자, 최대 60자');

@@ -98,7 +98,7 @@ export default {
   todayAutoHint: '왜 담겼는지 알려 줘요',
   focusRow: '25분 집중하기',
   /** 편집 창을 여는 줄 */
-  editRow: '칸 편집하기',
+  editRow: '칸 고치기',
   unachieveHint: '다시 누르면 달성을 풀어요',
   achieveHabitHint: '몸에 뱄다면 눌러 주세요',
   achieveMindHint: '자리 잡았다면 눌러 주세요',
@@ -132,7 +132,7 @@ export default {
     `${text}, ${amt({ n: total, unit })} 중 ${amt({ n: count, unit })}`,
 
   // ── 64칸 축하 페이지 ──
-  finaleTitle: '64칸을 모두 달성했어요',
+  finaleTitle: '64칸, 모두 해냈어요',
   finaleCountA11y: '64칸 중 64칸',
   finaleGoal: ({ goal }: { goal: string }) => `핵심 목표 · ${goal}`,
   finaleStreak: ({ n }: { n: number }) => `연속 ${n}일째`,

@@ -19,7 +19,7 @@ function doc(patch = () => ({})) {
 test('ko: 추출 전 글과 글자 하나까지 같다', () => {
   const ko = msg('ko').stats;
   assert.equal(ko.screenTitle, '통계');
-  assert.equal(sv.emptyLine('ko'), '하나 하면 여기부터 기록돼요');
+  assert.equal(sv.emptyLine('ko'), '하나 하면 여기에 기록이 쌓이기 시작해요');
   assert.equal(sv.weekLead(3, 0, '', 'ko'), '이번 주 3번 했어요. 칸은 한 번짜리 일을 끝내거나 목표 수에 닿으면 달성돼요.');
   assert.equal(sv.weekLead(3, 1, '', 'ko'), '이번 주 3번 했어요');
   assert.equal(sv.fmtMinutes(65, 'ko'), '1시간 5분');
