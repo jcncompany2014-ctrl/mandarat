@@ -4,7 +4,7 @@ require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  enc, msOf, ctrOf, tagOfStamp, tick, observe, eff, isStamp, maxStamp, STAMP_LEN, CTR_MAX, MAX_SKEW_MS,
+  enc, msOf, ctrOf, tagOfStamp, tick, observe, follow, eff, isStamp, maxStamp, STAMP_LEN, CTR_MAX, MAX_SKEW_MS,
 } = require('../src/lib/syncStamp');
 const { newSyncMeta, cleanSyncMeta, tagOf, rekey, cleanParts, DEV_RE } = require('../src/lib/syncMeta');
 const { rng } = require('./helpers/docFuzz');
@@ -111,6 +111,22 @@ test('observe: 다른 기기 도장 뒤로 시계를 당기지만, 24시간 넘�
   // 같은 (ms, 카운터)에 꼬리표만 큰 도장 — 시계는 그대로지만 다음 tick이 그것보다 크다
   const tie = observe(ahead, enc(T0 + 5000, 0, 'zzzz'), T0);
   assert.ok(tick(tie, T0).stamp > enc(T0 + 5000, 0, 'zzzz'));
+});
+
+test('follow: 벽시계와 견주지 않고 그 도장 뒤로 당긴다 — 덮어쓰는 값의 도장에만 쓴다(감사 r02)', () => {
+  const mine = tick(clockOf('aaaa'), T0).meta;
+  const far = enc(T0 + 3 * MAX_SKEW_MS, 9, 'bbbb');
+  assert.equal(observe(mine, far, T0), mine, 'observe는 거절한다');
+  const lifted = follow(mine, far);
+  assert.equal(lifted.last, enc(T0 + 3 * MAX_SKEW_MS, 9, 'aaaa'));
+  assert.ok(tick(lifted, T0 + 1000).stamp > far, '그 뒤의 도장은 그것보다 크다');
+  // 이미 앞서 있으면 그대로, 깨진 도장 · 빈 도장은 무시
+  assert.equal(follow(lifted, enc(T0, 0, 'zzzz')), lifted);
+  assert.equal(follow(mine, 'garbage'), mine);
+  assert.equal(follow(mine, ''), mine);
+  // 받아들이는 범위 안에서는 observe와 같다
+  const near = enc(T0 + 60_000, 4, 'bbbb');
+  assert.deepEqual(observe(mine, near, T0), follow(mine, near));
 });
 
 test('observe 뒤의 tick은 본 모든 도장보다 크다(무작위)', () => {

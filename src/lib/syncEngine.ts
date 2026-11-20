@@ -11,9 +11,11 @@
 // - 더 새 앱이 쓴 복제본이 있으면 아무것도 합치거나 올리지 않는다(newerApp — 모르는 필드를 덮어쓰지 않게).
 import type { ArchivedChart, MandaratDoc } from '../types';
 import type { ICloudFile, ICloudStatus, ICloudSyncNative } from '../../modules/icloud-sync';
+import { seedTitles } from '../data/defaults';
+import { LANGS } from '../i18n';
 import { unionArchives } from './archive';
 import type { SyncPort } from './syncEnvelope';
-import { decodeReplica, devOfName, encodeReplica, replicaDigest, replicaName, SIZE_WARN } from './syncFile';
+import { decodeReplica, devOfName, encodeForPush, replicaDigest, replicaName, SIZE_WARN } from './syncFile';
 import { gc, isStale, SYNC_TTL_MS } from './syncLocal';
 import { isNewer, mergeAll, topStamp, type NewerReplica, type Replica } from './syncMerge';
 import { rekey } from './syncMeta';
@@ -30,6 +32,8 @@ export const PROBE_TIMEOUT_MS = 5000;
 
 export type SyncPhase = 'off' | 'checking' | 'needsChoice' | 'syncing' | 'idle' | 'problem';
 export type SyncProblem = 'noAccount' | 'driveOff' | 'accountChanged' | 'tooLarge' | 'ioError' | 'newerApp';
+/** 문제는 아니지만 알려 둘 것 — tooLarge: 복제본이 SIZE_WARN을 넘었다(맞추기는 그대로 된다, 오래 걸릴 수 있다) */
+export type SyncNote = 'tooLarge';
 /** 처음 켤 때(또는 오래 맞추지 않았을 때) 고르는 것 — 둘을 합쳐요 · iCloud 기록으로 바꿔요 · 이 기기 기록으로 이어 써요 */
 export type SyncChoice = 'merge' | 'adopt' | 'mine';
 /** 켜기 전 판단 — 올리기만 · 그대로 가져오기(이 기기가 비었다) · 묻기 */
@@ -43,6 +47,8 @@ export interface SyncStatus {
   at?: number;
   /** phase가 'problem'일 때의 까닭 */
   problem?: SyncProblem;
+  /** phase가 'idle'일 때 알려 둘 것 — 문제가 아니다(맞추기는 끝났다). 글은 같은 이름의 문제 글(sync.tooLarge)을 쓴다 */
+  note?: SyncNote;
   /** phase가 'needsChoice'일 때 iCloud에 있는 기록(다른 기기 것을 모두 합친 문서) — 고르기 화면의 비교용 */
   remote?: MandaratDoc;
 }
@@ -65,11 +71,22 @@ export interface SyncIO {
 
 // ── 순수한 판단 ─────────────────────────────────────────────────────────────
 
-/** 이 기기 문서에 사람이 적은 것이 없나 — 처음 쓰지 않았거나, 글 · 기록 · 돌아보기 · 지난 표가 하나도 없다 */
+/** 영역 이름을 고쳤나 — 같은 자리의 기본 이름(어느 언어의 것이든)이 아니면 사람이 적은 것이다 */
+function hasOwnAreaTitle(doc: MandaratDoc): boolean {
+  const seeds = LANGS.map((l) => seedTitles(l));
+  return doc.themes.some((t, i) => {
+    const title = t.title.trim();
+    return title !== '' && !seeds.some((s) => s[i] === title);
+  });
+}
+
+/** 이 기기 문서에 사람이 적은 것이 없나 — 처음 쓰지 않았거나, 글 · 고친 영역 이름 · 기록 · 돌아보기 · 지난 표가 하나도 없다 */
 export function isEmptyDoc(doc: MandaratDoc): boolean {
   if (!doc.onboarded) return true;
   // centerGoalEn은 기본값('My Best Self')이 늘 있어 세지 않는다
   if (doc.centerGoal.trim()) return false;
+  // 영역 이름만 고쳐 둔 기기도 비어 있지 않다 — 비었다고 보면 켤 때 묻지 않고 iCloud 기록으로 바뀐다
+  if (hasOwnAreaTitle(doc)) return false;
   if ((doc.archives?.length ?? 0) > 0 || doc.todayExtra.length > 0) return false;
   if (Object.keys(doc.dayLog).some((d) => doc.dayLog[d].length > 0)) return false;
   if (Object.keys(doc.dayMeta).some((d) => doc.dayMeta[d].reflection?.trim() || doc.dayMeta[d].mood !== undefined)) return false;
@@ -197,21 +214,38 @@ export function applyMine(port: SyncPort, remote: Replica | null, wall: number):
 export interface PushResult {
   /** 올렸는가(같은 내용이면 false) */
   wrote: boolean;
-  /** 올린 글이 SIZE_WARN을 넘었다 */
+  /** 지금 복제본의 글이 SIZE_WARN을 넘는다(올리지 않았어도) */
   large: boolean;
 }
 
 /**
+ * 마지막으로 지문을 잰 복제본 — 엔진이 도는 동안만 기억한다(저장하지 않는다).
+ * 문서 · 시계 · 몫은 고쳐 쓰지 않는 값이라, 같은 객체이고 판 · 기기가 같으면 내용도 같다: 그때는 큰 JSON을 만들지도,
+ * 글자마다 해시를 돌리지도 않는다(앱을 열고 닫을 때 · 고친 뒤 5초마다 3~5년 기록을 통째로 세지 않게).
+ */
+export interface PushMemo {
+  last?: Pick<Replica, 'dev' | 'epoch' | 'clock' | 'parts' | 'doc'> & { digest: string; large: boolean };
+}
+
+function sameReplica(a: Pick<Replica, 'dev' | 'epoch' | 'clock' | 'parts' | 'doc'>, b: Replica): boolean {
+  return a.doc === b.doc && a.clock === b.clock && a.parts === b.parts && a.epoch === b.epoch && a.dev === b.dev;
+}
+
+/**
  * 지금 복제본을 올린다 — 문서와 메타는 부른 순간의 짝. 지난번에 올린 것과 같으면(지문) 쓰지 않는다.
+ * memo가 지난번에 잰 복제본 그대로라고 알려 주면 지문도 다시 재지 않는다. 재야 할 때는 올릴 글을 한 번만 만들어 그 글로 잰다.
  * 지문은 쓰기가 끝난 뒤에 남긴다(앱이 그 사이 꺼지면 다음에 다시 올린다). 그 사이 rekey했으면 남기지 않는다.
  */
-export async function push(port: SyncPort, io: SyncIO): Promise<PushResult> {
+export async function push(port: SyncPort, io: SyncIO, memo: PushMemo = {}): Promise<PushResult> {
   const rep = port.replica();
   const meta = port.meta();
   if (!rep || !meta) return { wrote: false, large: false };
-  const digest = replicaDigest(rep);
-  if (digest === meta.pushed) return { wrote: false, large: false };
-  const json = encodeReplica({ ...rep, at: io.now() });
+  const known = memo.last && sameReplica(memo.last, rep) ? memo.last : null;
+  if (known && known.digest === meta.pushed) return { wrote: false, large: known.large };
+  const { json, digest } = encodeForPush({ ...rep, at: io.now() });
+  const large = json.length > SIZE_WARN;
+  memo.last = { dev: rep.dev, epoch: rep.epoch, clock: rep.clock, parts: rep.parts, doc: rep.doc, digest, large };
+  if (digest === meta.pushed) return { wrote: false, large };
   // 쓰는 동안은 '올리는 중' — 지문(pushed)은 끝난 뒤에야 남으니, 그 사이의 초기화 되돌리기가 이미 떠난 새 판을 거두지 않게(R-1 F2)
   port.writing?.(1);
   try {
@@ -222,7 +256,7 @@ export async function push(port: SyncPort, io: SyncIO): Promise<PushResult> {
     port.writing?.(-1);
   }
   port.updateMeta((m) => (m.dev === rep.dev ? { ...m, pushed: digest } : m));
-  return { wrote: true, large: json.length > SIZE_WARN };
+  return { wrote: true, large };
 }
 
 /** JS 줄을 한 번 비운다 — 쌓인 누르기 · 그리기가 먼저 돈다 */
@@ -230,7 +264,8 @@ export function yieldToApp(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-export type PullResult = { kind: 'newer' } | { kind: 'ok'; changed: boolean; files: ICloudFile[] };
+/** joined: 받은 복제본이 있어 합쳤다(문서가 바뀌지 않았어도) — 엔진이 그 뒤 올리기 전에 한 번 쉰다 */
+export type PullResult = { kind: 'newer' } | { kind: 'ok'; changed: boolean; joined: boolean; files: ICloudFile[] };
 
 /**
  * 받기 — 바뀐 다른 기기 파일을 읽어 풀고, 하나라도 더 새 앱의 것이면 멈춘다(아무것도 넣지 않고 seen도 그대로).
@@ -261,17 +296,20 @@ export async function pull(port: SyncPort, io: SyncIO): Promise<PullResult> {
     seen: { ...m.seen, ...r.seen },
     pulledAt: wall,
   }));
-  return { kind: 'ok', changed, files: r.files };
+  return { kind: 'ok', changed, joined: !!merged, files: r.files };
 }
 
 /**
  * 오래된 기기 파일 치우기 — 다른 기기의 파일 중 TTL보다 오래 바뀌지 않았고, 그 내용을 이미 합쳤고(seen이 같다),
  * 이 기기 파일에 그 뒤 상태를 올려 둔(pushed가 지금 지문) 것만 지운다. 지운 파일은 seen에서도 뺀다.
+ * 지금 지문은 방금 올리며 잰 것(memo)이 그 복제본 그대로면 그것을 쓴다 — 다시 재지 않는다.
  */
-export async function removeStale(port: SyncPort, io: SyncIO, files: readonly ICloudFile[]): Promise<string[]> {
+export async function removeStale(port: SyncPort, io: SyncIO, files: readonly ICloudFile[], memo: PushMemo = {}): Promise<string[]> {
   const meta = port.meta();
   const rep = port.replica();
-  if (!meta || !rep || meta.pushed !== replicaDigest(rep)) return [];
+  if (!meta || !rep) return [];
+  const digest = memo.last && sameReplica(memo.last, rep) ? memo.last.digest : replicaDigest(rep);
+  if (meta.pushed !== digest) return [];
   const cutoff = io.now() - SYNC_TTL_MS;
   const gone: string[] = [];
   for (const f of files) {
@@ -349,6 +387,8 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
   };
   let chain: Promise<void> = Promise.resolve();
   let pushChain: Promise<unknown> = Promise.resolve();
+  /** 지난번에 지문을 잰 복제본 — 그대로면 올리기가 아무것도 세지 않는다 */
+  const pushMemo: PushMemo = {};
   const queued = new Set<string>();
   let watchingQ = false;
   let gathered = false;
@@ -360,13 +400,14 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
 
   const enabled = () => !!port.meta()?.enabled;
 
-  function set(phase: SyncPhase, extra: { problem?: SyncProblem; remote?: MandaratDoc; at?: number } = {}) {
+  function set(phase: SyncPhase, extra: { problem?: SyncProblem; note?: SyncNote; remote?: MandaratDoc; at?: number } = {}) {
     const at = extra.at ?? status.at;
     const next: SyncStatus = {
       phase,
       enabled: enabled(),
       ...(at !== undefined ? { at } : {}),
       ...(extra.problem ? { problem: extra.problem } : {}),
+      ...(extra.note ? { note: extra.note } : {}),
       ...(extra.remote ? { remote: extra.remote } : {}),
     };
     const moved = next.phase !== status.phase || next.problem !== status.problem;
@@ -401,7 +442,7 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
 
   /** 올리기도 한 줄 — 뒤로 갈 때는 받기를 기다리지 않고 곧바로 이 줄에 선다 */
   function pushQueued(): Promise<PushResult> {
-    const run = pushChain.then(() => push(port, io));
+    const run = pushChain.then(() => push(port, io, pushMemo));
     pushChain = run.catch(() => undefined);
     return run;
   }
@@ -504,20 +545,23 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
         return;
       }
       files = p.files;
+      // 합치기와 올리기(올릴 글 만들기 · 지문) 사이에 한 번 쉰다 — 받은 것을 합친 뒤 그 사이의 누르기가 먼저 돈다.
+      // 올리기는 그 뒤에도 부른 순간의 문서와 메타를 짝으로 읽는다(push)
+      if (p.joined) await yieldToApp();
     }
     const pushed = await pushQueued();
     if (full) {
       const day = port.meta()?.gcDay;
       port.updateMeta((m, d) => gc(m, io.now(), d));
-      if (port.meta()?.gcDay !== day) await removeStale(port, io, files);
+      if (port.meta()?.gcDay !== day) await removeStale(port, io, files, pushMemo);
     }
     finish(pushed.large);
   }
 
+  /** 다 맞췄다 — 기록이 커도(SIZE_WARN) 문제가 아니다: 맞추기는 끝났고, 오래 걸릴 수 있다고 알려만 둔다(note) */
   function finish(large: boolean) {
     const at = io.now();
-    if (large) set('problem', { problem: 'tooLarge', at });
-    else set('idle', { at });
+    set('idle', large ? { at, note: 'tooLarge' } : { at });
   }
 
   /**
@@ -574,6 +618,7 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
     }));
     block = null;
     verified = true;
+    if (merged) await yieldToApp();
     const pushed = await pushQueued();
     finish(pushed.large);
   }

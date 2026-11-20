@@ -6,7 +6,7 @@
 // - 날마다 기록 개수와 영역 접두사 `${ti}-`는 그대로라 히트맵·주간 합계·영역 연속 기록은 이어진다.
 // - 칸 자리 키가 아니므로 습관 체크·오늘 했는지·칸별 기록에는 더 이상 잡히지 않는다.
 // - 직접 추가한 할 일 키 "ti-x<id>"와 같은 꼴이라 저장본 검증(defaults.ts LOG_KEY_RE)을 그대로 통과한다.
-import type { MandaratDoc, WeekReviewEntry } from '../types';
+import type { Action, MandaratDoc, WeekReviewEntry } from '../types';
 import { daysBetween, kindOf, setDayLog, weekDates, ymd } from './routine';
 import { addDays, applyConfig, type KindConfig } from './kinds';
 
@@ -164,6 +164,16 @@ function withAction<T extends CellDoc>(doc: T, ti: number, ai: number, next: Man
   };
 }
 
+/** 그날 더한 수(log)에서 그날 기록에 칸 키가 남아 있는 날만 — 바뀐 게 없으면 같은 칸, 남는 날이 없으면 log를 뺀다 */
+function withLoggedDaysOnly(a: Action, dayLog: DayLog, key: string): Action {
+  const days = Object.keys(a.log ?? {});
+  const kept = days.filter((d) => (dayLog[d] ?? []).includes(key));
+  if (kept.length === days.length) return a;
+  const { log, ...rest } = a;
+  if (kept.length === 0 || !log) return rest;
+  return { ...rest, log: Object.fromEntries(kept.map((d) => [d, log[d]])) };
+}
+
 /**
  * 칸에 유형 설정을 입힌 새 문서(저장소 setActionConfig) — day: 오늘 'YYYY-MM-DD', time: 떼어 둔 기록 키의 시각.
  * - 습관이 아니던 칸의 유형을 바꾸면 그 칸의 지난 기록(한 번 달성한 날·쌓은 날)을 칸에서 떼어 둔다 —
@@ -172,13 +182,16 @@ function withAction<T extends CellDoc>(doc: T, ti: number, ai: number, next: Man
  *   습관 → 쌓기는 그대로 — 쌓기로 바꿨다 되돌려도 습관 체크가 사라지지 않는다.
  *   한 번·마음가짐이 되면(습관·쌓기에서도) 모든 날을 떼어 둔다 — 남은 습관 체크를 '달성 풀기'가 지우지 않게.
  * - 쌓기는 그날 더한 수가 곧 그날 기록 — 이미 쌓기였던 칸은 지금까지를 줄여 그날 것이 사라졌다면 빼고,
- *   기록을 떼어 내고 쌓기가 된 칸은 그날 더한 수(log)만 다시 기록으로.
+ *   기록을 떼어 내고 쌓기가 된 칸은 그날 기록이 없는 채로 시작한다.
+ * - 다시 쌓기가 된 칸(쌓기 → 습관·한 번 → 쌓기)은 그 사이 칸에서 떼어 둔 날의 '그날 더한 수'(log)도 함께 뗀다 —
+ *   남겨 두면 그날 기록에 칸 키는 없는데 더한 수는 있어, 맞추기의 다듬기(syncMerge materialize M1)가
+ *   칸 키를 다시 넣고 떼어 둔 키와 함께 그날을 두 번 센다. 지금까지의 수(count)는 그대로다.
  * - since·일정 내력은 applyConfig가 맡는다(이미 습관이면 since 그대로, 일정을 고치면 지난 일정을 남긴다).
  */
 export function configCell<T extends CellDoc>(doc: T, ti: number, ai: number, cfg: KindConfig, day: string, time: number): T {
   const prev = doc.themes[ti]?.actions[ai];
   if (!prev) return doc;
-  const next = applyConfig(prev, cfg, day);
+  let next = applyConfig(prev, cfg, day);
   const key = `${ti}-${ai}`;
   const was = kindOf(prev);
   const kind = kindOf(next);
@@ -187,6 +200,7 @@ export function configCell<T extends CellDoc>(doc: T, ti: number, ai: number, cf
   const archived = was !== kind && (was !== 'habit' || kind === 'once' || kind === 'mind');
   const counted = (d: string) => (prev.log?.[d] ?? 0) > 0;
   let dayLog = archived ? archiveCellLog(doc.dayLog, key, time, was === 'count' && kind === 'habit' ? counted : undefined) : doc.dayLog;
+  if (kind === 'count' && was !== 'count' && next.log) next = withLoggedDaysOnly(next, dayLog, key);
   if (kind === 'count' && (was === 'count' || archived)) dayLog = setDayLog(dayLog, key, day, (next.log?.[day] ?? 0) > 0);
   return withAction(doc, ti, ai, next, dayLog);
 }

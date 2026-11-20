@@ -7,18 +7,20 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 const { rng, canonArrays, withoutLocal } = require('./helpers/docFuzz');
-const { blankDoc, migrate, sampleThemes } = require('../src/data/defaults');
+const { blankDoc, migrate, sampleThemes, seedTitles } = require('../src/data/defaults');
+const { LANGS } = require('../src/i18n');
 const { resetDoc, startNewChart } = require('../src/lib/archive');
 const { addCount } = require('../src/lib/kinds');
 const { rolloverToday, ymd } = require('../src/lib/routine');
 const { canon, project } = require('../src/lib/syncProject');
 const { cleanSyncMeta, newSyncMeta } = require('../src/lib/syncMeta');
 const { isStamp, tagOfStamp } = require('../src/lib/syncStamp');
-const { encodeReplica, replicaName, devOfName } = require('../src/lib/syncFile');
-const { SYNC_TTL_MS } = require('../src/lib/syncLocal');
+const { encodeReplica, replicaName, devOfName, REPLICA_V, SIZE_WARN } = require('../src/lib/syncFile');
+const { heavyDoc } = require('./helpers/heavyDoc');
+const { SYNC_TTL_MS, epochReset } = require('../src/lib/syncLocal');
 const { makeSyncPort, openStored, serializeStored, commitMeta, stampPending, docOnlyJson, undoResetMeta } = require('../src/lib/syncEnvelope');
 const {
-  classify, isEmptyDoc, createSyncEngine, probe, applyPulled, PUSH_DEBOUNCE_MS, EPOCH_PUSH_DEBOUNCE_MS,
+  classify, isEmptyDoc, createSyncEngine, probe, applyPulled, push, removeStale, PUSH_DEBOUNCE_MS, EPOCH_PUSH_DEBOUNCE_MS,
 } = require('../src/lib/syncEngine');
 
 const ROOT = path.join(__dirname, '..');
@@ -244,6 +246,17 @@ test('classify: no remotes → push; empty local → adopt; otherwise ask', () =
   assert.equal(isEmptyDoc(one), false);
   assert.equal(isEmptyDoc({ ...onboardedEmpty, dayMeta: { '2026-10-01': { reflection: '좋았다' } } }), false);
   assert.equal(isEmptyDoc({ ...onboardedEmpty, centerGoal: '목표' }), false);
+  // 감사 c07: 영역 이름만 고쳐 둔 기기도 비어 있지 않다 — 켤 때 묻지 않고 iCloud 기록으로 바뀌지 않는다
+  const named = { ...onboardedEmpty, areasSet: true, themes: onboardedEmpty.themes.map((t, i) => ({ ...t, title: `My area ${i + 1}` })) };
+  assert.equal(isEmptyDoc(named), false);
+  assert.equal(classify(named, [remote]), 'ask');
+  const oneName = { ...onboardedEmpty, themes: onboardedEmpty.themes.map((t, i) => (i === 5 ? { ...t, title: '달리기' } : t)) };
+  assert.equal(classify(oneName, [remote]), 'ask', 'one renamed area is enough');
+  // 기본 이름은 어느 언어의 것이든 고친 것이 아니다(언어만 바꾼 기기) — 이름을 그대로 쓰기로만 한 기기도 가져온다
+  for (const l of LANGS) {
+    const seeded = { ...onboardedEmpty, areasSet: true, themes: onboardedEmpty.themes.map((t, i) => ({ ...t, title: seedTitles(l)[i] })) };
+    assert.equal(classify(seeded, [remote]), 'adopt', `default ${l} names`);
+  }
 });
 
 // ── 켜기와 고르기 ───────────────────────────────────────────────────────────
@@ -1072,4 +1085,211 @@ test('R-8 #6: 받기는 풀기와 합치기 사이에 한 번 쉰다 — 그 사
   assert.equal(textOf(B.latest, 4, 4), '쉬는 동안');
   await converge(A, B);
   assert.equal(textOf(A.latest, 4, 4), '쉬는 동안');
+});
+
+// ── 감사: 올리기 값 · 쉬기 · 큰 기록 알림 ─────────────────────────────────────
+
+/** 복제본을 통째로 글로 만든 횟수 — 복제본 JSON은 늘 {"v":1,"schema":…으로 시작한다(지문도 그 글로 잰다) */
+function spyReplicaJson() {
+  const real = JSON.stringify;
+  const spy = { count: 0, restore: () => { JSON.stringify = real; } };
+  JSON.stringify = function (...args) {
+    const out = real.apply(this, args);
+    if (typeof out === 'string' && out.length > 1000 && out.startsWith(`{"v":${REPLICA_V},"schema":`)) spy.count += 1;
+    return out;
+  };
+  return spy;
+}
+
+const msSince = (t) => Number(process.hrtime.bigint() - t) / 1e6;
+const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
+
+/** 6년 쓴 기기 — 문서의 모든 경로에 도장이 있다(4만 5천 경로, 복제본 글 230만 자) */
+let sixYears = null;
+function heavySix() {
+  if (!sixYears) {
+    const doc = { ...heavyDoc(6), todayDate: ymd(new Date(T0)) };
+    const fresh = cleanSyncMeta({ v: 1, dev: DEVS[0], vendor: `key-${DEVS[0]}`, last: '', epoch: '', clock: {}, parts: {}, enabled: false, seen: {} });
+    sixYears = { doc, meta: epochReset(fresh, T0 - 1000, doc) };
+  }
+  return sixYears;
+}
+
+test('audit 6 · 8: on a 6-year document a replica that did not change is never serialised or hashed again, and its size is a note, not a problem', async () => {
+  const world = makeWorld(41);
+  const cloud = makeCloud();
+  const { doc, meta } = heavySix();
+  const A = makeDevice(world, cloud, DEVS[0], doc, { meta });
+  assert.ok(Object.keys(A.meta.clock).length > 40000, 'a heavy clock');
+  const spy = spyReplicaJson();
+  try {
+    await A.engine.setEnabled(true);
+    assert.equal(A.writes, 1);
+    assert.equal(spy.count, 1, 'the first push builds the JSON once — the text that is written is the text that is hashed');
+    assert.ok(cloud.files.get(replicaName(A.dev)).json.length > SIZE_WARN, 'a replica above the size note');
+    // 큰 기록은 문제가 아니다 — 다 맞췄고(idle), 알려만 둔다
+    assert.deepEqual({ ...A.engine.status(), at: 0 }, { phase: 'idle', enabled: true, at: 0, note: 'tooLarge' });
+    assert.equal(A.statuses.some((s) => s.phase === 'problem'), false, 'the size never shows as a problem');
+
+    // 아무것도 바뀌지 않았다: 앞으로 · 뒤로 · 몰아 올리기 · 지금 맞추기 — 복제본을 글로 만들지도, 세지도 않는다
+    for (let i = 0; i < 3; i++) {
+      await A.engine.foreground();
+      await A.engine.local();
+      await A.engine.background();
+      await A.engine.sync();
+      assert.equal(A.engine.status().note, 'tooLarge', 'the note stays while the replica stays large (it does not flicker with each cycle)');
+    }
+    assert.equal(spy.count, 1, 'no serialisation while nothing changed');
+    assert.equal(A.writes, 1);
+
+    // 하나 고쳤다: 글 한 번(올릴 글 = 지문을 잰 글), 쓰기 한 번
+    world.wall += 1000;
+    A.update((d) => editCell(d, 0, 0, (a) => ({ ...a, text: '고친 글' })));
+    await A.engine.local();
+    assert.equal(spy.count, 2, 'one serialisation for a changed replica (it was two: one to hash, one to write)');
+    assert.equal(A.writes, 2);
+    await A.engine.background();
+    await A.engine.foreground();
+    assert.equal(spy.count, 2, 'clean again after the push');
+
+    // 다시 열면(새 엔진 — 기억은 저장하지 않는다) 한 번만 재고, 같으니 쓰지 않는다
+    A.kill();
+    await A.engine.boot();
+    await A.engine.foreground();
+    await A.engine.background();
+    assert.equal(spy.count, 3, 'one check per launch');
+    assert.equal(A.writes, 2, 'and no write: the digest still matches what was pushed');
+  } finally {
+    spy.restore();
+  }
+});
+
+test('audit 6: a file that only echoes this device back (the other device merged and re-pushed) changes nothing and costs no serialisation', async () => {
+  const world = makeWorld(42);
+  const { cloud, A, B } = await pairOn(world);
+  await converge(A, B);
+  const spy = spyReplicaJson();
+  try {
+    world.wall += 1000;
+    A.update((d) => editCell(d, 2, 2, (a) => ({ ...a, text: 'A가 고친 글' })));
+    await A.engine.local(); // A가 올린다
+    const bw = B.writes;
+    await B.engine.sync(); // B가 받아 합치고 다시 올린다 — A에게는 새로울 것이 없는 파일
+    assert.equal(B.writes, bw + 1);
+    const { clock, parts } = A.meta;
+    const before = { json: spy.count, writes: A.writes, rev: A.rev };
+    await A.engine.sync();
+    assert.equal(A.meta.seen[replicaName(B.dev)], cloud.files.get(replicaName(B.dev)).modified, 'the echo was read and merged');
+    assert.equal(A.meta.clock, clock, 'the merge left the clock object alone');
+    assert.equal(A.meta.parts, parts);
+    assert.deepEqual({ json: spy.count, writes: A.writes, rev: A.rev }, before, 'no serialisation, no hash, no push, no revision bump for the echo');
+    // 그리고 두 기기는 같은 표다
+    assert.equal(docKey(A.latest), docKey(B.latest));
+  } finally {
+    spy.restore();
+  }
+});
+
+test('audit 7: after merging an incoming change the engine yields once more before it serialises — an edit made in that pause is in the pushed file', async () => {
+  const world = makeWorld(43);
+  const { cloud, A, B } = await pairOn(world);
+  await converge(A, B);
+  A.update((d) => editCell(d, 3, 3, (a) => ({ ...a, text: 'A가 먼저' })));
+  await A.engine.local();
+  const real = global.setTimeout;
+  let pauses = 0;
+  const hook = (onPause) => {
+    pauses = 0;
+    global.setTimeout = (fn, ms, ...rest) => {
+      if (ms === 0) {
+        pauses += 1;
+        onPause(pauses);
+      }
+      return real(fn, ms, ...rest);
+    };
+  };
+  try {
+    hook((n) => {
+      // 두 번째 쉼 = 합친 뒤, 올리기 전
+      if (n === 2) {
+        assert.equal(textOf(B.latest, 3, 3), 'A가 먼저', 'the merge is already in');
+        B.update((d) => editCell(d, 4, 4, (a) => ({ ...a, text: '올리기 전에' })));
+      }
+    });
+    await B.engine.sync();
+    assert.equal(pauses, 2, 'decode → pause → merge → pause → push');
+    assert.equal(JSON.parse(cloud.files.get(replicaName(B.dev)).json).doc.themes[4].actions[4].text, '올리기 전에', 'the push pairs the doc and meta of the moment it runs');
+    // 받은 것이 없으면 합치지 않으니 더 쉬지 않는다(풀기 뒤의 한 번뿐)
+    hook(() => {});
+    await B.engine.sync();
+    assert.equal(pauses, 1);
+  } finally {
+    global.setTimeout = real;
+  }
+  await converge(A, B);
+  assert.equal(textOf(A.latest, 4, 4), '올리기 전에');
+});
+
+const PUSH_GUARD = 'audit 9 timing guard: an unchanged push on the 6-year replica costs next to nothing — the digest is skipped';
+
+test(PUSH_GUARD, async () => {
+  const { doc, meta: m0 } = heavySix();
+  // 가장 가벼운 손잡이로 push만 잰다(저장소 흉내의 기록 · 도장은 재지 않는다)
+  let meta = m0;
+  let writes = 0;
+  const port = {
+    meta: () => meta,
+    replica: () => ({ dev: meta.dev, epoch: meta.epoch, clock: meta.clock, parts: meta.parts, doc }),
+    updateMeta: (fn) => { meta = fn(meta, doc); },
+  };
+  const io = { now: () => T0, write: async () => { writes += 1; } };
+  const memo = {};
+  const spy = spyReplicaJson();
+  try {
+    let t = process.hrtime.bigint();
+    assert.deepEqual(await push(port, io, memo), { wrote: true, large: true });
+    const dirty = msSince(t);
+    assert.equal(spy.count, 1);
+    const clean = [];
+    for (let i = 0; i < 41; i++) {
+      t = process.hrtime.bigint();
+      const r = await push(port, io, memo);
+      clean.push(msSince(t));
+      assert.deepEqual(r, { wrote: false, large: true });
+    }
+    assert.equal(spy.count, 1, 'unchanged → not serialised, so not hashed');
+    assert.equal(writes, 1);
+    // 오래된 기기 파일 치우기도 방금 잰 지문을 쓴다(다시 재지 않는다)
+    assert.deepEqual(await removeStale(port, { ...io, remove: async () => {} }, [], memo), []);
+    assert.equal(spy.count, 1);
+    // 기억이 없으면(예전처럼) 올릴 때마다 통째로 잰다 — 같은 내용이라 쓰지는 않는다
+    t = process.hrtime.bigint();
+    assert.deepEqual(await push(port, io), { wrote: false, large: true });
+    const unmemoised = msSince(t);
+    assert.equal(spy.count, 2);
+    assert.equal(writes, 1);
+    // 넉넉한 천장: 바뀌지 않은 올리기는 통째로 재는 것의 1/20도 안 든다(실제로는 1/1000 아래). 두 값을 같은 자리에서 재므로
+    // 기계가 바쁘거나 JIT가 없어도(--jitless — iOS의 Hermes처럼) 같은 비로 견준다
+    const m = median(clean);
+    if (process.env.SYNC_TIMING) console.log(`push: unchanged ${m.toFixed(4)} ms (median of ${clean.length}), full digest ${unmemoised.toFixed(1)} ms, first push ${dirty.toFixed(1)} ms`);
+    assert.ok(m < Math.max(0.5, unmemoised / 20), `unchanged push ${m.toFixed(3)} ms vs a full digest ${unmemoised.toFixed(1)} ms`);
+  } finally {
+    spy.restore();
+  }
+});
+
+test('audit 9: the push timing guard also holds without a JIT (node --jitless)', { skip: process.execArgv.includes('--jitless') && 'already running without a JIT' }, () => {
+  // 시간 지킴이는 V8 JIT에서만 돌았다 — 같은 지킴이를 JIT 없이 한 번 더 돌린다(iOS의 Hermes에는 JIT가 없다)
+  const { spawnSync } = require('node:child_process');
+  // 이 파일을 그대로 돌린다(그 지킴이 하나만) — 테스트 러너 안이라는 표시는 지운다(아니면 아이 프로세스가 아무것도 돌리지 않는다)
+  const env = { ...process.env, SYNC_TIMING: '1' };
+  delete env.NODE_TEST_CONTEXT;
+  const out = spawnSync(process.execPath, ['--jitless', '--test-reporter=tap', '--test-name-pattern', PUSH_GUARD, __filename], {
+    encoding: 'utf8', timeout: 300_000, env,
+  });
+  const text = `${out.stdout}\n${out.stderr}`;
+  assert.equal(out.status, 0, text.slice(-2000));
+  assert.match(text, /^# pass 1$/m, text.slice(-2000));
+  assert.match(text, /^# fail 0$/m);
+  assert.match(text, /push: unchanged [\d.]+ ms/, 'the guard itself ran in the child');
 });
