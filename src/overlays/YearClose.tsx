@@ -264,7 +264,7 @@ function ReviewPage({ M, m, doc, from, to, note, onNote }: {
 
       <View style={{ marginTop: GEO.sectionGap }}>
         <YearLedgerHead M={M} title={m.year.ledgerTitle} />
-        <YearLedger M={M} rows={rows} />
+        <YearLedger M={M} rows={rows} width={Math.max(0, width - GEO.gutter * 2)} />
       </View>
 
       <View style={{ marginTop: GEO.sectionGap }}>

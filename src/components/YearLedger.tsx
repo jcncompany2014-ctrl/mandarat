@@ -1,11 +1,13 @@
-import React, { memo, useState } from 'react';
-import { View } from 'react-native';
+import React, { memo, useMemo } from 'react';
+import { PixelRatio, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Text, a11yLangProp } from './AppText';
 import { ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
 import { HEAT_TONES } from '../lib/statsView';
 import { msg, type Lang } from '../i18n';
 import type { YearCalendarRow } from '../lib/yearReview';
+import { roundRectPath } from '../lib/tilePath';
 
 /** 달 이름 칸 폭 */
 export const LEDGER_LABEL_W = 30;
@@ -55,19 +57,68 @@ export function ledgerLines(rows: readonly YearCalendarRow[], l?: Lang): LedgerL
   });
 }
 
+/** 장부의 칸 그림 — 바깥 크기와, 진하기(0 기록 없음 ~ 4)마다 그 칸들을 이은 길 하나 */
+export interface LedgerPicture {
+  width: number;
+  height: number;
+  /** 진하기 차례(HEAT_TONES) — 그 진하기의 칸이 없으면 빈 글 */
+  paths: string[];
+}
+
+/**
+ * 장부의 칸을 진하기마다 길 하나로 — 줄 i는 위에서 rowGap + i × (칸 + rowGap), 칸 d는 달 이름 칸 다음 d × 칸,
+ * 타일은 그 안쪽 0.75(사이 1.5), 모서리 2. 타일의 네 변은 기기 픽셀(ratio)에 맞춘다 — 칸마다 View를 둘 때
+ * 레이아웃이 맞춰 주던 것과 같은 자리라 변이 번지지 않는다. 그달에 없는 날(null)은 그리지 않는다.
+ */
+export function ledgerPicture(lines: readonly Pick<LedgerLine, 'cells' | 'length'>[], cell: number, ratio: number): LedgerPicture {
+  const k = ratio > 0 ? ratio : 1;
+  const snap = (v: number) => Math.round(v * k) / k;
+  const rowGap = ledgerRowGap(cell);
+  const paths = HEAT_TONES.map(() => '');
+  lines.forEach((ln, i) => {
+    const top = rowGap + i * (cell + rowGap);
+    const y0 = snap(top + LEDGER_GAP / 2);
+    const y1 = snap(top + cell - LEDGER_GAP / 2);
+    for (let d = 0; d < ln.length; d++) {
+      const left = LEDGER_LABEL_W + d * cell;
+      const x0 = snap(left + LEDGER_GAP / 2);
+      const x1 = snap(left + cell - LEDGER_GAP / 2);
+      const bin = ln.cells[d] ?? 0;
+      // 모르는 진하기는 기록 없는 날의 색(tile)으로
+      paths[bin > 0 && bin < paths.length ? bin : 0] += roundRectPath(x0, y0, x1 - x0, y1 - y0, LEDGER_RADIUS);
+    }
+  });
+  return { width: LEDGER_LABEL_W + 31 * cell, height: lines.length * (cell + rowGap), paths };
+}
+
 /**
  * 한 해 장부 — 달마다 한 줄(13줄까지) × 31칸. 칸은 타일(모서리 2, 사이 1.5): 기록 없는 날 tile,
  * 그날 기록 수의 진하기(dayBin)마다 printMid → printEdge → ink2 → ink(통계의 최근 10주와 같은 차례, lib/statsView HEAT_TONES).
  * 그달에 없는 날(2월 30일 등)은 칸을 그리지 않는다. 화면 읽기는 줄마다 '2026년 10월, 기록한 날 12일'.
+ * 칸 400여 개는 그림 한 장(Svg)에 진하기마다 길 하나로 그린다(ledgerPicture) — 줄마다 남는 것은 달 이름과 읽는 말뿐이다.
+ * width: 장부를 놓는 폭(본문 폭) — 칸 크기를 여기서 바로 정한다(놓인 뒤 재서 다시 그리지 않는다).
  */
-export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: readonly YearCalendarRow[] }) {
-  const [width, setWidth] = useState(0);
-  const cell = ledgerCellSize(width || 340);
+export const YearLedger = memo(function YearLedger({ M, rows, width }: { M: M; rows: readonly YearCalendarRow[]; width: number }) {
+  const cell = ledgerCellSize(width);
   const lines = ledgerLines(rows);
   const rowGap = ledgerRowGap(cell);
   const tones = HEAT_TONES.map((t) => M[t]);
+  const ratio = PixelRatio.get();
+  // 칸 그림은 달력(rows) · 칸 크기 · 픽셀 배율이 같으면 다시 만들지 않는다(lines는 rows에서 나온 것)
+  const pic = useMemo(() => ledgerPicture(lines, cell, ratio), [rows, cell, ratio]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View>
+      {/* 칸 — 줄들 뒤에 깔린 그림 한 장. 화면 읽기는 아래 줄이 말한다 */}
+      <View
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ position: 'absolute', left: 0, top: 0 }}
+      >
+        <Svg width={pic.width} height={pic.height}>
+          {pic.paths.map((d, bin) => (d ? <Path key={bin} d={d} fill={tones[bin] ?? M.tile} /> : null))}
+        </Svg>
+      </View>
       {lines.map((ln) => (
         <View
           key={ln.month}
@@ -79,11 +130,6 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
           <Text style={[ROLE.meta, { width: LEDGER_LABEL_W, lineHeight: cell + rowGap, color: M.print }]} maxFontSizeMultiplier={1.2} numberOfLines={1}>
             {ln.label}
           </Text>
-          {ln.cells.slice(0, ln.length).map((c, d) => (
-            <View key={d} style={{ width: cell, height: cell, padding: LEDGER_GAP / 2 }}>
-              <View style={{ flex: 1, borderRadius: LEDGER_RADIUS, backgroundColor: tones[c ?? 0] ?? M.tile }} />
-            </View>
-          ))}
         </View>
       ))}
     </View>

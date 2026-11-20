@@ -20,6 +20,7 @@ import { dateKey } from '../../store/MandaratContext';
 import { archiveAsDoc, chartRange, yearLabel } from '../../lib/archive';
 import { fillFrames, yearCalendar, yearDigest } from '../../lib/yearReview';
 import { figureSize, frameCell } from './statFit';
+import { MapThumb } from './MapThumb';
 import { TID } from '../../lib/testIds';
 import { tap } from '../../lib/haptics';
 import { useMsg } from '../../i18n/react';
@@ -127,7 +128,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
         <Numbers M={M} m={m} digest={digest} stacked={stacked} width={contentW} />
 
         <Section M={M} label={m.year.calendarTitle} style={{ marginTop: SECTION_GAP, marginBottom: 10 }} />
-        <YearLedger M={M} rows={rows} />
+        <YearLedger M={M} rows={rows} width={contentW} />
 
         <Section M={M} label={m.year.wearTitle} note={m.year.wearRight} style={{ marginTop: SECTION_GAP, marginBottom: 10 }} />
         <View style={{ marginLeft: mapLeft }}>
@@ -221,8 +222,8 @@ function Frames({ M, m, frames, width }: { M: M; m: Messages; frames: ReturnType
         const last = i === frames.length - 1;
         return (
           <View key={f.end} accessible accessibilityLabel={m.year.frameSpeech({ label, n })} {...a11yLangProp()} style={{ gap: 8, alignItems: 'flex-start' }}>
-            {/* 지도 넷은 첫 화면 다음 프레임에(§4.6) */}
-            <ColourMap themes={f.themes} level="L1" cell={cell} defer />
+            {/* 지도 넷은 그림 한 장씩 — 색마다 길 하나(칸마다 View를 두지 않는다) */}
+            <MapThumb themes={f.themes} cell={cell} />
             <Text
               style={[ROLE.label, { lineHeight: 16, color: last ? M.ink : M.print }, last ? { fontFamily: PRETENDARD[600] } : null]}
               numberOfLines={1}
