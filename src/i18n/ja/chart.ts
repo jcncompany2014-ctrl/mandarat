@@ -1,7 +1,6 @@
 // 'chart' namespace — filled by X-E (docs/v2/plan.md Appendix B).
 import type ko from '../ko/chart';
 import type { Like } from '../types';
-import { tsu } from './counter';
 
 export default {
   areaN: ({ n }) => `分野${n}`,
@@ -33,8 +32,8 @@ export default {
   writtenFolio: '書いたマス',
   of64: ({ n }) => `${n}/64マス`,
   writtenOf64Say: ({ n }) => `64マス中${n}マス書きました`,
-  mapNote: '分野を押すと、8つの行動のマスが見られます',
-  mapBlockHint: 'ダブルタップで8つの行動のマスを表示します',
+  mapNote: '分野をタップすると、8つの行動のマスが見られます',
+  mapBlockHint: '8つの行動のマスを表示します',
   startFrom: ({ area, n }) => `${area}・${n}マス目から`,
   startPrompt: ({ area }) => `${area}のために、何をしてみますか？`,
   startNote: '1マスに1つずつ。8マスを書くと、1つの分野ができあがります。',
@@ -47,7 +46,7 @@ export default {
 
   areaOf: ({ n }) => `分野${n} / 8`,
   areaDoneSay: ({ done, days }) => `8マス中${done}マス達成${days > 0 ? `、${days}日連続` : ''}`,
-  emptyHint: 'マスを押して、8つの行動を書きましょう',
+  emptyHint: 'マスをタップして、8つの行動を書きましょう',
   prevAreaSay: ({ name }) => `前の分野、${name}`,
   nextAreaSay: ({ name }) => `次の分野、${name}`,
   undoDone: '達成を取り消す',
@@ -62,17 +61,18 @@ export default {
   brand: 'マンダラート',
   shareTitle: '表の画像',
   shareWebOnly: 'アプリから画像で共有できます',
-  previewBlankSay: '表の画像のプレビュー、空の表',
+  previewBlankSay: '表の画像のプレビュー、白紙の表',
   previewSay: ({ done }) => `表の画像のプレビュー、64マス中${done}マス達成`,
   modeProgress: '進み具合',
-  modeBlank: '空の表',
+  modeBlank: '白紙の表',
   making: '画像を作っています',
   makeFailed: '画像を作れませんでした',
   shareFailed: '共有できませんでした',
   saveShare: '画像を保存・共有',
 
   markSay: ({ done }) => `わたしのマンダラート81マス、64マス中${done}マス達成`,
-  markTodaySay: ({ total, done }) => `、今日やること${tsu(total)}のうち${tsu(done)}できました`,
+  markTodaySay: ({ total, done }) => `、今日やること${total}件のうち${done}件できました`,
   sketchSay: ({ goal, areas }) => `マンダラートの表。中央のマスは${goal}、分野は${areas}`,
   sketchEmpty: '空欄',
+  pickedAs: ({ label, today }) => `${label}として書きました${today ? '・「今日」に表示されます' : ''}`,
 } satisfies Like<typeof ko>;

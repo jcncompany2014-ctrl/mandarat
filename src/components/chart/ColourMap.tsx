@@ -3,7 +3,9 @@
 // L1: 홈 · 통계 · 한 해 액자의 작은 지도 — 글 없음.
 // 표 이미지(ChartPoster)도 이 지도를 그린다 — 늘 밝은 토큰(tokens), 피드 크기 이름(textScale), 미리보기 배율(scale), 그림 한 장(picture).
 // 칸의 약속: 가운데 = core · 영역 이름 = dye · 달성 = wash(L1 washL1) · 적은 칸 = tint · 빈 칸 = tile. 체크 · 오늘 표시는 없다.
-// 그리기: 절대 자리 View 81개(Svg 없음). 자리는 폭마다 한 번(geometry), 칸 색은 mapKey가 같으면 다시 세지 않고,
+// 대비 증가(iOS)를 켜면 세 상태를 옅은 색만으로 가르지 않는다 — 팔레트가 칠을 한 단씩 올리고(tokens moreContrast),
+// 화면의 큰 지도(L2)는 달성 칸에 블록의 펜 체크를 긋는다. 꺼져 있으면 아무것도 달라지지 않는다.
+// 그리기: 절대 자리 View 81개(Svg 없음 — 펜 체크도 두 획의 View). 자리는 폭마다 한 번(geometry), 칸 색은 mapKey가 같으면 다시 세지 않고,
 // 칸 하나하나가 memo라 체크 하나에 바뀐 칸 하나만 다시 그려진다(§4.6).
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, PixelRatio, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -11,13 +13,13 @@ import { Text } from '../AppText';
 import { usePalette, type M } from '../../theme/usePalette';
 import type { Tokens } from '../../theme/tokens';
 import { ROLE } from '../../theme/type';
-import { useReducedMotion } from '../../lib/useReducedMotion';
+import { useIncreaseContrast, useReducedMotion } from '../../lib/useReducedMotion';
 import { useMsg } from '../../i18n/react';
 import { lang } from '../../i18n';
 import { areaLabel } from '../../lib/chartSpeech';
 import { areaCounts, mapCells, mapKey, type MapCell } from '../../lib/mapCells';
 import { CHART_POS, SLOT_INDEX } from '../../theme/chart';
-import { MAP_LABEL, mapGeometry, scaleMapLabel, type MapLabelKind, type MapLevel, type Rect } from './geometry';
+import { BLOCK, MAP_LABEL, TICK_PATH, mapGeometry, scaleMapLabel, type MapLabelKind, type MapLevel, type Rect } from './geometry';
 import type { Theme } from '../../types';
 
 /** 처음 그릴 때 페이드(ms) — 동작 줄이기면 없음 */
@@ -111,6 +113,38 @@ const Label = memo(function Label({ x, y, w, h, pad, text, fs, lh, ls, lines, co
   );
 });
 
+/** 대비 증가의 펜 체크 — 칸 한 변의 이만큼, 칸 가운데에 */
+const MAP_TICK = 0.36;
+/** 블록의 펜 체크(geometry TICK_PATH)의 세 꼭짓점 — 시작 · 꺾이는 곳 · 끝(0~1 상자). 이 크기에서는 곡선과 곧은 두 획이 같아 보인다 */
+const TICK_PTS = (() => {
+  const n = (TICK_PATH.match(/-?\d*\.?\d+/g) ?? []).map(Number);
+  return [[n[0], n[1]], [n[6], n[7]], [n[12], n[13]]] as const;
+})();
+
+/** 달성 칸의 펜 체크(대비 증가, L2) — 한 변 s의 상자에 두 획(굵기 t, 둥근 끝)을 View로 긋는다 */
+const MapTick = memo(function MapTick({ x, y, s, t, color }: { x: number; y: number; s: number; t: number; color: string }) {
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: x, top: y, width: s, height: s }}>
+      {[0, 1].map((k) => {
+        const [ax, ay] = TICK_PTS[k];
+        const [bx, by] = TICK_PTS[k + 1];
+        const dx = (bx - ax) * s;
+        const dy = (by - ay) * s;
+        const len = Math.hypot(dx, dy) + t;
+        return (
+          <View
+            key={k}
+            style={{
+              position: 'absolute', left: ((ax + bx) / 2) * s - len / 2, top: ((ay + by) / 2) * s - t / 2, width: len, height: t,
+              borderRadius: t / 2, backgroundColor: color, transform: [{ rotate: `${Math.atan2(dy, dx)}rad` }],
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+});
+
 /** 먹 테두리(고른 칸) — 칸 안쪽으로 */
 const Ring = memo(function Ring({ x, y, w, h, r, t, color }: { x: number; y: number; w: number; h: number; r: number; t: number; color: string }) {
   return (
@@ -167,6 +201,7 @@ export const ColourMap = memo(function ColourMap({
   const m = useMsg();
   const l = lang();
   const reduced = useReducedMotion();
+  const more = useIncreaseContrast();
   const device = PixelRatio.get();
   // 배율 1이면 주어진 픽셀 배율(기본 기기)에, 다른 배율이면 기기 픽셀에 칸 틈을 맞춘다
   const base = baseRatio ?? device;
@@ -190,6 +225,12 @@ export const ColourMap = memo(function ColourMap({
       bg: blank && c.kind === 'action' ? P.tile : mapFill(c, P, level),
     })),
     [cells, g, P, level, blank],
+  );
+
+  // 대비 증가 — 화면의 큰 지도는 달성 칸에 펜 체크(칠만으로 가르지 않게). 표 이미지(tokens) · 빈 표 · 작은 지도는 그대로
+  const ticks = useMemo(
+    () => (more && L2 && !tokens && !blank ? tiles.filter((t) => t.c.kind === 'action' && t.c.state === 'done') : []),
+    [more, L2, tokens, blank, tiles],
   );
 
   const headK = typeof textScale === 'number' ? textScale : textScale.head;
@@ -258,6 +299,9 @@ export const ColourMap = memo(function ColourMap({
   }, [onPressBlock != null, picture, cells, doneToday, total, m]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ringT = Math.max(1, Math.round(1.5 * ratio)) / ratio;
+  // 펜 체크 — 블록의 체크(13pt에 1.75)와 같은 비례, 선은 1.5pt 아래로 가늘어지지 않는다
+  const tickS = PixelRatio.roundToNearestPixel(g.cells[0] * MAP_TICK);
+  const tickT = Math.max(1, Math.round(Math.max(1.5, (tickS * BLOCK.tickStroke) / BLOCK.tick) * ratio)) / ratio;
   const f = focus ? cells[focus[0] * 9 + focus[1]] : null;
 
   return (
@@ -270,6 +314,9 @@ export const ColourMap = memo(function ColourMap({
     >
       {shown && tiles.map((t) => (
         <Tile key={`${t.c.row}-${t.c.col}`} x={t.x} y={t.y} w={t.w} h={t.h} r={g.radius} bg={t.bg} />
+      ))}
+      {shown && ticks.map((t) => (
+        <MapTick key={`t${t.c.row}-${t.c.col}`} x={t.x + (t.w - tickS) / 2} y={t.y + (t.h - tickS) / 2} s={tickS} t={tickT} color={palette.tick} />
       ))}
       {shown && labels.map((t) => (
         <Label

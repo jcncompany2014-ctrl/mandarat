@@ -1,15 +1,17 @@
 // 통계 화면에 놓을 글과 칸 (React·RN 의존 없는 순수 모듈 — 단위 테스트 대상).
-// 계산 자체(weekReview · cellActivity · dayBin …)는 review.ts가 하고, 여기서는 화면 한 줄·한 칸으로 바꾼다.
+// 계산 자체(weekReview · cellActivity · shareBin …)는 review.ts가 하고, 여기서는 화면 한 줄·한 칸으로 바꾼다.
 import type { MandaratDoc } from '../types';
 import { kindOf, weekKey, ymd } from './routine';
 import { addDays, fmtNum, ratingOf } from './kinds';
 import { fmtDateLong, fmtDateShort, fmtRange } from './text';
 import { msg, type Lang } from '../i18n';
-import { bestDay, dayBin, firstLogDay, weekReview, type WeekDay, type WeekReview } from './review';
+import { bestDay, firstLogDay, fullDay, shareBin, weekReview, type WeekDay, type WeekReview } from './review';
 import { sundayOf } from './ritual';
 import { ledgerHabitSpeech } from './sheetSpeech';
 import { addedLine, addedSpeech, mindLine } from './ritualView';
-import { daysLeftInYear, isoWeek } from './home';
+import { calendarWeek, daysLeftInYear } from './home';
+import { mix, toHex } from '../theme/moods';
+import type { Tokens } from '../theme/tokens';
 
 /** 기록이 없을 때 화면 맨 위 한 줄 — 빈 양식 위에 이것 하나만 */
 export function emptyLine(l?: Lang): string {
@@ -166,6 +168,7 @@ export interface HeatCell {
   count: number;
   /** none: 그리지 않음(아직 안 온 날 · 쓰기 전 날) · empty: 지난 빈 날(테두리) · ink: 한 날 */
   state: 'none' | 'empty' | 'ink';
+  /** 진하기 — 내가 가득 채운 날에 견준 몫(review shareBin): 안 함 · 3분의 1쯤 · 3분의 2쯤 · 거의 다 · 다 함 */
   bin: 0 | 1 | 2 | 3 | 4;
   today: boolean;
   best: boolean;
@@ -185,17 +188,27 @@ export interface HeatMap {
 /**
  * 달력형 히트맵 칸 — weeks는 calendarWeeks()의 열(주)들. 첫 기록 전 날과 아직 안 온 날은 그리지 않는다.
  * 달 이름은 그 주 월요일이 새 달에 든 열 위에, 그리는 열에만(처음 그리는 열은 바로 다음 열이 새 달이 아닐 때만).
+ * 진하기는 보이는 열 안에서 내가 가득 채운 날(fullDay)에 견준 몫, 마감한 날(closedDays)은 '다 함'.
  */
-export function heatMap(dayLog: MandaratDoc['dayLog'], weeks: readonly { date: string; future: boolean }[][], today: Date, l?: Lang): HeatMap {
+export function heatMap(
+  dayLog: MandaratDoc['dayLog'],
+  weeks: readonly { date: string; future: boolean }[][],
+  today: Date,
+  l?: Lang,
+  closedDays?: readonly string[],
+): HeatMap {
   const monthLabel = (n: number) => msg(l).stats.monthLabel({ n });
   const tk = ymd(today);
   const first = firstLogDay(dayLog);
   const thisMonday = weekKey(today);
+  const countOf = (date: string, future: boolean) => (future ? 0 : (dayLog[date] ?? []).length);
+  const full = fullDay(weeks.flatMap((col) => col.map(({ date, future }) => countOf(date, future))));
+  const closed = new Set(closedDays);
   const cols: HeatCell[][] = weeks.map((col) => col.map(({ date, future }) => {
-    const count = future ? 0 : (dayLog[date] ?? []).length;
+    const count = countOf(date, future);
     const before = first === null || date < first;
     const state: HeatCell['state'] = future || (before && count === 0 && first !== null) ? 'none' : count > 0 ? 'ink' : 'empty';
-    return { date, count, state, bin: dayBin(count), today: date === tk, best: false };
+    return { date, count, state, bin: shareBin(count, full, closed.has(date)), today: date === tk, best: false };
   }));
   const flat = cols.flat().filter((c) => c.state === 'ink');
   const top = bestDay(flat);
@@ -354,9 +367,9 @@ export function reflections(dayMeta: MandaratDoc['dayMeta'], today: Date, days =
 
 // ── 디자인 A(build-plan S4) ──────────────────────────────────────────────────
 
-/** 머리 위 줄 — '2026 · 42주 · D-78'(ISO 주 · 올해 남은 날) */
+/** 머리 위 줄 — '2026 · 42주 · D-78'(그 날짜의 해 · 그해의 주(home.calendarWeek) · 그해 남은 날 — 셋 다 같은 해) */
 export function statsEyebrow(now: Date, l?: Lang): string {
-  const w = isoWeek(now);
+  const w = calendarWeek(now);
   return msg(l).stats.eyebrow({ y: w.year, w: w.week, days: daysLeftInYear(now) });
 }
 
@@ -489,7 +502,17 @@ export function kindRows(
   return rows;
 }
 
-/** 칸 진하기(dayBin 0~4) → 토큰 이름. 최근 10주(날): tile → printMid → printEdge → ink2 → ink */
-export const HEAT_TONES = ['tile', 'printMid', 'printEdge', 'ink2', 'ink'] as const;
-/** 닳은 자리(칸, 영역 색): 기록 없음 tile → tint → wash → washL1 → dye */
-export const WEAR_TONES = ['tile', 'tint', 'wash', 'washL1', 'dye'] as const;
+/** 날의 진하기 0~4가 tile에서 ink2로 가는 길의 어디인가 — 같은 걸음 넷 */
+export const HEAT_STEPS = [0, 0.25, 0.5, 0.75, 1] as const;
+
+/**
+ * 날의 진하기(review shareBin 0~4) → 색(최근 10주 · 한 해 장부). 빈 날 tile에서 다 한 날 ink2까지 같은 걸음으로 섞는다.
+ * 맨 위가 먹(ink)이 아니라 ink2다 — 날마다 다 하는 사람의 달력도 검은 벽(어둡게는 흰 벽)이 되지 않는다.
+ * 토큰 이름만으로는 어둡게에서 고른 걸음이 나오지 않아(ink3 ≈ printEdge, print ≈ ink2) 두 끝을 섞는다.
+ */
+export function heatTones(M: Pick<Tokens, 'tile' | 'ink2'>): string[] {
+  return HEAT_STEPS.map((t) => toHex(mix(M.tile, M.ink2, t)));
+}
+
+/** 닳은 자리(칸, 영역 색 — review wearBin 0~3): 기록 없음 tile → tint → wash → washL1. 영역 색(dye)은 이름 칸에만 */
+export const WEAR_TONES = ['tile', 'tint', 'wash', 'washL1'] as const;

@@ -10,7 +10,7 @@ const topic = (name: string, full: string) => name + josa(full, '은/는').slice
 export default {
   screenTitle: '통계',
   /** 기록이 없을 때 화면 맨 위 한 줄 */
-  empty: '하나 하면 여기부터 기록돼요',
+  empty: '하나 하면 여기에 기록이 쌓이기 시작해요',
 
   // ── 큰 숫자 ──
   heroStreak: '연속',
@@ -23,7 +23,7 @@ export default {
   streakNext: ({ n }: { n: number }) => `오늘 하나 하면 ${n}일째`,
   streakSay: ({ n }: { n: number }) => `연속 ${n}일`,
   streakSayPending: ({ n }: { n: number }) => `연속 ${n}일, 오늘은 아직`,
-  recordNow: '지금이 최고 기록',
+  recordNow: '지금이 최고 기록이에요',
   recordBest: ({ n }: { n: number }) => `최고 기록 ${n}일`,
   recordMonth: ({ n }: { n: number }) => `이번 달 달성 ${n}칸`,
 
@@ -46,7 +46,7 @@ export default {
   /** 장부 한 줄 읽기 — '습관 9번 중 5번' */
   ledgerSay: ({ label, value }: { label: string; value: string }) => `${label} ${value}`,
   habitValue: ({ done, total }: { done: number; total: number }) => `${done}/${total}번`,
-  habitFromToday: '오늘부터 세요',
+  habitFromToday: '오늘부터 세어요',
   habitAll: '이번 주 다 했어요',
   habitMissed: ({ n }: { n: number }) => `${n}번 놓침`,
   habitLeft: ({ n }: { n: number }) => `${n}번 남음`,
@@ -80,8 +80,8 @@ export default {
   pickedSay: ({ date, n }: { date: string; n: number }) => `${date}, ${n}번`,
   noPick: '고른 날 없음',
 
-  // ── 숫자 목표 · 마음가짐 ──
-  secCount: '숫자 목표',
+  // ── 쌓기 · 마음가짐 ──
+  secCount: '쌓기',
   countRight: '지금까지 / 목표',
   secMind: '마음가짐',
   last8w: '최근 8주',
@@ -117,8 +117,8 @@ export default {
   moodDaySay: ({ date, word }: { date: string; word: string }) => `${date} ${word}`,
 
   // ── 디자인 A(build-plan S4) ──
-  /** 머리 위 줄 — '2026 · 42주 · D-78' (y · w: ISO 주, days: 올해 남은 날) */
-  eyebrow: ({ y, w, days }: { y: number; w: number; days: number }) => `${fmt.weekNo({ y, w })} · ${fmt.dueShort({ days })}`,
+  /** 머리 위 줄 — '2026 · 42주차 · 올해 78일 남음' (y · w: ISO 주, days: 올해 남은 날) */
+  eyebrow: ({ y, w, days }: { y: number; w: number; days: number }) => `${fmt.weekNo({ y, w })} · ${fmt.daysLeftYear({ n: days })}`,
   /** 히어로 달성 아래 — '이번 달 3칸' */
   /** 달성 숫자 — '24/64칸'(숫자 뒤 단위는 작게) */
   heroCells: ({ done }: { done: number }) => `${done}/64칸`,
@@ -156,4 +156,7 @@ export default {
   linkRateHint: '이번 주 점수를 매길 칸을 열어요',
   linkToday: '오늘 보기',
   linkTodayHint: '오늘 할 일에서 25분 집중을 시작할 수 있어요',
+  /** 최근 10주 범례의 양 끝 — '적게 ■■■■ 다 함'(숫자 없이: 진하기는 내가 가득 채운 날에 견준 몫) */
+  legendLess: '적게',
+  legendAll: '다 함',
 } satisfies Namespace;

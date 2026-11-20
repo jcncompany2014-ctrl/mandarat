@@ -73,14 +73,14 @@ test('en — units with a space, plural counts, speakable forms', () => {
 
 test('유형 이름 · 설명 · 마감 빠른 선택 · 점수 글 · 연도가 다른 날', () => {
   assert.deepEqual(K.kindLabels('ko'), { once: '한 번', habit: '습관', count: '쌓기', mind: '마음가짐' });
-  assert.deepEqual(K.kindLabels('ja'), { once: '単発', habit: '習慣', count: '累計', mind: '心がけ' });
+  assert.deepEqual(K.kindLabels('ja'), { once: '単発', habit: '習慣', count: '積み上げ', mind: '心がけ' });
   assert.deepEqual(K.kindLabels('en'), { once: 'Once', habit: 'Habit', count: 'Count', mind: 'Mindset' });
-  assert.equal(K.kindHints('ko').habit, '정한 요일마다 ‘오늘’에 담겨요. 주 N회로 정하면 횟수를 다 할 때까지 매일 담겨요.');
+  assert.equal(K.kindHints('ko').habit, '정한 요일마다 ‘오늘’에 담겨요. 주 N회로 정하면 횟수를 채울 때까지 매일 담겨요.');
   assert.equal(K.kindHints('ko').count, '숫자를 쌓아 가는 실천이에요. 목표 수에 닿으면 칸이 달성돼요.');
   assert.deepEqual(K.duePresets(WED, 'ja').map((p) => p.label), ['今週中', '今月中', '3か月後', '年内']);
   assert.deepEqual(K.duePresets(WED, 'en').map((p) => p.label), ['This week', 'This month', 'In 3 months', 'By year end']);
   assert.deepEqual(K.ratingTexts('ko'), ['', '거의 못 지켰어요', '조금 지켰어요', '반쯤 지켰어요', '잘 지켰어요', '아주 잘 지켰어요']);
-  assert.equal(K.ratingTexts('en')[5], 'Kept it very well');
+  assert.equal(K.ratingTexts('en')[5], 'Stuck to it all week');
   assert.equal(K.dateText('2027-01-04', WED, 'ja'), '2027/1/4(月)');
   assert.equal(K.dateText('2027-01-04', WED, 'en'), 'Mon, Jan 4, 2027');
   assert.equal(K.dateText('2026-10-20', WED, 'en'), 'Tue, Oct 20');
@@ -92,7 +92,7 @@ test('살아 있는 보기 — KIND_LABEL · KIND_HINT · RATING_TEXT는 지금 
   try {
     assert.equal(K.KIND_LABEL.count, '쌓기');
     setLang('ja');
-    assert.equal(K.KIND_LABEL.count, '累計');
+    assert.equal(K.KIND_LABEL.count, '積み上げ');
     assert.equal(K.KIND_HINT.mind, msg('ja').kinds.hintMind);
     assert.equal(K.RATING_TEXT[4], 'よく守れました');
     setLang('en');

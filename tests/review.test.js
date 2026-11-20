@@ -172,11 +172,45 @@ test('돌아보는 주가 끝난 뒤에 정한 습관은 세지 않는다', () =
   assert.deepEqual([r.habitCount, r.routineDue, r.routinePlannedWeek, r.weeklyTarget], [0, 0, 0, 0]);
 });
 
-test('dayBin: 절대 구간 0 · 1 · 2 · 3~4 · 5+', () => {
-  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 12].map(R.dayBin), [0, 1, 2, 3, 3, 4, 4, 4]);
-  assert.equal(R.dayBin(-1), 0);
-  assert.equal(R.dayBin(NaN), 0);
-  assert.deepEqual([...R.DAY_BIN_LABELS], ['1', '2', '3', '5+']);
+test('fullDay: 내가 가득 채운 날 — 기록한 날들의 상위 10% 자리, 적어도 5', () => {
+  assert.equal(R.FULL_DAY_MIN, 5);
+  assert.equal(R.fullDay([]), 5);
+  assert.equal(R.fullDay([0, 0, 0]), 5);
+  // 하루 한두 번 하는 사람 — 바닥 5(달력이 통째로 '다 함'이 되지 않는다)
+  assert.equal(R.fullDay([1, 2, 1, 0, 2, 1]), 5);
+  // 하루 여덟 개쯤 — 내 수준에 맞춘다
+  assert.equal(R.fullDay([8, 7, 9, 8, 6, 0, 8, 10, 8, 7]), 10);
+  assert.equal(R.fullDay(new Array(20).fill(8)), 8);
+  // 유난히 많이 한 하루(스무 날 중 하루)는 기준을 끌어올리지 않는다 — 최댓값이 아니라 상위 10%
+  assert.equal(R.fullDay([...new Array(19).fill(6), 30]), 6);
+  // 빈 날 · 깨진 값은 세지 않는다
+  assert.equal(R.fullDay([0, NaN, -3, 12, 0]), 12);
+});
+
+test('shareBin: 가득 채운 날에 견준 몫 — 안 함 · 3분의 1쯤 · 3분의 2쯤 · 거의 다 · 다 함, 마감한 날은 다 함', () => {
+  // full 5(바닥): 1~2 · 3 · 4 · 5+
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 12].map((n) => R.shareBin(n, 5)), [0, 1, 1, 2, 3, 4, 4, 4]);
+  // full 10: 절반 아래 1, 8할 아래 2, 그 위 3, 다 채우면 4
+  assert.deepEqual([1, 4, 5, 7, 8, 9, 10, 11].map((n) => R.shareBin(n, 10)), [1, 1, 2, 2, 3, 3, 4, 4]);
+  // 하루 여덟 개 하는 사람 — 예전 절대 구간(5+)에서는 5개도 12개도 맨 위였다
+  assert.deepEqual([3, 5, 7, 8].map((n) => R.shareBin(n, 8)), [1, 2, 3, 4]);
+  // 마감한 날(오늘 할 일을 마지막 하나까지) — 수와 상관없이 다 함. 기록이 없는 날은 마감이어도 0
+  assert.equal(R.shareBin(1, 10, true), 4);
+  assert.equal(R.shareBin(2, 5, true), 4);
+  assert.equal(R.shareBin(0, 5, true), 0);
+  assert.equal(R.shareBin(-1, 5), 0);
+  assert.equal(R.shareBin(NaN, 5), 0);
+  assert.equal(R.shareBin(3, 0), 4, 'full이 깨져도 나누기 0은 없다');
+});
+
+test('wearBin: 닳은 자리 — 최근 4주 중 한 날 수의 절대 구간 0 · 1~2 · 3~4 · 5+(세 단)', () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 12, 28].map(R.wearBin), [0, 1, 1, 2, 2, 3, 3, 3, 3]);
+  assert.equal(R.wearBin(-1), 0);
+  assert.equal(R.wearBin(NaN), 0);
+  assert.deepEqual([...R.WEAR_BIN_LABELS], ['1', '3', '5+']);
+  // 예전 dayBin · DAY_BIN_LABELS(1 · 2 · 3 · 5+)는 쓰는 곳이 없어 지웠다
+  assert.equal(R.dayBin, undefined);
+  assert.equal(R.DAY_BIN_LABELS, undefined);
 });
 
 test('cellActivity: 최근 28일(오늘 포함) 칸별로 기록이 있던 날 수, 칸 자리 키만', () => {

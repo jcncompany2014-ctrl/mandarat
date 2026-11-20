@@ -1,7 +1,6 @@
 // 'home' namespace — Home (the notebook's today page), and the Home strings of lib/home and lib/a11y (X-H).
 import type ko from '../ko/home';
 import type { Like } from '../types';
-import { tsu } from './counter';
 
 export default {
   settings: '設定',
@@ -30,10 +29,10 @@ export default {
   todayTitle: '今日やること',
   seeAll: 'すべて見る',
   openToday: '「今日」を開く',
-  todayHeadLabel: ({ total, done }) => `今日やること${tsu(total)}のうち${tsu(done)}できました。「今日」を開く`,
+  todayHeadLabel: ({ total, done }) => `今日やること${total}件のうち${done}件できました。「今日」を開く`,
   pickMore: '行動からもっと選ぶ',
-  addToday: '今日やることを入れる',
-  closeLabel: ({ day, n }) => `${day}、締めました。今日やること${tsu(n)}が全部できました`,
+  addToday: '今日やることを追加',
+  closeLabel: ({ day, n }) => `${day}、締めました。今日やること${n}件が全部できました`,
 
   weekTitle: '今週',
   weekDay: ({ day, n }) => `${day} ${n}回`,
@@ -64,9 +63,11 @@ export default {
   sumDone: ({ n }) => `64マス中${n}マス達成。`,
   sumNone: '今日やることはまだありません。',
   sumAllDone: '今日やることは全部できました。',
-  sumLeft: ({ n }) => `今日やることは残り${tsu(n)}です。`,
+  sumLeft: ({ n }) => `今日やることは残り${n}件です。`,
   todayNone: '今日やることはまだありません',
-  todayAll: ({ total }) => `今日やること${tsu(total)}が全部できました`,
-  todayOf: ({ total, done }) => `今日やること${tsu(total)}のうち${tsu(done)}できました`,
+  todayAll: ({ total }) => `今日やること${total}件が全部できました`,
+  todayOf: ({ total, done }) => `今日やること${total}件のうち${done}件できました`,
 
+  heroLeftIn: ({ y }) => `${y}年の残り`,
+  leftSayIn: ({ y, n }) => `${y}年あと${n}日`,
 } satisfies Like<typeof ko>;

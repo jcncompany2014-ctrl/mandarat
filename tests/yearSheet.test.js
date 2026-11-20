@@ -63,8 +63,8 @@ test('YearShelf: 늘 보이고(무료), 열 수 있으면 지난 표 한 장 · 
   assert.doesNotMatch(s, /useEffect/);
   assert.match(s, /onPress=\{\(\) => \{ tap\(\); onPick\(a\.id\); \}\}/);
   assert.match(s, /testID=\{TID\.yearShelfRow\(a\.id\)\}/);
-  // 디자인 A(S4): 줄 왼쪽은 작은 색 지도(L1, 56pt) — 줄이 많아도 첫 화면 다음 프레임에
-  assert.match(s, /<ColourMap themes=\{a\.themes\} level="L1" width=\{MINI\} defer \/>/);
+  // 디자인 A(S4): 줄 왼쪽은 작은 색 지도(L1, 56pt) — 줄이 많아도 가볍게, 그림 한 장(MapThumb: 색마다 길 하나)
+  assert.match(s, /<MapThumb themes=\{a\.themes\} width=\{MINI\} \/>/);
   assert.match(s, /const MINI = 56;/);
   assert.match(s, /m\.year\.shelfLine\(\{ n: posterDone\(a\), days: recordDays\(a\) \}\)/);
   assert.match(s, /useDoc\(\)/);
@@ -110,7 +110,7 @@ test('세 언어 — V4-B 글', () => {
     assert.match(y.sheetSpeech({ label: 'L', goal: '', n: 5 }), /5/);
   }
   assert.equal(msg('ko').year.shelfLine({ n: 24, days: 120 }), '64칸 중 24칸 달성 · 120일 기록');
-  assert.equal(msg('en').year.shelfLine({ n: 1, days: 1 }), '1 of 64 squares achieved · 1 day recorded');
+  assert.equal(msg('en').year.shelfLine({ n: 1, days: 1 }), '1 of 64 squares achieved · 1 active day');
 });
 
 test('디자인: 둥근 카드 · 그림자 · 그라데이션 · 이모지 · 도장이 없다', () => {

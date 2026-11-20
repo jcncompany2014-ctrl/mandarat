@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 월 N회 습관 · 칸 편집 · 월 2회 독서 모임</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/month-parts.css">
+</head>
+<body>
+<!-- 칸 편집, 빈 칸에 '월 2회 독서 모임'을 막 적은 때. 글을 보고 습관 · 월 N회 · 2가 골라져 있다.
+     반복의 분절 선택기가 둘(요일마다 · 횟수로)에서 셋(요일마다 · 주 N회 · 월 N회)이 되고,
+     그 아래는 주 N회와 같은 받침의 − 월 2회 +(1~8). 나머지는 지금 편집 창 그대로. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body"><div id="block"></div></div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/month-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  // the cell is still empty in the record: the words are in the field, not saved yet
+  const d = MO.withMonthly(doc, { text: '', kind: undefined });
+  MO.behindBlock(d, MO.AREA, { focus: 3 });
+
+  const text = MO.TEXT;
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(d, MO.AREA, MO.INDEX)}
+
+    <div class="s-field">
+      <div class="s-field-text">${text}</div>
+      <span class="t-label s-field-count">${[...text].length}/60</span>
+    </div>
+    <span class="t-note">언제·어디서를 쓰면 실천하기 쉬워요</span>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">유형</span></div>
+      ${S.segment(['한 번', '습관', '쌓기', '마음가짐'], '습관')}
+      <span class="t-note">글을 보고 골랐어요 · 매달 마지막 주에 ‘오늘’에 담겨요</span>
+    </section>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">반복</span><span class="s-quiets"><span class="s-quiet">매일</span><span class="s-quiet">평일</span><span class="s-quiet">주말</span></span></div>
+      ${S.segment(['요일마다', '주 N회', '월 N회'], '월 N회')}
+      <div style="height:12px"></div>
+      ${MO.stepper('월 2회')}
+    </section>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">알림</span></div>
+      <div class="a-list">
+        ${S.choice({ title: '없음', on: true })}
+        ${S.choice({ title: '시각 정하기' })}
+      </div>
+    </section>
+
+    <div class="s-foot">
+      <span class="s-quiet">저장</span>
+      <div class="a-btn">저장하고 다음 칸</div>
+    </div>`;
+});
+</script>
+</body>
+</html>

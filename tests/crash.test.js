@@ -1,5 +1,6 @@
 // 오류 수집 — 1.0은 Sentry를 빼고 낸다(owner 결정 2026-11). 앱 곳곳이 부르는 crash 자리는 남기되 아무것도 보내지 않고,
 // Sentry SDK · 빌드 단계 · 설정 줄 · 수집 항목이 하나도 남지 않았는지 본다. 다시 켤 때는 이 파일도 V4-F 판으로 되돌린다.
+// crash 자리가 알린 것은 이 기기에만 남는 기록(src/lib/crashLog.ts)으로 간다 — 그 기록의 검사는 tests/crashLog.test.js.
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -11,20 +12,30 @@ const src = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 /** 주석을 뺀 소스 */
 const code = (f) => src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-test('crash 자리는 모든 플랫폼에서 아무것도 하지 않는다(기기 판 crash.native.ts가 없다)', () => {
+test('crash 자리는 모든 플랫폼에서 아무것도 보내지 않는다(기기 판 crash.native.ts가 없다) — 알린 것은 이 기기의 기록에만 남긴다', () => {
   assert.equal(fs.existsSync(path.join(ROOT, 'src/lib/crash.native.ts')), false);
   const { crash } = require('../src/lib/crash');
+  const log = require('../src/lib/crashLog');
+  log.resetLogForTest();
   const root = () => null;
   assert.equal(crash.wrap(root), root);
   for (const k of ['init', 'report', 'crumb', 'tag', 'setEnabled', 'qaNativeCrash']) assert.equal(typeof crash[k], 'function', k);
   assert.doesNotThrow(() => {
     crash.init();
-    crash.report(new Error('x'), { where: 'test' });
     crash.crumb('c', 'm');
     crash.tag('k', 'v');
+    crash.report(new Error('x'), { where: 'test' });
     crash.setEnabled(false);
+    crash.qaNativeCrash();
   });
   assert.match(code('src/lib/crash.ts'), /satisfies CrashApi/);
+  // 알린 오류 · 부스러기 · 태그는 기기의 기록으로
+  const [e] = log.logEntries();
+  assert.deepEqual([e.name, e.msg, e.where, e.crumbs, e.tags], ['Error', 'x', 'test', ['c:m'], 'k=v']);
+  // crash.ts는 기록기만 부른다 — SDK도 통신도 없다
+  const imports = [...code('src/lib/crash.ts').matchAll(/from '([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(imports, ['./contracts', './crashLog']);
+  assert.deepEqual([...code('src/lib/crashLog.ts').matchAll(/from '([^']+)'/g)].map((m) => m[1]), ['../../app.json']);
 });
 
 test('Sentry가 어디에도 없다 — 의존성 · 앱 설정 · metro · 빌드 프로필 · 앱 코드', () => {

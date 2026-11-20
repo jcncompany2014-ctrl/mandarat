@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 쌓기 칸에 원하는 만큼 더하기 · 시트</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/tool-parts.css">
+</head>
+<body>
+<!-- (a) 쌓기 시트. 지금 앱 그대로(빼기 · '1권 더하기' · 지금까지 · 막대 · 줄 셋 · 메모)에 한 가지만 더했다:
+     숫자 줄 끝의 누르는 글 '직접 적기 ›'. 숫자 줄 전체가 누르는 자리이고, 누르면 tool-count-amount. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body"><div id="block"></div></div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/tool-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const AREA = 2, INDEX = 0; // 자기계발 · 책 12권 읽기
+  const act = doc.areas[AREA].actions[INDEX];
+  // the record behind the demo: 7 of 12 so far, one at a time (the app's own state for this cell)
+  const c = { count: 7, goal: 12, unit: '권', step: 1, week: 0 };
+
+  T.behindBlock(doc, AREA, { focus: 0 });
+
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(doc, AREA, INDEX)}
+
+    <div class="t-title is-written s-title">${act.text}</div>
+    <span class="t-meta">쌓기 · 한 번에 ${c.step}${c.unit}</span>
+
+    <div class="c-step">
+      <div class="c-minus">${T.minus(20)}</div>
+      <div class="a-btn">${c.step}${c.unit} 더하기</div>
+    </div>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">지금까지</span><span class="t-label">이번 주 +${c.week}${c.unit}</span></div>
+      <div class="s-week-say">
+        <span class="t-figure">${c.count}/${c.goal}<small>${c.unit}</small></span>
+        <span class="t-meta">${c.goal - c.count}${c.unit} 남았어요</span>
+        <span class="a-link">직접 적기${A.icon('chevron', { size: 16 })}</span>
+      </div>
+      <div class="c-bar" style="--d:var(--dye-${AREA + 1})"><i style="width:${(c.count / c.goal) * 100}%"></i></div>
+    </section>
+
+    <div class="a-list" style="margin-top:24px">
+      ${A.row(doc, { text: '오늘 할 일에 담기' })}
+      ${S.linkRow({ icon: 'focus', title: '25분 집중하기' })}
+      ${S.linkRow({ icon: 'edit', title: '칸 편집하기' })}
+    </div>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">메모</span></div>
+      ${S.memo(3, '어떻게 했는지 한 줄 남겨 두세요')}
+    </section>`;
+});
+</script>
+</body>
+</html>

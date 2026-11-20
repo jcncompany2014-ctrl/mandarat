@@ -17,7 +17,7 @@ import { usePalette, type M as Palette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
 import { useActions, useDoc } from '../store/MandaratContext';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
-import { chartRange, yearLabel, type NewChartMode } from '../lib/archive';
+import { chartRange, chartRangeLabel, yearLabel, type NewChartMode } from '../lib/archive';
 import { yearCalendar, yearDigest } from '../lib/yearReview';
 import { ARCHIVE_NOTE_MAX } from '../data/defaults';
 import { TID } from '../lib/testIds';
@@ -45,12 +45,6 @@ function modeText(m: Messages, mode: NewChartMode): { title: string; sub: string
 
 function pageTitle(m: Messages, page: Page): string {
   return page === 'review' ? m.year.pageReview : page === 'new' ? m.year.pageNew : m.year.pageStart;
-}
-
-/** 'YYYY-MM-DD' → 그날 0시 */
-function dayOf(key: string): Date {
-  const [y, mo, d] = key.split('-').map(Number);
-  return new Date(y, mo - 1, d);
 }
 
 /**
@@ -89,7 +83,7 @@ function ClosePages() {
   // 여는 순간의 기간으로 센다(돌아보는 사이 숫자가 바뀌지 않게)
   const [now] = useState(() => new Date());
   const { from, to } = useMemo(() => chartRange(doc, now), [doc, now]);
-  const range = `${yearLabel(from, to)}${m.core.dot}${m.fmt.range({ from: dayOf(from), to: dayOf(to) })}`;
+  const range = `${yearLabel(from, to)}${m.core.dot}${chartRangeLabel(from, to, false)}`;
 
   // 쪽을 넘길 때 — 오른쪽에서 살짝 밀려 들어온다(동작 줄이기에서는 그대로)
   const enter = useRef(new Animated.Value(1)).current;
@@ -231,7 +225,7 @@ function ReviewPage({ M, m, doc, from, to, note, onNote }: {
     () => yearDigest(doc, from, to, (doc.focusMinutes ?? 0) - (doc.focusStart ?? 0)),
     [doc, from, to],
   );
-  const rows = useMemo(() => yearCalendar(doc.dayLog, from, to), [doc.dayLog, from, to]);
+  const rows = useMemo(() => yearCalendar(doc.dayLog, from, to, doc.closedDays), [doc.dayLog, doc.closedDays, from, to]);
   const count = Array.from(note).length;
   const figures = [
     { key: 'days', label: m.year.statDays, value: m.fmt.days({ n: digest.days }) },
@@ -264,7 +258,7 @@ function ReviewPage({ M, m, doc, from, to, note, onNote }: {
 
       <View style={{ marginTop: GEO.sectionGap }}>
         <YearLedgerHead M={M} title={m.year.ledgerTitle} />
-        <YearLedger M={M} rows={rows} />
+        <YearLedger M={M} rows={rows} width={Math.max(0, width - GEO.gutter * 2)} />
       </View>
 
       <View style={{ marginTop: GEO.sectionGap }}>

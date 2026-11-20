@@ -66,13 +66,13 @@ export default {
   /** 안드로이드 · 웹 — 이 기기에만 */
   storageNoteLocal: '기록은 이 기기에 저장돼요. 기기를 바꾸기 전에 백업을 내보내 두세요.',
   storagePlaceLocal: '이 기기',
-  /** iPhone · iPad, iCloud로 맞추기 꺼짐 — iCloud 기기 백업 */
+  /** iPhone · iPad, iCloud 동기화 꺼짐 — iCloud 기기 백업 */
   storageNoteBackup: ({ device }: { device: string }) =>
     `기록은 ${thisDevice(device)} iCloud 백업에 저장돼요. iCloud 백업을 꺼 두었다면 기기를 바꾸기 전에 백업을 내보내 두세요.`,
   storagePlaceBackup: ({ device }: { device: string }) => `${thisDevice(device)} iCloud 백업`,
-  /** iPhone · iPad, iCloud로 맞추기 켜짐 */
+  /** iPhone · iPad, iCloud 동기화 켜짐 */
   storageNoteSync: ({ device }: { device: string }) =>
-    `기록은 ${thisDevice(device)} iCloud에 저장되고, 같은 Apple 계정의 iPhone·iPad끼리 맞춰요. 안드로이드나 웹으로 옮길 때는 백업을 내보내 두세요.`,
+    `기록은 ${thisDevice(device)} iCloud에 저장되고, 같은 Apple 계정의 iPhone·iPad끼리 동기화해요. 다른 기기로 옮길 때는 백업을 내보내 두세요.`,
   storagePlaceSync: ({ device }: { device: string }) => `${thisDevice(device)} iCloud`,
 
   // ── 기록 › 새로 시작 ──
@@ -92,17 +92,18 @@ export default {
   sampleAskOk: '채우기',
   sampleDone: '예시로 채웠어요',
   resetRow: '전체 초기화',
-  resetRowSub: '모든 목표와 기록을 지워요',
-  resetAskTitle: '모든 기록을 지울까요?',
-  resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.',
+  /** 지우는 것은 지금 쓰는 표와 그 기록 — 지난 표 보관함 · 저장본 · 설정은 남는다(archive.resetDoc) */
+  resetRowSub: '지금 쓰는 표와 기록을 지워요',
+  resetAskTitle: '지금 쓰는 표와 기록을 지울까요?',
+  resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 지워져요. 지난 표 보관함과 저장본은 남아요. 지운 직후에는 되돌릴 수 있어요.',
   resetAskOk: '지우기',
-  resetDone: '모든 기록을 지웠어요',
+  resetDone: '지금 쓰는 표와 기록을 지웠어요',
 
   // ── 정보(판권면) ──
   secInfo: '정보',
   colName: '이름',
   appName: '만다라트',
-  colVersion: '판',
+  colVersion: '버전',
   colFont: '서체',
   /** 판권 줄의 서체 값 — 글꼴 이름과 라이선스 */
   colFontValue: 'Pretendard · SIL OFL 1.1',
@@ -114,7 +115,11 @@ export default {
   licensesBody: '이 앱은 아래 오픈소스를 쓰고 있어요.',
   /** LICENSES의 Lucide 줄 이름 — 다른 이름은 고유 이름이라 그대로 */
   licLucide: 'Lucide 아이콘 도형',
-  /** 문의 메일 제목 — version은 app.json의 판 */
+  /** 문의 메일 제목 — version은 app.json의 버전 */
   mailSubject: ({ version }: { version: string }) => `만다라트 문의 ${version}`,
   openFail: '열 수 없어요',
+  /** 문의 메일 본문 — 이 기기에 남은 오류 기록(lib/crashLog)을 붙일 때 그 위에 적는 한 줄 */
+  mailLogHead: '아래는 이 기기에 남은 오류 기록이에요. 지우고 보내도 괜찮아요.',
+  /** 전체 초기화 확인 글에 덧붙이는 한 문장 — iCloud 동기화가 켜져 있을 때만(다른 기기도 이 초기화를 따른다) */
+  resetAskSync: 'iCloud 동기화를 켜 두어서, 같은 Apple 계정의 다른 기기에서도 지워져요.',
 } satisfies Namespace;

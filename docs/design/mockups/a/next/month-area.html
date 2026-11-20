@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 월 N회 습관 · 만다라트 · 관계</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/month-parts.css">
+<style>
+  /* block.html: the pager */
+  .pager { display: flex; align-items: center; justify-content: space-between; height: 44px; margin-top: 6px; }
+  .pager .a-link { font-size: 14px; height: 44px; }
+  .pager .a-link.is-prev svg { margin-left: -6px; margin-right: 0; }
+  .pager-where { display: flex; align-items: center; gap: 8px; }
+  .sec + .sec { margin-top: 24px; }
+</style>
+</head>
+<body>
+<!-- 영역 화면(관계). '이번 주 습관'은 앱이 지금 그리는 두 줄 모양(이름이 제 줄, 그 아래 요일 칸 일곱과 횟수).
+     그 아래에 새 묶음 '이번 달 습관' · 남은 날 18일: 월 N회 습관이 한 줄씩(이름 · 이번 달 횟수). 누르면 그 습관의 시트.
+     블록 안의 칸에는 '이번 주 0/3' 자리에 '이번 달 1/2'. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body">
+    <div id="block"></div>
+
+    <div class="pager">
+      <span class="a-link is-prev" id="prev"></span>
+      <span class="pager-where" id="where"></span>
+      <span class="a-link" id="next"></span>
+    </div>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label is-section">이번 주 습관</span><span class="t-label">10월 12일 – 18일</span></div>
+      <div id="wk"></div>
+    </section>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label is-section">이번 달 습관</span><span class="t-label">남은 날 18일</span></div>
+      <div id="mo"></div>
+    </section>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/month-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = MO.withMonthly(doc);
+  const AREA = MO.AREA;
+  const area = d.areas[AREA];
+  const v = d.view;
+
+  MO.behindBlock(d, AREA, {});
+
+  // pager (block.html)
+  const prev = d.areas[(AREA + 7) % 8], next = d.areas[(AREA + 1) % 8];
+  document.querySelector('#prev').innerHTML = `${A.icon('back', { size: 16 })}${prev.title}`;
+  document.querySelector('#next').innerHTML = `${next.title}${A.icon('chevron', { size: 16 })}`;
+  const u = 6, gap = 2;
+  let m = '';
+  for (let b = 0; b < 9; b++) {
+    const x = (b % 3) * (u + gap), y = Math.floor(b / 3) * (u + gap);
+    const fill = b === 4 ? 'var(--core)' : b === (AREA < 4 ? AREA : AREA + 1) ? `var(--dye-${AREA + 1})` : 'var(--print-rule)';
+    m += `<rect x="${x}" y="${y}" width="${u}" height="${u}" rx="1.5" style="fill:${fill}"/>`;
+  }
+  document.querySelector('#where').innerHTML = `<svg width="22" height="22" viewBox="0 0 22 22" style="display:block" aria-hidden="true">${m}</svg><span class="t-label">${AREA + 1} / 8</span>`;
+
+  // 이번 주 습관, two-line rows (the app's HabitWeek today). A 주 N회 habit has one box, today's.
+  const days = v.week.days;
+  const weekOf = { '부모님 주 1통화': '··T····' };
+  const mark = (c) => (c === 'v' ? A.check({ done: true, area: AREA, size: 14 }) : c === 'T' || c === 'x' || c === 'o' ? A.check({ size: 14 }) : '');
+  const dayCls = (dd) => `hw-day${dd[2] === 'today' ? ' is-today' : ''}${dd[0] === '일' ? ' is-sunday' : ''}`;
+  let html = `<div class="hw-head">${days.map((dd) => `<span class="${dayCls(dd)}"><span class="t-label">${dd[0]}</span></span>`).join('')}<span class="hw-fig"><span class="t-label">횟수</span></span></div>`;
+  area.actions.filter((a) => a.kind === 'habit' && !a.perMonth).forEach((a) => {
+    const s = weekOf[a.text];
+    html += `<div class="hw-row"><div class="hw-name">${a.text}</div><div class="hw-days">${[...s].map((c, i) => `<span class="${dayCls(days[i])}">${mark(c)}</span>`).join('')}<span class="hw-fig">0/${a.perWeek}</span></div></div>`;
+  });
+  document.querySelector('#wk').innerHTML = html;
+
+  // NEW: 이번 달 습관
+  document.querySelector('#mo').innerHTML = area.actions.filter((a) => a.perMonth).map((a) =>
+    `<div class="hm-row"><span class="hw-name">${a.text}</span><span class="hw-fig">${a.monthDone}/${a.perMonth}</span></div>`).join('');
+});
+</script>
+</body>
+</html>

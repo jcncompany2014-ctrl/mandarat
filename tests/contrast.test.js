@@ -26,8 +26,7 @@ test('앱 팔레트: 먹 · 보조 글씨(ink · ink2)와 인쇄 글씨(print ·
     for (const key of ['ink', 'ink2', 'print', 'printStrong']) {
       for (const [g, bg] of [...grounds(M), ['tile', M.tile]]) {
         const c = contrast(M[key], bg);
-        // 인쇄 글씨(print)는 종이 위 글씨 — 칸(tile) 위에는 ink2를 쓴다(밝게 print/tile 4.41)
-        if (key === 'print' && g === 'tile' && !M.dark) continue;
+        // 칸(tile) 위에도 print를 쓴다 — 입력 칸의 자리 글 · 글자 수(kit/Field), 처음 화면의 권하는 글(BlockGrid)
         assert.ok(c >= 4.5, `${name} ${key} ${M[key]} on ${g} ${bg}: ${fmt(c)}`);
       }
     }

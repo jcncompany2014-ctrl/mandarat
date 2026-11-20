@@ -126,7 +126,7 @@ test('영역 화면(AreaPage): 칸은 TID.gridCell, 누르면 시트 · 길게 �
   assert.match(p, /openAction\(ti, ai\);\s*else openEditor\(\{ kind: 'action', ti, ai \}\);/);
   assert.match(p, /const onCellLong = useCallback\(\(ai: number\) => openEditor\(\{ kind: 'action', ti, ai \}\)/);
   assert.match(p, /toggleHabitOn\(ti, ai, date\)/);
-  assert.match(p, /<HabitWeek M=\{M\} ti=\{ti\} week=\{week\} onToggle=\{onHabit\} \/>/);
+  assert.match(p, /<HabitWeek M=\{M\} ti=\{ti\} week=\{week\} onToggle=\{onHabit\} onOpen=\{onCell\} \/>/);
   // ··· 시트: 영역 이름 고치기(테마 편집 창) — 시트가 내려간 뒤에 연다
   assert.match(p, /afterOverlays\(fn\);\s*dismiss\(true\);/);
   assert.match(p, /openEditor\(\{ kind: 'theme', ti \}\)/);
@@ -134,7 +134,8 @@ test('영역 화면(AreaPage): 칸은 TID.gridCell, 누르면 시트 · 길게 �
   assert.match(h, /accessibilityRole="checkbox"/);
   assert.match(h, /accessibilityState=\{\{ checked: done \}\}/);
   assert.match(h, /size=\{HABIT_WEEK\.box\}/);
-  assert.match(h, /col: 30, fig: 40, head: 26, row: 40, todayRadius: 8, box: 14/);
+  // 줄은 두 줄(이름 · 요일 칸) — 요일 칸은 폭 40 이상 · 높이 44로 누른다(예전 30 × 40)
+  assert.match(h, /col: 40, colMax: 48, fig: 40, head: 26, row: 44, top: 12, lift: 6, todayW: 32, todayInset: 6, todayRadius: 8, box: 14,/);
 });
 
 test('편집 창이 열려 있으면 고치는 칸에 먹 테두리 — 지도 · 크게 본 블록 · 가운데 블록(목업 editor.png)', () => {

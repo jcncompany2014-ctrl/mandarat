@@ -5,10 +5,10 @@ import { plural } from './plural';
 
 export default {
   viewsLabel: 'View',
-  listTitle: "Today's list",
-  closeTitle: "That's it for today.",
+  listTitle: 'Today’s list',
+  closeTitle: 'That’s it for today.',
   closeAll: ({ n }) => (n === 1 ? 'The one thing is done' : `All ${n} done`),
-  closeAt: ({ time }) => `closed at ${time}`,
+  closeAt: ({ time }) => `Closed at ${time}`,
   foldTitle: ({ names, n }) => (n > 0 ? `${names} + ${n} more` : names),
   foldLabel: ({ n, title }) => (n === 1
     ? `The one thing on Today is done. ${title}`
@@ -27,16 +27,16 @@ export default {
   collapse: 'Hide',
   pickHint: 'Choose what to do today from the actions on your chart',
 
-  emptyFill: 'Fill in squares on your chart and they show up here',
+  emptyFill: 'Fill in squares on your chart, then pick the ones for today here',
   fillChart: 'Fill in the chart',
-  emptyPick: 'Nothing added to Today yet',
+  emptyPick: 'What will you do first today?',
   pickFromActions: 'Pick from your actions',
   emptyAllIn: 'Everything is already on Today',
 
   closeLeft: ({ day }) => `${day} · closed`,
   closeSpeech: ({ day, n }) => (n === 1
-    ? `${day}, day closed. You did the one thing on Today's list`
-    : `${day}, day closed. You did all ${n} ${plural(n, 'item', 'items')} on Today's list`),
+    ? `${day}, day closed. You did the one thing on Today’s list`
+    : `${day}, day closed. You did all ${n} ${plural(n, 'item', 'items')} on Today’s list`),
 
   moodTitle: 'Mood today',
   lineTitle: 'One line',
@@ -44,7 +44,7 @@ export default {
 
   mindTitle: 'Mindset this week',
   mindProgress: ({ total, done }) => `${done} of ${total} rated`,
-  mindIntro: 'Rate from 1 to 5 how well you kept each one this week',
+  mindIntro: 'Rate from 1 to 5 how well you stuck to each one this week',
   rateLastWeek: "Rate last week",
   rateLastWeekHint: 'Opens the Weekly review',
   mindRateLabel: ({ text }) => `${text}, score this week`,
@@ -67,7 +67,7 @@ export default {
   streakNone: 'No streak going yet. Do one today to start',
   weekCount: ({ total, done }) => `${done} of ${total} this week`,
   doneToday: 'Done today',
-  undoDone: 'Clear Done',
+  undoDone: 'Mark not done',
   markDone: 'Mark done',
 
   colTodo: 'To do',
@@ -75,7 +75,7 @@ export default {
   colDone: 'Done',
   columnHead: ({ label, n }) => `${label}, ${n}`,
   boardHint: 'Tap a card to move it to the next step',
-  boardEmpty: "Today's list shows up here as cards",
+  boardEmpty: 'Today’s list shows up here as cards',
   boardEmptySub: 'Habits show up here on their days',
   writeTodo: 'Write a to-do',
   emptyColumn: 'Empty',
@@ -90,7 +90,7 @@ export default {
   cardFinish: 'Finish',
 
   quickTitle: 'Add to Today',
-  quickField: "Today's to-do",
+  quickField: 'Today’s to-do',
   quickPlaceholder: 'e.g. Send in the forms',
   quickCount: ({ n, max }) => `${n} of ${max} characters`,
   quickAreaAsk: 'Which area is it for?',
@@ -109,17 +109,17 @@ export default {
   pickNoneLeft: 'No actions left to pick',
   pickNoneFilled: 'No actions filled in yet',
   pickSectionLabel: ({ name, n }) => `${name}, ${n} for today`,
-  pickSectionCount: ({ n }) => `Today ${n}`,
-  autoLine: ({ n, names }) => `Added automatically ${n} · ${names}`,
+  pickSectionCount: ({ n }) => `${n} today`,
+  autoLine: ({ n, names }) => `${n} added automatically · ${names}`,
   autoMore: ({ n }) => ` + ${n} more`,
   listSep: ', ',
   autoLineLabel: ({ line }) => `${line}. Already on Today because they repeat or are due`,
-  weekFocus: "This week's focus",
+  weekFocus: 'This week’s focus',
   weekFocusMark: 'Focus',
 
   whyOverdue: 'Already on Today because it is past due',
   whyDueSoon: 'Already on Today because it is due soon',
-  whyWeekLeft: ({ n }) => `Already on Today with ${n} more ${plural(n, 'time', 'times')} to go this week`,
+  whyWeekLeft: ({ n }) => `Already on Today because ${n} ${plural(n, 'is', 'are')} left this week`,
   whyWeekDone: ({ n }) => `Done all ${n} for this week today`,
   whyRepeat: 'Already on Today because it repeats today',
 

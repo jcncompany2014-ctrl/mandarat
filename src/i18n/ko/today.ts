@@ -16,8 +16,8 @@ export default {
   closeTitle: '오늘은 여기까지예요.',
   /** '열 가지를 모두 했어요' */
   closeAll: ({ n }: { n: number }) => (n === 1 ? '한 가지를 했어요' : `${kindsOf(n)}가지를 모두 했어요`),
-  /** '오후 9:40 마감'(time은 fmt.time) */
-  closeAt: ({ time }: { time: string }) => `${time} 마감`,
+  /** '오후 9:40에 하루 마감'(time은 fmt.time) */
+  closeAt: ({ time }: { time: string }) => `${time}에 하루 마감`,
   /** 접은 목록 한 줄 — '이력서 갱신, 주 3회 운동 외 8개'(names는 listSep으로 이은 앞 두 줄) */
   foldTitle: ({ names, n }: { names: string; n: number }) => (n > 0 ? `${names} 외 ${n}개` : names),
   /** 접은 목록 한 줄의 화면 읽기 */
@@ -44,15 +44,15 @@ export default {
   pickHint: '만다라트 실천에서 오늘 할 일을 골라요',
 
   // ── 빈 목록 ──
-  emptyFill: '만다라트 칸을 채우면 여기 담겨요',
+  emptyFill: '만다라트 칸을 채우면 여기서 골라 담을 수 있어요',
   fillChart: '만다라트 채우기',
-  emptyPick: '오늘 할 일을 아직 담지 않았어요',
+  emptyPick: '오늘은 무엇부터 할까요?',
   pickFromActions: '실천에서 고르기',
   emptyAllIn: '오늘 할 일을 다 담았어요',
 
   // ── 하루 마감(day는 fmt.dateLong) ──
-  closeLeft: ({ day }: { day: string }) => `${day} 마감`,
-  closeSpeech: ({ day, n }: { day: string; n: number }) => `${day} 마감, 오늘 할 일 ${n}개를 다 했어요`,
+  closeLeft: ({ day }: { day: string }) => `${day} 하루 마감`,
+  closeSpeech: ({ day, n }: { day: string; n: number }) => `${day} 하루 마감, 오늘 할 일 ${n}개를 다 했어요`,
 
   // ── 모든 보기 아래 ──
   moodTitle: '오늘 기분',
@@ -129,7 +129,7 @@ export default {
   quickAreaAsk: '어느 영역의 일인가요?',
   quickAdded: '오늘 할 일에 담았어요',
   quickSubmit: '오늘 할 일에 담기',
-  quickWriteCell: ({ area }: { area: string }) => `${area} 빈 칸에 적기`,
+  quickWriteCell: ({ area }: { area: string }) => `${area} 빈칸에 적기`,
   /** n은 1부터 */
   quickWriteCellHint: ({ area, n }: { area: string; n: number }) => `만다라트 ${area} 영역의 ${n}번 칸에 적어요`,
   quickWroteCell: ({ area, n }: { area: string; n: number }) => `${area} ${n}번 칸에 적었어요`,

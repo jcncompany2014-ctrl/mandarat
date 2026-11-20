@@ -18,15 +18,15 @@ export default {
   pickFile: '백업 파일 고르기',
   pickOther: '다른 백업 파일 고르기',
   pickSub: '저장해 둔 백업 파일(.json)',
-  pasteHelp: '메모나 메신저에 보관한 백업 글은 길게 눌러 전체 선택 → 복사한 뒤 여기에 붙여 넣어요',
-  pasteLabel: '백업 글 붙여 넣기',
-  pastePlaceholder: '백업 글 전체를 붙여 넣기',
-  /** 파일에서 읽었을 때 붙여 넣기 칸 자리의 줄 */
+  pasteHelp: '메모나 메신저에 보관한 백업 글은 길게 눌러 전체 선택 → 복사한 뒤 여기에 붙여넣어요',
+  pasteLabel: '백업 글 붙여넣기',
+  pastePlaceholder: '백업 글 전체를 붙여넣기',
+  /** 파일에서 읽었을 때 붙여넣기 칸 자리의 줄 */
   fromFile: '파일에서 읽었어요',
   fromFileSay: ({ name }: { name: string }) => `파일에서 읽었어요, ${name}`,
-  toPaste: '붙여 넣기로',
-  toPasteLabel: '붙여 넣기로 바꾸기',
-  toPasteHint: '파일 대신 백업 글을 붙여 넣어요',
+  toPaste: '붙여넣기로',
+  toPasteLabel: '붙여넣기로 바꾸기',
+  toPasteHint: '파일 대신 백업 글을 붙여넣어요',
   /** 아래 주 버튼 */
   apply: '이 백업으로 바꾸기',
   /** 바꾼 뒤 되돌리기 토스트 */
@@ -57,5 +57,5 @@ export default {
   ageDays: ({ n }: { n: number }) => `마지막 백업 · ${n}일 전`,
 
   /** 글로 보내는 백업의 머리말 — 중괄호 없이(불러오기는 첫 '{'부터 읽는다) */
-  textPrefix: ({ d, y }: { d: Date; y: number }) => `만다라트 백업 · ${fmt.year({ y })} ${fmt.monthDay({ d })}\n설정 › 백업 불러오기에 이 글 전체를 붙여 넣으면 돼요.\n\n`,
+  textPrefix: ({ d, y }: { d: Date; y: number }) => `만다라트 백업 · ${fmt.year({ y })} ${fmt.monthDay({ d })}\n설정 › 백업 불러오기에 이 글 전체를 붙여넣으면 돼요.\n\n`,
 } satisfies Namespace;

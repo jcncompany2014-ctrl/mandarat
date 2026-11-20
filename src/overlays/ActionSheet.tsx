@@ -16,7 +16,7 @@ import { autoToday, doneOn, kindOf, perWeekOf, routineWeek, routineWeekCount, sc
 import { RATING_TEXT, configOf, countInfo, countWeekAdded, dueInfo, fmtNum, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { weekDayActionLabel, weekDayLabel, weekStripSummary, weekdayIndex } from '../lib/marks';
 import { whyAuto } from '../lib/pick';
-import { fmtDateLong, fmtDue, fmtRange, noOrphan } from '../lib/text';
+import { fmtDateLong, fmtRange, noOrphan } from '../lib/text';
 import { countNowSpeech, dueSpeech, weekCountSpeech } from '../lib/sheetSpeech';
 import { announce } from '../lib/useReducedMotion';
 import {
@@ -398,10 +398,11 @@ function OnceBlock({ M, a, ti, ai }: BlockProps & { a: Action }) {
       {due && (
         <Group M={M} label={m.sheet.due}>
           <Text
+            // 묶음 이름이 이미 '마감'이라 보이는 줄에는 날짜와 남은 날만 적는다(읽는 말은 '마감'까지)
             style={[ROLE.body, NUM, { color: M.ink }]}
             accessibilityLabel={a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)}, ${dueSpeech(due.days)}`}
           >
-            {a.done ? m.sheet.dueOn({ date: fmtDateLong(due.date) }) : `${fmtDateLong(due.date)}${m.core.dot}${fmtDue(due.days, 'long')}`}
+            {a.done ? fmtDateLong(due.date) : `${fmtDateLong(due.date)}${m.core.dot}${m.sheet.dueIn({ days: due.days })}`}
           </Text>
           {late && (
             <View style={{ flexDirection: 'row', gap: QUIETS_GAP }}>

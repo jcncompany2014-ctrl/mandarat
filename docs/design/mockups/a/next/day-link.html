@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 오늘 — 목록 아래 ‘오늘은 여기까지 하기’</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/day-parts.css">
+</head>
+<body>
+<!-- 오늘, 10월 14일 수요일 저녁, 7/10, scrolled to where the list ends. Under 실천에서 더 고르기 one
+     written line ends the day as it stands. Screens and data: day-parts.js. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-focus-dayclose.js"></script>
+<script src="/docs/design/mockups/a/next/day-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  D.todayEnd(document.querySelector('#page'), D.scene(base, 'eve'), { link: true });
+});
+</script>
+</body>
+</html>

@@ -62,7 +62,18 @@ function extractLayout(code = transformLayoutModule()) {
   return module.exports.TodayLayout;
 }
 
-/** 위젯 런타임과 같은 전역을 둔 vm — render(props, env) · press(props, env, target) */
+const DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+/** 그 칸이 보이기 시작한 때(env.date) — 따로 주지 않으면 칸의 날(props.day) 09:30, 날이 없으면 2026-10-14 09:30 */
+function entryDate(props) {
+  const m = props && typeof props.day === 'string' ? DAY.exec(props.day) : null;
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 9, 30) : new Date(2026, 9, 14, 9, 30);
+}
+
+/**
+ * 위젯 런타임과 같은 전역을 둔 vm — render(props, env, now) · press(props, env, target, now).
+ * now: 위젯 쪽의 지금(Date 또는 ms). 모습은 지금을 new Date() · Date.now()로 읽는다(env.date는 지금이 아니라 그 칸의 시각이다) —
+ * 주지 않으면 그 칸의 시각(env.date): 칸이 제때 보이는 중. 앱을 오래 열지 않은 날은 now를 뒤로 준다.
+ */
 function widgetRuntime(layout) {
   const mods = modifierNames();
   const g = { console: { log() {}, warn() {}, error() {} } };
@@ -97,11 +108,25 @@ function widgetRuntime(layout) {
   };
   Object.assign(g, { _jsx: jsx, _jsxs: jsx, jsx, jsxs: jsx, jsxDEV: jsx, _jsxDEV: jsx, Fragment: 'react.fragment', _Fragment: 'react.fragment' });
   const ctx = vm.createContext(g);
+  // vm 안의 시계만 정해 둔다 — 인자 없는 new Date()와 Date.now()가 정해 둔 때를 준다(인자가 있으면 그대로)
+  const setClock = vm.runInContext(`(function () {
+    var Real = Date;
+    var at = null;
+    Date = class extends Real {
+      constructor(...a) { if (a.length === 0 && at !== null) super(at); else super(...a); }
+      static now() { return at === null ? Real.now() : at; }
+    };
+    return function (ms) { at = ms; };
+  })()`, ctx);
   const fn = vm.runInContext(`(${layout})`, ctx);
-  const env = (e) => ({ date: new Date(2026, 9, 14, 9, 30), widgetFamily: 'systemSmall', colorScheme: 'light', widgetRenderingMode: 'fullColor', ...(e || {}) });
-  const render = (props, e) => fn(props, env(e));
-  /** __expoWidgetHandlePress와 같다 — target이 같은 Button의 onButtonPress를 부른다 */
-  const press = (props, e, target) => {
+  const env = (e, props) => ({ date: entryDate(props), widgetFamily: 'systemSmall', colorScheme: 'light', widgetRenderingMode: 'fullColor', ...(e || {}) });
+  const render = (props, e, now) => {
+    const ev = env(e, props);
+    setClock(now === undefined ? ev.date.getTime() : Number(now));
+    return fn(props, ev);
+  };
+  /** __expoWidgetHandlePress와 같다 — 지금(now) 다시 그린 나무에서 target이 같은 Button의 onButtonPress를 부른다 */
+  const press = (props, e, target, now) => {
     const find = (node) => {
       if (Array.isArray(node)) {
         for (const c of node) {
@@ -114,7 +139,7 @@ function widgetRuntime(layout) {
       if (node.props.onButtonPress && node.props.target === target) return node.props.onButtonPress();
       return find(node.props.children);
     };
-    return find(render(props, e));
+    return find(render(props, e, now));
   };
   return { render, press, modifierNames: mods };
 }

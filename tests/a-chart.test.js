@@ -308,13 +308,51 @@ test('그리는 파일: 색은 토큰 이름으로만(hex 없음), 지도는 Svg
   const block = src('src/components/chart/BlockGrid.tsx');
   assert.match(block, /const Cell = memo\(/);
   assert.match(block, /cellLabel\(/);
-  assert.match(block, /maxFontSizeMultiplier=\{1\}/);
+  // 칸 글은 '더 큰 텍스트'를 크기 후보에서 따른다(scaledSizes, 1.3배까지) — 그린 뒤에 또 키우지 않는다
+  assert.match(block, /allowFontScaling=\{false\}/);
+  assert.doesNotMatch(block, /maxFontSizeMultiplier=\{1\}/);
   const minutes = src('src/components/chart/MinuteGrid.tsx');
   assert.match(minutes, /transformOrigin: 'bottom', transform: \[\{ scaleY: fill \}\]/);
   assert.match(minutes, /useNativeDriver: true/);
   assert.match(minutes, /overflow: 'hidden'/);
   assert.match(minutes, /useReducedMotion\(\)/);
   for (const f of ['src/components/chart/geometry.ts', 'src/lib/mapCells.ts']) assert.doesNotMatch(src(f), /from 'react-native'/, f);
+});
+
+test('대비 증가: 큰 지도(L2)의 달성 칸에 블록의 펜 체크 — 꺼져 있으면 · 표 이미지 · 빈 표 · 작은 지도는 그대로', () => {
+  const map = src('src/components/chart/ColourMap.tsx');
+  assert.match(map, /import \{ useIncreaseContrast, useReducedMotion \} from '\.\.\/\.\.\/lib\/useReducedMotion';/);
+  assert.match(map, /const more = useIncreaseContrast\(\);/);
+  // 켜져 있고, 화면의 팔레트로 그리는 L2일 때만 — 달성한 실천 칸
+  assert.match(map, /more && L2 && !tokens && !blank \? tiles\.filter\(\(t\) => t\.c\.kind === 'action' && t\.c\.state === 'done'\) : \[\]/);
+  assert.match(map, /\{shown && ticks\.map\(\(t\) => \(\s*<MapTick key=\{`t\$\{t\.c\.row\}-\$\{t\.c\.col\}`\} x=\{t\.x \+ \(t\.w - tickS\) \/ 2\} y=\{t\.y \+ \(t\.h - tickS\) \/ 2\} s=\{tickS\} t=\{tickT\} color=\{palette\.tick\} \/>/);
+  assert.match(map, /const MapTick = memo\(/);
+  // 칠은 그대로 mapFill — 올리는 것은 팔레트(tokens moreContrast)
+  assert.match(map, /bg: blank && c\.kind === 'action' \? P\.tile : mapFill\(c, P, level\)/);
+  // 체크의 모양은 블록의 펜 체크(TICK_PATH) — 세 꼭짓점은 경로의 시작과 두 곡선의 끝
+  assert.match(map, /return \[\[n\[0\], n\[1\]\], \[n\[6\], n\[7\]\], \[n\[12\], n\[13\]\]\] as const;/);
+  const n = G.TICK_PATH.match(/-?\d*\.?\d+/g).map(Number);
+  assert.equal(n.length, 14, 'M x y C … C … — 곡선 둘');
+  assert.match(G.TICK_PATH, /^M[\d.]+ [\d.]+ C(?:[\d.]+ ){5}[\d.]+ C(?:[\d.]+ ){5}[\d.]+$/);
+  const pts = [[n[0], n[1]], [n[6], n[7]], [n[12], n[13]]];
+  assert.deepEqual(pts, [[0.04, 0.52], [0.36, 0.93], [1, 0.04]]);
+  // 곧은 두 획이 곡선에서 벗어나는 만큼 — 상자 한 변의 7% 안(12pt 체크에서 0.8pt)
+  const at = (p, i, t) => { const [a, b, c, d] = [p[i], p[i + 2], p[i + 4], p[i + 6]]; const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; };
+  for (const seg of [0, 6]) {
+    const [ax, ay, bx, by] = [n[seg], n[seg + 1], n[seg + 6], n[seg + 7]];
+    const len = Math.hypot(bx - ax, by - ay);
+    for (let t = 0; t <= 1; t += 0.1) {
+      const d = Math.abs((by - ay) * (at(n, seg, t) - ax) - (bx - ax) * (at(n, seg + 1, t) - ay)) / len;
+      assert.ok(d <= 0.07, `seg ${seg} t ${t.toFixed(1)}: ${d.toFixed(3)}`);
+    }
+  }
+  // 크기: 칸의 0.36, 선은 블록 체크의 비례(13pt에 1.75)로 1.5pt 아래로 내려가지 않는다 — 327~520pt 지도에서 11~19pt
+  assert.match(map, /const MAP_TICK = 0\.36;/);
+  assert.match(map, /Math\.max\(1\.5, \(tickS \* BLOCK\.tickStroke\) \/ BLOCK\.tick\)/);
+  for (const W of [327, 342, 520]) {
+    const s = G.mapGeometry({ level: 'L2', width: W, ratio: 3 }).cells[0] * 0.36;
+    assert.ok(s >= 11 && s <= 19, `${W}: ${s.toFixed(1)}`);
+  }
 });
 
 test('예전 이름은 그대로 — GridMark(마크 heart) · MiniChart(지도 L1, 같은 props, animate = 220ms 페이드)', () => {

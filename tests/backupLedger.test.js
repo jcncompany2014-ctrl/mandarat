@@ -83,7 +83,7 @@ test('장부: ja·en에서는 이름표 · 값 · 소리 말이 그 언어로, �
   try {
     setLang('en');
     let rows = ledgerRows(now, base, today);
-    assert.deepEqual(rows.map((r) => r.label), ['Core goal', 'Filled', 'Achieved', 'Days logged', 'Last record']);
+    assert.deepEqual(rows.map((r) => r.label), ['Core goal', 'Filled', 'Achieved', 'Active days', 'Last record']);
     assert.equal(rows[0].now, 'None');
     assert.equal(require('../src/lib/backupLedger').LEDGER_NONE, 'None');
     assert.equal(rows[1].nowSay, '23 of 64 squares');

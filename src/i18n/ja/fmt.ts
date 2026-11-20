@@ -2,7 +2,6 @@
 import type ko from '../ko/fmt';
 import type { Like } from '../types';
 import { groupNum } from '../num';
-import { tsu } from './counter';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 const WEEK = [1, 2, 3, 4, 5, 6, 0];
@@ -37,7 +36,7 @@ export default {
   times: ({ n }) => `${groupNum(n)}回`,
   cells: ({ n }) => `${groupNum(n)}マス`,
   days: ({ n }) => `${groupNum(n)}日`,
-  items: ({ n }) => tsu(n),
+  items: ({ n }) => `${groupNum(n)}件`,
   count: ({ n, unit }) => `${groupNum(n)}${unit}`,
   ordinalCell: ({ n }) => `${n}番目のマス`,
   dowNarrow: ({ i }) => DOW[i] ?? '',
@@ -54,4 +53,5 @@ export default {
   },
   weekNo: ({ y, w }) => `${y}年 第${w}週`,
   daysLeftYear: ({ n }) => `今年あと${n}日`,
+  dueOver: ({ days }) => `${Math.abs(Math.round(days))}日超過`,
 } satisfies Like<typeof ko>;

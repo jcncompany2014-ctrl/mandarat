@@ -34,10 +34,12 @@ test('D-15: 설정 제목은 뒤로 가기 아래 줄(머리는 스크롤 밖에
 });
 
 test('D-20: 달성한 칸이 없으면 닳은 자리 지도에 0%를 찍지 않는다(화면 읽기 이름은 그대로)', () => {
-  // 디자인 A(S4): 이름 칸은 영역 이름만(지도와 같은 글), %는 가운데 칸 하나와 화면 읽기 이름에
+  // 디자인 A(S4): 이름 칸은 영역 이름만(지도와 같은 글). 가운데 칸의 %는 이름표 없는 숫자라 색 감사가 걷었다 —
+  // 가운데는 핵심 목표, %는 화면 읽기 이름에만(달성한 칸이 있든 없든 지도에 숫자를 찍지 않는다)
   const charts = src('src/components/StatsCharts.tsx');
-  assert.match(charts, /const blank = done === 0;/);
-  assert.equal((charts.match(/\{!blank && \(/g) ?? []).length, 1, '가운데 %');
+  assert.doesNotMatch(charts, /const blank = done === 0;|\{!blank && \(/);
+  assert.doesNotMatch(charts, />\{overall\}%</);
+  assert.match(charts, /m\.chart\.doneOf64Say\(\{ done \}\), `\$\{overall\}%`\]\.join\(m\.core\.listSep\)/);
   assert.match(charts, /accessibilityLabel=\{`\$\{name\} \$\{p\.pct\}%/);
   const stats = src('src/screens/Stats.tsx');
   assert.match(stats, /note=\{hasData \? streakCaption\(streak, todayHas, l\) : ''\}/);

@@ -8,8 +8,8 @@ export default {
   tabGrid: 'マンダラート',
   tabToday: '今日',
   tabStats: '統計',
-  tabAdd: '入れる',
-  tabAddHint: '今日やることを書いて入れます',
+  tabAdd: '追加',
+  tabAddHint: '今日やることを書いて追加します',
   todayAllDone: '今日やることがすべてできました',
   areaAllDone: ({ name, n }) => `${name ? `「${name}」` : `分野${n}`}の8マスをすべて達成しました`,
   undoable: ({ message }) => `${message}。元に戻せます`,
@@ -25,7 +25,7 @@ export default {
   crashBody: '保存した記録はそのまま残っています。\nもう一度お試しください。同じ画面がまた出る場合は、先に記録を書き出しておいてください。',
   crashExport: '記録を書き出す',
   crashExportEmpty: '保存した記録はまだありません',
-  crashExportFailed: '記録を書き出せませんでした。もう一度押してください',
+  crashExportFailed: '記録を書き出せませんでした。もう一度タップしてください',
 
   repeatDow: ({ i }) => `${fmt.dowLong({ i })}に繰り返す`,
   repeatLabel: ({ label }) => `繰り返し：${label}`,
@@ -63,4 +63,13 @@ export default {
 
   fitAll: '81マスにすべて収まります',
   fitLines: ({ max }) => `81マスでは${max}行まで表示されます`,
+
+  crashOpenSnap: ({ date }) => `${date}の自動保存で開く`,
+  crashCopyLog: 'エラーの内容をコピー',
+  crashCopied: 'エラーの内容をコピーしました',
+  crashCopyFailed: 'コピーできませんでした。もう一度タップしてください',
+  screenFailTitle: 'この画面を開けませんでした',
+  screenFailBody: '保存した記録はそのまま残っています。もう一度試すか、ほかの画面へ移動してください。',
+  screenFailHome: 'ホームへ',
+  sheetFail: 'シートを開けなかったため閉じました。記録はそのまま残っています',
 } satisfies Like<typeof ko>;

@@ -39,7 +39,7 @@ export default {
   exportPdf: 'Export PDF',
   webNote: 'You can save a PDF from the print dialog',
   busy: 'Making the PDF',
-  failed: "Couldn't make the PDF",
+  failed: 'Couldn’t make the PDF',
   shareLinkSay: 'Printable PDF',
   posterEyebrow: ({ y }) => `Core goal for ${y}`,
   posterUnit: 'squares',

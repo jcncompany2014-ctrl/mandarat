@@ -52,7 +52,7 @@ export default {
   calendarTitle: '一年のカレンダー',
   framesTitle: '表が埋まっていった様子',
   frameSpeech: ({ label, n }) => `${label}まで、64マス中${n}マス達成`,
-  wearTitle: 'よく使ったところ',
+  wearTitle: 'よく取り組んだマス',
   wearRight: '4週の平均',
   wearLegend: '4週の平均・',
   weeksTitle: 'ふりかえった週',
@@ -82,4 +82,5 @@ export default {
 
   folio: ({ label }) => `${label} 一年のふりかえり`,
   sheetFolio: ({ label }) => `${label} 過去の表`,
+  rangeFrom: ({ date }) => `${date}から`,
 } satisfies Like<typeof ko>;

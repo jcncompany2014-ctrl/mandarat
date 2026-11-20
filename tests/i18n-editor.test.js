@@ -86,7 +86,9 @@ test('편집 창 글 — ja · en (말 순서 · 복수형)', () => {
   assert.equal(`${ja.offerBefore}習慣${ja.offerAfter({ label: '習慣' })}`, '習慣に変えますか？');
   assert.equal(`${en.offerBefore}Habit${en.offerAfter({ label: 'Habit' })}`, 'Change to Habit?');
   assert.equal(ja.left({ n: 5, unit: '冊' }), 'あと5冊');
-  assert.equal(en.left({ n: 5, unit: 'books' }), '5 books to go');
+  // 단위는 사용자가 적은 말이라 세지 않는다('1 books to go'가 되지 않게) — 바로 위에 단위 칸이 있다
+  assert.equal(en.left({ n: 5, unit: 'books' }), '5 to go');
+  assert.equal(en.left({ n: 1, unit: 'books' }), '1 to go');
   assert.equal(en.left({ n: 1500, unit: '' }), '1,500 to go');
   assert.deepEqual([1, 3].map((n) => en.perWeek({ n })), ['Once a week', '3x a week']);
   assert.equal(ja.perWeek({ n: 3 }), '週3回');
@@ -102,14 +104,14 @@ test('편집 시트 글(디자인 A) — 머리 둘째 줄 · 점검 한 줄 · 
   const ja = I.msg('ja').editor;
   const en = I.msg('en').editor;
   const all = { noWhat: true, noHow: true, noWhen: true };
-  // editor.png의 안내 글 그대로 — 빠진 것만 말한다
-  assert.equal(ko.coachNote(all), '무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요');
-  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: false }), '얼마나를 쓰면 실천하기 쉬워요');
-  assert.equal(ko.coachNote({ noWhat: true, noHow: false, noWhen: false }), '무엇을 쓰면 실천하기 쉬워요');
-  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: true }), '얼마나, 언제·어디서를 쓰면 실천하기 쉬워요');
-  assert.equal(ja.coachNote({ noWhat: false, noHow: true, noWhen: true }), '「どれだけ」「いつ・どこで」を書くと、行動に移しやすくなります');
-  assert.equal(en.coachNote(all), 'Saying what, how much and when or where makes it easier to do');
-  assert.equal(en.coachNote({ noWhat: false, noHow: true, noWhen: false }), 'Saying how much makes it easier to do');
+  // 빠진 것만 말한다 — 낱말은 따옴표로 묶어 조사가 어긋나지 않게('얼마나를'이 되지 않는다)
+  assert.equal(ko.coachNote(all), '‘무엇을’ · ‘얼마나’ · ‘언제·어디서’도 적으면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: false }), '‘얼마나’도 적으면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: true, noHow: false, noWhen: false }), '‘무엇을’도 적으면 실천하기 쉬워요');
+  assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: true }), '‘얼마나’ · ‘언제·어디서’도 적으면 실천하기 쉬워요');
+  assert.equal(ja.coachNote({ noWhat: false, noHow: true, noWhen: true }), '「どれだけ」「いつ・どこで」も書くと、行動に移しやすくなります');
+  assert.equal(en.coachNote(all), 'Add what, how much and when or where to make it easier to do');
+  assert.equal(en.coachNote({ noWhat: false, noHow: true, noWhen: false }), 'Add how much to make it easier to do');
   for (const l of I.LANGS) assert.equal(I.msg(l).editor.coachNote({ noWhat: false, noHow: false, noWhen: false }), '', l);
   assert.deepEqual([ko.actionN({ n: 3 }), ja.actionN({ n: 3 }), en.actionN({ n: 3 })], ['실천 3/8', '行動 3/8', 'Action 3/8']);
   assert.equal(ko.themeSub, '영역 이름');

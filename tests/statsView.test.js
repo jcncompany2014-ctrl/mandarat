@@ -25,7 +25,7 @@ test('이어 온 날 한 줄 — 0 · 오늘까지 · 오늘 하면 n+1일째', 
 
 test('기록 줄 — 지금이 최고 기록이면 그렇게, 기록이 없으면 이번 달만', () => {
   assert.deepEqual(sv.recordParts(12, 3, 2), { lead: '최고 기록 12일', best: false, month: '이번 달 달성 2칸' });
-  assert.equal(sv.recordParts(5, 5, 0).lead, '지금이 최고 기록');
+  assert.equal(sv.recordParts(5, 5, 0).lead, '지금이 최고 기록이에요');
   assert.equal(sv.recordParts(5, 5, 0).best, true);
   assert.equal(sv.recordParts(0, 0, 0).lead, '');
 });
@@ -59,7 +59,7 @@ test('막대 줄 읽기 — 오늘 표시, 아직 안 온 날은 한 번만', ()
 test('습관 줄 — 남은 횟수 · 다 함 · 오늘부터 셉니다 · 습관 없음', () => {
   // 한 바탕(이번 주 전체 계획)으로 — 한 것 + 놓침 + 남음 = 계획 (D-3)
   assert.equal(sv.habitRow({ habitCount: 0, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }), null);
-  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }), { value: '—', sub: '오늘부터 세요' });
+  assert.deepEqual(sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }), { value: '—', sub: '오늘부터 세어요' });
   assert.deepEqual(
     sv.habitRow({ habitCount: 2, routineDone: 5, routinePlannedWeek: 9, routineRemaining: 3 }),
     { value: '5/9번', sub: '1번 놓침 · 3번 남음', say: '9번 중 5번', subSay: '1번 놓침, 3번 남음' },
@@ -79,7 +79,7 @@ test('습관 줄 — 남은 횟수 · 다 함 · 오늘부터 셉니다 · 습�
   const stack = { label: '쌓은 것', value: addedLine(added), say: addedSpeech(added) };
   assert.equal(stack.value, '+2권 · +500,000원');
   assert.equal(sv.ledgerLabel(stack), '쌓은 것 2권 더함, 500,000원 더함');
-  assert.equal(sv.ledgerLabel({ label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }) }), '습관 없음, 오늘부터 세요');
+  assert.equal(sv.ledgerLabel({ label: '습관', ...sv.habitRow({ habitCount: 2, routineDone: 0, routinePlannedWeek: 0, routineRemaining: 0 }) }), '습관 없음, 오늘부터 세어요');
   assert.equal(sv.ledgerLabel({ label: '집중', value: '25분', sub: '지금까지' }), '집중 25분, 지금까지');
   for (const s of [sv.ledgerLabel(habit), sv.ledgerLabel(late), sv.ledgerLabel(stack)]) assert.doesNotMatch(s, /\d\s*\/\s*\d|\+\d| · /, s);
 });
@@ -109,6 +109,28 @@ test('히트맵 — 첫 기록 전과 아직 안 온 날은 그리지 않고, �
   assert.equal(sv.bestLine(map.best), '가장 많이 한 날 10.13 (화) · 2번 · 이번 주');
   // 소리로는 날짜를 또박또박 — '10.13 (화)'는 소수로 읽힌다 (FX-VERIFY NEW-1)
   assert.equal(sv.heatSpeech(map), '최근 10주 중 2일 실천, 가장 많이 한 날 10월 13일 화요일 2번');
+});
+
+test('히트맵 진하기 — 보이는 10주 안에서 내가 가득 채운 날에 견준 몫, 마감한 날은 다 함', () => {
+  const weeks = calendarWeeks(WED, 10);
+  const many = (n) => new Array(n).fill('0-0');
+  // 하루 여덟 개쯤 하는 사람 — 예전 절대 구간에서는 5개 이상이 모두 맨 위(먹)였다
+  const log = { '2026-10-05': many(8), '2026-10-06': many(7), '2026-10-07': many(4), '2026-10-08': many(2), '2026-10-09': many(8), '2026-10-12': many(5), '2026-10-13': many(8) };
+  const bins = (map) => Object.fromEntries(map.cols.flat().filter((c) => c.count > 0).map((c) => [c.date.slice(8), c.bin]));
+  assert.deepEqual(bins(sv.heatMap(log, weeks, WED)), { '05': 4, '06': 3, '07': 2, '08': 1, '09': 4, 12: 2, 13: 4 });
+  // 마감한 날 — 10/8은 두 개뿐이지만 그날 목록을 다 했다. 기록이 없는 날은 마감이어도 빈 날
+  const closed = sv.heatMap(log, weeks, WED, 'ko', ['2026-10-08', '2026-10-10']);
+  assert.equal(bins(closed)['08'], 4);
+  const byDate = Object.fromEntries(closed.cols.flat().map((c) => [c.date, c]));
+  assert.deepEqual([byDate['2026-10-10'].state, byDate['2026-10-10'].bin], ['empty', 0]);
+  // 하루 한두 번 하는 사람 — 가득 채운 날의 바닥이 5라 통째로 진해지지 않는다
+  const light = sv.heatMap({ '2026-10-05': many(1), '2026-10-06': many(2), '2026-10-07': many(1) }, weeks, WED);
+  assert.deepEqual(bins(light), { '05': 1, '06': 1, '07': 1 });
+  // 가장 많이 한 날 · 읽는 말은 횟수 그대로
+  assert.deepEqual(sv.heatMap(log, weeks, WED).best, { date: '2026-10-13', count: 8, thisWeek: true });
+  // 화면은 문서의 마감한 날을 넘긴다
+  const stats = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src/screens/Stats.tsx'), 'utf8');
+  assert.match(stats, /heatMap\(doc\.dayLog, calendarWeeks\(new Date\(\), 10\), new Date\(\), l, doc\.closedDays\)/);
 });
 
 test('히트맵 — 기록이 없으면 지난 날은 빈 양식(테두리)으로', () => {

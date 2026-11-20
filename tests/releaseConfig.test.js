@@ -179,9 +179,19 @@ test('v2 권한(entitlements): iCloud 문서 컨테이너', () => {
     'com.apple.developer.icloud-container-identifiers': ['iCloud.com.jcncompany.mandarat'],
     'com.apple.developer.ubiquity-container-identifiers': ['iCloud.com.jcncompany.mandarat'],
     'com.apple.developer.icloud-services': ['CloudDocuments'],
+    // 내부 배포(ad hoc) 빌드의 내보내기가 이 값을 요구한다 — 없으면 MISSING_ICLOUD_CONTAINER_ENVIRONMENT로 실패(eas-cli #693)
+    'com.apple.developer.icloud-container-environment': 'Production',
   });
   const pm = app.ios.privacyManifests;
   assert.equal(pm.NSPrivacyTracking, false);
+  // 미리 빌드된 Expo 모듈(ExpoFileSystem 등)은 자기 PrivacyInfo를 싣지 않는다 — 쓰는 API의 까닭을 본 앱 선언에 모두 적는다(ITMS-91053)
+  const reasons = Object.fromEntries(pm.NSPrivacyAccessedAPITypes.map((t) => [t.NSPrivacyAccessedAPIType, t.NSPrivacyAccessedAPITypeReasons]));
+  assert.deepEqual(reasons, {
+    NSPrivacyAccessedAPICategoryUserDefaults: ['CA92.1', '1C8F.1'],
+    NSPrivacyAccessedAPICategoryFileTimestamp: ['C617.1', '0A2A.1', '3B52.1'],
+    NSPrivacyAccessedAPICategoryDiskSpace: ['E174.1', '85F4.1'],
+    NSPrivacyAccessedAPICategorySystemBootTime: ['35F9.1'],
+  });
   // 1.0은 오류 수집(Sentry)이 없어 모으는 것이 없다 — App Privacy 답 '데이터를 수집하지 않음'
   assert.deepEqual(pm.NSPrivacyCollectedDataTypes, []);
 });

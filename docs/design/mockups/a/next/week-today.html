@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 오늘 — 이번 주 중점이 맨 위에</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/week-parts.css">
+</head>
+<body>
+<!-- 오늘, 10월 14일 수요일. The three picks of last Sunday's review are the first group, each with a check
+     box; the day's own list follows under its label. Screens and data: week-parts.js. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/week-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  WK.today(document.querySelector('#page'), WK.scene(base, 'wed'), { focus: 'group' });
+});
+</script>
+</body>
+</html>

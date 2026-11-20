@@ -91,3 +91,31 @@ export const SINGLE_UNITS: ReadonlySet<string> = new Set([
 ]);
 /** Short distances could be one run or a total, so nothing is picked below these */
 export const SHORT_DISTANCE: Readonly<Record<string, number>> = { km: 30, miles: 20 };
+
+// ── Timed results and levels to reach — not read as a daily habit or a count (when no repeat word is present) ──────────
+
+const SPAN = '(?:h|hrs?|hours?|min|mins|minutes?|sec|secs|seconds?)';
+/** A length of time: '2 hours' · '55 minutes' · '12 sec' ('6:30' alone could be a time of day, so it only counts after a limit word) */
+export const DURATION = new RegExp(`\\b\\d+(?:\\.\\d+)?\\s*${SPAN}\\b`);
+/** A limit on a length of time: 'in under 2 hours' · 'within 55 minutes' · 'sub 25 min' · 'under 4:30' · 'in 55 minutes' */
+export const TIME_LIMIT = new RegExp(
+  `\\b(?:in|under|within|sub|below|inside)\\b[\\s-]*(?:(?:under|less than|about)\\s+)?(?:\\d+(?:\\.\\d+)?\\s*${SPAN}\\b|\\d+:\\d{2}\\b)`,
+);
+/** Words for a measured result — with a length of time it is a result with an end ('finish a 5k, 30 minutes', 'new PR') */
+export const RECORD = /\bfinish(?:ing)?\b|\bpersonal (?:best|record)\b|\bp[br]\b|\bnew record\b/;
+/** A race or a distance — with a length of time the goal is the time it takes ('marathon 4:30', '10k 55 minutes') */
+export const RACE = /\bmarathon\b|\btriathlon\b|\bironman\b|\b\d+(?:\.\d+)?\s*(?:km|k|mi|miles?|m|meters?|metres?)\b|\bmile\b/;
+/** Words that keep it a daily routine: bedtimes, warm-ups, practice ('asleep in 30 minutes', 'marathon training 1 hour') */
+export const ROUTINE = /\bbed\b|\bbedtime\b|\basleep\b|\bsleep\b|\bwake\b|\bget up\b|\btraining\b|\bpractice\b|\bpractise\b|\bstretch(?:ing)?\b|\bwarm[- ]?up\b|\bjog(?:ging)?\b|\bwalk(?:ing)?\b/;
+/** Names for a marathon time — 'sub-4' (a result even without a length of time) */
+export const SUB_TIME = /\bsub[- ]?[2-6]\b/;
+
+/** Units that measure a level to reach: '15%' · '900 points' */
+export const LEVEL = /\d[\d,]*(?:\.\d+)?\s*(?:%|percent\b|points?\b|pts\b)/;
+/** Body weight and lifted weight are levels ('weigh 65 kg'). Only with a word for losing or gaining is the amount counted ('lose 10 lbs') */
+export const WEIGHT_UNITS: ReadonlySet<string> = new Set(['kg', 'lb']);
+export const WEIGHT_CHANGE = /\blos(?:e|ing)\b|\bgain(?:ing)?\b|\bdrop\b|\bshed\b|\bcut\b|\bburn\b|\bput on\b|\bbulk\b/;
+/** Still a level, even with a word for losing or gaining: 'get down to 65 kg' · 'reach 70 kg' */
+export const WEIGHT_TARGET = /\b(?:down to|up to|get to|reach|hit|weigh)\b/;
+/** Exercises counted as reps in one go — '10 pull-ups' is a level to reach, not a total built up from 0 */
+export const REPS = /\b\d+\s*(?:pull[- ]?ups?|chin[- ]?ups?|push[- ]?ups?|press[- ]?ups?|sit[- ]?ups?|squats|burpees|lunges|dips|muscle[- ]?ups?)\b/;

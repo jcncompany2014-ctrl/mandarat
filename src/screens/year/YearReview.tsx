@@ -17,9 +17,10 @@ import { PRETENDARD } from '../../theme/fonts';
 import type { M } from '../../theme/usePalette';
 import { useUIActions } from '../../navigation/ui';
 import { dateKey } from '../../store/MandaratContext';
-import { archiveAsDoc, chartRange, yearLabel } from '../../lib/archive';
+import { archiveAsDoc, chartRange, chartRangeLabel, yearLabel } from '../../lib/archive';
 import { fillFrames, yearCalendar, yearDigest } from '../../lib/yearReview';
 import { figureSize, frameCell } from './statFit';
+import { MapThumb } from './MapThumb';
 import { TID } from '../../lib/testIds';
 import { tap } from '../../lib/haptics';
 import { useMsg } from '../../i18n/react';
@@ -38,7 +39,9 @@ const FIG_GAP = 8;
 /** 표가 채워진 모습 — 장면 수(분기) */
 const FRAMES = 4;
 /** 회고를 처음에 몇 줄까지 */
-const NOTE_ROWS = 12;
+export const NOTE_ROWS = 12;
+/** '더 보기' 한 번에 더 펼치는 줄 수 — 한 해 치(300줄 넘게)를 한꺼번에 올리지 않는다 */
+export const NOTE_PAGE = 30;
 /** 닳은 자리의 기준 — 4주(28일)에 한 날 수 */
 const WEAR_SPAN = 28;
 
@@ -90,11 +93,11 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
   const { view, from, to, focus, goal, note } = src;
 
   const digest = useMemo(() => yearDigest(view, from, to, focus), [view, from, to, focus]);
-  const rows = useMemo(() => yearCalendar(view.dayLog, from, to), [view.dayLog, from, to]);
+  const rows = useMemo(() => yearCalendar(view.dayLog, from, to, view.closedDays), [view.dayLog, view.closedDays, from, to]);
   const frames = useMemo(() => fillFrames(view, from, to, FRAMES), [view, from, to]);
   const wear = useMemo(() => wearActivity(digest.cellDays, spanDays(from, to)), [digest, from, to]);
 
-  const range = m.fmt.range({ from: dayOf(from), to: dayOf(to) });
+  const range = chartRangeLabel(from, to, !archive);
   const stacked = fontScale >= STACK_SCALE || contentW < ROW_MIN_W;
   // 지도는 본문 폭(아이패드는 520까지), 온 픽셀 자리에 가운데
   const mapW = Math.min(contentW, MAP_MAX);
@@ -125,7 +128,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
         <Numbers M={M} m={m} digest={digest} stacked={stacked} width={contentW} />
 
         <Section M={M} label={m.year.calendarTitle} style={{ marginTop: SECTION_GAP, marginBottom: 10 }} />
-        <YearLedger M={M} rows={rows} />
+        <YearLedger M={M} rows={rows} width={contentW} />
 
         <Section M={M} label={m.year.wearTitle} note={m.year.wearRight} style={{ marginTop: SECTION_GAP, marginBottom: 10 }} />
         <View style={{ marginLeft: mapLeft }}>
@@ -219,8 +222,8 @@ function Frames({ M, m, frames, width }: { M: M; m: Messages; frames: ReturnType
         const last = i === frames.length - 1;
         return (
           <View key={f.end} accessible accessibilityLabel={m.year.frameSpeech({ label, n })} {...a11yLangProp()} style={{ gap: 8, alignItems: 'flex-start' }}>
-            {/* 지도 넷은 첫 화면 다음 프레임에(§4.6) */}
-            <ColourMap themes={f.themes} level="L1" cell={cell} defer />
+            {/* 지도 넷은 그림 한 장씩 — 색마다 길 하나(칸마다 View를 두지 않는다) */}
+            <MapThumb themes={f.themes} cell={cell} />
             <Text
               style={[ROLE.label, { lineHeight: 16, color: last ? M.ink : M.print }, last ? { fontFamily: PRETENDARD[600] } : null]}
               numberOfLines={1}
@@ -261,9 +264,21 @@ function WeekNotes({ M, m, notes }: { M: M; m: Messages; notes: Digest['weekNote
   );
 }
 
-/** 그날의 한 줄 — 달마다 묶어 오래된 것부터. 처음에는 NOTE_ROWS줄, '더 보기'로 그 자리에서 펼친다 */
+/** 달 묶음의 앞 limit줄만 — 묶음은 그대로 두고, 줄이 하나도 남지 않은 달은 뺀다 */
+export function noteGroups<T>(groups: readonly { month: string; items: readonly T[] }[], limit: number): { month: string; items: T[] }[] {
+  let left = Math.max(0, limit);
+  return groups
+    .map((g) => {
+      const items = g.items.slice(0, left);
+      left -= items.length;
+      return { month: g.month, items };
+    })
+    .filter((g) => g.items.length > 0);
+}
+
+/** 그날의 한 줄 — 달마다 묶어 오래된 것부터. 처음에는 NOTE_ROWS줄, '더 보기'마다 NOTE_PAGE줄씩 그 자리에서 펼친다 */
 function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['reflections'] }) {
-  const [all, setAll] = useState(false);
+  const [limit, setLimit] = useState(NOTE_ROWS);
   const total = groups.reduce((s, g) => s + g.items.length, 0);
   if (total === 0) {
     return (
@@ -272,15 +287,9 @@ function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['refl
       </View>
     );
   }
-  let left = all ? total : NOTE_ROWS;
-  const shown = groups
-    .map((g) => {
-      const items = g.items.slice(0, Math.max(0, left));
-      left -= items.length;
-      return { month: g.month, items };
-    })
-    .filter((g) => g.items.length > 0);
-  const more = !all && total > NOTE_ROWS;
+  const shown = noteGroups(groups, limit);
+  // 아직 펼치지 않은 줄 수 — '더 보기'의 읽는 말이 이 수를 말한다
+  const rest = Math.max(0, total - limit);
   return (
     <View>
       {shown.map((g, gi) => {
@@ -310,11 +319,11 @@ function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['refl
           </View>
         );
       })}
-      {more && (
+      {rest > 0 && (
         <Pressable
-          onPress={() => { tap(); setAll(true); }}
+          onPress={() => { tap(); setLimit((n) => n + NOTE_PAGE); }}
           accessibilityRole="button"
-          accessibilityLabel={m.year.notesMore({ n: total - NOTE_ROWS })}
+          accessibilityLabel={m.year.notesMore({ n: rest })}
           {...a11yLangProp()}
           style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
         >
@@ -333,7 +342,7 @@ function LockedLine({ M, archive }: { M: M; archive: ArchivedChart }) {
   const m = useMsg();
   const { openPro } = useUIActions();
   const label = yearLabel(archive.from, archive.to);
-  const range = m.fmt.range({ from: dayOf(archive.from), to: dayOf(archive.to) });
+  const range = chartRangeLabel(archive.from, archive.to, false);
   const goal = archive.centerGoal.trim();
   return (
     <View style={{ paddingHorizontal: GUTTER, marginTop: 18 }}>

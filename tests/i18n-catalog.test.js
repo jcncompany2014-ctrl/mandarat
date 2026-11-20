@@ -85,8 +85,8 @@ test('fmt.ko는 지금 앱의 표기와 글자 하나까지 같다 — 800일 ·
     const mon = R.weekDates(d)[0];
     assert.equal(f.range({ from: mon, to: new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6) }), T.fmtRange(mon));
     const meta = headerMeta(d);
-    const { isoWeek, daysLeftInYear } = require('../src/lib/home');
-    const w = isoWeek(d);
+    const { calendarWeek, daysLeftInYear } = require('../src/lib/home');
+    const w = calendarWeek(d);
     assert.equal(f.weekNo({ y: w.year, w: w.week }), meta.week);
     assert.equal(f.daysLeftYear({ n: daysLeftInYear(d) }), meta.left);
     assert.equal(f.dowNarrow({ i: d.getDay() }), R.DOW_KR[d.getDay()]);
@@ -132,7 +132,7 @@ test('fmt.ja · fmt.en — 표의 예시대로', () => {
   assert.equal(ja.time({ h: 21, m: 0 }), '21:00');
   assert.equal(en.time({ h: 21, m: 0 }), '9:00 PM');
   assert.equal(en.time({ h: 0, m: 5 }), '12:05 AM');
-  assert.deepEqual([3, 12].map((n) => ja.items({ n })), ['3つ', '12個']);
+  assert.deepEqual([3, 12].map((n) => ja.items({ n })), ['3件', '12件']);
   assert.deepEqual([1, 3].map((n) => en.cells({ n })), ['1 square', '3 squares']);
   assert.equal(en.ordinalCell({ n: 3 }), 'third square');
   assert.equal(ja.ordinalCell({ n: 3 }), '3番目のマス');

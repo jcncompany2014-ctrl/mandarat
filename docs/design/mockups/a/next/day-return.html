@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 오늘 — 나흘 만에 돌아온 날</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/day-parts.css">
+</head>
+<body>
+<!-- 오늘, 10월 18일 일요일, the first open since 수요일. One printed line under the title and one quiet
+     action for the typed to-dos that came along. Screens and data: day-parts.js. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-focus-dayclose.js"></script>
+<script src="/docs/design/mockups/a/next/day-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  D.today(document.querySelector('#page'), D.scene(base, 'return'), { line: { say: '나흘 만이에요. 오늘 것만 봐요', do: '밀린 할 일 비우기' } });
+});
+</script>
+</body>
+</html>

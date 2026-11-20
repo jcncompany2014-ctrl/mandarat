@@ -52,7 +52,7 @@
 
   /* print ink (warm pencil grey): everything the printer made */
   --print-strong: #4B5059;     /* 8.1:1 — words that must read first */
-  --print: #6B727C;            /* 4.9:1 — labels, folio, weekday letters, notes */
+  --print: #686F79;            /* 5.1:1 (4.6:1 on --tile) — labels, folio, weekday letters, notes, field placeholders */
   --print-edge: #868D96;       /* 3.4:1 — control edges: check box, segment, secondary button */
   --print-mid: #D5D9DE;        /* 1.4:1 — the few rules that close a group */
   --print-rule: #EEF0F2;       /* 1.1:1 — hairlines between rows */
@@ -77,6 +77,19 @@
   --dye-7: #38719B; --wash-7: #A7C9E5; --wash-l1-7: #92B4CF; /* 비색  마음챙김 */
   --dye-8: #A65633; --wash-8: #EDB7A1; --wash-l1-8: #D8A38D; /* 주홍  모험 */
   --on-dye: #FFFFFF;           /* text on a dye */
+
+  /* the ladder below the washes (colour audit before 1.0). --tint = a written cell on the map and the
+     chosen area: OKLCH L .916, 24% of the dye's chroma, so it sits ΔE 5.4 or more from --tile (the 14%
+     color-mix it replaces sat at 3.2–3.6). --dye-text = the dye as text on its tint or on paper, 4.6:1 or better.
+     One direction in both looks: paper → tile → tint → wash → wash-l1 → dye. */
+  --tint-1: #DAE7DD; --dye-text-1: #3C6F4C;
+  --tint-2: #DCE3F5; --dye-text-2: #4961A3;
+  --tint-3: #EEE1D4; --dye-text-3: #885A1F;
+  --tint-4: #F3DDE1; --dye-text-4: #994B60;
+  --tint-5: #D7E7E6; --dye-text-5: #256F6B;
+  --tint-6: #E6DFF2; --dye-text-6: #72559A;
+  --tint-7: #D8E5F1; --dye-text-7: #306992;
+  --tint-8: #F4DED5; --dye-text-8: #9C4D2A;
 
   /* the chart: tiles on paper. No frame and no cell rules; blocks are told apart by a wider gap. */
   --core: #221F1B;             /* centre cell */
@@ -122,33 +135,44 @@
     --paper-veil: rgba(18, 19, 22, 0.92);
 
     --ink: #ECEDEF;
-    --ink-2: #A3A8B0;
+    --ink-2: #B4B9C0;          /* 9.4:1, APCA Lc 64 (was #A3A8B0, Lc 54: weak at 12–13pt) */
     --ink-3: #6B7078;
 
     --print-strong: #C6CAD0;
-    --print: #9AA0A8;
+    --print: #ABB1B9;          /* 8.6:1, APCA Lc 59 */
     --print-edge: #6E747C;
     --print-mid: #33363C;
     --print-rule: #24262B;
     --ghost: #33363C;
     --tile: #1D1F23;           /* an empty cell: one step up from the page */
 
-    --signal: #E2543F;         /* 4.9:1 — re-picked for the dark stock */
+    --signal: #EB6A54;         /* 5.9:1, APCA Lc 43 — re-picked for the dark stock */
 
     /* --dye here = the dye mixed toward the page until cream ink on it reaches 4.6:1 (3.2:1 against
-       the page). --wash = 30% dye over the page: a deep shade, not a pale tint.
-
-       --wash-l1 = 55% dye over the page (1.8:1 against it, cream ink 8.2:1), so done and empty
+       the page). The steps under it climb from the page in OKLCH at the dye's hue (colour audit before
+       1.0; the old tint sat below --tile, so a written cell looked empty and a chosen area looked dimmer):
+       --tint    L .287, 38% of the dye's chroma   (ΔE 5.5 or more above --tile)
+       --wash    L .352, 52%                        (ink on it 9.4:1 or better)
+       --wash-l1 L .410, 60%                        (ink on it 7.3:1 or better), so done and written
        stay two separate steps at thumbnail size. */
-    --dye-1: #40704D; --wash-1: #253426; --wash-l1-1: #2E4732;
-    --dye-2: #4D64A3; --wash-2: #282D3F; --wash-l1-2: #354061;
-    --dye-3: #885D26; --wash-3: #3F2E19; --wash-l1-3: #553C1D;
-    --dye-4: #9A4F62; --wash-4: #46292E; --wash-l1-4: #5F343E;
-    --dye-5: #2C706D; --wash-5: #1E3430; --wash-l1-5: #234744;
-    --dye-6: #75599A; --wash-6: #362B3E; --wash-l1-6: #4B3A5C;
-    --dye-7: #356A92; --wash-7: #22323D; --wash-l1-7: #284358;
-    --dye-8: #9C5231; --wash-8: #44291C; --wash-l1-8: #603623;
+    --dye-1: #40704D; --wash-1: #2B4131; --wash-l1-1: #37523E;
+    --dye-2: #4D64A3; --wash-2: #2F3A58; --wash-l1-2: #3B496D;
+    --dye-3: #885D26; --wash-3: #4B371F; --wash-l1-3: #5D4529;
+    --dye-4: #9A4F62; --wash-4: #522F37; --wash-l1-4: #663C46;
+    --dye-5: #2C706D; --wash-5: #24413F; --wash-l1-5: #2F5250;
+    --dye-6: #75599A; --wash-6: #413452; --wash-l1-6: #514266;
+    --dye-7: #356A92; --wash-7: #263E51; --wash-l1-7: #314E64;
+    --dye-8: #9C5231; --wash-8: #543122; --wash-l1-8: #683E2C;
     --on-dye: #F4F5F6;
+
+    --tint-1: #202F23; --dye-text-1: #789C80;
+    --tint-2: #222A3E; --dye-text-2: #7E92C3;
+    --tint-3: #362817; --dye-text-3: #AF8D66;
+    --tint-4: #3B2228; --dye-text-4: #BD818E;
+    --tint-5: #1B2F2E; --dye-text-5: #6D9D9A;
+    --tint-6: #2E263B; --dye-text-6: #9D89BC;
+    --tint-7: #1C2D3A; --dye-text-7: #7198B8;
+    --tint-8: #3C2419; --dye-text-8: #BF846B;
 
     --core: #4A4E55;           /* never a white-hot centre */
     --on-core: #F4F5F6;

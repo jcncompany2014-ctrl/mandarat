@@ -11,16 +11,18 @@ import { GEO, desk } from '../theme/tokens';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
-import { PinnedHeaderSlot } from '../components/common';
+import { PinnedHeaderSlot, QuietAction } from '../components/common';
+import { OverlayBoundary, ScreenBoundary } from '../components/ErrorBoundary';
 import { PAPER_MODULE } from '../lib/paper';
 import { SVG_GLYPHS, textWidth } from '../lib/labelFit';
 import { select, success, tap } from '../lib/haptics';
 import { announce, reducedMotion, screenReader, useReducedMotion } from '../lib/useReducedMotion';
 import { usePalette } from '../theme/usePalette';
 import { SyncChoiceHost } from '../screens/settings/SyncChoiceSheet';
-import { TAB_BAR_H, isDeep, tabBarBottom, tabClearance, useUIActions, useUIState, type Screen } from './ui';
+import { TAB_BAR_H, isDeep, tabBarBottom, tabClearance, useToast, useUIActions, useUIState, type Screen } from './ui';
 import { TID } from '../lib/testIds';
 import { useActions, useDoc, totalDone, dateKey } from '../store/MandaratContext';
+import { SnapOpenNotice } from '../store/useCrashRecovery';
 import { todayProgress } from '../lib/routine';
 import { PageScroll, PageSize, useLayout } from '../lib/screen';
 import { BINDING, BINDING_W, SPREAD_TABS_W, companionFor, companionKey, modeFor, spreadPageW, type Companion } from '../lib/spread';
@@ -118,6 +120,8 @@ export function Root() {
   return (
     <>
       <Milestones />
+      {/* 오류 화면에서 저장본으로 열었으면 되돌리기를 한 번 권한다(그리지 않는다) */}
+      <SnapOpenNotice />
       {/* 그리지 않는 손잡이 — 알림·위젯·iCloud를 문서에 맞춘다 */}
       <ReminderSync />
       <WidgetSync />
@@ -236,6 +240,16 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   const mode = modeFor(useLayout().kind);
   const spread = mode === 'spread';
   useEffect(() => { crash.tag('layout', mode); }, [mode]);
+  // 지금 화면과 떠 있는 시트도 이름만 남긴다 — 이 기기의 오류 기록(lib/crashLog)이 어디서 멈췄는지 적는 데 쓴다
+  const shownScreen = onboarded ? ui.screen : 'onboarding';
+  const shownOverlay = ([
+    ['action', ui.sheet], ['focus', ui.focus], ['quick', ui.quick], ['pick', ui.pick], ['editor', ui.editor], ['ritual', ui.ritual],
+    ['share', ui.share], ['print', ui.print], ['pro', ui.pro], ['yearClose', ui.yearClose], ['celebrate', ui.celebrate],
+  ] as const).find(([, open]) => !!open)?.[0] ?? '';
+  useEffect(() => {
+    crash.tag('screen', shownScreen);
+    crash.tag('overlay', shownOverlay);
+  }, [shownScreen, shownOverlay]);
   const { width: winW, height: winH } = useRNWindowDimensions();
   // 감싼 단(PaperColumn)의 실제 폭 — 펼침은 그 단 밖으로 창 폭만큼 넓힌다(처음엔 단 폭으로 어림하고 재서 맞춘다)
   const column = useContext(PageSize);
@@ -410,6 +424,16 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
   else if (ui.screen === 'stats') screen = <Stats />;
   else if (ui.screen === 'settings') screen = <SettingsPure />;
   else if (ui.screen === 'year') screen = <YearPure />;
+  // 화면 하나가 그리다 멈추면 그 쪽 안에서 안내한다 — 탭 막대는 그대로라 다른 화면으로 갈 수 있다(다른 화면으로 옮기면 풀린다)
+  screen = (
+    <ScreenBoundary
+      name={ui.screen}
+      resetKey={`${ui.screen}:${ui.ti}`}
+      fallback={(retry) => <ScreenFallback onRetry={retry} onHome={ui.screen === 'dashboard' ? undefined : () => ui.go('dashboard')} />}
+    >
+      {screen}
+    </ScreenBoundary>
+  );
 
   const deep = isDeep(ui.screen);
   const showTabs = ui.screen !== 'settings';
@@ -457,22 +481,27 @@ const RootView = memo(function RootView({ onboarded }: { onboarded: boolean }) {
     </>
   );
   const tabs = showTabs && <TabBar active={activeTab} onTab={onTab} onAdd={onAdd} bottomInset={insets.bottom} />;
+  // 시트 하나가 그리다 멈추면 그 시트만 닫고 한 줄로 알린다 — 화면과 탭 막대는 그대로다. 다시 열면 한 번 더 그려 본다
+  const sheetFailed = (close: () => void) => () => {
+    close();
+    ui.showToast(msg().core.sheetFail);
+  };
   const overlays = (
     <>
-      <ActionSheetPure />
-      <FocusTimerPure />
-      <QuickAddPure />
-      <PickTodayPure />
-      <CellEditorPure />
-      <WeekRitualPure />
-      <ShareChartPure />
-      <PrintSheetPure />
-      <ProSheetPure />
-      <YearClosePure />
-      <CelebrationPure />
-      <SnackbarPure />
-      {/* 들어오는 링크 — 시작하기를 마친 뒤에만 */}
-      <Inbound />
+      <OverlayBoundary name="action" open={!!ui.sheet} onFail={sheetFailed(ui.closeSheet)}><ActionSheetPure /></OverlayBoundary>
+      <OverlayBoundary name="focus" open={!!ui.focus} onFail={sheetFailed(ui.closeFocus)}><FocusTimerPure /></OverlayBoundary>
+      <OverlayBoundary name="quick" open={ui.quick} onFail={sheetFailed(ui.closeQuick)}><QuickAddPure /></OverlayBoundary>
+      <OverlayBoundary name="pick" open={ui.pick} onFail={sheetFailed(ui.closePick)}><PickTodayPure /></OverlayBoundary>
+      <OverlayBoundary name="editor" open={!!ui.editor} onFail={sheetFailed(ui.closeEditor)}><CellEditorPure /></OverlayBoundary>
+      <OverlayBoundary name="ritual" open={!!ui.ritual} onFail={sheetFailed(ui.closeRitual)}><WeekRitualPure /></OverlayBoundary>
+      <OverlayBoundary name="share" open={ui.share} onFail={sheetFailed(ui.closeShare)}><ShareChartPure /></OverlayBoundary>
+      <OverlayBoundary name="print" open={!!ui.print} onFail={sheetFailed(ui.closePrint)}><PrintSheetPure /></OverlayBoundary>
+      <OverlayBoundary name="pro" open={!!ui.pro} onFail={sheetFailed(ui.closePro)}><ProSheetPure /></OverlayBoundary>
+      <OverlayBoundary name="yearClose" open={ui.yearClose} onFail={sheetFailed(ui.closeYearClose)}><YearClosePure /></OverlayBoundary>
+      <OverlayBoundary name="celebrate" open={!!ui.celebrate} onFail={sheetFailed(ui.closeCelebrate)}><CelebrationPure /></OverlayBoundary>
+      <ToastHost />
+      {/* 들어오는 링크 — 시작하기를 마친 뒤에만. 멈추면 조용히 내린다(화면에 보이는 것이 없다) */}
+      <OverlayBoundary name="inbound" open={false}><Inbound /></OverlayBoundary>
     </>
   );
 
@@ -589,6 +618,12 @@ const CompanionPage = memo(function CompanionPage({ M, companion, topInset, bott
   if (companion.screen === 'grid') body = <GridScreenPure availH={availH} onFocusArea={onFocusArea} />;
   else if (companion.screen === 'detail') body = <DetailPure ti={companion.ti} embedded />;
   else body = <Dashboard />;
+  // 곁 쪽의 오류도 그 쪽 안에서 — 왼쪽 쪽과 탭 막대는 그대로다(곁들인 화면이 바뀌면 이 쪽을 통째로 새로 그린다)
+  body = (
+    <ScreenBoundary name={`side:${companion.screen}`} resetKey={companionKey(companion)} fallback={(retry) => <ScreenFallback onRetry={retry} />}>
+      {body}
+    </ScreenBoundary>
+  );
 
   return (
     <>
@@ -821,5 +856,35 @@ function AddButton({ onPress, width }: { onPress: () => void; width: number }) {
         {m.core.tabAdd}
       </Text>
     </Pressable>
+  );
+}
+
+/**
+ * 화면 하나가 그리다 멈췄을 때 그 쪽에 적는 안내(ScreenBoundary) — 제목 · 한 줄 · 조용한 글 동작 둘.
+ * 탭 막대는 그대로라 다른 화면으로 갈 수 있다. 홈 화면 자체가 멈췄으면 '홈으로'는 보이지 않는다.
+ */
+function ScreenFallback({ onRetry, onHome }: { onRetry: () => void; onHome?: () => void }) {
+  const M = usePalette();
+  const m = useMsg();
+  return (
+    <View style={{ paddingHorizontal: GEO.gutter, paddingTop: GEO.gutter * 2 }}>
+      <Text accessibilityRole="header" style={{ ...ROLE.prompt, color: M.ink }}>{m.core.screenFailTitle}</Text>
+      <Text style={{ ...ROLE.body, marginTop: 8, color: M.ink2 }}>{m.core.screenFailBody}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: GEO.gutter, marginTop: 12 }}>
+        {onHome && <QuietAction M={M} label={m.core.screenFailHome} onPress={onHome} />}
+        <QuietAction M={M} label={m.common.retry} onPress={onRetry} />
+      </View>
+    </View>
+  );
+}
+
+/** 토스트 자리 — 토스트가 그리다 멈추면 조용히 내리고(다른 토스트로 알리지 않는다), 다음 토스트에서 다시 그려 본다 */
+function ToastHost() {
+  const toast = useToast();
+  const { hideToast } = useUIActions();
+  return (
+    <OverlayBoundary name="toast" open={!!toast} onFail={hideToast}>
+      <SnackbarPure />
+    </OverlayBoundary>
   );
 }

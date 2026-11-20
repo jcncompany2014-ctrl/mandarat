@@ -49,18 +49,43 @@ export function encodeReplica(r: ReplicaInput): string {
 }
 
 /**
+ * 글의 FNV-1a 해시 두 개(16진 16자). 글자마다 도는 고리라 JIT 없는 엔진(iOS의 Hermes)에서는 글이 길수록 그대로 느려진다 —
+ * 고리 안에는 꼭 필요한 셈만 둔다(부호 없는 수로 바꾸기는 끝에 한 번: 32비트 곱과 XOR은 부호와 상관없이 같은 비트다).
+ */
+function digestOf(s: string): string {
+  const imul = Math.imul;
+  const n = s.length;
+  let h1 = 0x811c9dc5 | 0;
+  let h2 = 0x01000193;
+  for (let i = 0; i < n; i++) {
+    const c = s.charCodeAt(i);
+    h1 = imul(h1 ^ c, 0x01000193);
+    h2 = imul(h2 ^ c, 0x5bd1e995);
+  }
+  return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
+}
+
+/**
  * 올릴 내용의 지문 — 쓴 시각(at)을 뺀 상태의 FNV-1a 해시 두 개(16진 16자). 같으면 다시 올리지 않는다(SyncMeta.pushed).
  */
 export function replicaDigest(r: Omit<ReplicaInput, 'at'>): string {
-  const s = JSON.stringify(body(r));
-  let h1 = 0x811c9dc5;
-  let h2 = 0x01000193;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
-    h2 = Math.imul(h2 ^ c, 0x5bd1e995) >>> 0;
-  }
-  return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
+  return digestOf(JSON.stringify(body(r)));
+}
+
+/**
+ * 올릴 글과 그 지문을 한 번에 — 큰 JSON을 한 번만 만든다(올리기마다 두 번 만들던 것).
+ * 지문은 쓴 시각을 뺀 글의 것이고, 올릴 글은 그 글의 dev 뒤에 at을 끼운 것이다:
+ * json은 encodeReplica(r), digest는 replicaDigest(r)와 글자 하나까지 같다(tests/syncMerge.test.js가 지킨다).
+ */
+export function encodeForPush(r: ReplicaInput): { json: string; digest: string } {
+  const b = body(r);
+  const bare = JSON.stringify(b);
+  const digest = digestOf(bare);
+  const at = JSON.stringify(r.at);
+  if (at === undefined) return { json: bare, digest };
+  // bare는 head의 닫는 중괄호 자리에서 ',"epoch":…'으로 이어진다 — 그 사이가 encodeReplica의 at 자리다(v · schema · dev · at · epoch …)
+  const head = JSON.stringify({ v: b.v, schema: b.schema, dev: b.dev });
+  return { json: `${head.slice(0, -1)},"at":${at}${bare.slice(head.length - 1)}`, digest };
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {

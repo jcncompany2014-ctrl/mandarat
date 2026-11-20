@@ -37,8 +37,8 @@ export default {
   shareSay: '표 이미지로 공유',
   editGoal: '핵심 목표 고치기',
   next: '다음 할 일',
-  /** 빈 칸이 남았을 때 — '빈 칸 12 · 건강부터 채우기' */
-  nextBlanks: ({ n, area }: { n: number; area: string }) => `빈 칸 ${n} · ${area}부터 채우기`,
+  /** 빈칸이 남았을 때 — '빈칸 12 · 건강부터 채우기' */
+  nextBlanks: ({ n, area }: { n: number; area: string }) => `빈칸 ${n} · ${area}부터 채우기`,
   nextStepSay: ({ title }: { title: string }) => `다음 할 일, ${title}`,
   nextStepAreaSay: ({ title, area }: { title: string; area: string }) => `다음 할 일, ${title}, ${area}`,
   /** 지도 위 줄 왼쪽 — '2026 만다라트' */
@@ -50,8 +50,8 @@ export default {
   writtenOf64Say: ({ n }: { n: number }) => `64칸 중 ${n}칸 썼어요`,
   /** 지도 아래 한 줄 */
   mapNote: '영역을 누르면 실천 여덟 칸이 보여요',
-  /** 지도 블록의 화면 읽기 도움말 */
-  mapBlockHint: '두 번 누르면 실천 여덟 칸을 봐요',
+  /** 지도 블록의 화면 읽기 도움말 — 누르는 동작은 VoiceOver가 스스로 말하니 결과만 적는다 */
+  mapBlockHint: '실천 여덟 칸을 보여 줘요',
   /** 처음 — 먹 테두리 칸이 어디인지: '건강 · 1번 칸부터' */
   startFrom: ({ area, n }: { area: string; n: number }) => `${area} · ${n}번 칸부터`,
   startPrompt: ({ area }: { area: string }) => `${josa(area, '을/를')} 위해 무엇을 해 볼까요?`,
@@ -92,7 +92,7 @@ export default {
   shareWebOnly: '앱에서 이미지로 공유할 수 있어요',
   previewBlankSay: '표 이미지 미리보기, 빈 표',
   previewSay: ({ done }: { done: number }) => `표 이미지 미리보기, 64칸 중 ${done}칸 달성`,
-  modeProgress: '진행 표시',
+  modeProgress: '달성 표시',
   modeBlank: '빈 표',
   making: '이미지를 만드는 중이에요',
   makeFailed: '이미지를 만들지 못했어요',
@@ -105,4 +105,9 @@ export default {
   markTodaySay: ({ total, done }: { total: number; done: number }) => `, 오늘 할 일 ${total}개 중 ${done}개 했어요`,
   sketchSay: ({ goal, areas }: { goal: string; areas: string }) => `만다라트 표, 가운데 칸 ${goal}, 영역 ${areas}`,
   sketchEmpty: '비어 있음',
+  /**
+   * 권하는 글을 눌러 칸에 적은 뒤의 확인 한 줄 — '주 3회 습관으로 담았어요 · ‘오늘’에 보여요'.
+   * label은 kinds.suggest*의 이름('매일 습관' · '12권 쌓기' · '마음가짐'), today는 그 칸이 지금 오늘 할 일에 담겼는지
+   */
+  pickedAs: ({ label, today }: { label: string; today: boolean }) => `${josa(label, '으로/로')} 담았어요${today ? ' · ‘오늘’에 보여요' : ''}`,
 } satisfies Namespace;

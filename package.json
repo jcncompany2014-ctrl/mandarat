@@ -10,6 +10,7 @@
     "typecheck": "node --stack-size=8000 node_modules/typescript/lib/tsc.js --noEmit",
     "test": "node --test tests/*.test.js",
     "privacy-page": "node scripts/privacy-page.js",
+    "support-page": "node scripts/support-page.js",
     "release-check": "node scripts/releaseCheck.js",
     "web-smoke": "node scripts/web-smoke.js",
     "prebuild-check": "node scripts/prebuild-check.js",

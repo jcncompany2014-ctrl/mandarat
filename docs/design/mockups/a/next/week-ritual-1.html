@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 한 주 돌아보기 1쪽 — 이번 주 중점이 어떻게 됐는지</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* 한 주 돌아보기, page 1 of 3, for the week of 10월 12일 – 18일. The page as the app draws it today
+     (src/overlays/WeekRitual.tsx: PageHead · the closing scene of dayclose.png · seven bars · the
+     ledger · one primary button), plus ONE new block under the ledger: the three 중점 picked a week
+     ago, each with what became of it. No tab bar: the ritual covers the screen. */
+
+  /* PageHead: the header anatomy with the page count on the eyebrow line (print ink) */
+  .page-n { position: absolute; right: 0; top: 12px; }
+
+  /* the closing scene (dayclose.html .close): the week's count, one sentence, one printed line */
+  .close { margin-top: 30px; }
+  .close-fig { font: 700 48px/56px var(--sans); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .close-fig small { font: 500 13px/18px var(--sans); letter-spacing: 0; color: var(--ink-2); margin-left: 2px; }
+  .close .t-prompt { margin-top: 4px; }
+  .close .t-note { margin-top: 2px; }
+
+  .bars { margin-top: 30px; }
+
+  /* the ledger: a printed name on the left, the week's figure on the right, a faint hairline between */
+  .ledger { margin-top: 22px; }
+  .ledger-row { position: relative; display: flex; align-items: center; justify-content: space-between; height: 44px; font: 500 14px/18px var(--sans); }
+  .ledger-row + .ledger-row::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: var(--hair); background: var(--print-rule); }
+  .ledger-row span { color: var(--ink-2); }
+  .ledger-row b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* NEW · 이번 주 중점: the ritual's own pick rows (the bare row of the read-only page: the owner's
+     words, the area under them, no check box) with the result as the one thing on the right.
+     A count, 했어요, or 아직 (not yet: one step quieter, never red). */
+  .sec { margin-top: 30px; }
+  .sec .a-section { margin-bottom: 4px; }
+  .picks .a-row + .a-row::before { left: 0; }
+  .picks .a-row-right.is-yet { color: var(--ink-2); }
+
+  /* the one primary button, in the thumb's place */
+  .foot { position: absolute; left: 24px; right: 24px; bottom: 24px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body">
+    <section class="close">
+      <div class="close-fig">23<small>번</small></div>
+      <div class="t-prompt">건강은 14번 챙겼고, 커리어는 아직이에요</div>
+      <div class="t-note">지난주보다 3번 더 했어요</div>
+    </section>
+
+    <section class="bars"><div id="week"></div></section>
+
+    <section class="ledger">
+      <div class="ledger-row"><span>습관</span><b>20/41번</b></div>
+      <div class="ledger-row"><span>쌓은 것</span><b>+1권</b></div>
+      <div class="ledger-row"><span>마음가짐</span><b>평균 4점</b></div>
+    </section>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label is-section">이번 주 중점</span></div>
+      <div class="a-list picks" id="picks"></div>
+    </section>
+  </div>
+  <div class="foot"><div class="a-btn">다음</div></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  A.header('#header', { eyebrow: '10월 12일 – 18일', title: '한 주', action: 'close' });
+  document.querySelector('#header').insertAdjacentHTML('beforeend', '<span class="t-folio page-n">1/3</span>');
+
+  // a closed week: seven bars in the same printed grey (no today), Sunday's letter in vermilion.
+  // 월 5 · 화 4 · 수 4 · 목 3 · 금 4 · 토 2 · 일 1 = 23
+  A.weekStrip('#week', { days: [['월', 5], ['화', 4], ['수', 4], ['목', 3], ['금', 4], ['토', 2], ['일', 1]] });
+
+  // the three picked on 10월 11일 for this week, and what became of each:
+  //   a weekly habit → its count (2/3회) · a one-time 실천 → 했어요 or 아직
+  const picks = [
+    { text: '주 3회 운동', area: '건강', result: '2/3회' },
+    { text: '친구 모임', area: '관계', result: '아직', yet: true },
+    { text: '손편지 쓰기', area: '관계', result: '했어요' },
+  ];
+  document.querySelector('#picks').innerHTML = picks.map((p) => {
+    const a = A.areaIndex(doc, p.area);
+    return `<div class="a-row"><div class="a-row-main"><div class="a-row-title">${p.text}</div><div class="a-row-meta"><i class="a-dye" style="--d:var(--dye-${a + 1})"></i>${p.area}</div></div><div class="a-row-right${p.yet ? ' is-yet' : ''}">${p.result}</div></div>`;
+  }).join('');
+});
+</script>
+</body>
+</html>

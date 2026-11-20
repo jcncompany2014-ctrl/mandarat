@@ -154,6 +154,8 @@ export const AreaPage = memo(function AreaPage({
         written={!!th.title.trim()}
         figure={`${p.done}/8`}
         figureLabel={m.chart.areaDoneSay({ done: p.done, days: 0 })}
+        // 위 줄 '영역 3 / 8'은 '3 슬래시 8'로 읽힌다 — 위 줄이 보일 때는 머리 한 덩어리를 말로('건강, 8개 영역 중 첫 번째, 8칸 중 4칸 달성')
+        accessibilityLabel={onBack ? undefined : `${m.chart.pageSay({ name: title, n: ti + 1 })}${m.chart.sep}${m.chart.areaDoneSay({ done: p.done, days: 0 })}`}
         action={{ glyph: 'dots', onPress: () => { tap(); setMore(true); }, label: m.chart.areaMore }}
         focusTitle={focusTitle}
       />
@@ -187,7 +189,7 @@ export const AreaPage = memo(function AreaPage({
         {showRest && week.rows.length > 0 && (
           <View style={{ marginTop: showBlock ? AREA_PAGE.sectionTop : AREA_PAGE.blockTop }}>
             <Section M={M} label={m.chart.habitWeek} note={m.fmt.range({ from: week7[0], to: week7[6] })} />
-            <HabitWeek M={M} ti={ti} week={week} onToggle={onHabit} />
+            <HabitWeek M={M} ti={ti} week={week} onToggle={onHabit} onOpen={onCell} />
           </View>
         )}
         {showRest && others.length > 0 && (
@@ -334,6 +336,8 @@ function AreaMore({ M, ti, onClose }: { M: Palette; ti: number; onClose: () => v
           title={areaTitle(doc, ti)}
           dye={M.dye[ti]}
           sub={m.chart.areaOf({ n: ti + 1 })}
+          // '영역 3 / 8'은 '3 슬래시 8'로 읽힌다 — 두 줄을 말로('건강, 8개 영역 중 세 번째')
+          accessibilityLabel={m.chart.pageSay({ name: areaTitle(doc, ti), n: ti + 1 })}
         />
       )}
     >

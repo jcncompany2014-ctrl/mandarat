@@ -35,10 +35,10 @@ export default {
   helpPlaceholder: '入力するか、下から選びます',
   charCount: ({ n, max }) => `${max}文字中${n}文字`,
   helpTitle: 'こんな行動はどうですか',
-  helpHint: '押すと内容に入ります',
+  helpHint: 'タップすると内容に入ります',
   coachNote: ({ noWhat, noHow, noWhen }) => {
     const list = [noWhat && '何を', noHow && 'どれだけ', noWhen && 'いつ・どこで'].filter(Boolean).map((w) => `「${w}」`).join('');
-    return list ? `${list}を書くと、行動に移しやすくなります` : '';
+    return list ? `${list}も書くと、行動に移しやすくなります` : '';
   },
 
   kindLabel: '種類',
@@ -100,7 +100,7 @@ export default {
   ratingValue: ({ label, n }) => `${label} ${n}点`,
   ratingNone: ({ label }) => `${label} 点数なし`,
   ratingOption: ({ label, n, word }) => `${label} ${n}点、${word}`,
-  ratingClearHint: 'もう一度押すと点数を消します',
+  ratingClearHint: 'もう一度タップすると点数を消します',
 
   templateTitle: 'テンプレートを選ぶ',
   templateBody: 'あらかじめ8つの分野を選んだ出発点です。行動のマスは空いています。',

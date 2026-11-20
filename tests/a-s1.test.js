@@ -43,12 +43,13 @@ test('HOME — 목업 home.html의 자리 수치(히어로 18 · 24 · 32, 지�
   for (const measure of [342, 327]) assert.ok(measure - l1Width(H.heroMapCell(measure)) - H.HOME.heroGap >= 130, `${measure}`);
 });
 
-test('homeEyebrow — 날짜(fmt.dateLong) · ISO 주, 언어마다', () => {
-  assert.equal(H.homeEyebrow(WED, 'ko'), '10월 14일 수요일 · 42주');
+test('homeEyebrow — 날짜(fmt.dateLong) · 그해의 주(calendarWeek), 언어마다', () => {
+  assert.equal(H.homeEyebrow(WED, 'ko'), '10월 14일 수요일 · 42주차');
   assert.equal(H.homeEyebrow(WED, 'ja'), '10月14日 水曜日・第42週');
   assert.equal(H.homeEyebrow(WED, 'en'), 'Wednesday, October 14 · Week 42');
-  // 해가 바뀌는 주 — ISO 주(2027-01-01 금요일은 2026년 53주)
-  assert.equal(H.homeEyebrow(new Date(2027, 0, 1), 'ko'), '1월 1일 금요일 · 53주');
+  // 해가 바뀌는 주 — 1월 1일은 늘 그해 1주(ISO 주로는 2026년 53주였다)
+  assert.match(H.homeEyebrow(new Date(2027, 0, 1), 'ko'), /^1월 1일 금요일 · 1주차/);
+  assert.doesNotMatch(H.homeEyebrow(new Date(2027, 0, 1), 'ko'), /53/);
 });
 
 test('homeList — 데모 문서는 목업 그대로: 중점 둘(하나는 체크 칸 없이) · 남은 일 둘 · 오늘 한 일 하나', () => {
@@ -92,7 +93,7 @@ test('홈의 새 말 — 세 언어, 단위는 그 언어의 셈(en 복수)', ()
   const ko = msg('ko').home;
   const ja = msg('ja').home;
   const en = msg('en').home;
-  assert.deepEqual([ko.heroToday, ko.heroDone, ko.heroLeft, ko.unitCells, ko.unitDays({ n: 78 }), ko.seeAll, ko.weekClosed], ['오늘', '달성', '남은 날', '칸', '일', '전체 보기', '마감']);
+  assert.deepEqual([ko.heroToday, ko.heroDone, ko.heroLeft, ko.unitCells, ko.unitDays({ n: 78 }), ko.seeAll, ko.weekClosed], ['오늘', '달성', '올해 남은 날', '칸', '일', '전체 보기', '하루 마감']);
   assert.deepEqual([ja.heroToday, ja.heroDone, ja.unitCells, ja.unitDays({ n: 78 }), ja.seeAll], ['今日', '達成', 'マス', '日', 'すべて見る']);
   assert.deepEqual([en.heroToday, en.heroDone, en.unitCells, en.seeAll], ['Today', 'Achieved', 'squares', 'See all']);
   assert.equal(en.unitDays({ n: 1 }), 'day');
@@ -140,7 +141,10 @@ test('히어로 — 숫자 칸 셋(label · figureField + unit, 소리 말) | L1
   // 소리 말 — '1/10'이 날짜로 읽히지 않게 예전 문장으로
   assert.match(s, /todaySay=\{todaySummary\(doc, now\)\}/);
   assert.match(s, /say=\{m\.home\.sumDone\(\{ n: done \}\)\}/);
-  assert.match(s, /leftSay=\{headerMeta\(now\)\.left\}/);
+  // 남은 날 — 지금 표의 해가 끝날 때까지(lib/home heroLeft: 수 · 칸 이름 · 읽는 말)
+  assert.match(s, /const left = heroLeft\(doc, now\);/);
+  assert.match(s, /left=\{left\.n\}\s+leftLabel=\{left\.label\}\s+leftSay=\{left\.say\}/);
+  assert.match(s, /<HeroField M=\{M\} label=\{leftLabel\} figure=\{`\$\{left\}`\}/);
 });
 
 test('누르는 줄 — 한 해 마무리 · 한 주 돌아보기는 LinkRow(같은 testID), 시작하기는 kit 줄', () => {

@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 
 import { MandaratProvider, useReady } from './src/store/MandaratContext';
+import { useLogPrivacy, useSnapOpen } from './src/store/useCrashRecovery';
 import { LookProvider, usePaletteValue } from './src/theme/look';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
@@ -16,7 +17,8 @@ import { crash } from './src/lib/crash';
 import { ProProvider } from './src/store/ProContext';
 import { LangBoot, LangRoot, prefetchLangPref, takeResumeHint } from './src/i18n/react';
 
-// 오류 수집 자리(src/lib/crash.ts) — 1.0은 아무것도 보내지 않는다. 다시 켜면 가장 먼저 시작해야 해서 여기서 부른다
+// 오류 기록 자리(src/lib/crash.ts) — 1.0은 아무것도 보내지 않고 이 기기에만 남긴다(전역 손잡이는 index.ts가 이 파일보다 먼저 건다).
+// 오류 수집을 다시 켜면 가장 먼저 시작해야 해서 여기서 부른다
 crash.init();
 // 저장된 언어도 지금 읽기 시작한다 — 서체를 불러오는 동안 같이 돌고, LangBoot는 같은 읽기를 기다린다
 void prefetchLangPref();
@@ -27,6 +29,10 @@ installWebStyles();
 
 // Pretendard — 쓰는 굵기 4개(400·500·600·700). 이름은 src/theme/fonts.ts의 PRETENDARD와 같아야 한다.
 // (800은 화면을 한 단계 가볍게 그리는 faceFor에서 Bold로 그려서 파일을 싣지 않는다)
+// iOS · 안드로이드 빌드에는 expo-font 플러그인이 같은 파일 넷을 앱에 싣는다(app.json plugins의 fonts — iOS는 Info.plist UIAppFonts).
+// 실린 서체는 그 PostScript 이름(= 아래 열쇠, tests/startup.test.js가 파일에서 읽어 확인한다)으로 곧바로 쓸 수 있어
+// useFonts가 처음 그릴 때부터 '불러옴'으로 답한다(expo-font isLoadedNative) — 파일을 읽느라 첫 화면을 기다리지 않는다.
+// 아래 불러오기는 그대로 둔다: 웹은 늘 이 길이고, 기기에서도 이름이 어긋나면 이 길로 불러온다.
 const FONT_FILES = {
   'Pretendard-Regular': require('pretendard/dist/public/static/Pretendard-Regular.otf'),
   'Pretendard-Medium': require('pretendard/dist/public/static/Pretendard-Medium.otf'),
@@ -38,7 +44,11 @@ function Gate() {
   // 준비됐는지만 읽는다 — 문서가 바뀌어도 문지기는 다시 그려지지 않는다
   // (루트 뷰 바탕 · 상태 막대 · 시스템 모드는 LookProvider가 화면 모드에 맞춰 둔다)
   const ready = useReady();
-  if (!ready) return <Splash />;
+  // 이 기기의 오류 기록이 메시지에서 문서의 글을 지울 수 있게 한다(문서가 바뀌어도 다시 그리지 않는다)
+  useLogPrivacy();
+  // 오류 화면에서 '저장본으로 열기'를 골랐으면 첫 화면을 그리기 전에 그 저장본으로 바꾼다(그동안 스플래시)
+  const opening = useSnapOpen(ready);
+  if (!ready || opening) return <Splash />;
   return <Shell />;
 }
 

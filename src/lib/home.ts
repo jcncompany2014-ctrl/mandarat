@@ -1,10 +1,11 @@
 // 홈 — 수첩의 오늘 쪽에 쓰는 작은 계산들 (React·RN 의존 없는 순수 모듈 — 단위 테스트 대상).
 // 머리 위 줄(날짜 · 주), 히어로 지도 칸 크기, 오늘 할 일에 놓을 줄, 영역 줄의 '다음' 한 줄, 처음 쓰는 사람에게 무엇을 보여 줄지.
 // 디자인 A(docs/design/build-plan.md §1 Home · S1, 목업 docs/design/mockups/a/home.png).
-import type { Theme } from '../types';
+import type { MandaratDoc, Theme } from '../types';
 import { lang, msg, type Lang } from '../i18n';
 import { GUIDE_FILL_TARGET } from './pick';
 import { fmtDateLong } from './text';
+import { chartYear } from './archive';
 
 /**
  * 홈의 자리 수치(pt) — 목업 home.html의 값. 색은 토큰, 글자는 ROLE, 화면 여백 · 구역 사이는 GEO.
@@ -35,9 +36,9 @@ export function heroMapCell(measure: number): number {
   return measure < HOME.narrowMeasure ? HOME.mapCellNarrow : HOME.mapCell;
 }
 
-/** 머리 위 줄 — '10월 14일 수요일 · 42주' (ja '10月14日 水曜日・第42週', en 'Wednesday, October 14 · Week 42') */
+/** 머리 위 줄 — '10월 14일 수요일 · 42주' (ja '10月14日 水曜日・第42週', en 'Wednesday, October 14 · Week 42'). 주는 calendarWeek */
 export function homeEyebrow(d: Date, l: Lang = lang()): string {
-  return msg(l).home.eyebrow({ day: fmtDateLong(d, l), w: isoWeek(d).week });
+  return msg(l).home.eyebrow({ day: fmtDateLong(d, l), w: calendarWeek(d).week });
 }
 
 /**
@@ -64,32 +65,50 @@ export function homeList<R extends { key: string; done: boolean }>(
   return { pinned, shown };
 }
 
-/** ISO 8601 주 번호와 그 주의 해 — 월요일 시작, 그해 첫 목요일이 든 주가 1주 */
-export function isoWeek(d: Date): { year: number; week: number } {
-  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  // 그 주의 목요일로 옮겨 해를 정한다
-  const dow = (t.getDay() + 6) % 7; // 월 0 … 일 6
-  t.setDate(t.getDate() - dow + 3);
-  const year = t.getFullYear();
-  const jan4 = new Date(year, 0, 4);
-  const jan4Dow = (jan4.getDay() + 6) % 7;
-  const week1Thu = new Date(year, 0, 4 - jan4Dow + 3);
-  const week = 1 + Math.round((t.getTime() - week1Thu.getTime()) / (7 * 86400000));
-  return { year, week };
+/**
+ * 그 날짜의 해와, 그해 안에서 센 주 번호 — 머리의 '2026 · 42주'와 '올해 78일 남음'이 늘 같은 해를 말하게.
+ * 규칙: 주는 월요일에 시작하고, 1월 1일이 든 주가 1주다. 1월 1일이 금요일이면 1~3일이 1주, 4일(월)부터 2주.
+ * 12월 31일은 그해의 마지막 주(53주, 일요일에 시작한 윤년만 54주)이고 다음 날이 다시 1주다.
+ * ISO 8601 주(첫 목요일이 든 주가 1주)는 쓰지 않는다 — 해가 바뀌는 며칠이 앞뒤 해의 주로 넘어가
+ * 2027년 1월 1일이 '2026 · 53주', 2029년 12월 31일이 '2030 · 1주'로 적힌다.
+ */
+export function calendarWeek(d: Date): { year: number; week: number } {
+  const year = d.getFullYear();
+  const jan1 = new Date(year, 0, 1);
+  const lead = (jan1.getDay() + 6) % 7; // 1월 1일 앞에 빈 요일 수 — 월 0 … 일 6
+  const nth = Math.round((new Date(year, d.getMonth(), d.getDate()).getTime() - jan1.getTime()) / 86400000); // 1월 1일 = 0
+  return { year, week: Math.floor((nth + lead) / 7) + 1 };
 }
 
-/** 올해 남은 날 — 오늘은 빼고 12월 31일까지(12월 31일이면 0) */
-export function daysLeftInYear(d: Date): number {
+/** 그해(year, 기본은 그 날짜의 해) 12월 31일까지 남은 날 — 오늘은 뺀다(12월 31일이면 0). 다음 해 끝까지도 센다 */
+export function daysLeftInYear(d: Date, year: number = d.getFullYear()): number {
   const today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const end = new Date(d.getFullYear(), 11, 31);
+  const end = new Date(year, 11, 31);
   return Math.round((end.getTime() - today.getTime()) / 86400000);
 }
 
-/** 머리 오른쪽 두 줄 — '2026 · 42주' / '올해 78일 남음' */
+/** 머리 오른쪽 두 줄 — '2026 · 42주' / '올해 78일 남음'. 해 · 주 · 남은 날 모두 그 날짜의 달력 해 */
 export function headerMeta(d: Date, l: Lang = lang()): { week: string; left: string } {
-  const w = isoWeek(d);
+  const w = calendarWeek(d);
   const f = msg(l).fmt;
   return { week: f.weekNo({ y: w.year, w: w.week }), left: f.daysLeftYear({ n: daysLeftInYear(d) }) };
+}
+
+/**
+ * 히어로 '남은 날' — 지금 표의 해(archive.chartYear)가 끝날 때까지 남은 날, 그 칸의 이름(label)과 읽는 말(say).
+ * 표의 해가 올해면 '남은 날' · '올해 78일 남음'. 다음 해의 표(12월 15일부터 시작한 표)는 그해 12월 31일까지 세고
+ * 이름과 읽는 말에 그해를 적는다('2027년 남은 날' · '2027년 367일 남음') — 만다라트 탭의 '2027 만다라트'와 같은 해.
+ */
+export function heroLeft(
+  doc: Pick<MandaratDoc, 'chartStart' | 'dayLog' | 'archives'>,
+  now: Date,
+  l: Lang = lang(),
+): { n: number; label: string; say: string } {
+  const m = msg(l);
+  const y = chartYear(doc, now);
+  const n = daysLeftInYear(now, y);
+  if (y === now.getFullYear()) return { n, label: m.home.heroLeft, say: m.fmt.daysLeftYear({ n }) };
+  return { n, label: m.home.heroLeftIn({ y }), say: m.home.leftSayIn({ y, n }) };
 }
 
 /**

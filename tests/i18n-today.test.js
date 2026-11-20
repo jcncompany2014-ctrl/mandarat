@@ -18,7 +18,7 @@ test('ko — 예전 글 그대로(바이트 같음)', () => {
   assert.equal(T.columnHead(t.colDoing, 2, 'ko'), '진행 중 2개');
   assert.equal(T.mindProgress(4, 1, 'ko'), '4개 중 1개 매겼어요');
   assert.deepEqual(dayCloseText(WED, 10, 'ko'), {
-    left: '10월 14일 수요일 마감', right: '10 / 10', speech: '10월 14일 수요일 마감, 오늘 할 일 10개를 다 했어요',
+    left: '10월 14일 수요일 하루 마감', right: '10 / 10', speech: '10월 14일 수요일 하루 마감, 오늘 할 일 10개를 다 했어요',
   });
   assert.equal(autoLine({ autoCount: 4, autoNames: ['산책', '물', '일기', '독서'] }, 'ko'), '저절로 담김 4 · 산책, 물 외 2');
   assert.equal(t.quickCount({ n: 45, max: 60 }), '45자, 최대 60자');
@@ -34,12 +34,12 @@ test('ja — 数え方と区切り', () => {
   assert.equal(T.runText(5, 'day', 'ja'), '5日');
   assert.deepEqual(T.streakCell({ cur: 3, best: 9, unit: 'week' }, 'ja'), { text: '3週', a11y: '3週連続' });
   assert.equal(T.streakSummaryLabel({ lead: null }, 'ja'), '続いている記録はまだありません。今日ひとつやれば始まります');
-  assert.equal(T.columnHead(msg('ja').today.colDoing, 2, 'ja'), '進行中、2つ');
-  assert.equal(T.columnHead(msg('ja').today.colTodo, 12, 'ja'), 'やること、12個');
+  assert.equal(T.columnHead(msg('ja').today.colDoing, 2, 'ja'), '進行中、2件');
+  assert.equal(T.columnHead(msg('ja').today.colTodo, 12, 'ja'), 'やること、12件');
   assert.deepEqual(dayCloseText(WED, 3, 'ja'), {
-    left: '10月14日 水曜日　締め', right: '3 / 3', speech: '10月14日 水曜日、締めました。今日やること3つが全部できました',
+    left: '10月14日 水曜日　締め', right: '3 / 3', speech: '10月14日 水曜日、締めました。今日やること3件が全部できました',
   });
-  assert.equal(autoLine({ autoCount: 3, autoNames: ['散歩', '水', '日記'] }, 'ja'), '自動で入った 3・散歩、水 ほか1');
+  assert.equal(autoLine({ autoCount: 3, autoNames: ['散歩', '水', '日記'] }, 'ja'), '自動で追加 3件・散歩、水 ほか1');
   assert.equal(guideSteps({ centerGoal: '', themes: [], todayKeys: [], todayExtra: [], dayLog: {} }, 'ja').steps[2].label, '行動のマスを8つ埋める');
 });
 
@@ -50,13 +50,14 @@ test('en — plurals and short streak cells', () => {
   assert.deepEqual(T.streakCell({ cur: 12, best: 12, unit: 'day' }, 'en'), { text: '12d', a11y: 'Streak of 12 days' });
   assert.equal(T.streakSummaryLabel({ lead: { text: 'Walk', cur: 1, unit: 'day', best: 5 } }, 'en'), 'Current streak 1 day, Walk. Best 5 days');
   assert.equal(T.mindProgress(4, 1, 'en'), '1 of 4 rated');
-  assert.equal(dayCloseText(WED, 1, 'en').speech, "Wednesday, October 14, day closed. You did the one thing on Today's list");
-  assert.equal(dayCloseText(WED, 4, 'en').speech, "Wednesday, October 14, day closed. You did all 4 items on Today's list");
+  assert.equal(dayCloseText(WED, 1, 'en').speech, 'Wednesday, October 14, day closed. You did the one thing on Today’s list');
+  assert.equal(dayCloseText(WED, 4, 'en').speech, 'Wednesday, October 14, day closed. You did all 4 items on Today’s list');
   assert.equal(dayCloseText(WED, 4, 'en').left, 'Wednesday, October 14 · closed');
-  assert.equal(autoLine({ autoCount: 4, autoNames: ['Walk', 'Water', 'Journal', 'Read'] }, 'en'), 'Added automatically 4 · Walk, Water + 2 more');
+  assert.equal(autoLine({ autoCount: 4, autoNames: ['Walk', 'Water', 'Journal', 'Read'] }, 'en'), '4 added automatically · Walk, Water + 2 more');
   assert.equal(t.unitDay({ n: 1 }), ' day');
   assert.equal(t.unitWeek({ n: 2 }), ' weeks');
-  assert.equal(t.whyWeekLeft({ n: 1 }), 'Already on Today with 1 more time to go this week');
+  assert.equal(t.whyWeekLeft({ n: 1 }), 'Already on Today because 1 is left this week');
+  assert.equal(t.whyWeekLeft({ n: 2 }), 'Already on Today because 2 are left this week');
   assert.equal(t.guideFill({ n: 8 }), 'Fill in 8 action squares');
 });
 

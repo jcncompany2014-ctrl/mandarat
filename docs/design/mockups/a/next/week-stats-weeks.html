@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 통계 › 올해 › 돌아본 주 — 돌아보지 않은 주가 남아 있는 목록</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* 통계 › 올해, scrolled to its last section (10월 21일 수요일). Above it the tail of 회고 as the app
+     draws it. 돌아본 주 is the app's list (src/screens/Stats.tsx ReviewList: the week on the left,
+     its figures on the right in --ink-2, the week's one-line memo under them, a faint hairline
+     between weeks) with ONE new kind of row: a week of the last four that was not reviewed keeps its
+     place in the order and carries a written link where the figures would be. */
+
+  .page-top { height: 14px; }
+  .entry { position: relative; padding: 12px 0; }
+  .entry + .entry::before, .more-row::before, .wk-row + .wk-row::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: var(--hair); background: var(--print-rule);
+  }
+  .entry .t-body { margin-top: 2px; }
+  .more-row { position: relative; display: flex; align-items: center; height: 44px; font: 700 13px/18px var(--sans); color: var(--ink); }
+
+  .sec { margin-top: 30px; }
+  .sec .a-section { margin-bottom: 6px; }
+  .sec-fig { font: 500 12px/18px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
+
+  .wk-row { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 48px; padding: 12px 0; }
+  .wk-line { display: flex; align-items: baseline; gap: 10px; }
+  .wk-range { flex: 1; font: 500 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .wk-row .t-body { margin-top: 2px; }
+  /* NEW · the not-yet-reviewed week: the same line, a written link (ink + chevron) on the right */
+  .wk-line .a-link { align-self: center; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div class="a-body">
+    <div class="page-top"></div>
+    <div class="entry"><div class="t-meta">10.19 (월) · 좋음</div><div class="t-body">이력서를 드디어 보냈다</div></div>
+    <div class="entry"><div class="t-meta">10.16 (금) · 보통</div><div class="t-body">비가 와서 걷기는 쉬었다</div></div>
+    <div class="more-row">더 보기</div>
+
+    <section class="sec">
+      <div class="a-section"><span class="t-label is-section">돌아본 주</span><span class="sec-fig">9주</span></div>
+      <div id="weeks"></div>
+      <div class="more-row">더 보기</div>
+    </section>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then(() => {
+  // newest first. The week of 10월 12일 – 18일 was skipped on Home (week-home-missed), so it waits here.
+  // Figures and memos invented in the form of doc.view.stats.reviewed (listed in week-notes.md).
+  const weeks = [
+    { range: '10월 12일 – 18일', open: true },
+    { range: '10월 5일 – 11일', line: '20번 · 습관 49% · 마음가짐 4.0', note: '아침 운동부터' },
+    { range: '9월 28일 – 10월 4일', line: '22번 · 습관 54% · 마음가짐 3.5' },
+    { range: '9월 21일 – 27일', line: '15번 · 습관 34% · 마음가짐 3.0', note: '커리어를 미뤘다. 이력서부터' },
+    { range: '9월 14일 – 20일', line: '18번 · 습관 41% · 마음가짐 4.3' },
+    { range: '9월 7일 – 13일', line: '27번 · 습관 59% · 마음가짐 3.3' },
+    { range: '8월 31일 – 9월 6일', line: '35번 · 습관 73% · 마음가짐 3.0', note: '잠을 먼저 챙기기' },
+  ];
+  document.querySelector('#weeks').innerHTML = weeks.map((w) =>
+    `<div class="wk-row"><div class="wk-line"><span class="wk-range">${w.range}</span>` +
+    (w.open ? `<span class="a-link">돌아보기${A.icon('chevron', { size: 16 })}</span>` : `<span class="t-meta">${w.line}</span>`) +
+    `</div>${w.note ? `<div class="t-body">${w.note}</div>` : ''}</div>`).join('');
+  A.tabBar('#bar', { active: 'stats' });
+});
+</script>
+</body>
+</html>

@@ -68,10 +68,10 @@ export default {
   framesTitle: '표가 채워진 모습',
   /** 네 장면 중 하나를 읽는 말 — label은 '3월 31일' */
   frameSpeech: ({ label, n }: { label: string; n: number }) => `${label}까지, 64칸 중 ${n}칸 달성`,
-  wearTitle: '닳은 자리',
-  /** 닳은 자리 오른쪽 — 칸마다 4주에 한 날 수의 평균으로 칠한다 */
+  wearTitle: '자주 한 칸',
+  /** 자주 한 칸 오른쪽 — 칸마다 4주에 한 날 수의 평균으로 칠한다 */
   wearRight: '4주 평균',
-  /** 닳은 자리 범례 머리 — stats.legendLast4처럼 끝에 가운뎃점 */
+  /** 자주 한 칸 범례 머리 — stats.legendLast4처럼 끝에 가운뎃점 */
   wearLegend: '4주 평균 ·',
   weeksTitle: '돌아본 주',
   notesTitle: '회고',
@@ -117,4 +117,6 @@ export default {
   folio: ({ label }: { label: string }) => `${label} 한 해 돌아보기`,
   /** 지난 표 한 장 위 한 줄 — '2025년 지난 표' */
   sheetFolio: ({ label }: { label: string }) => `${label} 지난 표`,
+  /** 오늘 시작한 표의 기간 — '12월 29일부터'(date: fmt.monthDay). 하루뿐인 기간을 '12월 29일 – 29일'로 적지 않는다 */
+  rangeFrom: ({ date }: { date: string }) => `${date}부터`,
 } satisfies Namespace;

@@ -23,10 +23,10 @@ import { daysBetween, normalizeDays, ymd } from '../lib/routine';
 import {
   KIND_LABEL, MAX_NUM, addDays, configOf, duePresets, parseNum, sameConfig, type KindConfig,
 } from '../lib/kinds';
-import { fmtDateLong, fmtDateSpeech, fmtDue } from '../lib/text';
+import { fmtDateLong, fmtDateSpeech } from '../lib/text';
 import { suggestActions } from '../lib/suggest';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
-import { suggestKind, type KindSuggestion } from '../lib/kindSuggest';
+import { suggestKind, withSuggestion, type KindSuggestion } from '../lib/kindSuggest';
 import { announce, reducedMotion } from '../lib/useReducedMotion';
 import { cellTitleSpeech, dueSpeech, nextCellSpeech } from '../lib/sheetSpeech';
 import { EDITOR_DRAFT_KEY, draftDiffers, draftFits, parseDraft, serializeDraft, type EditorDraft } from '../lib/editorDraft';
@@ -114,13 +114,6 @@ function nextTarget(doc: MandaratDoc, t: EditorTarget): EditorTarget | null {
 
 function targetKey(t: EditorTarget): string {
   return t.kind === 'center' ? 'c' : t.kind === 'theme' ? `t${t.ti}` : `a${t.ti}-${t.ai}`;
-}
-
-/** 글에서 알아본 유형을 지금 설정 위에 얹는다(다른 유형의 값은 그대로 둔다) */
-function withSuggestion(c: KindConfig, s: KindSuggestion): KindConfig {
-  if (s.kind === 'habit') return { ...c, kind: 'habit', days: s.days ?? [], perWeek: s.perWeek ?? c.perWeek };
-  if (s.kind === 'count') return { ...c, kind: 'count', goal: s.goal, unit: s.unit };
-  return { ...c, kind: s.kind };
 }
 
 /** 쌓기 숫자 칸에 적힌 글자 그대로(‘1.’ 같은 중간 상태도) */
@@ -977,7 +970,7 @@ function CountRows({ M, cfg, nums, setNum, issue, onFocus }: {
 function DueRows({ M, cfg, setCfg, onReveal }: {
   M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
-  const { editor: ed, core, kinds } = useMsg();
+  const { editor: ed, core, kinds, sheet } = useMsg();
   const now = new Date();
   const today = ymd(now);
   const presets = duePresets(now);
@@ -1015,7 +1008,7 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
             accessibilityLiveRegion="polite"
             accessibilityLabel={ed.dueA11y({ date: fmtDateSpeech(due, now), left: dueSpeech(days) })}
           >
-            {`${fmtDateLong(due)}${core.dot}${fmtDue(days, 'long')}`}
+            {`${fmtDateLong(due)}${core.dot}${sheet.dueIn({ days })}`}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: SP.foot }}>
             {([[-7, ed.weekEarlier, ed.weekEarlierA11y], [-1, ed.dayEarlier, ed.dayEarlierA11y], [1, ed.dayLater, ed.dayLaterA11y], [7, ed.weekLater, ed.weekLaterA11y]] as const).map(([d, t, a11y]) => (

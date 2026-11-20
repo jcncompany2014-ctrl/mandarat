@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 살아 있는 지도 · 홈 · 오늘 두 개를 체크한 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/map-parts.css">
+</head>
+<body>
+<!-- 같은 금요일, 오늘 습관 두 개를 체크한 직후(안 A). 건강 블록에 두 칸이 더 칠해진다.
+     주 3회 운동: 3/3이 되어 이번 주 내내 칠해진다(지킨 습관 4 → 5).
+     스트레칭 10분: 이번 주에 놓친 날이 있어 '지킨 습관'은 아니지만, 오늘 했으므로 홈의 지도에서는 자정까지 칠해진다. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/map-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = M.tick(M.veteran(doc), ['주 3회 운동', '스트레칭 10분']);
+  M.home('#page', d, { mode: 'a' });
+});
+</script>
+</body>
+</html>

@@ -55,11 +55,11 @@ test('every phase renders a catalog string (or nothing), in ko, ja and en', () =
 
 test('status line: just now, then the date and time; nothing when sync is off', () => {
   const t = msg('ko');
-  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at: NOW - 5000 }, NOW, t), '방금 맞췄어요');
+  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at: NOW - 5000 }, NOW, t), '방금 동기화했어요');
   const at = new Date(2026, 9, 14, 21, 0).getTime();
-  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at }, at + 2 * 60_000, t), '10월 14일 오후 9:00에 맞췄어요');
-  assert.equal(view.statusLine({ phase: 'checking', enabled: true }, NOW, t), '맞추는 중이에요');
-  assert.equal(view.statusLine({ phase: 'syncing', enabled: true }, NOW, t), '맞추는 중이에요');
+  assert.equal(view.statusLine({ phase: 'idle', enabled: true, at }, at + 2 * 60_000, t), '10월 14일 오후 9:00에 동기화했어요');
+  assert.equal(view.statusLine({ phase: 'checking', enabled: true }, NOW, t), '동기화하는 중이에요');
+  assert.equal(view.statusLine({ phase: 'syncing', enabled: true }, NOW, t), '동기화하는 중이에요');
   assert.equal(view.statusLine({ phase: 'off', enabled: false, at: NOW - 5000 }, NOW, t), null, 'off: no time line');
 });
 
@@ -67,9 +67,26 @@ test('problem rows: the plan wording; sign-in and Drive open Settings, ioError c
   const t = msg('ko');
   assert.deepEqual(view.problemLine('noAccount', t), { title: 'iCloud에 로그인되어 있지 않아요', body: t.sync.settingsBody, action: 'settings' });
   assert.deepEqual(view.problemLine('driveOff', t), { title: 'iCloud Drive가 꺼져 있어요', body: t.sync.settingsBody, action: 'settings' });
-  assert.equal(view.problemLine('accountChanged', t).title, '다른 iCloud 계정이에요 — 다시 켜면 이 계정 기록과 맞춰요');
+  assert.equal(view.problemLine('accountChanged', t).title, '다른 iCloud 계정이에요. 다시 켜면 이 계정의 기록과 동기화해요');
   assert.equal(view.problemLine('ioError', t).action, 'retry');
   assert.equal(view.problemLine('tooLarge', t).action, undefined);
+});
+
+test('audit 8: a large record is a note on a finished sync — the status line still says when it synced, and the notice has no action', () => {
+  for (const l of LANGS) {
+    const t = msg(l);
+    // 엔진은 큰 기록을 문제(phase 'problem')로 알리지 않는다 — 다 맞춘 상태(idle)에 note로
+    const s = { phase: 'idle', enabled: true, at: NOW - 5000, note: 'tooLarge' };
+    assert.equal(view.statusLine(s, NOW, t), t.sync.justNow, `${l}: the row still reads as synced`);
+    assert.deepEqual(view.problemLine(s.note, t), { title: t.sync.tooLarge }, 'the same string key, no retry and no settings link');
+  }
+  const sec = src('src/screens/settings/SyncSection.tsx');
+  assert.match(sec, /s\.phase === 'problem' \? problemLine\(s\.problem, t\) : s\.phase === 'idle' && s\.note \? problemLine\(s\.note, t\) : null/);
+  const eng = src('src/lib/syncEngine.ts');
+  assert.doesNotMatch(eng, /problem: 'tooLarge'/, 'the engine never reports the size as a problem');
+  assert.match(eng, /set\('idle', large \? \{ at, note: 'tooLarge' \} : \{ at \}\);/);
+  // 온보딩의 가져오기는 phase 'problem'만 실패로 본다 — 큰 기록을 가져온 것은 실패가 아니다
+  assert.match(src('src/screens/Onboarding.tsx'), /if \(s\.phase === 'problem' \|\| !s\.enabled\) \{/);
 });
 
 test('the newerApp problem renders its catalog string', () => {
@@ -78,7 +95,7 @@ test('the newerApp problem renders its catalog string', () => {
     assert.equal(view.problemLine('newerApp', t).title, t.sync.newerApp);
     assert.equal(view.problemLine('newerApp', t).action, undefined, 'nothing to press: update the app');
   }
-  assert.equal(msg('ko').sync.newerApp, '다른 기기의 앱이 더 새 버전이에요. 이 기기도 업데이트하면 다시 맞춰요');
+  assert.equal(msg('ko').sync.newerApp, '다른 기기의 앱이 더 새 버전이에요. 이 기기도 업데이트하면 다시 동기화해요');
 });
 
 test('choice sheet: three choices, each with its line, and none preselected', () => {
@@ -112,6 +129,27 @@ test('the sheet opens only while the engine asks, and not again for an answered 
   for (const phase of PHASES.filter((p) => p !== 'needsChoice')) {
     assert.equal(view.choiceOpen({ phase, enabled: true, remote }, null), false, phase);
   }
+});
+
+test('reset dialog: with sync on, one more sentence says the other devices are erased too', () => {
+  for (const l of LANGS) {
+    const t = msg(l);
+    const off = view.resetAskText(false, t);
+    const on = view.resetAskText(true, t);
+    assert.equal(off, t.settings.resetAskBody, `${l}: off is the plain body`);
+    assert.equal(on, `${t.settings.resetAskBody}\n\n${t.settings.resetAskSync}`, `${l}: on adds the sentence as its own paragraph`);
+    assert.ok(!off.includes(t.settings.resetAskSync), l);
+    assert.match(t.settings.resetAskSync, /iCloud/, l);
+  }
+  assert.equal(msg('ko').settings.resetAskSync, 'iCloud 동기화를 켜 두어서, 같은 Apple 계정의 다른 기기에서도 지워져요.');
+  assert.equal(msg('ja').settings.resetAskSync, 'iCloudでの同期がオンのため、同じApple Accountのほかの端末でも消えます。');
+  assert.equal(msg('en').settings.resetAskSync, 'iCloud sync is on, so they will also be erased on your other devices with the same Apple Account.');
+  // 설정 화면은 누르는 그때의 켜짐으로 고른다 — 엔진이 없으면(웹 · 안드로이드) 늘 꺼짐이라 본문만
+  const settings = src('src/screens/Settings.tsx');
+  assert.match(settings, /ask\(st\.resetAskTitle, resetAskText\(getSyncStatus\(\)\.enabled, m\), st\.resetAskOk, doReset, true\)/);
+  // 글이 기대는 코드 — 초기화는 새 판('epoch')이고, 다른 기기는 높은 판을 받기 전에 오늘 저장본을 남긴다
+  assert.match(src('src/store/MandaratContext.tsx'), /update\(\(d\) => rolloverToday\(resetDoc\(d\), dateKey\(\)\), 'epoch'\);/);
+  assert.match(src('src/lib/syncEngine.ts'), /keepCopy\(\)/);
 });
 
 test('the onboarding row appears only when an offer exists', () => {

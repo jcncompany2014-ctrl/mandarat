@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1370x1016">
+<title>A · 다음 · 하루의 끝 — 지금과 바꾼 뒤 (7/10인 저녁)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/day-parts.css">
+<style>
+  /* Not a screen: three 390 × 844 screens on a grey ground, the evening of 10월 14일 수요일 with seven
+     of ten done. Left = the app today (as in the audit capture j2-25b-day1-partial-scrolled.png,
+     redrawn with the demo document): the list simply ends. Right pair = the proposal: the line under
+     the list, and the day it closes. Screens: day-parts.js. */
+  html, body { width: 1370px; height: 1016px; background: var(--tile); }
+</style>
+</head>
+<body>
+<div class="cmp-title" style="left:48px;top:28px">지금</div>
+<div class="cmp-note" style="left:48px;top:62px">열 가지를 다 해야만 하루가 마감돼요.</div>
+<div class="cmp-tab" style="left:48px;top:98px">7/10인 저녁, 목록 끝</div>
+<div class="cmp-phone" style="left:48px;top:124px"><div class="a-page" id="now"></div></div>
+
+<div class="cmp-title" style="left:518px;top:28px">바꾼 뒤</div>
+<div class="cmp-note" style="left:518px;top:62px">목록 아래 ‘오늘은 여기까지 하기’를 누르면, 열 가지를 다 한 날과 같은 모습으로 하루를 접어요.</div>
+<div class="cmp-tab" style="left:518px;top:98px">7/10인 저녁, 목록 끝</div>
+<div class="cmp-tab" style="left:932px;top:98px">누른 뒤</div>
+<div class="cmp-phone" style="left:518px;top:124px"><div class="a-page" id="link"></div></div>
+<div class="cmp-phone" style="left:932px;top:124px"><div class="a-page" id="closed"></div></div>
+
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-focus-dayclose.js"></script>
+<script src="/docs/design/mockups/a/next/day-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const eve = D.scene(base, 'eve');
+  const $ = (s) => document.querySelector(s);
+  D.todayEnd($('#now'), eve, { link: false });
+  D.todayEnd($('#link'), eve, { link: true });
+  D.closed($('#closed'), eve, { note: '남은 세 가지는 내일로 이어져요 · 오후 9:40 마감' });
+});
+</script>
+</body>
+</html>

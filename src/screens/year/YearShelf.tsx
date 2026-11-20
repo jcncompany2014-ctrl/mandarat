@@ -6,14 +6,13 @@ import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
 import { RowDivider, pressedRow } from '../../components/common';
 import { Icon } from '../../components/Icon';
-import { ColourMap } from '../../components/chart';
 import { GEO } from '../../theme/tokens';
 import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { useUIActions } from '../../navigation/ui';
 import { useDoc } from '../../store/MandaratContext';
 import { usePro } from '../../store/ProContext';
-import { archiveAccess, yearLabel } from '../../lib/archive';
+import { archiveAccess, chartRangeLabel, yearLabel } from '../../lib/archive';
 import { posterDone } from '../../lib/poster';
 import { TID } from '../../lib/testIds';
 import { tap } from '../../lib/haptics';
@@ -21,18 +20,13 @@ import { useMsg } from '../../i18n/react';
 import type { Messages } from '../../i18n';
 import type { YearView } from '../../lib/contracts';
 import type { ArchivedChart } from '../../types';
+import { MapThumb } from './MapThumb';
 
 const GUTTER = GEO.gutter;
 /** 줄 왼쪽의 작은 지도(L1) 폭 */
 const MINI = 56;
 /** 처음에 보이는 줄 수 — 지난 표는 200장까지 쌓이므로 '더 보기'로 이만큼씩 펼친다 */
 export const SHELF_PAGE = 24;
-
-/** 'YYYY-MM-DD' → 그날 0시 */
-export function dayOf(key: string): Date {
-  const [y, mo, d] = key.split('-').map(Number);
-  return new Date(y, mo - 1, d);
-}
 
 /** 기록한 날 — 지난 표의 dayLog는 그 표의 기간만큼 잘려 있다 */
 export function recordDays(a: Pick<ArchivedChart, 'dayLog'>): number {
@@ -100,7 +94,7 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, locked, first, onPic
   onPick: (id: string) => void;
 }) {
   const label = yearLabel(a.from, a.to);
-  const range = m.fmt.range({ from: dayOf(a.from), to: dayOf(a.to) });
+  const range = chartRangeLabel(a.from, a.to, false);
   const goal = a.centerGoal.trim();
   const line = m.year.shelfLine({ n: posterDone(a), days: recordDays(a) });
   return (
@@ -118,7 +112,7 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, locked, first, onPic
     >
       {!first && <RowDivider M={M} inset={0} />}
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <ColourMap themes={a.themes} level="L1" width={MINI} defer />
+        <MapThumb themes={a.themes} width={MINI} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[ROLE.rowTitle, { color: M.ink }]} numberOfLines={1}>

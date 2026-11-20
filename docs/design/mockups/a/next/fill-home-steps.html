@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 64칸까지 이어 쓰기 · 홈 · 시작하기(8/64)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/fill-parts.css">
+</head>
+<body>
+<!-- 첫날, 첫 영역 8칸을 쓴 뒤의 홈. 시작하기 3단계가 '실천 칸 채우기 · 8/64'로 남아 있다. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/fill-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  F.home('#page', F.doc8(doc), { guide: 'steps', rows: 3, steps: [{ text: '핵심 목표 정하기', done: true }, { text: '영역 8개 정하기', done: true }, { fill: true }, { text: '오늘 할 일 고르기', done: true }, { text: '하나 해 보기' }] });
+});
+</script>
+</body>
+</html>
