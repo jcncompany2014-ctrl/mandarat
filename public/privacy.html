@@ -6,34 +6,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>만다라트 · 개인정보 처리방침 / プライバシーポリシー / Privacy Policy</title>
 <meta name="description" content="만다라트 앱의 개인정보 처리방침 — マンダラート プライバシーポリシー — Mandalart Privacy Policy">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <style>
-:root{--paper:#FBF9F4;--desk:#F1EEE6;--ink:#2B2620;--sub:#6B635A;--line:rgba(43,38,32,.14);--gold:#8C6A2A;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--paper:#1E1C19;--desk:#161513;--ink:#EDE8DF;--sub:#A69E93;--line:rgba(237,232,223,.16);--gold:#D2AE69;color-scheme:dark}}
+:root{--paper:#FFFFFF;--ink:#191B1F;--ink2:#5F6670;--print:#6B727C;--rule:#EEF0F2;--tile:#F3F4F6;--core:#221F1B;--dye1:#447753;--dye2:#5068AB;--dye3:#916329;--dye4:#A35468;--dye5:#2E7773;--dye6:#7C5FA5;--dye7:#38719B;--dye8:#A65633;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--paper:#121316;--ink:#ECEDEF;--ink2:#A3A8B0;--print:#9AA0A8;--rule:#24262B;--tile:#1D1F23;--core:#4A4E55;--dye1:#40704D;--dye2:#4D64A3;--dye3:#885D26;--dye4:#9A4F62;--dye5:#2C706D;--dye6:#75599A;--dye7:#356A92;--dye8:#9C5231;color-scheme:dark}}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--desk);color:var(--ink);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans KR","Noto Sans JP","Segoe UI",sans-serif;word-break:keep-all;overflow-wrap:anywhere}
-main{max-width:680px;margin:0 auto;min-height:100vh;background:var(--paper);border-left:1px solid var(--line);border-right:1px solid var(--line);padding:28px 20px 56px}
-header{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--ink)}
-.mark{width:28px;height:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border:2px solid var(--ink);padding:2px}
-.mark i{background:var(--ink)}.mark i:nth-child(5){background:var(--gold)}
-header b{font-size:18px;letter-spacing:-.01em}
-nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
-nav a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;padding:4px 2px}
-nav a[aria-current="true"]{font-weight:700;text-decoration-thickness:2px}
-nav span{color:var(--sub)}
-section{padding-top:8px}
-h2{font-size:24px;line-height:1.35;margin:24px 0 4px}
-h3{font-size:16px;margin:26px 0 6px;padding-top:12px;border-top:1px solid var(--line)}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans KR","Noto Sans JP","Segoe UI",sans-serif;overflow-wrap:anywhere;-webkit-font-smoothing:antialiased}
+section:lang(ko){word-break:keep-all}
+section:lang(ja){line-break:strict}
+main{max-width:680px;margin:0 auto;padding:28px max(24px,env(safe-area-inset-right)) 72px max(24px,env(safe-area-inset-left))}
+header{display:flex;align-items:center;gap:12px}
+.mark{flex:none;width:28px;height:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.mark i{border-radius:2px;background:var(--core)}
+.mark i:nth-child(1){background:var(--dye1)}.mark i:nth-child(2){background:var(--dye2)}.mark i:nth-child(3){background:var(--dye3)}.mark i:nth-child(4){background:var(--dye4)}.mark i:nth-child(6){background:var(--dye5)}.mark i:nth-child(7){background:var(--dye6)}.mark i:nth-child(8){background:var(--dye7)}.mark i:nth-child(9){background:var(--dye8)}
+header b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+nav{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:center;margin-top:20px;padding-bottom:12px;border-bottom:1px solid var(--rule);font-size:15px}
+nav a{color:var(--ink2);text-decoration:none;padding:6px 0}
+nav a[aria-current="true"]{color:var(--ink);font-weight:700;box-shadow:inset 0 -2px var(--ink)}
+nav span{color:var(--print)}
+h2{font-size:30px;line-height:1.25;letter-spacing:-.02em;margin:36px 0 10px}
+h3{font-size:17px;line-height:1.45;margin:30px 0 8px;padding-top:20px;border-top:1px solid var(--rule)}
+h4{font-size:16px;line-height:1.5;margin:26px 0 6px}
 p,ul{margin:0 0 10px}
-ul{padding-left:1.2em}
+ul{padding-left:1.25em}
 li{margin:4px 0}
-.meta{color:var(--sub);font-size:14px;margin-bottom:16px}
-.contact{margin-top:26px;padding-top:14px;border-top:2px solid var(--ink)}
-a{color:var(--ink)}
+li::marker{color:var(--print)}
+a{color:var(--ink);text-decoration-thickness:1px;text-underline-offset:3px}
+.meta{color:var(--print);font-size:14px;margin-bottom:20px}
+.note{color:var(--ink2);font-size:15px}
+.mail{margin:14px 0 18px}
+.mail a{display:inline-block;padding:11px 16px;border-radius:12px;background:var(--tile);font-size:17px;font-weight:600;text-decoration:none}
+.contact{margin-top:30px;padding-top:20px;border-top:1px solid var(--rule)}
 html.js section.off{display:none}
-@media print{body{background:#fff}main{border:0;max-width:none}nav{display:none}html.js section.off{display:block}}
+@media print{:root{--paper:#FFFFFF;--ink:#191B1F;--ink2:#5F6670;--print:#6B727C;--rule:#EEF0F2;--tile:#F3F4F6;--core:#221F1B;--dye1:#447753;--dye2:#5068AB;--dye3:#916329;--dye4:#A35468;--dye5:#2E7773;--dye6:#7C5FA5;--dye7:#38719B;--dye8:#A65633;color-scheme:light}main{max-width:none;padding:0}nav{display:none}html.js section.off{display:block}section+section{break-before:page}h3,h4{break-after:avoid}.mark i{-webkit-print-color-adjust:exact;print-color-adjust:exact}.mail a{padding:0;background:none}}
 </style>
 </head>
 <body>
@@ -47,10 +56,10 @@ html.js section.off{display:none}
     <h3>1. 기록은 내 기기에 저장해요</h3>
     <p>목표, 칸, 체크, 메모, 한 줄 기록, 설정과 날마다 만드는 저장본은 모두 이 기기 안에 저장돼요. 이 기록은 우리에게 보내지 않아요. iPhone이나 iPad의 iCloud 백업을 켜 두었다면, 이 기록도 Apple이 관리하는 기기 백업에 함께 들어가요.</p>
     <h3>2. iCloud 동기화는 켤 때만, 내 iCloud에만</h3>
-    <p>설정 › iCloud에서 동기화를 켜면, 같은 Apple 계정을 쓰는 내 iPhone과 iPad끼리 기록을 맞춰요.</p>
+    <p>설정&nbsp;› iCloud에서 동기화를 켜면, 같은 Apple 계정을 쓰는 내 iPhone과 iPad끼리 기록을 맞춰요.</p>
     <ul><li>기록은 <strong>내 iCloud 계정 안의 이 앱 전용 공간</strong>에만 저장해요. 우리는 그 공간을 볼 수 없어요.</li><li>데이터는 Apple의 iCloud가 보관하고 옮겨요. 우리 서버를 거치지 않아요.</li><li>동기화는 처음에 꺼져 있어요. 끄면 기기의 기록은 그대로 남아요.</li></ul>
     <h3>3. 오류 기록을 보내지 않아요</h3>
-    <p>앱이 멈추거나 오류가 나도, 이 앱은 오류 기록을 따로 보내지 않아요. iPhone 설정 › 개인정보 보호 및 보안 › 분석 및 향상에서 '앱 개발자와 공유'를 켜 두었다면, Apple이 이름 없는 충돌 기록을 우리에게 전해 줄 수 있어요. 이 기록은 Apple이 모으고 전하며, 내가 적은 글은 들어가지 않아요.</p>
+    <p>앱이 멈추거나 오류가 나도, 이 앱은 오류 기록을 따로 보내지 않아요. iPhone 설정&nbsp;› 개인정보 보호 및 보안&nbsp;› 분석 및 향상에서 '앱 개발자와 공유'를 켜 두었다면, Apple이 이름 없는 충돌 기록을 우리에게 전해 줄 수 있어요. 이 기록은 Apple이 모으고 전하며, 내가 적은 글은 들어가지 않아요.</p>
     <h3>4. 결제가 없어요</h3>
     <p>이 앱에는 앱 내 구입이 없고, 모든 기능이 무료예요. 나중에 앱 내 구입이 생기면 결제는 Apple(App Store)이 처리하고, 이 방침을 먼저 고쳐 알려 드려요.</p>
     <h3>5. 알림은 기기 안에서만</h3>
@@ -62,7 +71,7 @@ html.js section.off{display:none}
     <h3>8. 사진</h3>
     <p>표 이미지를 사진 앱에 저장할 때만 '사진에 추가' 권한을 물어요. 사진을 읽지는 않아요.</p>
     <h3>9. 기록 지우기</h3>
-    <p>설정 › 전체 초기화로 기기의 기록을 지울 수 있어요. 앱을 삭제하면 기기 안의 기록도 함께 지워져요. iCloud에 맞춰 둔 기록은 iPhone 설정 › Apple 계정 › iCloud › 저장 공간 관리에서 지울 수 있어요.</p>
+    <p>설정&nbsp;› 전체 초기화로 기기의 기록을 지울 수 있어요. 앱을 삭제하면 기기 안의 기록도 함께 지워져요. iCloud에 맞춰 둔 기록은 iPhone 설정&nbsp;› Apple 계정&nbsp;› iCloud&nbsp;› 저장 공간 관리에서 지울 수 있어요.</p>
     <h3>10. 어린이</h3>
     <p>이 앱은 어린이를 대상으로 하지 않으며, 어린이의 정보를 따로 모으지 않아요.</p>
     <h3>11. 바뀌면 알려요</h3>
@@ -76,10 +85,10 @@ html.js section.off{display:none}
     <h3>1. 記録は端末に保存されます</h3>
     <p>目標、マス、チェック、メモ、ひとこと、設定、毎日の保存版は、すべてこの端末の中に保存されます。運営者に送られることはありません。iPhone/iPadのiCloudバックアップをオンにしている場合は、Appleが管理する端末バックアップにも含まれます。</p>
     <h3>2. iCloud同期はオンにしたときだけ、ご自身のiCloudに</h3>
-    <p>設定 › iCloudで同期をオンにすると、同じAppleアカウントのiPhoneとiPadの間で記録をそろえます。</p>
+    <p>設定&nbsp;› iCloudで同期をオンにすると、同じAppleアカウントのiPhoneとiPadの間で記録をそろえます。</p>
     <ul><li>記録は<strong>ご自身のiCloudアカウント内の、本アプリ専用の領域</strong>にだけ保存されます。運営者はその内容を見られません。</li><li>データの保管と転送はAppleのiCloudが行い、運営者のサーバーは経由しません。</li><li>同期は初期状態でオフです。オフにしても端末の記録はそのまま残ります。</li></ul>
     <h3>3. エラー記録は送りません</h3>
-    <p>アプリが停止したりエラーが起きたりしても、本アプリがエラー記録を独自に送ることはありません。iPhoneの設定 › プライバシーとセキュリティ › 解析および改善で「App デベロッパと共有」をオンにしている場合は、Appleが匿名のクラッシュレポートを運営者に提供することがあります。この記録はAppleが収集・提供するもので、ご自身が書いた文は含まれません。</p>
+    <p>アプリが停止したりエラーが起きたりしても、本アプリがエラー記録を独自に送ることはありません。iPhoneの設定&nbsp;› プライバシーとセキュリティ&nbsp;› 解析および改善で「App デベロッパと共有」をオンにしている場合は、Appleが匿名のクラッシュレポートを運営者に提供することがあります。この記録はAppleが収集・提供するもので、ご自身が書いた文は含まれません。</p>
     <h3>4. 課金はありません</h3>
     <p>本アプリにはアプリ内課金がなく、すべての機能を無料で使えます。今後アプリ内課金を加える場合、決済はApple(App Store)が行い、このポリシーを事前に改めてお知らせします。</p>
     <h3>5. 通知は端末の中だけで</h3>
@@ -91,7 +100,7 @@ html.js section.off{display:none}
     <h3>8. 写真</h3>
     <p>表の画像を「写真」に保存するときにだけ「写真への追加」の許可を求めます。写真を読み取ることはありません。</p>
     <h3>9. 記録の削除</h3>
-    <p>設定 › すべてリセットで端末の記録を削除できます。アプリを削除すると、端末内の記録も削除されます。iCloudに同期した記録は、iPhoneの設定 › Appleアカウント › iCloud › ストレージを管理から削除できます。</p>
+    <p>設定&nbsp;› すべてリセットで端末の記録を削除できます。アプリを削除すると、端末内の記録も削除されます。iCloudに同期した記録は、iPhoneの設定&nbsp;› Appleアカウント&nbsp;› iCloud&nbsp;› ストレージを管理から削除できます。</p>
     <h3>10. 子ども</h3>
     <p>本アプリは子どもを対象としておらず、子どもの情報を特に集めることはありません。</p>
     <h3>11. 変更</h3>
@@ -105,10 +114,10 @@ html.js section.off{display:none}
     <h3>1. Your records stay on your device</h3>
     <p>Your goal, cells, check-offs, notes, daily lines, settings and the daily saved copies are all stored on this device. They are never sent to us. If iCloud Backup is on for your iPhone or iPad, they are included in that device backup, which Apple manages.</p>
     <h3>2. iCloud sync: only when you turn it on, only in your iCloud</h3>
-    <p>If you turn on sync in Settings › iCloud, your iPhone and iPad on the same Apple Account keep the same records.</p>
+    <p>If you turn on sync in Settings&nbsp;› iCloud, your iPhone and iPad on the same Apple Account keep the same records.</p>
     <ul><li>The records are stored only in <strong>this app's private space inside your own iCloud account</strong>. We cannot see that space.</li><li>Apple's iCloud stores and moves the data. It never passes through a server of ours.</li><li>Sync is off by default. Turning it off leaves the records on your device unchanged.</li></ul>
     <h3>3. No error reports from the app</h3>
-    <p>The app does not send crash or error reports of its own. If you turned on Share With App Developers in iPhone Settings › Privacy &amp; Security › Analytics &amp; Improvements, Apple may give us anonymous crash reports. Apple collects and delivers those reports, and they do not include anything you write.</p>
+    <p>The app does not send crash or error reports of its own. If you turned on Share With App Developers in iPhone Settings&nbsp;› Privacy &amp; Security&nbsp;› Analytics &amp; Improvements, Apple may give us anonymous crash reports. Apple collects and delivers those reports, and they do not include anything you write.</p>
     <h3>4. No purchases</h3>
     <p>The app has no in-app purchases; every feature is free. If purchases are added later, Apple (the App Store) will handle payment, and this policy will be updated first.</p>
     <h3>5. Notifications are local only</h3>
@@ -120,7 +129,7 @@ html.js section.off{display:none}
     <h3>8. Photos</h3>
     <p>The app asks for add-only Photos access, and only when you save a chart image. It never reads your photos.</p>
     <h3>9. Deleting your records</h3>
-    <p>Settings › Reset everything deletes the records on the device. Deleting the app also deletes them. Records synced to iCloud can be deleted on iPhone in Settings › Apple Account › iCloud › Manage Storage.</p>
+    <p>Settings&nbsp;› Reset everything deletes the records on the device. Deleting the app also deletes them. Records synced to iCloud can be deleted on iPhone in Settings&nbsp;› Apple Account&nbsp;› iCloud&nbsp;› Manage Storage.</p>
     <h3>10. Children</h3>
     <p>The app is not directed at children and does not knowingly collect children's information.</p>
     <h3>11. Changes</h3>
