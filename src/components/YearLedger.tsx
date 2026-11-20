@@ -108,9 +108,10 @@ export const YearLedger = memo(function YearLedger({ M, rows, width }: { M: M; r
   const pic = useMemo(() => ledgerPicture(lines, cell, ratio), [rows, cell, ratio]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View>
-      {/* 칸 — 줄들 뒤에 깔린 그림 한 장. 화면 읽기는 아래 줄이 말한다 */}
+      {/* 칸 — 줄들 뒤에 깔린 그림 한 장. 화면 읽기는 아래 줄이 말한다(웹은 aria-hidden으로 숨긴다) */}
       <View
         pointerEvents="none"
+        aria-hidden
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{ position: 'absolute', left: 0, top: 0 }}

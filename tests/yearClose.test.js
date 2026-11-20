@@ -206,7 +206,7 @@ test('장부 그림: 칸마다 View 대신 진하기마다 길 하나 — 자리
   // 그림 한 장: Svg 하나에 진하기마다 Path 하나, 화면 읽기에서는 숨기고 줄마다 읽는 말은 그대로
   assert.equal((s.match(/<Svg /g) ?? []).length, 1);
   assert.match(s, /pic\.paths\.map\(\(d, bin\) => \(d \? <Path key=\{bin\} d=\{d\} fill=\{tones\[bin\] \?\? M\.tile\} \/> : null\)\)/);
-  assert.match(s, /pointerEvents="none"\s+accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/);
+  assert.match(s, /pointerEvents="none"\s+aria-hidden\s+accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/);
   assert.match(s, /accessible\s+accessibilityLabel=\{ln\.speech\}\s+\{\.\.\.a11yLangProp\(\)\}/);
   assert.match(s, /height: cell, marginTop: rowGap/);
 });
