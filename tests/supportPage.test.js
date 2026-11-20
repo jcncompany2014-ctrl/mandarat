@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { build, section } = require('../scripts/support-page');
+const { build: buildPrivacy } = require('../scripts/privacy-page');
 const { PRIVACY_URL, SUPPORT_URL, SUPPORT_EMAIL, privacyLink, supportLink } = require('../src/lib/appInfo');
 const { msg, LANGS } = require('../src/i18n');
 const { LIGHT, DARK } = require('../src/theme/tokens');
@@ -25,7 +26,7 @@ const part = (html, l) => new RegExp(`<section id="${l}" lang="${l}">([\\s\\S]*?
 const plain = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 const count = (s, re) => (s.match(re) ?? []).length;
 
-test('public/support.html은 support.md에서 지금 만든 것과 같다(고치면 npm run support-page)', () => {
+test('public/support.html은 support.md에서 지금 만든 것과 같다(글이나 색 토큰을 고치면 npm run support-page)', () => {
   assert.equal(page, build());
   assert.equal(JSON.parse(src('package.json')).scripts['support-page'], 'node scripts/support-page.js');
 });
@@ -113,6 +114,9 @@ test('두 페이지의 모습 — 토큰 값 그대로(밝게 LIGHT · 어둡게
   ].join(';');
   assert.equal(LIGHT.paper, '#FFFFFF');
   assert.equal(LIGHT.ink, '#191B1F');
+  // 색은 src/theme/tokens.ts에서 읽는다 — 토큰을 고치면 두 페이지도 다시 만든다
+  assert.equal(src('public/privacy.html'), buildPrivacy(), '색 토큰이나 글을 고쳤다면: npm run privacy-page');
+  assert.equal(page, build(), '색 토큰이나 글을 고쳤다면: npm run support-page');
   const scripts = [];
   for (const f of ['public/privacy.html', 'public/support.html']) {
     const html = src(f);
