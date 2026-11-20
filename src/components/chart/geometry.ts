@@ -165,6 +165,26 @@ export const BLOCK = { gap: 6, radius: 10, pad: 10, tick: 13, tickStroke: 1.75, 
 export const blockGeometry = (width: number, ratio: number = DEFAULT_RATIO): Track =>
   cached(`block|${width}|${ratio}`, () => track(3, width, BLOCK.gap, BLOCK.radius, ratio));
 
+/** 크게 본 블록의 글이 '더 큰 텍스트'를 따르는 한도 — 칸이 깨지지 않을 만큼(AppText의 작은 글자 한도와 같은 1.3배) */
+export const BLOCK_TEXT_SCALE = 1.3;
+
+/**
+ * 글자 크기 후보(큰 것부터)에 기기의 글자 배율을 곱한 후보 — fitBox에 그대로 넘긴다(맞추는 법은 그대로).
+ * - 배율은 max(1.3)까지만 따른다. 작게 쓰는 설정(1 미만)은 그대로 곱한다.
+ * - 키운 크기 가운데 한 줄 높이(fs × lineRatio, 반올림)가 height를 넘는 것은 뺀다 — 작은 칸에서 위아래 표시를 덮지 않게.
+ * - 키운 후보에 본디 후보를 그대로 섞는다(큰 것부터) — 크게 본다고 1배 때보다 작아지거나, 다 보이던 글이 잘리지 않게.
+ */
+export function scaledSizes(
+  sizes: readonly number[], fontScale: number, lineRatio: number, height: number, max: number = BLOCK_TEXT_SCALE,
+): number[] {
+  const k = Number.isFinite(fontScale) && fontScale > 0 ? Math.min(fontScale, max) : 1;
+  if (k === 1) return [...sizes];
+  const up = sizes.map((s) => Math.round(s * k * 10) / 10);
+  if (k < 1) return up;
+  const big = up.filter((fs) => Math.round(fs * lineRatio) <= height);
+  return [...new Set([...big, ...sizes])].sort((a, b) => b - a);
+}
+
 /** 25분 칸(5×5) — 틈 5.5 · 모서리 8, 칸 = (W − 22) / 5. 지금 분의 점 r 3 · (12, 12) */
 export const MINUTES = { n: 5, gap: 5.5, radius: 8, dot: 3, dotAt: 12 } as const;
 export const minuteGeometry = (width: number, ratio: number = DEFAULT_RATIO): Track =>
