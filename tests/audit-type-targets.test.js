@@ -184,6 +184,136 @@ test('이번 주 습관: 요일 글자 줄은 맨 위에 한 번, 오늘 칸은 
   assert.match(src('src/screens/area/AreaPage.tsx'), /onToggle=\{onHabit\} onOpen=\{onCell\}/);
 });
 
+// 습관 표를 가짜 React · react-native로 그려 본다(tests/a-chrome.test.js와 같은 방법) — 줄의 짜임 · 누르기를 값으로
+function drawHabitWeek(props) {
+  const ts = require('typescript');
+  const file = path.join(ROOT, 'src/screens/area/HabitWeek.tsx');
+  const React = {
+    createElement: (type, p, ...children) => ({ type, props: { ...(p || {}), children: children.length <= 1 ? children[0] : children } }),
+    memo: (fn) => (p) => fn(p),
+    useCallback: (fn) => fn,
+    Fragment: 'Fragment',
+  };
+  const stubs = {
+    react: { __esModule: true, default: React, ...React },
+    'react-native': { Pressable: 'Pressable', View: 'View', StyleSheet: { hairlineWidth: 0.5 } },
+    '../../components/AppText': { Text: 'Text', a11yLangProp: () => ({}) },
+    '../../components/kit': { CheckBox: 'CheckBox' },
+    '../../theme/type': require('../src/theme/type'),
+    '../../lib/marks': require('../src/lib/marks'),
+    '../../lib/areaWeek': require('../src/lib/areaWeek'),
+    '../../i18n/react': { useMsg: () => msg('ko') },
+  };
+  const { outputText } = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
+    fileName: file,
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.React },
+  });
+  const mod = { exports: {} };
+  new Function('require', 'module', 'exports', outputText)((id) => {
+    if (Object.prototype.hasOwnProperty.call(stubs, id)) return stubs[id];
+    throw new Error(`HabitWeek.tsx: require('${id}')`);
+  }, mod, mod.exports);
+  const render = (el) => {
+    if (el == null || el === false) return null;
+    if (Array.isArray(el)) return el.map(render).filter(Boolean);
+    if (typeof el !== 'object') return String(el);
+    if (typeof el.type === 'function') return render(el.type(el.props));
+    const { children, ...rest } = el.props;
+    const kids = children === undefined ? [] : [].concat(children).flat(Infinity).map(render).flat(Infinity).filter(Boolean);
+    if (el.type === 'Fragment') return kids;
+    return { type: el.type, props: rest, children: kids };
+  };
+  return { tree: render(React.createElement(mod.exports.HabitWeek, props)), HABIT_WEEK: mod.exports.HABIT_WEEK };
+}
+/** 스타일(배열 · 함수)을 한 객체로 */
+const flat = (style, pressed = false) => {
+  const v = typeof style === 'function' ? style({ pressed }) : style;
+  return [].concat(v ?? []).flat(Infinity).filter(Boolean).reduce((o, x) => Object.assign(o, x), {});
+};
+const textOf = (n) => (typeof n === 'string' ? n : n.children.map(textOf).join(''));
+
+test('이번 주 습관(그려 보기): 줄마다 이름 한 줄 + 요일 칸 일곱 + 횟수 — 누르는 칸은 40 × 44 체크 상자, 줄은 시트를 연다', () => {
+  const { areaWeek } = require('../src/lib/areaWeek');
+  // 2026-10-14 수요일(오늘 자리 2) — tests/a-s2.test.js와 같은 한 주
+  const WED = new Date(2026, 9, 14, 9);
+  const themes = ['건강', '', '', '', '', '', '', ''].map((title) => ({
+    title, color: '#447753', icon: 'heart', actions: Array.from({ length: 8 }, () => ({ text: '', note: '', done: false })),
+  }));
+  themes[0].actions[0] = { text: '달리기 전 스트레칭 10분 하고 나가기', note: '', done: false, kind: 'habit', perWeek: 3, since: '2026-10-01' };
+  themes[0].actions[1] = { text: '하루 물 2L', note: '', done: false, kind: 'habit', days: [0, 1, 2, 3, 4, 5, 6], since: '2026-10-01' };
+  const doc = { centerGoal: '', themes, dayLog: { '2026-10-12': ['0-1'], '2026-10-13': ['0-1'] }, todayKeys: [] };
+  const week = areaWeek(doc, 0, WED);
+  const toggled = [];
+  const opened = [];
+  const M = { ink: 'ink', ink2: 'ink2', print: 'print', printRule: 'rule', tile: 'tile', signal: 'signal' };
+  const { tree, HABIT_WEEK } = drawHabitWeek({ M, ti: 0, week, onToggle: (ai, date) => toggled.push([ai, date]), onOpen: (ai) => opened.push(ai) });
+  const [head, ...rows] = tree.children;
+  assert.equal(rows.length, 2);
+
+  // 머리 줄: 요일 글자 일곱(한 번) + 횟수, 오늘(수)만 옅은 면
+  assert.equal(flat(head.props.style).height, HABIT_WEEK.head);
+  assert.deepEqual(head.children.slice(0, 7).map((c) => textOf(c)), ['월', '화', '수', '목', '금', '토', '일']);
+  assert.equal(textOf(head.children[7]), msg('ko').chart.habitTimes);
+  assert.deepEqual(head.children.slice(0, 7).map((c) => c.children.some((k) => k.type === 'View' && flat(k.props.style).backgroundColor === 'tile')),
+    [false, false, true, false, false, false, false]);
+  assert.equal(head.props.accessibilityElementsHidden, true);
+
+  rows.forEach((row, n) => {
+    const r = week.rows[n];
+    // 바깥은 누르기만(화면 읽기는 안쪽 이름이) — 누르면 그 실천의 시트
+    assert.equal(row.type, 'Pressable');
+    assert.equal(row.props.accessible, false);
+    assert.equal(flat(row.props.style).paddingTop, HABIT_WEEK.top);
+    assert.equal(flat(row.props.style, true).backgroundColor, 'tile');
+    row.props.onPress();
+    assert.equal(opened.at(-1), r.ai);
+    const parts = row.children.filter((c) => !(flat(c.props.style).position === 'absolute'));
+    assert.equal(row.children.length - parts.length, n === 0 ? 0 : 1, '줄 사이 선은 첫 줄 위에 없다');
+    const [name, boxes] = parts;
+    // 이름 줄: 제 줄에(가로로 나눠 쓰지 않는다), 한 줄, 단추로 읽힌다
+    assert.equal(textOf(name), r.text);
+    assert.equal(name.children[0].props.numberOfLines, 1);
+    assert.equal(flat(name.props.style).width, undefined);
+    assert.equal(flat(name.props.style).flexDirection, undefined);
+    assert.equal(name.props.accessibilityRole, 'button');
+    assert.equal(name.props.accessibilityLabel, `${r.text}, 이번 주 ${r.planned}회 중 ${r.done}회`);
+    name.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } });
+    assert.equal(opened.at(-1), r.ai);
+    // 요일 줄: 칸 일곱 + 횟수
+    assert.equal(flat(boxes.props.style).flexDirection, 'row');
+    assert.equal(boxes.children.length, 8);
+    assert.equal(textOf(boxes.children[7]), `${r.done}/${r.planned}`);
+    boxes.children.slice(0, 7).forEach((col, i) => {
+      const st = flat(col.props.style);
+      assert.ok(st.flexBasis >= 40 && st.flexGrow === 1 && st.maxWidth >= st.flexBasis, `요일 칸 폭 ${st.flexBasis}`);
+      assert.equal(st.height, 44);
+      const box = col.children.find((k) => k.type === 'CheckBox');
+      assert.equal(box ? box.props.state : 'none', r.days[i], `${r.text} ${i}`);
+      if (box) assert.equal(box.props.size, 14);
+      assert.equal(col.children.some((k) => k.type === 'View' && flat(k.props.style).backgroundColor === 'tile'), i === week.todayIndex, `오늘 면 ${i}`);
+      if (r.canPress[i]) {
+        assert.equal(col.type, 'Pressable');
+        assert.equal(col.props.accessibilityRole, 'checkbox');
+        assert.equal(col.props['aria-checked'], r.days[i] === 'done');
+        assert.deepEqual(col.props.accessibilityState, { checked: r.days[i] === 'done' });
+        assert.ok(col.props.accessibilityLabel.startsWith(`${r.text}, `));
+        col.props.onPress();
+        assert.deepEqual(toggled.at(-1), [r.ai, week.dates[i]]);
+      } else {
+        assert.equal(col.type, 'View');
+        assert.equal(col.props.accessibilityElementsHidden, true);
+      }
+    });
+  });
+  // 주 3회는 오늘 칸 하나, 매일은 월 · 화 했고 오늘까지 누를 수 있다
+  assert.equal(toggled.length, 1 + 3);
+
+  // onOpen이 없으면 줄은 누를 수 없는 묶음, 이름은 단추가 아니다
+  const plain = drawHabitWeek({ M, ti: 0, week, onToggle: () => {} }).tree.children[1];
+  assert.equal(plain.type, 'View');
+  assert.equal(plain.children[0].props.accessibilityRole, undefined);
+});
+
 // ── 3. 처음 표의 권하는 글 ──────────────────────────────────────────────────────
 
 test('처음 표: 권하는 글은 한 줄에 하나씩(kit Row, 칸 편집 창의 줄과 같은 부품) — 옆으로 나눈 낱칸 · 줄여 그리기는 없다', () => {
