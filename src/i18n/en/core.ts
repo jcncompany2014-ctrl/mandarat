@@ -64,4 +64,13 @@ export default {
 
   fitAll: 'Fits in the 81-square chart',
   fitLines: ({ max }) => `Only ${max} ${plural(max, 'line', 'lines')} show in the 81-square chart`,
+
+  crashOpenSnap: ({ date }) => `Open the saved copy from ${date}`,
+  crashCopyLog: 'Copy error details',
+  crashCopied: 'Error details copied',
+  crashCopyFailed: "Couldn't copy. Please try once more.",
+  screenFailTitle: "This screen couldn't open",
+  screenFailBody: 'Your saved records are safe. Try again, or go to another screen.',
+  screenFailHome: 'Go to Home',
+  sheetFail: "That sheet couldn't open, so it was closed. Your records are safe.",
 } satisfies Like<typeof ko>;

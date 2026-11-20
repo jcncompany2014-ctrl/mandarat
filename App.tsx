@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 
 import { MandaratProvider, useReady } from './src/store/MandaratContext';
+import { useSnapOpen } from './src/store/useCrashRecovery';
 import { LookProvider, usePaletteValue } from './src/theme/look';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
@@ -16,7 +17,8 @@ import { crash } from './src/lib/crash';
 import { ProProvider } from './src/store/ProContext';
 import { LangBoot, LangRoot, prefetchLangPref, takeResumeHint } from './src/i18n/react';
 
-// 오류 수집 자리(src/lib/crash.ts) — 1.0은 아무것도 보내지 않는다. 다시 켜면 가장 먼저 시작해야 해서 여기서 부른다
+// 오류 기록 자리(src/lib/crash.ts) — 1.0은 아무것도 보내지 않고 이 기기에만 남긴다(전역 손잡이는 index.ts가 이 파일보다 먼저 건다).
+// 오류 수집을 다시 켜면 가장 먼저 시작해야 해서 여기서 부른다
 crash.init();
 // 저장된 언어도 지금 읽기 시작한다 — 서체를 불러오는 동안 같이 돌고, LangBoot는 같은 읽기를 기다린다
 void prefetchLangPref();
@@ -38,7 +40,9 @@ function Gate() {
   // 준비됐는지만 읽는다 — 문서가 바뀌어도 문지기는 다시 그려지지 않는다
   // (루트 뷰 바탕 · 상태 막대 · 시스템 모드는 LookProvider가 화면 모드에 맞춰 둔다)
   const ready = useReady();
-  if (!ready) return <Splash />;
+  // 오류 화면에서 '저장본으로 열기'를 골랐으면 첫 화면을 그리기 전에 그 저장본으로 바꾼다(그동안 스플래시)
+  const opening = useSnapOpen(ready);
+  if (!ready || opening) return <Splash />;
   return <Shell />;
 }
 
