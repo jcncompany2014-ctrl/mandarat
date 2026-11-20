@@ -57,11 +57,22 @@ test('yearCalendar: 해를 넘는 기간 — 달마다 31칸, 없는 날은 null
   assert.deepEqual(rows.map((r) => r.month), ['2026-11', '2026-12', '2027-01']);
   for (const r of rows) assert.equal(r.cells.length, 31);
   assert.equal(rows[0].cells[18], 0, '11/19는 기간 전');
-  assert.equal(rows[0].cells[19], 3, '11/20 — 3개');
+  // 진하기는 그 기간에 내가 가득 채운 날(여기서는 5)에 견준 몫 — 3개는 3분의 2쯤, 5개는 다 함, 2개는 3분의 1쯤
+  assert.equal(rows[0].cells[19], 2, '11/20 — 3개');
   assert.equal(rows[0].cells[30], null, '11/31은 없다');
-  assert.equal(rows[1].cells[30], 4, '12/31 — 5개 이상');
-  assert.equal(rows[2].cells[1], 2);
+  assert.equal(rows[1].cells[30], 4, '12/31 — 5개');
+  assert.equal(rows[2].cells[1], 1);
   assert.equal(rows[2].cells[2], 0, '1/3은 기간 뒤');
+});
+
+test('yearCalendar: 진하기는 기간 안의 기록에만 견주고, 마감한 날(closedDays)은 다 함', () => {
+  const log = { '2026-03-01': new Array(4).fill('a'), '2026-03-02': new Array(8).fill('a'), '2026-03-03': ['a'], '2025-12-31': new Array(40).fill('a') };
+  const rows = yearCalendar(log, '2026-01-01', '2026-03-31');
+  // 기간 밖의 40개짜리 날은 기준을 끌어올리지 않는다 — 가득 채운 날 8
+  assert.deepEqual(rows[2].cells.slice(0, 4), [2, 4, 1, 0]);
+  // 3/3은 한 개뿐이지만 그날 목록을 다 해 마감했다
+  const closed = yearCalendar(log, '2026-01-01', '2026-03-31', ['2026-03-03', '2026-03-04', '2025-12-31']);
+  assert.deepEqual(closed[2].cells.slice(0, 4), [2, 4, 4, 0]);
 });
 
 test('yearCalendar: 윤년 2월은 29일까지, 평년은 28일까지', () => {

@@ -49,8 +49,10 @@ test('R-5 #2: 넓은 글자(가나·한자·한글)는 1em, 숫자는 그보다 
 test('A-3a · D-7: 장부 — 칸은 16pt까지, 기록한 날은 통계의 최근 10주와 같은 진하기 차례(타일, 디자인 A S4)', () => {
   const s = src('src/components/YearLedger.tsx');
   assert.match(s, /Math\.max\(6, Math\.min\(16, Math\.floor\(\(width - LEDGER_LABEL_W\) \/ 31\)\)\)/);
-  assert.match(s, /const tones = HEAT_TONES\.map\(\(t\) => M\[t\]\);/);
-  assert.deepEqual([...require('../src/lib/statsView').HEAT_TONES], ['tile', 'printMid', 'printEdge', 'ink2', 'ink']);
+  assert.match(s, /import \{ heatTones \} from '\.\.\/lib\/statsView';/);
+  assert.match(s, /const tones = heatTones\(M\);/);
+  // 통계의 최근 10주도 같은 함수 — 두 그림의 색이 어긋나지 않는다
+  assert.match(src('src/components/StatsCharts.tsx'), /heatTones\(M\)/);
 });
 
 test('A-2: 펼침 — 왼쪽 쪽 → 오른쪽 쪽 순서(experimental_accessibilityOrder · id)', () => {

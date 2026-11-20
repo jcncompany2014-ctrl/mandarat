@@ -104,7 +104,7 @@ test('YearReview: 인쇄된 한 줄 · 색 지도 · 채워진 모습 · 네 숫
     at = i;
   }
   assert.match(s, /fillFrames\(view, from, to, FRAMES\)/);
-  assert.match(s, /yearCalendar\(view\.dayLog, from, to\)/);
+  assert.match(s, /yearCalendar\(view\.dayLog, from, to, view\.closedDays\)/);
   assert.match(s, /archiveAsDoc\(archive, doc\.settings\)/);
   assert.match(s, /focus: \(doc\.focusMinutes \?\? 0\) - \(doc\.focusStart \?\? 0\)/);
   assert.match(s, /openPrint\(archive \? \{ archiveId: archive\.id \} : undefined\)/);

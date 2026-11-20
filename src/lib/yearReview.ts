@@ -4,7 +4,7 @@ import type { MandaratDoc, Theme } from '../types';
 import { daysBetween, kindOf } from './routine';
 import { addDays, cleanNum, round2 } from './kinds';
 import { lastLogDay } from './history';
-import { cellActivity, dayBin, longestStreak } from './review';
+import { cellActivity, fullDay, longestStreak, shareBin } from './review';
 
 type DayLog = MandaratDoc['dayLog'];
 type Bin = 0 | 1 | 2 | 3 | 4;
@@ -167,12 +167,18 @@ export function yearDigest(
 export interface YearCalendarRow {
   /** 'YYYY-MM' */
   month: string;
-  /** 1일~31일의 진하기(dayBin) — 그달에 없는 날은 null, 기간 밖의 날은 0 */
+  /** 1일~31일의 진하기(shareBin) — 그달에 없는 날은 null, 기간 밖의 날은 0 */
   cells: (Bin | null)[];
 }
 
-/** 한 해 달력 — 달마다 한 줄(13줄까지) × 31칸. 진하기는 그날 기록 수의 dayBin */
-export function yearCalendar(dayLog: DayLog, from: string, to: string): YearCalendarRow[] {
+/**
+ * 한 해 달력 — 달마다 한 줄(13줄까지) × 31칸. 진하기는 통계의 최근 10주와 같은 셈(review shareBin):
+ * 그 기간에 내가 가득 채운 날(fullDay)에 견준 몫, 마감한 날(closedDays)은 '다 함'
+ */
+export function yearCalendar(dayLog: DayLog, from: string, to: string, closedDays?: readonly string[]): YearCalendarRow[] {
+  const inRange = (key: string) => key >= from && key <= to;
+  const full = fullDay(Object.keys(dayLog).filter(inRange).map((key) => dayLog[key]?.length ?? 0));
+  const closed = new Set(closedDays);
   return rangeMonths(from, to).map((month) => {
     const y = Number(month.slice(0, 4));
     const m = Number(month.slice(5, 7));
@@ -184,7 +190,7 @@ export function yearCalendar(dayLog: DayLog, from: string, to: string): YearCale
         continue;
       }
       const key = `${month}-${String(d).padStart(2, '0')}`;
-      cells.push(key < from || key > to ? 0 : dayBin(dayLog[key]?.length ?? 0));
+      cells.push(inRange(key) ? shareBin(dayLog[key]?.length ?? 0, full, closed.has(key)) : 0);
     }
     return { month, cells };
   });

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Text, a11yLangProp } from './AppText';
 import { ROLE } from '../theme/type';
 import type { M } from '../theme/usePalette';
-import { HEAT_TONES } from '../lib/statsView';
+import { heatTones } from '../lib/statsView';
 import { msg, type Lang } from '../i18n';
 import type { YearCalendarRow } from '../lib/yearReview';
 
@@ -57,7 +57,7 @@ export function ledgerLines(rows: readonly YearCalendarRow[], l?: Lang): LedgerL
 
 /**
  * 한 해 장부 — 달마다 한 줄(13줄까지) × 31칸. 칸은 타일(모서리 2, 사이 1.5): 기록 없는 날 tile,
- * 그날 기록 수의 진하기(dayBin)마다 printMid → printEdge → ink2 → ink(통계의 최근 10주와 같은 차례, lib/statsView HEAT_TONES).
+ * 그날의 진하기(내가 가득 채운 날에 견준 몫, review shareBin)마다 tile에서 ink2까지 네 걸음(통계의 최근 10주와 같은 색, lib/statsView heatTones).
  * 그달에 없는 날(2월 30일 등)은 칸을 그리지 않는다. 화면 읽기는 줄마다 '2026년 10월, 기록한 날 12일'.
  */
 export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: readonly YearCalendarRow[] }) {
@@ -65,7 +65,7 @@ export const YearLedger = memo(function YearLedger({ M, rows }: { M: M; rows: re
   const cell = ledgerCellSize(width || 340);
   const lines = ledgerLines(rows);
   const rowGap = ledgerRowGap(cell);
-  const tones = HEAT_TONES.map((t) => M[t]);
+  const tones = heatTones(M);
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {lines.map((ln) => (

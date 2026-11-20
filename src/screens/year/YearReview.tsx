@@ -90,7 +90,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
   const { view, from, to, focus, goal, note } = src;
 
   const digest = useMemo(() => yearDigest(view, from, to, focus), [view, from, to, focus]);
-  const rows = useMemo(() => yearCalendar(view.dayLog, from, to), [view.dayLog, from, to]);
+  const rows = useMemo(() => yearCalendar(view.dayLog, from, to, view.closedDays), [view.dayLog, view.closedDays, from, to]);
   const frames = useMemo(() => fillFrames(view, from, to, FRAMES), [view, from, to]);
   const wear = useMemo(() => wearActivity(digest.cellDays, spanDays(from, to)), [digest, from, to]);
 
