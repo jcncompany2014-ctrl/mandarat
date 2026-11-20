@@ -21,7 +21,7 @@ function loadLedger() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true, jsx: ts.JsxEmit.ReactJSX },
   });
   const stub = { memo: (f) => f, useState: (v) => [v, () => {}], StyleSheet: { hairlineWidth: 0.5 }, View: 'View', Text: 'Text', jsx: () => null, jsxs: () => null };
-  const STUB = new Set(['react', 'react-native', 'react/jsx-runtime', './AppText']);
+  const STUB = new Set(['react', 'react-native', 'react-native-svg', 'react/jsx-runtime', './AppText']);
   const load = Module._load;
   Module._load = function (req, parent, ...rest) {
     if (STUB.has(req)) return stub;
@@ -52,7 +52,8 @@ test('오버레이: 전체 화면 Modal · 네 방향 · 웹 폭 틀(WebColumn �
   assert.doesNotMatch(s, /\buseMandarat\(\)|\buseUI\(\)/);
   // 한 해 돌아보기: 네 숫자 · 장부 · 120자 한 줄
   for (const k of ['statDays', 'statLongest', 'statAchieved', 'statFocus']) assert.match(s, new RegExp(`m\\.year\\.${k}`), k);
-  assert.match(s, /<YearLedger M=\{M\} rows=\{rows\} \/>/);
+  // 장부는 본문 폭을 받아 칸 크기를 바로 정한다(놓인 뒤 재서 다시 그리지 않는다)
+  assert.match(s, /<YearLedger M=\{M\} rows=\{rows\} width=\{Math\.max\(0, width - GEO\.gutter \* 2\)\} \/>/);
   assert.match(s, /maxLength=\{ARCHIVE_NOTE_MAX\}/);
 });
 
@@ -139,7 +140,76 @@ test('장부: 13달 · 윤년 2월 29일 · 없는 날은 칸이 없다', () => 
   // 디자인 A(S4): 칸은 타일(모서리 2, 사이 1.5) — 통계의 최근 10주와 같은 진하기 차례(heatTones)
   const s = src('src/components/YearLedger.tsx');
   assert.match(s, /const LEDGER_RADIUS = 2;/);
-  assert.match(s, /backgroundColor: tones\[c \?\? 0\] \?\? M\.tile/);
+  assert.match(s, /fill=\{tones\[bin\] \?\? M\.tile\}/);
+});
+
+/** 길 글자 → 네모들 [x0, y0, x1, y1] — 'M x y H x A r r 0 0 1 x y V y …' 꼴(lib/tilePath roundRectPath)만 읽는다 */
+function rectsOf(d) {
+  const out = [];
+  for (const sub of d.split('z').filter(Boolean)) {
+    const m = /^M([\d.]+) ([\d.]+)H[\d.]+A([\d.]+) [\d.]+ 0 0 1 ([\d.]+) [\d.]+V[\d.]+A[\d.]+ [\d.]+ 0 0 1 [\d.]+ ([\d.]+)H[\d.]+A[\d.]+ [\d.]+ 0 0 1 ([\d.]+) [\d.]+V[\d.]+A[\d.]+ [\d.]+ 0 0 1 ([\d.]+) ([\d.]+)$/.exec(sub);
+    assert.ok(m, sub);
+    const [sx, y0, r, x1, y1, x0, ex, ey] = m.slice(1).map(Number);
+    // 닫힌 길 — 시작한 자리로 돌아온다
+    assert.deepEqual([ex, ey], [sx, y0]);
+    assert.ok(Math.abs(sx - r - x0) < 0.0011, sub);
+    out.push([x0, y0, x1, y1]);
+  }
+  return out;
+}
+
+test('장부 그림: 칸마다 View 대신 진하기마다 길 하나 — 자리는 예전 칸(안쪽 0.75, 기기 픽셀에 맞춤)과 같다', () => {
+  const { ledgerLines, ledgerPicture, ledgerCellSize, LEDGER_LABEL_W } = loadLedger();
+  const TONES = require('../src/lib/statsView').HEAT_STEPS.length;
+  const log = { '2028-02-29': ['0-0', '0-1'], '2027-12-10': ['0-0'], '2028-03-01': ['0-0', '0-1', '0-2', '0-3', '0-4', '0-5', '0-6', '0-7'] };
+  const rows = yearCalendar(log, '2027-12-10', '2028-12-20');
+  const lines = ledgerLines(rows, 'ko');
+  const days = lines.reduce((s, l) => s + l.length, 0);
+  assert.equal(days, 31 + 366, '13달의 날 수 — 달마다 그달의 날 모두(2027-12 + 윤년 2028)');
+  for (const [width, ratio] of [[327, 3], [342, 3], [327, 2], [592, 2], [432, 1]]) {
+    const cell = ledgerCellSize(width);
+    const rowGap = Math.max(3, 16 - cell);
+    const pic = ledgerPicture(lines, cell, ratio);
+    assert.equal(pic.paths.length, TONES, '진하기마다 길 하나(HEAT_STEPS)');
+    assert.equal(pic.width, LEDGER_LABEL_W + 31 * cell);
+    assert.equal(pic.height, 13 * (cell + rowGap), '줄 간격은 그대로(칸 + 줄 사이)');
+    const got = pic.paths.map(rectsOf);
+    // 그달에 있는 날마다 칸 하나 — 없는 날(2월 30일)은 없다
+    assert.equal(got.reduce((s, r) => s + r.length, 0), days, `${width}@${ratio}`);
+    // 예전 그림: 줄 i · 날 d의 칸은 (달 이름 칸 + d × 칸, 줄 위) 안쪽 0.75 — 레이아웃이 기기 픽셀에 맞춘 변
+    const snap = (v) => Math.round(Math.round(v * ratio) / ratio * 1000) / 1000;
+    const want = pic.paths.map(() => []);
+    lines.forEach((ln, i) => {
+      const top = rowGap + i * (cell + rowGap);
+      for (let d = 0; d < ln.length; d++) {
+        const left = LEDGER_LABEL_W + d * cell;
+        want[ln.cells[d] ?? 0].push([snap(left + 0.75), snap(top + 0.75), snap(left + cell - 0.75), snap(top + cell - 0.75)]);
+      }
+    });
+    assert.deepEqual(got, want, `${width}@${ratio}`);
+    // 3배 화면에서는 칸마다 안쪽 2px, 2배에서는 왼쪽 · 위 2px · 오른쪽 · 아래 1px — 변이 모두 온 픽셀
+    for (const r of got.flat()) for (const v of r) assert.ok(Math.abs(v * ratio - Math.round(v * ratio)) < 0.01, `${v}@${ratio}`);
+  }
+  // 진하기: 기록 없는 날 0, 하루 2개 · 8개는 저마다의 단계
+  const pic = ledgerPicture(lines, 10, 3);
+  const n = pic.paths.map((d) => rectsOf(d).length);
+  assert.equal(n[0], days - 3);
+  assert.equal(n.slice(1).reduce((s, x) => s + x, 0), 3);
+  // 기록이 하나도 없으면 길은 tile 하나뿐
+  const none = ledgerPicture(ledgerLines(yearCalendar({}, '2027-02-01', '2027-02-28'), 'ko'), 10, 3);
+  assert.deepEqual(none.paths.map((d) => rectsOf(d).length), [28, ...Array(TONES - 1).fill(0)]);
+
+  const s = src('src/components/YearLedger.tsx');
+  // 폭은 받는다 — 재는 상태 · onLayout이 없다(첫 프레임과 다음 프레임의 칸 크기가 달라 달력이 두 번 그려졌다)
+  assert.match(s, /function YearLedger\(\{ M, rows, width \}: \{ M: M; rows: readonly YearCalendarRow\[\]; width: number \}\)/);
+  assert.match(s, /const cell = ledgerCellSize\(width\);/);
+  assert.doesNotMatch(s, /useState|onLayout|\|\| 340/);
+  // 그림 한 장: Svg 하나에 진하기마다 Path 하나, 화면 읽기에서는 숨기고 줄마다 읽는 말은 그대로
+  assert.equal((s.match(/<Svg /g) ?? []).length, 1);
+  assert.match(s, /pic\.paths\.map\(\(d, bin\) => \(d \? <Path key=\{bin\} d=\{d\} fill=\{tones\[bin\] \?\? M\.tile\} \/> : null\)\)/);
+  assert.match(s, /pointerEvents="none"\s+aria-hidden\s+accessibilityElementsHidden\s+importantForAccessibility="no-hide-descendants"/);
+  assert.match(s, /accessible\s+accessibilityLabel=\{ln\.speech\}\s+\{\.\.\.a11yLangProp\(\)\}/);
+  assert.match(s, /height: cell, marginTop: rowGap/);
 });
 
 test('디자인 가드: 새 파일에 둥근 카드 · 그림자 · 그라데이션 · 이모지가 없다', () => {

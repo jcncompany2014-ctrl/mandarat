@@ -88,7 +88,7 @@ test('YearReview: 인쇄된 한 줄 · 색 지도 · 채워진 모습 · 네 숫
     '<Frames ',
     '<Numbers ',
     'label={m.year.calendarTitle}',
-    '<YearLedger M={M} rows={rows} />',
+    '<YearLedger M={M} rows={rows} width={contentW} />',
     'label={m.year.wearTitle}',
     '<ActivityChart ',
     '<WearLegend M={M} head={m.year.wearLegend} />',
@@ -110,8 +110,8 @@ test('YearReview: 인쇄된 한 줄 · 색 지도 · 채워진 모습 · 네 숫
   assert.match(s, /openPrint\(archive \? \{ archiveId: archive\.id \} : undefined\)/);
   // 닳은 자리는 읽기만(누르면 다른 화면으로 가지 않는 인쇄된 쪽)
   assert.match(s, /<ActivityChart M=\{M\} doc=\{view\} activity=\{wear\} width=\{mapW\} \/>/);
-  // 액자 넷은 L1 지도(첫 화면 다음 프레임에, §4.6), 마지막 날짜는 먹 600
-  assert.match(s, /<ColourMap themes=\{f\.themes\} level="L1" cell=\{cell\} defer \/>/);
+  // 액자 넷은 L1 지도 — 그림 한 장씩(MapThumb: 색마다 길 하나), 마지막 날짜는 먹 600
+  assert.match(s, /<MapThumb themes=\{f\.themes\} cell=\{cell\} \/>/);
   assert.match(s, /color: last \? M\.ink : M\.print \}, last \? \{ fontFamily: PRETENDARD\[600\] \} : null/);
 });
 

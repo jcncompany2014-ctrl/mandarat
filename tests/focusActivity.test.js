@@ -287,12 +287,15 @@ test('FocusTimer — 25분 알림: 도는 채로 떠나면 걸고, 돌아오기�
   assert.match(body, /else if \(s === 'background'\) \{\s*notifier\.focusEnd\(endAtRef\.current, msgRef\.current\.live\.doneTitle, textRef\.current\)/);
   // 정리(멈춤·끝·닫기·언마운트)에서 거둔다
   assert.match(body, /return \(\) => \{[\s\S]*notifier\.focusEnd\(null\)/);
-  assert.equal(s.match(/notifier\.focusEnd\(/g).length, 3);
+  // 넷째: 앱이 꺼졌다 켜져 도는 세션을 되살릴 때 — 꺼지기 전에 걸어 둔 끝 알림을 거둔다(앱을 보고 있다)
+  assert.match(s, /if \(r\.endAt !== null\) notifier\.focusEnd\(null\)\.catch\(\(\) => \{\}\);/);
+  assert.equal(s.match(/notifier\.focusEnd\(/g).length, 4);
   // 묻지 않는다
   assert.doesNotMatch(s, /notifier\.request\(/);
   // 지켜 온 것: 화면 켜 두기 · 한 번만 기록 · 벽시계
   assert.match(s, /keepAwake\(true\)/);
-  assert.match(s, /if \(recordedRef\.current\) return;/);
+  // 한 번만 기록 — 이미 더한 분(creditedRef)을 빼고 더한 만큼 올린다: 닫기와 언마운트가 잇달아 불러도 두 번 더하지 않는다
+  assert.match(s, /const m = owedMinutes\(currentLeft\(\), creditedRef\.current\);[\s\S]{0,120}if \(m <= 0\) return;\s*creditedRef\.current \+= m;\s*addRef\.current\(m\);/);
   assert.match(s, /endAtRef\.current = Date\.now\(\) \+ remainingMsRef\.current;/);
 });
 

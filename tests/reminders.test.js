@@ -75,7 +75,46 @@ test('저녁 알림은 오늘 다 하면 사라진다 — 앞날은 할 일이 �
   const done = { ...d, dayLog: { ...d.dayLog, '2026-10-14': ['0-0'] }, todayExtra: [{ id: 'a1', ti: 0, text: '장보기', done: true }] };
   plan = R.planReminders(done, NOW);
   assert.equal(plan[0].id, 'mandarat.pm.2026-10-15.2100');
-  assert.equal(plan[0].title, '오늘 남은 일 1개', '다 한 직접 추가 할 일은 다음 날 목록에서 빠진다');
+  assert.equal(plan[0].title, '오늘 할 일을 살펴볼 시간이에요', '앞날의 저녁 알림은 남은 수를 적지 않는다');
+  assert.equal(plan[0].body, '물 2L', '다 한 직접 추가 할 일은 다음 날 목록에서 빠진다');
+});
+
+test('저녁 알림의 남은 수는 오늘 것만 — 앞날의 알림은 수 없는 글(미리 걸어 두면 그 수가 굳는다)', () => {
+  const d = doc({}, { reminders: { evening: '21:00' } });
+  for (let i = 0; i < 5; i++) d.themes[0].actions[i] = habit(`습관${'가나다라마'[i]}`);
+  for (const lang of ['ko', 'ja', 'en']) {
+    const plan = R.planReminders(d, NOW, { lang });
+    assert.equal(plan.length, R.REMINDER_DAYS, lang);
+    // 오늘 저녁: 남은 수 + 앞의 둘과 나머지 수
+    assert.equal(plan[0].id, 'mandarat.pm.2026-10-14.2100');
+    assert.match(plan[0].title, /5/, `${lang} 오늘: ${plan[0].title}`);
+    assert.match(plan[0].body, /3/, `${lang} 오늘: ${plan[0].body}`);
+    // 내일부터: 제목 · 본문 어디에도 수가 없다
+    for (const p of plan.slice(1)) {
+      assert.equal(p.kind, 'pm');
+      assert.doesNotMatch(p.title, /\d/, `${lang} ${p.id}: ${p.title}`);
+      assert.doesNotMatch(p.body, /\d/, `${lang} ${p.id}: ${p.body}`);
+      assert.deepEqual(textProblems(lang, p.title), [], `${lang} ${p.title}`);
+    }
+    // 앞날의 글은 날마다 같다(같은 글 · 같은 시각이면 다시 걸지 않는다)
+    assert.equal(new Set(plan.slice(1).map((p) => p.title)).size, 1, lang);
+  }
+  const ko = R.planReminders(d, NOW, { lang: 'ko' });
+  assert.equal(ko[0].title, '오늘 남은 일 5개');
+  assert.equal(ko[0].body, '습관가 · 습관나 외 3개');
+  assert.equal(ko[1].title, '오늘 할 일을 살펴볼 시간이에요');
+  assert.equal(ko[1].body, '습관가 · 습관나');
+  assert.equal(R.planReminders(d, NOW, { lang: 'ja' })[1].title, '今日やることを見直す時間です');
+  assert.equal(R.planReminders(d, NOW, { lang: 'en' })[1].title, "Time to look over Today's list");
+  // 날이 바뀌어 그날이 오늘이 되면(앱을 열면) 그 알림이 남은 수를 얻는다 — 글이 바뀌므로 다시 건다
+  const next = R.planReminders({ ...d, todayDate: '2026-10-15' }, at(15), { lang: 'ko' });
+  assert.equal(next[0].id, ko[1].id);
+  assert.equal(next[0].title, '오늘 남은 일 5개');
+  assert.notEqual(next[0].sig, ko[1].sig);
+  // 아침 알림은 그대로 — 그날 할 일 수(그날 아침의 목록)
+  const am = R.planReminders({ ...d, settings: { ...d.settings, reminders: { morning: '08:00' } } }, NOW, { lang: 'ko' });
+  assert.equal(am[0].id, 'mandarat.am.2026-10-15.0800');
+  assert.equal(am[0].title, '오늘 할 일 5개');
 });
 
 test('아침 알림은 할 일이 없는 날을 건너뛴다 · 본문은 셋까지와 나머지 수', () => {

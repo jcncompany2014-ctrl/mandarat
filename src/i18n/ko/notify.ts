@@ -51,4 +51,6 @@ export default {
   editorPick: '시각 정하기',
   editorNoneA11y: '알림 없음',
   editorPickA11y: '알림 시각 정하기',
+  /** 앞날의 저녁 알림 제목 — 미리 걸어 두는 알림이라 남은 수를 적지 않는다 */
+  pmLater: '오늘 할 일을 살펴볼 시간이에요',
 } satisfies Namespace;

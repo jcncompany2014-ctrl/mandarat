@@ -3,6 +3,7 @@
 //
 // - 아침(am): 정한 시각마다 그날 할 일 수. 할 일이 없는 날은 건너뛴다. 오늘은 이미 한 것을 뺀다.
 // - 저녁(pm): 오늘은 남은 일이 있을 때만, 앞날은 할 일이 있을 때만.
+//   남은 수는 오늘 저녁 알림만 적는다 — 앞날의 알림은 미리 걸어 두는 것이라 그날 저녁에 몇 개가 남을지 모른다(수 없는 글).
 // - 습관(habit): remindAt이 있는 습관이 그날 할 습관이면(반복 요일, 또는 주 N회를 아직 못 채웠으면). 그날 이미 했으면 뺀다.
 //   같은 날 같은 시각의 습관은 하나로 묶는다.
 // - 돌아보기(review): 일요일 18:00, 그때 ritualTarget이 바로 그 주일 때만.
@@ -118,7 +119,10 @@ export function planReminders(doc: PlanDoc, now: Date, opts: { lang?: Lang } = {
       }
       if (pm && left.length > 0) {
         const [hh, mm] = pm;
-        out.push(reminder('pm', `mandarat.pm.${key}.${pad(hh)}${pad(mm)}`, day, hh, mm, n.pmTitle({ n: left.length }), listBody(left, 2, l), TODAY_URL));
+        // 앞날의 저녁 알림에는 수를 적지 않는다 — 제목은 수 없는 글, 본문은 '외 n개' 없이 앞의 둘만
+        const title = isToday ? n.pmTitle({ n: left.length }) : n.pmLater;
+        const body = isToday ? listBody(left, 2, l) : left.slice(0, 2).join(n.sep);
+        out.push(reminder('pm', `mandarat.pm.${key}.${pad(hh)}${pad(mm)}`, day, hh, mm, title, body, TODAY_URL));
       }
     }
 

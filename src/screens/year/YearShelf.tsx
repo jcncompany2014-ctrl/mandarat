@@ -6,7 +6,6 @@ import { Pressable, View } from 'react-native';
 import { Text, a11yLangProp } from '../../components/AppText';
 import { RowDivider, pressedRow } from '../../components/common';
 import { Icon } from '../../components/Icon';
-import { ColourMap } from '../../components/chart';
 import { GEO } from '../../theme/tokens';
 import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
@@ -21,6 +20,7 @@ import { useMsg } from '../../i18n/react';
 import type { Messages } from '../../i18n';
 import type { YearView } from '../../lib/contracts';
 import type { ArchivedChart } from '../../types';
+import { MapThumb } from './MapThumb';
 
 const GUTTER = GEO.gutter;
 /** 줄 왼쪽의 작은 지도(L1) 폭 */
@@ -118,7 +118,7 @@ const ShelfRow = memo(function ShelfRow({ M, m, archive: a, locked, first, onPic
     >
       {!first && <RowDivider M={M} inset={0} />}
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <ColourMap themes={a.themes} level="L1" width={MINI} defer />
+        <MapThumb themes={a.themes} width={MINI} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[ROLE.rowTitle, { color: M.ink }]} numberOfLines={1}>

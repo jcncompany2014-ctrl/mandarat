@@ -36,4 +36,5 @@ export default {
   editorPick: 'Set a time',
   editorNoneA11y: 'No reminder',
   editorPickA11y: 'Set a reminder time',
+  pmLater: "Time to look over Today's list",
 } satisfies Like<typeof ko>;

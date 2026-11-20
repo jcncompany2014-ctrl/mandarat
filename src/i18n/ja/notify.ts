@@ -35,4 +35,5 @@ export default {
   editorPick: '時刻を決める',
   editorNoneA11y: '通知なし',
   editorPickA11y: '通知の時刻を決める',
+  pmLater: '今日やることを見直す時間です',
 } satisfies Like<typeof ko>;
