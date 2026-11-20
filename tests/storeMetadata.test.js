@@ -98,10 +98,26 @@ for (const [l, v] of Object.entries(INFO)) {
 
 // 스토어 이름은 '만다라트'가 이미 다른 앱의 이름이라 '만다라트 플래너'로 낸다(owner 2026-11).
 // 홈 화면 아이콘 아래 이름(CFBundleDisplayName)은 짧게 '만다라트' 그대로 둔다.
-test('스토어 이름: 만다라트 플래너 · マンダラート プランナー · Mandalart Planner', () => {
-  assert.equal(INFO.ko.title, '만다라트 플래너');
-  assert.equal(INFO.ja.title, 'マンダラート プランナー');
-  assert.equal(INFO['en-US'].title, 'Mandalart Planner');
+// 이름 뒤에 설명을 붙인다(owner 2026-11-20): 'Mandalart Planner'는 이미 다른 앱의 이름이고, 이름 칸은 검색에 가장 크게 잡힌다.
+test('스토어 이름: 만다라트 플래너 + 설명 — 세 언어 모두 이름으로 시작한다', () => {
+  assert.equal(INFO.ko.title, '만다라트 플래너: 목표 계획표');
+  assert.equal(INFO.ja.title, 'マンダラート プランナー: 目標達成シート');
+  assert.equal(INFO['en-US'].title, 'Mandalart Planner: Goal Chart');
+});
+
+// 키워드 칸은 100자 가까이 채운다 — 이름 · 부제에 이미 있는 낱말은 다시 쓰지 않는다(따로 잡히지 않는다)
+test('키워드: 85자 이상 쓰고, 이름 · 부제의 낱말과 겹치지 않는다', () => {
+  for (const [l, v] of Object.entries(INFO)) {
+    const joined = v.keywords.join(',');
+    assert.ok(joined.length >= 85, `${l}.keywords: ${joined.length}자`);
+    const shown = `${v.title} ${v.subtitle}`.toLowerCase();
+    for (const w of v.keywords) assert.ok(!shown.split(/[\s:,、×]+/).includes(w.toLowerCase()), `${l}: '${w}'는 이름 · 부제에 이미 있어요`);
+  }
+});
+
+// 첫 판에는 '새로운 기능'이 없다 — 예전 문구('버전 2.0 …')가 첫 업데이트에 그대로 나가지 않게, 판 번호를 적지 않는다
+test('새로운 기능 글에 판 번호가 없다', () => {
+  for (const [l, v] of Object.entries(INFO)) assert.doesNotMatch(v.releaseNotes, /\d\.\d|버전|バージョン|Version/, l);
 });
 
 /** PNG 머리(IHDR)의 가로 · 세로 · 비트 깊이 · 색 형식 */
@@ -140,4 +156,14 @@ test('스크린샷: 올린 것 말고는 커밋하지 않는다(36장, 6.3" · 6
   assert.equal(pngs.length, 36);
   const listed = new Set(Object.values(INFO).flatMap((v) => Object.values(v.screenshots).flat()).map((p) => path.normalize(p)));
   for (const f of pngs) assert.ok(listed.has(path.normalize(f)), `${f}가 store.config.json에 없어요`);
+});
+
+// 지원 주소는 개인정보 처리방침과 다른, 문의처가 있는 페이지여야 한다(App Review 1.5) — public/support.html
+test('지원 주소는 지원 페이지(/support)이고, 처리방침 주소와 다르다', () => {
+  const { SUPPORT_URL } = require('../src/lib/appInfo');
+  assert.ok(fs.existsSync(path.join(ROOT, 'public/support.html')));
+  for (const [l, v] of Object.entries(INFO)) {
+    assert.equal(v.supportUrl, `${SUPPORT_URL}?lang=${LOCALES[l]}`, l);
+    assert.notEqual(v.supportUrl, v.privacyPolicyUrl, l);
+  }
 });
