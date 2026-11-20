@@ -294,7 +294,8 @@ test('FocusTimer — 25분 알림: 도는 채로 떠나면 걸고, 돌아오기�
   assert.doesNotMatch(s, /notifier\.request\(/);
   // 지켜 온 것: 화면 켜 두기 · 한 번만 기록 · 벽시계
   assert.match(s, /keepAwake\(true\)/);
-  assert.match(s, /if \(recordedRef\.current\) return;/);
+  // 한 번만 기록 — 이미 더한 분(creditedRef)을 빼고 더한 만큼 올린다: 닫기와 언마운트가 잇달아 불러도 두 번 더하지 않는다
+  assert.match(s, /const m = owedMinutes\(currentLeft\(\), creditedRef\.current\);[\s\S]{0,120}if \(m <= 0\) return;\s*creditedRef\.current \+= m;\s*addRef\.current\(m\);/);
   assert.match(s, /endAtRef\.current = Date\.now\(\) \+ remainingMsRef\.current;/);
 });
 

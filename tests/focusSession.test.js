@@ -58,6 +58,7 @@ class Timer {
     this.remainingMs = this.init.ms;
     this.run = this.init.run;
     this.endAt = 0;
+    this.credited = this.init.base.credited;
     this.effect();
   }
 
@@ -74,7 +75,11 @@ class Timer {
   effect() {
     if (this.run && this.remainingMs > 0) this.endAt = this.app.clock.now + this.remainingMs;
     if (this.finished) return;
-    this.app.store.save(S.focusRecord(this.init.base, { run: this.run, endAt: this.endAt, remainingMs: this.remainingMs }, this.app.clock.now));
+    this.app.store.save(S.focusRecord(
+      { ...this.init.base, credited: this.credited },
+      { run: this.run, endAt: this.endAt, remainingMs: this.remainingMs },
+      this.app.clock.now,
+    ));
   }
 
   pause() {
@@ -89,10 +94,18 @@ class Timer {
     this.effect();
   }
 
-  /** 닫기 — 아직 더하지 않은 분을 더하고 지운다 */
+  /** 기록 — 집중한 분에서 이미 더한 분을 뺀 만큼만 더하고, 더한 만큼 올린다 */
+  record() {
+    const m = S.owedMinutes(this.left(), this.credited);
+    if (m <= 0) return;
+    this.credited += m;
+    this.app.doc.focusMinutes += m;
+  }
+
+  /** 닫기 — 기록하고(닫기 · 언마운트가 잇달아 부른다) 지운다 */
   close() {
-    const m = S.owedMinutes(this.left(), this.init.base.credited);
-    if (m > 0) this.app.doc.focusMinutes += m;
+    this.record();
+    this.record();
     this.app.timer = null;
     return this.app.store.clear();
   }
@@ -386,6 +399,43 @@ test('다 채운 뒤 꺼짐(닫기 전): 다시 열 때 한 번 더하고 다 �
   assert.equal(d.doc.focusMinutes, 25);
 });
 
+test('되살린 세션이 도는 중에 기록이 한 번 불려도(효과가 다시 도는 개발 모드) 나머지 분을 잃지 않고, 두 번 더하지도 않는다', async () => {
+  const d = device(at(10));
+  new App(d).start(0, 0);
+  await flush();
+  // 12분째에 다시 연다 — 효과의 정리가 한 번 돌아 그때까지의 12분을 더한다
+  d.clock.now = at(10, 12);
+  const b = new App(d);
+  await b.boot();
+  b.timer.record();
+  assert.equal(d.doc.focusMinutes, 12);
+  b.timer.effect();
+  await flush();
+  assert.equal(d.storage.saved().credited, 12, '더한 분은 적어 둔 세션에도');
+  // 20분째에 닫는다 — 나머지 8분만
+  d.clock.now = at(10, 20);
+  await b.timer.close();
+  assert.equal(d.doc.focusMinutes, 20);
+
+  // 더하고 적은 뒤 꺼지면 — 다음에 켤 때 나머지만
+  const d2 = device(at(10));
+  new App(d2).start(0, 0);
+  await flush();
+  d2.clock.now = at(10, 12);
+  const c = new App(d2);
+  await c.boot();
+  c.timer.record();
+  c.timer.effect();
+  await flush();
+  d2.clock.now = at(10, 40);
+  const e = new App(d2);
+  await e.boot();
+  assert.deepEqual(e.credits, [13]);
+  assert.equal(d2.doc.focusMinutes, 25);
+  await e.timer.close();
+  assert.equal(d2.doc.focusMinutes, 25);
+});
+
 test('보통의 세션(꺼지지 않음): 닫으면 지우고, 다음에 켤 때 아무 일도 없다', async () => {
   const d = device(at(10));
   const a = new App(d);
@@ -500,12 +550,15 @@ test('화면(FocusTimer): 같은 저장소 · 같은 함수를 — 돌기 시작
   const clock = s.indexOf('useEffect(() => {\n    if (!run || finished) return;\n    endAtRef.current');
   const save = s.indexOf('saved.save(');
   assert.ok(clock > 0 && save > clock, '적기는 시계 효과 뒤');
-  assert.match(s, /useEffect\(\(\) => \{\s*if \(finished\) return;\s*saved\.save\(focusRecord\(init\.base, \{ run, endAt: endAtRef\.current, remainingMs: remainingMsRef\.current \}, Date\.now\(\)\)\);\s*\}, \[run, finished, init\]\);/);
+  assert.match(s, /useEffect\(\(\) => \{\s*if \(finished\) return;\s*saved\.save\(focusRecord\(\s*\{ \.\.\.init\.base, credited: creditedRef\.current \},\s*\{ run, endAt: endAtRef\.current, remainingMs: remainingMsRef\.current \},\s*Date\.now\(\),\s*\)\);\s*\}, \[run, finished, init\]\);/);
   assert.equal((s.match(/saved\.save\(/g) ?? []).length, 1);
   // 지우기 — 닫기 · 끝내기 · 언마운트(닫으면 세션이 언마운트된다)
   assert.match(s, /useEffect\(\(\) => \(\) => \{\s*saved\.clear\(\);\s*\}, \[\]\);/);
-  // 기록 — 이미 더한 분은 뺀다, 한 번만
-  assert.match(s, /if \(recordedRef\.current\) return;\s*\/\/[^\n]*\n\s*const m = owedMinutes\(currentLeft\(\), init\.base\.credited\);/);
+  // 기록 — 이미 더한 분(되살린 세션은 켤 때 더한 분에서 시작)은 빼고, 더한 만큼 올린다
+  assert.match(s, /const creditedRef = useRef\(init\.base\.credited\);/);
+  assert.match(s, /const m = owedMinutes\(currentLeft\(\), creditedRef\.current\);/);
+  assert.match(s, /creditedRef\.current \+= m;\s*addRef\.current\(m\);/);
+  assert.doesNotMatch(s, /recordedRef/);
   // 이미 끝난 세션을 되살렸으면 다시 울리지 않는다
   assert.match(s, /const firedRef = useRef\(init\.ms <= 0\);/);
 });

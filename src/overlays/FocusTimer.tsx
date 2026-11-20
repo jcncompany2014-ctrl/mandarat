@@ -229,27 +229,31 @@ function FocusSession({ ti, ai, from }: { ti: number; ai: number; from: SavedFoc
   // ── 적어 두기: 앱이 꺼져도 세션이 남게 ────────────────────────────────────────
   // 돌기 시작 · 멈춤 · 다시 이음마다 지금 모습을 적는다(위의 시계 효과가 끝날 시각 · 남은 ms를 먼저 맞춘다).
   // 다 채운 뒤에는 적어 둔 끝날 시각이 그대로 남아, 그 모습에서 꺼져도 다시 열면 '끝났어요'다. 닫기 · 언마운트에서 지운다.
+  /** 이 세션에서 이미 문서에 더한 분 — 되살린 세션은 앱을 켤 때 더한 분에서 시작한다 */
+  const creditedRef = useRef(init.base.credited);
   useEffect(() => {
     if (finished) return;
-    saved.save(focusRecord(init.base, { run, endAt: endAtRef.current, remainingMs: remainingMsRef.current }, Date.now()));
+    saved.save(focusRecord(
+      { ...init.base, credited: creditedRef.current },
+      { run, endAt: endAtRef.current, remainingMs: remainingMsRef.current },
+      Date.now(),
+    ));
   }, [run, finished, init]);
   useEffect(() => () => {
     saved.clear();
   }, []);
 
   // ── 기록: 어떻게 나가든 집중한 분은 남긴다(한 번만) ──────────────────────────
-  const recordedRef = useRef(false);
   const addRef = useRef(addFocusMinutes);
   addRef.current = addFocusMinutes;
   const record = useCallback(() => {
-    if (recordedRef.current) return;
-    // 되살린 세션이 앱을 켤 때 이미 더한 분은 뺀다
-    const m = owedMinutes(currentLeft(), init.base.credited);
-    // 0분은 기록할 것이 없다 — 표시도 하지 않아 개발 모드의 두 번 마운트가 기록을 막지 않게
+    // 집중한 분에서 이미 더한 분을 뺀 만큼만 — 닫기와 언마운트가 잇달아 불러도, 되살린 세션이어도 같은 분을 두 번 더하지 않는다
+    const m = owedMinutes(currentLeft(), creditedRef.current);
+    // 0분은 기록할 것이 없다(개발 모드의 두 번 마운트도 아무것도 더하지 않는다)
     if (m <= 0) return;
-    recordedRef.current = true;
+    creditedRef.current += m;
     addRef.current(m);
-  }, [currentLeft, init]);
+  }, [currentLeft]);
   useEffect(() => () => record(), [record]);
 
   // ── 25분을 다 채웠을 때 ─────────────────────────────────────────────────────
