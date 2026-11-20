@@ -12,9 +12,9 @@ export const GLOSSARY: readonly GlossaryRow[] = [
   { ko: '핵심 목표', ja: '中心の目標', en: 'core goal' },
   { ko: '했어요', ja: 'できた / できました', en: 'Done' },
   { ko: '달성', ja: '達成', en: 'achieved' },
-  { ko: '담기', ja: '今日に入れる', en: 'add to Today' },
+  { ko: '담기', ja: '今日やることに追加', en: 'add to Today' },
   { ko: '더하기', ja: '足す', en: 'log' },
-  { ko: '오늘 할 일', ja: '今日やること', en: "Today's list" },
+  { ko: '오늘 할 일', ja: '今日やること', en: 'Today’s list' },
   { ko: '연속', ja: '連続', en: 'streak' },
   { ko: '한 주 돌아보기', ja: '週のふりかえり', en: 'Weekly review' },
   { ko: '보관함', ja: '保管庫', en: 'Archive' },
@@ -22,14 +22,19 @@ export const GLOSSARY: readonly GlossaryRow[] = [
   { ko: '새 표', ja: '新しい表', en: 'new chart' },
   { ko: '프로', ja: 'プロ', en: 'Pro' },
   { ko: '알림', ja: '通知', en: 'Reminders' },
-  { ko: '맞추기', ja: '同期', en: 'Sync' },
+  { ko: '동기화', ja: '同期', en: 'Sync' },
+  { ko: '쌓기', ja: '積み上げ', en: 'Count' },
+  { ko: '저장본', ja: '自動保存', en: 'Saved copies' },
+  { ko: '하루 마감', ja: '締め', en: 'day closed' },
+  { ko: '점수 매기기', ja: '点数をつける', en: 'rate' },
+  { ko: 'Apple 계정', ja: 'Apple Account', en: 'Apple Account' },
 ];
 
 /** 말투 — 언어마다 지키는 것 */
 export const VOICE = {
   ko: '해요체. 낱말장(src/lib/copy.ts)대로. 조사는 josa()로 붙인다.',
-  ja: 'です・ます、短く。「！」と絵文字は使わない。データではなく記録。UIの名前は「」で囲む。全角の、。・、数字は半角で助数詞の前に空白を入れない。',
-  en: 'Sentence case. No exclamation marks, no "Awesome / Great job / journey". US spelling. "Today" is capitalised as a place. Use · as the separator.',
+  ja: 'です・ます、短く。「！」と絵文字は使わない。データではなく記録。UIの名前は「」で囲む。全角の、。・、数字は半角で助数詞の前に空白を入れない。今日やることは「件」、分野と行動は「つ」で数える。操作は「タップ」。',
+  en: 'Sentence case. No exclamation marks, no "Awesome / Great job / journey". US spelling. "Today" is capitalised as a place. Use · as the separator and the curly apostrophe ’. A unit the user typed is never counted ("Log 1", not "Log 1 books").',
 } as const;
 
 /**

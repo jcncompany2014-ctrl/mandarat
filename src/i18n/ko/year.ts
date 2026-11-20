@@ -68,10 +68,10 @@ export default {
   framesTitle: '표가 채워진 모습',
   /** 네 장면 중 하나를 읽는 말 — label은 '3월 31일' */
   frameSpeech: ({ label, n }: { label: string; n: number }) => `${label}까지, 64칸 중 ${n}칸 달성`,
-  wearTitle: '닳은 자리',
-  /** 닳은 자리 오른쪽 — 칸마다 4주에 한 날 수의 평균으로 칠한다 */
+  wearTitle: '자주 한 칸',
+  /** 자주 한 칸 오른쪽 — 칸마다 4주에 한 날 수의 평균으로 칠한다 */
   wearRight: '4주 평균',
-  /** 닳은 자리 범례 머리 — stats.legendLast4처럼 끝에 가운뎃점 */
+  /** 자주 한 칸 범례 머리 — stats.legendLast4처럼 끝에 가운뎃점 */
   wearLegend: '4주 평균 ·',
   weeksTitle: '돌아본 주',
   notesTitle: '회고',

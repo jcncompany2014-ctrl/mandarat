@@ -62,7 +62,7 @@ test('확인 한 줄의 글 — 한국어는 조사(으로/로)까지, 오늘에
   assert.equal(ko.pickedAs({ label: '마음가짐', today: false }), '마음가짐으로 담았어요');
   assert.equal(msg('ja').chart.pickedAs({ label: '週3回の習慣', today: true }), '週3回の習慣として書きました・「今日」に表示されます');
   assert.equal(msg('ja').chart.pickedAs({ label: '心がけ', today: false }), '心がけとして書きました');
-  assert.equal(msg('en').chart.pickedAs({ label: 'a habit, 3 times a week', today: true }), "Saved as a habit, 3 times a week · on Today's list");
+  assert.equal(msg('en').chart.pickedAs({ label: 'a habit, 3 times a week', today: true }), 'Saved as a habit, 3 times a week · on Today’s list');
   assert.equal(msg('en').chart.pickedAs({ label: 'a count to 12 books', today: false }), 'Saved as a count to 12 books');
   for (const l of ['ko', 'ja', 'en']) assert.doesNotMatch(msg(l).chart.pickedAs({ label: 'x', today: true }), /!/, l);
 });

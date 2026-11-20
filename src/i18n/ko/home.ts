@@ -5,13 +5,13 @@ import type { Namespace } from '../types';
 export default {
   // ── 머리 ──
   settings: '설정',
-  /** 머리 위 줄 — '10월 14일 수요일 · 42주' (day는 fmt.dateLong, w는 ISO 주 번호) */
-  eyebrow: ({ day, w }: { day: string; w: number }) => `${day} · ${w}주`,
+  /** 머리 위 줄 — '10월 14일 수요일 · 42주차' (day는 fmt.dateLong, w는 ISO 주 번호) */
+  eyebrow: ({ day, w }: { day: string; w: number }) => `${day} · ${w}주차`,
 
   // ── 히어로(숫자 칸 셋 + 작은 지도) ──
   heroToday: '오늘',
   heroDone: '달성',
-  heroLeft: '남은 날',
+  heroLeft: '올해 남은 날',
   /** 숫자 뒤 단위 — '24/64칸' · '78일' */
   unitCells: '칸',
   unitDays: (_: { n: number }) => '일',
@@ -42,21 +42,21 @@ export default {
   pickMore: '실천에서 더 고르기',
   addToday: '오늘 할 일 담기',
   /** 장부 마감의 읽는 말 — 보이는 글은 today.closeLeft */
-  closeLabel: ({ day, n }: { day: string; n: number }) => `${day} 마감, ${n}개 중 ${n}개 했어요`,
+  closeLabel: ({ day, n }: { day: string; n: number }) => `${day} 하루 마감, ${n}개 중 ${n}개 했어요`,
 
   // ── 이번 주 正 ──
   weekTitle: '이번 주',
   weekDay: ({ day, n }: { day: string; n: number }) => `${day} ${n}번`,
   weekDayToday: ({ day, n }: { day: string; n: number }) => `${day} ${n}번, 오늘`,
-  /** 할 일을 다 해 마감한 날 — 읽는 말에 덧붙인다('월요일 3번, 마감') */
-  weekClosed: '마감',
+  /** 할 일을 다 해 마감한 날 — 읽는 말에 덧붙인다('월요일 3번, 하루 마감') */
+  weekClosed: '하루 마감',
 
   // ── 8개 영역 ──
   areasTitle: '8개 영역',
   areaRowLabel: ({ name, line, n }: { name: string; line: string; n: number }) => `${name}, ${line}, 8칸 중 ${n}칸 달성`,
   areaAllDone: '8칸 모두 달성했어요',
   areaNext: ({ text }: { text: string }) => `다음 · ${text}`,
-  areaBlank: ({ n }: { n: number }) => `빈 칸 ${n}개`,
+  areaBlank: ({ n }: { n: number }) => `빈칸 ${n}개`,
 
   // ── 시작하기 ──
   guideTitle: '시작하기',

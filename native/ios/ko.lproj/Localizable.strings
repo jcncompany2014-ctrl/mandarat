@@ -3,7 +3,7 @@
 "intent.showToday.title" = "오늘 보기";
 "intent.showToday.desc" = "만다라트를 열고 오늘 할 일을 보여 줘요.";
 "intent.todayLeft.title" = "오늘 남은 일";
-"intent.todayLeft.desc" = "앱을 열지 않고 오늘 남은 수와 다음 할 일을 알려 줘요.";
+"intent.todayLeft.desc" = "앱을 열지 않고 오늘 남은 개수와 다음 할 일을 알려 줘요.";
 "intent.checkNext.title" = "다음 할 일 체크";
 "intent.checkNext.desc" = "오늘 할 일에서 아직 안 한 첫 줄을 했어요로 바꿔요.";
 "intent.startFocus.title" = "집중 시작";

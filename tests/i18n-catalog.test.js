@@ -132,7 +132,7 @@ test('fmt.ja · fmt.en — 표의 예시대로', () => {
   assert.equal(ja.time({ h: 21, m: 0 }), '21:00');
   assert.equal(en.time({ h: 21, m: 0 }), '9:00 PM');
   assert.equal(en.time({ h: 0, m: 5 }), '12:05 AM');
-  assert.deepEqual([3, 12].map((n) => ja.items({ n })), ['3つ', '12個']);
+  assert.deepEqual([3, 12].map((n) => ja.items({ n })), ['3件', '12件']);
   assert.deepEqual([1, 3].map((n) => en.cells({ n })), ['1 square', '3 squares']);
   assert.equal(en.ordinalCell({ n: 3 }), 'third square');
   assert.equal(ja.ordinalCell({ n: 3 }), '3番目のマス');

@@ -46,6 +46,8 @@ export default {
   cells: ({ n }) => `${groupNum(n)} ${plural(n, 'square', 'squares')}`,
   days: ({ n }) => `${groupNum(n)} ${plural(n, 'day', 'days')}`,
   items: ({ n }) => `${groupNum(n)} ${plural(n, 'item', 'items')}`,
+  // Number and unit as typed. The unit is the user's own word ('books'), so English sentences never put an amount that can be 1 through this
+  // ('1 books') — steps and remainders are bare numbers (see sheet.ts, editor.ts).
   count: ({ n, unit }) => `${groupNum(n)} ${unit}`,
   ordinalCell: ({ n }) => `${ORD[n - 1] ?? nth(n)} square`,
   dowNarrow: ({ i }) => NARROW[i] ?? '',

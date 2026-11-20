@@ -10,7 +10,7 @@ export default {
   /** 기기 설정 따르기 줄의 정보 — 지금 앱이 쓰는 언어(name은 names.ts) */
   systemNow: ({ name }: { name: string }) => `지금은 ${name}`,
   /** 구역 아래 한 줄 — 앱 안에서 바꿀 수 없는 글 */
-  footnote: '알림 허락 창과 홈 화면 이름은 기기 언어를 따라요',
+  footnote: '알림 허용 창과 홈 화면 이름은 기기 언어를 따라요',
   /** 바꾼 뒤 화면 읽기 — 새 언어로 읽는다 */
   changed: ({ name }: { name: string }) => `${josa(name, '으로/로')} 바꿨어요`,
 } satisfies Namespace;

@@ -45,7 +45,7 @@ export default {
   learnGoal: 'Study 30 minutes a day',
   learnArea1: 'Books',
   learnArea2: 'Online class',
-  learnArea3: 'French',
+  learnArea3: 'Languages',
   learnArea4: 'Notes',
   learnArea5: 'Review',
   learnArea6: 'Exams',

@@ -19,7 +19,7 @@ function doc(patch = () => ({})) {
 test('ko: 추출 전 글과 글자 하나까지 같다', () => {
   const ko = msg('ko').stats;
   assert.equal(ko.screenTitle, '통계');
-  assert.equal(sv.emptyLine('ko'), '하나 하면 여기부터 기록돼요');
+  assert.equal(sv.emptyLine('ko'), '하나 하면 여기에 기록이 쌓이기 시작해요');
   assert.equal(sv.weekLead(3, 0, '', 'ko'), '이번 주 3번 했어요. 칸은 한 번짜리 일을 끝내거나 목표 수에 닿으면 달성돼요.');
   assert.equal(sv.weekLead(3, 1, '', 'ko'), '이번 주 3번 했어요');
   assert.equal(sv.fmtMinutes(65, 'ko'), '1시간 5분');
@@ -64,11 +64,13 @@ test('ja · en: 날짜 · 요일 · 횟수를 그 언어로, 분수(5/7)로 읽�
   assert.equal(sv.streakSpeech(4, false, 'ja'), '連続4日、今日はまだ');
   assert.deepEqual(sv.recordParts(12, 3, 1, 'en'), { lead: 'Best 12 days', best: false, month: '1 square achieved this month' });
   assert.equal(sv.weekDelta(1, 3, 'en'), '−2 vs. this time last week');
-  assert.equal(sv.weekDelta(5, 3, 'ja'), '先週の同じころより+2回');
-  assert.equal(sv.bestLine({ date: '2026-10-14', count: 1, thisWeek: true }, 'en'), 'Busiest day Wed, Oct 14 · 1 time · this week');
+  assert.equal(sv.weekDelta(5, 3, 'ja'), '先週の今ごろより+2回');
+  assert.equal(sv.bestLine({ date: '2026-10-14', count: 1, thisWeek: true }, 'en'), 'Busiest day Wed, Oct 14 · 1 time · This week');
   assert.equal(sv.bestLine({ date: '2026-10-14', count: 6, thisWeek: false }, 'ja'), 'いちばん多かった日 10/14(水)・6回');
   assert.equal(sv.fmtMinutes(65, 'en'), '1 hr 5 min');
-  assert.equal(sv.weekAddedText(3, 'km', 'en'), '+3 km this week');
+  // 단위는 윗줄('7/12 km')에 이미 있다 — 영어는 사용자가 적은 단위를 세지 않는다('+1 books this week'가 되지 않게)
+  assert.equal(sv.weekAddedText(3, 'km', 'en'), '+3 this week');
+  assert.equal(sv.weekAddedText(1, 'books', 'en'), '+1 this week');
   const meta = { '2026-10-13': { mood: 3, reflection: 'ok' } };
   assert.equal(sv.moodSpeech(sv.moodStrip(meta, WED, 14, 'en'), 'en'), 'Mood logged on 1 of the last 14 days, Tuesday, October 13: Good');
   assert.equal(sv.reflections(meta, WED, 14, 'ja')[0].say, '10月13日 火曜日、よい');

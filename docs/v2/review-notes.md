@@ -27,10 +27,10 @@ No in-app purchases and no ads. Every feature is free. A StoreKit 2 module kept 
 
 SUGGESTED TEST PATH (about 5 minutes)
 1. First run: type a goal and tap "Start". To fill the chart quickly: Home tab › gear icon (Settings) › Start over › "Fill in examples".
-2. Home or Today tab: tap the square on a row to check it off. When every row is checked, Today shows "That's it for today." and folds the list into one line. "Show" opens it again.
+2. Home or Today tab: tap the square on a row to check it off. When every row is checked, Today shows "That’s it for today." and folds the list into one line. "Show" opens it again.
 3. Chart tab: tap an area on the colour map to open its page. Share icon (top right) › "Printable PDF" › "Print" or "Export PDF" (AirPrint).
 4. Settings › Appearance: Theme (Auto / Light / Dark) and Paper pattern (Plain / Dots / Grid / Lined).
-5. Settings › Reminders: turning on a reminder (for example "Morning: Today's list") asks for notification permission. The app never asks at launch. Notifications are local only.
+5. Settings › Reminders: turning on a reminder (for example "Morning: Today’s list") asks for notification permission. The app never asks at launch. Notifications are local only.
 6. Focus timer: on Today, tap the text of an action to open its sheet, then "Focus for 25 min". On iPhone a Live Activity appears on the Lock Screen and in the Dynamic Island.
 7. The Add button in the tab bar adds a to-do to Today.
 

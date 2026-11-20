@@ -40,7 +40,7 @@ test('글 — 세 언어에 같은 새 낱말(머리 위 줄 · 남은 시간 ·
   assert.equal(msg('ko').focus.left, '남은 시간');
   assert.equal(msg('ko').focus.endsAt, '끝나는 시각');
   assert.equal(msg('ko').focus.stop, '그만하기');
-  assert.equal(finishLabel('check', false, 'ko'), '끝내고 했어요');
+  assert.equal(finishLabel('check', false, 'ko'), '했어요로 끝내기');
 });
 
 test('그림 — 종이 위 한 장, 색은 토큰 · 글자는 ROLE, 손으로 적은 색 없음', () => {

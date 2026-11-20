@@ -43,7 +43,7 @@ test('한국어 값 = 옮기기 전 글', () => {
     sampleDone: '예시로 채웠어요', resetRow: '전체 초기화', resetRowSub: '모든 목표와 기록을 지워요',
     resetAskTitle: '모든 기록을 지울까요?', resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.',
     resetAskOk: '지우기', resetDone: '모든 기록을 지웠어요',
-    secInfo: '정보', colName: '이름', appName: '만다라트', colVersion: '판', colFont: '서체', colPlace: '저장 위치',
+    secInfo: '정보', colName: '이름', appName: '만다라트', colVersion: '버전', colFont: '서체', colPlace: '저장 위치',
     privacy: '개인정보 처리방침', contact: '문의하기', contactHint: '메일 앱이 열려요', licenses: '오픈소스 라이선스',
     licensesBody: '이 앱은 아래 오픈소스를 쓰고 있어요.', licLucide: 'Lucide 아이콘 도형', openFail: '열 수 없어요',
   };
@@ -85,8 +85,8 @@ test('저장 위치 — 아이패드는 iPad, 맞추기가 켜지면 iCloud(백�
 });
 
 test('저장본의 ja · en 이름은 sync.copyNote와 같다', () => {
-  assert.equal(msg('ja').settings.snapTitle, '保存コピー');
-  assert.ok(msg('ja').sync.copyNote.includes('「保存コピー」'));
+  assert.equal(msg('ja').settings.snapTitle, '自動保存');
+  assert.ok(msg('ja').sync.copyNote.includes('「自動保存」'));
   assert.equal(msg('en').settings.snapTitle, 'Saved copies');
   assert.ok(msg('en').sync.copyNote.includes('Saved copies'));
   assert.ok(msg('ko').sync.copyNote.includes(msg('ko').settings.snapTitle));
@@ -94,8 +94,8 @@ test('저장본의 ja · en 이름은 sync.copyNote와 같다', () => {
 
 test('en 수 — 하나와 여럿', () => {
   const s = msg('en').settings;
-  assert.equal(s.snapRowSub({ n: 1, days: 1 }), '1 square filled · 1 day recorded');
-  assert.equal(s.snapRowSub({ n: 12, days: 3 }), '12 squares filled · 3 days recorded');
+  assert.equal(s.snapRowSub({ n: 1, days: 1 }), '1 square filled · 1 active day');
+  assert.equal(s.snapRowSub({ n: 12, days: 3 }), '12 squares filled · 3 active days');
   assert.match(s.templateAskBody({ n: 1, name: 'Health' }), /^Your 1 written action and/);
   assert.equal(msg('ja').settings.snapRowSub({ n: 12, days: 3 }), '記入したマス12・記録3日');
 });

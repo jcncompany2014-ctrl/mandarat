@@ -4,7 +4,7 @@ import type { Like } from '../types';
 
 export default {
   toggle: 'iCloudで端末どうしを同期',
-  toggleSub: '同じAppleアカウントのiPhone・iPadどうしで記録を同期します',
+  toggleSub: '同じApple AccountのiPhone・iPadどうしで記録を同期します',
   justNow: 'たった今同期しました',
   syncedAt: ({ day, time }) => `${day} ${time}に同期しました`,
   syncing: '同期しています',
@@ -29,7 +29,7 @@ export default {
   adoptSub: 'この端末の表と記録はiCloudのものに替わります。「保管庫」の過去の表はまとめます',
   mine: 'この端末の記録で続ける',
   mineSub: 'その間にほかの端末で書いた記録は、この端末のものに替わります',
-  copyNote: '選ぶ前の状態は「設定」›「保存コピー」に今日の日付で残ります',
+  copyNote: '選ぶ前の状態は「設定」›「自動保存」に今日の日付で残ります',
   confirm: 'この方法で同期',
   confirmHint: '先にひとつ選んでください',
 

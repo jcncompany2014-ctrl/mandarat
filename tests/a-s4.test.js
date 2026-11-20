@@ -82,7 +82,7 @@ test('weekReading: 가장 많이 · 가장 적게 챙긴 영역 — 세 언어, 
   assert.equal(ko.text, '건강은 5번 챙겼고, 커리어는 아직이에요');
   assert.deepEqual([ko.top, ko.low], [0, 1]);
   assert.equal(sv.weekReading(r, d, 'ja').text, '「건강」に5回取り組み、「커리어」はまだです');
-  assert.equal(sv.weekReading(r, d, 'en').text, 'You worked on 건강 5 times, and not yet on 커리어');
+  assert.equal(sv.weekReading(r, d, 'en').text, 'You worked on 건강 5 times. Nothing on 커리어 yet.');
   // 적어 둔 영역이 모두 한 번 이상 — 가장 적은 영역의 수
   d.dayLog['2026-10-14'] = ['0-0', '1-0'];
   const r2 = weekReview(d, WED);
@@ -123,10 +123,10 @@ test('weekAreaKey: 한 영역(많은 순) + 한 줄이 아직이라 부른 영�
 // ── 머리 · 숫자 ──────────────────────────────────────────────────────────────
 
 test('statsEyebrow: 해 · ISO 주 · 올해 남은 날 — 세 언어', () => {
-  assert.equal(sv.statsEyebrow(WED, 'ko'), '2026 · 42주 · D-78');
-  assert.equal(sv.statsEyebrow(WED, 'ja'), '2026年 第42週・あと78日');
-  assert.equal(sv.statsEyebrow(WED, 'en'), '2026 · Week 42 · 78 days left');
-  assert.equal(sv.statsEyebrow(new Date(2026, 11, 31), 'ko'), '2026 · 53주 · D-day');
+  assert.equal(sv.statsEyebrow(WED, 'ko'), '2026 · 42주차 · 올해 78일 남음');
+  assert.equal(sv.statsEyebrow(WED, 'ja'), '2026年 第42週・今年あと78日');
+  assert.equal(sv.statsEyebrow(WED, 'en'), '2026 · Week 42 · 78 days left this year');
+  assert.equal(sv.statsEyebrow(new Date(2026, 11, 31), 'ko'), '2026 · 53주차 · 올해 0일 남음');
 });
 
 test('figureParts: 숫자는 크게, 단위는 작게 — 120일 · 2시간 5분 · 24/64칸 · +2권 · 2 hr 5 min', () => {

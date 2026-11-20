@@ -56,12 +56,12 @@ export default {
   helpHint: '누르면 내용에 적어요',
   /**
    * 실천 글 점검(GuideChips) — 입력 칸 아래 한 줄. 빠진 것만 말한다(셋 다 있으면 부르지 않는다).
-   * 셋 다 빠지면 '무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요'
+   * 셋 다 빠지면 '‘무엇을’ · ‘얼마나’ · ‘언제·어디서’도 적으면 실천하기 쉬워요'
    */
   coachNote: ({ noWhat, noHow, noWhen }: { noWhat: boolean; noHow: boolean; noWhen: boolean }) => {
-    const list = [noWhat && '무엇을', noHow && '얼마나', noWhen && '언제·어디서'].filter(Boolean).join(', ');
-    if (!list) return '';
-    return `${list.endsWith('을') ? list : josa(list, '을/를')} 쓰면 실천하기 쉬워요`;
+    const list = [noWhat && '무엇을', noHow && '얼마나', noWhen && '언제·어디서'].filter((w): w is string => !!w);
+    if (list.length === 0) return '';
+    return `${list.map((w) => `‘${w}’`).join(' · ')}도 적으면 실천하기 쉬워요`;
   },
 
   // ── 유형 ──
@@ -80,7 +80,7 @@ export default {
   /** 유형 고르기 아래 한 줄 — 고른 유형이 '오늘'에 어떻게 담기는지 */
   noteOnce: '마감 사흘 전부터 ‘오늘’에 담겨요',
   noteHabitDays: '정한 요일마다 ‘오늘’에 담겨요',
-  noteHabitWeek: '횟수를 다 할 때까지 매일 ‘오늘’에 담겨요',
+  noteHabitWeek: '횟수를 채울 때까지 매일 ‘오늘’에 담겨요',
   noteCount: '목표 수에 닿으면 칸이 달성돼요',
   noteMind: '한 주에 한 번 1~5점으로 돌아봐요',
 

@@ -131,7 +131,7 @@ test('장부: 13달 · 윤년 2월 29일 · 없는 날은 칸이 없다', () => 
   assert.equal(ledgerLines(yearCalendar({}, '2027-02-01', '2027-02-28'), 'ko')[0].length, 28);
   // 세 언어
   assert.equal(ledgerLines(rows, 'en')[0].label, 'Dec');
-  assert.equal(ledgerLines(rows, 'en')[0].speech, 'December 2027, 1 day with records');
+  assert.equal(ledgerLines(rows, 'en')[0].speech, 'December 2027, 1 active day');
   assert.equal(ledgerLines(rows, 'ja')[0].label, '12月');
   // 폰 폭(390 - 40)에서 10pt 안팎
   assert.equal(ledgerCellSize(350), 10);

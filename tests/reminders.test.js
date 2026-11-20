@@ -105,7 +105,7 @@ test('저녁 알림의 남은 수는 오늘 것만 — 앞날의 알림은 수 �
   assert.equal(ko[1].title, '오늘 할 일을 살펴볼 시간이에요');
   assert.equal(ko[1].body, '습관가 · 습관나');
   assert.equal(R.planReminders(d, NOW, { lang: 'ja' })[1].title, '今日やることを見直す時間です');
-  assert.equal(R.planReminders(d, NOW, { lang: 'en' })[1].title, "Time to look over Today's list");
+  assert.equal(R.planReminders(d, NOW, { lang: 'en' })[1].title, 'Time to look over Today’s list');
   // 날이 바뀌어 그날이 오늘이 되면(앱을 열면) 그 알림이 남은 수를 얻는다 — 글이 바뀌므로 다시 건다
   const next = R.planReminders({ ...d, todayDate: '2026-10-15' }, at(15), { lang: 'ko' });
   assert.equal(next[0].id, ko[1].id);

@@ -59,18 +59,18 @@ test('접은 줄 — 앞 두 줄 + 외 n개(ko · ja · en)', () => {
   assert.equal(L.foldTitle(['산책'], 'ko'), '산책');
   assert.equal(L.foldTitle(['산책', '물'], 'ko'), '산책, 물');
   assert.equal(L.foldTitle(['Walk', 'Read', 'Call'], 'en'), 'Walk, Read + 1 more');
-  assert.equal(L.foldTitle(['散歩', '読書', 'a', 'b'], 'ja'), '散歩、読書 ほか2つ');
+  assert.equal(L.foldTitle(['散歩', '読書', 'a', 'b'], 'ja'), '散歩、読書 ほか2件');
 });
 
 test('마감 글 — 우리말 수, 마감 시각은 알 때만', () => {
-  assert.equal(L.closeNote(10, WED, 'ko'), '열 가지를 모두 했어요 · 오후 9:40 마감');
+  assert.equal(L.closeNote(10, WED, 'ko'), '열 가지를 모두 했어요 · 오후 9:40에 하루 마감');
   assert.equal(L.closeNote(10, null, 'ko'), '열 가지를 모두 했어요');
   assert.equal(L.closeNote(1, null, 'ko'), '한 가지를 했어요');
   assert.equal(L.closeNote(3, null, 'ko'), '세 가지를 모두 했어요');
   assert.equal(L.closeNote(12, null, 'ko'), '12가지를 모두 했어요');
-  assert.equal(L.closeNote(10, WED, 'en'), 'All 10 done · closed at 9:40 PM');
+  assert.equal(L.closeNote(10, WED, 'en'), 'All 10 done · Closed at 9:40 PM');
   assert.equal(L.closeNote(1, null, 'en'), 'The one thing is done');
-  assert.equal(L.closeNote(3, WED, 'ja'), '3つ、全部できました・21:40 締め');
+  assert.equal(L.closeNote(3, WED, 'ja'), '3件、全部できました・21:40 締め');
   assert.equal(msg('ko').today.closeTitle, '오늘은 여기까지예요.');
   assert.equal(msg('ko').today.listTitle, '오늘 할 일');
   assert.equal(msg('ko').today.viewsLabel, '보기 방식');

@@ -4,8 +4,8 @@ import type ko from '../ko/onboarding';
 import type { Like } from '../types';
 
 export default {
-  recoveredTitle: "Couldn't read your saved records",
-  recoveredBody: "The records that couldn't be read weren't deleted. They're kept aside.",
+  recoveredTitle: 'Couldn’t read your saved records',
+  recoveredBody: 'The records that couldn’t be read weren’t deleted. They’re kept aside.',
 
   brand: 'Mandalart',
   heading: 'Write down one goal\nfor this year',
@@ -28,7 +28,7 @@ export default {
   startTemplateHint: ({ name }) => `Starts with the “${name}” chart`,
   start: 'Start',
   startHint: 'Starts with this goal',
-  later: "I'll write my goal later",
+  later: 'I’ll write my goal later',
   laterHint: 'Start now and set your goal later',
   otherTemplate: 'Choose another template',
   fromTemplate: 'Start from a template',

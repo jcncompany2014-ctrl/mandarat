@@ -40,8 +40,8 @@ test('빈 목록 — 채우기 · 고르기 · 다 담음 (today-17 · flow-4)',
 
 test('마감 줄 글 (ref-u2)', () => {
   const t = dayCloseText(new Date(2026, 9, 14), 10);
-  assert.equal(t.left, '10월 14일 수요일 마감');
+  assert.equal(t.left, '10월 14일 수요일 하루 마감');
   assert.equal(t.right, '10 / 10');
-  assert.equal(t.speech, '10월 14일 수요일 마감, 오늘 할 일 10개를 다 했어요');
+  assert.equal(t.speech, '10월 14일 수요일 하루 마감, 오늘 할 일 10개를 다 했어요');
   for (const w of BANNED_COPY) assert.ok(!t.speech.includes(w), w);
 });
