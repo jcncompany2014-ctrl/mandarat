@@ -35,12 +35,12 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   // 토큰 기본값(LIGHT · DARK) — 팔레트가 없거나 예전 스냅숏일 때
   const paper = P.paper || (dark ? '#121316' : '#FFFFFF');
   const ink = P.ink || (dark ? '#ECEDEF' : '#191B1F');
-  const ink2 = P.ink2 || (dark ? '#A3A8B0' : '#5F6670');
-  const print = P.print || (dark ? '#9AA0A8' : '#6B727C');
+  const ink2 = P.ink2 || (dark ? '#B4B9C0' : '#5F6670');
+  const print = P.print || (dark ? '#ABB1B9' : '#686F79');
   const printEdge = P.printEdge || (dark ? '#6E747C' : '#868D96');
   const printRule = P.printRule || (dark ? '#24262B' : '#EEF0F2');
   const tile = P.tile || (dark ? '#1D1F23' : '#F3F4F6');
-  const signal = P.signal || (dark ? '#E2543F' : '#C4372F');
+  const signal = P.signal || (dark ? '#EB6A54' : '#C4372F');
   const core = P.core || (dark ? '#4A4E55' : '#221F1B');
   const dyes: string[] = P.dye || [];
   const washes: string[] = P.washL1 || [];
