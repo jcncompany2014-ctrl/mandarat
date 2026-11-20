@@ -149,7 +149,8 @@ test('머리: 72(위 12 · 위 줄 18 · 제목 36), 여백 24, 아래 선 없�
   const c = src('src/components/common.tsx');
   const body = slice(c, 'function HeaderBody(', 'export function IconBtn(');
   assert.match(body, /marginHorizontal: GEO\.gutter, minHeight: GEO\.header, paddingTop: 12/);
-  assert.match(body, /<View style=\{\{ height: 18, justifyContent: 'center' \}\}>/);
+  // 위 줄 18은 가장 낮은 높이 — 글자를 키우면(1.4배까지) 함께 늘어난다
+  assert.equal((body.match(/<View style=\{\{ minHeight: 18, justifyContent: 'center' \}\}>/g) || []).length, 2);
   assert.match(body, /\.\.\.\(headline \? ROLE\.headline : ROLE\.title\), color: M\.ink/);
   assert.match(body, /numberOfLines=\{headline \? 3 : 2\}/);
   assert.match(body, /\{noOrphan\(words\)\}/);
@@ -211,7 +212,7 @@ test('시트: 가장자리에서 8(좌 · 우 · 아래) · 네 모서리 28 · 
   assert.match(c, /export function sheetBg\(M: M\): string \{\s*return M\.paper;/);
   // 시트 머리 줄: 48, 앞 자리 · 인쇄된 두 줄 · 닫기(44, 동그라미 없음)
   const head = slice(c, 'export function SheetHeader(', 'export function CloseBtn(');
-  assert.match(head, /height: 48, flexDirection: 'row', alignItems: 'center', gap: 12/);
+  assert.match(head, /minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12/);
   assert.match(head, /fontFamily: PRETENDARD\[600\], lineHeight: 17, color: M\.ink/);
   assert.match(head, /lineHeight: 17, color: M\.print/);
   const close = slice(c, 'export function CloseBtn(', '// ── 단추');
