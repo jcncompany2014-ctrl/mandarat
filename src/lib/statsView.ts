@@ -9,7 +9,7 @@ import { bestDay, dayBin, firstLogDay, weekReview, type WeekDay, type WeekReview
 import { sundayOf } from './ritual';
 import { ledgerHabitSpeech } from './sheetSpeech';
 import { addedLine, addedSpeech, mindLine } from './ritualView';
-import { daysLeftInYear, isoWeek } from './home';
+import { calendarWeek, daysLeftInYear } from './home';
 
 /** 기록이 없을 때 화면 맨 위 한 줄 — 빈 양식 위에 이것 하나만 */
 export function emptyLine(l?: Lang): string {
@@ -354,9 +354,9 @@ export function reflections(dayMeta: MandaratDoc['dayMeta'], today: Date, days =
 
 // ── 디자인 A(build-plan S4) ──────────────────────────────────────────────────
 
-/** 머리 위 줄 — '2026 · 42주 · D-78'(ISO 주 · 올해 남은 날) */
+/** 머리 위 줄 — '2026 · 42주 · D-78'(그 날짜의 해 · 그해의 주(home.calendarWeek) · 그해 남은 날 — 셋 다 같은 해) */
 export function statsEyebrow(now: Date, l?: Lang): string {
-  const w = isoWeek(now);
+  const w = calendarWeek(now);
   return msg(l).stats.eyebrow({ y: w.year, w: w.week, days: daysLeftInYear(now) });
 }
 

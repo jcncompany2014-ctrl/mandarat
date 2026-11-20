@@ -43,12 +43,13 @@ test('HOME — 목업 home.html의 자리 수치(히어로 18 · 24 · 32, 지�
   for (const measure of [342, 327]) assert.ok(measure - l1Width(H.heroMapCell(measure)) - H.HOME.heroGap >= 130, `${measure}`);
 });
 
-test('homeEyebrow — 날짜(fmt.dateLong) · ISO 주, 언어마다', () => {
+test('homeEyebrow — 날짜(fmt.dateLong) · 그해의 주(calendarWeek), 언어마다', () => {
   assert.equal(H.homeEyebrow(WED, 'ko'), '10월 14일 수요일 · 42주');
   assert.equal(H.homeEyebrow(WED, 'ja'), '10月14日 水曜日・第42週');
   assert.equal(H.homeEyebrow(WED, 'en'), 'Wednesday, October 14 · Week 42');
-  // 해가 바뀌는 주 — ISO 주(2027-01-01 금요일은 2026년 53주)
-  assert.equal(H.homeEyebrow(new Date(2027, 0, 1), 'ko'), '1월 1일 금요일 · 53주');
+  // 해가 바뀌는 주 — 1월 1일은 늘 그해 1주(ISO 주로는 2026년 53주였다)
+  assert.match(H.homeEyebrow(new Date(2027, 0, 1), 'ko'), /^1월 1일 금요일 · 1주/);
+  assert.doesNotMatch(H.homeEyebrow(new Date(2027, 0, 1), 'ko'), /53/);
 });
 
 test('homeList — 데모 문서는 목업 그대로: 중점 둘(하나는 체크 칸 없이) · 남은 일 둘 · 오늘 한 일 하나', () => {
