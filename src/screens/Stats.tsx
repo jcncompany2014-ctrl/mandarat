@@ -38,6 +38,8 @@ import {
 /** 돌아본 주·한 줄 회고를 처음에 몇 줄까지 보여 줄지 */
 const REVIEW_ROWS = 8;
 const NOTE_ROWS = 3;
+/** 돌아본 주의 '더 보기' 한 번에 더 펼치는 줄 수 — 두 해 치(104주)를 한꺼번에 올리지 않는다 */
+const REVIEW_PAGE = 30;
 /** 이 글자 크기부터 히어로의 지도를 숫자 아래로 내린다 */
 const STACK_SCALE = 1.35;
 const GUTTER = GEO.gutter;
@@ -492,10 +494,17 @@ function hasKind(doc: MandaratDoc, kind: 'count' | 'mind'): boolean {
 function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: string[]; onOpen: (week: string) => void }) {
   const m = useMsg();
   const l = useLang();
-  const [all, setAll] = useState(false);
-  const shown = all ? weeks : weeks.slice(0, REVIEW_ROWS);
-  const more = !all && weeks.length > REVIEW_ROWS;
-  const rows = shown.map((w) => reviewRow(doc, w, l));
+  const [limit, setLimit] = useState(REVIEW_ROWS);
+  const shown = weeks.slice(0, limit);
+  // 아직 펼치지 않은 주 수 — '더 보기'의 읽는 말이 이 수를 말한다
+  const rest = weeks.length - shown.length;
+  // 한 줄은 그 주를 다시 센 값(weekReview) — 문서 · 언어가 같으면 이미 센 주는 다시 세지 않는다('더 보기'는 새 줄만 센다)
+  const seen = useMemo(() => new Map<string, ReturnType<typeof reviewRow>>(), [doc, l]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = shown.map((w) => {
+    let r = seen.get(w);
+    if (!r) seen.set(w, (r = reviewRow(doc, w, l)));
+    return r;
+  });
   return (
     <View>
       {rows.map((r, i) => (
@@ -515,7 +524,7 @@ function ReviewList({ M, doc, weeks, onOpen }: { M: M; doc: MandaratDoc; weeks: 
           {!!r.note && <Text style={[ROLE.body, { color: M.ink, marginTop: 2 }]} numberOfLines={2}>{r.note}</Text>}
         </Pressable>
       ))}
-      {more && <MoreRow M={M} onPress={() => { tap(); setAll(true); }} label={m.stats.moreWeeks({ n: weeks.length - REVIEW_ROWS })} />}
+      {rest > 0 && <MoreRow M={M} onPress={() => { tap(); setLimit((n) => n + REVIEW_PAGE); }} label={m.stats.moreWeeks({ n: rest })} />}
     </View>
   );
 }

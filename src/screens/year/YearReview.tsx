@@ -38,7 +38,9 @@ const FIG_GAP = 8;
 /** 표가 채워진 모습 — 장면 수(분기) */
 const FRAMES = 4;
 /** 회고를 처음에 몇 줄까지 */
-const NOTE_ROWS = 12;
+export const NOTE_ROWS = 12;
+/** '더 보기' 한 번에 더 펼치는 줄 수 — 한 해 치(300줄 넘게)를 한꺼번에 올리지 않는다 */
+export const NOTE_PAGE = 30;
 /** 닳은 자리의 기준 — 4주(28일)에 한 날 수 */
 const WEAR_SPAN = 28;
 
@@ -261,9 +263,21 @@ function WeekNotes({ M, m, notes }: { M: M; m: Messages; notes: Digest['weekNote
   );
 }
 
-/** 그날의 한 줄 — 달마다 묶어 오래된 것부터. 처음에는 NOTE_ROWS줄, '더 보기'로 그 자리에서 펼친다 */
+/** 달 묶음의 앞 limit줄만 — 묶음은 그대로 두고, 줄이 하나도 남지 않은 달은 뺀다 */
+export function noteGroups<T>(groups: readonly { month: string; items: readonly T[] }[], limit: number): { month: string; items: T[] }[] {
+  let left = Math.max(0, limit);
+  return groups
+    .map((g) => {
+      const items = g.items.slice(0, left);
+      left -= items.length;
+      return { month: g.month, items };
+    })
+    .filter((g) => g.items.length > 0);
+}
+
+/** 그날의 한 줄 — 달마다 묶어 오래된 것부터. 처음에는 NOTE_ROWS줄, '더 보기'마다 NOTE_PAGE줄씩 그 자리에서 펼친다 */
 function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['reflections'] }) {
-  const [all, setAll] = useState(false);
+  const [limit, setLimit] = useState(NOTE_ROWS);
   const total = groups.reduce((s, g) => s + g.items.length, 0);
   if (total === 0) {
     return (
@@ -272,15 +286,9 @@ function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['refl
       </View>
     );
   }
-  let left = all ? total : NOTE_ROWS;
-  const shown = groups
-    .map((g) => {
-      const items = g.items.slice(0, Math.max(0, left));
-      left -= items.length;
-      return { month: g.month, items };
-    })
-    .filter((g) => g.items.length > 0);
-  const more = !all && total > NOTE_ROWS;
+  const shown = noteGroups(groups, limit);
+  // 아직 펼치지 않은 줄 수 — '더 보기'의 읽는 말이 이 수를 말한다
+  const rest = Math.max(0, total - limit);
   return (
     <View>
       {shown.map((g, gi) => {
@@ -310,11 +318,11 @@ function Reflections({ M, m, groups }: { M: M; m: Messages; groups: Digest['refl
           </View>
         );
       })}
-      {more && (
+      {rest > 0 && (
         <Pressable
-          onPress={() => { tap(); setAll(true); }}
+          onPress={() => { tap(); setLimit((n) => n + NOTE_PAGE); }}
           accessibilityRole="button"
-          accessibilityLabel={m.year.notesMore({ n: total - NOTE_ROWS })}
+          accessibilityLabel={m.year.notesMore({ n: rest })}
           {...a11yLangProp()}
           style={({ pressed }) => [{ minHeight: 44, justifyContent: 'center' }, pressed ? pressedRow(M) : null]}
         >
