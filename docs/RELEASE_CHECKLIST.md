@@ -1,12 +1,12 @@
 # Release checklist — 만다라트
 
-- **v2 (2.0)** is the section directly below. It is the current release list.
-- **v1 (1.0)** follows it and is kept for history and for its device-QA regression items.
-- Where the two disagree, v2 wins. For example, the App Privacy answer and `supportsTablet` changed.
+- **v2** is the section directly below. It is the current release list. "v2" is the name of the plan (`docs/v2/plan.md`), not the store version: this is the **first App Store submission, version 1.0.0**.
+- **v1** follows it and is kept for history and for its device-QA regression items. It was never submitted.
+- Where the two disagree, v2 wins. For example, `supportsTablet` and the screenshot sets changed.
 
 ---
 
-# v2 — 2.0 release (iOS, App Store)
+# v2 — first App Store release, version 1.0.0 (iOS)
 
 The owner works top to bottom: each step needs the ones above it.
 - **Sources:** plan §1.2 and §8 (`docs/v2/plan.md`), `docs/v2/owner-decisions.md`, and every package note in `docs/v2/*.md`, merged here by V8-C. Each package note keeps the full detail of its own items.
@@ -18,26 +18,28 @@ The owner works top to bottom: each step needs the ones above it.
 | # | Item | Status | Where it goes |
 |---|---|---|---|
 | V1 | **Privacy policy** in ko, ja and en. The draft is `docs/v2/privacy.md`; legal review is needed. Publish it at an https address and set `PRIVACY_URL`. The v1 one-line text in §2 of v1 below is **out of date**: it does not mention iCloud, Sentry or the purchase. | **DONE (web)** — https://mandarat-delta.vercel.app/privacy, generated from `docs/v2/privacy.md` (`npm run privacy-page`); legal review still advised | `src/lib/appInfo.ts`; App Store Connect › App Information › Privacy Policy URL, per locale; `store.config.json` `privacyPolicyUrl` (V8-B placeholder) |
-| V2 | **Support contact** `SUPPORT_EMAIL`, plus a Support URL (it can be the privacy page). | **DONE** — `SUPPORT_EMAIL` set; Support URL = the privacy page (it carries the contact) | `src/lib/appInfo.ts`; App Store Connect › Support URL; `store.config.json` `supportUrl` |
+| V2 | **Support contact** `SUPPORT_EMAIL`, plus a Support URL. | **DONE** — `SUPPORT_EMAIL` set. The Support URL is the `supportUrl` of each locale in `store.config.json`: the support page https://mandarat-delta.vercel.app/support once it is deployed (until then the privacy page, which carries the contact). Open it on a phone before submitting (v2-4). | `src/lib/appInfo.ts`; App Store Connect › Support URL; `store.config.json` `supportUrl` |
 | V3 | **Sentry.** | **DEFERRED** — 1.0 ships without crash reporting (owner, 2026-11). Sentry is removed from the build; see v2-3 for how to bring it back. | — |
-| V4 | **Store names.** '만다라트' alone is taken (id6444119494; see v1 B3), so the store name is **만다라트 플래너** (ja **マンダラート プランナー**, en **Mandalart Planner**). The **home-screen name stays 만다라트** (ja マンダラート, en Mandalart; `CFBundleDisplayName` and `locales/*.json` do not change), and so do the Siri phrases in `docs/v2/review-notes.md`. | **DECIDED** (owner, 2026-11; `docs/v2/owner-decisions.md` 8) — the three titles are in `store.config.json`; type or push them as the App Store Connect › Name of each locale | `store.config.json` `title` per locale; App Store Connect › App Information › Name |
+| V4 | **Store names.** '만다라트' alone is taken (id6444119494; see v1 B3), so the Korean store name is **만다라트 플래너**. The Japanese and English store names are the `title` of each locale in `store.config.json`. The audit found an app named exactly "Mandalart Planner" already on the App Store (id6741136966), and App Store Connect refuses a name that is in use, so the English title (and perhaps the Japanese one) gets a suffix. The **home-screen name stays 만다라트** (ja マンダラート, en Mandalart; `CFBundleDisplayName` and `locales/*.json` do not change), and so do the Siri phrases in `docs/v2/review-notes.md`. | **ko DECIDED** (owner, 2026-11; `docs/v2/owner-decisions.md` 8). **en and ja OPEN** (`docs/v2/owner-decisions.md` 9) — type or push the `title` values of `store.config.json` as the App Store Connect › Name of each locale | `store.config.json` `title` per locale; App Store Connect › App Information › Name |
 | V5 | **Owner confirmations 2–5** (plan §1.3): the pro list; fallback language ko; reminders per device; year-archive gating. To keep the latest archive's review free, change `archiveAccess` in `src/lib/archive.ts`. | **OPEN — defaults are implemented** | — |
-| V6 | **Release version.** The lead bumps `app.json` `version` (proposed `2.0.0`). | **OPEN** | `app.json` (lead only) |
-| V7 | **Copyright line.** The holder is the owner as a person (`docs/v2/owner-decisions.md` 8). The owner types **`© 2026 <owner's name>`** (their own legal name) into App Store Connect. The line is not in the repo: `store.config.json` has no `copyright`, so `eas metadata:push` leaves the field empty. | **OPEN — the owner enters it** | App Store Connect › App Information › Copyright |
+| V6 | **Release version.** `1.0.0`: this is the first App Store version, and `app.json` `version` already says so. EAS keeps the build number (`appVersionSource: remote`, `production.autoIncrement`). | **DONE — 1.0.0** | `app.json` (lead only) |
+| V7 | **Copyright line.** The holder is the owner as a person (`docs/v2/owner-decisions.md` 8). The owner types **`2026 <owner's name>`** (their own legal name) into App Store Connect, **without the © sign**: the App Store adds it. The line is not in the repo: `store.config.json` has no `copyright`, so `eas metadata:push` leaves the field empty. | **OPEN — the owner enters it** | App Store Connect › App Information › Copyright |
 | V8 | **Optional custom EULA.** Not needed for a one-time purchase; Apple's standard EULA applies. To add one: `TERMS_URL` in `appInfo.ts`, a link in `ProSheet.tsx` and a `terms` key in the three `pro.ts` files (V3-C). | optional | — |
+| V9 | **Trademark searches.** KIPRIS (kipris.or.kr) for 만다라트, as planned in v1 B3. J-PlatPat (j-platpat.inpit.go.jp), classes 9 and 42, for マンダラート and マンダラチャート: the Japanese store title and the Japanese home-screen name both use マンダラート. Do the J-PlatPat search before the Japanese listing is published. | **OPEN — the owner searches** (`docs/v2/owner-decisions.md` 9) | — |
 
 ## v2-1. Apple Developer — capabilities
 
-EAS can do most of this on the **first interactive** build (v2-5), signed in with the Apple ID. Its capability sync creates and links the App Group, the iCloud container and the widget extension's App ID.
+EAS does most of this on the **first** build (v2-5), and only when that build is **interactive and signed in with the Apple ID**. Its capability sync creates and links the App Group, the iCloud container and the widget extension's App ID; a non-interactive build skips the sync and nothing is created. After the build, check the two App IDs below at developer.apple.com › Certificates, Identifiers & Profiles › Identifiers.
 
+- [ ] Before any of this: the Apple Developer Program enrolment is approved, and the owner has signed in once at developer.apple.com and at appstoreconnect.apple.com and accepted any pending agreement. A free app needs no banking or tax forms.
 - [ ] App ID `com.jcncompany.mandarat` with:
   - **App Groups**: `group.com.jcncompany.mandarat`;
   - **iCloud**: iCloud Documents, container `iCloud.com.jcncompany.mandarat`;
-  - **Push Notifications**: needed only because expo-notifications and expo-widgets write `aps-environment`; no push is sent;
+  - **Push Notifications**: needed only because expo-notifications and expo-widgets write `aps-environment`; no push is sent. If EAS asks to set up push notifications or to create a push key, answer **No** (`eas.json` sets `cli.promptToConfigurePushNotifications: false`, so it should not ask);
   - **In-App Purchase**: on by default (1.0 sells nothing: `STORE_OPEN = false`).
 - [ ] App ID `com.jcncompany.mandarat.widgets` (the widget extension) with the same App Group.
 - [ ] Re-create the provisioning profiles for both targets (`eas credentials`, or let the first build do it).
-- [ ] Register test devices for internal distribution: `eas device:create`. Register an iPhone **and** an iPad on the same Apple ID for the iCloud QA.
+- [ ] Register test devices for internal distribution before the first `preview` build: `npx eas-cli@latest device:create`. Register an iPhone **and** an iPad on the same Apple ID: the iCloud QA needs two devices, and a device registered after a build is not in that build's provisioning profile (it needs a new build).
 - Note: App Intents and App Shortcuts need **no** SiriKit entitlement (V3-B).
 
 ## v2-2. EAS — init, env and secrets
@@ -45,7 +47,7 @@ EAS can do most of this on the **first interactive** build (v2-5), signed in wit
 `app.json` has no `extra.eas.projectId` or `owner`, so every EAS command below needs this step first.
 
 - [ ] `npx eas-cli@latest login` with the owner's Expo account.
-- [ ] `npx eas-cli@latest init`. It writes `extra.eas.projectId` and `owner` into `app.json`. Send the diff to the lead, because `app.json` is lead-only.
+- [ ] `npx eas-cli@latest init`. It writes `extra.eas.projectId` and `owner` into `app.json`. Commit that change (`app.json` is otherwise lead-only; this one edit is expected).
 - [ ] Check the Expo plan's allowance for iOS builds, simulator builds and Workflows. The plan uses a `preview` build after waves 2, 4 and 5, one `e2e` build per Maestro run, and the fix-wave builds.
 - [ ] Link the GitHub repository to the EAS project, so EAS Workflows can run `.eas/workflows/e2e-ios.yml`.
 - [ ] Optional: an App Store Connect API key in EAS, for `eas submit` and `eas metadata`.
@@ -64,20 +66,24 @@ To bring Sentry back in an update:
 ## v2-4. App Store Connect
 
 - **No in-app purchase in 1.0** (owner decision, 2026-11). `STORE_OPEN = false` in `src/lib/pro.ts` opens every Pro feature for free and hides Settings › 프로. Not needed for 1.0: the Paid Apps Agreement, banking and tax, the `com.jcncompany.mandarat.pro` product, Family Sharing, sandbox testers. The free-apps agreement that every account accepts is enough. **When sales open later:** add new Pro features first (what is free in 1.0 stays free), set `STORE_OPEN = true`, restore the Pro parts of `docs/v2/review-notes.md`, `docs/v2/privacy.md` §4 and `store.config.json` from git history, then do the Paid Apps Agreement, the product (price, ko/ja/en name and description, review screenshot of the 프로 sheet), Family Sharing (cannot be turned off) and two sandbox testers.
-- [ ] **App record** for `com.jcncompany.mandarat` (My Apps › +), if it does not exist. The first `eas submit` can also create the record.
+- [ ] **App record** for `com.jcncompany.mandarat`. Either create it by hand (Apps › +: platform iOS, name 만다라트 플래너, primary language Korean, the bundle ID, any SKU), or let the first `eas submit` create it: `eas.json` `submit.production.ios` carries `appName` 만다라트 플래너, `language` ko and `sku` mandarat.
 - [ ] **Price**: Free (tier 0).
-- [ ] **Localizations** ja and en-US in addition to ko. For each: name, subtitle, description, keywords, promotional text, What's New, support URL and privacy policy URL. The drafts are in `store.config.json` (V8-B, `docs/v2/store-metadata.md`). Name: 만다라트 플래너 · マンダラート プランナー · Mandalart Planner (V4).
-- [ ] **Copyright**: the owner types `© 2026 <owner's name>` (V7). Nothing in the repo fills it.
-- [ ] **Screenshots**: 6.9" iPhone (`APP_IPHONE_67`) and 13" iPad (`APP_IPAD_PRO_3GEN_129`) in each locale.
+- [ ] **Localizations** ja and en-US in addition to ko. For each: name, subtitle, description, keywords, promotional text, support URL and privacy policy URL. The drafts are in `store.config.json` (V8-B, `docs/v2/store-metadata.md`). Name: the `title` of each locale in `store.config.json` (ko 만다라트 플래너; V4). A first version has no What's New field, so `releaseNotes` is not used until the first update.
+- [ ] **Copyright**: the owner types `2026 <owner's name>`, without the © sign (V7). Nothing in the repo fills it.
+- [ ] **Screenshots**: 6.9" iPhone (`APP_IPHONE_67`, 1320 × 2868) and 13" iPad (`APP_IPAD_PRO_3GEN_129`, 2064 × 2752) in each locale. These two sets are the only ones in the repo; App Store Connect scales them down for the smaller displays.
   - Source: `store/screenshots/<locale>/<display>/` (V8-B), regenerated with `npm --prefix tools/store-shots ci && npm run store-shots -- --locales ko,ja,en --devices all` (`docs/v2/store-shots.md`).
   - Re-shoot ja on macOS so it uses Hiragino.
   - Push them with `npx eas-cli metadata:push` (after v2-2), or upload by hand.
   - `supportsTablet` is now true, so the iPad set is **required**.
-- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음). 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; there are no purchases. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
-- [ ] **Age rating** questionnaire: no change from v1 (lowest rating).
-- [ ] **Availability**: v1 launched in 대한민국 only. With ja and en, decide whether to add Japan and other regions. Adding EU countries needs the DSA trader-status disclosure.
+- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음), then press **Publish**: the answer is not saved to the listing until it is published. 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; there are no purchases. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
+- [ ] **Age rating** questionnaire: every answer is None or No (lowest rating).
+- [ ] **Availability — countries**: the v1 plan was 대한민국 only. With ja and en, decide whether to add Japan and other regions. Publish the Japanese listing only after the J-PlatPat search (V9).
+- [ ] **DSA trader status**: App Store Connect asks for it on a first submission (the Digital Services Act section under Business). The owner answers trader or non-trader for their own situation; a trader's address, phone and e-mail are shown on the product page in the EU.
+- [ ] **Availability — Mac and Apple Vision Pro**: Pricing and Availability offers the iPhone and iPad app on Apple silicon Macs and on Apple Vision Pro, ticked by default. Neither was tested, so **untick both** for 1.0.
+- [ ] **Content rights** (App Information): the app shows no third-party content; it shows only what the user writes and the app's own examples.
 - [ ] **Category**: Productivity, then Lifestyle (as in `store.config.json`).
-- [ ] **App Review Information** › Notes: paste the English block of `docs/v2/review-notes.md`. Contact details. No demo account (no login).
+- [ ] **App Review Information**: contact first name, last name, phone (with the country code, +82 …) and e-mail; sign-in required: off (no login, no demo account); Notes: paste the English block of `docs/v2/review-notes.md`.
+- [ ] Before pressing Add for Review: open the privacy policy URL and the support URL of each locale on a phone, and check that the build is selected on the version page.
 
 ## v2-5. Builds — profiles, build and submit
 
@@ -90,26 +96,32 @@ To bring Sentry back in an update:
 | `production` | App Store | `autoIncrement` with the remote app version, `EXPO_PUBLIC_APP_ENV=production`. |
 
 - [ ] Before any build: `npm ci`, `npm run typecheck`, `npm test`, `npm run web-smoke`, `npm run prebuild-check`, `npx expo-doctor`. Re-run `npx expo install --check` and the React Native Directory check on a networked machine; they could not run in the build sandbox (W0).
-- [ ] **First iOS build is interactive**: `eas build -p ios --profile preview`. EAS syncs the App Group, the iCloud container and the widget extension. Later builds can run non-interactively.
+- [ ] **First iOS build is interactive and signed in with the Apple ID**: `npx eas-cli@latest build -p ios --profile preview`, run by the owner in a terminal (not in CI, not with `--non-interactive`). Only then does EAS sync the capabilities: it creates the App Group, the iCloud container and the widget extension's App ID. Answer **No** if it asks about push notifications or a push key. Later builds can run non-interactively.
 - [ ] The build compiles the Swift that could not be compiled in the sandbox: `native/ios` (App Intents, `AppIntents.swift` and `TodayStore.swift` in target `Mandarat`), `modules/pro-store` and `modules/icloud-sync`. If `native/ios` fails to compile, the lead adds the fallback `plugins/withShortcuts.js` (V3-B handoff 2, plan §9).
 - [ ] **Siri shortcuts compile (R3-3).** The inline-modules group (`../native/ios`) sits in an `objectVersion = 54` project. In the first `preview` build log, check that `AppIntents.swift` and `TodayStore.swift` compile, and on the device check that the Shortcuts app lists the 4 App Shortcuts. If either fails, a fix package adds `plugins/withObjectVersion.js` (sets `objectVersion` and `preferredProjectObjectVersion` to 77, after the inline-modules step).
 - [ ] **Widget version matches the app (R3-4).** Unzip the first `preview` IPA and compare `CFBundleVersion` and `CFBundleShortVersionString` in `Payload/Mandarat.app/Info.plist` with `Payload/Mandarat.app/PlugIns/ExpoWidgetsTarget.appex/Info.plist`. expo-widgets writes literal `1` / `1.0.0`; EAS uses the remote build number. If they differ, a fix package sets the two keys in `ios/ExpoWidgetsTarget/Info.plist` to `$(CURRENT_PROJECT_VERSION)` and `$(MARKETING_VERSION)` in `plugins/withWidgetStrings.js`.
 - [ ] **Widget privacy manifest (R3-1).** The IPA has `PlugIns/ExpoWidgetsTarget.appex/PrivacyInfo.xcprivacy`. After the first TestFlight upload, read the App Store Connect e-mail; if it still names a missing reason (ITMS-91053) for the `.appex`, add that reason to `PRIVACY_API` in `plugins/withWidgetStrings.js`.
+- [ ] **"Build processed" e-mail, every upload.** After `eas submit`, wait for Apple's e-mail about the build and read all of it before going on. A warning ITMS-91053 (missing API declaration) names an API category that the privacy manifest lacks; the upload can still succeed, so it is easy to miss. The app's manifest (`app.json` `privacyManifests`) declares UserDefaults CA92.1 and 1C8F.1, FileTimestamp C617.1, 0A2A.1 and 3B52.1, DiskSpace E174.1 and 85F4.1, and SystemBootTime 35F9.1. If the mail names another category, the lead adds it to `app.json` (and to `tests/releaseConfig.test.js`) and a new build goes up.
 - [ ] **Widget display name (R3-5).** The `.appex` `Info.plist` has `CFBundleDisplayName` = 만다라트, not `ExpoWidgetsTarget`.
 - [ ] **EAS project id (R3-6).** The first `eas build` runs `eas init`, which adds `extra.eas.projectId` to `app.json`. Commit that edit so later EAS Workflows (`.eas/workflows/e2e-ios.yml`) run non-interactively.
 - [ ] **No Pro preview in the build (R-8 #7).** expo.dev › project › Environment variables has no `EXPO_PUBLIC_PRO_PREVIEW` in any environment. (`src/lib/pro.ts` ignores it in any EAS build because every profile sets `EXPO_PUBLIC_APP_ENV`, and `npm run release-check` fails when it is set in the shell.)
-- [ ] Run the device QA (v2-7) on the `preview` build, then on TestFlight.
+- [ ] Run the device QA (v2-7) on the `preview` build, then a short pass on TestFlight (below).
 - [ ] `codesign -d --entitlements :- Mandarat.app` on the TestFlight build shows:
   - the App Group;
   - the iCloud container in both keys;
   - `CloudDocuments`;
+  - `com.apple.developer.icloud-container-environment = Production`;
   - `aps-environment = production`.
-- [ ] Hermes memory regression (v1 §3): still SDK 56. Watch memory in TestFlight on long sessions.
+- [ ] **Hermes memory regression (v1 §3).** SDK 56 has a known Hermes memory regression, and 1.0 ships on SDK 56.
+  - Do not set `"image": "latest"` in `eas.json`. Leave `image` out, so EAS picks the build image that matches the SDK.
+  - Watch memory in TestFlight on long sessions (the Chart tab and Stats).
+  - Plan the SDK upgrade as the first update after 1.0.
 - [ ] **Production:**
   ```
-  npm run release-check && eas build -p ios --profile production
-  eas submit -p ios --latest
+  npm run release-check && npx eas-cli@latest build -p ios --profile production
+  npx eas-cli@latest submit -p ios --latest
   ```
+- [ ] **After the upload:** wait for the "build processed" e-mail (above), install the build from TestFlight on the iPhone and the iPad, and repeat a short pass: add a widget and tick a row, start a focus timer and check the Live Activity, turn on one reminder and let it fire, and sync a change over iCloud between the two devices.
 - [ ] Never commit `ios/`, `android/` or `dist*/` (CNG).
 
 ## v2-6. Maestro runs (V5-C, `docs/v2/device-tests.md`)
@@ -152,6 +164,7 @@ Check against the mockups in `docs/design/mockups/a/*.png`, on an iPhone and an 
 ### Core regression
 - [ ] Onboarding, checks, the editor, the action sheet, the focus timer, the weekly review, backup export and import, 저장본, the share image (v1 §4 groups).
 - [ ] Dark mode; large text 1.35; VoiceOver on every tab; Bold Text; Increase Contrast.
+- The v1 groups were written before the redesign. Where a v1 line names something the redesign removed (the day-close double rule, the 正 week tally, the paper colours, 포인트 컬러, 칸 모서리), check what the app shows now. Day close: 오늘 shows `N/N`, '오늘은 여기까지예요.' and the list folded into one line ('펼치기' opens it; un-checking brings the list back); 홈 adds one line, '<날짜> 마감', under 오늘 할 일.
 
 ### Notifications [V1-A, V2-A]
 - [ ] No permission prompt at launch, or on a doc or language change. The prompt appears only on the first toggle (아침에 오늘 할 일). On Android 13 it also appears only from a toggle.
@@ -172,15 +185,16 @@ Check against the mockups in `docs/design/mockups/a/*.png`, on an iPhone and an 
 - [ ] An app check reaches the widget within about 1 s. Widget and app checks coexist. Check on the widget while the app is in the background, then edit in the app: the check survives (read-before-write).
 - [ ] Midnight rollover through the stored timeline (it lasts up to 7 days). Late at night, a habit counts on yesterday.
 - [ ] Language change updates the widget. The gallery shows 오늘 / 今日 / Today with its localized description.
-- [ ] Pro pattern draws, and the widget is plain again after a refund.
+- [ ] The paper pattern chosen in Settings draws on the widget (free in 1.0; the refund check comes back when `STORE_OPEN` is turned on).
 - [ ] A tap outside a row button opens 오늘. No blank widget after a reboot.
-- [ ] **Widget added on a fresh install before the first launch.** Record what the release build shows. If it shows the red "No layout found" box, keep the "open the app once" line in `docs/v2/review-notes.md`, and a fix package adds a placeholder.
+- [ ] **Widget added on a fresh install before the first launch.** Expected in 1.0: the red "No layout found" box (`node_modules/expo-widgets/ios/Widgets/EntryView.swift:33`), until the app has been opened once. This is a known limit (v2-9); the "open the app once" line in `docs/v2/review-notes.md` covers it for review. Record what the release build shows. A later fix package adds a placeholder.
 
 ### Live Activity [V2-B]
 - [ ] The lock screen and the Dynamic Island (compact, minimal, expanded) show the area square, the text, `집중하는 중`, a countdown and a bar. The `ProgressView` label is not doubled.
 - [ ] Pause shows `잠시 멈췄어요`; resume continues.
-- [ ] Locked at 25:00: the notification `25분이 지났어요` arrives, and the banner `25분 집중을 마쳤어요` disappears after about 5 min. Returning before 25:00 sends no notification.
-- [ ] Closing the timer ends the activity at once. After a force-quit, the stale activity is removed.
+- [ ] Locked until the end, with notifications allowed: the banner counts down to 0:00 and stays there, and the local notification `25분이 지났어요` arrives. The banner does **not** change to `25분 집중을 마쳤어요` and does **not** leave by itself while the phone stays locked (known limit, v2-9). Open the app: the banner now reads `25분 집중을 마쳤어요` and leaves about 5 minutes later. If iOS ended the app in the meantime, the banner is removed at once on the next launch instead. Returning before 25:00 sends no notification.
+- [ ] App on screen at 25:00: the banner changes to `25분 집중을 마쳤어요` at once and leaves about 5 minutes later.
+- [ ] Closing the timer before 25:00 ends the activity at once. After a force-quit, the stale activity is removed on the next launch.
 - [ ] Live Activities turned off: no error, and the notification still fires. With no notification permission, the activity is the only signal.
 - [ ] iPad: a Live Activity where iPadOS offers one, otherwise only the notification; no error either way.
 - [ ] A tap opens the running timer. Dark mode, and ja/en captions.
@@ -213,7 +227,7 @@ Check against the mockups in `docs/design/mockups/a/*.png`, on an iPhone and an 
 ### Pro features, free in 1.0 [V1-E, V3-C, V4-C, V2-D]
 - [ ] Settings has no 프로 section, and no 구입 복원 row. Nothing opens the Pro sheet.
 - [ ] Nothing is locked: 모눈 · 줄 · 무지, the widget's paper pattern, A3 · A5 · B5, 표지 + 영역별, and the past charts on the shelf all open with no lock mark. VoiceOver reads "종이 무늬 모눈" with no "프로".
-- [ ] Airplane-mode launch: still nothing locked (no StoreKit call is made).
+- [ ] Airplane-mode launch: still nothing locked. The app asks StoreKit for no product and no entitlement, and no purchase or restore screen can be reached. The purchase module is still compiled in: at launch it starts StoreKit's transaction listener (`modules/pro-store/ios/ProStoreModule.swift:26-41`, `Transaction.updates`), which receives nothing because no product exists.
 - (The sandbox purchase QA — buy, cancel, Ask to Buy, restore, refund, Screen Time — comes back when `STORE_OPEN` is turned on; see git history.)
 
 ### Print [V1-B, V2-D]
@@ -257,7 +271,7 @@ Check against the mockups in `docs/design/mockups/a/*.png`, on an iPhone and an 
 - [ ] A cold-start reminder tap navigates once.
 
 ### Store [V5-D, V8-B]
-- [ ] `eas metadata:push`. The screenshots look right in App Store Connect for ko, ja and en; compare `03-home` 6.9" with a real build. App Store Connect accepts the RGB PNGs.
+- [ ] `npx eas-cli@latest metadata:push`. The two screenshot sets (6.9" iPhone, 13" iPad) look right in App Store Connect for ko, ja and en; compare `04-home` 6.9" with a real build. App Store Connect accepts the RGB PNGs.
 
 ## v2-8. Human string review (X-0 … X-L)
 
@@ -265,11 +279,21 @@ Each X package note has a "native speaker should double-check" section of ja and
 - Example from X-0: 入れる for 담기; "Meh"; "Sage"; "Rouge".
 - Example from X-G: "Appearance"; "Start over"; 機種変更.
 
+## v2-9. Known limits in 1.0
+
+These are accepted for 1.0. Do not file them as QA failures; each has a line in v2-7 that says what to expect.
+
+| Limit | Why | What the user sees | Later |
+|---|---|---|---|
+| **The focus Live Activity does not finish by itself while the phone is locked.** | The end is handled only in JS (`src/overlays/FocusTimer.tsx`), which does not run while the app is suspended, and expo-widgets starts the activity with `staleDate: nil` (`node_modules/expo-widgets/ios/LiveActivityFactory.swift:30`). No push is used. | The banner counts down to 0:00 and stays. The local notification `25분이 지났어요` fires when notifications are allowed. The banner changes to `25분 집중을 마쳤어요` and then leaves once the app is opened again. | Revisit in an update: the banner needs a stale date (which expo-widgets does not set) or a push to change without the app. |
+| **A widget added before the first launch shows an error box.** | expo-widgets draws a red "No layout found" box until the app has saved the layout (`node_modules/expo-widgets/ios/Widgets/EntryView.swift:33`). | A red box in the widget until the app is opened once. The review notes ask the reviewer to open the app first. | A placeholder layout, in an update. |
+| **Hermes memory regression in SDK 56.** | Known upstream issue (v1 §3); the fix ships with a later SDK. | Possibly rising memory in very long sessions. | The SDK upgrade is the first update after 1.0 (v2-5). |
+
 ---
 
-# v1 — 1.0 release (history)
+# v1 — the earlier plan for 1.0 (history, never submitted)
 
-This is the owner's list for submitting 1.0. Work top to bottom.
+This was the owner's list for submitting 1.0 before the v2 work. The v2 section above replaces it.
 **Release is blocked** while any item under "Blocking" is open. `npm run release-check` enforces the first two automatically: it exits 1 while `PRIVACY_URL` or `SUPPORT_EMAIL` is empty. Run it right before `eas build --profile production`.
 
 Status key: **OPEN** = the owner still has to decide or do this · done = already in the repo.
@@ -283,7 +307,7 @@ Status key: **OPEN** = the owner still has to decide or do this · done = alread
 | B1 | **Privacy policy URL.** Publish a one-page 개인정보 처리방침 (text in §2), then set `PRIVACY_URL` (https) in `src/lib/appInfo.ts`. | **DONE** — `PRIVACY_URL` = https://mandarat-delta.vercel.app/privacy (ko · ja · en, `?lang=`) | `src/lib/appInfo.ts`, App Store Connect › App 정보 › 개인정보 처리방침 URL |
 | B2 | **Support contact.** Set `SUPPORT_EMAIL` in `src/lib/appInfo.ts`. App Store Connect also needs a **Support URL**: use the same page as B1 (it carries the 문의 address), or a separate page. | **DONE** — `SUPPORT_EMAIL` set; Support URL = the privacy page | `src/lib/appInfo.ts`, App Store Connect › 지원 URL |
 | B3 | **App Store name.** '만다라트' is **already taken** on the App Store (id6444119494), so it cannot be the store name. Pick one. Candidate: **'만다라트 노트 - 81칸 목표 계획표'** (≤ 30 chars). Before you commit to it, run a KIPRIS trademark search (kipris.or.kr) for the name. | **OPEN — owner must pick** | App Store Connect › 이름 |
-| B4 | **Copyright holder** (person or company name), e.g. `© 2026 <holder>`. | **OPEN** | App Store Connect › 저작권 |
+| B4 | **Copyright holder** (person or company name), e.g. `2026 <holder>` (no © sign; see V7). | **OPEN** | App Store Connect › 저작권 |
 
 While B1/B2 are empty, Settings hides 개인정보 처리방침 and 문의하기 (W2-G). They appear on their own once the constants are filled. No code change is needed.
 
@@ -299,7 +323,7 @@ While B1/B2 are empty, Settings hides 개인정보 처리방침 and 문의하기
 | Category | Primary **생산성**, secondary **라이프스타일** | set in ASC |
 | Availability | **대한민국 only** at launch. This skips the EU DSA trader-status disclosure. Widen it later if you want. | set in ASC |
 | Age rating | Answer the **new age-rating questionnaire** (2025 format). No user content sharing, no web, no ads, no mature themes → lowest rating. | set in ASC |
-| App Privacy | **v1 only — superseded by v2-4 (Crash Data, Performance Data, Other Diagnostic Data).** **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics or ads. Records stay on the device and in the user's own iCloud device backup. | set in ASC |
+| App Privacy | **See v2-4, which gives the same answer for 1.0** (crash reporting was removed, v2-3). **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics or ads. Records stay on the device and in the user's own iCloud device backup. | set in ASC |
 | Encryption | `ITSAppUsesNonExemptEncryption: false` is already in app.json | done |
 | Price | Free (owner to confirm) | **OPEN** |
 
@@ -310,7 +334,7 @@ While B1/B2 are empty, Settings hides 개인정보 처리방침 and 문의하기
 ### Screenshots (release-u5, deferred to the owner)
 
 These can't be taken on the Linux build host. Capture them from the iOS simulator or a device on the preview build:
-- **6.9" iPhone** (1320 × 2868 portrait) is required. ASC scales it down for the smaller sizes. `supportsTablet` is false, so no iPad shots are needed.
+- **6.9" iPhone** (1320 × 2868 portrait) is required. ASC scales it down for the smaller sizes. `supportsTablet` is false, so no iPad shots are needed. (v1 only: `supportsTablet` is now true, so v2-4 also needs the 13" iPad set, 2064 × 2752.)
 - 5 shots, light 미색 paper, sample chart filled (설정 › 예시 채우기):
   1. 홈 — chart hero, 正 week, today's list;
   2. 만다라트 — the printed 81-cell table;
