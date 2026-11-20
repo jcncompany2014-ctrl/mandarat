@@ -11,6 +11,8 @@
 // - 더 새 앱이 쓴 복제본이 있으면 아무것도 합치거나 올리지 않는다(newerApp — 모르는 필드를 덮어쓰지 않게).
 import type { ArchivedChart, MandaratDoc } from '../types';
 import type { ICloudFile, ICloudStatus, ICloudSyncNative } from '../../modules/icloud-sync';
+import { seedTitles } from '../data/defaults';
+import { LANGS } from '../i18n';
 import { unionArchives } from './archive';
 import type { SyncPort } from './syncEnvelope';
 import { decodeReplica, devOfName, encodeReplica, replicaDigest, replicaName, SIZE_WARN } from './syncFile';
@@ -65,11 +67,22 @@ export interface SyncIO {
 
 // ── 순수한 판단 ─────────────────────────────────────────────────────────────
 
-/** 이 기기 문서에 사람이 적은 것이 없나 — 처음 쓰지 않았거나, 글 · 기록 · 돌아보기 · 지난 표가 하나도 없다 */
+/** 영역 이름을 고쳤나 — 같은 자리의 기본 이름(어느 언어의 것이든)이 아니면 사람이 적은 것이다 */
+function hasOwnAreaTitle(doc: MandaratDoc): boolean {
+  const seeds = LANGS.map((l) => seedTitles(l));
+  return doc.themes.some((t, i) => {
+    const title = t.title.trim();
+    return title !== '' && !seeds.some((s) => s[i] === title);
+  });
+}
+
+/** 이 기기 문서에 사람이 적은 것이 없나 — 처음 쓰지 않았거나, 글 · 고친 영역 이름 · 기록 · 돌아보기 · 지난 표가 하나도 없다 */
 export function isEmptyDoc(doc: MandaratDoc): boolean {
   if (!doc.onboarded) return true;
   // centerGoalEn은 기본값('My Best Self')이 늘 있어 세지 않는다
   if (doc.centerGoal.trim()) return false;
+  // 영역 이름만 고쳐 둔 기기도 비어 있지 않다 — 비었다고 보면 켤 때 묻지 않고 iCloud 기록으로 바뀐다
+  if (hasOwnAreaTitle(doc)) return false;
   if ((doc.archives?.length ?? 0) > 0 || doc.todayExtra.length > 0) return false;
   if (Object.keys(doc.dayLog).some((d) => doc.dayLog[d].length > 0)) return false;
   if (Object.keys(doc.dayMeta).some((d) => doc.dayMeta[d].reflection?.trim() || doc.dayMeta[d].mood !== undefined)) return false;

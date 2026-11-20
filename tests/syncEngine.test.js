@@ -7,7 +7,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 const { rng, canonArrays, withoutLocal } = require('./helpers/docFuzz');
-const { blankDoc, migrate, sampleThemes } = require('../src/data/defaults');
+const { blankDoc, migrate, sampleThemes, seedTitles } = require('../src/data/defaults');
+const { LANGS } = require('../src/i18n');
 const { resetDoc, startNewChart } = require('../src/lib/archive');
 const { addCount } = require('../src/lib/kinds');
 const { rolloverToday, ymd } = require('../src/lib/routine');
@@ -244,6 +245,17 @@ test('classify: no remotes → push; empty local → adopt; otherwise ask', () =
   assert.equal(isEmptyDoc(one), false);
   assert.equal(isEmptyDoc({ ...onboardedEmpty, dayMeta: { '2026-10-01': { reflection: '좋았다' } } }), false);
   assert.equal(isEmptyDoc({ ...onboardedEmpty, centerGoal: '목표' }), false);
+  // 감사 c07: 영역 이름만 고쳐 둔 기기도 비어 있지 않다 — 켤 때 묻지 않고 iCloud 기록으로 바뀌지 않는다
+  const named = { ...onboardedEmpty, areasSet: true, themes: onboardedEmpty.themes.map((t, i) => ({ ...t, title: `My area ${i + 1}` })) };
+  assert.equal(isEmptyDoc(named), false);
+  assert.equal(classify(named, [remote]), 'ask');
+  const oneName = { ...onboardedEmpty, themes: onboardedEmpty.themes.map((t, i) => (i === 5 ? { ...t, title: '달리기' } : t)) };
+  assert.equal(classify(oneName, [remote]), 'ask', 'one renamed area is enough');
+  // 기본 이름은 어느 언어의 것이든 고친 것이 아니다(언어만 바꾼 기기) — 이름을 그대로 쓰기로만 한 기기도 가져온다
+  for (const l of LANGS) {
+    const seeded = { ...onboardedEmpty, areasSet: true, themes: onboardedEmpty.themes.map((t, i) => ({ ...t, title: seedTitles(l)[i] })) };
+    assert.equal(classify(seeded, [remote]), 'adopt', `default ${l} names`);
+  }
 });
 
 // ── 켜기와 고르기 ───────────────────────────────────────────────────────────
