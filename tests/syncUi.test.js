@@ -131,6 +131,27 @@ test('the sheet opens only while the engine asks, and not again for an answered 
   }
 });
 
+test('reset dialog: with sync on, one more sentence says the other devices are erased too', () => {
+  for (const l of LANGS) {
+    const t = msg(l);
+    const off = view.resetAskText(false, t);
+    const on = view.resetAskText(true, t);
+    assert.equal(off, t.settings.resetAskBody, `${l}: off is the plain body`);
+    assert.equal(on, `${t.settings.resetAskBody}\n\n${t.settings.resetAskSync}`, `${l}: on adds the sentence as its own paragraph`);
+    assert.ok(!off.includes(t.settings.resetAskSync), l);
+    assert.match(t.settings.resetAskSync, /iCloud/, l);
+  }
+  assert.equal(msg('ko').settings.resetAskSync, 'iCloud 동기화를 켜 두어서, 같은 Apple 계정의 다른 기기에서도 지워져요.');
+  assert.equal(msg('ja').settings.resetAskSync, 'iCloudでの同期がオンのため、同じApple Accountのほかの端末でも消えます。');
+  assert.equal(msg('en').settings.resetAskSync, 'iCloud sync is on, so they will also be erased on your other devices with the same Apple Account.');
+  // 설정 화면은 누르는 그때의 켜짐으로 고른다 — 엔진이 없으면(웹 · 안드로이드) 늘 꺼짐이라 본문만
+  const settings = src('src/screens/Settings.tsx');
+  assert.match(settings, /ask\(st\.resetAskTitle, resetAskText\(getSyncStatus\(\)\.enabled, m\), st\.resetAskOk, doReset, true\)/);
+  // 글이 기대는 코드 — 초기화는 새 판('epoch')이고, 다른 기기는 높은 판을 받기 전에 오늘 저장본을 남긴다
+  assert.match(src('src/store/MandaratContext.tsx'), /update\(\(d\) => rolloverToday\(resetDoc\(d\), dateKey\(\)\), 'epoch'\);/);
+  assert.match(src('src/lib/syncEngine.ts'), /keepCopy\(\)/);
+});
+
 test('the onboarding row appears only when an offer exists', () => {
   assert.equal(view.offerFor({ available: true, files: 1 }), true);
   assert.equal(view.offerFor({ available: true, files: 3 }), true);

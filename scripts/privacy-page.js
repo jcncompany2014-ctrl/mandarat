@@ -12,8 +12,8 @@ const site = require('./site-page');
 const DOC = 'docs/v2/privacy.md';
 const OUT = 'public/privacy.html';
 
-/** 이 방침이 시작되는 날 — 바꾸면 페이지에 새 시행일로 올린다(11. 바뀌면 알려요) */
-const EFFECTIVE = '2026-11-08';
+/** 이 글이 시작되는 날 — 방침의 글(privacy.md의 세 언어 본문)을 고치면 그날로 바꿔 새 시행일로 올린다(11. 바뀌면 알려요) */
+const EFFECTIVE = '2026-11-20';
 
 const TITLES = { ko: '개인정보 처리방침', ja: 'プライバシーポリシー', en: 'Privacy Policy' };
 

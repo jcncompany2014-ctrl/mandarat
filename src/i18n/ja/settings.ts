@@ -74,11 +74,11 @@ export default {
   sampleAskOk: '入れる',
   sampleDone: '例を入れました',
   resetRow: 'すべてリセット',
-  resetRowSub: 'すべての目標と記録を消します',
-  resetAskTitle: 'すべての記録を消しますか？',
-  resetAskBody: '中心の目標、行動64マス、できた記録がすべて消えます。消した直後なら元に戻せます。',
+  resetRowSub: '今使っている表と記録を消します',
+  resetAskTitle: '今使っている表と記録を消しますか？',
+  resetAskBody: '中心の目標、行動64マス、できた記録が消えます。「過去の表の保管庫」と「自動保存」は残ります。消した直後なら元に戻せます。',
   resetAskOk: '消す',
-  resetDone: 'すべての記録を消しました',
+  resetDone: '今使っている表と記録を消しました',
 
   secInfo: '情報',
   colName: '名前',
@@ -96,4 +96,5 @@ export default {
   mailSubject: ({ version }) => `マンダラートお問い合わせ ${version}`,
   openFail: '開けませんでした',
   mailLogHead: 'この下は、この端末に残っているエラーの記録です。消してから送っても大丈夫です。',
+  resetAskSync: 'iCloudでの同期がオンのため、同じApple Accountのほかの端末でも消えます。',
 } satisfies Like<typeof ko>;

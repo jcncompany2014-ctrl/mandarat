@@ -18,7 +18,7 @@ import { summarize } from '../lib/backup';
 import { backupAgeLabel } from '../lib/backupNote';
 import { tap } from '../lib/haptics';
 import { exportBackup } from '../lib/shareFile';
-import { useSyncEnabled } from '../lib/syncStatus';
+import { getSyncStatus, useSyncEnabled } from '../lib/syncStatus';
 import { fmtDateLong } from '../lib/text';
 import { useMsg } from '../i18n/react';
 import { lang, type Messages } from '../i18n';
@@ -36,6 +36,7 @@ import { PaperRows } from './settings/PaperRows';
 import { LanguageSection } from './settings/LanguageSection';
 import { NotifySection } from './settings/NotifySection';
 import { SYNC_ROWS, SyncSection } from './settings/SyncSection';
+import { resetAskText } from './settings/syncView';
 import { YearRows } from './settings/YearRows';
 import { ProSection } from './settings/ProSection';
 import { STORE_OPEN } from '../lib/pro';
@@ -207,7 +208,8 @@ export function Settings() {
   };
   const confirmReset = () => {
     tap();
-    ask(st.resetAskTitle, st.resetAskBody, st.resetAskOk, doReset, true);
+    // iCloud 동기화가 켜져 있으면 다른 기기에서도 지워진다고 적는다 — 누르는 그때의 켜짐
+    ask(st.resetAskTitle, resetAskText(getSyncStatus().enabled, m), st.resetAskOk, doReset, true);
   };
 
   // ── 백업 ──

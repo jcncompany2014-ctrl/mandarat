@@ -161,7 +161,7 @@ test('iCloud — 켜고 끄는 줄의 정보 줄에 맞춘 때, 고르기 시트
 test('되돌리기 어려운 줄은 먹(신호색 없음), 확인 대화상자를 거친다 · 색은 모두 토큰', () => {
   const s = code(SETTINGS);
   assert.match(s, /<LineRow M=\{M\} last danger title=\{st\.resetRow\}[^\n]*onPress=\{confirmReset\}/);
-  assert.match(s, /ask\(st\.resetAskTitle, st\.resetAskBody, st\.resetAskOk, doReset, true\)/);
+  assert.match(s, /ask\(st\.resetAskTitle, resetAskText\(getSyncStatus\(\)\.enabled, m\), st\.resetAskOk, doReset, true\)/);
   for (const f of OWN) {
     const c = code(f);
     assert.doesNotMatch(c, /M\.(signal|gold|accent)\b/, `${f}: 신호색`);
