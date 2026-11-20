@@ -63,4 +63,13 @@ export default {
 
   fitAll: '81マスにすべて収まります',
   fitLines: ({ max }) => `81マスでは${max}行まで表示されます`,
+
+  crashOpenSnap: ({ date }) => `${date}の自動保存で開く`,
+  crashCopyLog: 'エラーの内容をコピー',
+  crashCopied: 'エラーの内容をコピーしました',
+  crashCopyFailed: 'コピーできませんでした。もう一度タップしてください',
+  screenFailTitle: 'この画面を開けませんでした',
+  screenFailBody: '保存した記録はそのまま残っています。もう一度試すか、ほかの画面へ移動してください。',
+  screenFailHome: 'ホームへ',
+  sheetFail: 'シートを開けなかったため閉じました。記録はそのまま残っています',
 } satisfies Like<typeof ko>;
