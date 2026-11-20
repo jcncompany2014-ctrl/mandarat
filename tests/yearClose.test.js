@@ -160,6 +160,7 @@ function rectsOf(d) {
 
 test('장부 그림: 칸마다 View 대신 진하기마다 길 하나 — 자리는 예전 칸(안쪽 0.75, 기기 픽셀에 맞춤)과 같다', () => {
   const { ledgerLines, ledgerPicture, ledgerCellSize, LEDGER_LABEL_W } = loadLedger();
+  const TONES = require('../src/lib/statsView').HEAT_TONES.length;
   const log = { '2028-02-29': ['0-0', '0-1'], '2027-12-10': ['0-0'], '2028-03-01': ['0-0', '0-1', '0-2', '0-3', '0-4', '0-5', '0-6', '0-7'] };
   const rows = yearCalendar(log, '2027-12-10', '2028-12-20');
   const lines = ledgerLines(rows, 'ko');
@@ -169,7 +170,7 @@ test('장부 그림: 칸마다 View 대신 진하기마다 길 하나 — 자리
     const cell = ledgerCellSize(width);
     const rowGap = Math.max(3, 16 - cell);
     const pic = ledgerPicture(lines, cell, ratio);
-    assert.equal(pic.paths.length, 5, '진하기 다섯(HEAT_TONES)');
+    assert.equal(pic.paths.length, TONES, '진하기마다 길 하나(HEAT_TONES)');
     assert.equal(pic.width, LEDGER_LABEL_W + 31 * cell);
     assert.equal(pic.height, 13 * (cell + rowGap), '줄 간격은 그대로(칸 + 줄 사이)');
     const got = pic.paths.map(rectsOf);
@@ -196,7 +197,7 @@ test('장부 그림: 칸마다 View 대신 진하기마다 길 하나 — 자리
   assert.equal(n.slice(1).reduce((s, x) => s + x, 0), 3);
   // 기록이 하나도 없으면 길은 tile 하나뿐
   const none = ledgerPicture(ledgerLines(yearCalendar({}, '2027-02-01', '2027-02-28'), 'ko'), 10, 3);
-  assert.deepEqual(none.paths.map((d) => rectsOf(d).length), [28, 0, 0, 0, 0]);
+  assert.deepEqual(none.paths.map((d) => rectsOf(d).length), [28, ...Array(TONES - 1).fill(0)]);
 
   const s = src('src/components/YearLedger.tsx');
   // 폭은 받는다 — 재는 상태 · onLayout이 없다(첫 프레임과 다음 프레임의 칸 크기가 달라 달력이 두 번 그려졌다)
