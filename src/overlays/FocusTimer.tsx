@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Modal, PixelRatio, Platform, ScrollView, View, type LayoutChangeEvent } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PaperColumn } from '../components/WebColumn';
 import { useWindowDimensions } from '../lib/screen';
 import { MODAL_ORIENTATIONS, useLayout } from '../lib/screen';
@@ -16,13 +17,14 @@ import { TID } from '../lib/testIds';
 import { noOrphan } from '../lib/text';
 import { usePalette } from '../theme/usePalette';
 import { useUIActions, useUIState } from '../navigation/ui';
-import { useMandarat, dateKey } from '../store/MandaratContext';
+import { useActions, useMandarat, dateKey } from '../store/MandaratContext';
 import { success, tap } from '../lib/haptics';
 import { doneOn, kindOf } from '../lib/routine';
 import {
-  FOCUS_TOTAL, TALLY_BOXES, clockParts, elapsedOf, filledBoxes, finishLabel, fmtClock, focusOutcome, leftOfMs, minutesToRecord,
+  FOCUS_TOTAL, TALLY_BOXES, clockParts, elapsedOf, filledBoxes, finishLabel, fmtClock, focusOutcome, leftOfMs,
 } from '../lib/focusClock';
 import { FOCUS_DONE_LINGER_MS, focusProps, focusStartOf } from '../lib/focusActivity';
+import { focusRecord, focusSessionStore, newFocusId, owedMinutes, sessionLeftMs, type FocusSession as SavedFocus } from '../lib/focusSession';
 import { notifier } from '../lib/notifier';
 import { focusLive } from '../widgets/focusLive';
 import { useLang, useMsg } from '../i18n/react';
@@ -30,6 +32,7 @@ import { useLang, useMsg } from '../i18n/react';
 // 25분 집중 — 탭 막대 없이 화면 전체를 덮는 종이 한 장(목업 docs/design/mockups/a/focus.png · build-plan §1, O4).
 // 머리(영역 · 25분 집중 / 실천 글 / 닫기 글리프) → 5×5 분 칸(MinuteGrid) → 남은 시간 · 끝나는 시각 → 엄지 자리의 단추.
 // 시계 · 기록 · 알림 · 화면 켜 두기 · Live Activity는 예전 그대로 — 바뀐 것은 그림뿐이다.
+// 세션은 기기에 적어 둔다(lib/focusSession): 멈춰 있던 앱을 iOS가 끝내도 다음에 열 때 이어지고, 끝났으면 집중한 분이 남는다.
 
 /** 화면을 켜 두는 표시 — 다른 곳의 켜 두기와 섞이지 않게 이름을 붙인다 */
 const KEEP_AWAKE_TAG = 'focus';
@@ -47,17 +50,53 @@ const AIR_MIN = 12;
 const AIR_TOP = 0.42;
 const AIR_TOP_MAX = 64;
 
+/** 적어 둔 집중 세션 — 기기마다(AsyncStorage 'mandarat:focus:v1'). 돌기 시작 · 멈춤 · 다시 이음에 적고, 닫으면 지운다 */
+const saved = focusSessionStore(AsyncStorage);
+/** 앱을 켠 뒤 적어 둔 세션을 읽는 일 — 프로세스마다 한 번(화면이 다시 붙어도 또 읽지 않는다) */
+let boot: Promise<SavedFocus | null> | null = null;
+/** 읽은 세션을 이미 넘겼는지 — 한 번만 다시 연다 */
+let bootTaken = false;
+
 export function FocusTimer() {
   const { focus } = useUIState();
+  const { startFocus } = useUIActions();
+  const { addFocusMinutes } = useActions();
   // 앱이 꺼지며 잠금 화면에 남은 Live Activity를 처음 한 번 치운다(세션이 열려 있으면 그 세션 것이다)
   const openRef = useRef(!!focus);
   openRef.current = !!focus;
+  /** 다시 열 세션(앱이 꺼지기 전의 것) — 그 칸의 타이머가 열릴 때 한 번 쓰고, 닫히면 버린다 */
+  const [resumed, setResumed] = useState<SavedFocus | null>(null);
   useEffect(() => {
     if (!openRef.current) focusLive.endAll();
-  }, []);
+    // 적어 둔 세션: 끝난 것은 집중한 분을 한 번 더하고(resume), 다시 열 것이 있으면 그 모습으로 타이머를 연다.
+    // 그새 다른 집중이 열렸으면 열지 않고, 아직 더하지 않은 분만 남긴다(새 세션이 적어 둔 것을 덮는다)
+    boot ??= saved.resume(Date.now(), addFocusMinutes);
+    let alive = true;
+    boot.then((r) => {
+      if (!alive || bootTaken || !r) return;
+      bootTaken = true;
+      if (openRef.current) {
+        const owed = owedMinutes(leftOfMs(sessionLeftMs(r, Date.now())), r.credited, r.plannedMins);
+        if (owed > 0) addFocusMinutes(owed);
+        return;
+      }
+      // 도는 채로 되살리면 꺼지기 전에 걸어 둔 끝 알림은 거둔다(앱을 보고 있다)
+      if (r.endAt !== null) notifier.focusEnd(null).catch(() => {});
+      setResumed(r);
+      startFocus(r.ti, r.ai);
+    });
+    return () => {
+      alive = false;
+    };
+    // 처음 한 번만 — 두 함수는 앱이 도는 내내 같다
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!focus) setResumed(null);
+  }, [focus]);
   if (!focus) return null;
-  // 세션마다 새로 그려 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게)
-  return <FocusSession ti={focus.ti} ai={focus.ai} />;
+  // 세션마다 새로 그려 늘 25:00에서 시작한다(닫혀 있는 동안 시간이 흐르지 않게) — 되살린 세션만 적어 둔 모습에서
+  const from = resumed && resumed.ti === focus.ti && resumed.ai === focus.ai ? resumed : null;
+  return <FocusSession ti={focus.ti} ai={focus.ai} from={from} />;
 }
 
 function keepAwake(on: boolean) {
@@ -70,7 +109,7 @@ function keepAwake(on: boolean) {
   }
 }
 
-function FocusSession({ ti, ai }: { ti: number; ai: number }) {
+function FocusSession({ ti, ai, from }: { ti: number; ai: number; from: SavedFocus | null }) {
   const M = usePalette();
   const insets = useSafeAreaInsets();
   const { closeFocus } = useUIActions();
@@ -89,15 +128,23 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
   const msgRef = useRef(m);
   msgRef.current = m;
 
-  const [left, setLeft] = useState(FOCUS_TOTAL);
-  const [run, setRun] = useState(true);
+  // 처음 한 번 정한다 — 되살린 세션이면 적어 둔 모습(도는 중: 끝날 시각까지 남은 시간, 멈춘 중: 남은 ms, 끝났으면 0)과
+  // 그 세션의 아이디 · 이미 더한 분, 새 세션이면 25:00
+  const [init] = useState(() => {
+    const now = Date.now();
+    return from
+      ? { ms: sessionLeftMs(from, now), run: from.endAt !== null, base: { id: from.id, ti, ai, startedAt: from.startedAt, credited: from.credited } }
+      : { ms: FOCUS_TOTAL * 1000, run: true, base: { id: newFocusId(now), ti, ai, startedAt: now, credited: 0 } };
+  });
+  const [left, setLeft] = useState(() => leftOfMs(init.ms));
+  const [run, setRun] = useState(init.run);
   const finished = left <= 0;
   /** 끝나는 시각(ms) — 돌기 시작할 때·다시 이을 때 한 번 정한다(멈춘 동안은 쓰지 않는다) */
   const [endsAt, setEndsAt] = useState(0);
 
   // 벽시계: 도는 동안은 끝날 시각을, 멈춘 동안은 남은 ms를 들고 있는다
   const endAtRef = useRef(0);
-  const remainingMsRef = useRef(FOCUS_TOTAL * 1000);
+  const remainingMsRef = useRef(init.ms);
   const runRef = useRef(true);
   runRef.current = run && !finished;
 
@@ -179,22 +226,35 @@ function FocusSession({ ti, ai }: { ti: number; ai: number }) {
     }
   }, []);
 
+  // ── 적어 두기: 앱이 꺼져도 세션이 남게 ────────────────────────────────────────
+  // 돌기 시작 · 멈춤 · 다시 이음마다 지금 모습을 적는다(위의 시계 효과가 끝날 시각 · 남은 ms를 먼저 맞춘다).
+  // 다 채운 뒤에는 적어 둔 끝날 시각이 그대로 남아, 그 모습에서 꺼져도 다시 열면 '끝났어요'다. 닫기 · 언마운트에서 지운다.
+  useEffect(() => {
+    if (finished) return;
+    saved.save(focusRecord(init.base, { run, endAt: endAtRef.current, remainingMs: remainingMsRef.current }, Date.now()));
+  }, [run, finished, init]);
+  useEffect(() => () => {
+    saved.clear();
+  }, []);
+
   // ── 기록: 어떻게 나가든 집중한 분은 남긴다(한 번만) ──────────────────────────
   const recordedRef = useRef(false);
   const addRef = useRef(addFocusMinutes);
   addRef.current = addFocusMinutes;
   const record = useCallback(() => {
     if (recordedRef.current) return;
-    const m = minutesToRecord(elapsedOf(currentLeft()));
+    // 되살린 세션이 앱을 켤 때 이미 더한 분은 뺀다
+    const m = owedMinutes(currentLeft(), init.base.credited);
     // 0분은 기록할 것이 없다 — 표시도 하지 않아 개발 모드의 두 번 마운트가 기록을 막지 않게
     if (m <= 0) return;
     recordedRef.current = true;
     addRef.current(m);
-  }, [currentLeft]);
+  }, [currentLeft, init]);
   useEffect(() => () => record(), [record]);
 
   // ── 25분을 다 채웠을 때 ─────────────────────────────────────────────────────
-  const firedRef = useRef(false);
+  // 이미 끝난 세션을 되살렸으면(앱을 켜자마자) 다시 울리지 않는다
+  const firedRef = useRef(init.ms <= 0);
   useEffect(() => {
     if (!finished || firedRef.current) return;
     firedRef.current = true;
