@@ -81,6 +81,14 @@ export function choiceOpen(s: SyncStatus, answered: object | null): boolean {
   return s.phase === 'needsChoice' && choiceKey(s) !== answered;
 }
 
+/**
+ * 전체 초기화의 확인 글 — iCloud 동기화가 켜져 있으면 다른 기기도 이 초기화를 따르므로(새 판, syncLocal.epochReset)
+ * 그 한 문장(settings.resetAskSync)을 한 줄 띄워 덧붙인다. 꺼져 있으면 본문 그대로.
+ */
+export function resetAskText(synced: boolean, t: Messages): string {
+  return synced ? `${t.settings.resetAskBody}\n\n${t.settings.resetAskSync}` : t.settings.resetAskBody;
+}
+
 /** 온보딩의 '가져오기' 줄을 보일까 — iCloud가 쓸 수 있고 다른 기기 파일이 하나라도 있을 때만 */
 export function offerFor(probe: RemoteProbe | null | undefined): boolean {
   return !!probe && probe.available && probe.files > 0;

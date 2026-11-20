@@ -92,11 +92,12 @@ export default {
   sampleAskOk: '채우기',
   sampleDone: '예시로 채웠어요',
   resetRow: '전체 초기화',
-  resetRowSub: '모든 목표와 기록을 지워요',
-  resetAskTitle: '모든 기록을 지울까요?',
-  resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.',
+  /** 지우는 것은 지금 쓰는 표와 그 기록 — 지난 표 보관함 · 저장본 · 설정은 남는다(archive.resetDoc) */
+  resetRowSub: '지금 쓰는 표와 기록을 지워요',
+  resetAskTitle: '지금 쓰는 표와 기록을 지울까요?',
+  resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 지워져요. 지난 표 보관함과 저장본은 남아요. 지운 직후에는 되돌릴 수 있어요.',
   resetAskOk: '지우기',
-  resetDone: '모든 기록을 지웠어요',
+  resetDone: '지금 쓰는 표와 기록을 지웠어요',
 
   // ── 정보(판권면) ──
   secInfo: '정보',
@@ -117,4 +118,6 @@ export default {
   /** 문의 메일 제목 — version은 app.json의 버전 */
   mailSubject: ({ version }: { version: string }) => `만다라트 문의 ${version}`,
   openFail: '열 수 없어요',
+  /** 전체 초기화 확인 글에 덧붙이는 한 문장 — iCloud 동기화가 켜져 있을 때만(다른 기기도 이 초기화를 따른다) */
+  resetAskSync: 'iCloud 동기화를 켜 두어서, 같은 Apple 계정의 다른 기기에서도 지워져요.',
 } satisfies Namespace;

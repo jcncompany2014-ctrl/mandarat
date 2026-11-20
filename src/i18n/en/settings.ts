@@ -74,11 +74,11 @@ export default {
   sampleAskOk: 'Fill in',
   sampleDone: 'Filled in examples',
   resetRow: 'Reset everything',
-  resetRowSub: 'Erase all goals and records',
-  resetAskTitle: 'Erase all records?',
-  resetAskBody: 'Your core goal, all 64 action squares and your Done history will be erased. You can undo right after.',
+  resetRowSub: 'Erase your current chart and its records',
+  resetAskTitle: 'Erase your current chart and its records?',
+  resetAskBody: 'Your core goal, all 64 action squares and your Done history will be erased. Past charts in the Archive and saved copies stay. You can undo right after.',
   resetAskOk: 'Erase',
-  resetDone: 'All records erased',
+  resetDone: 'Current chart and records erased',
 
   secInfo: 'About',
   colName: 'Name',
@@ -95,4 +95,5 @@ export default {
   licLucide: 'Lucide icon shapes',
   mailSubject: ({ version }) => `Mandalart support ${version}`,
   openFail: 'Couldn’t open',
+  resetAskSync: 'iCloud sync is on, so they will also be erased on your other devices with the same Apple Account.',
 } satisfies Like<typeof ko>;

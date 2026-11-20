@@ -40,9 +40,7 @@ test('한국어 값 = 옮기기 전 글', () => {
     subRestart: '새로 시작', templateRow: '템플릿으로 새로 쓰기', templateAskTitle: '템플릿으로 바꿀까요?', templateAskOk: '바꾸기',
     sampleRow: '예시로 채우기', sampleRowSub: '8개 영역 · 64칸 실천 예시를 채워요', sampleAskTitle: '예시로 채울까요?',
     sampleAskBody: '지금 적어 둔 영역과 실천이 예시로 바뀌어요. 바꾼 직후에는 되돌릴 수 있어요.', sampleAskOk: '채우기',
-    sampleDone: '예시로 채웠어요', resetRow: '전체 초기화', resetRowSub: '모든 목표와 기록을 지워요',
-    resetAskTitle: '모든 기록을 지울까요?', resetAskBody: '핵심 목표, 실천 64칸, 했어요 기록이 모두 지워져요. 지운 직후에는 되돌릴 수 있어요.',
-    resetAskOk: '지우기', resetDone: '모든 기록을 지웠어요',
+    sampleDone: '예시로 채웠어요', resetRow: '전체 초기화', resetAskOk: '지우기',
     secInfo: '정보', colName: '이름', appName: '만다라트', colVersion: '버전', colFont: '서체', colPlace: '저장 위치',
     privacy: '개인정보 처리방침', contact: '문의하기', contactHint: '메일 앱이 열려요', licenses: '오픈소스 라이선스',
     licensesBody: '이 앱은 아래 오픈소스를 쓰고 있어요.', licLucide: 'Lucide 아이콘 도형', openFail: '열 수 없어요',
@@ -84,6 +82,49 @@ test('저장 위치 — 아이패드는 iPad, 맞추기가 켜지면 iCloud(백�
   assert.equal(msg('ko').settings.storagePlaceSync({ device: 'iPad' }), '이 iPad와 iCloud');
 });
 
+test('전체 초기화의 글 — 지우는 것은 지금 쓰는 표와 그 기록뿐, 지난 표 보관함과 저장본은 남는다고 적는다', () => {
+  // 글이 기대는 코드: resetDoc은 설정과 지난 표를 남기고, 초기화는 저장본 열쇠를 건드리지 않는다
+  const { resetDoc } = require('../src/lib/archive');
+  const { blankDoc } = require('../src/data/defaults');
+  const archives = [{ id: 'y20250101', from: '2025-01-01', to: '2025-12-31', centerGoal: '지난 목표', themes: blankDoc().themes, dayLog: {}, dayMeta: {}, focusMinutes: 0 }];
+  const before = { ...blankDoc(), onboarded: true, centerGoal: '마라톤', dayLog: { '2026-10-14': ['0-0'] }, dayMeta: { '2026-10-14': { reflection: '한 줄' } }, settings: { ...blankDoc().settings, paper: 'dots' }, archives };
+  const after = resetDoc(before);
+  assert.deepEqual([after.centerGoal, after.dayLog, after.dayMeta, after.onboarded], ['', {}, {}, false]);
+  assert.equal(after.settings, before.settings);
+  assert.equal(after.archives, archives);
+  const store = src('src/store/MandaratContext.tsx');
+  const resetAll = /const resetAll = useCallback\(([\s\S]*?)\n  \);/.exec(store)[1];
+  assert.match(resetAll, /update\(\(d\) => rolloverToday\(resetDoc\(d\), dateKey\(\)\), 'epoch'\);/);
+  assert.doesNotMatch(resetAll, /SNAP_PREFIX|multiRemove|removeItem\(/, '저장본은 지우지 않는다');
+
+  const ko = msg('ko').settings;
+  assert.equal(ko.resetRowSub, '지금 쓰는 표와 기록을 지워요');
+  assert.equal(ko.resetAskTitle, '지금 쓰는 표와 기록을 지울까요?');
+  assert.equal(ko.resetAskBody, '핵심 목표, 실천 64칸, 했어요 기록이 지워져요. 지난 표 보관함과 저장본은 남아요. 지운 직후에는 되돌릴 수 있어요.');
+  assert.equal(ko.resetDone, '지금 쓰는 표와 기록을 지웠어요');
+  const ja = msg('ja').settings;
+  assert.equal(ja.resetRowSub, '今使っている表と記録を消します');
+  assert.equal(ja.resetAskTitle, '今使っている表と記録を消しますか？');
+  assert.equal(ja.resetAskBody, '中心の目標、行動64マス、できた記録が消えます。「過去の表の保管庫」と「自動保存」は残ります。消した直後なら元に戻せます。');
+  assert.equal(ja.resetDone, '今使っている表と記録を消しました');
+  const en = msg('en').settings;
+  assert.equal(en.resetRowSub, 'Erase your current chart and its records');
+  assert.equal(en.resetAskTitle, 'Erase your current chart and its records?');
+  assert.equal(en.resetAskBody, 'Your core goal, all 64 action squares and your Done history will be erased. Past charts in the Archive and saved copies stay. You can undo right after.');
+  assert.equal(en.resetDone, 'Current chart and records erased');
+  for (const l of LANGS) {
+    const m = msg(l);
+    const s = m.settings;
+    // 남는 것은 앱이 보이는 이름 그대로 — 지난 표 보관함(year.shelf) · 저장본(settings.snapTitle)
+    assert.ok(s.resetAskBody.includes(m.year.shelf), `${l}: ${m.year.shelf}`);
+    assert.ok(s.resetAskBody.toLowerCase().includes(s.snapTitle.toLowerCase()), `${l}: ${s.snapTitle}`);
+    // '모두 · 모든 · すべて · all records'라고 하지 않는다 — 다 지우지 않으므로
+    for (const k of ['resetRowSub', 'resetAskTitle', 'resetAskBody', 'resetDone']) {
+      assert.doesNotMatch(s[k], /모든|모두|すべて|全部|\ball (goals|records)\b|everything/i, `${l}.${k}`);
+    }
+  }
+});
+
 test('저장본의 ja · en 이름은 sync.copyNote와 같다', () => {
   assert.equal(msg('ja').settings.snapTitle, '自動保存');
   assert.ok(msg('ja').sync.copyNote.includes('「自動保存」'));
@@ -121,7 +162,7 @@ test('설정 화면 · 줄 · appInfo에 한글 화면 글이 없고, 확인 대
   assert.doesNotMatch(s, /useSyncStatus/);
   assert.match(s, /<ColophonRow M=\{M\} label=\{st\.colPlace\} value=\{storage\.place\} \/>/);
   // 지우기 · 템플릿 · 저장본은 빨간(destructive) 단추, 예시 채우기는 보통 단추
-  assert.match(s, /ask\(st\.resetAskTitle, st\.resetAskBody, st\.resetAskOk, doReset, true\)/);
+  assert.match(s, /ask\(st\.resetAskTitle, resetAskText\(getSyncStatus\(\)\.enabled, m\), st\.resetAskOk, doReset, true\)/);
   assert.match(s, /ask\(st\.templateAskTitle, [^\n]*proceed, true\)/);
   assert.match(s, /ask\(st\.snapAskTitle, [^\n]*, true\)/);
   assert.match(s, /ask\(st\.sampleAskTitle, st\.sampleAskBody, st\.sampleAskOk, doSample\)/);
