@@ -32,6 +32,8 @@ export const PROBE_TIMEOUT_MS = 5000;
 
 export type SyncPhase = 'off' | 'checking' | 'needsChoice' | 'syncing' | 'idle' | 'problem';
 export type SyncProblem = 'noAccount' | 'driveOff' | 'accountChanged' | 'tooLarge' | 'ioError' | 'newerApp';
+/** 문제는 아니지만 알려 둘 것 — tooLarge: 복제본이 SIZE_WARN을 넘었다(맞추기는 그대로 된다, 오래 걸릴 수 있다) */
+export type SyncNote = 'tooLarge';
 /** 처음 켤 때(또는 오래 맞추지 않았을 때) 고르는 것 — 둘을 합쳐요 · iCloud 기록으로 바꿔요 · 이 기기 기록으로 이어 써요 */
 export type SyncChoice = 'merge' | 'adopt' | 'mine';
 /** 켜기 전 판단 — 올리기만 · 그대로 가져오기(이 기기가 비었다) · 묻기 */
@@ -45,6 +47,8 @@ export interface SyncStatus {
   at?: number;
   /** phase가 'problem'일 때의 까닭 */
   problem?: SyncProblem;
+  /** phase가 'idle'일 때 알려 둘 것 — 문제가 아니다(맞추기는 끝났다). 글은 같은 이름의 문제 글(sync.tooLarge)을 쓴다 */
+  note?: SyncNote;
   /** phase가 'needsChoice'일 때 iCloud에 있는 기록(다른 기기 것을 모두 합친 문서) — 고르기 화면의 비교용 */
   remote?: MandaratDoc;
 }
@@ -373,13 +377,14 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
 
   const enabled = () => !!port.meta()?.enabled;
 
-  function set(phase: SyncPhase, extra: { problem?: SyncProblem; remote?: MandaratDoc; at?: number } = {}) {
+  function set(phase: SyncPhase, extra: { problem?: SyncProblem; note?: SyncNote; remote?: MandaratDoc; at?: number } = {}) {
     const at = extra.at ?? status.at;
     const next: SyncStatus = {
       phase,
       enabled: enabled(),
       ...(at !== undefined ? { at } : {}),
       ...(extra.problem ? { problem: extra.problem } : {}),
+      ...(extra.note ? { note: extra.note } : {}),
       ...(extra.remote ? { remote: extra.remote } : {}),
     };
     const moved = next.phase !== status.phase || next.problem !== status.problem;
@@ -527,10 +532,10 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
     finish(pushed.large);
   }
 
+  /** 다 맞췄다 — 기록이 커도(SIZE_WARN) 문제가 아니다: 맞추기는 끝났고, 오래 걸릴 수 있다고 알려만 둔다(note) */
   function finish(large: boolean) {
     const at = io.now();
-    if (large) set('problem', { problem: 'tooLarge', at });
-    else set('idle', { at });
+    set('idle', large ? { at, note: 'tooLarge' } : { at });
   }
 
   /**

@@ -72,6 +72,23 @@ test('problem rows: the plan wording; sign-in and Drive open Settings, ioError c
   assert.equal(view.problemLine('tooLarge', t).action, undefined);
 });
 
+test('audit 8: a large record is a note on a finished sync — the status line still says when it synced, and the notice has no action', () => {
+  for (const l of LANGS) {
+    const t = msg(l);
+    // 엔진은 큰 기록을 문제(phase 'problem')로 알리지 않는다 — 다 맞춘 상태(idle)에 note로
+    const s = { phase: 'idle', enabled: true, at: NOW - 5000, note: 'tooLarge' };
+    assert.equal(view.statusLine(s, NOW, t), t.sync.justNow, `${l}: the row still reads as synced`);
+    assert.deepEqual(view.problemLine(s.note, t), { title: t.sync.tooLarge }, 'the same string key, no retry and no settings link');
+  }
+  const sec = src('src/screens/settings/SyncSection.tsx');
+  assert.match(sec, /s\.phase === 'problem' \? problemLine\(s\.problem, t\) : s\.phase === 'idle' && s\.note \? problemLine\(s\.note, t\) : null/);
+  const eng = src('src/lib/syncEngine.ts');
+  assert.doesNotMatch(eng, /problem: 'tooLarge'/, 'the engine never reports the size as a problem');
+  assert.match(eng, /set\('idle', large \? \{ at, note: 'tooLarge' \} : \{ at \}\);/);
+  // 온보딩의 가져오기는 phase 'problem'만 실패로 본다 — 큰 기록을 가져온 것은 실패가 아니다
+  assert.match(src('src/screens/Onboarding.tsx'), /if \(s\.phase === 'problem' \|\| !s\.enabled\) \{/);
+});
+
 test('the newerApp problem renders its catalog string', () => {
   for (const l of LANGS) {
     const t = msg(l);
