@@ -50,11 +50,11 @@ The core rows of `src/i18n/glossary.ts` are unchanged. The extra rows are the te
 | 핵심 목표 | 中心の目標 | core goal | Prompt: 決めてください / Set your core goal (home and chart now match) |
 | 했어요 | できた / できました | Done | Row label できた, sentence できました |
 | 했어요로 남기기 | 「できた」にする | Mark done | today and sheet now match |
-| 했어요 지우기 | 「できた」を消す | Clear Done | today and sheet now match |
+| 했어요 지우기 | 「できた」を消す | Mark not done | today and sheet match (was Clear Done) |
 | 달성 | 達成 | achieved | 달성 풀기: 達成を取り消す / Mark not achieved |
-| 담기 / 오늘 할 일에 담기 | 入れる / 今日やることに入れる | Add / Add to Today | |
+| 담기 / 오늘 할 일에 담기 | 追加 / 今日やることに追加 | Add / Add to Today | ja was 入れる. Things that appear on their own still 入ります |
 | 더하기 | 足す | log | |
-| 오늘 할 일 | 今日やること | Today's list | ja quotes it as 「今日やること」 when it names the list |
+| 오늘 할 일 | 今日やること | Today’s list | ja quotes it as 「今日やること」 when it names the list. ja counts its items with 件 (3件), never つ/個 |
 | 연속 | 連続 | streak | |
 | 한 주 돌아보기 | 週のふりかえり | Weekly review | |
 | 한 해 돌아보기 | 一年のふりかえり | The year in review | |
@@ -63,19 +63,26 @@ The core rows of `src/i18n/glossary.ts` are unchanged. The extra rows are the te
 | 새 표 | 新しい表 | new chart | |
 | 프로 | プロ | Pro | |
 | 알림 | 通知 | Reminders (section) · reminder | |
-| 맞추기 / 동기화 | 同期 | Sync | |
+| 동기화 | 同期 | Sync | ko was 맞추기. The first-sync choice says 합치다 (어떻게 합칠지) |
 | 고치기 | 編集 | Edit | ja 直す → 編集 in sheet edit row, discard prompt, iCloud merge note |
-| 마감 | 締め切り | due date · Due | |
+| 마감 | 締め切り | due date · Due | Under a 마감 heading the line gives only the date and what is left (10월 16일 금요일 · D-2) |
+| 하루 마감 | 締め | day closed · Closed at | Closing the day's list. ko always says 하루 마감, so it is not read as a due date |
 | 기록 | 記録 | records | |
 | 백업 | バックアップ | backup | 내보내기 書き出す / Export; 불러오기 読み込む / Import |
-| 저장본 | 保存コピー | saved copy | |
+| 저장본 | 自動保存 | saved copy | ja was 保存コピー. Rows read 10月14日の自動保存; restoring asks この日の状態に戻しますか？ |
 | 중점 | 重点 | focus (This week's focus) | |
 | 집중 | 集中 | Focus | |
 | 마음가짐 | 心がけ | Mindset | |
-| 매기다 (점수) | 評価する · 点数をつける | rate | Today's mind counter now says 評価しました like Stats |
+| 매기다 (점수) | 点数をつける | rate | ja no longer says 評価. Counters read 4件中1件に点数をつけました |
 | 쌓은 것 | 積み上げた分 | Added | ritual and stats now match |
-| 실천 유형: 한 번 · 습관 · 쌓기 · 마음가짐 | 単発 · 習慣 · 累計 · 心がけ | Once · Habit · Count · Mindset | Same names in the editor tabs, kind lines and print. Longer phrases stay in sentences (一度きりの行動, 7冊の積み上げ, a one-time action). |
+| 실천 유형: 한 번 · 습관 · 쌓기 · 마음가짐 | 単発 · 習慣 · 積み上げ · 心がけ | Once · Habit · Count · Mindset | Same names in the editor tabs, kind lines, print and the Stats section head (ja was 累計, ko Stats head was 숫자 목표). Longer phrases stay in sentences (一度きりの行動, 7冊の積み上げ, a one-time action). |
 | 칸 모서리: 둥글게 · 반듯하게 | マスの角: 丸い · 四角い | Square corners: Rounded · Sharp | |
+| 누르다 | タップ | tap | ja was 押す |
+| 최근 N주 · N일 | 直近N週間 · 直近N日間 | Last N weeks · days | |
+| 기록한 날 | 記録した日 | Active days | |
+| 버전 | バージョン | Version | ko was 판, ja 版 |
+| Apple 계정 | Apple Account | Apple Account | ja keeps Apple's own wording from the iOS Japanese UI (was Appleアカウント) |
+| 빈칸 · 붙여넣기 · 허용 | | | ko spellings: one word each; 허용 for the notification permission (was 허락) |
 
 ## 3. Fixes from the visual review
 
