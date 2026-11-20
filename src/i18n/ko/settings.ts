@@ -117,4 +117,6 @@ export default {
   /** 문의 메일 제목 — version은 app.json의 판 */
   mailSubject: ({ version }: { version: string }) => `만다라트 문의 ${version}`,
   openFail: '열 수 없어요',
+  /** 문의 메일 본문 — 이 기기에 남은 오류 기록(lib/crashLog)을 붙일 때 그 위에 적는 한 줄 */
+  mailLogHead: '아래는 이 기기에 남은 오류 기록이에요. 지우고 보내도 괜찮아요.',
 } satisfies Namespace;

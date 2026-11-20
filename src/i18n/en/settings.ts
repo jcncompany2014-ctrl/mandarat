@@ -95,4 +95,5 @@ export default {
   licLucide: 'Lucide icon shapes',
   mailSubject: ({ version }) => `Mandalart support ${version}`,
   openFail: "Couldn't open",
+  mailLogHead: 'Below is the error log kept on this device. You can delete it before sending.',
 } satisfies Like<typeof ko>;

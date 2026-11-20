@@ -95,4 +95,5 @@ export default {
   licLucide: 'Lucideのアイコン図形',
   mailSubject: ({ version }) => `マンダラートお問い合わせ ${version}`,
   openFail: '開けませんでした',
+  mailLogHead: 'この下は、この端末に残っているエラーの記録です。消してから送っても大丈夫です。',
 } satisfies Like<typeof ko>;
