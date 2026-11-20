@@ -1,0 +1,29 @@
+/* 시안 · 살아 있는 지도 — styles for map-parts.js. Tokens only; the layout rules are home.html's and
+   chart.html's own, copied so these screens sit on the same grid as the approved ones. */
+
+/* Home hero (home.html) */
+.hero-row { display: flex; gap: 24px; margin-top: 18px; }
+.hero-fields { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0; }
+.hero-field { display: flex; flex-direction: column; gap: 2px; }
+.sec { margin-top: 30px; }
+.hero-row + .sec { margin-top: 32px; }
+.sec .a-section { margin-bottom: 4px; }
+
+/* NEW: the second figure reads as two facts. 달성 n/64칸 stays the figure; the week is one quiet line
+   under it (.t-meta: 12pt, secondary ink), its number in ink like every figure the owner made. */
+.hero-week { font: 500 12px/16px var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; margin-top: -1px; }
+.hero-week b { font-weight: 700; color: var(--ink); }
+
+/* 만다라트 tab (chart.html) */
+.sheet { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+.sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+.sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.sheet #chart { margin: 12px 0 10px; }
+.next { margin-top: 26px; }
+.next .a-row { height: 60px; }
+.next .a-row-title { font-size: 17px; line-height: 24px; }
+.next .a-row-meta { line-height: 18px; }
+
+/* option B only: how much of the dye goes into the "kept this week" step (the pale tint is 14%) */
+:root { --week-mix: 32%; }
+@media (prefers-color-scheme: dark) { :root { --week-mix: 34%; } }

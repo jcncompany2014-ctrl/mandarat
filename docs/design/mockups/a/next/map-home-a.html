@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 살아 있는 지도 · 홈 · 안 A</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/map-parts.css">
+</head>
+<body>
+<!-- 안 A: 이번 주에 지킨 습관 칸(물, 걷기, 글쓰기, 통화)과 4점을 준 마음가짐 칸(감사 표현하기)이 달성 칸과 같은 색으로 칠해진다. 두 번째 숫자는 '달성 17/64칸' 아래 '이번 주 지킨 습관 4'. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/map-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = M.tick(M.veteran(doc), []);
+  M.home('#page', d, { mode: 'a' });
+});
+</script>
+</body>
+</html>
