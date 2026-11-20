@@ -10,11 +10,20 @@ export const APP_VERSION: string = appJson.expo.version;
 // 비어 있으면 설정의 링크는 숨는다
 export const PRIVACY_URL = 'https://mandarat-delta.vercel.app/privacy';
 
-// 문의 받을 메일 — 처리방침 페이지의 문의 줄도 이 값으로 만든다(scripts/privacy-page.js). 비어 있으면 설정의 '문의하기'는 숨는다
+// 도움말과 문의 — 처리방침과 같은 곳에 올린 페이지(public/support.html, docs/v2/support.md에서 만든다).
+// App Store의 지원 주소(Support URL)가 이 페이지다(App Review 1.5: 문의처가 있는 지원 페이지)
+export const SUPPORT_URL = 'https://mandarat-delta.vercel.app/support';
+
+// 문의 받을 메일 — 처리방침 · 도움말 페이지의 문의 줄도 이 값으로 만든다(scripts/privacy-page.js · support-page.js). 비어 있으면 설정의 '문의하기'는 숨는다
 export const SUPPORT_EMAIL = 'ian020529@gmail.com';
 
 /** 처리방침을 앱 언어로 연다 — 페이지가 ?lang=으로 그 언어 쪽만 보인다 */
 export function privacyLink(l: string, url = PRIVACY_URL): string {
+  return url ? `${url}?lang=${l}` : '';
+}
+
+/** 도움말과 문의 페이지를 그 언어로 — 처리방침과 같은 ?lang= */
+export function supportLink(l: string, url = SUPPORT_URL): string {
   return url ? `${url}?lang=${l}` : '';
 }
 
