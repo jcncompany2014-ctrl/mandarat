@@ -104,7 +104,8 @@ test('ChartPoster: 늘 LIGHT · G의 지도 칸 색(mapFill) · 마크 · 날짜
   assert.match(map, /bg: blank && c\.kind === 'action' \? P\.tile : mapFill\(c, P, level\)/);
   assert.match(map, /const P: MapTokens = tokens \?\? palette;/);
   assert.match(s, /<Mark variant="heart" size=\{k\.mark\} tokens=\{T\} \/>/);
-  assert.match(s, /m\.print\.posterEyebrow\(\{ y: now\.getFullYear\(\) \}\)/);
+  // 머리의 해는 지금 표의 해(archive.chartYear) — 12월 15일부터 시작한 표는 다음 해
+  assert.match(s, /m\.print\.posterEyebrow\(\{ y: chartYear\(doc, now\) \}\)/);
   assert.match(s, /posterDate\(now, l\)/);
   assert.doesNotMatch(s, /today|signal/);
   assert.match(s, /maxFontSizeMultiplier: 1, allowFontScaling: false/);

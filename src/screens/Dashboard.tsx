@@ -20,7 +20,7 @@ import { ritualTarget, weekPriority } from '../lib/ritual';
 import { homeSummary, todaySummary } from '../lib/a11y';
 import { yearClosePrompt } from '../lib/archive';
 import { useMsg } from '../i18n/react';
-import { HOME, areaLine, daysLeftInYear, headerMeta, heroMapCell, homeEyebrow, homeGate, homeList } from '../lib/home';
+import { HOME, areaLine, heroLeft, heroMapCell, homeEyebrow, homeGate, homeList } from '../lib/home';
 import { fmtDateLong, fmtRange } from '../lib/text';
 import { showGridAt } from './gridMemory';
 import { tap } from '../lib/haptics';
@@ -84,6 +84,8 @@ export const Dashboard = memo(function Dashboard() {
   const cell = heroMapCell(measure);
   const stacked = fontScale >= HOME.stackScale;
   const goal = doc.centerGoal.trim();
+  // 남은 날 — 지금 표의 해가 끝날 때까지(12월 15일부터 시작한 표는 다음 해 끝까지)
+  const left = heroLeft(doc, now);
 
   return (
     <View>
@@ -112,8 +114,9 @@ export const Dashboard = memo(function Dashboard() {
             today={`${todayDone}/${todayTotal}`}
             todaySay={todaySummary(doc, now)}
             done={done}
-            left={daysLeftInYear(now)}
-            leftSay={headerMeta(now).left}
+            left={left.n}
+            leftLabel={left.label}
+            leftSay={left.say}
             minHeight={stacked ? undefined : l1Width(cell)}
             stacked={stacked}
           />
@@ -240,8 +243,8 @@ function HeroField({ M, label, figure, unit, say }: { M: M; label: string; figur
 }
 
 /** 히어로 숫자 칸 셋 — 지도 높이(minHeight)에 고르게(space-between). 더 큰 텍스트에서는 지도 위에 한 줄로(넘치면 접는다) */
-const HeroFields = memo(function HeroFields({ M, today, todaySay, done, left, leftSay, minHeight, stacked }: {
-  M: M; today: string; todaySay: string; done: number; left: number; leftSay: string; minHeight?: number; stacked: boolean;
+const HeroFields = memo(function HeroFields({ M, today, todaySay, done, left, leftLabel, leftSay, minHeight, stacked }: {
+  M: M; today: string; todaySay: string; done: number; left: number; leftLabel: string; leftSay: string; minHeight?: number; stacked: boolean;
 }) {
   const m = useMsg();
   return (
@@ -252,7 +255,7 @@ const HeroFields = memo(function HeroFields({ M, today, todaySay, done, left, le
     >
       <HeroField M={M} label={m.home.heroToday} figure={today} say={todaySay} />
       <HeroField M={M} label={m.home.heroDone} figure={`${done}/64`} unit={m.home.unitCells} say={m.home.sumDone({ n: done })} />
-      <HeroField M={M} label={m.home.heroLeft} figure={`${left}`} unit={m.home.unitDays({ n: left })} say={leftSay} />
+      <HeroField M={M} label={leftLabel} figure={`${left}`} unit={m.home.unitDays({ n: left })} say={leftSay} />
     </View>
   );
 });

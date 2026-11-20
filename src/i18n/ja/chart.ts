@@ -75,4 +75,5 @@ export default {
   markTodaySay: ({ total, done }) => `、今日やること${tsu(total)}のうち${tsu(done)}できました`,
   sketchSay: ({ goal, areas }) => `マンダラートの表。中央のマスは${goal}、分野は${areas}`,
   sketchEmpty: '空欄',
+  pickedAs: ({ label, today }) => `${label}として書きました${today ? '・「今日」に表示されます' : ''}`,
 } satisfies Like<typeof ko>;

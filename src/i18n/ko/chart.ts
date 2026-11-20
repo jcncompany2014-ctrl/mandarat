@@ -105,4 +105,9 @@ export default {
   markTodaySay: ({ total, done }: { total: number; done: number }) => `, 오늘 할 일 ${total}개 중 ${done}개 했어요`,
   sketchSay: ({ goal, areas }: { goal: string; areas: string }) => `만다라트 표, 가운데 칸 ${goal}, 영역 ${areas}`,
   sketchEmpty: '비어 있음',
+  /**
+   * 권하는 글을 눌러 칸에 적은 뒤의 확인 한 줄 — '주 3회 습관으로 담았어요 · ‘오늘’에 보여요'.
+   * label은 kinds.suggest*의 이름('매일 습관' · '12권 쌓기' · '마음가짐'), today는 그 칸이 지금 오늘 할 일에 담겼는지
+   */
+  pickedAs: ({ label, today }: { label: string; today: boolean }) => `${josa(label, '으로/로')} 담았어요${today ? ' · ‘오늘’에 보여요' : ''}`,
 } satisfies Namespace;

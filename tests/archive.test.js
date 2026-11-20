@@ -336,10 +336,12 @@ test('yearClosePrompt: 12월 15일 ~ 1월 31일, 12월 1일 전부터 쓴 표, �
   assert.equal(yearClosePrompt(lastYear, at(2026, 12, 20)), true);
 });
 
-test('yearLabel: 한 해면 fmt.year, 해를 넘기면 fmt.yearSpan', () => {
+test('yearLabel: 한 해면 fmt.year, 두 해를 모두 한 해의 몫만큼 쓴 표만 fmt.yearSpan', () => {
   assert.equal(yearLabel('2026-01-05', '2026-12-20', 'ko'), '2026년');
-  assert.equal(yearLabel('2026-03-01', '2027-01-10', 'ko'), '2026년 – 2027년');
-  assert.equal(yearLabel('2026-03-01', '2027-01-10', 'ja'), '2026年〜2027年');
+  // 1월에 닫은 표는 그해 이름 하나 — 다음 해의 며칠로 두 해 이름을 얻지 않는다(tests/yearEdge.test.js)
+  assert.equal(yearLabel('2026-03-01', '2027-01-10', 'ko'), '2026년');
+  assert.equal(yearLabel('2026-03-01', '2027-03-10', 'ko'), '2026년 – 2027년');
+  assert.equal(yearLabel('2026-03-01', '2027-03-10', 'ja'), '2026年〜2027年');
   assert.equal(yearLabel('2026-03-01', '2026-04-10', 'en'), '2026');
 });
 

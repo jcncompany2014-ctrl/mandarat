@@ -29,11 +29,13 @@ const blockTestID = (b: number | 'c') => TID.gridBlock(b);
  * availH: 펼침(V5-A)에서 이 쪽이 스크롤 없이 보여 줄 수 있는 높이 — 지도가 그 안에 들어가게 줄인다. 폰 · 한 단은 없다.
  */
 export const FullGrid = memo(function FullGrid({
-  M, themes, goal, todayKeys, start, focus, availH, onOpen, folioRef,
+  M, themes, goal, year, todayKeys, start, focus, availH, onOpen, folioRef,
 }: {
   M: M;
   themes: readonly Theme[];
   goal: string;
+  /** 지금 표의 해(archive.chartYear) — 위 줄 '2026 만다라트' */
+  year: number;
   /** 오늘 할 일 'ti-ai' — 블록 단추의 화면 읽기 '오늘 n칸' */
   todayKeys?: ReadonlySet<string>;
   /** 처음 화면(쓴 칸 8칸 전) */
@@ -69,11 +71,11 @@ export const FullGrid = memo(function FullGrid({
       <View
         ref={folioRef}
         accessible
-        accessibilityLabel={`${m.chart.formName({ y: new Date().getFullYear() })}${m.chart.sep}${start ? m.chart.writtenOf64Say({ n }) : m.chart.doneOf64Say({ done: n })}`}
+        accessibilityLabel={`${m.chart.formName({ y: year })}${m.chart.sep}${start ? m.chart.writtenOf64Say({ n }) : m.chart.doneOf64Say({ done: n })}`}
         {...a11yLangProp()}
         style={{ minHeight: SHEET.line, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: SHEET.figureGap }}
       >
-        <Text style={[ROLE.label, { color: M.print, flexShrink: 1 }]} numberOfLines={1}>{m.chart.formName({ y: new Date().getFullYear() })}</Text>
+        <Text style={[ROLE.label, { color: M.print, flexShrink: 1 }]} numberOfLines={1}>{m.chart.formName({ y: year })}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SHEET.figureGap }}>
           <Text style={[ROLE.label, { color: M.print }]} numberOfLines={1}>{start ? m.chart.writtenFolio : m.chart.done}</Text>
           {/* 처음은 '쓴 칸 0/64'(칸이 앞에 있다), 그 뒤는 '달성 24/64칸' */}

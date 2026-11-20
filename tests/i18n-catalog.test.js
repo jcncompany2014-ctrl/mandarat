@@ -85,8 +85,8 @@ test('fmt.ko는 지금 앱의 표기와 글자 하나까지 같다 — 800일 ·
     const mon = R.weekDates(d)[0];
     assert.equal(f.range({ from: mon, to: new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6) }), T.fmtRange(mon));
     const meta = headerMeta(d);
-    const { isoWeek, daysLeftInYear } = require('../src/lib/home');
-    const w = isoWeek(d);
+    const { calendarWeek, daysLeftInYear } = require('../src/lib/home');
+    const w = calendarWeek(d);
     assert.equal(f.weekNo({ y: w.year, w: w.week }), meta.week);
     assert.equal(f.daysLeftYear({ n: daysLeftInYear(d) }), meta.left);
     assert.equal(f.dowNarrow({ i: d.getDay() }), R.DOW_KR[d.getDay()]);

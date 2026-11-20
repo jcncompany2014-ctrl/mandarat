@@ -19,7 +19,7 @@ import { tap } from '../lib/haptics';
 import { kindOf, ymd } from '../lib/routine';
 import { cleanNum, countInfo, countPace, countText, countWeekAdded, dateText, kindLine, ratingHistory, ratingOf } from '../lib/kinds';
 import { fmtDateLong, fmtDateShort, fmtDateSpeech, noOrphan } from '../lib/text';
-import { chartRange, yearLabel } from '../lib/archive';
+import { chartRange, chartRangeLabel, yearLabel } from '../lib/archive';
 import { headerMeta } from '../lib/home';
 import { TID } from '../lib/testIds';
 import { useLang, useMsg } from '../i18n/react';
@@ -115,8 +115,9 @@ export const Stats = memo(function Stats() {
       // 소리로는 '10월 3일 토요일부터' — '10.3 (토)'는 소수로 읽힌다
       return { text: m.stats.since({ date: fmtDateShort(map.since, l) }), say: m.stats.since({ date: fmtDateLong(map.since, l) }) };
     }
+    // 지금 쓰는 표의 기간 — 오늘 시작한 표는 '12월 29일부터'
     const { from, to } = chartRange(doc, now);
-    return { text: m.fmt.range({ from: dayOf(from), to: dayOf(to) }) };
+    return { text: chartRangeLabel(from, to, true, l) };
   }, [scope, review, map, doc, day, m, l]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 아래 구역(memo)에 늘 같은 함수를 준다 — 범위를 바꾸거나 시계가 돌 때 구역이 다시 그려지지 않게

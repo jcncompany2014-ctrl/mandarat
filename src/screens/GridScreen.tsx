@@ -10,6 +10,8 @@ import { FullGrid } from './FullGrid';
 import { gridMemory, stepArea, swipeStep, type GridFocus } from './gridMemory';
 import { nextStep } from '../lib/nextStep';
 import { exampleGroup, suggestActions } from '../lib/suggest';
+import { pickedConfig } from '../lib/kindSuggest';
+import { chartYear } from '../lib/archive';
 import { GUIDE_FILL_TARGET, firstAreaWithEmpty } from '../lib/pick';
 import { areaTitle } from '../lib/areaPage';
 import { todayItems } from '../lib/routine';
@@ -229,8 +231,8 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
   const M = usePalette();
   const m = useMsg();
   const { doc, clock } = useDoc();
-  const { setActionText } = useActions();
-  const { openEditor, openShare } = useUIActions();
+  const { getDoc, setActionText, setActionConfig } = useActions();
+  const { openEditor, openShare, showToast } = useUIActions();
   // 편집 창이 열려 있으면 그 칸에 먹 테두리(시트 뒤 지도) — 값이 같으면 같은 배열
   const { editor } = useUIState();
   const editKey = editor ? JSON.stringify(editor) : '';
@@ -361,8 +363,12 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
     const { ti, ai } = startRef.current;
     if (ti < 0 || ai < 0) return;
     tap();
+    // 글만 적으면 모든 칸이 '한 번'으로 남는다 — 편집 창이 저장할 때와 같은 규칙으로 유형 · 일정도 함께 정하고 한 줄로 알린다
+    const picked = pickedConfig(getDoc(), ti, ai, text, new Date());
     setActionText(ti, ai, text);
-  }, [setActionText]);
+    if (picked.cfg) setActionConfig(ti, ai, picked.cfg);
+    if (picked.line) showToast(picked.line);
+  }, [getDoc, setActionText, setActionConfig, showToast]);
   const onWrite = useCallback(() => {
     const { ti, ai } = startRef.current;
     if (ti < 0 || ai < 0) return;
@@ -408,6 +414,7 @@ export function GridScreen({ availH, onFocusArea }: { availH?: number; onFocusAr
         M={M}
         themes={doc.themes}
         goal={doc.centerGoal}
+        year={chartYear(doc, new Date())}
         todayKeys={todayKeys}
         start={start}
         focus={editCell ?? startCell}

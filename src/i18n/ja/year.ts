@@ -82,4 +82,5 @@ export default {
 
   folio: ({ label }) => `${label} 一年のふりかえり`,
   sheetFolio: ({ label }) => `${label} 過去の表`,
+  rangeFrom: ({ date }) => `${date}から`,
 } satisfies Like<typeof ko>;

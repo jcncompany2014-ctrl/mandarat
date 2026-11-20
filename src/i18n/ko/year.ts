@@ -117,4 +117,6 @@ export default {
   folio: ({ label }: { label: string }) => `${label} 한 해 돌아보기`,
   /** 지난 표 한 장 위 한 줄 — '2025년 지난 표' */
   sheetFolio: ({ label }: { label: string }) => `${label} 지난 표`,
+  /** 오늘 시작한 표의 기간 — '12월 29일부터'(date: fmt.monthDay). 하루뿐인 기간을 '12월 29일 – 29일'로 적지 않는다 */
+  rangeFrom: ({ date }: { date: string }) => `${date}부터`,
 } satisfies Namespace;

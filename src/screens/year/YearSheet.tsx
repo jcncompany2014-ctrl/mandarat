@@ -17,7 +17,7 @@ import type { M } from '../../theme/usePalette';
 import { useUIActions } from '../../navigation/ui';
 import { useDoc } from '../../store/MandaratContext';
 import { usePro } from '../../store/ProContext';
-import { archiveAccess, yearLabel } from '../../lib/archive';
+import { archiveAccess, chartRangeLabel, yearLabel } from '../../lib/archive';
 import { posterDone } from '../../lib/poster';
 import { TID } from '../../lib/testIds';
 import { tap } from '../../lib/haptics';
@@ -25,7 +25,7 @@ import { useMsg } from '../../i18n/react';
 import type { Messages } from '../../i18n';
 import type { YearView } from '../../lib/contracts';
 import type { ArchivedChart } from '../../types';
-import { YearShelf, dayOf, recordDays } from './YearShelf';
+import { YearShelf, recordDays } from './YearShelf';
 
 const GUTTER = GEO.gutter;
 const SECTION_GAP = GEO.sectionGap;
@@ -53,7 +53,7 @@ function SheetPage({ M, archive: a, onOpen }: { M: M; archive: ArchivedChart; on
   const toggle = useCallback((ti: number) => setArea((cur) => (cur === ti ? null : ti)), []);
 
   const label = yearLabel(a.from, a.to);
-  const range = m.fmt.range({ from: dayOf(a.from), to: dayOf(a.to) });
+  const range = chartRangeLabel(a.from, a.to, false);
   const done = posterDone(a);
 
   return (
@@ -155,7 +155,7 @@ function LockedSheet({ M, archive: a }: { M: M; archive: ArchivedChart }) {
   const m = useMsg();
   const { openPro } = useUIActions();
   const label = yearLabel(a.from, a.to);
-  const range = m.fmt.range({ from: dayOf(a.from), to: dayOf(a.to) });
+  const range = chartRangeLabel(a.from, a.to, false);
   const goal = a.centerGoal.trim();
   return (
     <View testID={TID.yearSheet} style={{ paddingHorizontal: GUTTER, marginTop: 18 }}>

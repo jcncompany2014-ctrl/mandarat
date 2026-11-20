@@ -17,7 +17,7 @@ import { PRETENDARD } from '../../theme/fonts';
 import type { M } from '../../theme/usePalette';
 import { useUIActions } from '../../navigation/ui';
 import { dateKey } from '../../store/MandaratContext';
-import { archiveAsDoc, chartRange, yearLabel } from '../../lib/archive';
+import { archiveAsDoc, chartRange, chartRangeLabel, yearLabel } from '../../lib/archive';
 import { fillFrames, yearCalendar, yearDigest } from '../../lib/yearReview';
 import { figureSize, frameCell } from './statFit';
 import { MapThumb } from './MapThumb';
@@ -97,7 +97,7 @@ function ReviewPage({ M, doc, archive }: { M: M; doc: MandaratDoc; archive: Arch
   const frames = useMemo(() => fillFrames(view, from, to, FRAMES), [view, from, to]);
   const wear = useMemo(() => wearActivity(digest.cellDays, spanDays(from, to)), [digest, from, to]);
 
-  const range = m.fmt.range({ from: dayOf(from), to: dayOf(to) });
+  const range = chartRangeLabel(from, to, !archive);
   const stacked = fontScale >= STACK_SCALE || contentW < ROW_MIN_W;
   // 지도는 본문 폭(아이패드는 520까지), 온 픽셀 자리에 가운데
   const mapW = Math.min(contentW, MAP_MAX);
@@ -342,7 +342,7 @@ function LockedLine({ M, archive }: { M: M; archive: ArchivedChart }) {
   const m = useMsg();
   const { openPro } = useUIActions();
   const label = yearLabel(archive.from, archive.to);
-  const range = m.fmt.range({ from: dayOf(archive.from), to: dayOf(archive.to) });
+  const range = chartRangeLabel(archive.from, archive.to, false);
   const goal = archive.centerGoal.trim();
   return (
     <View style={{ paddingHorizontal: GUTTER, marginTop: 18 }}>
