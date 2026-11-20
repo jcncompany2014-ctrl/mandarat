@@ -8,7 +8,9 @@
 > Fill in before publishing:
 > - `<SUPPORT_EMAIL>`: the same address as `SUPPORT_EMAIL` in `src/lib/appInfo.ts`.
 > - `<OPERATOR>`: the person or company that publishes the app. This is the App Store seller name.
-> - `<EFFECTIVE_DATE>`: the date the app goes on sale.
+> - `<EFFECTIVE_DATE>`: the date this text takes effect, `EFFECTIVE` in `scripts/privacy-page.js`. Section 11 promises a new date with every change, so set it to the day of the change whenever the three sections below are edited (`tests/privacyPage.test.js` pins the date).
+>
+> Menu and control names are the ones the app shows in that language (`src/i18n/<lang>/settings.ts`, `sync.ts`, `year.ts`); the test checks the ones in sections 2 and 9.
 >
 > Each statement below is backed by the code. The table at the end lists the sources, so a reviewer can check them. If the code changes, update this file.
 
@@ -24,7 +26,7 @@
 목표, 칸, 체크, 메모, 한 줄 기록, 설정과 날마다 만드는 저장본은 모두 이 기기 안에 저장돼요. 이 기록은 우리에게 보내지 않아요. iPhone이나 iPad의 iCloud 백업을 켜 두었다면, 이 기록도 Apple이 관리하는 기기 백업에 함께 들어가요.
 
 **2. iCloud 동기화는 켤 때만, 내 iCloud에만**
-설정 › iCloud에서 동기화를 켜면, 같은 Apple 계정을 쓰는 내 iPhone과 iPad끼리 기록을 맞춰요.
+설정 › iCloud와 백업에서 ‘iCloud 동기화’를 켜면, 같은 Apple 계정을 쓰는 내 iPhone과 iPad끼리 기록을 동기화해요.
 - 기록은 **내 iCloud 계정 안의 이 앱 전용 공간**에만 저장해요. 우리는 그 공간을 볼 수 없어요.
 - 데이터는 Apple의 iCloud가 보관하고 옮겨요. 우리 서버를 거치지 않아요.
 - 동기화는 처음에 꺼져 있어요. 끄면 기기의 기록은 그대로 남아요.
@@ -48,7 +50,7 @@
 표 이미지를 사진 앱에 저장할 때만 '사진에 추가' 권한을 물어요. 사진을 읽지는 않아요.
 
 **9. 기록 지우기**
-설정 › 전체 초기화로 기기의 기록을 지울 수 있어요. 앱을 삭제하면 기기 안의 기록도 함께 지워져요. iCloud에 맞춰 둔 기록은 iPhone 설정 › Apple 계정 › iCloud › 저장 공간 관리에서 지울 수 있어요.
+설정 › 새로 시작 › 전체 초기화로 지금 쓰는 표와 그 기록을 지울 수 있어요. 지난 표 보관함의 표와 날마다 만드는 저장본은 이때 지워지지 않아요. 앱을 삭제하면 이것을 포함해 기기 안의 기록이 모두 지워져요. iCloud에 동기화한 기록은 iPhone 설정 › Apple 계정 › iCloud › 저장 공간 관리에서 지울 수 있어요.
 
 **10. 어린이**
 이 앱은 어린이를 대상으로 하지 않으며, 어린이의 정보를 따로 모으지 않아요.
@@ -67,10 +69,10 @@
 マンダラート(以下「本アプリ」)には、アカウントやログインがありません。運営者のサーバーもありません。本アプリがどのデータをどこに置くかを、すべて以下に記します。
 
 **1. 記録は端末に保存されます**
-目標、マス、チェック、メモ、ひとこと、設定、毎日の保存版は、すべてこの端末の中に保存されます。運営者に送られることはありません。iPhone/iPadのiCloudバックアップをオンにしている場合は、Appleが管理する端末バックアップにも含まれます。
+目標、マス、チェック、メモ、ひとこと、設定、毎日の自動保存は、すべてこの端末の中に保存されます。運営者に送られることはありません。iPhone/iPadのiCloudバックアップをオンにしている場合は、Appleが管理する端末バックアップにも含まれます。
 
 **2. iCloud同期はオンにしたときだけ、ご自身のiCloudに**
-設定 › iCloudで同期をオンにすると、同じAppleアカウントのiPhoneとiPadの間で記録をそろえます。
+設定 › iCloudとバックアップで「iCloudで端末どうしを同期」をオンにすると、同じApple AccountのiPhoneとiPadの間で記録を同期します。
 - 記録は**ご自身のiCloudアカウント内の、本アプリ専用の領域**にだけ保存されます。運営者はその内容を見られません。
 - データの保管と転送はAppleのiCloudが行い、運営者のサーバーは経由しません。
 - 同期は初期状態でオフです。オフにしても端末の記録はそのまま残ります。
@@ -94,7 +96,7 @@
 表の画像を「写真」に保存するときにだけ「写真への追加」の許可を求めます。写真を読み取ることはありません。
 
 **9. 記録の削除**
-設定 › すべてリセットで端末の記録を削除できます。アプリを削除すると、端末内の記録も削除されます。iCloudに同期した記録は、iPhoneの設定 › Appleアカウント › iCloud › ストレージを管理から削除できます。
+設定 › 新しく始める › すべてリセットで、今使っている表とその記録を削除できます。「過去の表の保管庫」の表と毎日の自動保存は、このとき削除されません。アプリを削除すると、これらも含めて端末内の記録がすべて削除されます。iCloudに同期した記録は、iPhoneの設定 › Apple Account › iCloud › ストレージを管理から削除できます。
 
 **10. 子ども**
 本アプリは子どもを対象としておらず、子どもの情報を特に集めることはありません。
@@ -116,7 +118,7 @@ Mandalart ("the app") has no accounts and no login. We do not run a server for i
 Your goal, cells, check-offs, notes, daily lines, settings and the daily saved copies are all stored on this device. They are never sent to us. If iCloud Backup is on for your iPhone or iPad, they are included in that device backup, which Apple manages.
 
 **2. iCloud sync: only when you turn it on, only in your iCloud**
-If you turn on sync in Settings › iCloud, your iPhone and iPad on the same Apple Account keep the same records.
+If you turn on “Sync devices with iCloud” in Settings › iCloud and backup, your iPhone and iPad on the same Apple Account keep the same records.
 - The records are stored only in **this app's private space inside your own iCloud account**. We cannot see that space.
 - Apple's iCloud stores and moves the data. It never passes through a server of ours.
 - Sync is off by default. Turning it off leaves the records on your device unchanged.
@@ -140,7 +142,7 @@ There is no advertising, no analytics SDK and no tracking, including tracking ac
 The app asks for add-only Photos access, and only when you save a chart image. It never reads your photos.
 
 **9. Deleting your records**
-Settings › Reset everything deletes the records on the device. Deleting the app also deletes them. Records synced to iCloud can be deleted on iPhone in Settings › Apple Account › iCloud › Manage Storage.
+Settings › Start over › Reset everything deletes the chart you are using and its records. Past charts in the Archive and the daily saved copies are not deleted by it. Deleting the app deletes every record on the device, those included. Records synced to iCloud can be deleted on iPhone in Settings › Apple Account › iCloud › Manage Storage.
 
 **10. Children**
 The app is not directed at children and does not knowingly collect children's information.
@@ -156,13 +158,14 @@ If this policy changes, the new version is posted on this page with a new effect
 
 | Statement | Source in the repo |
 |---|---|
-| Local storage: the doc, daily copies, and per-device preferences | AsyncStorage keys `mandarat:doc:v1`, `mandarat:doc:v1:corrupt:<ms>` (a copy of an unreadable doc, kept for recovery), `mandarat:snap:YYYY-MM-DD` (7 days), `mandarat:lang:v1`, `mandarat:pro:v1`, `mandarat:notify:v1`, `mandarat:crash:v1`, `mandarat:print:v1`, `mandarat.editorDraft.v1`. They are included in iCloud device backup (`RCTAsyncStorageExcludeFromBackup: false`). |
-| iCloud: the user's own container, no server, off by default | `modules/icloud-sync`: container `iCloud.com.jcncompany.mandarat`, one file per device at `Sync/v1/<device>.jsonz` in the hidden Data scope, not visible in Files. Sync is opt-in in Settings › iCloud (V5-E). No iCloud call is made while sync is off, except the onboarding "가져오기" probe (V4-A). The device key is a random UUID excluded from backup; the account check uses a 16-hex hash of `ubiquityIdentityToken` that stays on the device. |
+| Local storage: the doc, daily copies, and per-device preferences | AsyncStorage keys `mandarat:doc:v1`, `mandarat:doc:v1:corrupt:<ms>` (a copy of an unreadable doc, kept for recovery), `mandarat:snap:YYYY-MM-DD` (the 7 most recent days with a save), `mandarat:lang:v1`, `mandarat:pro:v1`, `mandarat:notify:v1`, `mandarat:crash:v1`, `mandarat:print:v1`, `mandarat.editorDraft.v1`. They are included in iCloud device backup (`RCTAsyncStorageExcludeFromBackup: false`). |
+| iCloud: the user's own container, no server, off by default | `modules/icloud-sync`: container `iCloud.com.jcncompany.mandarat`, one file per device at `Sync/v1/<device>.jsonz` in the hidden Data scope, not visible in Files. Sync is opt-in: the `sync.toggle` row under Settings › iCloud와 백업 (`settings.secCloud`, V5-E). No iCloud call is made while sync is off, except the onboarding "가져오기" probe (V4-A). The device key is a random UUID excluded from backup; the account check uses a 16-hex hash of `ubiquityIdentityToken` that stays on the device. |
 | No crash-reporting SDK | 1.0 ships without Sentry (owner decision, 2026-11): `@sentry/react-native` is not a dependency, `app.json` has no Sentry plugin, and `src/lib/crash.ts` is a no-op on every platform. Crash reports, if any, come only from Apple's opt-in "Share With App Developers", which Apple collects and does not need to be declared. To bring Sentry back, restore the V4-F files (`crash.native.ts`, `CrashRow.tsx`, `crashPrefs.ts`) and the Sentry wording of this policy from git history. |
 | No purchases in 1.0 | `STORE_OPEN = false` in `src/lib/pro.ts` (owner decision, 2026-11): every Pro feature is open, `ProContext` never calls StoreKit, and the Settings › 프로 section and Pro sheet never show. `modules/pro-store` is still compiled but unused. When sales open, restore the Apple-handles-payment wording here and in section 4. |
 | Local notifications only | `src/lib/notifier.native.ts`: `expo-notifications` local schedule, at most 60 pending, ids `mandarat.*`. Permission is asked only from a user gesture (tests). There is no push server; `aps-environment` is present only because the plugins write it. |
 | Widget, Siri, App Group | `group.com.jcncompany.mandarat`, key `__expo_widgets_TodayWidget_timeline`: an 8-entry timeline holding today's items. `native/ios/TodayStore.swift` reads it and appends ops there. Nothing leaves the device. |
 | No tracking | No analytics, ad or crash-reporting SDK in `package.json`. The privacy manifest has `NSPrivacyTracking: false` and no collected data types. The widget extension has its own manifest with no collected data (`plugins/withWidgetStrings.js`). |
 | Photos are add-only | `NSPhotoLibraryAddUsageDescription` only. |
+| Deleting records: what the reset deletes and what stays | The row is `settings.resetRow` under `settings.subRestart`. `resetDoc` in `src/lib/archive.ts` returns a blank doc that keeps `settings` and `archives` (the charts under `year.shelf`); `resetAll` in `src/store/MandaratContext.tsx` does not touch the `mandarat:snap:*` keys. Everything in the first row lives in the app's own storage and the App Group, which iOS removes with the app. The iCloud container is removed by the user in iOS Settings (the path is Apple's, not checked by a test). |
 
 **App Store Connect › App Privacy answer that matches this policy:** **Data Not Collected** (데이터를 수집하지 않음). The app has no server, analytics, ads or crash-reporting SDK; records stay on the device, in the user's own iCloud and in their device backup, which are not "collected" in Apple's sense. 1.0 has no purchases. If Sentry is added back, the answer becomes Diagnostics › Crash Data, Performance Data and Other Diagnostic Data (not linked, not tracking, App Functionality).
