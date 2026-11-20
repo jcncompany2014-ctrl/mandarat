@@ -14,6 +14,7 @@ const {
   ROW, rowInset, strikeTop, strikeBox, segmentCells, SEG, FIELD, DAYS, AREA, FILTER, SWATCH, DYE, lookPages,
 } = require('../src/components/kit/metrics');
 const { LIGHT, DARK, GEO } = require('../src/theme/tokens');
+const { contrast } = require('../src/theme/palette');
 const { msg, LANGS } = require('../src/i18n');
 
 const ROOT = path.join(__dirname, '..');
@@ -180,6 +181,33 @@ test('자리 수치는 계획(패키지 K) 그대로', () => {
   // 글자 모양은 모두 ROLE(theme/type.ts, a-tokens가 표를 본다) — 부품 상자가 따로 지은 글자 모양(예전 KIT_TYPE)은 없다
   assert.equal(require('../src/components/kit/metrics').KIT_TYPE, undefined);
   for (const rel of kitFiles()) assert.doesNotMatch(src(rel), /KIT_TYPE|fontSize:\s*\d|PRETENDARD\[/, rel);
+});
+
+test('영역 고르기: 고른 낱칸 — 밝게는 tint 칠 + dyeText 이름(목업 그대로), 어둡게는 먹 이름 + 영역 색 테두리', () => {
+  const s = src(`${KIT}/AreaPicker.tsx`);
+  assert.match(s, /backgroundColor: on \? M\.tint\[i\] \?\? M\.tile : M\.tile/);
+  // 어둡게의 dyeText(4.6:1)는 안 고른 이름의 먹(14:1)보다 흐리다 — 고른 것이 더 가라앉아 보이지 않게 먹 700
+  assert.match(s, /color: on && !M\.dark \? M\.dyeText\[i\] \?\? M\.ink : M\.ink/);
+  assert.match(s, /borderWidth: EDGE, borderColor: on && M\.dark \? M\.dye\[i\] \?\? 'transparent' : 'transparent'/);
+  // 테두리만큼 안쪽 여백을 줄여 낱칸 · 글자 자리는 그대로(밝게는 보이지 않는 테두리)
+  assert.match(s, /const EDGE = 1\.5;/);
+  assert.match(s, /paddingHorizontal: AREA\.padX - EDGE/);
+  assert.ok(AREA.padX - 1.5 >= 0);
+  // 고른 낱칸의 칠은 두 벌 모두 안 고른 낱칸(tile)에서 눈에 띄게 떨어지고, 이름은 그 위에서 AA
+  for (const T of [LIGHT, DARK]) {
+    for (let i = 0; i < 8; i++) {
+      assert.notEqual(T.tint[i], T.tile);
+      assert.ok(contrast(T.dark ? T.ink : T.dyeText[i], T.tint[i]) >= 4.6 - 0.005, `${T.dark ? 'dark' : 'light'} ${i}`);
+    }
+  }
+});
+
+test('입력 칸: 자리 글 · 글자 수는 print — 칸(tile) 위에서 두 벌 모두 AA(밝게 4.41이던 것)', () => {
+  const s = src(`${KIT}/Field.tsx`);
+  assert.match(s, /backgroundColor: M\.tile/);
+  assert.match(s, /placeholderTextColor=\{M\.print\}/);
+  assert.match(s, /<Text style=\{\[ROLE\.label, \{ color: M\.print \}\]\}/);
+  for (const T of [LIGHT, DARK]) assert.ok(contrast(T.print, T.tile) >= 4.5, `${T.dark ? 'dark' : 'light'} ${contrast(T.print, T.tile).toFixed(2)}`);
 });
 
 test('견본 쪽: 어느 모드에서 보든 밝게는 흰 쪽, 어둡게는 먹 쪽, 자동은 두 쪽', () => {
