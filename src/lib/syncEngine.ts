@@ -15,7 +15,7 @@ import { seedTitles } from '../data/defaults';
 import { LANGS } from '../i18n';
 import { unionArchives } from './archive';
 import type { SyncPort } from './syncEnvelope';
-import { decodeReplica, devOfName, encodeReplica, replicaDigest, replicaName, SIZE_WARN } from './syncFile';
+import { decodeReplica, devOfName, encodeForPush, replicaDigest, replicaName, SIZE_WARN } from './syncFile';
 import { gc, isStale, SYNC_TTL_MS } from './syncLocal';
 import { isNewer, mergeAll, topStamp, type NewerReplica, type Replica } from './syncMerge';
 import { rekey } from './syncMeta';
@@ -214,21 +214,38 @@ export function applyMine(port: SyncPort, remote: Replica | null, wall: number):
 export interface PushResult {
   /** 올렸는가(같은 내용이면 false) */
   wrote: boolean;
-  /** 올린 글이 SIZE_WARN을 넘었다 */
+  /** 지금 복제본의 글이 SIZE_WARN을 넘는다(올리지 않았어도) */
   large: boolean;
 }
 
 /**
+ * 마지막으로 지문을 잰 복제본 — 엔진이 도는 동안만 기억한다(저장하지 않는다).
+ * 문서 · 시계 · 몫은 고쳐 쓰지 않는 값이라, 같은 객체이고 판 · 기기가 같으면 내용도 같다: 그때는 큰 JSON을 만들지도,
+ * 글자마다 해시를 돌리지도 않는다(앱을 열고 닫을 때 · 고친 뒤 5초마다 3~5년 기록을 통째로 세지 않게).
+ */
+export interface PushMemo {
+  last?: Pick<Replica, 'dev' | 'epoch' | 'clock' | 'parts' | 'doc'> & { digest: string; large: boolean };
+}
+
+function sameReplica(a: Pick<Replica, 'dev' | 'epoch' | 'clock' | 'parts' | 'doc'>, b: Replica): boolean {
+  return a.doc === b.doc && a.clock === b.clock && a.parts === b.parts && a.epoch === b.epoch && a.dev === b.dev;
+}
+
+/**
  * 지금 복제본을 올린다 — 문서와 메타는 부른 순간의 짝. 지난번에 올린 것과 같으면(지문) 쓰지 않는다.
+ * memo가 지난번에 잰 복제본 그대로라고 알려 주면 지문도 다시 재지 않는다. 재야 할 때는 올릴 글을 한 번만 만들어 그 글로 잰다.
  * 지문은 쓰기가 끝난 뒤에 남긴다(앱이 그 사이 꺼지면 다음에 다시 올린다). 그 사이 rekey했으면 남기지 않는다.
  */
-export async function push(port: SyncPort, io: SyncIO): Promise<PushResult> {
+export async function push(port: SyncPort, io: SyncIO, memo: PushMemo = {}): Promise<PushResult> {
   const rep = port.replica();
   const meta = port.meta();
   if (!rep || !meta) return { wrote: false, large: false };
-  const digest = replicaDigest(rep);
-  if (digest === meta.pushed) return { wrote: false, large: false };
-  const json = encodeReplica({ ...rep, at: io.now() });
+  const known = memo.last && sameReplica(memo.last, rep) ? memo.last : null;
+  if (known && known.digest === meta.pushed) return { wrote: false, large: known.large };
+  const { json, digest } = encodeForPush({ ...rep, at: io.now() });
+  const large = json.length > SIZE_WARN;
+  memo.last = { dev: rep.dev, epoch: rep.epoch, clock: rep.clock, parts: rep.parts, doc: rep.doc, digest, large };
+  if (digest === meta.pushed) return { wrote: false, large };
   // 쓰는 동안은 '올리는 중' — 지문(pushed)은 끝난 뒤에야 남으니, 그 사이의 초기화 되돌리기가 이미 떠난 새 판을 거두지 않게(R-1 F2)
   port.writing?.(1);
   try {
@@ -239,7 +256,7 @@ export async function push(port: SyncPort, io: SyncIO): Promise<PushResult> {
     port.writing?.(-1);
   }
   port.updateMeta((m) => (m.dev === rep.dev ? { ...m, pushed: digest } : m));
-  return { wrote: true, large: json.length > SIZE_WARN };
+  return { wrote: true, large };
 }
 
 /** JS 줄을 한 번 비운다 — 쌓인 누르기 · 그리기가 먼저 돈다 */
@@ -247,7 +264,8 @@ export function yieldToApp(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-export type PullResult = { kind: 'newer' } | { kind: 'ok'; changed: boolean; files: ICloudFile[] };
+/** joined: 받은 복제본이 있어 합쳤다(문서가 바뀌지 않았어도) — 엔진이 그 뒤 올리기 전에 한 번 쉰다 */
+export type PullResult = { kind: 'newer' } | { kind: 'ok'; changed: boolean; joined: boolean; files: ICloudFile[] };
 
 /**
  * 받기 — 바뀐 다른 기기 파일을 읽어 풀고, 하나라도 더 새 앱의 것이면 멈춘다(아무것도 넣지 않고 seen도 그대로).
@@ -278,17 +296,20 @@ export async function pull(port: SyncPort, io: SyncIO): Promise<PullResult> {
     seen: { ...m.seen, ...r.seen },
     pulledAt: wall,
   }));
-  return { kind: 'ok', changed, files: r.files };
+  return { kind: 'ok', changed, joined: !!merged, files: r.files };
 }
 
 /**
  * 오래된 기기 파일 치우기 — 다른 기기의 파일 중 TTL보다 오래 바뀌지 않았고, 그 내용을 이미 합쳤고(seen이 같다),
  * 이 기기 파일에 그 뒤 상태를 올려 둔(pushed가 지금 지문) 것만 지운다. 지운 파일은 seen에서도 뺀다.
+ * 지금 지문은 방금 올리며 잰 것(memo)이 그 복제본 그대로면 그것을 쓴다 — 다시 재지 않는다.
  */
-export async function removeStale(port: SyncPort, io: SyncIO, files: readonly ICloudFile[]): Promise<string[]> {
+export async function removeStale(port: SyncPort, io: SyncIO, files: readonly ICloudFile[], memo: PushMemo = {}): Promise<string[]> {
   const meta = port.meta();
   const rep = port.replica();
-  if (!meta || !rep || meta.pushed !== replicaDigest(rep)) return [];
+  if (!meta || !rep) return [];
+  const digest = memo.last && sameReplica(memo.last, rep) ? memo.last.digest : replicaDigest(rep);
+  if (meta.pushed !== digest) return [];
   const cutoff = io.now() - SYNC_TTL_MS;
   const gone: string[] = [];
   for (const f of files) {
@@ -366,6 +387,8 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
   };
   let chain: Promise<void> = Promise.resolve();
   let pushChain: Promise<unknown> = Promise.resolve();
+  /** 지난번에 지문을 잰 복제본 — 그대로면 올리기가 아무것도 세지 않는다 */
+  const pushMemo: PushMemo = {};
   const queued = new Set<string>();
   let watchingQ = false;
   let gathered = false;
@@ -419,7 +442,7 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
 
   /** 올리기도 한 줄 — 뒤로 갈 때는 받기를 기다리지 않고 곧바로 이 줄에 선다 */
   function pushQueued(): Promise<PushResult> {
-    const run = pushChain.then(() => push(port, io));
+    const run = pushChain.then(() => push(port, io, pushMemo));
     pushChain = run.catch(() => undefined);
     return run;
   }
@@ -522,12 +545,15 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
         return;
       }
       files = p.files;
+      // 합치기와 올리기(올릴 글 만들기 · 지문) 사이에 한 번 쉰다 — 받은 것을 합친 뒤 그 사이의 누르기가 먼저 돈다.
+      // 올리기는 그 뒤에도 부른 순간의 문서와 메타를 짝으로 읽는다(push)
+      if (p.joined) await yieldToApp();
     }
     const pushed = await pushQueued();
     if (full) {
       const day = port.meta()?.gcDay;
       port.updateMeta((m, d) => gc(m, io.now(), d));
-      if (port.meta()?.gcDay !== day) await removeStale(port, io, files);
+      if (port.meta()?.gcDay !== day) await removeStale(port, io, files, pushMemo);
     }
     finish(pushed.large);
   }
@@ -592,6 +618,7 @@ export function createSyncEngine(deps: EngineDeps): SyncEngine {
     }));
     block = null;
     verified = true;
+    if (merged) await yieldToApp();
     const pushed = await pushQueued();
     finish(pushed.large);
   }

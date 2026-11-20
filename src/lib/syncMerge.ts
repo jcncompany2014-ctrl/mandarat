@@ -49,9 +49,41 @@ export function topStamp(R: Pick<Replica, 'epoch' | 'clock'>): Stamp {
   return top;
 }
 
-/** 합친 복제본의 시계·몫·판을 이 기기 메타에 — 나머지(dev·last·seen…)는 그대로 */
+/**
+ * 합친 복제본의 시계·몫·판을 이 기기 메타에 — 나머지(dev·last·seen…)는 그대로.
+ * 합쳐도 그대로인 시계 · 몫은 이 기기의 객체를 그대로 둔다(모두 그대로면 meta 그대로): 다른 기기가 내 것을 받아 다시 올린
+ * 파일은 받아도 바뀌는 것이 없고, 엔진은 '지난번에 올린 그대로'를 객체로 알아보아 복제본을 다시 세지 않는다(syncEngine PushMemo).
+ */
 export function adoptMerged(meta: SyncMeta, merged: Pick<Replica, 'epoch' | 'clock' | 'parts'>): SyncMeta {
-  return { ...meta, epoch: merged.epoch, clock: { ...merged.clock }, parts: clonePartsOf(merged.parts) };
+  const clock = sameClock(meta.clock, merged.clock) ? meta.clock : { ...merged.clock };
+  const parts = sameParts(meta.parts, merged.parts) ? meta.parts : clonePartsOf(merged.parts);
+  if (clock === meta.clock && parts === meta.parts && merged.epoch === meta.epoch) return meta;
+  return { ...meta, epoch: merged.epoch, clock, parts };
+}
+
+/** 두 시계가 같은가 — 같은 경로들에 같은 도장 */
+function sameClock(a: Readonly<Record<string, Stamp>>, b: Readonly<Record<string, Stamp>>): boolean {
+  if (a === b) return true;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  for (let i = 0; i < keys.length; i++) if (!own(b, keys[i]) || b[keys[i]] !== a[keys[i]]) return false;
+  return true;
+}
+
+/** 두 몫이 같은가 — 같은 경로 · 같은 기기에 같은 [더한 합, 뺀 합] */
+function sameParts(a: Readonly<Parts>, b: Readonly<Parts>): boolean {
+  if (a === b) return true;
+  const paths = Object.keys(a);
+  if (paths.length !== Object.keys(b).length) return false;
+  for (const p of paths) {
+    if (!own(b, p)) return false;
+    const da = a[p];
+    const db = b[p];
+    const devs = Object.keys(da);
+    if (devs.length !== Object.keys(db).length) return false;
+    for (const d of devs) if (!own(db, d) || db[d][0] !== da[d][0] || db[d][1] !== da[d][1]) return false;
+  }
+  return true;
 }
 
 function clonePartsOf(parts: Readonly<Parts>): Parts {

@@ -343,6 +343,9 @@ test('gc drops only element stamps older than the TTL whose value is gone, at mo
   assert.equal(g.gcDay, ymd(new Date(T0)));
   assert.equal(gc(g, T0 + 1000, recent), g, 'once a day');
   assert.notEqual(gc(g, T0 + DAY, recent), g);
+  // 치운 것이 없는 날은 시계가 같은 객체다 — 엔진이 '지난번에 올린 그대로'를 객체로 알아본다(다시 세지 않는다)
+  assert.equal(gc(g, T0 + DAY, recent).clock, g.clock);
+  assert.notEqual(g.clock, meta.clock);
   assert.deepEqual(g.parts, meta.parts);
   assert.equal(SYNC_TTL_DAYS, 180);
 });

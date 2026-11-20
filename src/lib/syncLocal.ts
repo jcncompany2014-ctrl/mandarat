@@ -294,12 +294,17 @@ export function gc(meta: SyncMeta, wall: number, doc: MandaratDoc): SyncMeta {
   const cutoff = wall - SYNC_TTL_MS;
   const present = project(doc);
   const clock: Record<string, Stamp> = {};
+  let dropped = false;
   for (const p of Object.keys(meta.clock)) {
     const s = meta.clock[p];
-    if (isElementPath(p) && !present.has(p) && msOf(s) < cutoff) continue;
+    if (isElementPath(p) && !present.has(p) && msOf(s) < cutoff) {
+      dropped = true;
+      continue;
+    }
     clock[p] = s;
   }
-  return { ...meta, clock, gcDay: day };
+  // 치운 것이 없으면 시계는 같은 객체 — 엔진이 '지난번에 올린 그대로'를 객체로 알아본다(syncEngine PushMemo)
+  return { ...meta, clock: dropped ? clock : meta.clock, gcDay: day };
 }
 
 /** 마지막으로 받아 합친 지 TTL이 넘었나 — 넘었으면 그동안 치운 지운 표시를 모르니 묻고 합친다(V4-A) */

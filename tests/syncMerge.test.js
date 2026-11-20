@@ -18,7 +18,7 @@ const { cleanSyncMeta } = require('../src/lib/syncMeta');
 const { observe, isStamp } = require('../src/lib/syncStamp');
 const { merge, mergeAll, joinStates, stateOf, materialize, replicaOf, adoptMerged, isNewer, topStamp } = require('../src/lib/syncMerge');
 const { stampLocal, epochReset, changedPaths } = require('../src/lib/syncLocal');
-const { encodeReplica, decodeReplica, replicaName, devOfName, replicaDigest, SIZE_WARN } = require('../src/lib/syncFile');
+const { encodeReplica, encodeForPush, decodeReplica, replicaName, devOfName, replicaDigest, SIZE_WARN } = require('../src/lib/syncFile');
 const { BACKUP_SCHEMA } = require('../src/lib/backup');
 
 const DEVS = ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb', 'cccccccccccccccc', 'dddddddddddddddd'];
@@ -700,6 +700,9 @@ test('replica files round-trip, carry the schema, and are named per device', () 
     assert.equal(dg, replicaDigest({ dev: d.dev, epoch: d.meta.epoch, clock: { ...d.meta.clock }, parts: d.meta.parts, doc: JSON.parse(JSON.stringify(d.doc)) }));
     assert.notEqual(dg, replicaDigest({ dev: d.dev, epoch: d.meta.epoch, clock: d.meta.clock, parts: d.meta.parts, doc: { ...d.doc, centerGoal: d.doc.centerGoal + '!' } }));
     assert.match(dg, /^[0-9a-f]{16}$/);
+    // 올릴 글과 지문을 한 번에(encodeForPush) — 따로 만든 것과 글자 하나까지 같다
+    const input = { dev: d.dev, at: 1700000000000 + i, epoch: d.meta.epoch, clock: d.meta.clock, parts: d.meta.parts, doc: d.doc };
+    assert.deepEqual(encodeForPush(input), { json, digest: dg });
   }
   assert.equal(replicaName(DEVS[0]), `Sync/v1/${DEVS[0]}.jsonz`);
   assert.equal(devOfName(replicaName(DEVS[1])), DEVS[1]);
