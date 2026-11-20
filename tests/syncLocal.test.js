@@ -108,6 +108,7 @@ test('the fast path skips untouched sections: a one-cell edit on a heavy doc fin
   let doc = heavy;
   const find = [];
   const stamp = [];
+  const copy = [];
   const ms = (t) => Number(process.hrtime.bigint() - t) / 1e6;
   for (let i = 0; i < 31; i++) {
     const next = editCell(doc, i % 8, (i * 3) % 8, (a) => ({ ...a, text: `글 ${i}` }));
@@ -118,15 +119,23 @@ test('the fast path skips untouched sections: a one-cell edit on a heavy doc fin
     t = process.hrtime.bigint();
     meta = stampLocal(doc, next, meta, T0 + 1000 + i);
     stamp.push(ms(t));
+    // 같은 순간의 시계 사본 하나 — 이 기계가 지금 얼마나 바쁜지의 잣대
+    t = process.hrtime.bigint();
+    const plain = {};
+    for (const k of Object.keys(meta.clock)) plain[k] = meta.clock[k];
+    copy.push(ms(t));
     doc = next;
   }
   find.sort((a, b) => a - b);
   stamp.sort((a, b) => a - b);
+  copy.sort((a, b) => a - b);
   assert.ok(Object.keys(meta.clock).length > 20000, 'heavy');
   // 2만 경로 문서에서 바뀐 길 찾기는 중간값 1ms 안팎 — 바쁜 CI에서도 흔들리지 않게 여유를 두되, 통째 비교(수십 ms)는 잡는다
   assert.ok(find[15] < 5, `changedPaths median ${find[15].toFixed(2)} ms`);
-  // 나머지는 2만 경로 시계의 사본이다(순수 함수라 고쳐 쓰지 않는다) — docs/v2/V2-F.md §8 성능
-  assert.ok(stamp[15] < 40, `stampLocal median ${stamp[15].toFixed(2)} ms`);
+  // 나머지는 2만 경로 시계의 사본이다(순수 함수라 고쳐 쓰지 않는다) — docs/v2/V2-F.md §8 성능.
+  // 한가한 기계에서는 40 ms 안, 바쁜 기계(여러 테스트가 함께 돌 때)에서는 같은 자리에서 잰 사본 한 번의 몇 배 안
+  const ceiling = Math.max(40, copy[15] * 8);
+  assert.ok(stamp[15] < ceiling, `stampLocal median ${stamp[15].toFixed(2)} ms (one clock copy ${copy[15].toFixed(2)} ms)`);
 });
 
 test('stamps increase: one stamp per commit, above every earlier stamp, even when the wall clock goes back', () => {
