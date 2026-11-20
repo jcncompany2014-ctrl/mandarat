@@ -126,6 +126,8 @@ export function widgetProps(doc: WidgetDoc, date: Date, { pat, lang }: WidgetTim
 
 /**
  * 위젯 타임라인 — now 한 칸 + 다음 자정 WIDGET_DAYS - 1번, 그리고 닫는 칸 하나. date는 ms 숫자(가까운 것부터).
+ * 첫 칸에는 first를 싣는다: WidgetKit은 위젯 고르기 화면의 미리 보기로 늘 첫 칸을 그리므로(expo-widgets getSnapshot),
+ * 앱을 연 지 며칠 지난 날에 위젯을 고르는 사람에게 한 줄이 아니라 목록의 모습이 보이게 위젯이 그 칸은 날짜로 견주지 않는다.
  * 닫는 칸은 마지막 날이 끝나는 자정부터 보인다: 목록 없이 expired만 실어, 위젯이 그 순간부터 앱을 열어 달라는 한 줄을 그린다.
  * WidgetKit은 칸을 미리 그려 두고 타임라인이 끝나야 다시 읽으므로, 이 칸이 없으면 다시 그려질 때까지 어제의 목록이 그대로 보인다.
  * day는 마지막 날 그대로 둔다 — 위젯도 Siri(TodayStore.current)도 오늘의 칸으로 읽지 않게.
@@ -134,7 +136,8 @@ export function widgetTimeline(doc: WidgetDoc, now: Date, opts: WidgetTimelineOp
   const out: { date: number; props: TodayWidgetProps }[] = [];
   for (let i = 0; i < WIDGET_DAYS; i++) {
     const at = i === 0 ? now : new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-    out.push({ date: at.getTime(), props: plistSafe(widgetProps(doc, at, opts)) });
+    const props = widgetProps(doc, at, opts);
+    out.push({ date: at.getTime(), props: plistSafe(i === 0 ? { ...props, first: true } : props) });
   }
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + WIDGET_DAYS);
   const closing: TodayWidgetProps = { ...out[out.length - 1].props, done: 0, total: 0, items: [], more: 0, expired: true };

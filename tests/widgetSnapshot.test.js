@@ -47,6 +47,9 @@ test('30칸 — 지금, 그다음은 자정마다(날짜가 늘어난다). 그 �
     { expired: true, day: '2026-11-12', items: [], done: 0, total: 0, more: 0 });
   for (const k of ['goal', 'cells', 'names', 'lines', 'pal', 'pat', 'url', 'v']) assert.deepEqual(closing.props[k], t[29].props[k], k);
   for (const e of t.slice(0, 30)) assert.ok(!('expired' in e.props), `${e.props.day}: 그날의 칸에는 expired가 없다`);
+  // 첫 칸에만 first — 위젯 고르기 화면의 미리 보기로 쓰이는 칸(위젯이 날짜로 견주지 않는다)
+  assert.equal(t[0].props.first, true);
+  for (const e of t.slice(1)) assert.ok(!('first' in e.props), `${e.props.day}: first는 첫 칸에만`);
   assert.equal(t[1].props.date, msg('ko').fmt.monthDayDow({ d: new Date(2026, 9, 15) }));
   assert.equal(t[0].props.date, '10월 14일 수');
   // 월말을 넘어도

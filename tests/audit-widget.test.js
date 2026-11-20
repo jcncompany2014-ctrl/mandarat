@@ -152,11 +152,22 @@ test('위젯 1: 제때 보이는 칸과 미리 그려 두는 앞날의 칸은 �
     assert.equal(s.timeline[s.shown(now)].props.day, '2026-11-27');
     assert.ok(buttons(s.render(now)).length > 0);
   }
+  // 위젯 고르기 화면의 미리 보기는 늘 첫 칸이다(expo-widgets getSnapshot → entries.first) — 앱을 연 지 나흘 뒤에 위젯을 골라도
+  // 한 줄이 아니라 목록의 모습을 보인다. 그 칸을 누르는 것은(시계 · 시간대가 바뀌어 첫 칸이 다른 날에 보일 때) 받지 않는다
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'node_modules/expo-widgets/ios/Widgets/TimelineProvider.swift'), 'utf8'), /getSnapshot\([\s\S]*?completion\(entries\.first \?\?/);
+  const later = new Date(2026, 10, 25, 15);
+  assert.equal(s.timeline[0].props.first, true);
+  for (const family of FAMILIES) {
+    const preview = rt.render(s.timeline[0].props, s.env(0, family), later);
+    assert.ok(!texts(preview).includes(msg('en').widget.stale), `${family}: 미리 보기`);
+  }
+  assert.ok(texts(rt.render(s.timeline[0].props, s.env(0, 'systemMedium'), later)).includes('Stretch'));
+  assert.equal(rt.press(s.timeline[0].props, s.env(0, 'systemMedium'), 'check:0-1', later), undefined);
   // 날이 없는 props({} — 위젯 갤러리 · 온보딩 전)는 견줄 것이 없다
   assert.deepEqual(texts(rt.render({}, { widgetFamily: 'systemMedium' }, new Date(2030, 0, 1))).filter((t) => /undefined/.test(t)), []);
   // 모습은 지금을 new Date()로 읽는다 — env.date로 견주면 칸의 날과 늘 같아 지난 칸을 알 수 없다
   const layout = src('src/widgets/TodayWidget.ios.tsx');
-  assert.match(layout, /const now = new Date\(\);\s*const upcoming = !!e\.date && typeof e\.date\.getTime === 'function' && e\.date\.getTime\(\) > now\.getTime\(\);\s*const stale = !!p\.expired \|\| \(day !== '' && !upcoming && day !== localDay\(now\)\);/);
+  assert.match(layout, /const now = new Date\(\);\s*const upcoming = !!e\.date && typeof e\.date\.getTime === 'function' && e\.date\.getTime\(\) > now\.getTime\(\);\s*const stale = !!p\.expired \|\| \(!p\.first && day !== '' && !upcoming && day !== localDay\(now\)\);/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'node_modules/expo-widgets/ios/Widgets/EntryView.swift'), 'utf8'), /env\["timestamp"\] = Int\(entry\.date\.timeIntervalSince1970 \* 1000\)/);
 });
 

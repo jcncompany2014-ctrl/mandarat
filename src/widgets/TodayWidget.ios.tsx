@@ -69,6 +69,8 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   // WidgetKit은 앞날의 칸을 미리 그려 두므로, 아직 오지 않은 칸(칸의 시각 > 지금)은 견주지 않는다.
   // 그래서 마지막 날이 끝나는 자정에는 앱이 써 둔 닫는 칸(p.expired — widgetSnapshot widgetTimeline)이 한 줄을 보인다:
   // 미리 그려 둔 그 칸이 제때 나타나고, 날짜를 견주는 것은 그 밖의 경우(다시 그려질 때 · 누를 때 · 시계가 바뀌었을 때)를 맡는다.
+  // 첫 칸(p.first)은 그릴 때 견주지 않는다 — 위젯 고르기 화면의 미리 보기가 늘 첫 칸이라(expo-widgets getSnapshot), 앱을 연 지
+  // 며칠 지난 날에도 거기에는 목록의 모습이 보여야 한다. 누를 때는 첫 칸도 날짜를 본다(아래 press).
   /** 이 기기 시간대의 날짜 'YYYY-MM-DD' — 앱의 ymd()(src/lib/routine.ts)와 같은 꼴 */
   function localDay(d: Date) {
     const m = d.getMonth() + 1;
@@ -77,7 +79,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   }
   const now = new Date();
   const upcoming = !!e.date && typeof e.date.getTime === 'function' && e.date.getTime() > now.getTime();
-  const stale = !!p.expired || (day !== '' && !upcoming && day !== localDay(now));
+  const stale = !!p.expired || (!p.first && day !== '' && !upcoming && day !== localDay(now));
 
   /** '{n}' · '{t}' 틀 채우기 */
   function fill(tpl: string | undefined, n: number, t: string) {

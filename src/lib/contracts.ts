@@ -55,6 +55,8 @@ export interface TodayWidgetProps {
   ops: WidgetOp[]; url: string;
   /** only on the closing entry (dated the midnight after the last day): no list, the layout draws lines.stale. `day` stays the last day */
   expired?: boolean;
+  /** only on the first entry: WidgetKit also draws it as the widget-gallery preview on any later day, so the layout does not judge it by date (presses still are) */
+  first?: boolean;
 }
 export interface FocusActivityLines { left: string; paused: string; done: string; focus: string; running: string /* '25분 집중' */; leftShort: string /* '남음' */ }
 /** the Live Activity's tokens — dye is this session's area dye */
