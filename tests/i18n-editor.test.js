@@ -107,7 +107,7 @@ test('편집 시트 글(디자인 A) — 머리 둘째 줄 · 점검 한 줄 · 
   assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: false }), '‘얼마나’도 적으면 실천하기 쉬워요');
   assert.equal(ko.coachNote({ noWhat: true, noHow: false, noWhen: false }), '‘무엇을’도 적으면 실천하기 쉬워요');
   assert.equal(ko.coachNote({ noWhat: false, noHow: true, noWhen: true }), '‘얼마나’ · ‘언제·어디서’도 적으면 실천하기 쉬워요');
-  assert.equal(ja.coachNote({ noWhat: false, noHow: true, noWhen: true }), '「どれだけ」「いつ・どこで」を書くと、行動に移しやすくなります');
+  assert.equal(ja.coachNote({ noWhat: false, noHow: true, noWhen: true }), '「どれだけ」「いつ・どこで」も書くと、行動に移しやすくなります');
   assert.equal(en.coachNote(all), 'Saying what, how much and when or where makes it easier to do');
   assert.equal(en.coachNote({ noWhat: false, noHow: true, noWhen: false }), 'Saying how much makes it easier to do');
   for (const l of I.LANGS) assert.equal(I.msg(l).editor.coachNote({ noWhat: false, noHow: false, noWhen: false }), '', l);

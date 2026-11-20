@@ -64,7 +64,7 @@ test('ja · en: 날짜 · 요일 · 횟수를 그 언어로, 분수(5/7)로 읽�
   assert.equal(sv.streakSpeech(4, false, 'ja'), '連続4日、今日はまだ');
   assert.deepEqual(sv.recordParts(12, 3, 1, 'en'), { lead: 'Best 12 days', best: false, month: '1 square achieved this month' });
   assert.equal(sv.weekDelta(1, 3, 'en'), '−2 vs. this time last week');
-  assert.equal(sv.weekDelta(5, 3, 'ja'), '先週の同じころより+2回');
+  assert.equal(sv.weekDelta(5, 3, 'ja'), '先週の今ごろより+2回');
   assert.equal(sv.bestLine({ date: '2026-10-14', count: 1, thisWeek: true }, 'en'), 'Busiest day Wed, Oct 14 · 1 time · this week');
   assert.equal(sv.bestLine({ date: '2026-10-14', count: 6, thisWeek: false }, 'ja'), 'いちばん多かった日 10/14(水)・6回');
   assert.equal(sv.fmtMinutes(65, 'en'), '1 hr 5 min');

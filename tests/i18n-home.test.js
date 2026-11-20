@@ -72,9 +72,9 @@ test('homeSummary · todaySummary: 일본어는 문장을 붙여 쓰고, 영어�
   d.centerGoal = '건강한 한 해.';
   d.todayExtra = [{ id: 'a', ti: 0, text: 'a', done: true }, { id: 'b', ti: 0, text: 'b', done: false }];
   assert.match(homeSummary(d, WED, 'ja'), /中心の目標は「건강한 한 해」。/);
-  assert.match(homeSummary(d, WED, 'ja'), /今日やることは残り1つです。$/);
+  assert.match(homeSummary(d, WED, 'ja'), /今日やることは残り1件です。$/);
   assert.match(homeSummary(d, WED, 'en'), /Core goal: 건강한 한 해\. .* 1 left on Today's list\.$/);
-  assert.equal(todaySummary(d, WED, 'ja'), '今日やること2つのうち1つできました');
+  assert.equal(todaySummary(d, WED, 'ja'), '今日やること2件のうち1件できました');
   assert.equal(todaySummary(d, WED, 'en'), "Today's list: 1 of 2 done");
   d.todayExtra[1].done = true;
   assert.equal(todaySummary(d, WED, 'en'), "Today's list: all 2 done");

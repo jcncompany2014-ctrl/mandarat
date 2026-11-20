@@ -12,8 +12,8 @@ test('읽어 주는 말 — 세 언어', () => {
   assert.equal(TC.addedSpeech('読書', { count: 7, goal: 12, unit: '冊' }, 'ja'), '読書、12冊のうち7冊');
   assert.equal(TC.addedSpeech('Read', { count: 7, goal: 12, unit: 'books' }, 'en'), 'Read, 7 of 12 books');
   assert.equal(TC.addedSpeech('Walk', { count: 1500, goal: 10000, unit: '' }, 'en'), 'Walk, 1,500 of 10,000');
-  assert.equal(TC.checkedSpeech('水を飲む', 3, 'ja'), '水を飲む、できました。今日はあと3つです');
-  assert.equal(TC.checkedSpeech('水を飲む', 12, 'ja'), '水を飲む、できました。今日はあと12個です');
+  assert.equal(TC.checkedSpeech('水を飲む', 3, 'ja'), '水を飲む、できました。今日はあと3件です');
+  assert.equal(TC.checkedSpeech('水を飲む', 12, 'ja'), '水を飲む、できました。今日はあと12件です');
   assert.equal(TC.checkedSpeech('Drink water', 3, 'en'), 'Drink water, done. 3 left today');
   assert.equal(TC.checkedSpeech('Drink water', 0, 'en'), 'Drink water, done');
 });

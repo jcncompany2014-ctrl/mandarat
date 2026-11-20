@@ -34,12 +34,12 @@ test('ja — 数え方と区切り', () => {
   assert.equal(T.runText(5, 'day', 'ja'), '5日');
   assert.deepEqual(T.streakCell({ cur: 3, best: 9, unit: 'week' }, 'ja'), { text: '3週', a11y: '3週連続' });
   assert.equal(T.streakSummaryLabel({ lead: null }, 'ja'), '続いている記録はまだありません。今日ひとつやれば始まります');
-  assert.equal(T.columnHead(msg('ja').today.colDoing, 2, 'ja'), '進行中、2つ');
-  assert.equal(T.columnHead(msg('ja').today.colTodo, 12, 'ja'), 'やること、12個');
+  assert.equal(T.columnHead(msg('ja').today.colDoing, 2, 'ja'), '進行中、2件');
+  assert.equal(T.columnHead(msg('ja').today.colTodo, 12, 'ja'), 'やること、12件');
   assert.deepEqual(dayCloseText(WED, 3, 'ja'), {
-    left: '10月14日 水曜日　締め', right: '3 / 3', speech: '10月14日 水曜日、締めました。今日やること3つが全部できました',
+    left: '10月14日 水曜日　締め', right: '3 / 3', speech: '10月14日 水曜日、締めました。今日やること3件が全部できました',
   });
-  assert.equal(autoLine({ autoCount: 3, autoNames: ['散歩', '水', '日記'] }, 'ja'), '自動で入った 3・散歩、水 ほか1');
+  assert.equal(autoLine({ autoCount: 3, autoNames: ['散歩', '水', '日記'] }, 'ja'), '自動で追加 3件・散歩、水 ほか1');
   assert.equal(guideSteps({ centerGoal: '', themes: [], todayKeys: [], todayExtra: [], dayLog: {} }, 'ja').steps[2].label, '行動のマスを8つ埋める');
 });
 

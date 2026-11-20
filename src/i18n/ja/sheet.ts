@@ -3,7 +3,6 @@
 import type ko from '../ko/sheet';
 import type { Like } from '../types';
 import { groupNum } from '../num';
-import { tsu } from './counter';
 
 const amt = ({ n, unit }: { n: number; unit: string }) => `${groupNum(n)}${unit}`;
 
@@ -19,7 +18,7 @@ export default {
   kindPlan: ({ name, plan }) => `${name}（${plan}）`,
   autoMeta: '「今日やること」に自動で入ります',
 
-  checkHint: 'もう一度押すと外れます',
+  checkHint: 'もう一度タップすると外れます',
   doneToday: '今日できた',
   thisWeek: '今週',
   weekFigure: ({ count, total }) => `${count}/${total}`,
@@ -33,9 +32,9 @@ export default {
 
   countPlus: (p) => `${amt(p)}足す`,
   countMinus: (p) => `${amt(p)}減らす`,
-  countSoFar: 'ここまで',
+  countSoFar: 'これまで',
   countFigure: ({ count, goal }) => `${count}/${goal}`,
-  countA11y: ({ said, pct }) => `ここまで${said}、${pct}%`,
+  countA11y: ({ said, pct }) => `これまで${said}、${pct}%`,
   countWeek: (p) => `今週 +${amt(p)}`,
   countReached: '目標に届きました',
   countLeft: (p) => `あと${amt(p)}`,
@@ -59,22 +58,22 @@ export default {
   mindAsk: '今週はどのくらい守れましたか？',
   mindScore: '今週の点数',
   mindPrompt: '直感でつけてください',
-  mindRecent: ({ n }) => `最近${n}週`,
-  mindHistory: ({ n, list }) => `最近${n}週の点数 ${list}`,
+  mindRecent: ({ n }) => `直近${n}週間`,
+  mindHistory: ({ n, list }) => `直近${n}週間の点数 ${list}`,
   mindPoint: ({ n }) => `${n}点`,
   mindNone: 'なし',
   weeksAgo: ({ n }) => `${n}週前`,
 
   todayAlready: 'すでに「今日やること」にあります',
   todayRemoved: '「今日やること」から外しました',
-  todayAdded: '「今日やること」に入れました',
-  todayRow: '今日に入れる',
+  todayAdded: '「今日やること」に追加しました',
+  todayRow: '今日やることに追加',
   todayAutoHint: '入っている理由をお知らせします',
   focusRow: '25分集中する',
   editRow: 'マスを編集する',
-  unachieveHint: 'もう一度押すと達成を外します',
-  achieveHabitHint: '身についたら押してください',
-  achieveMindHint: '根づいたら押してください',
+  unachieveHint: 'もう一度タップすると達成を外します',
+  achieveHabitHint: '身についたらタップしてください',
+  achieveMindHint: '根づいたらタップしてください',
   achieved: '達成したマスです',
   achieve: 'このマスを達成にする',
   achieveA11y: 'このマスを達成',
@@ -94,7 +93,7 @@ export default {
   hintMark: '「できた」にします',
   hintUnlog: '今日足した分を戻します',
   hintUndone: '「できた」を消します',
-  checkedLeft: ({ text, n }) => `${text}、できました。今日はあと${tsu(n)}です`,
+  checkedLeft: ({ text, n }) => `${text}、できました。今日はあと${n}件です`,
   checked: ({ text }) => `${text}、できました`,
   addedSpeech: ({ text, count, total, unit }) => `${text}、${amt({ n: total, unit })}のうち${amt({ n: count, unit })}`,
 

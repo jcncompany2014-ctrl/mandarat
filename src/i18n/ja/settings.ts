@@ -1,7 +1,7 @@
 // 'settings' namespace — Settings rows, reminder row notes, theme, template confirm, backup rows, saved copies, colophon and alerts (X-G).
 import type ko from '../ko/settings';
 import type { Like } from '../types';
-import fmt from './fmt';
+import { tsu } from './counter';
 
 /** 「このiPhone」・「このiPad」 */
 const thisDevice = (device: string) => (device === 'iPad' ? 'このiPad' : 'このiPhone');
@@ -22,11 +22,11 @@ export default {
   secCloud: 'iCloudとバックアップ',
 
   secView: '表示',
-  subLook: '画面モード',
+  subLook: '外観モード',
   lookAuto: '自動',
   lookLight: 'ライト',
   lookDark: 'ダーク',
-  lookLabel: ({ name }) => `画面モード、${name}`,
+  lookLabel: ({ name }) => `外観モード、${name}`,
 
   exportTitle: 'バックアップを書き出す',
   exportHint: ({ age }) => `${age}。記録をファイルに書き出します`,
@@ -36,19 +36,19 @@ export default {
   importTitle: 'バックアップを読み込む',
   importSub: '書き出したバックアップから記録を戻します',
 
-  snapTitle: '保存コピー',
+  snapTitle: '自動保存',
   snapSub: '直近7日間、1日1回自動で残します',
   snapBody: '直近7日間、1日1回自動で残します。選ぶと、その日の記録に戻します。',
-  snapLoading: '保存コピーを探しています',
-  snapEmpty: 'まだ保存コピーはありません。その日に初めて記録したときに1つ残します。',
-  snapRow: ({ date }) => `${date}の保存コピー`,
+  snapLoading: '自動保存を探しています',
+  snapEmpty: 'まだ自動保存はありません。その日に初めて記録したときに1つ残します。',
+  snapRow: ({ date }) => `${date}の自動保存`,
   snapRowSub: ({ n, days }) => `記入したマス${n}・記録${days}日`,
-  snapHint: 'この保存コピーに戻す',
-  snapAskTitle: 'この保存コピーに戻しますか？',
-  snapAskBody: '今の記録がこの保存コピーの内容に置き換わります。置き換えた直後なら元に戻せます。',
+  snapHint: 'この日の状態に戻す',
+  snapAskTitle: 'この日の状態に戻しますか？',
+  snapAskBody: '今の記録がこの日の自動保存の内容に置き換わります。置き換えた直後なら元に戻せます。',
   snapAskOk: '戻す',
-  snapReadFail: '保存コピーを読み込めませんでした',
-  snapRestored: ({ date }) => `${date}の保存コピーに戻しました`,
+  snapReadFail: '自動保存を読み込めませんでした',
+  snapRestored: ({ date }) => `${date}の状態に戻しました`,
 
   storageNoteLocal: '記録はこの端末に保存されます。端末を替える前に、バックアップを書き出しておいてください。',
   storagePlaceLocal: 'この端末',
@@ -56,7 +56,7 @@ export default {
     `記録は${thisDevice(device)}とiCloudバックアップに保存されます。iCloudバックアップをオフにしている場合は、端末を替える前にバックアップを書き出しておいてください。`,
   storagePlaceBackup: ({ device }) => `${thisDevice(device)}とiCloudバックアップ`,
   storageNoteSync: ({ device }) =>
-    `記録は${thisDevice(device)}とiCloudに保存され、同じAppleアカウントのiPhone・iPadどうしで同期します。AndroidやWebに移すときは、バックアップを書き出してください。`,
+    `記録は${thisDevice(device)}とiCloudに保存され、同じApple AccountのiPhone・iPadどうしで同期します。AndroidやWebに移すときは、バックアップを書き出してください。`,
   storagePlaceSync: ({ device }) => `${thisDevice(device)}とiCloud`,
 
   subRestart: '新しく始める',
@@ -64,7 +64,7 @@ export default {
   templateRowSub: ({ n }) => `${n}種類のテンプレートから選びます`,
   templateAskTitle: 'テンプレートに切り替えますか？',
   templateAskBody: ({ n, name }) =>
-    `今書いてある行動${fmt.items({ n })}と今日やることが消え、8つの分野が「${name}」の分野に変わります。中心の目標とこれまでの記録はそのままです。切り替えた直後なら元に戻せます。`,
+    `今書いてある行動${tsu(n)}と今日やることが消え、8つの分野が「${name}」の分野に変わります。中心の目標とこれまでの記録はそのままです。切り替えた直後なら元に戻せます。`,
   templateAskOk: '切り替える',
   templateDone: ({ name }) => `「${name}」のテンプレートに切り替えました`,
   sampleRow: '例を入れる',
@@ -83,7 +83,7 @@ export default {
   secInfo: '情報',
   colName: '名前',
   appName: 'マンダラート',
-  colVersion: '版',
+  colVersion: 'バージョン',
   colFont: '書体',
   colFontValue: 'Pretendard・SIL OFL 1.1、和文はシステムの書体',
   colPlace: '保存先',

@@ -85,8 +85,8 @@ test('저장 위치 — 아이패드는 iPad, 맞추기가 켜지면 iCloud(백�
 });
 
 test('저장본의 ja · en 이름은 sync.copyNote와 같다', () => {
-  assert.equal(msg('ja').settings.snapTitle, '保存コピー');
-  assert.ok(msg('ja').sync.copyNote.includes('「保存コピー」'));
+  assert.equal(msg('ja').settings.snapTitle, '自動保存');
+  assert.ok(msg('ja').sync.copyNote.includes('「自動保存」'));
   assert.equal(msg('en').settings.snapTitle, 'Saved copies');
   assert.ok(msg('en').sync.copyNote.includes('Saved copies'));
   assert.ok(msg('ko').sync.copyNote.includes(msg('ko').settings.snapTitle));

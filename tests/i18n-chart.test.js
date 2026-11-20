@@ -103,7 +103,7 @@ test('ja · en — 낱말장대로(マス · 分野 · 中心の目標 / square 
   assert.equal(en.coreGoal, 'Core goal');
   assert.equal(ja.doneOf64Say({ done: 12 }), '64マス中12マス達成');
   assert.equal(en.doneOf64Say({ done: 12 }), '12 of 64 squares achieved');
-  assert.equal(ja.markTodaySay({ total: 12, done: 3 }), '、今日やること12個のうち3つできました');
+  assert.equal(ja.markTodaySay({ total: 12, done: 3 }), '、今日やること12件のうち3件できました');
   assert.equal(en.areaDoneSay({ done: 1, days: 1 }), '1 of 8 squares achieved, 1-day streak');
   assert.equal(ja.sep, '、');
 });
