@@ -44,6 +44,7 @@ export default {
   onceDone: 'Done',
   due: 'Due date',
   dueOn: ({ date }) => `Due ${date}`,
+  dueIn: ({ days }) => (days > 0 ? `in ${days} ${plural(days, 'day', 'days')}` : days === 0 ? 'today' : `${-days} ${plural(-days, 'day', 'days')} overdue`),
   postponeTomorrow: 'Tomorrow',
   postponeNextWeek: 'Next week',
   postponeTomorrowA11y: 'Move due date to tomorrow',

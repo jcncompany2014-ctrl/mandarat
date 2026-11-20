@@ -45,6 +45,7 @@ export default {
   onceDone: 'できた',
   due: '締め切り',
   dueOn: ({ date }) => `締め切り ${date}`,
+  dueIn: ({ days }) => (days > 0 ? `あと${days}日` : days === 0 ? '今日まで' : `${-days}日超過`),
   postponeTomorrow: '明日に',
   postponeNextWeek: '来週に',
   postponeTomorrowA11y: '締め切りを明日に移す',

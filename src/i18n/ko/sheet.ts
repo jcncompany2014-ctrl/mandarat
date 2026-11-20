@@ -65,6 +65,8 @@ export default {
   /** 마감 묶음의 이름 */
   due: '마감',
   dueOn: ({ date }: { date: string }) => `마감 ${date}`,
+  /** 마감 묶음 안, 날짜 뒤의 남은 날 — 묶음 이름이 이미 '마감'이라 다시 적지 않는다: 'D-2' · '오늘까지' · '3일 지남' */
+  dueIn: ({ days }: { days: number }) => (days > 0 ? `D-${days}` : days === 0 ? '오늘까지' : `${-days}일 지남`),
   postponeTomorrow: '내일로',
   postponeNextWeek: '다음 주로',
   postponeTomorrowA11y: '마감 내일로 옮기기',

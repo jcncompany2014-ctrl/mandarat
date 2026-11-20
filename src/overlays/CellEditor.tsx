@@ -23,7 +23,7 @@ import { daysBetween, normalizeDays, ymd } from '../lib/routine';
 import {
   KIND_LABEL, MAX_NUM, addDays, configOf, duePresets, parseNum, sameConfig, type KindConfig,
 } from '../lib/kinds';
-import { fmtDateLong, fmtDateSpeech, fmtDue } from '../lib/text';
+import { fmtDateLong, fmtDateSpeech } from '../lib/text';
 import { suggestActions } from '../lib/suggest';
 import { useSnapshotUndo } from '../store/useSnapshotUndo';
 import { suggestKind, type KindSuggestion } from '../lib/kindSuggest';
@@ -977,7 +977,7 @@ function CountRows({ M, cfg, nums, setNum, issue, onFocus }: {
 function DueRows({ M, cfg, setCfg, onReveal }: {
   M: M; cfg: KindConfig; setCfg: (fn: (c: KindConfig) => KindConfig) => void; onReveal: () => void;
 }) {
-  const { editor: ed, core, kinds } = useMsg();
+  const { editor: ed, core, kinds, sheet } = useMsg();
   const now = new Date();
   const today = ymd(now);
   const presets = duePresets(now);
@@ -1015,7 +1015,7 @@ function DueRows({ M, cfg, setCfg, onReveal }: {
             accessibilityLiveRegion="polite"
             accessibilityLabel={ed.dueA11y({ date: fmtDateSpeech(due, now), left: dueSpeech(days) })}
           >
-            {`${fmtDateLong(due)}${core.dot}${fmtDue(days, 'long')}`}
+            {`${fmtDateLong(due)}${core.dot}${sheet.dueIn({ days })}`}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: SP.foot }}>
             {([[-7, ed.weekEarlier, ed.weekEarlierA11y], [-1, ed.dayEarlier, ed.dayEarlierA11y], [1, ed.dayLater, ed.dayLaterA11y], [7, ed.weekLater, ed.weekLaterA11y]] as const).map(([d, t, a11y]) => (
