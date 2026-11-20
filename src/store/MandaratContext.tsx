@@ -8,6 +8,7 @@ import { addCount as addCountTo, clearedAction, rateWeek, sameConfig, configOf, 
 import { activeStreak, archiveAllCells, archiveCellLog, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
 import { summarize, type BackupSummary } from '../lib/backup';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
+import { checkExtraOn as extraOn, checkOnceOn as onceOn } from '../lib/widgetOps';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
 import type { SyncMeta } from '../lib/syncMeta';
 // 맞추기는 손잡이(syncCommit)로만 — iOS는 syncCommit.ios.ts, 웹 · 안드로이드는 빈 것(번들에 합치기 · 도장이 없다)
@@ -164,6 +165,10 @@ export interface Actions {
   addCount: (ti: number, ai: number, delta: number) => void;
   /** 쌓기 수를 지난 날(day, 오늘까지) 기록으로 더한다 — 위젯에서 그날 한 체크를 늦게 들일 때 */
   addCountOn: (ti: number, ai: number, delta: number, day: string) => void;
+  /** 한 번을 지난 날(day, 오늘까지)에 달성한 것으로 — 기록은 그날에 남는다. 위젯에서 그날 한 체크를 늦게 들일 때 */
+  checkOnceOn: (ti: number, ai: number, day: string) => void;
+  /** 직접 추가한 할 일을 지난 날(day, 오늘까지)에 끝낸 것으로 — 기록은 그날에 남고 오늘 목록에서 빠진다. 위젯에서 그날 한 체크를 늦게 들일 때 */
+  checkExtraOn: (id: string, day: string) => void;
   /** 마음가짐 점수(0이면 지움) — on이 속한 주(기본: 이번 주) */
   rateMind: (ti: number, ai: number, score: number, on?: Date) => void;
   addFocusMinutes: (minutes: number) => void;
@@ -578,6 +583,17 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     [update],
   );
 
+  // 위젯 · Siri에서 지난 날에 한 체크 — 앱을 연 오늘이 아니라 체크한 그날의 기록으로(src/lib/widgetOps.ts)
+  const checkOnceOn = useCallback(
+    (ti: number, ai: number, day: string) => update((d) => onceOn(d, ti, ai, day, dateKey())),
+    [update],
+  );
+
+  const checkExtraOn = useCallback(
+    (id: string, day: string) => update((d) => extraOn(d, id, day, dateKey())),
+    [update],
+  );
+
   const rateMind = useCallback(
     (ti: number, ai: number, score: number, on: Date = new Date()) => update((d) => rateWeek(d, ti, ai, score, on)),
     [update],
@@ -911,12 +927,14 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
       relocalizeDefaults, replaceDoc, undoReset, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      checkOnceOn, checkExtraOn,
     }),
     [
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
       relocalizeDefaults, replaceDoc, undoReset, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      checkOnceOn, checkExtraOn,
     ],
   );
 

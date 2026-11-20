@@ -48,7 +48,9 @@ export function WidgetSync() {
       if (cmd.kind === 'checkToday') actions.checkToday(cmd.ti, cmd.ai);
       else if (cmd.kind === 'toggleHabitOn') actions.toggleHabitOn(cmd.ti, cmd.ai, cmd.day);
       else if (cmd.kind === 'addCountOn') actions.addCountOn(cmd.ti, cmd.ai, cmd.delta, cmd.day);
+      else if (cmd.kind === 'checkOnceOn') actions.checkOnceOn(cmd.ti, cmd.ai, cmd.day);
       else if (cmd.kind === 'toggleExtra') actions.toggleExtra(cmd.id);
+      else if (cmd.kind === 'checkExtraOn') actions.checkExtraOn(cmd.id, cmd.day);
       else if (cmd.kind === 'focus') live.current.startFocus(cmd.ti, cmd.ai);
       else live.current.go('today');
     },

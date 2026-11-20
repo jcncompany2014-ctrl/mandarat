@@ -31,6 +31,133 @@ const buttons = (node) => { const out = []; walk(node, (n) => { if (n.type === '
 const modArgs = (n, type) => { const m = (n.props.modifiers || []).find((x) => x.$type === type); return m ? JSON.parse(JSON.stringify(m.args)) : null; };
 const said = (node) => { const out = []; walk(node, (n) => { const a = modArgs(n, 'accessibilityLabel'); if (a) out.push(a[0]); }); return out; };
 
+// ── 2. 위젯 · Siri 체크는 체크한 그날의 기록으로 ─────────────────────────────────
+
+/** 목요일 23:10에 위젯에서 한 번 하나 · 직접 추가한 할 일 하나를 체크하고, 금요일 08:00에 앱을 연다 */
+function thursdayNight(extra = {}) {
+  const d = blankDoc();
+  d.themes[0].actions[0] = { text: 'Send the tax form', note: '', done: false, kind: 'once', due: '2026-11-20' };
+  d.themes[0].actions[1] = { text: 'Call the bank', note: '', done: false, kind: 'once' };
+  const doc = {
+    ...d, onboarded: true, todayDate: '2026-11-19', dayLog: { '2026-11-18': ['1-1'] },
+    todayExtra: [{ id: 'e1', ti: 1, text: 'Buy stamps', done: false }], ...extra,
+  };
+  const at = new Date(2026, 10, 19, 23, 10).getTime();
+  const op = (k, o = {}) => ({ kind: 'check', k, on: true, day: '2026-11-19', at, t: '', src: 'widget', ...o });
+  return { doc, op, fri: new Date(2026, 10, 20, 8) };
+}
+/** 손잡이(WidgetSync.run)가 저장소에 시키는 일을 순수하게 — 저장소의 checkOnceOn · checkExtraOn은 이 두 함수를 dateKey()와 함께 부른다 */
+function runCommands(doc, cmds, todayKey) {
+  let d = doc;
+  for (const c of cmds) {
+    if (c.kind === 'checkOnceOn') d = checkOnceOn(d, c.ti, c.ai, c.day, todayKey);
+    else if (c.kind === 'checkExtraOn') d = checkExtraOn(d, c.id, c.day, todayKey);
+    else if (c.kind === 'checkToday') d = toggleCellDone(d, c.ti, c.ai, todayKey);
+    else assert.fail(`unexpected ${c.kind}`);
+  }
+  return d;
+}
+
+test('위젯 2: 목요일 밤의 체크는 금요일에 앱을 열어도 목요일의 기록 — 금요일은 비어 있고 연속 기록이 이어진다', () => {
+  const { doc, op, fri } = thursdayNight();
+  const ops = [op('0-0'), op('x:e1', { at: op('x').at + 1 })];
+  const opened = rolloverToday(doc, '2026-11-20'); // 저장소: 앱을 열면 하루 정리가 먼저 돈다
+  const cmds = planOps(ops, opened, fri);
+  assert.deepEqual(cmds, [
+    { kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-11-19' },
+    { kind: 'checkExtraOn', id: 'e1', day: '2026-11-19' },
+  ]);
+  const after = runCommands(opened, cmds, '2026-11-20');
+  // 전에는 {"2026-11-18":[…],"2026-11-20":["0-0","1-xe1"]} — 목요일은 빈 날, 금요일 08:00에 2/2
+  assert.deepEqual(after.dayLog, { '2026-11-18': ['1-1'], '2026-11-19': ['0-0', '1-xe1'] });
+  assert.equal(after.themes[0].actions[0].done, true);
+  assert.deepEqual(after.todayExtra, [], '끝낸 할 일은 날을 넘기며 목록에서 빠진다(하루 정리와 같게)');
+  assert.deepEqual(todayProgress(after, fri), { done: 0, total: 0 }, '금요일 아침에 다 한 것으로 보이지 않는다');
+  assert.equal(activeStreak(after.dayLog, fri), 2, '수 · 목 이틀 — 목요일이 구멍이 되지 않는다');
+  // 다시 읽어도(쓰기 전에 늘 읽는다) 아무것도
+  assert.deepEqual(planOps(ops, after, fri), []);
+  assert.deepEqual(planOps([...ops, ...ops], after, fri), []);
+});
+
+test('위젯 2: 직접 담아 둔 한 번은 오늘 목록에서도 빠진다 — 남으면 금요일에 한 것으로 센다', () => {
+  const { doc, op, fri } = thursdayNight({ todayKeys: ['0-1'] });
+  const opened = rolloverToday(doc, '2026-11-20');
+  assert.deepEqual(opened.todayKeys, ['0-1'], '아직 안 한 한 번은 날을 넘어 남아 있다');
+  const cmds = planOps([op('0-1')], opened, fri);
+  assert.deepEqual(cmds, [{ kind: 'checkOnceOn', ti: 0, ai: 1, day: '2026-11-19' }]);
+  const after = runCommands(opened, cmds, '2026-11-20');
+  assert.deepEqual(after.todayKeys, []);
+  assert.deepEqual(after.dayLog['2026-11-19'], ['0-1']);
+  assert.equal(after.dayLog['2026-11-20'], undefined);
+  const p = todayProgress(after, fri);
+  assert.equal(p.done, 0);
+  // 같은 날(오늘) 체크는 목록의 체크 그대로 — 한 것으로 목록에 남는다
+  const same = checkOnceOn(opened, 0, 1, '2026-11-20', '2026-11-20');
+  assert.deepEqual(same.todayKeys, ['0-1']);
+  assert.deepEqual(same.dayLog['2026-11-20'], ['0-1']);
+  const sameX = checkExtraOn(opened, 'e1', '2026-11-20', '2026-11-20');
+  assert.deepEqual(sameX.todayExtra, [{ id: 'e1', ti: 1, text: 'Buy stamps', done: true }]);
+  assert.deepEqual(sameX.dayLog['2026-11-20'], ['1-xe1']);
+});
+
+test('위젯 2: 목요일에 켜고 금요일에 또 켠 것은 목요일에 한 것 — 위젯의 다음 날 칸은 어제 켠 한 번을 다시 안 한 것으로 그린다', () => {
+  const { doc, op } = thursdayNight();
+  const sat = new Date(2026, 10, 21, 9);
+  const opened = rolloverToday(doc, '2026-11-21');
+  const again = (k) => [op(k), op(k, { day: '2026-11-20', at: new Date(2026, 10, 20, 7).getTime() })];
+  assert.deepEqual(planOps([...again('0-0'), ...again('x:e1')], opened, sat), [
+    { kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-11-19' },
+    { kind: 'checkExtraOn', id: 'e1', day: '2026-11-19' },
+  ]);
+  // 금요일에 앱을 열었을 때도(오늘의 op가 가장 늦다) 한 날은 목요일
+  assert.deepEqual(planOps(again('0-0'), rolloverToday(doc, '2026-11-20'), new Date(2026, 10, 20, 8)), [{ kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-11-19' }]);
+  // 목요일에 껐다가 금요일에 켠 것은 금요일에 한 것
+  const off = op('0-0', { on: false, at: op('x').at + 5 });
+  assert.deepEqual(planOps([op('0-0'), off, op('0-0', { day: '2026-11-20', at: off.at + 9 })], rolloverToday(doc, '2026-11-20'), new Date(2026, 10, 20, 8)), [{ kind: 'checkToday', ti: 0, ai: 0 }]);
+});
+
+test('위젯 2: 지난 날의 끔은 달성을 남겼던 날의 기록을 뺀다 · 바꿀 것이 없으면 같은 문서', () => {
+  const { doc, op, fri } = thursdayNight();
+  // 수요일에 앱에서 달성한 한 번을 목요일 밤 위젯에서 풀었다
+  const done = toggleCellDone(doc, 0, 0, '2026-11-18');
+  assert.deepEqual(done.dayLog['2026-11-18'], ['1-1', '0-0']);
+  const opened = rolloverToday(done, '2026-11-20');
+  const cmds = planOps([op('0-0', { on: false })], opened, fri);
+  assert.deepEqual(cmds, [{ kind: 'checkToday', ti: 0, ai: 0 }]);
+  const after = runCommands(opened, cmds, '2026-11-20');
+  assert.equal(after.themes[0].actions[0].done, false);
+  assert.deepEqual(after.dayLog, { '2026-11-18': ['1-1'] });
+  // 이미 달성 · 한 번이 아닌 칸 · 빈 칸 · 앞날 · 날짜가 아닌 것 → 그대로(같은 객체)
+  assert.equal(checkOnceOn(done, 0, 0, '2026-11-19', '2026-11-20'), done);
+  const habit = { ...doc, themes: doc.themes.map((t, i) => (i === 0 ? { ...t, actions: t.actions.map((a, j) => (j === 0 ? { ...a, kind: 'habit', days: [1] } : a)) } : t)) };
+  assert.equal(checkOnceOn(habit, 0, 0, '2026-11-19', '2026-11-20'), habit);
+  assert.equal(checkOnceOn(doc, 5, 5, '2026-11-19', '2026-11-20'), doc);
+  assert.equal(checkOnceOn(doc, 0, 0, '2026-11-21', '2026-11-20'), doc);
+  assert.equal(checkOnceOn(doc, 0, 0, 'yesterday', '2026-11-20'), doc);
+  // 없는 할 일 · 이미 끝낸 것 · 앞날
+  assert.equal(checkExtraOn(doc, 'gone', '2026-11-19', '2026-11-20'), doc);
+  const finished = { ...doc, todayExtra: [{ id: 'e1', ti: 1, text: 'Buy stamps', done: true }] };
+  assert.equal(checkExtraOn(finished, 'e1', '2026-11-19', '2026-11-20'), finished);
+  assert.equal(checkExtraOn(doc, 'e1', '2026-11-21', '2026-11-20'), doc);
+});
+
+test('위젯 2: 저장소 · 손잡이 — checkOnceOn · checkExtraOn은 그날(day)과 오늘(dateKey())을 넘겨 그 두 함수를 부른다', () => {
+  const s = src('src/store/MandaratContext.tsx');
+  assert.match(s, /import \{ checkExtraOn as extraOn, checkOnceOn as onceOn \} from '\.\.\/lib\/widgetOps';/);
+  assert.match(s, /checkOnceOn: \(ti: number, ai: number, day: string\) => void;/);
+  assert.match(s, /checkExtraOn: \(id: string, day: string\) => void;/);
+  assert.match(s, /const checkOnceOn = useCallback\(\s*\(ti: number, ai: number, day: string\) => update\(\(d\) => onceOn\(d, ti, ai, day, dateKey\(\)\)\),/);
+  assert.match(s, /const checkExtraOn = useCallback\(\s*\(id: string, day: string\) => update\(\(d\) => extraOn\(d, id, day, dateKey\(\)\)\),/);
+  assert.equal((s.match(/^\s*checkOnceOn, checkExtraOn,$/gm) || []).length, 2, '함수 묶음과 그 의존성 목록');
+  const host = src('src/hosts/WidgetSync.tsx');
+  assert.match(host, /cmd\.kind === 'checkOnceOn'\) actions\.checkOnceOn\(cmd\.ti, cmd\.ai, cmd\.day\)/);
+  assert.match(host, /cmd\.kind === 'checkExtraOn'\) actions\.checkExtraOn\(cmd\.id, cmd\.day\)/);
+  // 손잡이는 planOps가 내는 모든 명령을 안다 — 모르는 것은 마지막 else(오늘 열기)로 떨어진다
+  const kinds = [...src('src/lib/widgetOps.ts').matchAll(/^\s*\| \{ kind: '(\w+)'/gm)].map((m) => m[1]);
+  assert.deepEqual(kinds, ['checkToday', 'toggleHabitOn', 'addCountOn', 'checkOnceOn', 'toggleExtra', 'checkExtraOn', 'focus', 'open']);
+  for (const k of kinds.filter((x) => x !== 'open')) assert.ok(host.includes(`cmd.kind === '${k}'`), k);
+});
+
 // ── 3. 템플릿으로 바꿔도 아직 안 한 직접 추가한 할 일은 남는다 ─────────────────────
 
 test('저장소 3: 템플릿으로 바꾸기는 아직 안 한 직접 추가한 할 일을 남긴다 — 예시로 채우기 · 새 표와 같게', () => {
