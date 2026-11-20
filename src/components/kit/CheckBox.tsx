@@ -1,6 +1,6 @@
 import React, { memo, useEffect, useMemo, useRef } from 'react';
 import {
-  Animated, Easing, Pressable, StyleSheet, View,
+  Animated, Easing, Platform, Pressable, StyleSheet, View,
   type AccessibilityActionEvent, type AccessibilityActionInfo,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -13,6 +13,8 @@ import {
 } from '../../lib/marks';
 
 const APath = Animated.createAnimatedComponent(Path);
+/** 웹은 hitSlop을 모른다 — 누르는 자리를 안쪽 여백으로 넓힌다(CheckBox의 Pressable) */
+const WEB = Platform.OS === 'web';
 
 /** 칸이 칠해지는 시간 · 칠이 시작되고 획이 그어지기 시작할 때까지 · 한 획을 긋는 시간 */
 const FILL_MS = 120;
@@ -56,6 +58,8 @@ export interface CheckBoxProps {
  * - chosen: open 칸 안에 작은 먹 획 — '이것으로 고름'(설정 켬 · 요일 고르기). 했어요와 헷갈리지 않게 칠도 뻗음도 없다.
  * - later: tile 칠만, 테두리 없음 — 아직 오지 않은 날.
  * 크기는 24 상자의 비례(모서리 6 · 테두리 1.5 · 획 2). onPress가 있으면 체크 상자 버튼(선택됨 = done · chosen), 없으면 그림만.
+ * 누르는 자리는 44 — 기기는 hitSlop, 웹은 hitSlop이 없어 안쪽 여백으로 넓히고 같은 만큼 바깥 여백을 빼 그린 자리는 그대로 둔다
+ * (웹에서 칸 4px 옆을 눌러 체크 대신 줄의 시트가 열리던 것).
  */
 export const CheckBox = memo(function CheckBox({
   M, state, area, size = 24, paint, onPress, disabled, testID,
@@ -168,6 +172,7 @@ export const CheckBox = memo(function CheckBox({
       accessibilityHint={accessibilityHint}
       accessibilityActions={accessibilityActions}
       onAccessibilityAction={onAccessibilityAction}
+      style={WEB ? { padding: g.hit, margin: -g.hit } : undefined}
     >
       {picture}
     </Pressable>
