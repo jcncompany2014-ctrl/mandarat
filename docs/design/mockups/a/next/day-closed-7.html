@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 오늘 — 7/10에서 마감한 하루</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/day-parts.css">
+</head>
+<body>
+<!-- 오늘, closed at 7/10 with 오늘은 여기까지 하기. The same page as dayclose.html (day-closed-10.html):
+     only the figure and the printed line differ. Screens and data: day-parts.js. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-focus-dayclose.js"></script>
+<script src="/docs/design/mockups/a/next/day-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  D.closed(document.querySelector('#page'), D.scene(base, 'eve'), { note: '남은 세 가지는 내일로 이어져요 · 오후 9:40 마감' });
+});
+</script>
+</body>
+</html>

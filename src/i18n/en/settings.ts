@@ -95,5 +95,6 @@ export default {
   licLucide: 'Lucide icon shapes',
   mailSubject: ({ version }) => `Mandalart support ${version}`,
   openFail: 'Couldn’t open',
+  mailLogHead: 'Below is the error log kept on this device. You can delete it before sending.',
   resetAskSync: 'iCloud sync is on, so they will also be erased on your other devices with the same Apple Account.',
 } satisfies Like<typeof ko>;

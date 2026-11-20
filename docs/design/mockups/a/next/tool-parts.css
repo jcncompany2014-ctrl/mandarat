@@ -1,0 +1,71 @@
+/* 시안 · 작은 도구 묶음 (tool-*) — styles for tool-parts.js and the tool-* screens.
+   Tokens only. The layout rules are the approved screens' own (block.html, sheet.html, add.html,
+   editor.html, parts-sheets.css), copied so these screens sit on the same grid. New rules are marked NEW. */
+
+/* behind a sheet: the zoomed block page (block.html) */
+#block { margin-top: 18px; }
+.cell-state { text-align: center; }
+
+/* 실천 시트 (sheet.html) */
+.s-title { margin-top: 10px; }
+.s-title + .t-meta { display: block; margin-top: 2px; }
+.s-week-say { display: flex; align-items: baseline; gap: 8px; height: 30px; margin-bottom: 8px; }
+.s-week-say .t-figure { font-size: 22px; line-height: 30px; }
+.s-week-say .t-figure small { font-size: 13px; }
+
+/* 쌓기 시트 (the app's count sheet, ActionSheet CountBlock): a 52pt round --tile minus beside the ink
+   button, then 지금까지: the figure, what is left, and a 4pt bar in the area's dye. */
+.c-step { display: flex; gap: 10px; margin-top: 18px; }
+.c-minus { width: 52px; height: 52px; flex: none; border-radius: 26px; background: var(--tile); color: var(--ink); display: flex; align-items: center; justify-content: center; }
+.c-step .a-btn { flex: 1; }
+.c-bar { height: 4px; border-radius: 2px; background: var(--tile); overflow: hidden; }
+.c-bar i { display: block; height: 100%; background: var(--d); }
+
+/* NEW (a): the figure line opens the amount field. The only addition is one written link at the
+   end of the line the figure sits on (.a-link: ink, bold, a chevron — the kit's "this opens something").
+   The whole line is the target: 30pt drawn, hitSlop 7 above and below in the app (44pt). */
+.s-week-say .a-link { margin-left: auto; }
+
+/* NEW (a): the amount sheet sits on the number pad, as 담기 sits on the keyboard (add.html) */
+.t-dock { padding: 8px 24px 16px; z-index: 21; }
+.t-dock-head { display: flex; align-items: center; justify-content: space-between; height: 44px; margin: 2px 0 0; }
+.t-dock-head .t-own { font: 600 13px/18px var(--sans); color: var(--ink); }
+.t-dock-head .t-own + .t-label { margin-left: 6px; }
+.t-dock-ask { display: flex; align-items: baseline; justify-content: space-between; height: 18px; margin: 10px 0 8px; }
+.t-dock-then { display: block; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.t-dock-then b { font-weight: 600; color: var(--ink); }
+/* the unit printed after the typed number (print ink: the form's word, not the owner's) */
+.ap-field-text .t-unit { color: var(--print); font-weight: 400; margin-left: 5px; }
+.ap-field-text.is-num { font-variant-numeric: tabular-nums; }
+
+/* NEW (b): the last ten weeks under this week. One 16pt track per week, the size and tint of the
+   day boxes above it (--tile, 6pt corners); the track's height is the weekly target. Fill = how many
+   times that week: short of the target in the bar grey of the week strip (--print-mid), reached in
+   the area's wash (the colour of a done cell), this week in ink. No rule, no axis, no labels. */
+.w10 { display: flex; justify-content: space-between; height: var(--h, 30px); }
+.w10-col { display: flex; }
+.w10-track { position: relative; width: 16px; height: 100%; border-radius: 6px; background: var(--tile); overflow: hidden; }
+.w10-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; background: var(--print-mid); }
+.w10-fill.is-met { background: var(--d); }
+.w10-fill.is-now { background: var(--ink); }
+.a-section .t-label b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* 담기 (add.html) */
+.behind { position: absolute; inset: 0; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; height: 44px; margin: 2px 0 0; }
+.sheet-head b { font: 600 13px/18px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; margin-left: 4px; }
+.sect { display: flex; align-items: baseline; justify-content: space-between; height: 18px; margin: 18px 0 8px; }
+
+/* NEW (c): nine choices as the chart's own centre block: the eight areas where they sit on the sheet,
+   and the neutral choice in the middle. Same tiles as AP.areaPicker (44pt, 12pt corners, 6pt gaps). */
+.ap-areas.is-nine { grid-template-columns: repeat(3, 1fr); }
+.ap-area.is-none { color: var(--ink-2); }
+.ap-area.is-none.is-on { background: color-mix(in oklab, var(--ink) 9%, var(--paper)); color: var(--ink); }
+
+/* 칸 편집 (editor.html) + the example list (the app's 이런 실천은 어때요: bare 54pt rows) */
+.e-list .a-row + .a-row::before { left: 0; }
+.e-list .a-row-title { font-weight: 500; }
+.e-scroll { overflow: hidden; }
+.s-field-text.is-empty { color: var(--print); font-weight: 400; }
+.s-field-text .ap-caret { background: var(--ink); margin: 0 3px 0 0; }
+.s-foot.is-pinned { margin-top: 0; padding-top: 12px; }

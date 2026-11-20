@@ -1,0 +1,66 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   하루의 끝과 시작 (day-*) — the layout the day mockups share. Everything here is the approved kit
+   (tokens.css · shared.js) laid out as today.html and dayclose.html lay it out; the only new parts
+   are marked NEW. Colours and type come from the tokens, nothing is restyled.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── 오늘, the open list (today.html, unchanged) ─────────────────────────── */
+.filters { display: flex; gap: 18px; height: 44px; align-items: center; margin: 6px 0 0 var(--gutter); overflow: hidden; white-space: nowrap; }
+.filter { position: relative; flex: none; display: inline-flex; align-items: center; height: 44px; font: 500 14px/18px var(--sans); color: var(--ink); }
+.filter b { font: 400 12px/18px var(--sans); color: var(--ink-2); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.filter.is-on { font-weight: 700; }
+.filter.is-on::after { content: ''; position: absolute; left: 0; right: 0; bottom: 9px; height: 1px; background: var(--ink); }
+.more { display: flex; align-items: center; gap: 14px; height: 54px; margin-top: 6px; color: var(--ink); font: 600 15px/20px var(--sans); }
+.more .slot { width: 24px; display: flex; justify-content: center; }
+/* the × that takes a typed to-do off the list (the app's row; 16pt glyph, 44pt target) */
+.a-row-right.is-icon.is-x svg { margin-right: -2px; }
+
+/* ── 오늘, the day closed (dayclose.html, unchanged) ─────────────────────── */
+.close { margin-top: 30px; }
+.close-fig { font: 700 48px/56px var(--sans); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.close .t-prompt { margin-top: 4px; }
+.close .t-note { margin-top: 2px; }
+.sec { margin-top: 36px; }
+.sec .a-section { margin-bottom: 0; }
+.fold .a-row-meta { display: flex; }
+.fold .a-row-meta span { display: inline-flex; align-items: center; }
+.fold .a-row-meta span + span { margin-left: 10px; }
+.fold .a-row-meta .a-dye { margin-right: 4px; }
+.fold-open { display: flex; align-items: center; gap: 2px; font: 700 13px/18px var(--sans); color: var(--ink); }
+.fold-open svg { margin-right: -4px; }
+.a-seg { display: flex; gap: 6px; }
+.a-seg-cell { flex: 1; height: 44px; display: flex; align-items: center; justify-content: center;
+              border-radius: 12px; background: var(--tile); font: 500 14px/18px var(--sans); color: var(--ink); }
+.a-seg-cell.is-on { font-weight: 700; background: var(--ink); color: var(--paper); }
+.a-line { display: flex; align-items: center; height: 52px; padding: 0 16px; border-radius: 12px; background: var(--tile); }
+.a-line .ph { font: 400 16px/24px var(--sans); color: var(--print); }
+.module { margin-top: 28px; }
+.module .t-label { font-weight: 600; }
+.module .t-label + .a-seg, .module .t-label + .a-line { margin-top: 8px; }
+.module .gap { height: 20px; }
+.week { margin-top: 32px; }
+.week .a-section { margin-bottom: 6px; }
+
+/* ── NEW · 오늘은 여기까지 하기 ───────────────────────────────────────────── */
+/* The way to end a day that is not 10/10: one written line where the list ends, on the text column,
+   under 실천에서 더 고르기. 13/18 Bold ink, the kit's quiet action (as 더 보기, 펼치기): smaller than the
+   row above it and with no glyph, so the two do not compete. Only the words take the touch (44pt high,
+   as wide as the text), not the whole line. */
+.endday { display: flex; margin: 4px 0 0 38px; }
+.endday span { display: inline-flex; align-items: center; height: 44px; font: 700 13px/18px var(--sans); color: var(--ink); }
+
+/* ── NEW · the one line on the first open of a day ───────────────────────── */
+/* A printed sentence under the title (print ink, 13/18); at most one written action on its right
+   (ink, 13/18 Bold), as on a section label row. It is a 36pt line between the header (72) and the
+   filter line, so the action has room for a 44pt target under the header's own action. It leaves
+   with the first tick, and the filter line returns to its place 6pt under the header. */
+.dayline { display: flex; align-items: center; justify-content: space-between; margin: 0 var(--gutter); height: 36px; }
+.dayline .say { font: 500 13px/18px var(--sans); color: var(--print-strong); font-variant-numeric: tabular-nums; }
+.dayline .do { font: 700 13px/18px var(--sans); color: var(--ink); }
+.dayline + .filters { margin-top: 0; }
+
+/* ── before | after sheets (day-compare) ─────────────────────────────────── */
+.cmp-phone { position: absolute; width: 390px; height: 844px; overflow: hidden; background: var(--paper); border-radius: 28px; }
+.cmp-title { position: absolute; font: 700 22px/30px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+.cmp-note { position: absolute; font: 500 14px/20px var(--sans); color: var(--print); }
+.cmp-tab { position: absolute; font: 600 14px/18px var(--sans); color: var(--print-strong); }

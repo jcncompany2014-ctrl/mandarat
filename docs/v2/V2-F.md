@@ -105,13 +105,15 @@ Known PN limitation (inherent, not data loss): if two offline devices both undo 
 
 It only adds and is idempotent; an unchanged doc keeps its identity.
 - **M1.** A count cell with `log[day] > 0` is in `dayLog[day]`. The log total is a counter and survives concurrent undo/+1; the day-log key is an LWW element and might not.
-- **M2.** For `todayDate`, a done extra has its `extraLogKey` in that day's log, and an extra whose key is logged that day is done.
-- **M3.** The rollover (`rolloverToday`) is done by the store with the device date.
+- **M2.** For `todayDate`, an extra whose key is logged that day is done, and a done extra whose key is in **no** day's log gets it in that day's log. A done extra already logged on another day was done on that day (a todo finished yesterday that another device receives today): it is not logged again.
+- **M3.** The rollover is done with the device date: by the store (`rolloverToday`), and for a merged doc by `rollMerged` in `syncEnvelope.ts` (called from `joinRemote` and `adopt`).
+  - The today list (`tk/…`, `x/…`) is per day, but its paths carry no day. `rollMerged` reads the day from the stamp: an entry stamped before the start of this device's day is from an earlier day and follows the `rolloverToday` rule (only an unfinished once-cell and an unfinished extra carry over), even when this device already rolled over and the entry arrives later from a replica that is still on yesterday. An entry stamped today is kept, even if this device has not rolled over yet. An unstamped entry follows the device's own rollover state.
 
 ### 7.4 Local stamping
 
 - **`changedPaths`.** Root registers are always compared. Settings, each theme, each cell, `todayKeys`, `todayExtra`, each day of `dayLog` and `dayMeta`, `closedDays`, each review and each archive id are skipped when the reference is unchanged. The emitted paths and values mirror `project` exactly; the test compares against the naive diff.
-- **`stampLocal`.** One `tick` per commit, and every changed path gets that stamp. A path that disappears gets a tombstone stamp.
+- **`stampLocal`.** One `tick` per commit, and every changed path gets that stamp. A path that disappears gets a tombstone stamp. Before the tick, the clock is moved past the stamps of the paths being overwritten and past the epoch (`follow`, no wall-clock check): `observe` refuses a stamp more than 24 h ahead, and without this a later local edit of a value written by a device with a wrong clock would get a smaller stamp and lose at the next merge. Paths that are not touched keep the 24 h limit.
+- **`stampDayRoll(prev, next, meta, wall, dayStart)`.** Used for a rollover (`CommitHow` `'day'`: `openStored`, the store's day rollover, `joinRemote`, `adopt`). A today-list path that the rollover removed is stamped with the **start of the local day** (`dayStartOf`), not with the time the device woke up, when that is above the path's current stamp and the epoch. A removal stamped "now" by a device opened at 09:00 would delete the same cell picked again at 08:01 on another device; a tombstone at 00:00 only beats picks from earlier days. Everything else is stamped as in `stampLocal`.
 - **`reattribute`.** Each counter delta (absent counts as 0) goes into `parts[path][dev]`, so `b = value − Σp` never changes through local edits.
 - **`epochReset(meta, wall, doc)`.**
   1. `epoch = tick`.

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 64칸까지 이어 쓰기 · 홈 · 아래쪽(8개 영역)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/fill-parts.css">
+</head>
+<body>
+<!-- 홈을 끝까지 내린 모습(40칸 씀). 시작하기의 남은 한 단계가 얇은 한 줄로 남고, 8개 영역에서 아직 쓰지 않은 영역은 '0/8' 대신 '쓰기 ›'. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/fill-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  F.home('#page', F.doc40(doc), { guide: 'slim', rows: 4, scroll: 214 });
+});
+</script>
+</body>
+</html>

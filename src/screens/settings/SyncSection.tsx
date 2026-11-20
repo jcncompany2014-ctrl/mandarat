@@ -39,7 +39,8 @@ function SyncRows({ M }: { M: M }) {
   useDoc();
   const on = s.enabled;
   const line = statusLine(s, Date.now(), t);
-  const problem = s.phase === 'problem' ? problemLine(s.problem, t) : null;
+  // 문제(멈춤)와, 다 맞춘 뒤 알려만 두는 것(note — 기록이 커서 오래 걸릴 수 있다)을 같은 알림 한 장에
+  const problem = s.phase === 'problem' ? problemLine(s.problem, t) : s.phase === 'idle' && s.note ? problemLine(s.note, t) : null;
   const busy = s.phase === 'checking' || s.phase === 'syncing';
   // 정보 줄 — 켜져 있으면 맞춘 때(목업: '오늘 9:12에 맞췄어요'), 할 말이 없거나 꺼져 있으면 무엇을 하는 줄인지
   const meta = (on && line) || t.sync.toggleSub;

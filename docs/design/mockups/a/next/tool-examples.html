@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 칸 예시 더 많이 · 칸 편집 · 건강</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/tool-parts.css">
+<style>
+  /* the list scrolls under the pinned foot, as the rows of 오늘 할 일 고르기 do: eight rows and most
+     of the ninth show (its words whole, its foot under the button), so it reads as a list that goes on */
+  .e-scroll { height: calc(8 * 54px + 42px); }
+</style>
+</head>
+<body>
+<!-- (d) 빈 칸의 칸 편집. '이런 실천은 어때요' 아래 예시가 영역마다 12개(지금 3~4개). 줄 모양은 지금 그대로(글만 있는 54pt 줄),
+     짧고 숫자가 든 글. 이미 적은 예시는 목록에서 빠진다: 1번 칸에 '주 3회 30분 달리기'를 적었으므로 여기에는 11개가 남았다. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body"><div id="block"></div></div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/parts-input.js"></script>
+<script src="/docs/design/mockups/a/next/tool-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const AREA = 0, INDEX = 1; // 건강 · the second cell, still empty
+  // the twelve examples for 건강 (tool-notes.md), in the order the list shows them
+  const examples = ['주 3회 30분 달리기', '밤 11시 전 취침', '매일 물 2L 마시기', '올해 500km 달리기', '6월 안에 건강검진 받기', '평일 아침 스트레칭 10분',
+    '월·수·금 근력 운동', '조급해하지 않고 꾸준히', '하루 1만 보 걷기', '10월 하프 마라톤 완주', '팔굽혀펴기 3,000개', '주말 아침 등산'];
+
+  // the first run: nothing written yet but the first cell, taken from the list a moment ago
+  const d = A.blankDoc(doc);
+  d.areas[AREA].actions[0] = { text: examples[0], done: false, kind: 'habit', perWeek: 3 };
+  const used = new Set(d.areas[AREA].actions.map((a) => a.text).filter(Boolean));
+  const left = examples.filter((e) => !used.has(e));
+
+  T.behindBlock(d, AREA, { focus: 1, extra: () => '' });
+
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(d, AREA, INDEX)}
+
+    <div class="s-field">
+      <div class="s-field-text is-empty">${AP.caret()}직접 적거나 아래에서 골라요</div>
+      <span class="t-label s-field-count">0/60</span>
+    </div>
+    <span class="t-note">무엇을, 얼마나, 언제·어디서를 쓰면 실천하기 쉬워요</span>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">이런 실천은 어때요</span></div>
+      <div class="e-scroll">
+        <div class="a-list e-list">
+          ${left.map((e) => `<div class="a-row no-meta"><div class="a-row-main"><div class="a-row-title">${e}</div></div></div>`).join('')}
+        </div>
+      </div>
+    </section>
+
+    <div class="s-foot is-pinned">
+      <span class="s-quiet">저장</span>
+      <div class="a-btn">저장하고 다음 칸</div>
+    </div>`;
+});
+</script>
+</body>
+</html>

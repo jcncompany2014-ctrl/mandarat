@@ -5,9 +5,9 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { blankDoc } = require('../src/data/defaults');
-const { planOps, opId } = require('../src/lib/widgetOps');
+const { planOps, opId, checkOnceOn, checkExtraOn, STALE_DAYS } = require('../src/lib/widgetOps');
 const { toggleDayLog } = require('../src/lib/routine');
-const { addCount, toggleCountToday } = require('../src/lib/kinds');
+const { addCount, addDays, toggleCountToday } = require('../src/lib/kinds');
 
 // 2026-10-14 수요일
 const NOW = new Date(2026, 9, 14, 9, 30);
@@ -25,6 +25,9 @@ function doc() {
     todayExtra: [{ id: 'e1', ti: 3, text: '전화', done: false }, { id: 'e2', ti: 3, text: '장보기', done: true }],
   };
 }
+/** 지난 날의 한 번 · 쌓기 · 직접 추가한 할 일을 들이는 가장 이른 날과 그 하루 전 — 타임라인이 담는 날 수(STALE_DAYS)만큼 */
+const EDGE = addDays(TK, -STALE_DAYS);
+const OUT = addDays(TK, -STALE_DAYS - 1);
 let at = 1000;
 const op = (k, on, o = {}) => ({ kind: 'check', k, on, day: TK, at: at++, t: 'x', src: 'widget', ...o });
 
@@ -76,43 +79,57 @@ test('지난 날의 습관은 toggleHabitOn — 습관을 정한 날 전 · 앞�
   ]);
 });
 
-// R-1 F3: 앱을 다음 날 열어도 위젯이 한 것으로 그려 보인 체크를 버리지 않는다(예전에는 버렸다 — 그 규칙을 바꾼 것)
-test('지난 날(7일 안)의 한 번은 달성 — 날에 묶이지 않고, 칸마다 가장 늦은 것만', () => {
+// R-1 F3: 앱을 다음 날 열어도 위젯이 한 것으로 그려 보인 체크를 버리지 않는다(예전에는 버렸다 — 그 규칙을 바꾼 것).
+// 들이는 날 수는 타임라인이 담는 날(STALE_DAYS), 기록은 앱을 연 오늘이 아니라 체크한 그날에(checkOnceOn · checkExtraOn)
+test('지난 날(타임라인이 담는 날 안)의 한 번은 그날 달성(checkOnceOn) — 칸마다 가장 늦은 것만', () => {
   const d = doc();
-  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13' })], d, NOW), [{ kind: 'checkToday', ti: 0, ai: 0 }]);
-  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-07' })], d, NOW), [{ kind: 'checkToday', ti: 0, ai: 0 }]);
-  // 7일 밖 · 이미 달성 · 끔인데 안 한 것
-  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-06' })], d, NOW), []);
+  assert.ok(STALE_DAYS >= 7);
+  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13' })], d, NOW), [{ kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-10-13' }]);
+  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-07' })], d, NOW), [{ kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-10-07' }]);
+  assert.deepEqual(planOps([op('0-0', true, { day: EDGE })], d, NOW), [{ kind: 'checkOnceOn', ti: 0, ai: 0, day: EDGE }]);
+  // 그 밖 · 이미 달성 · 끔인데 안 한 것
+  assert.deepEqual(planOps([op('0-0', true, { day: OUT })], d, NOW), []);
   const done = { ...d, themes: d.themes.map((t, i) => (i === 0 ? { ...t, actions: t.actions.map((a, j) => (j === 0 ? { ...a, done: true } : a)) } : t)) };
   assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13' })], done, NOW), []);
   assert.deepEqual(planOps([op('0-0', false, { day: '2026-10-13' })], d, NOW), []);
   assert.deepEqual(planOps([op('0-0', false, { day: '2026-10-13' })], done, NOW), [{ kind: 'checkToday', ti: 0, ai: 0 }]);
-  // 어제 켜고 오늘 껐으면 끈 것(지금과 같다), 어제 켜고 오늘 또 켰으면 한 번만
+  // 어제 켜고 오늘 껐으면 끈 것(지금과 같다)
   assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13', at: 1 }), op('0-0', false, { at: 2 })], d, NOW), []);
-  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13', at: 1 }), op('0-0', true, { at: 2 })], d, NOW), [{ kind: 'checkToday', ti: 0, ai: 0 }]);
+  // 어제 켜고 오늘 또 켰으면 한 번만, 한 날은 어제 — 위젯의 다음 날 칸은 어제 켠 한 번을 다시 안 한 것으로 그린다
+  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13', at: 1 }), op('0-0', true, { at: 2 })], d, NOW), [{ kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-10-13' }]);
+  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-11', at: 1 }), op('0-0', true, { day: '2026-10-12', at: 2 }), op('0-0', true, { day: '2026-10-13', at: 3 })], d, NOW), [{ kind: 'checkOnceOn', ti: 0, ai: 0, day: '2026-10-11' }]);
+  // 어제 켰다 끄고 오늘 켠 것은 오늘 한 것 — 목록의 체크
+  assert.deepEqual(planOps([op('0-0', true, { day: '2026-10-13', at: 1 }), op('0-0', false, { day: '2026-10-13', at: 2 }), op('0-0', true, { at: 3 })], d, NOW), [{ kind: 'checkToday', ti: 0, ai: 0 }]);
   // 마음가짐은 지난 날에도 체크하지 않는다
   assert.deepEqual(planOps([op('0-3', true, { day: '2026-10-13' })], d, NOW), []);
 });
 
-test('지난 날(7일 안)의 직접 추가한 할 일은 아직 오늘 목록에 있을 때만 toggleExtra', () => {
+test('지난 날(타임라인이 담는 날 안)의 직접 추가한 할 일은 아직 오늘 목록에 있을 때만 — 그날 끝낸 것으로(checkExtraOn)', () => {
   const d = doc();
-  assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-13' })], d, NOW), [{ kind: 'toggleExtra', id: 'e1' }]);
-  assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-07' })], d, NOW), [{ kind: 'toggleExtra', id: 'e1' }]);
-  // 7일 밖 · 날을 넘기며 빠진 것(끝낸 할 일) · 지금과 같은 것
-  assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-06' })], d, NOW), []);
+  assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-13' })], d, NOW), [{ kind: 'checkExtraOn', id: 'e1', day: '2026-10-13' }]);
+  assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-07' })], d, NOW), [{ kind: 'checkExtraOn', id: 'e1', day: '2026-10-07' }]);
+  assert.deepEqual(planOps([op('x:e1', true, { day: EDGE })], d, NOW), [{ kind: 'checkExtraOn', id: 'e1', day: EDGE }]);
+  // 그 밖 · 날을 넘기며 빠진 것(끝낸 할 일) · 지금과 같은 것
+  assert.deepEqual(planOps([op('x:e1', true, { day: OUT })], d, NOW), []);
   assert.deepEqual(planOps([op('x:gone', true, { day: '2026-10-13' })], d, NOW), []);
   assert.deepEqual(planOps([op('x:e1', false, { day: '2026-10-13' })], d, NOW), []);
   // 어제 켜고 오늘 껐으면 끈 것
   assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-13', at: 1 }), op('x:e1', false, { at: 2 })], d, NOW), []);
+  // 어제 켜고 오늘 또 켰으면(다음 날 칸은 다시 안 한 것으로 그린다) 끝낸 날은 어제, 오늘만 켰으면 목록의 체크
+  assert.deepEqual(planOps([op('x:e1', true, { day: '2026-10-13', at: 1 }), op('x:e1', true, { at: 2 })], d, NOW), [{ kind: 'checkExtraOn', id: 'e1', day: '2026-10-13' }]);
+  assert.deepEqual(planOps([op('x:e1', true, { at: 2 })], d, NOW), [{ kind: 'toggleExtra', id: 'e1' }]);
+  // 끝낸 채 목록에 있는 것은 오늘 끝낸 것 — 지난 날의 끔은 지금처럼 목록의 체크(오늘 기록을 뺀다)
+  assert.deepEqual(planOps([op('x:e2', false, { day: '2026-10-13' })], d, NOW), [{ kind: 'toggleExtra', id: 'e2' }]);
 });
 
-test('지난 날(7일 안)의 쌓기는 그날 기록에 한 번(step) — 켬만, 그날 아직 더한 게 없을 때', () => {
+test('지난 날(타임라인이 담는 날 안)의 쌓기는 그날 기록에 한 번(step) — 켬만, 그날 아직 더한 게 없을 때', () => {
   const d = doc();
   assert.deepEqual(planOps([op('0-2', true, { day: '2026-10-13' })], d, NOW), [{ kind: 'addCountOn', ti: 0, ai: 2, delta: 1, day: '2026-10-13' }]);
   const stepped = { ...d, themes: d.themes.map((t, i) => (i === 0 ? { ...t, actions: t.actions.map((a, j) => (j === 2 ? { ...a, step: 0.5 } : a)) } : t)) };
   assert.deepEqual(planOps([op('0-2', true, { day: '2026-10-07' })], stepped, NOW), [{ kind: 'addCountOn', ti: 0, ai: 2, delta: 0.5, day: '2026-10-07' }]);
-  // 7일 밖 · 끔 · 그날 이미 더한 것
-  assert.deepEqual(planOps([op('0-2', true, { day: '2026-10-06' })], d, NOW), []);
+  assert.deepEqual(planOps([op('0-2', true, { day: EDGE })], d, NOW), [{ kind: 'addCountOn', ti: 0, ai: 2, delta: 1, day: EDGE }]);
+  // 그 밖 · 끔 · 그날 이미 더한 것
+  assert.deepEqual(planOps([op('0-2', true, { day: OUT })], d, NOW), []);
   assert.deepEqual(planOps([op('0-2', false, { day: '2026-10-13' })], d, NOW), []);
   const counted = addCount(d, 0, 2, 1, '2026-10-13');
   assert.deepEqual(planOps([op('0-2', true, { day: '2026-10-13' })], counted, NOW), []);
@@ -168,6 +185,8 @@ test('읽고 나서 쓰기는 몇 번이어도 같다 — 명령을 돌린 문�
     if (cmd.kind === 'toggleExtra') return { ...d, todayExtra: d.todayExtra.map((x) => (x.id === cmd.id ? { ...x, done: !x.done } : x)) };
     if (cmd.kind === 'toggleHabitOn') return { ...d, dayLog: toggleDayLog(d.dayLog, `${cmd.ti}-${cmd.ai}`, cmd.day) };
     if (cmd.kind === 'addCountOn') return addCount(d, cmd.ti, cmd.ai, cmd.delta, cmd.day);
+    if (cmd.kind === 'checkOnceOn') return checkOnceOn(d, cmd.ti, cmd.ai, cmd.day, TK);
+    if (cmd.kind === 'checkExtraOn') return checkExtraOn(d, cmd.id, cmd.day, TK);
     const a = d.themes[cmd.ti].actions[cmd.ai];
     if (a.kind === 'habit') return { ...d, dayLog: toggleDayLog(d.dayLog, `${cmd.ti}-${cmd.ai}`, TK) };
     if (a.kind === 'count') return toggleCountToday(d, cmd.ti, cmd.ai, TK);
@@ -186,9 +205,12 @@ test('읽고 나서 쓰기는 몇 번이어도 같다 — 명령을 돌린 문�
   const stale = [op('0-0', true, y), op('0-2', true, y), op('x:e1', true, y)];
   let s = doc();
   const once = planOps(stale, s, NOW);
-  assert.deepEqual(once.map((c) => c.kind), ['checkToday', 'addCountOn', 'toggleExtra']);
+  assert.deepEqual(once.map((c) => c.kind), ['checkOnceOn', 'addCountOn', 'checkExtraOn']);
   for (const c of once) s = apply(s, c);
   assert.equal(s.themes[0].actions[2].log['2026-10-13'], 1);
+  // 셋 다 어제의 기록 — 오늘(앱을 연 날)에는 아무것도 남지 않는다
+  assert.deepEqual([...s.dayLog['2026-10-13']].sort(), ['0-0', '0-2', '3-xe1']);
+  assert.equal(s.dayLog[TK], undefined);
   assert.deepEqual(planOps(stale, s, NOW), []);
   assert.deepEqual(planOps([...stale, ...stale], s, NOW), []);
 });

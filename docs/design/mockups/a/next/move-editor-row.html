@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 칸 편집 · 다른 영역으로 옮기기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 칸 편집 for 영어 회화 (자기계발, 습관 · 주 2회), as the app draws it, with one thing added at the foot.
+     The foot had one line: 칸 비우기 beside 저장. It becomes two:
+       · a 44pt line of the two things you can do with the cell itself, as quiet written actions:
+         칸 비우기 where it has always been (the left edge), and 다른 영역으로 옮기기 at the right edge,
+         with a chevron because it opens the next step (its chevron sits in the column of the pen tick
+         and the × above it);
+       · 저장 alone on its own line, full width.
+     So the form (유형 · 반복 · 알림) ends, then what happens to the cell, then the one ink button.
+     Neither quiet action shares a line with 저장 any more. */
+</style>
+</head>
+<body>
+<div class="a-page" id="page">
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  const AREA = A.areaIndex(doc, '자기계발'), INDEX = 2;   // 영어 회화
+  const act = doc.areas[AREA].actions[INDEX];
+  MV.areaPage('#page', doc, AREA, { focus: 2 });
+
+  const minus = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(doc, AREA, INDEX)}
+
+    <div class="s-field">
+      <div class="s-field-text">${act.text}</div>
+      <span class="t-label s-field-count">${[...act.text].length}/60</span>
+    </div>
+    <span class="t-note">얼마나, 언제·어디서를 쓰면 실천하기 쉬워요</span>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">유형</span></div>
+      ${S.segment(['한 번', '습관', '쌓기', '마음가짐'], '습관')}
+      <span class="t-note">횟수를 다 할 때까지 매일 ‘오늘’에 담겨요</span>
+    </section>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">반복</span><span class="s-quiets"><span class="s-quiet">매일</span><span class="s-quiet">평일</span><span class="s-quiet">주말</span></span></div>
+      ${S.segment(['요일마다', '횟수로'], '횟수로')}
+      <div style="height:12px"></div>
+      <div class="mv-stepper">${minus}<span>주 ${act.perWeek}회</span>${A.icon('plus', { size: 18 })}</div>
+    </section>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">알림</span></div>
+      <div class="a-list">
+        ${S.choice({ title: '없음', on: true })}
+        ${S.choice({ title: '시각 정하기' })}
+      </div>
+    </section>
+
+    <div class="mv-quiets">
+      <span class="s-quiet">칸 비우기</span>
+      <span class="s-quiet">다른 영역으로 옮기기${A.icon('chevron', { size: 16 })}</span>
+    </div>
+    <div class="a-btn mv-save">저장</div>`;
+});
+</script>
+</body>
+</html>

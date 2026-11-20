@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 월 N회 습관 · 오늘 할 일 고르기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/month-parts.css">
+</head>
+<body>
+<!-- 오늘 할 일 고르기(오늘의 '실천에서 더 고르기'가 여는 시트). 지금 앱 그대로에 묶음 하나를 맨 위에 더했다:
+     '이번 달' · 남은 날 18일, 그 아래 월 N회 습관이 '■ 관계 · 이번 달 1번 남음'과 함께. 다 채운 달에는 이 묶음이 없다. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet p-sheet">
+    <div class="s-head">
+      <div class="s-head-where"><span class="t-label">오늘 할 일 고르기</span><span class="t-label">고르는 대로 오늘 목록에 담겨요</span></div>
+      <div class="s-head-close" id="close"></div>
+    </div>
+    <div class="filters" id="pick-filters" data-bleed></div>
+    <div class="p-scroll" id="list"></div>
+    <div class="p-foot"><div class="a-btn" id="done"></div></div>
+  </div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/month-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = MO.withMonthly(doc);
+  const v = d.view, date = v.date;
+  const q = (s) => document.querySelector(s);
+
+  // behind: 오늘's header (the list is under the sheet; a sliver of its filter line would look like an accident)
+  A.header('#header', { eyebrow: `${date.month} ${date.day}일 ${date.weekday}`, title: '오늘', figure: `${v.today.done}/${v.today.of}`, action: 'more' });
+  const filters = (on) => v.today.filters.map(([name, n], i) => {
+    const a = A.areaIndex(d, name);
+    const mark = a >= 0 ? `<i class="a-dye" style="--d:var(--dye-${a + 1})"></i>` : '';
+    return `<span class="filter${i === 0 && on ? ' is-on' : ''}">${mark}${name}${i === 0 ? '' : `<b>${n}</b>`}</span>`;
+  }).join('');
+  const focus = new Set(v.weekFocus.map((f) => f.text));
+  A.tabBar('#bar', { active: 'today' });
+
+  // the sheet
+  q('#close').innerHTML = A.icon('close');
+  q('#pick-filters').innerHTML = filters(true);
+
+  // what each area still offers (the app's pickSections for the demo record): cells not in today
+  // and not achieved; under them one printed line for what is in today by itself
+  const today = new Set(v.today.rows.map((r) => r.area + '|' + r.text));
+  const hint = { '자격증 취득': '마감 D-45', '책 12권 읽기': '7/12권' };
+  const section = (ai) => {
+    const area = d.areas[ai];
+    const mine = v.today.rows.filter((r) => r.area === area.title);
+    const pick = area.actions.filter((a) => !a.done && !a.perMonth && a.kind !== 'mind' && !today.has(area.title + '|' + a.text));
+    const auto = mine.length ? `<span class="t-note p-auto">저절로 담김 ${mine.length} · ${mine.slice(0, 2).map((r) => r.text).join(', ')}${mine.length > 2 ? ` 외 ${mine.length - 2}` : ''}</span>` : '';
+    return `<section class="p-sec">
+      <div class="p-sec-head"><span class="t-label is-section"><i class="a-dye" style="--d:var(--dye-${ai + 1})"></i>${area.title}</span><span class="t-meta">오늘 ${mine.length}</span></div>
+      <div class="a-list">${pick.map((a) => A.row(d, { text: a.text, meta: hint[a.text], rightPrint: focus.has(a.text) ? '중점' : '' })).join('')}</div>
+      ${auto}
+    </section>`;
+  };
+
+  // NEW: the monthly habits lead the list, in a block of their own. Left this month = 2 − 1.
+  const m = d.areas[MO.AREA].actions[MO.INDEX];
+  const month = `<section class="p-sec">
+      <div class="p-sec-head"><span class="t-label is-section">이번 달</span><span class="t-meta">남은 날 18일</span></div>
+      <div class="a-list">${A.row(d, { text: m.text, area: d.areas[MO.AREA].title, meta: `이번 달 ${m.perMonth - m.monthDone}번 남음` })}</div>
+    </section>`;
+
+  q('#list').innerHTML = month + [0, 1, 2].map(section).join('');
+  q('#done').textContent = `오늘 ${v.today.of}개 · 다 골랐어요`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="645x1398">
+
+<title>A · next · 잠금 화면 배경 · 흰 바탕</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* The Lock Screen wallpaper, 1290 × 2796 px: a 430 × 932 pt screen at 3x (the canvas is 645 × 1398 at
+     the renderer's 2x, with the screen drawn at zoom 1.5, so the PNG is the wallpaper's own pixels).
+     The picture is SH.wallpaper: the sheet with its words in the lower two thirds, the mark and the date
+     under it. Over it, so the fit can be judged, the system's own furniture: the date, the clock, the
+     two buttons and the home indicator (SH.lockScreen: plain greys, not ours to design).
+     This file is the white ground; share-wallpaper-dark.html is the same drawing on the dark tokens. */
+  body { width: 645px; height: 1398px; background: var(--paper); }
+</style>
+</head>
+<body>
+<div id="wall"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/share-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = doc.view.date;
+  SH.wallpaper('#wall', SH.doc(doc), { mode: 'text', zoom: 1.5 });
+  const lock = document.createElement('div');
+  document.querySelector('#wall .sh-wall').appendChild(lock);
+  SH.lockScreen(lock, { date: `${d.month} ${d.day}일 ${d.weekday}`, time: '9:30' });
+});
+</script>
+</body>
+</html>

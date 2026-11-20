@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 월 N회 습관 · 실천 시트 · 월 2회 독서 모임</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/month-parts.css">
+</head>
+<body>
+<!-- 월 N회 습관의 실천 시트. 주 N회 습관의 시트(sheet.png)와 같은 차례이고, '이번 주' 자리가 '이번 달'이 된다:
+     '1/2회 · 남은 날 18일' 아래에 이 달의 주(1주~5주)가 요일 칸과 같은 그림으로 선다. 한 주 = 칸 하나, 한 주에 체크 하나.
+     저절로 담기는 날이 아니므로(마지막 주가 아님) 아래 줄 묶음 맨 위에 '오늘 할 일에 담기'가 있다. -->
+<div class="a-page">
+  <div id="header"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/month-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = MO.withMonthly(doc);
+  const act = d.areas[MO.AREA].actions[MO.INDEX];
+  // behind: the area page's header only (the sheet covers the block but for a 10pt sliver, which would look like an accident)
+  const area = d.areas[MO.AREA];
+  A.header('#header', { back: '만다라트', title: area.title, written: true, figure: `${area.done}/${area.of}`, action: 'more' });
+
+  // October 2026 by week (Monday first): 1–4 · 5–11 · 12–18 (this week) · 19–25 · 26–31.
+  // Done once, on the 8th: the second week carries the tick.
+  const weeks = [
+    { d: '1주', s: 'open' },
+    { d: '2주', s: 'done', area: MO.AREA },
+    { d: '3주', s: 'open', today: true },
+    { d: '4주', s: 'later' },
+    { d: '5주', s: 'later' },
+  ];
+
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(d, MO.AREA, MO.INDEX)}
+
+    <div class="t-title is-written s-title">${act.text}</div>
+    <span class="t-meta">습관 · 월 ${act.perMonth}회 · 마지막 주에는 오늘 할 일에 저절로 담겨요</span>
+
+    <div class="a-list" style="margin-top:18px">
+      ${A.row(d, { text: '오늘 했어요' })}
+    </div>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">이번 달</span><span class="t-label">10월</span></div>
+      <div class="s-week-say"><span class="t-figure">${act.monthDone}/${act.perMonth}<small>회</small></span><span class="t-meta">남은 날 18일</span></div>
+      ${MO.weeks(weeks)}
+    </section>
+
+    <div class="a-list" style="margin-top:24px">
+      ${A.row(d, { text: '오늘 할 일에 담기' })}
+      ${A.row(d, { text: '이 칸 달성하기', meta: '몸에 뱄다면 눌러 주세요' })}
+      ${S.linkRow({ icon: 'focus', title: '25분 집중하기' })}
+      ${S.linkRow({ icon: 'edit', title: '칸 편집하기' })}
+    </div>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">메모</span></div>
+      ${S.memo(3, '어떻게 했는지 한 줄 남겨 두세요')}
+    </section>`;
+});
+</script>
+</body>
+</html>

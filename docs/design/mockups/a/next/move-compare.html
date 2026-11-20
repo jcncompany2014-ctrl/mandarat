@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="852x916">
+<title>A · next · ··· 시트 · 지금과 바꾼 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* Not a screen: the sheet behind ··· on an area's page, as it is now (one row) and with the new row.
+     Two 390 × 844 screens side by side on a plain ground. (The page's last list, 그 밖의 실천, is left
+     out behind both, so no row is cut in half by the shorter sheet's top edge.) */
+  html, body { width: 852px; height: 916px; background: var(--tile); }
+  .col { position: absolute; top: 24px; width: 390px; }
+  .col > .t-label { display: block; height: 18px; margin-bottom: 12px; color: var(--print-strong); font-weight: 600; }
+  .phone { position: relative; width: 390px; height: 844px; overflow: hidden; background: var(--paper); }
+</style>
+</head>
+<body>
+<div class="col" style="left:24px"><span class="t-label">지금</span>
+  <div class="phone"><div class="a-page" id="now"><div class="a-scrim s-scrim"></div><div class="a-sheet s-sheet" data-sheet></div></div></div>
+</div>
+<div class="col" style="left:438px"><span class="t-label">바꾼 뒤</span>
+  <div class="phone"><div class="a-page" id="next"><div class="a-scrim s-scrim"></div><div class="a-sheet s-sheet" data-sheet></div></div></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  const AREA = A.areaIndex(doc, '자기계발');
+  const rows = [{ icon: 'edit', title: '영역 이름 고치기' }, { icon: 'swap', title: '칸 자리 바꾸기' }];
+  MV.areaPage('#now', doc, AREA, { rest: false });
+  document.querySelector('#now [data-sheet]').innerHTML = MV.menu(doc, AREA, rows.slice(0, 1));
+  MV.areaPage('#next', doc, AREA, { rest: false });
+  document.querySelector('#next [data-sheet]').innerHTML = MV.menu(doc, AREA, rows);
+});
+</script>
+</body>
+</html>

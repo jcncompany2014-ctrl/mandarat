@@ -16,19 +16,20 @@ const { blankDoc, migrate, sampleThemes } = require('../src/data/defaults');
 const { resetDoc, startNewChart } = require('../src/lib/archive');
 const { addCount, clearedAction } = require('../src/lib/kinds');
 const { archiveCellLog } = require('../src/lib/history');
-const { rolloverToday, toggleDayLog, ymd } = require('../src/lib/routine');
+const { rolloverToday, toggleDayLog, setDayLog, extraLogKey, todayItems, todayProgress, ymd } = require('../src/lib/routine');
+const { activeStreak } = require('../src/lib/history');
 const { canon, project, isCounterPath } = require('../src/lib/syncProject');
 const { cleanSyncMeta, newSyncMeta } = require('../src/lib/syncMeta');
-const { isStamp, tagOfStamp } = require('../src/lib/syncStamp');
+const { isStamp, tagOfStamp, msOf, ctrOf } = require('../src/lib/syncStamp');
 const { merge, replicaOf, adoptMerged } = require('../src/lib/syncMerge');
-const { stampLocal, epochReset, changedPaths } = require('../src/lib/syncLocal');
+const { stampLocal, epochReset, changedPaths, dayStartOf } = require('../src/lib/syncLocal');
 const { toggleCountToday } = require('../src/lib/kinds');
 const { partsSum } = require('../src/lib/syncProject');
 const { heavyDoc } = require('./helpers/heavyDoc');
 const { encodeReplica, decodeReplica, replicaDigest } = require('../src/lib/syncFile');
 const {
   SYNC_FIELD, parseStored, serializeStored, docOnlyJson, stampCommit, openStored, joinRemote, makeSyncPort,
-  stampPending, commitMeta, undoResetMeta,
+  stampPending, commitMeta, undoResetMeta, rollMerged,
 } = require('../src/lib/syncEnvelope');
 
 const ROOT = path.join(__dirname, '..');
@@ -197,6 +198,220 @@ test('joinRemote: unchanged → the same doc object; a newer-schema replica chan
   assert.ok(j.meta.last.slice(0, 11) >= bMeta.clock['c/0-0/text'].slice(0, 11), 'observe: the next local stamp is above every stamp received');
   const after = stampLocal(j.doc, editCell(j.doc, 0, 0, (a) => ({ ...a, text: '지금' })), j.meta, T0 + 1);
   assert.ok(after.clock['c/0-0/text'] > bMeta.clock['c/0-0/text'], 'a later local edit wins over the remote one');
+});
+
+// ── 하루가 바뀔 때의 오늘 목록(감사 r01 · r03) ────────────────────────────────
+
+/** 이 기기 시간대의 그 날 그 시각(2026년 11월) — 하루의 시작은 기기 시간대의 자정이다 */
+const nov = (d, h = 0, m = 0) => new Date(2026, 10, d, h, m).getTime();
+const NOV17 = '2026-11-17';
+const NOV18 = '2026-11-18';
+const NOV19 = '2026-11-19';
+
+/** 저장소 하나 — 고치기(도장) · 앱 열기(openStored: 하루 정리) · 받기(joinRemote, 다른 기기가 올린 파일을 읽는다) */
+function device(id, doc, meta) {
+  const d = { doc, meta };
+  d.edit = (fn, at) => {
+    const next = fn(d.doc);
+    d.meta = stampLocal(d.doc, next, d.meta, at);
+    d.doc = next;
+    return d;
+  };
+  d.open = (day, at) => {
+    const o = openStored(serializeStored(d.doc, d.meta), day, at, () => metaFor(id));
+    d.doc = o.doc;
+    d.meta = o.meta;
+    return d;
+  };
+  d.take = (o, day, at) => {
+    const r = joinRemote(d.doc, d.meta, wire(replicaOf(o.doc, o.meta), at), day, at);
+    d.doc = r.doc;
+    d.meta = r.meta;
+    return r;
+  };
+  return d;
+}
+
+/** 같은 표에서 시작한 아이폰 · 아이패드 — 11월 17일 아침에 한 번 맞췄다 */
+function phoneAndPad(fn = (d) => d) {
+  const base = fn(migrate({ ...blankDoc(), onboarded: true, centerGoal: 'goal', todayDate: NOV17 }));
+  const phone = device(DEVS[0], base, stampLocal(blankDoc(), base, metaFor(DEVS[0]), nov(17, 9)));
+  const pad = device(DEVS[1], base, metaFor(DEVS[1]));
+  pad.take(phone, NOV17, nov(17, 9, 1));
+  return { phone, pad };
+}
+
+const addExtra = (id, ti, text) => (d) => ({ ...d, todayExtra: [...d.todayExtra, { id, ti, text, done: false }] });
+const finishExtra = (id, day) => (d) => {
+  const x = d.todayExtra.find((e) => e.id === id);
+  return { ...d, todayExtra: d.todayExtra.map((e) => (e.id === id ? { ...e, done: true } : e)), dayLog: setDayLog(d.dayLog, extraLogKey(x.ti, x.id), day, true) };
+};
+const pickCell = (key) => (d) => ({ ...d, todayKeys: [...d.todayKeys.filter((k) => k !== key), key] });
+const finishCell = (ti, ai, day) => (d) => ({ ...editCell(d, ti, ai, (a) => ({ ...a, done: true })), dayLog: setDayLog(d.dayLog, `${ti}-${ai}`, day, true) });
+
+test('audit r01: a todo finished yesterday on the phone is not logged again today on the iPad that opens first', () => {
+  const key = extraLogKey(2, 'x1abc');
+  const evening = ({ phone }) => phone.open(NOV18, nov(18, 20)).edit(addExtra('x1abc', 2, 'Call the bank'), nov(18, 20, 59)).edit(finishExtra('x1abc', NOV18), nov(18, 21));
+  const { phone, pad } = phoneAndPad();
+  // 수요일 21:00, 아이폰: 할 일을 더하고 끝낸다
+  evening({ phone });
+  assert.deepEqual(phone.doc.dayLog, { [NOV18]: [key] });
+  // 목요일 08:00, 아이패드가 먼저 열린다(하루 정리) → 아이폰이 수요일에 올린 파일을 받는다
+  pad.open(NOV19, nov(19, 8));
+  const r = pad.take(phone, NOV19, nov(19, 8, 1));
+  assert.deepEqual(r.doc.dayLog, { [NOV18]: [key] }, 'nothing is logged on the 19th — the todo was done on the 18th');
+  assert.deepEqual(r.doc.todayExtra, [], 'the finished todo leaves the list as in a normal rollover');
+  assert.deepEqual(todayProgress(r.doc, new Date(nov(19, 8, 2))), { done: 0, total: 0 });
+  assert.equal(activeStreak(r.doc.dayLog, new Date(nov(19, 8, 2))), 1, 'the streak is the one day it was done');
+  // 아이패드가 올린 것을 아이폰이 받아도(아이폰은 수요일 화면 그대로였다) 기록은 그날 하나
+  const back = phone.take(pad, NOV19, nov(19, 8, 30));
+  assert.deepEqual(back.doc.dayLog, { [NOV18]: [key] });
+  assert.deepEqual(back.doc.todayExtra, []);
+  // 아이패드의 하루 정리가 아직이어도(받기가 먼저 끝나도) 같다
+  const two = phoneAndPad();
+  evening(two);
+  const early = two.pad.take(two.phone, NOV19, nov(19, 8));
+  assert.deepEqual(early.doc.dayLog, { [NOV18]: [key] });
+  assert.deepEqual(early.doc.todayExtra, []);
+  assert.equal(early.doc.todayDate, NOV19);
+});
+
+test('audit r01: what was finished today on the other device stays checked — once in today’s log — and unfinished todos carry over', () => {
+  const { phone, pad } = phoneAndPad();
+  // 화요일에 더한 할 일 둘(끝내지 않아 넘어온다) — 목요일 10:00 아이폰이 하나를 끝낸다
+  phone.edit(addExtra('carry1', 1, 'Buy stamps'), nov(17, 10)).edit(addExtra('carry2', 3, 'Renew pass'), nov(17, 10, 1));
+  pad.take(phone, NOV17, nov(17, 11));
+  phone.open(NOV19, nov(19, 9)).edit(finishExtra('carry1', NOV19), nov(19, 10));
+  pad.open(NOV19, nov(19, 11));
+  const r = pad.take(phone, NOV19, nov(19, 11, 1));
+  assert.deepEqual(r.doc.todayExtra.map((x) => [x.id, x.done]), [['carry1', true], ['carry2', false]]);
+  assert.deepEqual(r.doc.dayLog, { [NOV19]: [extraLogKey(1, 'carry1')] }, 'logged once, on the day it was done');
+  assert.deepEqual(todayProgress(r.doc, new Date(nov(19, 11, 2))), { done: 1, total: 2 });
+});
+
+test('audit r03: the second device’s day rollover does not delete what the first device picked today', () => {
+  const count = (d) => editCell(d, 0, 1, (a) => ({ ...a, text: 'Read 10 pages', kind: 'count', goal: 300, unit: 'p', step: 10, count: 0 }));
+  const wednesday = ({ phone, pad }) => {
+    phone.open(NOV18, nov(18, 8)).edit(pickCell('0-1'), nov(18, 8, 1));
+    pad.open(NOV18, nov(18, 9)).take(phone, NOV18, nov(18, 9, 1));
+  };
+  // 수요일: 아이폰에서 담고 아이패드에도 간다
+  const { phone, pad } = phoneAndPad(count);
+  wednesday({ phone, pad });
+  assert.deepEqual(pad.doc.todayKeys, ['0-1']);
+  // 목요일 08:00 아이폰: 열고(어제 담은 것이 빠진다) 08:01 다시 담는다
+  phone.open(NOV19, nov(19, 8));
+  assert.deepEqual(phone.doc.todayKeys, []);
+  const rolled = phone.meta.clock['tk/0-1'];
+  assert.equal(msOf(rolled), dayStartOf(NOV19, nov(19, 8)), 'the rollover tombstone carries the start of the local day, not the wake-up time');
+  assert.equal(ctrOf(rolled), 0);
+  phone.edit(pickCell('0-1'), nov(19, 8, 1));
+  // 목요일 09:00 아이패드: 처음 열고(어제 것을 뺀다) 아이폰 파일을 받는다 — 오늘 담은 것이 남는다
+  pad.open(NOV19, nov(19, 9));
+  assert.deepEqual(pad.doc.todayKeys, []);
+  const r = pad.take(phone, NOV19, nov(19, 9, 1));
+  assert.deepEqual(r.doc.todayKeys, ['0-1'], 'the 08:01 pick beats the 09:00 rollover of yesterday’s pick');
+  const back = phone.take(pad, NOV19, nov(19, 9, 2));
+  assert.deepEqual(back.doc.todayKeys, ['0-1']);
+  assert.deepEqual(todayItems(back.doc, new Date(nov(19, 9, 2))).map((i) => i.key), ['0-1']);
+  // 다시 담지 않았으면 어제 담은 것은 두 기기 모두에서 빠진다 — 아이폰의 수요일 파일을 늦게 받아도 되살아나지 않는다
+  const b = phoneAndPad(count);
+  wednesday(b);
+  b.pad.open(NOV19, nov(19, 9));
+  assert.deepEqual(b.pad.take(b.phone, NOV19, nov(19, 9, 1)).doc.todayKeys, [], 'yesterday’s pick does not come back from a stale file');
+  b.phone.open(NOV19, nov(19, 10));
+  assert.deepEqual(b.phone.take(b.pad, NOV19, nov(19, 10, 1)).doc.todayKeys, []);
+});
+
+test('picks from a replica that is still on yesterday roll over on arrival: only an unfinished once-cell carries', () => {
+  const cells = (d) => editCell(editCell(editCell(d, 0, 1, (a) => ({ ...a, text: 'Read', kind: 'count', goal: 10 })), 0, 2, (a) => ({ ...a, text: 'File taxes' })), 0, 3, (a) => ({ ...a, text: 'Send form' }));
+  const { phone, pad } = phoneAndPad(cells);
+  // 수요일 저녁 아이폰: 쌓기 칸 하나와 한 번 칸 둘을 담고, 한 번 칸 하나는 끝냈다 — 아이패드는 그 뒤로 받지 못했다
+  phone.open(NOV18, nov(18, 19)).edit(pickCell('0-1'), nov(18, 19, 1)).edit(pickCell('0-2'), nov(18, 19, 2)).edit(pickCell('0-3'), nov(18, 19, 3));
+  phone.edit(finishCell(0, 3, NOV18), nov(18, 21));
+  pad.open(NOV19, nov(19, 8));
+  const r = pad.take(phone, NOV19, nov(19, 8, 1));
+  assert.deepEqual(r.doc.todayKeys, ['0-2'], 'the count pick and the finished once-cell are yesterday’s; the unfinished once-cell carries over');
+  assert.equal(r.doc.themes[0].actions[3].done, true, 'the cell itself stays done');
+  assert.deepEqual(r.doc.dayLog, { [NOV18]: ['0-3'] });
+  // 아이폰이 목요일을 열면 같은 목록이 된다
+  phone.open(NOV19, nov(19, 12));
+  assert.deepEqual(phone.doc.todayKeys, ['0-2']);
+  assert.deepEqual(phone.take(pad, NOV19, nov(19, 12, 1)).doc.todayKeys, ['0-2']);
+  // 아이폰이 목요일에 그 칸을 끝내면 아이패드 목록에 '한 것'으로 남는다(오늘 끝낸 것은 빼지 않는다)
+  phone.edit(finishCell(0, 2, NOV19), nov(19, 13));
+  const done = pad.take(phone, NOV19, nov(19, 13, 1));
+  assert.deepEqual(done.doc.todayKeys, ['0-2']);
+  assert.deepEqual(todayProgress(done.doc, new Date(nov(19, 13, 2))), { done: 1, total: 1 });
+});
+
+test('rollMerged: stamps decide the day — past picks roll over, today’s stay, unstamped ones follow the device’s own rollover', () => {
+  const start = dayStartOf(NOV19, nov(19, 9));
+  const tag = metaFor(DEVS[0]).tag;
+  const at = (ms) => `${ms.toString(36).padStart(9, '0')}00${tag}`;
+  const past = at(nov(18, 20));
+  const today = at(nov(19, 8));
+  let doc = migrate({ ...blankDoc(), onboarded: true, todayDate: NOV19 });
+  doc = editCell(editCell(editCell(doc, 0, 0, (a) => ({ ...a, text: 'habit', kind: 'habit', days: [1] })), 0, 1, (a) => ({ ...a, text: 'once' })), 0, 2, (a) => ({ ...a, text: 'done once', done: true }));
+  doc = { ...doc, todayKeys: ['0-0', '0-1', '0-2', '1-1'], todayExtra: [{ id: 'a', ti: 0, text: 'a', done: true }, { id: 'b', ti: 0, text: 'b', done: false }] };
+  // 이미 오늘로 정리한 기기: 도장이 없는 것은 그대로
+  assert.equal(rollMerged(doc, {}, NOV19, start), doc, 'nothing stamped → nothing to judge → the same object');
+  // 도장이 없는 끝낸 할 일은 그날 기록으로 가린다: 지난 날에만 기록돼 있으면 그날 끝낸 것, 오늘 기록에도 있으면 오늘 것
+  const key = extraLogKey(0, 'a');
+  assert.deepEqual(rollMerged({ ...doc, dayLog: { [NOV18]: [key] } }, {}, NOV19, start).todayExtra.map((x) => x.id), ['b']);
+  assert.deepEqual(rollMerged({ ...doc, dayLog: { [NOV18]: [key], [NOV19]: [key] } }, {}, NOV19, start).todayExtra.map((x) => x.id), ['a', 'b']);
+  // 지난 날 도장: 습관 · 빈 칸 · 지난 날 끝낸 한 번 칸은 빠지고, 끝내지 않은 한 번 칸은 남는다
+  const clock = { 'tk/0-0': past, 'tk/0-1': past, 'tk/0-2': past, 'tk/1-1': past, 'c/0-2/done': past, 'x/a/done': past, 'x/b/done': past };
+  const rolled = rollMerged(doc, clock, NOV19, start);
+  assert.deepEqual(rolled.todayKeys, ['0-1']);
+  assert.deepEqual(rolled.todayExtra.map((x) => x.id), ['b']);
+  // 오늘 도장: 오늘 담은 것 · 오늘 끝낸 것은 남는다
+  const kept = rollMerged(doc, { ...clock, 'tk/0-0': today, 'c/0-2/done': today, 'x/a/done': today }, NOV19, start);
+  assert.deepEqual(kept.todayKeys, ['0-0', '0-1', '0-2']);
+  assert.deepEqual(kept.todayExtra.map((x) => x.id), ['a', 'b']);
+  // 이 기기의 정리가 아직(어제 날짜): 도장 없는 것은 rolloverToday와 같게, 오늘 도장이 붙은 것은 남긴다
+  const yesterday = { ...doc, todayDate: NOV18 };
+  assert.deepEqual(rollMerged(yesterday, {}, NOV19, start), rolloverToday(yesterday, NOV19));
+  const late = rollMerged(yesterday, { 'tk/0-0': today, 'x/a/done': today }, NOV19, start);
+  assert.deepEqual(late.todayKeys, ['0-0', '0-1']);
+  assert.deepEqual(late.todayExtra.map((x) => x.id), ['a', 'b']);
+  assert.equal(late.todayDate, NOV19);
+  // 날짜가 없던 문서 · 기기 날짜보다 앞선 날짜는 아무것도 빼지 않고 오늘로(rolloverToday와 같다)
+  const ahead = { ...doc, todayDate: '2026-11-20' };
+  assert.deepEqual(rollMerged(ahead, clock, NOV19, start), rolloverToday(ahead, NOV19));
+  const { todayDate: _none, ...undated } = doc;
+  assert.deepEqual(rollMerged(undated, clock, NOV19, start), rolloverToday(undated, NOV19));
+});
+
+// ── 앞선 시계(감사 r02) ──────────────────────────────────────────────────────
+
+test('audit r02: an edit made after a device whose clock ran 3 days ahead is kept — on this device and on that one', () => {
+  const NOW = nov(20, 9);
+  const DAY = 24 * HOUR;
+  const today = '2026-11-20';
+  const setText = (text) => (d) => editCell(d, 0, 0, (a) => ({ ...a, text }));
+  const base = migrate({ ...blankDoc(), onboarded: true, centerGoal: 'goal', todayDate: today });
+  const phone = device(DEVS[0], base, stampLocal(blankDoc(), base, metaFor(DEVS[0]), NOW));
+  const pad = device(DEVS[1], base, metaFor(DEVS[1]));
+  pad.take(phone, today, NOW);
+  // 아이패드: 시계가 사흘 앞선 채로 칸을 쓴다
+  pad.edit(setText('Run 3 km'), NOW + 3 * DAY);
+  phone.take(pad, today, NOW + 60e3);
+  assert.equal(phone.doc.themes[0].actions[0].text, 'Run 3 km');
+  assert.ok(msOf(phone.meta.last) < NOW + DAY, 'observe still refuses a stamp more than 24 h ahead for everything this device does not touch');
+  // 10분 뒤 아이폰에서 같은 칸을 고친다 — 새 도장은 덮어쓴 도장보다 크다
+  const skewed = phone.meta.clock['c/0-0/text'];
+  phone.edit(setText('Run 5 km'), NOW + 600e3);
+  assert.ok(phone.meta.clock['c/0-0/text'] > skewed, 'the later local stamp is above the one it overwrites');
+  // 아이패드(시계를 고쳤다)가 다른 것을 고쳐 올리고, 아이폰이 다시 받는다
+  pad.edit((d) => ({ ...d, centerGoalEn: 'x' }), NOW + 900e3);
+  assert.equal(phone.take(pad, today, NOW + 1000e3).doc.themes[0].actions[0].text, 'Run 5 km', 'the later edit is not taken back');
+  assert.equal(pad.take(phone, today, NOW + 1100e3).doc.themes[0].actions[0].text, 'Run 5 km', 'and it reaches the device that had the wrong clock');
+  // 하루 뒤 · 이틀 뒤에 고쳐도 같다(전에는 아이폰의 벽시계가 그 도장을 지날 때까지 사흘 동안 사라졌다)
+  for (const days of [1, 2, 2.9]) {
+    phone.edit(setText(`edit ${days}`), NOW + days * DAY);
+    assert.equal(phone.take(pad, today, NOW + days * DAY + 1000).doc.themes[0].actions[0].text, `edit ${days}`);
+  }
 });
 
 // ── 저장소 흉내 ──────────────────────────────────────────────────────────────
@@ -401,7 +616,8 @@ function step(world) {
   } else if (x < 0.94) {
     s.kill();
   } else if (x < 0.98) {
-    s.commit(rolloverToday(s.latest, world.today(s)));
+    // 저장소의 하루 정리(roll · 자정 눈금) — 오늘이 시작된 때의 도장('day')
+    s.commit(rolloverToday(s.latest, world.today(s)), 'day');
   } else {
     s.port.epochReset(); // '이 기기 기록으로 이어 써요'
   }
@@ -913,7 +1129,10 @@ test('source: persist writes the envelope of latest.current, snapshots are doc-o
   for (const c of calls) assert.equal(c, 'persist(latest.current)', 'the doc written is always the one the meta pairs with');
   assert.match(s, /AsyncStorage\.setItem\(mine, docOnlyJson\(d\)\)/);
   assert.doesNotMatch(s, /JSON\.stringify\(/, 'the store writes only through serializeStored · docOnlyJson');
-  assert.match(s, /commit\(rolloverToday\(latest\.current, k\)\)/);
+  // 하루 정리는 세 곳 모두 'day'로 — 오늘 목록에서 뺀 것에 오늘이 시작된 때의 도장(늦게 연 기기가 오늘 담은 칸을 지우지 않게)
+  assert.match(s, /commit\(rolloverToday\(latest\.current, k\), 'day'\)/);
+  assert.equal((s.match(/commit\(rolloverToday\(latest\.current, (k|dateKey\(\))\), 'day'\)/g) ?? []).length, 3);
+  assert.doesNotMatch(s, /commit\(rolloverToday\(latest\.current, [^)]*\)\)\)/, 'no rollover of the live doc is stamped with the wake-up time');
   assert.match(s, /queueMicrotask\(\(\) => \{[\s\S]{0,200}void persist\(latest\.current\);/);
   assert.match(s, /loaded = openStored\(read\.raw, dateKey\(\), Date\.now\(\), makeMeta\);/);
   assert.match(s, /if \(loaded\) commit\(loaded\.doc, 'none'\);/);

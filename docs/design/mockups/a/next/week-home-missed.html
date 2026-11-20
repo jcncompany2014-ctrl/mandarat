@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 홈 — 지난주 돌아보기가 남아 있는 수요일</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/week-parts.css">
+</head>
+<body>
+<!-- Home, 10월 21일 수요일. The week of 10월 12일 – 18일 was not reviewed: its row stays above the lists
+     until it is done or skipped (the quiet line under it). Screens and data: week-parts.js. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/week-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  WK.home(document.querySelector('#page'), WK.scene(base, 'late'), {
+    focus: 'group',
+    review: { title: '한 주 돌아보기', meta: '지난주 10월 12일 – 18일 · 3분이면 돼요', skip: '이번에는 건너뛰기' },
+  });
+});
+</script>
+</body>
+</html>

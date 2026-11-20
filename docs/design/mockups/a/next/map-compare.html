@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x622">
+<title>시안 · 살아 있는 지도 · 지금과 바꾼 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/map-parts.css">
+<style>
+  /* Not a screen: Home's map before and after, on the grey ground the other comparison boards use,
+     but 390pt wide so a phone-width page shows it at full size (nothing is scaled down).
+     Same record (석 달째, 11월 20일 금요일) at two moments of the day: the morning with nothing ticked
+     and the evening with all eight ticked. Only the rule for filling a cell differs between the
+     columns. Each white panel is a piece of Home: its map at 150pt and its second figure. */
+  html, body { background: var(--tile); }
+  .cmp { position: absolute; inset: 0; padding: 20px 16px 0; }
+  .cmp-grid { display: grid; grid-template-columns: 174px 174px; column-gap: 10px; }
+  .cmp-title { font: 700 20px/28px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+  .cmp-note { margin-top: 4px; font: 500 13px/19px var(--sans); color: var(--print); }
+  .cmp-tab { display: block; margin: 16px 0 6px; font: 600 13px/18px var(--sans); color: var(--print-strong); font-variant-numeric: tabular-nums; }
+  .cmp-panel { height: 218px; padding: 12px; border-radius: 12px; background: var(--paper); }
+  .cmp-cap { margin-top: 10px; font: 500 13px/18px var(--sans); color: var(--print); font-variant-numeric: tabular-nums; }
+  .cmp-cap b { font-weight: 700; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="cmp">
+  <div class="cmp-grid">
+    <div><div class="cmp-title">지금</div><div class="cmp-note">습관을 지켜도<br>지도는 그대로예요.</div></div>
+    <div><div class="cmp-title">바꾼 뒤</div><div class="cmp-note">이번 주에 지킨 칸과<br>오늘 한 칸이 칠해져요.</div></div>
+  </div>
+  <div id="rows"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/map-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const morning = M.veteran(doc);
+  const evening = M.tick(morning, morning.view.today.rows.map((r) => r.text));   // all eight ticked
+  const when = [['아침 · 오늘 할 일 0/8', morning], ['저녁 · 오늘 할 일 8/8', evening]];
+  document.querySelector('#rows').innerHTML = when.map(([label], i) => `
+    <span class="cmp-tab">${label}</span>
+    <div class="cmp-grid">
+      <div class="cmp-panel"><div id="now-${i}"></div><div class="cmp-cap" id="cap-now-${i}"></div></div>
+      <div class="cmp-panel"><div id="after-${i}"></div><div class="cmp-cap" id="cap-after-${i}"></div><div class="hero-week" id="week-${i}"></div></div>
+    </div>`).join('');
+  when.forEach(([, d], i) => {
+    M.chart(`#now-${i}`, d, { level: 'L1', cell: 16, mode: 'now', home: true });
+    M.chart(`#after-${i}`, d, { level: 'L1', cell: 16, mode: 'a', home: true });
+    const cap = `달성 <b>${d.view.progress.done}/${d.view.progress.of}칸</b>`;
+    document.querySelector(`#cap-now-${i}`).innerHTML = cap;
+    document.querySelector(`#cap-after-${i}`).innerHTML = cap;
+    document.querySelector(`#week-${i}`).innerHTML = `이번 주 지킨 습관 <b>${M.keptHabits(d)}</b>`;
+  });
+});
+</script>
+</body>
+</html>

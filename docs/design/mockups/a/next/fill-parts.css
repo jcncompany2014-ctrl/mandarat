@@ -1,0 +1,61 @@
+/* 시안 · 64칸까지 이어 쓰기 — styles for fill-parts.js. Tokens only. The page rules are chart.html's
+   and home.html's own, copied so these screens sit on the same grid as the approved ones. */
+
+/* 만다라트 tab (chart.html) */
+.sheet { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+.sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+.sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.sheet #chart { margin: 12px 0 10px; }
+.next { margin-top: 26px; }
+.next .a-row { height: 60px; }
+.next .a-row-title { font-size: 17px; line-height: 24px; }
+.next .a-row-meta { line-height: 18px; }
+
+/* Home (home.html) */
+.hero-row { display: flex; gap: 24px; margin-top: 18px; }
+.hero-fields { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2px 0; }
+.hero-field { display: flex; flex-direction: column; gap: 2px; }
+.sec { margin-top: 30px; }
+.hero-row + .sec { margin-top: 32px; }
+.sec .a-section { margin-bottom: 4px; }
+
+/* a mid dot between two facts on one line */
+.f-sep { font-style: normal; margin: 0 6px; color: var(--print); }
+
+/* NEW · the coach, folded: one 54pt row under the map, in the place of the printed note. Written
+   words (ink, so it can be tapped) with the fold glyph on the right, as 실천에서 더 고르기 on 오늘 and
+   펼치기 on the closed day. The count is the fact, the rest is the way on. */
+.f-coach { margin-top: -4px; }
+.f-coach-row { display: flex; align-items: center; justify-content: space-between; height: 54px; color: var(--ink); }
+.f-coach-text { font: 600 15px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.f-coach-count { font-weight: 500; color: var(--ink-2); }
+.f-coach-row > svg { margin-right: -4px; }
+/* unfolded: a section like any other. The question as its label (with the area's dye mark), one
+   written action on the right, then the suggestions as rows (as 이런 실천은 어때요 in the editor). */
+.f-coach-head { margin: 8px 0 6px; }
+.f-coach-head .a-dye { margin-right: 7px; }
+.f-pick-plus { width: 24px; flex: none; display: flex; justify-content: center; color: var(--print); }
+.f-picks .a-row-title { font-weight: 500; }
+.next.after-coach { margin-top: 18px; }
+
+/* NEW · the toast with an action: the app's toast (the tab bar's own capsule, 10pt above the bar,
+   13/18 ink) with one quiet written action and the fuse line of the time left */
+.f-toast {
+  position: absolute; left: 16px; right: 16px; bottom: 86px; min-height: 48px; z-index: 12;
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 20px;
+  border-radius: var(--r-tool); background: var(--capsule); box-shadow: var(--float-shadow); overflow: hidden;
+}
+.f-toast-text { flex: 1; font: 500 13px/18px var(--sans); color: var(--ink); }
+.f-toast-action { padding: 6px 10px; font: 700 13px/18px var(--sans); color: var(--ink); white-space: nowrap; }
+.f-toast-fuse { position: absolute; left: 0; bottom: 0; width: 68%; height: 1px; background: var(--print-mid); }
+
+/* NEW · Home: what is left of 시작하기 once its other steps are done. One slim row, no box. */
+.f-scroll { position: absolute; left: 0; right: 0; top: 0; }
+.f-slim { display: flex; align-items: center; justify-content: space-between; height: 44px; margin-top: 26px; }
+.f-slim-text { font: 500 16px/24px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.f-slim-text b { font-weight: 700; }
+.f-slim + .sec { margin-top: 24px; }
+/* a step with its way on at the right end of the row */
+.a-row > .a-link { align-self: center; }
+/* an unwritten area in the ledger: the way to write it, where the count would be */
+.a-ledger-row .a-link { font-size: 13px; }

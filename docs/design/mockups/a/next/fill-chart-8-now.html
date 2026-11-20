@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 64칸까지 이어 쓰기 · 만다라트 탭 · 8/64 · 지금</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/fill-parts.css">
+</head>
+<body>
+<!-- 지금의 앱 그대로(j1-17, j1-29): 첫 영역 8칸을 쓰면 '쓴 칸'이 '달성 0/64칸'으로 바뀌고 안내가 사라진다. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/fill-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  F.chartTab('#page', F.doc8(doc), { now: true });
+});
+</script>
+</body>
+</html>

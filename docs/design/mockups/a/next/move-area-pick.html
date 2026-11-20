@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 다른 영역으로 옮기기 · 옮길 영역을 고른 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 다른 영역으로 옮기기: the editor's sheet turned to one question. From the top: where the cell is now
+     (the sheet's own head: locator, 자기계발, 실천 3/8), the cell's words, the question with the
+     eight-area picker of the 담기 sheet (the cell's own area is not a choice, so it is printed without a
+     tile), and under it where the cell will land, said with the same locator and the same two printed
+     words as the head. From → to, in one grammar. One ink button; 취소 goes back to the editor.
+     Here 커리어 is chosen. It has room: its first empty place (the seventh) carries the ring. */
+  .ap-area.is-self { background: transparent; color: var(--ink-3); }
+  .ap-area.is-self .a-dye { opacity: 0.4; }
+</style>
+</head>
+<body>
+<div class="a-page" id="page">
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script src="/docs/design/mockups/a/parts-input.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  const AREA = A.areaIndex(doc, '자기계발'), INDEX = 2;   // 영어 회화
+  const TO = A.areaIndex(doc, '커리어');
+  const act = doc.areas[AREA].actions[INDEX];
+  MV.areaPage('#page', doc, AREA, { focus: 2 });
+
+  const to = doc.areas[TO];
+  const free = to.actions.findIndex((x) => !x.text);        // the first empty place, or -1
+  const where = free >= 0 ? `실천 ${free + 1}/8 자리로 들어가요` : '빈칸이 없어요 · 한 칸과 자리를 바꿀 수 있어요';
+  document.querySelector('#sheet').innerHTML = `
+    ${S.head(doc, AREA, INDEX)}
+
+    <div class="t-title is-written mv-title">${act.text}</div>
+    <span class="t-meta">습관 · 주 ${act.perWeek}회 · 달성과 기록도 함께 옮겨져요</span>
+
+    <section class="s-group">
+      <div class="a-section"><span class="t-label">어느 영역으로 옮길까요?</span></div>
+      <div id="areas"></div>
+      <div class="mv-to">${S.locator(doc, TO, free)}<div class="s-head-where"><span class="t-label"><i class="a-dye" style="--d:var(--dye-${TO + 1})"></i>${to.title}</span><span class="t-label">${where}</span></div></div>
+    </section>
+
+    <div class="s-foot">
+      <span class="s-quiet">취소</span>
+      <div class="a-btn">${free >= 0 ? '옮기기' : '바꿀 칸 고르기'}</div>
+    </div>`;
+  AP.areaPicker('#areas', doc, { selected: TO });
+  document.querySelectorAll('#areas .ap-area')[AREA].classList.add('is-self');
+});
+</script>
+</body>
+</html>

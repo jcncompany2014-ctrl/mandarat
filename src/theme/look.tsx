@@ -26,6 +26,10 @@ export function readStoredLook(): Promise<Look | null> {
   return storedRead;
 }
 
+// 앱이 뜨자마자(서체 · 언어 · 문서를 읽는 동안) 읽기 시작한다 — 문서(MandaratContext bootRead) · 언어(prefetchLangPref)와 같은 꼴.
+// LookProvider는 공급자들이 다 올라온 뒤에야 마운트되지만, 같은 읽기(storedRead)를 기다리므로 그때는 이미 와 있다
+void readStoredLook();
+
 /**
  * 화면 모드를 읽는다 — 저장된 값이 있으면 그것, 없으면(이 판을 처음 여는 기기) 예전 종이 무드에서 정해 적어 두고 돌려준다.
  * 그 뒤로는 저장된 값만 본다.

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 영역 순서 바꾸기 · 한 영역을 고른 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 영역 순서 바꾸기: the same mode on the centre block's page, for the eight area tiles (the goal in
+     the middle does not move). 관계 is chosen. On a solid dye the ink ring carries a paper line inside
+     it, so it reads on every one of the eight dyes. The line under the block (where the app prints
+     가운데 블록) says the one thing a person needs to know before swapping: the area's own eight cells
+     go with it. */
+</style>
+</head>
+<body>
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  MV.corePage('#page', doc, {
+    swap: '‘관계’와 바꿀 영역을 눌러 주세요', pick: 3,
+    under: '<span class="t-label">영역에 딸린 여덟 칸도 함께 옮겨져요</span>',
+  });
+});
+</script>
+</body>
+</html>

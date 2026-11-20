@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 칸 자리 바꾸기 · 한 칸을 고른 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 자리 바꾸기 mode on 자기계발, between the first tap and the second. One tile (영어 회화) carries
+     the ink ring: the same ring the editor puts on the cell it is about. The header's first line says
+     what the next tap does, in the cell's own words; 완료 ends the mode. No handles, no wiggle, no
+     badges: the tiles are exactly the tiles of the page (today dots, ticks and week figures stay).
+     The lists under the block step aside while the mode is on; one printed line stands in the pager's
+     place and says what a person most needs to know before moving a cell: its records go with it. */
+</style>
+</head>
+<body>
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  const AREA = A.areaIndex(doc, '자기계발');
+  // 영어 회화 is the block's third tile (top right)
+  MV.areaPage('#page', doc, AREA, { swap: '‘영어 회화’와 바꿀 칸을 눌러 주세요', pick: 2 });
+});
+</script>
+</body>
+</html>

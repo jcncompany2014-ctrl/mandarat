@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 64칸 달성 · 이미지로 남기기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* The page shown when the 64th cell is done, as the app draws it now (the day's-close anatomy of
+     dayclose.html: the count set large, one calm sentence, the full map, one ink button, no tab bar).
+     What is new is one line: the text link 이미지로 남기기 above 닫기. It opens the 표 이미지 sheet
+     (share-sheet.html), so the finished sheet can be kept as a picture. Same pair as that sheet's own
+     foot: one ink button and one centred text link in a 44pt row. */
+  .fin { padding-top: 12px; }
+  .fin-fig { margin-top: 6px; font: 700 48px/56px var(--sans); letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .fin .t-prompt { margin-top: 4px; }
+  .fin .t-note { margin-top: 2px; }
+  #map { margin-top: 28px; }
+  .fin-foot { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 24px; }
+  .fin-keep { display: flex; align-items: center; justify-content: center; height: 44px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div class="a-body fin">
+    <div class="t-folio" id="date"></div>
+    <div class="fin-fig">64/64</div>
+    <div class="t-prompt">64칸을 모두 달성했어요</div>
+    <div class="t-note" id="note"></div>
+    <div id="map"></div>
+  </div>
+  <div class="fin-foot">
+    <div class="fin-keep"><span class="a-link" id="keep"></span></div>
+    <div class="a-btn">닫기</div>
+  </div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  // the day the last cell is done: every action done, 64 of 64
+  doc.areas.forEach((a) => { a.done = 8; a.actions.forEach((x) => { x.done = true; }); });
+  const d = doc.view.date;
+  document.querySelector('#date').textContent = `${d.month} ${d.day}일 ${d.weekday}`;
+  document.querySelector('#note').textContent = `핵심 목표 · ${doc.coreGoal} · 연속 ${parseInt(doc.view.stats.streak, 10)}일째`;
+  A.chart('#map', doc, { level: 'L2', map: true, width: 342 });
+  document.querySelector('#keep').innerHTML = `이미지로 남기기${A.icon('chevron', { size: 16 })}`;
+});
+</script>
+</body>
+</html>

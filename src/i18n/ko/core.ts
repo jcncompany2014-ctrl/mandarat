@@ -88,4 +88,17 @@ export default {
   // 81칸에 들어가는지 (src/theme/chart.ts)
   fitAll: '81칸에 다 들어가요',
   fitLines: ({ max }: { max: number }) => `81칸에서는 ${max}줄까지만 보여요`,
+
+  // 오류 화면 — 다시 시도한 뒤에도 또 멈췄을 때 더 보이는 길 (src/components/ErrorBoundary.tsx)
+  /** 하루 저장본으로 열기 — date는 그 저장본을 남긴 날 */
+  crashOpenSnap: ({ date }: { date: string }) => `${date} 저장본으로 열기`,
+  crashCopyLog: '오류 내용 복사',
+  crashCopied: '오류 내용을 복사했어요',
+  crashCopyFailed: '복사하지 못했어요. 한 번 더 눌러 주세요',
+  // 화면 하나가 열리지 않을 때 그 자리에 적는 안내 (src/navigation/Root.tsx ScreenFallback)
+  screenFailTitle: '이 화면을 열지 못했어요',
+  screenFailBody: '저장된 기록은 그대로 있어요. 다시 시도하거나 다른 화면으로 가 보세요.',
+  screenFailHome: '홈으로',
+  /** 시트 하나가 열리지 않아 닫았을 때의 한 줄 */
+  sheetFail: '시트를 열지 못해 닫았어요. 기록은 그대로 있어요',
 } satisfies Namespace;

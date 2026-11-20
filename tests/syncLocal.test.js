@@ -11,11 +11,11 @@ const { blankDoc, migrate, sampleThemes } = require('../src/data/defaults');
 const { resetDoc, startNewChart } = require('../src/lib/archive');
 const { addCount, clearedAction } = require('../src/lib/kinds');
 const { archiveCellLog } = require('../src/lib/history');
-const { toggleDayLog, ymd } = require('../src/lib/routine');
+const { rolloverToday, toggleDayLog, ymd } = require('../src/lib/routine');
 const { canon, project, isCounterPath, isElementPath, partsSum, toUnits, pathOf } = require('../src/lib/syncProject');
 const { cleanSyncMeta } = require('../src/lib/syncMeta');
-const { msOf, isStamp } = require('../src/lib/syncStamp');
-const { stampLocal, epochReset, changedPaths, reattribute, gc, isStale, SYNC_TTL_MS, SYNC_TTL_DAYS } = require('../src/lib/syncLocal');
+const { msOf, ctrOf, tagOfStamp, isStamp, enc, observe, MAX_SKEW_MS } = require('../src/lib/syncStamp');
+const { stampLocal, stampDayRoll, dayStartOf, epochReset, changedPaths, reattribute, gc, isStale, SYNC_TTL_MS, SYNC_TTL_DAYS } = require('../src/lib/syncLocal');
 
 const DEV = 'aaaaaaaaaaaaaaaa';
 const T0 = Date.UTC(2026, 9, 1);
@@ -108,6 +108,7 @@ test('the fast path skips untouched sections: a one-cell edit on a heavy doc fin
   let doc = heavy;
   const find = [];
   const stamp = [];
+  const copy = [];
   const ms = (t) => Number(process.hrtime.bigint() - t) / 1e6;
   for (let i = 0; i < 31; i++) {
     const next = editCell(doc, i % 8, (i * 3) % 8, (a) => ({ ...a, text: `글 ${i}` }));
@@ -118,15 +119,23 @@ test('the fast path skips untouched sections: a one-cell edit on a heavy doc fin
     t = process.hrtime.bigint();
     meta = stampLocal(doc, next, meta, T0 + 1000 + i);
     stamp.push(ms(t));
+    // 같은 순간의 시계 사본 하나 — 이 기계가 지금 얼마나 바쁜지의 잣대
+    t = process.hrtime.bigint();
+    const plain = {};
+    for (const k of Object.keys(meta.clock)) plain[k] = meta.clock[k];
+    copy.push(ms(t));
     doc = next;
   }
   find.sort((a, b) => a - b);
   stamp.sort((a, b) => a - b);
+  copy.sort((a, b) => a - b);
   assert.ok(Object.keys(meta.clock).length > 20000, 'heavy');
   // 2만 경로 문서에서 바뀐 길 찾기는 중간값 1ms 안팎 — 바쁜 CI에서도 흔들리지 않게 여유를 두되, 통째 비교(수십 ms)는 잡는다
   assert.ok(find[15] < 5, `changedPaths median ${find[15].toFixed(2)} ms`);
-  // 나머지는 2만 경로 시계의 사본이다(순수 함수라 고쳐 쓰지 않는다) — docs/v2/V2-F.md §8 성능
-  assert.ok(stamp[15] < 40, `stampLocal median ${stamp[15].toFixed(2)} ms`);
+  // 나머지는 2만 경로 시계의 사본이다(순수 함수라 고쳐 쓰지 않는다) — docs/v2/V2-F.md §8 성능.
+  // 한가한 기계에서는 40 ms 안, 바쁜 기계(여러 테스트가 함께 돌 때)에서는 같은 자리에서 잰 사본 한 번의 몇 배 안
+  const ceiling = Math.max(40, copy[15] * 8);
+  assert.ok(stamp[15] < ceiling, `stampLocal median ${stamp[15].toFixed(2)} ms (one clock copy ${copy[15].toFixed(2)} ms)`);
 });
 
 test('stamps increase: one stamp per commit, above every earlier stamp, even when the wall clock goes back', () => {
@@ -154,6 +163,80 @@ test('stamps increase: one stamp per commit, above every earlier stamp, even whe
     meta = m;
     doc = next;
   }
+});
+
+test('audit r02: overwriting a path stamped by a clock that ran ahead gives a larger stamp; no stamp is ever at or below the epoch', () => {
+  const doc = migrate({ ...blankDoc(), onboarded: true, themes: sampleThemes(new Date(2026, 8, 1)) });
+  const far = enc(T0 + 3 * DAY, 4, 'zzzz'); // 다른 기기가 시계가 사흘 앞선 채로 찍은 도장
+  // observe는 그 도장을 받아들이지 않는다(24시간 한계) — last는 그 앞에 머문다
+  let meta = { ...metaFor(), clock: { 'c/0-0/text': far, 'c/1-1/text': far }, last: enc(T0, 0, metaFor().tag) };
+  assert.equal(observe(meta, far, T0 + 1000), meta, `more than ${MAX_SKEW_MS} ms ahead → refused`);
+  // 그 칸을 고치면 새 도장은 덮어쓴 도장보다 크다
+  const next = editCell(doc, 0, 0, (a) => ({ ...a, text: '나중에 고친 글' }));
+  const m = stampLocal(doc, next, meta, T0 + 600000);
+  assert.ok(m.clock['c/0-0/text'] > far, 'the later edit beats the stamp it overwrites');
+  assert.equal(msOf(m.clock['c/0-0/text']), msOf(far));
+  assert.equal(ctrOf(m.clock['c/0-0/text']), 5);
+  assert.equal(tagOfStamp(m.clock['c/0-0/text']), meta.tag);
+  assert.equal(m.last, m.clock['c/0-0/text']);
+  assert.equal(m.clock['c/1-1/text'], far, 'paths it did not touch keep their stamp');
+  // 앞선 도장이 없는 경로만 고치면 평소대로 벽시계의 도장(한계는 그대로다)
+  const other = stampLocal(doc, editCell(doc, 5, 5, (a) => ({ ...a, note: '다른 칸' })), meta, T0 + 600000);
+  assert.equal(msOf(other.clock['c/5-5/note']), T0 + 600000);
+  // 판이 벽시계보다 앞서 있어도(앞선 시계의 초기화를 받았다) 새 도장은 판보다 크다 — 판 이하의 도장은 지워진 값으로 읽힌다
+  const ahead = { ...metaFor(), epoch: far, last: enc(T0, 0, metaFor().tag) };
+  const e = stampLocal(doc, next, ahead, T0 + 600000);
+  assert.ok(e.clock['c/0-0/text'] > e.epoch, 'above the epoch');
+});
+
+test('audit r03: stampDayRoll stamps rollover removals with the start of the day, and everything else like stampLocal', () => {
+  const day = ymd(new Date(T0 + 30 * 60 * 60 * 1000));
+  const wall = T0 + 30 * 60 * 60 * 1000;
+  const start = dayStartOf(day, wall);
+  const w = new Date(wall);
+  assert.equal(start, new Date(w.getFullYear(), w.getMonth(), w.getDate()).getTime(), 'midnight in this device’s time zone');
+  assert.ok(start <= wall && wall - start < DAY + 3600e3);
+  assert.equal(dayStartOf('not a day', wall), start, 'not a date → the day of the wall clock');
+  assert.equal(dayStartOf(ymd(new Date(wall + 3 * DAY)), wall), start, 'a day that has not begun → the day of the wall clock (never after now)');
+  assert.equal(dayStartOf(ymd(new Date(wall - 5 * DAY)), wall), new Date(w.getFullYear(), w.getMonth(), w.getDate() - 5).getTime(), 'an earlier day → its own midnight');
+
+  let doc = migrate({ ...blankDoc(), onboarded: true, themes: sampleThemes(new Date(2026, 8, 1)), todayDate: ymd(new Date(T0)) });
+  doc = editCell(editCell(doc, 0, 0, () => ({ text: '쌓기', note: '', done: false, kind: 'count', goal: 5, count: 0 })), 0, 1, () => ({ text: '한 번', note: '', done: false, kind: 'once' }));
+  const before = { ...doc, todayKeys: ['0-0', '0-1'], todayExtra: [{ id: 'q1', ti: 1, text: '전화', done: true }, { id: 'q2', ti: 1, text: '장보기', done: false }] };
+  let meta = stampLocal(doc, before, metaFor(), T0 + 1000); // 어제 담았다
+  const rolled = rolloverToday(before, day);
+  assert.deepEqual(rolled.todayKeys, ['0-1']);
+  const m = stampDayRoll(before, rolled, meta, wall, start);
+  const removed = ['tk/0-0', 'x/q1', 'x/q1/done'];
+  assert.deepEqual(Object.keys(m.clock).filter((p) => m.clock[p] !== meta.clock[p]).sort(), removed);
+  for (const p of removed) {
+    assert.equal(m.clock[p], enc(start, 0, meta.tag), `${p}: the start of the day`);
+    assert.ok(m.clock[p] > meta.clock[p], 'above the stamp it deletes');
+  }
+  // 오늘 08:01에 다른 기기가 다시 담은 것(오늘 시작 뒤의 도장)은 이 지운 표시를 이긴다
+  assert.ok(enc(start + 8 * 3600e3 + 60e3, 0, 'bbbb') > m.clock['tk/0-0']);
+  assert.ok(m.last >= m.clock['tk/0-0'], 'last stays at or above every stamp this device issued');
+  assert.deepEqual(cleanSyncMeta(JSON.parse(JSON.stringify(m))), m, 'the meta is still clean (save → load gives the same meta)');
+  assert.equal(stampDayRoll(rolled, rolled, m, wall, start), m, 'nothing changed → the same meta');
+  // 오늘 시작 뒤에 담은 것을 빼는 정리(자정 직후에 담았다)는 지금 도장 — 그 도장보다 커야 지운 표시가 남는다
+  const lateMeta = stampLocal(doc, before, metaFor(), start + 100);
+  const late = stampDayRoll(before, rolled, lateMeta, wall, start);
+  for (const p of removed) {
+    assert.equal(msOf(late.clock[p]), wall);
+    assert.ok(late.clock[p] > lateMeta.clock[p]);
+  }
+  // 오늘 목록이 아닌 바뀜은 stampLocal과 똑같다
+  const edited = editCell(before, 3, 3, (a) => ({ ...a, note: '메모' }));
+  assert.deepEqual(stampDayRoll(before, edited, meta, wall, start), stampLocal(before, edited, meta, wall));
+  // 섞여 있으면: 뺀 것은 오늘의 시작, 나머지는 지금
+  const mixed = stampDayRoll(before, { ...rolled, centerGoal: '새 목표' }, meta, wall, start);
+  assert.equal(mixed.clock['tk/0-0'], enc(start, 0, meta.tag));
+  assert.equal(msOf(mixed.clock.cg), wall);
+  assert.equal(mixed.last, mixed.clock.cg);
+  // 판이 오늘의 시작보다 뒤면(오늘 초기화했다) 판 이하의 도장을 내지 않는다
+  const reset = epochReset(metaFor(), start + 5000, before);
+  const afterReset = stampDayRoll(before, rolled, reset, wall, start);
+  for (const p of removed) assert.ok(afterReset.clock[p] > afterReset.epoch, `${p} above the epoch`);
 });
 
 test('reattribute: counter deltas go to this device part, so b = value − Σparts never changes with local edits', () => {
@@ -269,6 +352,9 @@ test('gc drops only element stamps older than the TTL whose value is gone, at mo
   assert.equal(g.gcDay, ymd(new Date(T0)));
   assert.equal(gc(g, T0 + 1000, recent), g, 'once a day');
   assert.notEqual(gc(g, T0 + DAY, recent), g);
+  // 치운 것이 없는 날은 시계가 같은 객체다 — 엔진이 '지난번에 올린 그대로'를 객체로 알아본다(다시 세지 않는다)
+  assert.equal(gc(g, T0 + DAY, recent).clock, g.clock);
+  assert.notEqual(g.clock, meta.clock);
   assert.deepEqual(g.parts, meta.parts);
   assert.equal(SYNC_TTL_DAYS, 180);
 });

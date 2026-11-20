@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · '영역 없음' 할 일 · 담기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/tool-parts.css">
+<style>
+  .sheet { bottom: calc(336px + 8px); padding: 8px 24px 16px; }
+  #field { margin-top: 16px; }
+</style>
+</head>
+<body>
+<!-- (c) 담기. 아홉 번째 고르기 '영역 없음'이 처음부터 골라져 있다. 여덟 영역은 만다라트 가운데 블록에서
+     앉은 자리 그대로 3 × 3으로 서고, 가운데(핵심 목표 자리)가 '영역 없음'. 물음은 '어느 영역의 일인가요? (고르지 않아도 돼요)'.
+     위 목록: 영역 없이 담은 줄은 색 표시 없이 '직접 적음'. -->
+<div class="a-page">
+  <div class="behind">
+    <div id="header"></div>
+  </div>
+  <div class="a-scrim"></div>
+  <div class="a-sheet sheet">
+    <div class="ap-grabber"></div>
+    <div class="sheet-head"><span class="t-label">오늘 할 일 <b id="count"></b></span><span class="a-link" id="done">닫기</span></div>
+    <div class="a-list" id="rows"></div>
+    <div class="sect"><span class="t-label">어느 영역의 일인가요? (고르지 않아도 돼요)</span></div>
+    <div id="areas"></div>
+    <div id="field"></div>
+  </div>
+  <div id="kb"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-input.js"></script>
+<script>
+A.ready().then((doc) => {
+  const v = doc.view, d = v.date;
+  A.header('#header', { eyebrow: `${d.month} ${d.day}일 ${d.weekday} · ${d.week}`, title: doc.coreGoal, headline: true, action: 'settings' });
+
+  // the errand of the audit capture (j2-18d), written in this sheet a moment ago: it carries no area now,
+  // so its meta has no colour mark, only '직접 적음'
+  const added = [
+    { text: '세탁소 들르기', meta: '직접 적음 · 방금' },
+  ];
+  document.querySelector('#rows').innerHTML = added.map((r) => A.row(doc, r)).join('');
+  document.querySelector('#count').textContent = `${v.today.done}/${v.today.of + added.length}`;
+
+  // nine choices in chart order: 0 1 2 / 3 · 4 / 5 6 7, the neutral one in the middle and chosen
+  const SELECTED = -1; // -1 = 영역 없음
+  const tile = (i) => {
+    const on = i === SELECTED;
+    const style = on ? ` style="background:${A.tint(i)};color:var(--dye-${i + 1})"` : '';
+    return `<div class="ap-area${on ? ' is-on' : ''}"${style}><i class="a-dye" style="--d:var(--dye-${i + 1})"></i>${doc.areas[i].title}</div>`;
+  };
+  const none = `<div class="ap-area is-none${SELECTED < 0 ? ' is-on' : ''}">영역 없음</div>`;
+  const host = document.querySelector('#areas');
+  host.className = 'ap-areas is-nine';
+  host.innerHTML = [0, 1, 2, 3].map(tile).join('') + none + [4, 5, 6, 7].map(tile).join('');
+
+  AP.field('#field', { value: '', placeholder: '예) 서류 제출하기', button: '담기' });
+  AP.keyboard('#kb');
+});
+</script>
+</body>
+</html>

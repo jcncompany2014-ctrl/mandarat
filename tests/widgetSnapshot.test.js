@@ -1,4 +1,4 @@
-// 위젯 타임라인(src/lib/widgetSnapshot.ts) — 지금 + 다음 자정 7번, plist에 그대로 들어가는 값만.
+// 위젯 타임라인(src/lib/widgetSnapshot.ts) — 지금 + 다음 자정 29번 + 닫는 칸, plist에 그대로 들어가는 값만.
 require('./register');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -27,15 +27,29 @@ function doc(extra = {}) {
 }
 const tl = (d = doc(), o = {}) => W.widgetTimeline(d, NOW, { pat: 'dots', lang: 'ko', ...o });
 
-test('8칸 — 지금, 그다음은 자정마다(날짜가 늘어난다)', () => {
+test('30칸 — 지금, 그다음은 자정마다(날짜가 늘어난다). 그 뒤에 닫는 칸 하나', () => {
   const t = tl();
-  assert.equal(t.length, 8);
+  assert.equal(W.WIDGET_DAYS, 30);
+  assert.equal(t.length, 31);
   assert.equal(t[0].date, NOW.getTime());
-  for (let i = 1; i < 8; i++) {
+  for (let i = 1; i < 30; i++) {
     assert.equal(t[i].date, new Date(2026, 9, 14 + i).getTime(), `자정 ${i}`);
     assert.ok(t[i].date > t[i - 1].date);
   }
-  assert.deepEqual(t.map((e) => e.props.day), ['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20', '2026-10-21']);
+  assert.deepEqual(t.slice(0, 8).map((e) => e.props.day), ['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20', '2026-10-21']);
+  // 마지막 칸은 29일 뒤 — 달을 넘어서도 날마다 하나씩, 빠지거나 겹치는 날 없이
+  assert.equal(t[29].props.day, '2026-11-12');
+  assert.equal(new Set(t.slice(0, 30).map((e) => e.props.day)).size, 30);
+  // 닫는 칸 — 마지막 날이 끝나는 자정부터: 목록 없이 expired만, day는 마지막 날 그대로(Siri · 위젯이 오늘로 읽지 않는다)
+  const closing = t[30];
+  assert.equal(closing.date, new Date(2026, 9, 14 + 30).getTime());
+  assert.deepEqual({ expired: closing.props.expired, day: closing.props.day, items: closing.props.items, done: closing.props.done, total: closing.props.total, more: closing.props.more },
+    { expired: true, day: '2026-11-12', items: [], done: 0, total: 0, more: 0 });
+  for (const k of ['goal', 'cells', 'names', 'lines', 'pal', 'pat', 'url', 'v']) assert.deepEqual(closing.props[k], t[29].props[k], k);
+  for (const e of t.slice(0, 30)) assert.ok(!('expired' in e.props), `${e.props.day}: 그날의 칸에는 expired가 없다`);
+  // 첫 칸에만 first — 위젯 고르기 화면의 미리 보기로 쓰이는 칸(위젯이 날짜로 견주지 않는다)
+  assert.equal(t[0].props.first, true);
+  for (const e of t.slice(1)) assert.ok(!('first' in e.props), `${e.props.day}: first는 첫 칸에만`);
   assert.equal(t[1].props.date, msg('ko').fmt.monthDayDow({ d: new Date(2026, 9, 15) }));
   assert.equal(t[0].props.date, '10월 14일 수');
   // 월말을 넘어도
@@ -145,10 +159,10 @@ test('문구 — ko · ja · en 모두, 틀은 채우지 않고 넘긴다', () =
     const p = tl(doc(), { lang })[0].props;
     assert.deepEqual(p.lines, (({ galleryName, galleryDesc, ...lines }) => lines)(msg(lang).widget), lang); // 위젯 고르기 문구(V2-C)는 위젯에 넘기지 않는다
     assert.deepEqual(Object.keys(p.lines).sort(), [
-      'allDone', 'checked', 'doneShort', 'empty', 'focus', 'left', 'leftShort', 'leftUnit', 'listHead', 'more', 'next', 'nextHead', 'progress', 'today', 'unchecked',
+      'allDone', 'checked', 'doneShort', 'empty', 'focus', 'left', 'leftShort', 'leftUnit', 'listHead', 'more', 'next', 'nextHead', 'progress', 'stale', 'today', 'unchecked',
     ]);
     for (const k of ['left', 'more', 'leftUnit']) assert.ok(p.lines[k].includes('{n}'), `${lang}.${k}`);
-    for (const k of ['listHead', 'nextHead', 'focus']) assert.ok(p.lines[k] && !/[{}]/.test(p.lines[k]), `${lang}.${k}`);
+    for (const k of ['listHead', 'nextHead', 'focus', 'stale']) assert.ok(p.lines[k] && !/[{}]/.test(p.lines[k]), `${lang}.${k}`);
     for (const k of ['next', 'checked', 'unchecked', 'progress']) assert.ok(p.lines[k].includes('{t}'), `${lang}.${k}`);
     assert.ok(p.lines.progress.includes('{n}'), `${lang}.progress`);
     assert.ok(!p.lines.progress.includes('/'), `${lang}.progress: 빗금 없이 말로`);
@@ -161,7 +175,7 @@ test('문구 — ko · ja · en 모두, 틀은 채우지 않고 넘긴다', () =
 test('위젯 다리에 넘길 꼴 — date만 Date로', () => {
   const t = tl();
   const e = W.toWidgetEntries(t);
-  assert.equal(e.length, 8);
+  assert.equal(e.length, 31);
   assert.ok(e[0].date instanceof Date);
   assert.equal(e[3].date.getTime(), t[3].date);
   assert.equal(e[3].props, t[3].props);

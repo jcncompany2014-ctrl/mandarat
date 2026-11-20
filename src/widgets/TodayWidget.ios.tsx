@@ -11,6 +11,7 @@
 // - 틴트(iOS 18 accented)·잠금 화면(vibrant)·잠금 화면 크기(accessory*)는 색을 지우므로 색 대신 시스템의 단계 색
 //   (hierarchical primary · secondary …)과 불투명도로 그린다: 달성 1.0, 적은 칸 0.45, 빈 칸 0.18, 영역 · 가운데 1.0.
 // - 글꼴은 시스템 글꼴(Pretendard는 위젯 확장에 넣을 수 없다, §2.7). 틱은 SF Symbol 'checkmark'.
+// - 칸의 날(p.day)이 이 기기의 오늘이 아니면(지난 칸) 목록 · 수 대신 앱을 열어 달라는 한 줄만 그리고 체크를 받지 않는다(아래 stale).
 // tests/widgetLayout.test.js · tests/a-n1.test.js가 바꾼 글자를 vm에서 돌려 이 약속을 확인한다.
 import {
   AccessoryWidgetBackground, Button, Circle, Gauge, HStack, Image, Rectangle, RoundedRectangle, Spacer, Text, VStack, ZStack,
@@ -60,23 +61,46 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   // 50건은 하루에 여러 번 켜고 끄면 닿을 수 있었다(R-1 F5)
   const OPS_MAX = 300;
 
+  // ── 지난 칸: 이 칸의 날(day)이 이 기기의 오늘이 아니다 ──
+  // 타임라인의 마지막 칸이 지나도록 앱을 열지 않으면(또는 그 사이 시계 · 시간대가 바뀌면) 위젯은 지난 날의 목록에 머문다.
+  // 그때는 목록 대신 앱을 열어 달라는 한 줄(L.stale)만 보이고 체크를 받지 않는다 — 받으면 지난 날짜로 적히고, 며칠 뒤에는
+  // 이미 한 것으로 보여 그날은 체크할 수도 없다. Siri의 TodayStore.current와 같은 규칙이다.
+  // 지금은 new Date()로 읽는다 — env.date는 지금이 아니라 이 칸의 시각이다(expo-widgets EntryView.swift).
+  // WidgetKit은 앞날의 칸을 미리 그려 두므로, 아직 오지 않은 칸(칸의 시각 > 지금)은 견주지 않는다.
+  // 그래서 마지막 날이 끝나는 자정에는 앱이 써 둔 닫는 칸(p.expired — widgetSnapshot widgetTimeline)이 한 줄을 보인다:
+  // 미리 그려 둔 그 칸이 제때 나타나고, 날짜를 견주는 것은 그 밖의 경우(다시 그려질 때 · 누를 때 · 시계가 바뀌었을 때)를 맡는다.
+  // 첫 칸(p.first)은 그릴 때 견주지 않는다 — 위젯 고르기 화면의 미리 보기가 늘 첫 칸이라(expo-widgets getSnapshot), 앱을 연 지
+  // 며칠 지난 날에도 거기에는 목록의 모습이 보여야 한다. 누를 때는 첫 칸도 날짜를 본다(아래 press).
+  /** 이 기기 시간대의 날짜 'YYYY-MM-DD' — 앱의 ymd()(src/lib/routine.ts)와 같은 꼴 */
+  function localDay(d: Date) {
+    const m = d.getMonth() + 1;
+    const n = d.getDate();
+    return String(d.getFullYear()) + '-' + (m < 10 ? '0' : '') + String(m) + '-' + (n < 10 ? '0' : '') + String(n);
+  }
+  const now = new Date();
+  const upcoming = !!e.date && typeof e.date.getTime === 'function' && e.date.getTime() > now.getTime();
+  const stale = !!p.expired || (!p.first && day !== '' && !upcoming && day !== localDay(now));
+
   /** '{n}' · '{t}' 틀 채우기 */
   function fill(tpl: string | undefined, n: number, t: string) {
     return String(tpl || '').replace('{n}', String(n)).replace('{t}', function () { return t; });
   }
   function status() {
+    if (stale) return fill(L.stale, 0, '');
     if (total === 0) return fill(L.empty, 0, '');
     if (left === 0) return fill(L.allDone, 0, '');
     return fill(L.left, left, '');
   }
   /** 한 수의 읽어 주기 — '1/10'의 빗금 대신 말로('오늘 10개 중 1개 했어요') */
   function spoken() {
+    if (stale) return fill(L.stale, 0, '');
     if (total === 0) return fill(L.empty, 0, '');
     // 앱을 새로 열기 전의 옛 스냅숏에는 progress가 없다 — 그때는 예전 모양 그대로
     if (!L.progress) return String(done) + '/' + String(total) + ' ' + fill(L.today, 0, '');
     return fill(L.progress, done, String(total));
   }
   function nextItem() {
+    if (stale) return null;
     for (let i = 0; i < items.length; i++) if (!items[i].d) return items[i];
     return null;
   }
@@ -102,6 +126,11 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   function text(s: string, size: number, weight: 'regular' | 'medium' | 'semibold' | 'bold', c: string, level: 'primary' | 'secondary', more?: ReturnType<typeof frame>[]) {
     const mods = [font({ size: size, weight: weight }), fg(c, level), lineLimit(1)];
     return <Text modifiers={more ? mods.concat(more) : mods}>{s}</Text>;
+  }
+  /** 지난 칸의 한 줄 — 빈 날의 글과 같은 무게(13, print)로 두 줄까지, 좁으면 줄여 맞춘다. width > 0이면 그 폭에 묶는다(작은 위젯) */
+  function staleNote(width: number) {
+    const mods = [font({ size: 13, weight: 'medium' }), fg(print, 'secondary'), lineLimit(2), minimumScaleFactor(0.7)];
+    return <Text modifiers={width > 0 ? mods.concat([frame({ width: width, alignment: 'leading' })]) : mods}>{fill(L.stale, 0, '')}</Text>;
   }
 
   // ── 종이 무늬: 모눈(grid)·줄(lines)만 24pt마다 괘선을 긋는다(색 그대로일 때만). 점(dots)·무지(blank)는 그리지 않는다 ──
@@ -199,17 +228,17 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   function figure(s: string, fit?: boolean) {
     return text(s, 19, 'bold', ink, 'primary', fit ? [monospacedDigit(), minimumScaleFactor(0.7), layoutPriority(1)] : [monospacedDigit()]);
   }
-  /** '● 오늘 … 1/10' — 작게 · 크게. 읽어 주기는 말로 한 번 */
+  /** '● 오늘 … 1/10' — 작게 · 크게. 읽어 주기는 말로 한 번. 지난 칸에서는 수를 그리지 않고(그날의 수다) 이름만 읽는다 — 한 줄은 아래 글이 말한다 */
   function todayHead(width: number) {
     return (
       <HStack
         alignment="firstTextBaseline"
         spacing={4}
-        modifiers={[width > 0 ? frame({ width: width }) : frame({ maxWidth: 2000 }), accessibilityElement('ignore'), accessibilityLabel(spoken())]}
+        modifiers={[width > 0 ? frame({ width: width }) : frame({ maxWidth: 2000 }), accessibilityElement('ignore'), accessibilityLabel(stale ? fill(L.today, 0, '') : spoken())]}
       >
         {headLabel(fill(L.today, 0, ''), width > 0)}
         <Spacer minLength={width > 0 ? 2 : 4} />
-        {figure(String(done) + '/' + String(total), width > 0)}
+        {stale ? null : figure(String(done) + '/' + String(total), width > 0)}
       </HStack>
     );
   }
@@ -219,10 +248,10 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
     const before = parts[0] || '';
     const after = parts.slice(1).join('');
     return (
-      <HStack alignment="firstTextBaseline" spacing={4} modifiers={[frame({ maxWidth: 2000 }), accessibilityElement('ignore'), accessibilityLabel(status())]}>
+      <HStack alignment="firstTextBaseline" spacing={4} modifiers={[frame({ maxWidth: 2000 }), accessibilityElement('ignore'), accessibilityLabel(stale ? fill(L.listHead, 0, '') : status())]}>
         {headLabel(fill(L.listHead, 0, ''))}
         <Spacer minLength={4} />
-        <HStack alignment="firstTextBaseline" spacing={1} modifiers={[opacity(left > 0 ? 1 : 0)]}>
+        <HStack alignment="firstTextBaseline" spacing={1} modifiers={[opacity(left > 0 && !stale ? 1 : 0)]}>
           {before ? text(before, 12, 'medium', ink2, 'secondary') : null}
           {figure(String(left))}
           {after ? text(after, 12, 'medium', ink2, 'secondary') : null}
@@ -260,8 +289,11 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   }
 
   // ── 줄: [□] 할 일 … 오른쪽(D-2 · 중점 · 영역). iOS 17부터 줄을 누르면 위젯에서 바로 체크한다 ──
+  // 누르는 순간의 날짜가 이 칸의 날이 아니면 아무것도 돌려주지 않는다(expo-widgets AppIntent는 그때 타임라인을 쓰지 않고
+  // 위젯만 다시 그린다 — 그러면 위의 stale이 한 줄을 보인다). 그린 뒤 자정이 지났거나 시계가 바뀐 칸에서 체크가 다른 날로 적히지 않게
   function press(it: WidgetItem) {
     return function () {
+      if (day !== localDay(new Date())) return undefined;
       const on = !it.d;
       const nextItems = items.map(function (x) { return x.k === it.k ? Object.assign({}, x, { d: on }) : x; });
       const op: WidgetOp = { kind: 'check', k: it.k, on: on, day: day, at: Date.now(), t: it.t, src: 'widget' };
@@ -301,6 +333,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
     );
   }
   function list(max: number) {
+    if (stale) return staleNote(0);
     if (total === 0) return text(fill(L.empty, 0, ''), 13, 'medium', print, 'secondary');
     if (left === 0) return text(fill(L.allDone, 0, ''), 15, 'semibold', ink, 'primary');
     const shown = items.slice(0, max);
@@ -312,17 +345,19 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
     return root(<Text>{status()}</Text>);
   }
   if (family === 'accessoryCircular') {
-    // 오늘 한 몫의 게이지(.accessoryCircular — 아래가 열린 고리) 안에 '오늘'과 1/10
+    // 오늘 한 몫의 게이지(.accessoryCircular — 아래가 열린 고리) 안에 '오늘'과 1/10. 지난 칸은 빈 고리에 '오늘'만(읽어 주기가 한 줄을 말한다)
     return root(
       <ZStack modifiers={[accessibilityElement('ignore'), accessibilityLabel(spoken())]}>
         <AccessoryWidgetBackground />
-        <Gauge value={total > 0 ? Math.min(1, done / total) : 0} modifiers={[gaugeStyle('circular')]} />
+        <Gauge value={total > 0 && !stale ? Math.min(1, done / total) : 0} modifiers={[gaugeStyle('circular')]} />
         <VStack spacing={0}>
           {text(fill(L.today, 0, ''), 10, 'semibold', ink2, 'secondary')}
-          <HStack alignment="firstTextBaseline" spacing={0}>
-            {text(String(done), 17, 'bold', ink, 'primary', [monospacedDigit()])}
-            {total > 0 ? text('/' + String(total), 11, 'semibold', ink2, 'secondary', [monospacedDigit()]) : null}
-          </HStack>
+          {stale ? null : (
+            <HStack alignment="firstTextBaseline" spacing={0}>
+              {text(String(done), 17, 'bold', ink, 'primary', [monospacedDigit()])}
+              {total > 0 ? text('/' + String(total), 11, 'semibold', ink2, 'secondary', [monospacedDigit()]) : null}
+            </HStack>
+          )}
         </VStack>
       </ZStack>
     );
@@ -341,7 +376,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       return root(
         <VStack alignment="leading" spacing={0} modifiers={[frame({ maxWidth: 2000, alignment: 'leading' })]}>
           {head}
-          {text(status(), 16, 'semibold', ink, 'primary')}
+          {stale ? staleNote(0) : text(status(), 16, 'semibold', ink, 'primary')}
         </VStack>
       );
     }
@@ -385,7 +420,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
             {colourMap(12, 1.5, 2)}
             <VStack alignment="leading" spacing={6} modifiers={[frame({ maxWidth: 2000, alignment: 'topLeading' })]}>
               {todayHead(0)}
-              {text(p.date || '', 13, 'medium', print, 'secondary')}
+              {text(stale ? '' : p.date || '', 13, 'medium', print, 'secondary')}
               <Text modifiers={[font({ size: 17, weight: 'bold' }), fg(ink, 'primary'), lineLimit(4)]}>{p.goal || ''}</Text>
             </VStack>
           </HStack>
@@ -394,12 +429,12 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
       </ZStack>
     );
   }
-  // systemSmall(기본) — 지도 폭에 맞춘 머리 한 줄 + 색 지도(칸 9, 사이 1 · 블록 2)
+  // systemSmall(기본) — 지도 폭에 맞춘 머리 한 줄 + 색 지도(칸 9, 사이 1 · 블록 2). 지난 칸은 머리 자리에 한 줄(지도 폭, 두 줄까지)
   return root(
     <ZStack>
       {paperLayer()}
       <VStack alignment="leading" spacing={6}>
-        {todayHead(mapWidth(9, 1, 2))}
+        {stale ? staleNote(mapWidth(9, 1, 2)) : todayHead(mapWidth(9, 1, 2))}
         {colourMap(9, 1, 2)}
       </VStack>
     </ZStack>

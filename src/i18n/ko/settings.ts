@@ -118,6 +118,8 @@ export default {
   /** 문의 메일 제목 — version은 app.json의 버전 */
   mailSubject: ({ version }: { version: string }) => `만다라트 문의 ${version}`,
   openFail: '열 수 없어요',
+  /** 문의 메일 본문 — 이 기기에 남은 오류 기록(lib/crashLog)을 붙일 때 그 위에 적는 한 줄 */
+  mailLogHead: '아래는 이 기기에 남은 오류 기록이에요. 지우고 보내도 괜찮아요.',
   /** 전체 초기화 확인 글에 덧붙이는 한 문장 — iCloud 동기화가 켜져 있을 때만(다른 기기도 이 초기화를 따른다) */
   resetAskSync: 'iCloud 동기화를 켜 두어서, 같은 Apple 계정의 다른 기기에서도 지워져요.',
 } satisfies Namespace;
