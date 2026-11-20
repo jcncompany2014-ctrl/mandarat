@@ -111,6 +111,28 @@ test('히트맵 — 첫 기록 전과 아직 안 온 날은 그리지 않고, �
   assert.equal(sv.heatSpeech(map), '최근 10주 중 2일 실천, 가장 많이 한 날 10월 13일 화요일 2번');
 });
 
+test('히트맵 진하기 — 보이는 10주 안에서 내가 가득 채운 날에 견준 몫, 마감한 날은 다 함', () => {
+  const weeks = calendarWeeks(WED, 10);
+  const many = (n) => new Array(n).fill('0-0');
+  // 하루 여덟 개쯤 하는 사람 — 예전 절대 구간에서는 5개 이상이 모두 맨 위(먹)였다
+  const log = { '2026-10-05': many(8), '2026-10-06': many(7), '2026-10-07': many(4), '2026-10-08': many(2), '2026-10-09': many(8), '2026-10-12': many(5), '2026-10-13': many(8) };
+  const bins = (map) => Object.fromEntries(map.cols.flat().filter((c) => c.count > 0).map((c) => [c.date.slice(8), c.bin]));
+  assert.deepEqual(bins(sv.heatMap(log, weeks, WED)), { '05': 4, '06': 3, '07': 2, '08': 1, '09': 4, 12: 2, 13: 4 });
+  // 마감한 날 — 10/8은 두 개뿐이지만 그날 목록을 다 했다. 기록이 없는 날은 마감이어도 빈 날
+  const closed = sv.heatMap(log, weeks, WED, 'ko', ['2026-10-08', '2026-10-10']);
+  assert.equal(bins(closed)['08'], 4);
+  const byDate = Object.fromEntries(closed.cols.flat().map((c) => [c.date, c]));
+  assert.deepEqual([byDate['2026-10-10'].state, byDate['2026-10-10'].bin], ['empty', 0]);
+  // 하루 한두 번 하는 사람 — 가득 채운 날의 바닥이 5라 통째로 진해지지 않는다
+  const light = sv.heatMap({ '2026-10-05': many(1), '2026-10-06': many(2), '2026-10-07': many(1) }, weeks, WED);
+  assert.deepEqual(bins(light), { '05': 1, '06': 1, '07': 1 });
+  // 가장 많이 한 날 · 읽는 말은 횟수 그대로
+  assert.deepEqual(sv.heatMap(log, weeks, WED).best, { date: '2026-10-13', count: 8, thisWeek: true });
+  // 화면은 문서의 마감한 날을 넘긴다
+  const stats = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src/screens/Stats.tsx'), 'utf8');
+  assert.match(stats, /heatMap\(doc\.dayLog, calendarWeeks\(new Date\(\), 10\), new Date\(\), l, doc\.closedDays\)/);
+});
+
 test('히트맵 — 기록이 없으면 지난 날은 빈 양식(테두리)으로', () => {
   const map = sv.heatMap({}, calendarWeeks(WED, 10), WED);
   const past = map.cols.flat().filter((c) => c.date <= '2026-10-14');

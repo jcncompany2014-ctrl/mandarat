@@ -192,20 +192,49 @@ export function bestDay<T extends { date: string; count: number }>(cells: readon
 
 // ── 진하기 · 칸 활동 · 기록 ────────────────────────────────────────────────────
 
+/** '가득 채운 날'의 바닥 — 하루 다섯 번(예전 절대 구간의 맨 위 '5+'). 하루 한두 번 하는 사람의 달력이 통째로 진해지지 않게 */
+export const FULL_DAY_MIN = 5;
+
 /**
- * 하루 실천 수 → 진하기 0~4. 절대 구간(0 · 1 · 2 · 3~4 · 5+)이라 사람마다, 주마다 기준이 흔들리지 않는다
- * (가장 많이 한 날에 맞춰 늘이면 하루 1번만 한 주도 진하게 보인다).
+ * 내가 '가득 채운 날'의 실천 수 — 보이는 기간에 기록이 있던 날들의 상위 10% 자리(가까운 순위), 적어도 FULL_DAY_MIN.
+ * 그날의 오늘 목록이 몇 개였는지는 남지 않는다(dayLog에는 한 것만 남고, 목록은 날마다 바뀐다). 그래서 '목록 중 얼마나 했나'는
+ * 내가 가득 채우던 날에 견줘 어림한다. 가장 많이 한 하루(최댓값)가 아니라 상위 10%라, 유난히 많이 한 하루가 나머지를 옅게 만들지 않는다.
  */
-export function dayBin(n: number): 0 | 1 | 2 | 3 | 4 {
-  if (!(n >= 1)) return 0;
-  if (n < 2) return 1;
-  if (n < 3) return 2;
-  if (n < 5) return 3;
-  return 4;
+export function fullDay(counts: readonly number[]): number {
+  const active = counts.filter((n) => n >= 1).sort((a, b) => a - b);
+  if (active.length === 0) return FULL_DAY_MIN;
+  return Math.max(FULL_DAY_MIN, active[Math.ceil(active.length * 0.9) - 1]);
 }
 
-/** 범례 — 진하기 1~4의 이름(적게/많이 대신 실제 횟수) */
-export const DAY_BIN_LABELS = ['1', '2', '3', '5+'] as const;
+/**
+ * 하루 실천 수 → 진하기 0~4: 안 함 · 3분의 1쯤 · 3분의 2쯤 · 거의 다 · 다 함(최근 10주 달력 · 한 해 장부).
+ * full(fullDay)에 견준 몫으로 가른다 — 절반 아래 1, 8할 아래 2, 그 위 3, 다 채우면 4.
+ * closed: 오늘 할 일을 마지막 하나까지 해 마감한 날(doc.closedDays — 남아 있는 단 하나의 '그날 목록을 다 했다'는 기록)은 수와 상관없이 4.
+ * 예전의 절대 구간(1 · 2 · 3~4 · 5+)은 하루 여덟 개쯤 하는 사람의 달력을 날마다 가장 진한 칸으로 채웠다.
+ */
+export function shareBin(n: number, full: number, closed = false): 0 | 1 | 2 | 3 | 4 {
+  if (!(n >= 1)) return 0;
+  if (closed) return 4;
+  const share = n / Math.max(1, full);
+  if (share >= 1) return 4;
+  if (share >= 0.8) return 3;
+  if (share >= 0.5) return 2;
+  return 1;
+}
+
+/**
+ * 닳은 자리(8개 영역) — 칸마다 최근 4주 중 한 날 수 → 진하기 0~3: 0 · 1~2일 · 3~4일 · 5일 이상.
+ * 절대 구간이라 사람마다, 주마다 기준이 흔들리지 않는다. 세 단(tint · wash · washL1)까지만 — 영역 색(dye)은 이름 칸의 것.
+ */
+export function wearBin(n: number): 0 | 1 | 2 | 3 {
+  if (!(n >= 1)) return 0;
+  if (n < 3) return 1;
+  if (n < 5) return 2;
+  return 3;
+}
+
+/** 닳은 자리 범례 — 진하기 1~3이 시작하는 날 수 */
+export const WEAR_BIN_LABELS = ['1', '3', '5+'] as const;
 
 /**
  * 칸마다 최근 days일(오늘 포함) 중 기록이 있던 날 수 — [영역 ti][칸 ai] 8×8.

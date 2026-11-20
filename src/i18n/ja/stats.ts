@@ -118,4 +118,6 @@ export default {
   linkRateHint: '今週の点数をつけるマスを開きます',
   linkToday: '今日を見る',
   linkTodayHint: '今日のやることから25分の集中を始められます',
+  legendLess: '少ない',
+  legendAll: 'すべて',
 } satisfies Like<typeof ko>;

@@ -8,8 +8,8 @@ import { PRETENDARD } from '../theme/fonts';
 import type { M } from '../theme/usePalette';
 import { kindOf } from '../lib/routine';
 import { countInfo } from '../lib/kinds';
-import { DAY_BIN_LABELS, dayBin } from '../lib/review';
-import { HEAT_TONES, WEAR_TONES, figureParts, type HeatMap, type MoodDay } from '../lib/statsView';
+import { WEAR_BIN_LABELS, wearBin } from '../lib/review';
+import { WEAR_TONES, figureParts, heatTones, type HeatMap, type MoodDay } from '../lib/statsView';
 import { mapCells } from '../lib/mapCells';
 import { themeProgress } from '../store/MandaratContext';
 import { tap } from '../lib/haptics';
@@ -20,7 +20,7 @@ import type { Messages } from '../i18n';
 
 // 통계 · 한 해 쪽의 부품(디자인 A, build-plan S4 · 목업 stats.png · year.png).
 // 히어로 칸(이름 · 숫자 + 단위 · 한 줄) · 숫자 글(큰 숫자 + 작은 단위) · 최근 10주(타일) · 닳은 자리(타일 지도) · 범례 · 기분 줄.
-// 색은 토큰 이름으로만(칸 진하기는 lib/statsView HEAT_TONES · WEAR_TONES), 글자는 ROLE. 카드 · 괘선 묶음 없이.
+// 색은 토큰 이름으로만(칸 진하기는 lib/statsView heatTones · WEAR_TONES), 글자는 ROLE. 카드 · 괘선 묶음 없이.
 
 const areaName = (m: Messages, doc: Pick<MandaratDoc, 'themes'>, ti: number) => doc.themes[ti]?.title.trim() || m.chart.areaN({ n: ti + 1 });
 
@@ -138,8 +138,9 @@ const HEAT_GAP = 3;
 const HEAT_LABEL_W = 24;
 /** 줄 이름을 적는 요일(월 · 수 · 금, 0 = 일요일) — 나머지 줄은 비운다 */
 const HEAT_ROW_DOWS = [1, null, 3, null, 5, null, null] as const;
-/** 오늘 점 · 고른 날 고리 */
+/** 오늘 점(종이색 둘레 1.5 — 어느 진하기 위에서도 보이게) · 고른 날 고리 */
 const TODAY_DOT = 5;
+const TODAY_HALO = 1.5;
 const PICK_RING = 1.5;
 const PICK_OUT = 2.5;
 const LEGEND_CELL = 11;
@@ -159,26 +160,31 @@ function pickableDays(map: HeatMap): string[] {
   return out;
 }
 
-/** 진하기 범례 — '1 · 2 · 3 · 5+' 앞에 칸 하나씩(타일). 화면 읽기에서는 숨긴다(그림이 글로 읽힌다) */
-function TileLegend({ M, tones, head, last }: { M: M; tones: readonly string[]; head?: string; last?: (label: string) => string }) {
+/**
+ * 진하기 범례 — 옅은 타일부터 진한 타일까지. labels를 주면 타일마다 이름('1 · 3 · 5+일'),
+ * 없으면 숫자 없이 양 끝의 낱말만('적게 ■■■■ 다 함'). 화면 읽기에서는 숨긴다(그림이 글로 읽힌다)
+ */
+function TileLegend({ M, tones, head, labels, tail }: {
+  M: M; tones: readonly string[]; head?: string; labels?: readonly string[]; tail?: string;
+}) {
+  const word = [ROLE.meta, { color: M.print }];
   return (
-    <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 12 }}>
-      {!!head && <Text style={[ROLE.meta, { color: M.print, marginRight: 2 }]} maxFontSizeMultiplier={1.2}>{head}</Text>}
-      {DAY_BIN_LABELS.map((label, i) => (
-        <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: i ? 3 : 0 }}>
-          <View style={{ width: LEGEND_CELL, height: LEGEND_CELL, borderRadius: TILE_RADIUS, backgroundColor: tones[i] }} />
-          <Text style={[ROLE.meta, { color: M.print }]} maxFontSizeMultiplier={1.2}>
-            {i === DAY_BIN_LABELS.length - 1 && last ? last(label) : label}
-          </Text>
+    <View {...HIDDEN} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: labels ? 5 : HEAT_GAP, marginTop: 12 }}>
+      {!!head && <Text style={[word, { marginRight: labels ? 2 : 3 }]} maxFontSizeMultiplier={1.2}>{head}</Text>}
+      {tones.map((tone, i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: labels && i ? 3 : 0 }}>
+          <View style={{ width: LEGEND_CELL, height: LEGEND_CELL, borderRadius: TILE_RADIUS, backgroundColor: tone }} />
+          {!!labels && <Text style={word} maxFontSizeMultiplier={1.2}>{labels[i]}</Text>}
         </View>
       ))}
+      {!!tail && <Text style={[word, { marginLeft: 3 }]} maxFontSizeMultiplier={1.2}>{tail}</Text>}
     </View>
   );
 }
 
 /**
- * 최근 10주 달력 — 열 = 주(월~일), 행 = 요일. 타일(모서리 3): 지난 빈 날 tile, 한 날은 횟수 구간마다
- * printMid → printEdge → ink2 → ink(HEAT_TONES). 쓰기 전 날과 아직 안 온 날은 그리지 않는다.
+ * 최근 10주 달력 — 열 = 주(월~일), 행 = 요일. 타일(모서리 3): 지난 빈 날 tile, 한 날은 내가 가득 채운 날에 견준 몫마다
+ * tile에서 ink2까지 네 걸음(heatTones — 다 한 날도 먹이 아니라 ink2). 쓰기 전 날과 아직 안 온 날은 그리지 않는다.
  * 오늘은 가운데 signal 점, 가장 많이 한 날은 칸 안 아래에 짧은 줄, 고른 날은 칸 밖 먹 고리. 칸을 누르면 그날을 고르고, 다시 누르면 푼다.
  *
  * 화면 읽기: 그림 전체가 조절 가능한 요소 하나 — 이름은 요약(speech), 값은 고른 날(pickedText),
@@ -203,7 +209,7 @@ export function TenWeeks({
   // 칸 한 변을 내림한 나머지는 요일 라벨 자리로 — 마지막 열이 본문 오른쪽 끝에 닿게
   const labelW = Math.max(HEAT_LABEL_W, Math.floor(width) - cell * map.cols.length - HEAT_GAP * (map.cols.length - 1));
   const days = useMemo(() => pickableDays(map), [map]);
-  const tones = HEAT_TONES.map((t) => M[t]);
+  const tones = useMemo(() => heatTones(M), [M]);
   const step = (dir: 1 | -1) => {
     if (days.length === 0) return;
     const i = picked ? days.indexOf(picked) : -1;
@@ -254,7 +260,16 @@ export function TenWeeks({
                 style={[box, { backgroundColor: tones[bin], alignItems: 'center', justifyContent: 'center' }]}
               >
                 {c.today && (
-                  <View pointerEvents="none" style={{ width: TODAY_DOT, height: TODAY_DOT, borderRadius: TODAY_DOT / 2, backgroundColor: M.signal }} />
+                  // 종이색 둘레 — 중간 회색 칸 위의 signal은 밝기가 같아(1:1에 가깝다) 점만으로는 묻힌다
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      width: TODAY_DOT + 2 * TODAY_HALO, height: TODAY_DOT + 2 * TODAY_HALO, borderRadius: TODAY_DOT / 2 + TODAY_HALO,
+                      backgroundColor: M.paper, alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <View style={{ width: TODAY_DOT, height: TODAY_DOT, borderRadius: TODAY_DOT / 2, backgroundColor: M.signal }} />
+                  </View>
                 )}
                 {c.best && (
                   <View pointerEvents="none" style={{ position: 'absolute', left: 3, right: 3, bottom: 2, height: 2, borderRadius: 1, backgroundColor: bin >= 3 ? M.paper : M.ink }} />
@@ -273,21 +288,20 @@ export function TenWeeks({
           })}
         </View>
       ))}
-      {/* 범례 — 실제 횟수 구간(적게/많이 대신) */}
-      <TileLegend M={M} tones={tones.slice(1)} />
+      {/* 범례 — 숫자 없이 '적게 ■■■■ 다 함'(진하기는 횟수가 아니라 가득 채운 날에 견준 몫) */}
+      <TileLegend M={M} tones={tones.slice(1)} head={msgs.stats.legendLess} tail={msgs.stats.legendAll} />
     </View>
   );
 }
 
 // ── 8개 영역 = 닳은 자리 ─────────────────────────────────────────────────────
 
-/** 쌓기 칸 진행 줄 — 칸 안쪽 아래(좌우 · 아래 4), 2 높이 */
-const BAR_INSET = 4;
-
 /**
  * 8개 영역 — 내 만다라트 81칸을 색 지도(L2)와 같은 자리의 타일(모서리 3)로 그리고, 실천 칸마다 최근 4주 동안 한 날 수만큼
- * 그 영역 색을 진하게(WEAR_TONES: tile → tint → wash → washL1 → dye — 자주 한 칸일수록 진하게, 손때 묻은 자리).
- * 영역 이름 칸은 영역 색에 이름, 가운데는 core에 전체 달성률(달성한 칸이 하나도 없으면 비운다), 쌓기 칸은 아래 2pt 진행 줄.
+ * 그 영역 색을 진하게(WEAR_TONES: tile → tint → wash → washL1 — 자주 한 칸일수록 진하게, 손때 묻은 자리).
+ * 사다리는 washL1에서 멈춘다 — 물감 그대로(dye)인 칸은 영역 이름 여덟뿐이라 이름과 실천이 헷갈리지 않는다.
+ * 영역 이름 칸은 영역 색에 이름, 가운데는 core에 핵심 목표(색 지도와 같은 글 — 설명 없는 숫자는 놓지 않는다).
+ * 칸 안에는 표시를 두지 않는다(쌓기 칸의 진행 줄은 범례가 없어 뜻 모를 줄표로 보였다) — 진행률은 화면 읽기 이름에만.
  * 칸을 누르면 그 실천을, 이름 칸을 누르면 그 영역을 연다(onCell · onArea가 있을 때).
  *
  * activity는 review.cellActivity(doc, today, 28) — [영역][칸] 한 날 수. 기록이 없으면 빈 지도(빈 양식)로 그려진다.
@@ -308,10 +322,9 @@ export function ActivityChart({
   const g = mapGeometry({ level: 'L2', width: side, ratio: PixelRatio.get() });
   const done = doc.themes.reduce((s, t) => s + t.actions.filter((a) => a.done).length, 0);
   const overall = Math.round((done / 64) * 100);
-  // 아직 달성한 칸이 하나도 없으면 빈 양식 — 가운데에 '0%'를 찍지 않는다(화면 읽기 이름은 그대로)
-  const blank = done === 0;
+  const goal = doc.centerGoal.trim();
   const cells = useMemo(() => mapCells({ themes: doc.themes, centerGoal: doc.centerGoal }), [doc.themes, doc.centerGoal]);
-  /** 칸 진하기(0~4) · 영역 → 색(tile, 그다음은 그 영역의 tint · wash · washL1 · dye) */
+  /** 칸 진하기(0~3) · 영역 → 색(tile, 그다음은 그 영역의 tint · wash · washL1) */
   const wearFill = (bin: number, ti: number): string => {
     const t = WEAR_TONES[bin] ?? 'tile';
     return t === 'tile' ? M.tile : M[t][ti] ?? M.tile;
@@ -328,16 +341,25 @@ export function ActivityChart({
         const key = `${c.row}-${c.col}`;
 
         if (c.kind === 'core') {
+          // 가운데는 색 지도처럼 핵심 목표 — 전체 달성률은 화면 읽기 이름에(보이는 숫자는 통계 머리의 '달성')
+          const lab = goal ? mapLabel(goal, 'core', w, h, l) : null;
           return (
             <View
               key={key}
               accessible
-              accessibilityLabel={[m.chart.coreGoal, m.chart.doneOf64Say({ done }), `${overall}%`].join(m.core.listSep)}
+              accessibilityLabel={[goal ? m.chart.coreSay({ goal }) : m.chart.coreGoal, m.chart.doneOf64Say({ done }), `${overall}%`].join(m.core.listSep)}
               {...a11yLangProp()}
-              style={[box, { backgroundColor: M.core, alignItems: 'center', justifyContent: 'center' }]}
+              style={[box, { backgroundColor: M.core, paddingHorizontal: MAP_LABEL.pad, alignItems: 'center', justifyContent: 'center' }]}
             >
-              {!blank && (
-                <Text style={[ROLE.mapCore, { color: M.onCore, fontVariant: ['tabular-nums'] }]} maxFontSizeMultiplier={1}>{overall}%</Text>
+              {lab && (
+                <Text
+                  style={[ROLE.mapCore, { fontSize: lab.fs, lineHeight: lab.lh, letterSpacing: lab.letterSpacing, color: M.onCore, textAlign: 'center' }]}
+                  numberOfLines={Math.max(1, lab.lines)}
+                  maxFontSizeMultiplier={1}
+                  accessible={false}
+                >
+                  {lab.text}
+                </Text>
               )}
             </View>
           );
@@ -390,15 +412,8 @@ export function ActivityChart({
             accessibilityRole={onCell ? 'button' : undefined}
             accessibilityLabel={[text, n > 0 ? m.stats.wearSay({ n }) : m.stats.wearNone, a.done ? m.chart.done : '', count ? `${count.pct}%` : ''].filter(Boolean).join(m.core.listSep)}
             {...a11yLangProp()}
-            style={({ pressed }) => [box, { backgroundColor: wearFill(dayBin(n), ti), opacity: pressed ? 0.7 : 1 }]}
-          >
-            {/* 진행 줄은 칸 안쪽에 띄운다 */}
-            {count && (
-              <View pointerEvents="none" style={{ position: 'absolute', left: BAR_INSET, right: BAR_INSET, bottom: BAR_INSET, height: 2, borderRadius: 1, backgroundColor: M.paper }}>
-                <View style={{ width: `${Math.max(0, Math.min(100, count.pct))}%`, height: '100%', borderRadius: 1, backgroundColor: M.ink }} />
-              </View>
-            )}
-          </Pressable>
+            style={({ pressed }) => [box, { backgroundColor: wearFill(wearBin(n), ti), opacity: pressed ? 0.7 : 1 }]}
+          />
         );
       })}
     </View>
@@ -406,18 +421,19 @@ export function ActivityChart({
 }
 
 /**
- * 닳은 자리 범례 — '최근 4주 · ■1 ■2 ■3 ■5+일'. 칸 색은 영역마다 다르므로 범례는 같은 밝기 차례의 회색 타일로
- * (printRule → printMid → printEdge → ink2 — 진할수록 자주 한 칸).
+ * 닳은 자리 범례 — '최근 4주 · ■1 ■3 ■5+일'(칸의 세 단 tint · wash · washL1이 시작하는 날 수). 칸 색은 영역마다 다르므로
+ * 범례는 같은 밝기 차례의 회색 타일 셋으로(최근 10주의 회색 걸음 앞 셋 — 진할수록 자주 한 칸. 대비 증가에서도 셋이 갈린다).
  * head — 범례 앞 머리말(기본 '최근 4주 ·'). 한 해 돌아보기는 제목 줄과 같은 '4주 평균 ·'을 준다
  */
 export function WearLegend({ M, head }: { M: M; head?: string }) {
   const m = useMsg();
+  const last = WEAR_BIN_LABELS.length - 1;
   return (
     <TileLegend
       M={M}
-      tones={[M.printRule, M.printMid, M.printEdge, M.ink2]}
+      tones={heatTones(M).slice(1, 1 + WEAR_BIN_LABELS.length)}
       head={head ?? m.stats.legendLast4}
-      last={(label) => m.stats.legendTimes({ label })}
+      labels={WEAR_BIN_LABELS.map((label, i) => (i === last ? m.stats.legendTimes({ label }) : label))}
     />
   );
 }

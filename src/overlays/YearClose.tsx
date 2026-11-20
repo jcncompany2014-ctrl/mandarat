@@ -231,7 +231,7 @@ function ReviewPage({ M, m, doc, from, to, note, onNote }: {
     () => yearDigest(doc, from, to, (doc.focusMinutes ?? 0) - (doc.focusStart ?? 0)),
     [doc, from, to],
   );
-  const rows = useMemo(() => yearCalendar(doc.dayLog, from, to), [doc.dayLog, from, to]);
+  const rows = useMemo(() => yearCalendar(doc.dayLog, from, to, doc.closedDays), [doc.dayLog, doc.closedDays, from, to]);
   const count = Array.from(note).length;
   const figures = [
     { key: 'days', label: m.year.statDays, value: m.fmt.days({ n: digest.days }) },

@@ -89,7 +89,7 @@ export const Stats = memo(function Stats() {
   /* eslint-disable react-hooks/exhaustive-deps */
   const streak = useMemo(() => overallStreak(doc), [doc.dayLog, day, clock]);
   const review = useMemo(() => weekReview(doc, new Date()), [doc, day, clock]);
-  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date(), l), [doc.dayLog, day, clock, l]);
+  const map = useMemo(() => heatMap(doc.dayLog, calendarWeeks(new Date(), 10), new Date(), l, doc.closedDays), [doc.dayLog, doc.closedDays, day, clock, l]);
   const month = useMemo(() => doneThisMonth(doc, new Date()), [doc, day, clock]);
   const records = useMemo(() => recordParts(longestStreak(doc.dayLog), streak, month, l), [doc.dayLog, streak, month, l]);
   const ritual = useMemo(() => ritualTarget(doc, new Date()), [doc, day, clock]);

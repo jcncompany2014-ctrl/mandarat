@@ -30,11 +30,11 @@ export function FocusLayout(p: Partial<FocusActivityProps>, env: LiveActivityEnv
   const D: Partial<LivePalette> = pals.dark || {};
   const paper = P.paper || (dark ? '#121316' : '#FFFFFF');
   const ink = P.ink || (dark ? '#ECEDEF' : '#191B1F');
-  const ink2 = P.ink2 || (dark ? '#A3A8B0' : '#5F6670');
-  const print = P.print || (dark ? '#9AA0A8' : '#6B727C');
+  const ink2 = P.ink2 || (dark ? '#B4B9C0' : '#5F6670');
+  const print = P.print || (dark ? '#ABB1B9' : '#686F79');
   const dye = P.dye || p.c || ink2;
   const islandInk = D.ink || '#ECEDEF';
-  const islandSub = D.ink2 || '#A3A8B0';
+  const islandSub = D.ink2 || '#B4B9C0';
   const islandDye = D.dye || p.c || islandSub;
   const L: Partial<FocusActivityLines> = p.lines || {};
   const total = 25 * 60 * 1000;

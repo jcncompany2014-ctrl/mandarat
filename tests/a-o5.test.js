@@ -169,7 +169,12 @@ test('흑백으로 찍어도 읽힌다 — 칸의 글과 바탕, 종이 위의 �
     const css = html.slice(html.indexOf('<style>'), html.indexOf('</style>'));
     for (const [, c] of css.matchAll(/[;{]color:(#[0-9A-F]{6})/gi)) assert.ok(contrast(c, LIGHT.paper) >= 4.5, `${c} on paper`);
   }
-  for (let ti = 0; ti < 8; ti++) assert.ok(contrast(LIGHT.wash[ti], LIGHT.tint[ti]) >= 1.35, `영역 ${ti}: wash ↔ tint`);
+  // 색 감사가 tint를 한 단 진하게 했다(화면에서 쓴 칸이 빈 칸과 갈리게) — 종이 → 적은 칸 → 달성이 비슷한 걸음(1.28 · 1.33)으로 갈린다.
+  // 예전에는 종이 ↔ tint 1.21, tint ↔ wash 1.39였다
+  for (let ti = 0; ti < 8; ti++) {
+    assert.ok(contrast(LIGHT.wash[ti], LIGHT.tint[ti]) >= 1.32, `영역 ${ti}: wash ↔ tint ${contrast(LIGHT.wash[ti], LIGHT.tint[ti]).toFixed(3)}`);
+    assert.ok(contrast(LIGHT.tint[ti], LIGHT.paper) >= 1.27, `영역 ${ti}: tint ↔ paper ${contrast(LIGHT.tint[ti], LIGHT.paper).toFixed(3)}`);
+  }
 });
 
 test('강조색 없음 — 다 이룬 블록은 1.5pt 먹 테두리를 블록 안쪽에(블록 칸 셋 + 틈 둘 폭)', () => {

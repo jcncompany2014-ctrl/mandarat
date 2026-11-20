@@ -172,24 +172,93 @@ test('kindRows: 습관 · 쌓기(있을 때만) · 마음가짐 · 집중 — �
 
 // ── 칸 진하기(토큰) ──────────────────────────────────────────────────────────
 
-test('최근 10주 · 닳은 자리 · 한 해 달력 — 토큰 차례, 진할수록 종이와 더 갈린다(밝게 · 어둡게)', () => {
-  assert.deepEqual([...sv.HEAT_TONES], ['tile', 'printMid', 'printEdge', 'ink2', 'ink']);
-  assert.deepEqual([...sv.WEAR_TONES], ['tile', 'tint', 'wash', 'washL1', 'dye']);
+test('최근 10주 · 닳은 자리 · 한 해 달력 — 진할수록 종이와 더 갈린다(밝게 · 어둡게), 맨 위는 먹이 아니라 ink2 · washL1', () => {
+  // 날의 진하기: tile에서 ink2까지 같은 걸음 넷 — 맨 위가 ink면 날마다 다 하는 사람의 달력이 검은 벽(어둡게는 흰 벽)이 된다
+  assert.deepEqual([...sv.HEAT_STEPS], [0, 0.25, 0.5, 0.75, 1]);
+  assert.equal(sv.HEAT_TONES, undefined);
+  // 닳은 자리: 세 단에서 멈춘다 — 물감 그대로(dye)는 영역 이름 칸에만
+  assert.deepEqual([...sv.WEAR_TONES], ['tile', 'tint', 'wash', 'washL1']);
   for (const T of [LIGHT, DARK]) {
-    const heat = sv.HEAT_TONES.map((k) => contrast(T[k], T.paper));
-    for (let i = 1; i < heat.length; i++) assert.ok(heat[i] > heat[i - 1], `${T.dark ? 'dark' : 'light'} heat ${i}: ${heat.map((c) => c.toFixed(2))}`);
+    const at = T.dark ? 'dark' : 'light';
+    const tones = sv.heatTones(T);
+    assert.equal(tones.length, 5);
+    for (const c of tones) assert.match(c, /^#[0-9A-F]{6}$/);
+    assert.equal(tones[0], T.tile);
+    assert.equal(tones[4], T.ink2);
+    assert.notEqual(tones[4], T.ink);
+    const heat = tones.map((c) => contrast(c, T.paper));
+    for (let i = 1; i < heat.length; i++) assert.ok(heat[i] > heat[i - 1] * 1.3, `${at} heat ${i}: ${heat.map((c) => c.toFixed(2))}`);
+    // 다 한 날의 칸도 종이에서 4.5:1 넘게 떨어지지만 먹(15:1 이상)만큼 세지 않다
+    assert.ok(heat[4] >= 4.5 && heat[4] < 10, `${at} top ${heat[4].toFixed(2)}`);
+    // 가장 많이 한 날의 줄 — 진한 두 단 위에는 종이색, 옅은 단 위에는 먹(3:1 이상)
+    for (let b = 1; b <= 4; b++) assert.ok(contrast(b >= 3 ? T.paper : T.ink, tones[b]) >= 3, `${at} best mark on ${b}`);
     for (let ti = 0; ti < 8; ti++) {
       const wear = sv.WEAR_TONES.slice(1).map((k) => contrast(T[k][ti], T.paper));
-      for (let i = 1; i < wear.length; i++) assert.ok(wear[i] > wear[i - 1], `${T.dark ? 'dark' : 'light'} wear ${ti}/${i}`);
+      for (let i = 1; i < wear.length; i++) assert.ok(wear[i] > wear[i - 1], `${at} wear ${ti}/${i}`);
+      // 닳은 자리의 가장 진한 칸도 이름 칸(dye)과는 갈린다(밝게 2.4:1, 어둡게 1.5:1 — 이름 칸에는 글도 있다)
+      assert.ok(contrast(T.dye[ti], T.washL1[ti]) >= (T.dark ? 1.45 : 2.3), `${at} dye ↔ washL1 ${ti}: ${contrast(T.dye[ti], T.washL1[ti]).toFixed(2)}`);
     }
   }
   const charts = src('src/components/StatsCharts.tsx');
   assert.match(charts, /export const TILE_RADIUS = 3;/);
-  assert.match(charts, /const tones = HEAT_TONES\.map\(\(t\) => M\[t\]\);/);
+  assert.match(charts, /const tones = useMemo\(\(\) => heatTones\(M\), \[M\]\);/);
   assert.match(charts, /return t === 'tile' \? M\.tile : M\[t\]\[ti\] \?\? M\.tile;/);
+  assert.match(charts, /backgroundColor: wearFill\(wearBin\(n\), ti\)/);
   // 색은 토큰 이름으로만 — 예전 표시색 · 테마 색 · 손으로 쓴 색이 없다
   assert.doesNotMatch(charts, /M\.gold|M\.accent|th\.color|theme\.color|#[0-9A-Fa-f]{3,6}\b/);
   assert.doesNotMatch(src('src/components/YearLedger.tsx'), /M\.gold|fade\(|#[0-9A-Fa-f]{6}/);
+});
+
+test('최근 10주: 범례는 숫자 없이 양 끝 낱말만, 오늘 점은 종이색 둘레로 어느 진하기 위에서도 보인다', () => {
+  const charts = src('src/components/StatsCharts.tsx');
+  // '적게 ■■■■ 다 함' — 진하기는 횟수가 아니라 가득 채운 날에 견준 몫이라 '1 · 2 · 3 · 5+'를 적지 않는다
+  assert.match(charts, /<TileLegend M=\{M\} tones=\{tones\.slice\(1\)\} head=\{msgs\.stats\.legendLess\} tail=\{msgs\.stats\.legendAll\} \/>/);
+  assert.match(charts, /\{!!labels && <Text style=\{word\} maxFontSizeMultiplier=\{1\.2\}>\{labels\[i\]\}<\/Text>\}/);
+  assert.doesNotMatch(charts, /DAY_BIN_LABELS|dayBin\(/);
+  const words = { ko: ['적게', '다 함'], ja: ['少ない', 'すべて'], en: ['Less', 'All'] };
+  for (const [l, [less, all]] of Object.entries(words)) {
+    assert.equal(msg(l).stats.legendLess, less, l);
+    assert.equal(msg(l).stats.legendAll, all, l);
+  }
+  // 오늘 점 — 중간 회색 칸 위의 signal은 밝기가 같아 묻힌다(1:1에 가깝다). 종이색 둘레가 칸과 점을 가른다
+  assert.match(charts, /const TODAY_HALO = 1\.5;/);
+  assert.match(charts, /width: TODAY_DOT \+ 2 \* TODAY_HALO, height: TODAY_DOT \+ 2 \* TODAY_HALO, borderRadius: TODAY_DOT \/ 2 \+ TODAY_HALO,\s+backgroundColor: M\.paper/);
+  for (const T of [LIGHT, DARK]) {
+    const at = T.dark ? 'dark' : 'light';
+    const tones = sv.heatTones(T);
+    assert.ok(Math.min(...tones.map((c) => contrast(T.signal, c))) < 1.7, `${at}: 둘레 없이는 묻히는 진하기가 있다`);
+    assert.ok(contrast(T.signal, T.paper) >= 4.5, `${at} signal on paper`);
+    // 진한 두 단 위에서 둘레가 뚜렷하다(옅은 단에서는 점이 제 대비로 보인다)
+    for (const b of [3, 4]) assert.ok(contrast(T.paper, tones[b]) >= 3, `${at} halo on ${b}`);
+    for (const b of [0, 1]) assert.ok(contrast(T.signal, tones[b]) >= 3, `${at} dot on ${b}`);
+  }
+});
+
+test('닳은 자리: 칸 안에 뜻 모를 표시가 없다 — 가운데는 핵심 목표, 쌓기 칸의 진행 줄 없음, 범례는 세 단', () => {
+  const charts = src('src/components/StatsCharts.tsx');
+  const chart = charts.slice(charts.indexOf('export function ActivityChart'), charts.indexOf('export function WearLegend'));
+  // 가운데 — 설명 없는 '27%' 대신 색 지도와 같은 글(핵심 목표). 달성률은 화면 읽기 이름에 남는다
+  assert.match(chart, /const lab = goal \? mapLabel\(goal, 'core', w, h, l\) : null;/);
+  assert.match(chart, /accessibilityLabel=\{\[goal \? m\.chart\.coreSay\(\{ goal \}\) : m\.chart\.coreGoal, m\.chart\.doneOf64Say\(\{ done \}\), `\$\{overall\}%`\]\.join\(m\.core\.listSep\)\}/);
+  assert.doesNotMatch(chart, />\{overall\}%</);
+  // 쌓기 칸 — 2pt 진행 줄(짧은 검은 줄표)은 그리지 않는다. 진행률은 화면 읽기 이름에만
+  assert.doesNotMatch(charts, /BAR_INSET/);
+  assert.doesNotMatch(chart, /height: 2,/);
+  assert.match(chart, /count \? `\$\{count\.pct\}%` : ''/);
+  // 진하기 — 영역 색 그대로(dye)는 이름 칸뿐
+  assert.equal(chart.match(/backgroundColor: M\.dye\[ti\]/g).length, 1);
+  assert.equal(sv.WEAR_TONES.includes('dye'), false);
+  // 범례 — 회색 타일 셋 + '1 · 3 · 5+일'. 타일은 tile · ink2에서만 나와 대비 증가(printEdge = ink2)에서도 셋이 갈린다
+  const legend = charts.slice(charts.indexOf('export function WearLegend'));
+  assert.match(legend, /tones=\{heatTones\(M\)\.slice\(1, 1 \+ WEAR_BIN_LABELS\.length\)\}/);
+  assert.match(legend, /labels=\{WEAR_BIN_LABELS\.map\(\(label, i\) => \(i === last \? m\.stats\.legendTimes\(\{ label \}\) : label\)\)\}/);
+  const { moreContrast } = require('../src/theme/tokens');
+  for (const T of [LIGHT, DARK, moreContrast(LIGHT), moreContrast(DARK)]) {
+    const g = sv.heatTones(T).slice(1, 4).map((c) => contrast(c, T.paper));
+    assert.ok(g[0] >= 1.5 && g[1] > g[0] * 1.4 && g[2] > g[1] * 1.4, `${T.dark ? 'dark' : 'light'} ${g.map((c) => c.toFixed(2))}`);
+  }
+  assert.equal(msg('ko').stats.legendTimes({ label: '5+' }), '5+일');
+  assert.equal(msg('en').stats.legendTimes({ label: '5+' }), '5+ days');
 });
 
 // ── 한 해 ────────────────────────────────────────────────────────────────────

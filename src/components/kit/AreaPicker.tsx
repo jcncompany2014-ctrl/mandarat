@@ -7,9 +7,13 @@ import { ROLE } from '../../theme/type';
 import type { M } from '../../theme/usePalette';
 import { select } from '../../lib/haptics';
 
+/** 고른 낱칸의 테두리(어둡게) — 안쪽 여백에서 그만큼 빼 낱칸 크기와 글자 자리는 그대로 */
+const EDGE = 1.5;
+
 /**
  * 영역 고르기(AP.areaPicker) — 여덟 영역을 4 × 2 낱칸으로(사이 6, 44 높이, 모서리 12, tile).
  * 낱칸마다 영역 표시 + 이름(500 14). 고른 영역은 제 tint 칠 + 이름을 dyeText 700으로 — 표시가 남아 색만으로 고르지 않는다.
+ * 어둡게는 고른 이름을 먹 700으로 두고(dyeText면 안 고른 이름보다 흐려진다) 영역 색 테두리 1.5를 두른다 — 밝게는 목업(add.png) 그대로.
  * 이름이 길면(Relationships · 人間関係) 한 줄 안에서 70%까지 줄인다.
  * 화면 읽기: 라디오 묶음 + 라디오(선택됨). 고를 때 짧은 딸깍(select).
  */
@@ -49,14 +53,15 @@ export function AreaPicker({
                 accessibilityLabel={name}
                 {...a11yLangProp()}
                 style={({ pressed }) => ({
-                  flex: 1, minWidth: 0, minHeight: AREA.h, borderRadius: AREA.radius, paddingHorizontal: AREA.padX,
+                  flex: 1, minWidth: 0, minHeight: AREA.h, borderRadius: AREA.radius, paddingHorizontal: AREA.padX - EDGE,
                   flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
                   backgroundColor: on ? M.tint[i] ?? M.tile : M.tile, opacity: pressed && !on ? 0.7 : 1,
+                  borderWidth: EDGE, borderColor: on && M.dark ? M.dye[i] ?? 'transparent' : 'transparent',
                 })}
               >
                 <DyeMark M={M} area={i} />
                 <Text
-                  style={[on ? ROLE.areaOn : ROLE.area, { flexShrink: 1, color: on ? M.dyeText[i] ?? M.ink : M.ink }]}
+                  style={[on ? ROLE.areaOn : ROLE.area, { flexShrink: 1, color: on && !M.dark ? M.dyeText[i] ?? M.ink : M.ink }]}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   minimumFontScale={AREA.minScale}

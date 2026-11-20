@@ -127,4 +127,6 @@ export default {
   linkRateHint: 'Opens a square to rate this week',
   linkToday: 'Open Today',
   linkTodayHint: 'Start a 25-minute focus from Today’s list',
+  legendLess: 'Less',
+  legendAll: 'All',
 } satisfies Like<typeof ko>;

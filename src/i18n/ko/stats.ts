@@ -156,4 +156,7 @@ export default {
   linkRateHint: '이번 주 점수를 매길 칸을 열어요',
   linkToday: '오늘 보기',
   linkTodayHint: '오늘 할 일에서 25분 집중을 시작할 수 있어요',
+  /** 최근 10주 범례의 양 끝 — '적게 ■■■■ 다 함'(숫자 없이: 진하기는 내가 가득 채운 날에 견준 몫) */
+  legendLess: '적게',
+  legendAll: '다 함',
 } satisfies Namespace;
