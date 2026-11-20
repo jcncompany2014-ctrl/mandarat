@@ -356,6 +356,9 @@ test('저장본으로 열기는 저장소의 손잡이로 — 문지기가 첫 �
   const gate = app.slice(app.indexOf('function Gate()'), app.indexOf('function Resume('));
   assert.match(gate, /const ready = useReady\(\);[\s\S]*const opening = useSnapOpen\(ready\);\s*if \(!ready \|\| opening\) return <Splash \/>;\s*return <Shell \/>;/);
   const hook = src('src/store/useCrashRecovery.ts');
+  // 문지기는 오류 기록에 지금 문서를 읽는 길도 붙인다 — 기록이 메시지에서 문서의 글을 지우는 데만 쓴다
+  assert.match(gate, /useLogPrivacy\(\);/);
+  assert.match(hook, /export function useLogPrivacy\(\): void \{\s*const \{ getDoc \} = useActions\(\);\s*useEffect\(\(\) => \{\s*setLogPrivate\(getDoc\);\s*\}, \[getDoc\]\);\s*\}/);
   // 처음 그릴 때부터 참 — 지금 문서로는 한 번도 그리지 않는다
   assert.match(hook, /const \[busy, setBusy\] = useState\(\(\) => pendingSnapOpen\(\) !== null\);/);
   assert.match(hook, /readSnapshot\(day\)/);

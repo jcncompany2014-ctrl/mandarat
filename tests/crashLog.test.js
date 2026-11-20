@@ -186,6 +186,64 @@ test('record: 사용자가 적은 글은 어디에도 남지 않는다 — 메�
   assert.deepEqual(L.logEntries().slice(-2).map((e) => [e.name, e.msg]), [['NonError', 'null'], ['NonError', 'undefined']]);
 });
 
+test('setLogPrivate: 문서가 붙어 있으면 그 안의 글 자체를 메시지에서 지운다 — 따옴표 없는 영문 글 · 식별자 꼴의 한 낱말까지', () => {
+  fresh();
+  const doc = {
+    centerGoal: 'Run a marathon',
+    themes: [{ title: 'Health', actions: [{ text: 'Run', note: 'first line\nsecond line of a long note that keeps going and going and going' }, { text: 'act' }, { text: 'ab' }] }],
+    todayExtra: [{ text: 'Stretch daily', done: false }],
+    dayMeta: { '2026-11-20': { reflection: '오늘은 30분 달렸다', mood: 3 } },
+    count: 5,
+  };
+  let reads = 0;
+  L.setLogPrivate(() => { reads += 1; return doc; });
+  const msgOf = (message, name = 'TypeError') => {
+    L.record(err(name, message));
+    return L.logEntries().at(-1).msg;
+  };
+  // 꼴로는 걸러지지 않는 것들 — 문서에 있는 글이면 지운다
+  assert.equal(msgOf("Cannot read property 'Run' of undefined"), "Cannot read property '*' of undefined");
+  assert.equal(msgOf('Run a marathon is not iterable'), '* is not iterable');
+  assert.equal(msgOf('value Stretch daily and Health broke'), 'value * and * broke');
+  assert.equal(msgOf('reflection 오늘은 30분 달렸다 broke'), 'reflection * broke', '한글 사이의 숫자도 함께');
+  // 여러 줄 글은 줄마다, 길어서 잘려 실린 글은 앞머리부터 끝까지
+  assert.equal(msgOf('note first line broke'), 'note * broke');
+  assert.equal(msgOf('note: second line of a long note that kee'), 'note: *');
+  // 코드에서 온 말은 그대로 — 칸에 적은 짧은 글이 낱말 속에 들어 있어도(act ⊂ actions · react) 지우지 않는다
+  assert.equal(msgOf("Cannot read property 'actions' of undefined"), "Cannot read property 'actions' of undefined");
+  assert.equal(msgOf('react stays, act goes, Runner stays'), 'react stays, * goes, Runner stays');
+  // 아주 짧은 글(두 글자)은 지우지 않는다(메시지를 온통 지우게 된다) — 한글 · 가나는 어차피 남지 않는다
+  assert.equal(msgOf('ab is short'), 'ab is short');
+  assert.ok(reads >= 9, '기록할 때마다 지금 문서를 읽는다');
+  assert.doesNotMatch(L.logText(), /marathon|Stretch|Health|second line/);
+  // 문서를 읽다 던지면 메시지를 통째로 버린다 — 이름과 스택은 남는다
+  L.setLogPrivate(() => { throw new Error('store is gone'); });
+  L.record(err('RangeError', 'anything at all', '    at f (a.js:1:2)'));
+  assert.deepEqual([L.logEntries().at(-1).name, L.logEntries().at(-1).msg, L.logEntries().at(-1).stack], ['RangeError', '', ['f (a.js:1:2)']]);
+  // 순환하는 값에서도 멈추지 않는다
+  const loop = { text: 'Loop text' };
+  loop.self = loop;
+  L.setLogPrivate(() => loop);
+  assert.equal(msgOf('Loop text here'), '* here');
+  // 다 훑지 못할 만큼 큰 문서면 무엇을 지울지 모르는 것 — 메시지를 버린다(시간도 오래 쓰지 않는다)
+  const huge = Array.from({ length: 600_000 }, () => 7);
+  huge.push('never reached');
+  L.setLogPrivate(() => huge);
+  const t0 = Date.now();
+  assert.equal(msgOf('never reached broke'), '');
+  assert.ok(Date.now() - t0 < 3000);
+  // 몇 해 쓴 무거운 문서는 다 훑는다 — 한 번에 수십 ms
+  const heavy = require('./helpers/heavyDoc').heavyDoc();
+  heavy.themes[7].actions[7].note = 'Stretch for ten minutes';
+  L.setLogPrivate(() => heavy);
+  const t1 = Date.now();
+  assert.equal(msgOf('saw Stretch for ten minutes here'), 'saw * here');
+  assert.ok(Date.now() - t1 < 1500, `${Date.now() - t1}ms`);
+  // 떼면 꼴만 본다
+  L.setLogPrivate(null);
+  assert.equal(msgOf('Run a marathon is not iterable'), 'Run a marathon is not iterable');
+});
+
 test('고리: 마지막 20건만 — 넘치면 오래된 것부터 버린다. 길이는 늘 막는다', () => {
   const { s, store } = memStore();
   fresh(store);

@@ -7,6 +7,8 @@
 // - 넣은 값을 되받아 적는 오류(JSON 읽기 등)는 메시지의 고정된 앞머리만 남긴다.
 // - 그 밖의 메시지도 따옴표 안은 식별자 꼴일 때만, 주소는 ? 앞까지만, 영문 · 숫자 · 기호 밖의 글자는 모두 뺀다. 길이는 늘 자른다.
 // - Error가 아닌 값(문자열 · 객체로 던진 것)은 값의 종류만 적는다.
+// - 위의 거르기는 꼴만 본다. 그래서 문서가 떠 있는 동안에는 그 안의 글 자체를 메시지에서 찾아 지운다(setLogPrivate) —
+//   따옴표 없이 섞인 영문 글이나 식별자 꼴의 한 낱말도 문서에 있는 글이면 남지 않는다.
 // - 부스러기(crumb) · 태그는 코드가 정한 낱말만 받는다 — 부르는 자리는 tests/crashLog.test.js가 세어 둔다.
 //
 // RN 의존 없는 순수 모듈. 저장 자리(기기: 파일 · 웹: localStorage)와 손잡이 걸기는 crashBoot.ts가 맡는다.
@@ -87,6 +89,89 @@ export function scrubMessage(name: string, message: unknown): string {
     // 따옴표 안은 식별자 꼴(속성 · 함수 이름)일 때만
     .replace(/(["'`])(.*?)\1/g, (all: string, q: string, inner: string) => (IDENT_RE.test(inner) ? all : `${q}*${q}`));
   return ascii(s).trim().slice(0, LOG_CAP.msg);
+}
+
+// ── 문서의 글 지우기 ───────────────────────────────────────────────────────────
+
+/** 지금 문서를 돌려주는 함수 — 붙어 있으면 기록할 때 그 안의 글을 메시지에서 지운다 */
+let privateSource: (() => unknown) | null = null;
+/**
+ * 문서에서 들여다보는 값의 수(3년 쓴 문서가 2만 5천쯤 — tests/helpers/heavyDoc) · 지울 글의 가장 짧은 길이 ·
+ * 잘려 실린 긴 글을 알아보는 앞머리 길이
+ */
+const PRIVATE = { nodes: 500_000, min: 3, head: 16 } as const;
+
+/**
+ * 사용자의 문서를 돌려주는 함수를 붙인다(저장소가 뜬 뒤 — src/store/useCrashRecovery.ts).
+ * 기록할 때마다 그 문서 안의 모든 글(목표 · 칸 · 할 일 · 메모 · 한 줄 기록 …)을 메시지에서 찾아 지운다.
+ * 문서를 읽다 던지면 메시지를 통째로 버린다(이름과 스택만 남는다).
+ */
+export function setLogPrivate(source: (() => unknown) | null): void {
+  privateSource = source;
+}
+
+/**
+ * 문서 안의 글들(긴 것부터, 여러 줄 글은 줄마다) — 붙은 문서가 없으면 빈 목록.
+ * 읽다 던지거나 다 훑지 못하면(너무 크다) null: 무엇을 지워야 할지 모르는 것이므로 메시지를 버린다.
+ */
+function privateTexts(): string[] | null {
+  if (!privateSource) return [];
+  try {
+    const out = new Set<string>();
+    const seen = new Set<object>();
+    const todo: unknown[] = [privateSource()];
+    for (let n = 0; todo.length > 0; n++) {
+      if (n >= PRIVATE.nodes) return null;
+      const v = todo.pop();
+      if (typeof v === 'string') {
+        for (const part of v.split(/\r?\n/)) {
+          const t = part.trim();
+          if (t.length >= PRIVATE.min) out.add(t);
+        }
+      } else if (v && typeof v === 'object' && !seen.has(v)) {
+        seen.add(v);
+        for (const x of Array.isArray(v) ? v : Object.values(v)) todo.push(x);
+      }
+    }
+    return [...out].sort((a, b) => b.length - a.length);
+  } catch {
+    return null;
+  }
+}
+
+const ALNUM = /[A-Za-z0-9]/;
+
+/** s 안의 t를 *로 — 영문 · 숫자로 시작하거나 끝나는 글은 낱말로 떨어져 있을 때만(칸에 적은 'act'가 'actions'를 지우지 않게) */
+function blank(s: string, t: string): string {
+  let out = '';
+  let from = 0;
+  for (;;) {
+    const at = s.indexOf(t, from);
+    if (at < 0) return out + s.slice(from);
+    const end = at + t.length;
+    const glued = (ALNUM.test(t[0]) && at > 0 && ALNUM.test(s[at - 1])) || (ALNUM.test(t[t.length - 1]) && end < s.length && ALNUM.test(s[end]));
+    out += glued ? s.slice(from, end) : `${s.slice(from, at)}*`;
+    from = end;
+  }
+}
+
+/**
+ * 메시지의 첫 줄에서 문서의 글을 지운다 — 통째로 들어 있으면 그 자리만 *,
+ * 앞머리만 보이면(길어서 잘려 실린 글) 거기서부터 끝까지.
+ */
+function withoutPrivate(message: unknown): unknown {
+  if (typeof message !== 'string') return message;
+  const texts = privateTexts();
+  if (texts === null) return '';
+  let s = message.slice(0, SCAN.line).split(/\r?\n/, 1)[0];
+  for (const t of texts) {
+    s = blank(s, t);
+    if (t.length > PRIVATE.head) {
+      const at = s.indexOf(t.slice(0, PRIVATE.head));
+      if (at >= 0) s = `${s.slice(0, at)}*`;
+    }
+  }
+  return s;
 }
 
 // '    at fn (address at /…/main.jsbundle:1:2345)' (Hermes) · '    at fn (https://…/index.js:1:2)' (V8) · '    at https://…:1:2'
@@ -261,7 +346,7 @@ export function record(e: unknown, o: { kind?: CrashKind; where?: string; compon
       os,
       kind: o.kind ?? (comp.length > 0 ? 'render' : 'report'),
       name,
-      msg: isError ? scrubMessage(name, err?.message) : e === null ? 'null' : typeof e,
+      msg: isError ? scrubMessage(name, withoutPrivate(err?.message)) : e === null ? 'null' : typeof e,
       stack: isError ? scrubStack(err?.stack, err?.message) : [],
     };
     if (lang) entry.lang = lang;
@@ -385,4 +470,5 @@ export function resetLogForTest(): void {
   os = '';
   store = null;
   unread = false;
+  privateSource = null;
 }

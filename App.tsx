@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 
 import { MandaratProvider, useReady } from './src/store/MandaratContext';
-import { useSnapOpen } from './src/store/useCrashRecovery';
+import { useLogPrivacy, useSnapOpen } from './src/store/useCrashRecovery';
 import { LookProvider, usePaletteValue } from './src/theme/look';
 import { UIProvider } from './src/navigation/ui';
 import { Root } from './src/navigation/Root';
@@ -44,6 +44,8 @@ function Gate() {
   // 준비됐는지만 읽는다 — 문서가 바뀌어도 문지기는 다시 그려지지 않는다
   // (루트 뷰 바탕 · 상태 막대 · 시스템 모드는 LookProvider가 화면 모드에 맞춰 둔다)
   const ready = useReady();
+  // 이 기기의 오류 기록이 메시지에서 문서의 글을 지울 수 있게 한다(문서가 바뀌어도 다시 그리지 않는다)
+  useLogPrivacy();
   // 오류 화면에서 '저장본으로 열기'를 골랐으면 첫 화면을 그리기 전에 그 저장본으로 바꾼다(그동안 스플래시)
   const opening = useSnapOpen(ready);
   if (!ready || opening) return <Splash />;
