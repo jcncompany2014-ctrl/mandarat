@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x500">
+<title>시안 · 64칸까지 이어 쓰기 · 지금과 바꾼 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* Not a screen: the 만다라트 tab right after the first area's eight cells, before and after, on the
+     grey ground the other comparison boards use, but 390pt wide for a phone-width page. The two
+     pictures are this folder's own renders (fill-chart-8-now.png, fill-chart-8.png), shown at 44%,
+     so render those two first. */
+  html, body { background: var(--tile); }
+  .cmp { position: absolute; inset: 0; padding: 20px 16px 0; }
+  .cmp-grid { display: grid; grid-template-columns: 174px 174px; column-gap: 10px; }
+  .cmp-title { font: 700 20px/28px var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+  .cmp-note { margin-top: 4px; font: 500 13px/19px var(--sans); color: var(--print); }
+  .cmp-shot { display: block; width: 174px; height: 376.5px; margin-top: 14px; border-radius: 12.5px; background: var(--paper); }
+</style>
+</head>
+<body>
+<div class="cmp">
+  <div class="cmp-grid">
+    <div>
+      <div class="cmp-title">지금</div>
+      <div class="cmp-note">‘쓴 칸’이 사라지고<br>안내가 끝나요.</div>
+      <img class="cmp-shot" src="/docs/design/mockups/a/next/fill-chart-8-now.png" alt="">
+    </div>
+    <div>
+      <div class="cmp-title">바꾼 뒤</div>
+      <div class="cmp-note">‘쓴 칸 8/64’가 남고<br>다음 영역으로 이어 줘요.</div>
+      <img class="cmp-shot" src="/docs/design/mockups/a/next/fill-chart-8.png" alt="">
+    </div>
+  </div>
+</div>
+</body>
+</html>

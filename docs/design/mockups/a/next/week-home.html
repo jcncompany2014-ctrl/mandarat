@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · 다음 · 홈 — 이번 주 중점</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/week-parts.css">
+</head>
+<body>
+<!-- Home, 10월 14일 수요일. The picks leave 오늘 할 일 and stand as their own small group with check
+     boxes; 오늘 할 일 keeps its label and its door (전체 보기). Screens and data: week-parts.js. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/week-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  WK.home(document.querySelector('#page'), WK.scene(base, 'wed'), { focus: 'group' });
+});
+</script>
+</body>
+</html>

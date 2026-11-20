@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 64칸까지 이어 쓰기 · 만다라트 탭 · 8/64 · 펼침</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/fill-parts.css">
+</head>
+<body>
+<!-- 그 줄을 펼친 상태: 커리어의 첫 빈칸에 먹 테두리, 질문 한 줄, 권하는 실천 세 줄, 오른쪽에 '직접 쓰기'. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/fill-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  F.chartTab('#page', F.doc8(doc), { coach: 'open' });
+});
+</script>
+</body>
+</html>

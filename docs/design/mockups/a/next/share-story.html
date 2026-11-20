@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="540x960">
+<title>A · next · 공유 이미지 9:16 스토리 · 글자 넣기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* The same picture as a story, 9:16 (540 × 960 pt = 1080 × 1920 px). Nothing is redrawn: the title,
+     the sheet and the foot keep the 4:5 image's measure (468pt) and sizes, and move as one group into
+     the part of a story that the host app leaves free (SH.story in share-parts.js). */
+  body { width: 540px; height: 960px; background: var(--paper); }
+</style>
+</head>
+<body>
+<div id="story"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/share-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  SH.story('#story', SH.doc(doc), { mode: 'text' });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 한 해 마무리 3/3 · 이미지로 남기기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* 한 해 마무리, the last of its three pages, as the app draws it now: the old sheet small, one
+     sentence that it is kept, the kind of new sheet chosen, one ink button (새 표 시작하기).
+     What is new is the same one line as on the 64/64 page: 이미지로 남기기 above the button, so the
+     sheet that is about to be put away can be kept as a picture first. */
+  .step { position: absolute; right: var(--gutter); top: 12px; }
+  #thumb { margin-top: 18px; }
+  .kept { margin-top: 20px; }
+  .kept .t-note { display: block; margin-top: 2px; font-size: 13px; }
+  .new { margin-top: 28px; }
+  .new .a-section { margin-bottom: 0; }
+  .yc-foot { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 24px; }
+  .yc-keep { display: flex; align-items: center; justify-content: center; height: 44px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <span class="t-label step">3/3</span>
+  <div class="a-body">
+    <div id="thumb"></div>
+    <div class="kept">
+      <div class="t-prompt">지금 표는 보관함에 그대로 남아요</div>
+      <span class="t-note">기록도 함께 남아 있어 언제든 다시 볼 수 있어요</span>
+    </div>
+    <section class="new">
+      <div class="a-section"><span class="t-label is-section">새 표</span></div>
+      <div class="a-list"><div class="a-row"><div class="a-row-main"><div class="a-row-title">실천은 그대로</div><div class="a-row-meta">달성·기록은 비워요</div></div></div></div>
+    </section>
+  </div>
+  <div class="yc-foot">
+    <div class="yc-keep"><span class="a-link" id="keep"></span></div>
+    <div class="a-btn">새 표 시작하기</div>
+  </div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script>
+A.ready().then((doc) => {
+  A.header('#header', { back: '이전', title: '마무리', action: 'close' });
+  A.chart('#thumb', doc, { level: 'L1', cell: 16 });
+  document.querySelector('#keep').innerHTML = `이미지로 남기기${A.icon('chevron', { size: 16 })}`;
+});
+</script>
+</body>
+</html>

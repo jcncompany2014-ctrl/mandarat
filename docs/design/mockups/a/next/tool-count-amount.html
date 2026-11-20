@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 쌓기 칸에 원하는 만큼 더하기 · 얼마나 더할까요</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/tool-parts.css">
+<style>
+  /* the number pad with a decimal point is 291pt on this phone (the text keyboard of 담기 is 336) */
+  #kb { height: 291px; }
+  .t-dock { bottom: calc(291px + 8px); }
+</style>
+</head>
+<body>
+<!-- (a) 숫자 줄을 누른 뒤. 실천 시트가 내려가고, 담기처럼 숫자판 위에 앉은 작은 시트 하나:
+     칸 이름과 지금 수 · 닫기 / '얼마나 더할까요?' / 숫자 칸(숫자 뒤에 단위, 안에 '더하기') / 더하면 얼마가 되는지 한 줄.
+     소수도 받는다(7.5km). 한 번 더하면 시트가 닫히고 실천 시트로 돌아간다. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div class="a-body"><div id="block"></div></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet t-dock">
+    <div class="ap-grabber"></div>
+    <div class="t-dock-head"><span><span class="t-own" id="name"></span><span class="t-label" id="now"></span></span><span class="a-link">닫기</span></div>
+    <div class="t-dock-ask"><span class="t-label">얼마나 더할까요?</span></div>
+    <div id="field"></div>
+    <span class="t-note t-dock-then" id="then"></span>
+  </div>
+  <div id="kb"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/parts-input.js"></script>
+<script src="/docs/design/mockups/a/next/tool-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const AREA = 2, INDEX = 0; // 자기계발 · 책 12권 읽기
+  const act = doc.areas[AREA].actions[INDEX];
+  const c = { count: 7, goal: 12, unit: '권' };
+  const typed = 3;
+
+  T.behindBlock(doc, AREA, { focus: 0 });
+
+  const q = (s) => document.querySelector(s);
+  q('#name').textContent = act.text;
+  q('#now').textContent = `${c.count}/${c.goal}${c.unit}`;
+  q('#then').innerHTML = `더하면 <b>${c.count + typed}/${c.goal}${c.unit}</b>`;
+
+  // the 담기 field (AP.field: 54pt --tile, the small ink button inside its right end), holding a number:
+  // typed figure, the caret, then the unit printed after it
+  const f = q('#field');
+  f.classList.add('ap-field');
+  f.innerHTML = `<div class="ap-field-text is-num">${typed}${AP.caret()}<span class="t-unit">${c.unit}</span></div><div class="a-btn is-small">더하기</div>`;
+  AP.keyboard('#kb');
+});
+</script>
+</body>
+</html>

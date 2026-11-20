@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<meta name="mock:dark" content="1">
+<title>시안 · 살아 있는 지도 · 홈 · 안 B (다크)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/map-parts.css">
+</head>
+<body>
+<!-- 안 B, 다크: 세 단계가 밤 화면에서 읽히는지 보려고 그린 것. -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/map-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = M.tick(M.veteran(doc), []);
+  M.home('#page', d, { mode: 'b' });
+});
+</script>
+</body>
+</html>

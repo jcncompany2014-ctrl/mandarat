@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1784x1016">
+<title>A · 다음 · 이번 주 중점 — 지금과 바꾼 뒤 (월요일의 홈과 오늘)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/week-parts.css">
+<style>
+  /* Not a screen: four 390 × 844 screens on a grey ground, the morning after the review
+     (10월 12일 월요일; the picks are 주 3회 운동 · 친구 모임 · 손편지 쓰기). Left pair = the app today
+     (as in the audit captures j3-12-monday-home.png and j3-13-monday-today.png, redrawn with the demo
+     document), right pair = the proposal. Screens: week-parts.js. */
+  html, body { width: 1784px; height: 1016px; background: var(--tile); }
+</style>
+</head>
+<body>
+<div class="cmp-title" style="left:48px;top:28px">지금</div>
+<div class="cmp-note" style="left:48px;top:62px">한 번 하는 중점(친구 모임 · 손편지 쓰기)은 홈에 체크 상자 없이 놓이고, 오늘 탭에는 없어요.</div>
+<div class="cmp-tab" style="left:48px;top:98px">홈</div>
+<div class="cmp-tab" style="left:462px;top:98px">오늘</div>
+<div class="cmp-phone" style="left:48px;top:124px"><div class="a-page" id="home-now"></div></div>
+<div class="cmp-phone" style="left:462px;top:124px"><div class="a-page" id="today-now"></div></div>
+
+<div class="cmp-title" style="left:932px;top:28px">바꾼 뒤</div>
+<div class="cmp-note" style="left:932px;top:62px">홈과 오늘 탭 맨 위에 ‘이번 주 중점’으로 모이고, 줄마다 체크 상자가 있어요.</div>
+<div class="cmp-tab" style="left:932px;top:98px">홈</div>
+<div class="cmp-tab" style="left:1346px;top:98px">오늘</div>
+<div class="cmp-phone" style="left:932px;top:124px"><div class="a-page" id="home-next"></div></div>
+<div class="cmp-phone" style="left:1346px;top:124px"><div class="a-page" id="today-next"></div></div>
+
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/week-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const mon = WK.scene(base, 'mon');
+  const $ = (s) => document.querySelector(s);
+  WK.home($('#home-now'), mon, { focus: 'pinned' });
+  WK.today($('#today-now'), mon, { focus: 'pinned' });
+  WK.home($('#home-next'), mon, { focus: 'group' });
+  WK.today($('#today-next'), mon, { focus: 'group' });
+});
+</script>
+</body>
+</html>

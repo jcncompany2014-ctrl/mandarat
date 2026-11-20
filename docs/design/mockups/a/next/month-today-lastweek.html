@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 월 N회 습관 · 오늘 · 달의 마지막 주</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/month-parts.css">
+</head>
+<body>
+<!-- 오늘, 10월 28일(달의 마지막 주 = 마지막 7일: 10월 25일 – 31일). 이번 달 횟수를 아직 못 채운 월 N회 습관이 저절로 담겨 있다.
+     정보 줄: '■ 관계 · 이번 달 1/2회 · 남은 날 4일'. 자리는 마감이 가까운 한 번 실천과 같다(중점 다음). 다 채우면 다음 달 마지막 주까지 저절로 담기지 않는다. -->
+<div class="a-page">
+  <div id="header"></div>
+  <div class="filters" id="filters" data-bleed></div>
+  <div class="a-body">
+    <div class="a-list" id="rows"></div>
+    <div class="more"><span class="slot" id="plus"></span><span style="flex:1">실천에서 더 고르기</span><span id="chev"></span></div>
+  </div>
+  <div id="bar"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/month-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  const d = MO.withMonthly(doc);
+  const v = d.view;
+  const m = d.areas[MO.AREA].actions[MO.INDEX];
+
+  // two weeks after the demo day: 이력서 갱신 (D-2 on the 14th) is done and gone; the monthly habit
+  // has come in by itself; one habit ticked this morning. Ten lines again.
+  const monthly = { text: m.text, area: d.areas[MO.AREA].title, meta: `이번 달 ${m.monthDone}/${m.perMonth}회 · 남은 날 4일` };
+  const focus = new Set(v.weekFocus.map((f) => f.text));
+  const base = v.today.rows.filter((r) => r.kind !== 'once');
+  const rows = base.filter((r) => focus.has(r.text)).map((r) => Object.assign({}, r, { rightPrint: '중점' }))
+    .concat([monthly], base.filter((r) => !focus.has(r.text)));
+  const done = rows.filter((r) => r.doneToday).length;
+
+  A.header('#header', { eyebrow: '10월 28일 수요일', title: '오늘', figure: `${done}/${rows.length}`, action: 'more' });
+
+  // the filter line counts what is on today's list by area
+  const count = {};
+  rows.forEach((r) => { count[r.area] = (count[r.area] || 0) + 1; });
+  const names = d.areas.map((a) => a.title).filter((t) => count[t]);
+  document.querySelector('#filters').innerHTML = `<span class="filter is-on">전체</span>` + names.map((name) =>
+    `<span class="filter"><i class="a-dye" style="--d:var(--dye-${A.areaIndex(d, name) + 1})"></i>${name}<b>${count[name]}</b></span>`).join('');
+
+  document.querySelector('#rows').innerHTML = rows.map((r) => A.row(d, { text: r.text, area: r.area, meta: r.meta, rightPrint: r.rightPrint, done: !!r.doneToday })).join('');
+  document.querySelector('#plus').innerHTML = A.icon('plus', { size: 18 });
+  document.querySelector('#chev').innerHTML = A.icon('chevron', { size: 16 });
+  A.tabBar('#bar', { active: 'today' });
+});
+</script>
+</body>
+</html>

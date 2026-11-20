@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1152x753">
+<title>A · next · 공유 이미지 · 지금과 바꾼 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* Not a screen: the two images side by side at full size (each 540 × 675 pt = 1080 × 1350 px).
+     Left, the image the app makes now (진행 표시, to be called 색만: the approved share.html). Right, the same image with the
+     words in (글자 넣기). The frame, the colours and the foot are the same; only the sheet differs. */
+  html, body { width: 1152px; height: 753px; background: var(--tile); }
+  .col { position: absolute; top: 24px; width: 540px; }
+  .col .t-label { display: block; height: 18px; margin-bottom: 12px; color: var(--print-strong); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="col" style="left:24px"><span class="t-label">지금</span><div id="now"></div></div>
+<div class="col" style="left:588px"><span class="t-label">바꾼 뒤 · 글자 넣기</span><div id="next"></div></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/share-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = SH.doc(base);
+  SH.poster('#now', doc, { mode: 'map' });
+  SH.poster('#next', doc, { mode: 'text' });
+});
+</script>
+</body>
+</html>

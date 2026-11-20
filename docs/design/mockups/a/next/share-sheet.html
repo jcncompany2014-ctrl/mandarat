@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 표 이미지 시트 · 글자 넣기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 표 이미지 시트 (the share sheet of the 만다라트 tab), with the words chosen.
+     What is new: the segment under the preview has a third choice (글자 넣기), and a second segment
+     picks the size. Everything else is the sheet the app has now: the title line with ×, the picture
+     with its hairline edge, one ink button, the 인쇄용 PDF link.
+     Two controls, so each gets its printed label above it, as in the cell editor (labels above, always).
+     The preview sits in a stage of one height (408pt) whatever the size chosen, so the controls under
+     it never move: 4:5 fills it at 326 × 407.5 (the size the app shows now), the two tall sizes stand in
+     its middle. The sheet's top edge then lands just under the page header, not across a line of text. */
+  .sheet-bg { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+  .sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+  .sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #chart { margin: 12px 0 10px; }
+
+  .sh-title { flex: 1; font: 600 14px/20px var(--sans); color: var(--ink); }
+  .stage { height: 408px; margin-top: 4px; display: flex; align-items: center; justify-content: center; }
+  .shot { position: relative; border-radius: 10px; overflow: hidden; }
+  .shot::after { content: ''; position: absolute; inset: 0; border-radius: 10px; box-shadow: inset 0 0 0 var(--hair) var(--print-mid); }
+  .s-group.is-tight { margin-top: 16px; }
+  .go { margin-top: 20px; }
+  .pdf { display: flex; justify-content: center; align-items: center; height: 44px; margin: 4px 0 -16px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="sheet-bg">
+    <div class="sheet-line"><span class="t-label" id="form-name"></span><span class="t-label">달성 <b id="count"></b></span></div>
+    <div id="chart"></div>
+  </div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/share-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = SH.doc(base);
+  // behind: the 만다라트 tab as chart.html draws it
+  A.header('#header', { eyebrow: '핵심 목표', title: doc.coreGoal, written: true, action: 'share' });
+  document.querySelector('#form-name').textContent = `${doc.view.date.year} 만다라트`;
+  document.querySelector('#count').textContent = `${doc.view.progress.done}/${doc.view.progress.of}칸`;
+  A.chart('#chart', doc, { level: 'L2', map: true, width: 342 });
+  A.tabBar('#bar', { active: 'chart' });
+
+  document.querySelector('#sheet').innerHTML = `
+    <div class="s-head"><span class="sh-title">표 이미지</span><div class="s-head-close">${A.icon('close')}</div></div>
+
+    <div class="stage"><div class="shot" id="shot"></div></div>
+
+    <section class="s-group is-tight">
+      <div class="a-section"><span class="t-label">내용</span></div>
+      ${S.segment(['색만', '글자 넣기', '빈 표'], '글자 넣기')}
+    </section>
+
+    <section class="s-group is-tight">
+      <div class="a-section"><span class="t-label">크기</span></div>
+      ${S.segment(['피드', '스토리', '잠금 화면'], '피드')}
+    </section>
+
+    <div class="a-btn go">이미지 저장·공유</div>
+    <div class="pdf"><span class="a-link">인쇄용 PDF${A.icon('chevron', { size: 16 })}</span></div>`;
+
+  // the preview: the real image drawn at 326 × 407.5 (real type sizes, not a scaled bitmap)
+  SH.poster('#shot', doc, { mode: 'text', zoom: 326 / 540 });
+});
+</script>
+</body>
+</html>

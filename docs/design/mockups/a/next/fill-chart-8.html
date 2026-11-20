@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>시안 · 64칸까지 이어 쓰기 · 만다라트 탭 · 8/64</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/tools/design-mockups/fonts.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/next/fill-parts.css">
+</head>
+<body>
+<!-- 첫 영역 8칸을 쓴 뒤. 지도 위 줄에 '쓴 칸 8/64'가 남고, 지도 아래 한 줄이 다음 영역으로 이어 준다(접힌 상태). -->
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/next/fill-parts.js"></script>
+<script>
+A.ready().then((doc) => {
+  F.chartTab('#page', F.doc8(doc), { coach: 'folded' });
+});
+</script>
+</body>
+</html>

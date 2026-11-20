@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 칸 자리 바꾸기 · 바꾼 뒤</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* After the second tap (메모 정리): the two tiles have traded places and settled. 영어 회화 took its
+     today dot and its week figure with it. The ring is gone, the header asks for the next pair, and
+     the app's own toast offers 되돌리기, as it does after 칸 비우기. 완료 brings the lists back, in the
+     new order. */
+</style>
+</head>
+<body>
+<div class="a-page" id="page"></div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  const AREA = A.areaIndex(doc, '자기계발');
+  // the swap: 영어 회화 (third cell) ↔ 메모 정리 (seventh). Text, kind and records travel together.
+  const acts = doc.areas[AREA].actions;
+  [acts[2], acts[6]] = [acts[6], acts[2]];
+  MV.areaPage('#page', doc, AREA, { swap: '자리를 바꿀 칸을 눌러 주세요' });
+  document.querySelector('#page').insertAdjacentHTML('beforeend', MV.toast('두 칸의 자리를 바꿨어요', '되돌리기'));
+});
+</script>
+</body>
+</html>

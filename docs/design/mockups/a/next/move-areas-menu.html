@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 가운데 블록의 ··· 시트 · 영역 순서 바꾸기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* Where 영역 순서 바꾸기 lives: the centre block's page. Today its header action is a pencil that
+     opens the goal's editor. It becomes ···, as on an area's page, and opens the same kind of sheet
+     with two rows: 핵심 목표 고치기 (what the pencil did) and 영역 순서 바꾸기 (move-areas.html).
+     The sheet's head says where, as every sheet does: the mark of the centre block (the eight dyes
+     round the core), the goal, 가운데 블록. */
+</style>
+</head>
+<body>
+<div class="a-page" id="page">
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  MV.corePage('#page', doc, { action: 'more' });
+  document.querySelector('#sheet').innerHTML = `
+    <div class="s-head"><span id="where"></span><div class="s-head-where"><span class="t-label">${doc.coreGoal}</span><span class="t-label">가운데 블록</span></div><div class="s-head-close">${A.icon('close')}</div></div>
+    <div class="a-list mv-rows">${MV.row({ icon: 'edit', title: '핵심 목표 고치기' })}${MV.row({ icon: 'swap', title: '영역 순서 바꾸기' })}</div>`;
+  A.mark('#where', { size: 36, variant: 'heart' });
+});
+</script>
+</body>
+</html>

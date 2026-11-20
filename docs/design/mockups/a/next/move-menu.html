@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 영역 쪽의 ··· 시트 · 칸 자리 바꾸기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* The sheet behind ··· on an area's page (자기계발). Today it has one row, 영역 이름 고치기.
+     It gets a second: 칸 자리 바꾸기. Same row, same height, a glyph drawn to the kit's rules
+     (two arrows passing each other). Tapping it closes the sheet and puts the page in 자리 바꾸기
+     mode (move-swap-1.html). */
+</style>
+</head>
+<body>
+<div class="a-page" id="page">
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/move-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = MV.doc(base);
+  const AREA = A.areaIndex(doc, '자기계발');
+  MV.areaPage('#page', doc, AREA);
+  document.querySelector('#sheet').innerHTML = MV.menu(doc, AREA, [
+    { icon: 'edit', title: '영역 이름 고치기' },
+    { icon: 'swap', title: '칸 자리 바꾸기' },
+  ]);
+});
+</script>
+</body>
+</html>

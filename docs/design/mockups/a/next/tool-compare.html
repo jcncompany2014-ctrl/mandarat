@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="1124x1064">
+<title>시안 · 작은 도구 묶음 · 지금과 바꾼 뒤 (not a screen: the four changes side by side)</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<style>
+  /* A contact sheet, not a screen. Phones are drawn at half size (195 × 422), so the captures of the
+     app as it is today (390 × 844 px, tool-before-*.png) sit pixel for pixel beside the mockups.
+     Render this page after the tool-* screens: it shows their PNGs. */
+  html, body { background: var(--tile); }
+  .sheet { display: grid; grid-template-columns: 609px 402px; column-gap: 49px; row-gap: 44px; padding: 32px; }
+  .cell h2 { margin: 0 0 12px; font: 600 14px/18px var(--sans); color: var(--print-strong); }
+  .cell h2 b { font-weight: 700; color: var(--ink); margin-right: 6px; }
+  .phones { display: flex; gap: 12px; }
+  .phone { width: 195px; }
+  .phone img { display: block; width: 195px; height: 422px; border-radius: 14px; background: var(--paper); }
+  .phone span { display: block; margin-top: 8px; font: 500 13px/18px var(--sans); color: var(--print); }
+  .phone.is-after span { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="cell">
+    <h2><b>a</b>쌓기 칸에 원하는 만큼 더하기</h2>
+    <div class="phones">
+      <div class="phone"><img src="/docs/design/mockups/a/next/tool-before-count.png" alt=""><span>지금</span></div>
+      <div class="phone is-after"><img src="/docs/design/mockups/a/next/tool-count-sheet.png" alt=""><span>바꾼 뒤 · 숫자 줄에 ‘직접 적기’</span></div>
+      <div class="phone is-after"><img src="/docs/design/mockups/a/next/tool-count-amount.png" alt=""><span>누르면 · 얼마나 더할까요?</span></div>
+    </div>
+  </div>
+  <div class="cell">
+    <h2><b>b</b>습관의 최근 10주</h2>
+    <div class="phones">
+      <div class="phone"><img src="/docs/design/mockups/a/next/tool-before-habit.png" alt=""><span>지금</span></div>
+      <div class="phone is-after"><img src="/docs/design/mockups/a/next/tool-habit-10w.png" alt=""><span>바꾼 뒤</span></div>
+    </div>
+  </div>
+  <div class="cell">
+    <h2><b>c</b>‘영역 없음’ 할 일</h2>
+    <div class="phones">
+      <div class="phone"><img src="/docs/design/mockups/a/next/tool-before-add.png" alt=""><span>지금 · 세탁소가 건강으로</span></div>
+      <div class="phone is-after"><img src="/docs/design/mockups/a/next/tool-add-noarea.png" alt=""><span>바꾼 뒤 · 담기</span></div>
+      <div class="phone is-after"><img src="/docs/design/mockups/a/next/tool-today-noarea.png" alt=""><span>바꾼 뒤 · 오늘</span></div>
+    </div>
+  </div>
+  <div class="cell">
+    <h2><b>d</b>칸 예시 더 많이</h2>
+    <div class="phones">
+      <div class="phone"><img src="/docs/design/mockups/a/next/tool-before-examples.png" alt=""><span>지금 · 예시 3개</span></div>
+      <div class="phone is-after"><img src="/docs/design/mockups/a/next/tool-examples.png" alt=""><span>바꾼 뒤 · 영역마다 12개</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

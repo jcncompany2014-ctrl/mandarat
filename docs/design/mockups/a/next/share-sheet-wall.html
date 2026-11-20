@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="mock:size" content="390x844">
+<title>A · next · 표 이미지 시트 · 잠금 화면 크기</title>
+<link rel="stylesheet" href="/tools/design-mockups/kit.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/tokens.css">
+<link rel="stylesheet" href="/docs/design/mockups/a/parts-sheets.css">
+<style>
+  /* 표 이미지 시트 with 크기 = 잠금 화면 (share-sheet.html is the same sheet with 피드).
+     The stage keeps its height, so nothing under it has moved; the wallpaper stands in its middle at
+     188 × 408. Two things appear only for this size:
+       · in the preview, the date and the clock printed faint where the Lock Screen will put them
+         (not part of the saved image): the reason the top third is left empty is on the picture itself.
+       · on the 크기 label line, one written action: 어두운 바탕 (the same line's single action slot that
+         반복 uses for 매일 · 평일 · 주말). It turns the ground dark; then it reads 흰 바탕. */
+  .sheet-bg { display: flex; flex-direction: column; margin: 18px var(--gutter) 0; }
+  .sheet-line { height: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+  .sheet-line b { font: 700 14px/20px var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #chart { margin: 12px 0 10px; }
+
+  .sh-title { flex: 1; font: 600 14px/20px var(--sans); color: var(--ink); }
+  .stage { height: 408px; margin-top: 4px; display: flex; align-items: center; justify-content: center; }
+  .shot { position: relative; border-radius: 10px; overflow: hidden; }
+  .shot::after { content: ''; position: absolute; inset: 0; border-radius: 10px; box-shadow: inset 0 0 0 var(--hair) var(--print-mid); }
+  .s-group.is-tight { margin-top: 16px; }
+  .go { margin-top: 20px; }
+  .pdf { display: flex; justify-content: center; align-items: center; height: 44px; margin: 4px 0 -16px; }
+</style>
+</head>
+<body>
+<div class="a-page">
+  <div id="header"></div>
+  <div class="sheet-bg">
+    <div class="sheet-line"><span class="t-label" id="form-name"></span><span class="t-label">달성 <b id="count"></b></span></div>
+    <div id="chart"></div>
+  </div>
+  <div id="bar"></div>
+
+  <div class="a-scrim s-scrim"></div>
+  <div class="a-sheet s-sheet" id="sheet"></div>
+</div>
+<script src="/docs/design/mockups/a/shared.js"></script>
+<script src="/docs/design/mockups/a/parts-sheets.js"></script>
+<script src="/docs/design/mockups/a/next/share-parts.js"></script>
+<script>
+A.ready().then((base) => {
+  const doc = SH.doc(base);
+  // behind: the 만다라트 tab as chart.html draws it
+  A.header('#header', { eyebrow: '핵심 목표', title: doc.coreGoal, written: true, action: 'share' });
+  document.querySelector('#form-name').textContent = `${doc.view.date.year} 만다라트`;
+  document.querySelector('#count').textContent = `${doc.view.progress.done}/${doc.view.progress.of}칸`;
+  A.chart('#chart', doc, { level: 'L2', map: true, width: 342 });
+  A.tabBar('#bar', { active: 'chart' });
+
+  document.querySelector('#sheet').innerHTML = `
+    <div class="s-head"><span class="sh-title">표 이미지</span><div class="s-head-close">${A.icon('close')}</div></div>
+
+    <div class="stage"><div class="shot" id="shot"></div></div>
+
+    <section class="s-group is-tight">
+      <div class="a-section"><span class="t-label">내용</span></div>
+      ${S.segment(['색만', '글자 넣기', '빈 표'], '글자 넣기')}
+    </section>
+
+    <section class="s-group is-tight">
+      <div class="a-section"><span class="t-label">크기</span><span class="s-quiet">어두운 바탕</span></div>
+      ${S.segment(['피드', '스토리', '잠금 화면'], '잠금 화면')}
+    </section>
+
+    <div class="a-btn go">이미지 저장·공유</div>
+    <div class="pdf"><span class="a-link">인쇄용 PDF${A.icon('chevron', { size: 16 })}</span></div>`;
+
+  // the preview: the wallpaper drawn at 188 × 408, with the clock's place printed faint over it
+  const d = doc.view.date;
+  SH.wallpaper('#shot', doc, { mode: 'text', zoom: 408 / 932 });
+  const lock = document.createElement('div');
+  document.querySelector('#shot .sh-wall').appendChild(lock);
+  SH.lockScreen(lock, { date: `${d.month} ${d.day}일 ${d.weekday}`, time: '9:30', ghost: true });
+});
+</script>
+</body>
+</html>
