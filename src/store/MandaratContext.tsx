@@ -769,6 +769,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   }, [ready, relocalizeDefaults]);
 
   // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로.
+  // 직접 추가한 할 일은 아직 안 한 것을 남긴다 — 예시로 채우기 · 새 표와 같게(칸에 묶인 것이 아니다). 끝낸 것은 기록만 남는다.
   // 템플릿으로 온보딩하면(처음 쓰는 표) completeOnboarding처럼 지금 표는 오늘 시작이다(R-1 F7)
   const applyTemplate = useCallback(
     (centerGoal: string, themes: Theme[]) => {
@@ -778,7 +779,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         centerGoal: centerGoal || d.centerGoal,
         themes,
         todayKeys: [],
-        todayExtra: [],
+        todayExtra: d.todayExtra.filter((x) => !x.done),
         dayLog: archiveAllCells(d.dayLog, Date.now()),
         ...withPicksDetached(d),
         ...(d.onboarded ? {} : { chartStart: dateKey(), focusStart: d.focusMinutes ?? 0 }),
