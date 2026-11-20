@@ -8,6 +8,7 @@ import { addCount as addCountTo, clearedAction, rateWeek, sameConfig, configOf, 
 import { activeStreak, archiveAllCells, archiveCellLog, configCell, detachReviewPicks, toggleCellDone } from '../lib/history';
 import { summarize, type BackupSummary } from '../lib/backup';
 import { EDITOR_DRAFT_KEY } from '../lib/editorDraft';
+import { checkExtraOn as extraOn, checkOnceOn as onceOn } from '../lib/widgetOps';
 import { resetDoc, startNewChart as nextChart, type NewChartMode } from '../lib/archive';
 import type { SyncMeta } from '../lib/syncMeta';
 // 맞추기는 손잡이(syncCommit)로만 — iOS는 syncCommit.ios.ts, 웹 · 안드로이드는 빈 것(번들에 합치기 · 도장이 없다)
@@ -164,6 +165,10 @@ export interface Actions {
   addCount: (ti: number, ai: number, delta: number) => void;
   /** 쌓기 수를 지난 날(day, 오늘까지) 기록으로 더한다 — 위젯에서 그날 한 체크를 늦게 들일 때 */
   addCountOn: (ti: number, ai: number, delta: number, day: string) => void;
+  /** 한 번을 지난 날(day, 오늘까지)에 달성한 것으로 — 기록은 그날에 남는다. 위젯에서 그날 한 체크를 늦게 들일 때 */
+  checkOnceOn: (ti: number, ai: number, day: string) => void;
+  /** 직접 추가한 할 일을 지난 날(day, 오늘까지)에 끝낸 것으로 — 기록은 그날에 남고 오늘 목록에서 빠진다. 위젯에서 그날 한 체크를 늦게 들일 때 */
+  checkExtraOn: (id: string, day: string) => void;
   /** 마음가짐 점수(0이면 지움) — on이 속한 주(기본: 이번 주) */
   rateMind: (ti: number, ai: number, score: number, on?: Date) => void;
   addFocusMinutes: (minutes: number) => void;
@@ -277,6 +282,11 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   const blockSave = useRef(false);
   /** 이번 실행에서 저장본(하루 한 번)을 챙긴 날 */
   const snapDay = useRef<string | null>(null);
+  /**
+   * 켤 때 읽은 값이 다시 쓸 값과 글자까지 같다 — 정리(migrate) · 하루 넘김 · 새 메타로 바뀐 것이 없다.
+   * 그러면 준비된 뒤의 첫 저장(같은 것을 300ms 뒤에 또 쓰기)을 건너뛴다. 한 번 쓰고 내린다
+   */
+  const launchSame = useRef(false);
 
   // 하루의 첫 저장 뒤에 그 내용을 'mandarat:snap:날짜'로 한 벌 더 남기고, 최근 7일치만 둔다.
   // 실패해도 본 저장에는 영향이 없다(같은 날 다시 시도하지 않는다).
@@ -358,6 +368,8 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       // 읽은 메타(없으면 새로) — 문서와 함께 넣고, 정리로 바뀐 것은 openStored가 이미 찍었다
       if (makeMeta && !blockSave.current) metaRef.current = loaded ? loaded.meta : makeMeta();
       if (loaded) commit(loaded.doc, 'none');
+      // 지금 쓰면 나올 값(persist와 같은 짝)이 읽은 값 그대로인가 — 저장본이 없던 첫 실행은 늘 쓴다(빈 표 · 새 메타)
+      launchSame.current = loaded !== null && read.ok && serializeStored(latest.current, metaRef.current) === read.raw;
       if (metaRef.current) setPortOn(true);
       if (blockSave.current) setStorageError(true);
       setReady(true);
@@ -370,6 +382,13 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   // debounced persist
   useEffect(() => {
     if (!ready || blockSave.current) return;
+    // 켤 때 읽은 그대로면 같은 것을 다시 쓰지 않는다 — 저장 뒤에 남기던 하루 저장본만 같은 때(300ms 뒤, 그때의 문서)에 챙긴다.
+    // 그 안에 문서 · 메타가 바뀌면 이 차례는 거두고 아래의 보통 저장이 돈다
+    if (launchSame.current) {
+      launchSame.current = false;
+      const snap = setTimeout(() => snapshot(latest.current), 300);
+      return () => clearTimeout(snap);
+    }
     if (saveTimer.current) clearTimeout(saveTimer.current);
     pendingSave.current = true;
     saveTimer.current = setTimeout(() => {
@@ -380,7 +399,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [doc, saveTick, ready, persist]);
+  }, [doc, saveTick, ready, persist, snapshot]);
 
   // 내려갈 때(오류 화면 등) 아직 쓰지 않은 변경이 있으면 바로 쓴다
   useEffect(
@@ -561,6 +580,17 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
 
   const addCountOn = useCallback(
     (ti: number, ai: number, delta: number, day: string) => update((d) => (day <= dateKey() ? addCountTo(d, ti, ai, delta, day) : d)),
+    [update],
+  );
+
+  // 위젯 · Siri에서 지난 날에 한 체크 — 앱을 연 오늘이 아니라 체크한 그날의 기록으로(src/lib/widgetOps.ts)
+  const checkOnceOn = useCallback(
+    (ti: number, ai: number, day: string) => update((d) => onceOn(d, ti, ai, day, dateKey())),
+    [update],
+  );
+
+  const checkExtraOn = useCallback(
+    (id: string, day: string) => update((d) => extraOn(d, id, day, dateKey())),
     [update],
   );
 
@@ -769,6 +799,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
   }, [ready, relocalizeDefaults]);
 
   // 차트를 통째로 바꾸면 이전 칸 기록은 칸에서 떼어 둔다(지우지 않음). 목표는 ''를 넘기면 그대로.
+  // 직접 추가한 할 일은 아직 안 한 것을 남긴다 — 예시로 채우기 · 새 표와 같게(칸에 묶인 것이 아니다). 끝낸 것은 기록만 남는다.
   // 템플릿으로 온보딩하면(처음 쓰는 표) completeOnboarding처럼 지금 표는 오늘 시작이다(R-1 F7)
   const applyTemplate = useCallback(
     (centerGoal: string, themes: Theme[]) => {
@@ -778,7 +809,7 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
         centerGoal: centerGoal || d.centerGoal,
         themes,
         todayKeys: [],
-        todayExtra: [],
+        todayExtra: d.todayExtra.filter((x) => !x.done),
         dayLog: archiveAllCells(d.dayLog, Date.now()),
         ...withPicksDetached(d),
         ...(d.onboarded ? {} : { chartStart: dateKey(), focusStart: d.focusMinutes ?? 0 }),
@@ -896,12 +927,14 @@ export function MandaratProvider({ children }: { children: React.ReactNode }) {
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
       relocalizeDefaults, replaceDoc, undoReset, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      checkOnceOn, checkExtraOn,
     }),
     [
       getDoc, completeOnboarding, setCenterGoal, setThemeTitle, markAreasSet, setActionText, setActionNote, setActionConfig, clearAction,
       toggleDone, toggleRoutineToday, toggleHabitOn, checkToday, addCount, addCountOn, rateMind, addFocusMinutes, toggleToday, addExtra, toggleExtra,
       removeExtra, restoreExtra, markClosedDay, setDayMood, setDayReflection, saveReview, setSetting, loadSample, applyTemplate, resetAll,
       relocalizeDefaults, replaceDoc, undoReset, startNewChart, revision, dismissRecovered, listSnapshots, readSnapshot,
+      checkOnceOn, checkExtraOn,
     ],
   );
 

@@ -21,4 +21,5 @@ export default {
   focus: '重点',
   galleryName: '今日',
   galleryDesc: '今日やることと残りの数を表示します。',
+  stale: 'アプリを開くと今日やることを表示します',
 } satisfies Like<typeof ko>;
