@@ -6,7 +6,7 @@ import type { TodayWidgetProps, WidgetOp } from '../lib/contracts';
 export interface WidgetEntry { date: Date; props: TodayWidgetProps }
 
 export interface WidgetBridge {
-  /** 타임라인을 통째로 바꾼다(지금 + 다음 자정 29번 — widgetSnapshot WIDGET_DAYS) */
+  /** 타임라인을 통째로 바꾼다(지금 + 다음 자정 29번 + 닫는 칸 — widgetSnapshot widgetTimeline) */
   writeTimeline(entries: WidgetEntry[]): void;
   /**
    * 위젯·Siri가 남긴 체크(ops)를 읽는다 — 앱이 앞으로 나올 때. 읽지 못하면 null:

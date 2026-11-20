@@ -53,6 +53,8 @@ export interface TodayWidgetProps {
   names: string[];
   lines: TodayWidgetLines; pal: { light: WidgetPalette; dark: WidgetPalette }; pat: WidgetPattern;
   ops: WidgetOp[]; url: string;
+  /** only on the closing entry (dated the midnight after the last day): no list, the layout draws lines.stale. `day` stays the last day */
+  expired?: boolean;
 }
 export interface FocusActivityLines { left: string; paused: string; done: string; focus: string; running: string /* '25분 집중' */; leftShort: string /* '남음' */ }
 /** the Live Activity's tokens — dye is this session's area dye */

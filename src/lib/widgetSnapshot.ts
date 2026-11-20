@@ -1,4 +1,4 @@
-// 홈·잠금 화면 위젯이 그릴 값(순수) — 지금 한 칸 + 다음 자정 29번, 모두 30칸의 타임라인.
+// 홈·잠금 화면 위젯이 그릴 값(순수) — 지금 한 칸 + 다음 자정 29번의 30칸, 그 뒤에 닫는 칸 하나가 붙는 타임라인.
 // 위젯은 앱 밖(WidgetKit)에서 그려지므로 값은 plist에 그대로 들어가야 한다: null · undefined · Date가 없고,
 // 날짜는 ms 숫자, 색은 '#RRGGBB(AA)'만(rgba()는 SwiftUI가 못 읽는다). 글은 msg(lang).widget의 '{n}' · '{t}' 틀 그대로
 // 넘긴다 — 위젯 버튼을 누르면 앱 없이 위젯 쪽에서 남은 수를 다시 세어 틀에 넣는다(src/widgets/TodayWidget.ios.tsx).
@@ -21,9 +21,9 @@ import { sortTodayItems } from './routine';
 /** 위젯 목록에 늘어놓는 줄 수 — 나머지는 more(머리의 남은 수가 말한다) */
 export const WIDGET_MAX_ITEMS = 8;
 /**
- * 타임라인 칸 수 — 지금 + 다음 자정 29번(앱을 열지 않아도 한 달은 날짜가 넘어간다). 한 칸 ≈ 2 KB(팔레트 · 문구가 칸마다 든다)라
- * 30칸 ≈ 60 KB(App Group). 마지막 칸이 지나면 위젯은 그 칸에 머문다 — 그때는 위젯이 목록 대신 앱을 열어 달라는 한 줄을 보인다
- * (src/widgets/TodayWidget.ios.tsx의 stale). 8칸일 때는 여드레째부터 지난 날짜로 체크가 적혔다
+ * 타임라인이 담는 날 수 — 지금 + 다음 자정 29번(앱을 열지 않아도 한 달은 날짜가 넘어간다). 한 칸 ≈ 2 KB(팔레트 · 문구가 칸마다 든다)라
+ * 30칸 ≈ 60 KB(App Group). 그 뒤로는 닫는 칸(widgetTimeline)이 목록 대신 앱을 열어 달라는 한 줄을 보인다
+ * (src/widgets/TodayWidget.ios.tsx의 stale). 8칸일 때는 여드레째부터 마지막 칸에 머물러 지난 날짜로 체크가 적혔다
  */
 export const WIDGET_DAYS = 30;
 /** 위젯을 누르면 여는 곳 */
@@ -124,13 +124,21 @@ export function widgetProps(doc: WidgetDoc, date: Date, { pat, lang }: WidgetTim
   };
 }
 
-/** 위젯 타임라인 — now 한 칸 + 다음 자정 WIDGET_DAYS - 1번. date는 ms 숫자(가까운 것부터) */
+/**
+ * 위젯 타임라인 — now 한 칸 + 다음 자정 WIDGET_DAYS - 1번, 그리고 닫는 칸 하나. date는 ms 숫자(가까운 것부터).
+ * 닫는 칸은 마지막 날이 끝나는 자정부터 보인다: 목록 없이 expired만 실어, 위젯이 그 순간부터 앱을 열어 달라는 한 줄을 그린다.
+ * WidgetKit은 칸을 미리 그려 두고 타임라인이 끝나야 다시 읽으므로, 이 칸이 없으면 다시 그려질 때까지 어제의 목록이 그대로 보인다.
+ * day는 마지막 날 그대로 둔다 — 위젯도 Siri(TodayStore.current)도 오늘의 칸으로 읽지 않게.
+ */
 export function widgetTimeline(doc: WidgetDoc, now: Date, opts: WidgetTimelineOptions): { date: number; props: TodayWidgetProps }[] {
   const out: { date: number; props: TodayWidgetProps }[] = [];
   for (let i = 0; i < WIDGET_DAYS; i++) {
     const at = i === 0 ? now : new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
     out.push({ date: at.getTime(), props: plistSafe(widgetProps(doc, at, opts)) });
   }
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + WIDGET_DAYS);
+  const closing: TodayWidgetProps = { ...out[out.length - 1].props, done: 0, total: 0, items: [], more: 0, expired: true };
+  out.push({ date: end.getTime(), props: plistSafe(closing) });
   return out;
 }
 

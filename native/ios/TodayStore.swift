@@ -1,5 +1,6 @@
 // 단축어 · Siri(V3-B)가 읽고 쓰는 '오늘' — 위젯과 같은 App Group 타임라인(expo-widgets가 저장한 배열)을 그대로 쓴다.
-// 앱(WidgetSync)이 30칸(지금 + 다음 자정 29번 — widgetSnapshot WIDGET_DAYS)을 쓰고, 위젯 버튼과 Siri는 그 칸의 props.ops에 덧붙인다.
+// 앱(WidgetSync)이 30칸(지금 + 다음 자정 29번 — widgetSnapshot WIDGET_DAYS)과 닫는 칸 하나를 쓰고, 위젯 버튼과 Siri는 그 칸의 props.ops에 덧붙인다.
+// 닫는 칸의 day는 마지막 날이라 아래 current()가 오늘의 칸으로 읽지 않는다.
 // 앱이 다음에 앞으로 나올 때 ops를 읽어 문서에 반영하고 타임라인을 다시 쓴다(src/hosts/WidgetSync.tsx, src/lib/widgetOps.ts).
 // 열쇠와 모양은 src/lib/contracts.ts(APP_GROUP · WIDGET_TIMELINE_KEY · TodayWidgetProps · WidgetOp) — tests/shortcuts.test.js가 지킨다.
 import Foundation

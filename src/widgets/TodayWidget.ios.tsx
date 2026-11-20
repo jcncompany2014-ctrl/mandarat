@@ -67,6 +67,8 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   // 이미 한 것으로 보여 그날은 체크할 수도 없다. Siri의 TodayStore.current와 같은 규칙이다.
   // 지금은 new Date()로 읽는다 — env.date는 지금이 아니라 이 칸의 시각이다(expo-widgets EntryView.swift).
   // WidgetKit은 앞날의 칸을 미리 그려 두므로, 아직 오지 않은 칸(칸의 시각 > 지금)은 견주지 않는다.
+  // 그래서 마지막 날이 끝나는 자정에는 앱이 써 둔 닫는 칸(p.expired — widgetSnapshot widgetTimeline)이 한 줄을 보인다:
+  // 미리 그려 둔 그 칸이 제때 나타나고, 날짜를 견주는 것은 그 밖의 경우(다시 그려질 때 · 누를 때 · 시계가 바뀌었을 때)를 맡는다.
   /** 이 기기 시간대의 날짜 'YYYY-MM-DD' — 앱의 ymd()(src/lib/routine.ts)와 같은 꼴 */
   function localDay(d: Date) {
     const m = d.getMonth() + 1;
@@ -75,7 +77,7 @@ export function TodayLayout(p: Partial<TodayWidgetProps>, env: WidgetEnvironment
   }
   const now = new Date();
   const upcoming = !!e.date && typeof e.date.getTime === 'function' && e.date.getTime() > now.getTime();
-  const stale = day !== '' && !upcoming && day !== localDay(now);
+  const stale = !!p.expired || (day !== '' && !upcoming && day !== localDay(now));
 
   /** '{n}' · '{t}' 틀 채우기 */
   function fill(tpl: string | undefined, n: number, t: string) {

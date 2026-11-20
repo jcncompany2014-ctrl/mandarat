@@ -1,5 +1,5 @@
 // 출시 전 감사에서 나온 위젯 · 저장소 고침의 지킴이.
-// 1. 위젯이 지난 칸에 머문다 — 타임라인 30칸, 지난 칸에서는 목록 대신 한 줄 · 체크를 받지 않는다(src/widgets/TodayWidget.ios.tsx)
+// 1. 위젯이 지난 칸에 머문다 — 타임라인 30칸 + 닫는 칸, 지난 칸에서는 목록 대신 한 줄 · 체크를 받지 않는다(src/widgets/TodayWidget.ios.tsx)
 // 2. 위젯 · Siri의 한 번 · 직접 추가한 할 일 체크가 앱을 연 날로 적힌다 — 체크한 그날로(src/lib/widgetOps.ts)
 // 3. 템플릿으로 바꾸면 아직 안 한 직접 추가한 할 일까지 지운다 — 남긴다(src/store/MandaratContext.tsx applyTemplate)
 // 4. 켤 때마다 바뀌지 않은 문서를 다시 쓴다 — 읽은 그대로면 쓰지 않는다(같은 파일의 저장 효과)
@@ -44,10 +44,9 @@ function scene(lang = 'en') {
   const shown = (now) => { let i = 0; timeline.forEach((e, j) => { if (e.date <= now.getTime()) i = j; }); return i; };
   /** 그 칸의 env — date는 지금이 아니라 칸의 시각이다(expo-widgets EntryView.swift) */
   const env = (i, family = 'systemLarge') => ({ widgetFamily: family, date: new Date(timeline[i].date) });
-  const render = (now, family) => rt.render(timeline[shown(now)].props, env(shown(now), family), now);
+  const render = (now, family, i = shown(now)) => rt.render(timeline[i].props, env(i, family), now);
   /** expo-widgets AppIntent처럼 — 누른 칸만 고친다. 아무것도 돌려주지 않으면 쓰지 않는다 */
-  const press = (now, key, family) => {
-    const i = shown(now);
+  const press = (now, key, family, i = shown(now)) => {
     const out = rt.press(timeline[i].props, env(i, family), `check:${key}`, now);
     if (out) timeline[i] = { ...timeline[i], props: { ...timeline[i].props, ...out } };
     return out;
@@ -59,8 +58,8 @@ function scene(lang = 'en') {
 test('위젯 1: 타임라인은 30칸 — 앱을 열지 않아도 30일 동안 그날의 칸이 보이고, 체크는 그날로 적힌다', () => {
   const s = scene();
   assert.equal(WIDGET_DAYS, 30);
-  assert.equal(s.timeline.length, 30);
-  for (const e of s.timeline) assert.equal(e.props.day, ymd(new Date(e.date)), '칸의 날은 칸의 시각의 날');
+  assert.equal(s.timeline.length, 31, '30일 + 닫는 칸');
+  for (const e of s.timeline.slice(0, 30)) assert.equal(e.props.day, ymd(new Date(e.date)), '칸의 날은 칸의 시각의 날');
   assert.equal(s.timeline[29].props.day, '2026-12-20');
   // 8칸일 때: 11월 30일에도 28일 칸이 보여 28일로 적혔고, 12월 1 · 2일에는 이미 한 것으로 보여 체크할 수 없었다
   for (const [m, d, want] of [[10, 30, '2026-11-30'], [11, 1, '2026-12-01'], [11, 2, '2026-12-02'], [11, 20, '2026-12-20']]) {
@@ -87,14 +86,28 @@ test('위젯 1: 타임라인은 30칸 — 앱을 열지 않아도 30일 동안 �
   assert.equal(planOps(s.ops(), s.doc, new Date(2026, 11, 28, 9)).filter((c) => c.kind === 'checkOnceOn').length, 1, '26일 전의 한 번 체크');
 });
 
-test('위젯 1: 마지막 칸이 지나면 목록 · 수 대신 앱을 열어 달라는 한 줄 — 버튼이 없고, 눌러도 아무것도 적히지 않는다', () => {
+test('위젯 1: 마지막 날이 지나면 목록 · 수 대신 앱을 열어 달라는 한 줄 — 버튼이 없고, 눌러도 아무것도 적히지 않는다', () => {
   const s = scene();
   const line = msg('en').widget.stale;
-  for (const now of [new Date(2026, 11, 21, 0, 0, 1), new Date(2026, 11, 21, 8), new Date(2026, 11, 25, 8), new Date(2027, 1, 3, 8)]) {
-    assert.equal(s.shown(now), 29, '마지막 칸(12월 20일)에 머문다');
+  // 닫는 칸 — 마지막 날(12월 20일)이 끝나는 자정부터 보인다. 날은 마지막 날 그대로, 목록은 비어 있다
+  const closing = s.timeline[30];
+  assert.equal(closing.date, new Date(2026, 11, 21).getTime());
+  assert.deepEqual({ expired: closing.props.expired, day: closing.props.day, items: closing.props.items, total: closing.props.total }, { expired: true, day: '2026-12-20', items: [], total: 0 });
+  // Siri(TodayStore.current)는 시각이 지난 마지막 칸의 day가 오늘일 때만 읽는다 — 닫는 칸은 어느 날에도 오늘로 읽히지 않는다
+  for (const now of [new Date(2026, 11, 21, 0, 0, 1), new Date(2026, 11, 25, 8)]) assert.notEqual(s.timeline[s.shown(now)].props.day, ymd(now));
+  // WidgetKit은 앱을 연 직후 이 칸도 미리 그려 둔다(칸의 시각 > 지금) — 그때 이미 한 줄이어야 자정에 제때 바뀐다
+  const ahead = s.render(new Date(2026, 10, 21, 9, 0, 1), 'systemMedium', 30);
+  assert.deepEqual(buttons(ahead), []);
+  assert.ok(texts(ahead).includes(line));
+  // which: 닫는 칸(30) · 닫는 칸 없이 마지막 날의 칸(29)이 머문 채 다시 그려질 때(위젯이 스스로 날짜를 견준다) — 둘 다 같은 모습
+  for (const [now, which] of [
+    [new Date(2026, 11, 21, 0, 0, 1), 30], [new Date(2026, 11, 21, 8), 30], [new Date(2026, 11, 25, 8), 30], [new Date(2027, 1, 3, 8), 30],
+    [new Date(2026, 11, 21, 0, 0, 1), 29], [new Date(2026, 11, 25, 8), 29],
+  ]) {
+    assert.equal(s.shown(now), 30, '마지막 날이 지나면 닫는 칸이 보인다');
     for (const family of FAMILIES) {
-      const node = s.render(now, family);
-      const label = `${family} @ ${now.toDateString()}`;
+      const node = s.render(now, family, which);
+      const label = `${family} @ ${now.toDateString()} 칸 ${which}`;
       assert.deepEqual(buttons(node), [], `${label}: 버튼 없음`);
       const t = texts(node);
       // 그날의 목록 · 수 · 날짜는 보이지 않는다
@@ -114,12 +127,12 @@ test('위젯 1: 마지막 칸이 지나면 목록 · 수 대신 앱을 열어 �
       for (const x of t) assert.doesNotMatch(x, /undefined|NaN|\{[nt]\}/, label);
     }
     // 중간 위젯의 남은 수는 자리만 남기고 보이지 않는다
-    walk(s.render(now, 'systemMedium'), (n) => {
+    walk(s.render(now, 'systemMedium', which), (n) => {
       if (n.type === 'HStackView' && modArgs(n, 'opacity') && texts(n).includes(' left')) assert.deepEqual(modArgs(n, 'opacity'), [0]);
     });
     // 눌러도(그리기 전에 누른 것처럼 target을 직접 대도) 아무것도 돌려주지 않는다 → AppIntent는 타임라인을 쓰지 않는다
     for (const family of ['systemMedium', 'systemLarge', 'accessoryRectangular']) {
-      for (const k of ['0-0', '0-1', 'x:e1']) assert.equal(s.press(now, k, family), undefined, `${family} ${k}`);
+      for (const k of ['0-0', '0-1', 'x:e1']) assert.equal(s.press(now, k, family, which), undefined, `${family} ${k}`);
     }
   }
   assert.deepEqual(s.ops(), [], '지난 칸에서는 체크가 하나도 적히지 않는다');
@@ -143,7 +156,7 @@ test('위젯 1: 제때 보이는 칸과 미리 그려 두는 앞날의 칸은 �
   assert.deepEqual(texts(rt.render({}, { widgetFamily: 'systemMedium' }, new Date(2030, 0, 1))).filter((t) => /undefined/.test(t)), []);
   // 모습은 지금을 new Date()로 읽는다 — env.date로 견주면 칸의 날과 늘 같아 지난 칸을 알 수 없다
   const layout = src('src/widgets/TodayWidget.ios.tsx');
-  assert.match(layout, /const now = new Date\(\);\s*const upcoming = !!e\.date && typeof e\.date\.getTime === 'function' && e\.date\.getTime\(\) > now\.getTime\(\);\s*const stale = day !== '' && !upcoming && day !== localDay\(now\);/);
+  assert.match(layout, /const now = new Date\(\);\s*const upcoming = !!e\.date && typeof e\.date\.getTime === 'function' && e\.date\.getTime\(\) > now\.getTime\(\);\s*const stale = !!p\.expired \|\| \(day !== '' && !upcoming && day !== localDay\(now\)\);/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'node_modules/expo-widgets/ios/Widgets/EntryView.swift'), 'utf8'), /env\["timestamp"\] = Int\(entry\.date\.timeIntervalSince1970 \* 1000\)/);
 });
 
@@ -206,12 +219,13 @@ test('위젯 1: 30칸의 크기 — 예시 표로 100 KB 아래, 팔레트는 �
   const NOW = new Date(2026, 10, 20, 9);
   const doc = migrate({ ...blankDoc(), onboarded: true, centerGoal: '단단한 한 해', themes: sampleThemes(NOW, 'ko'), todayDate: '2026-11-20' });
   const tl = widgetTimeline(doc, NOW, { pat: 'blank', lang: 'ko' });
-  assert.equal(tl.length, 30);
+  assert.equal(tl.length, 31);
   const bytes = tl.reduce((n, e) => n + Buffer.byteLength(JSON.stringify(e.props)), 0);
-  assert.ok(bytes < 100 * 1024, `30칸 ${bytes} B`);
+  assert.ok(bytes < 100 * 1024, `30칸 + 닫는 칸 ${bytes} B`);
   assert.ok(Math.max(...tl.map((e) => Buffer.byteLength(JSON.stringify(e.props)))) < 4 * 1024, '한 칸 4 KB 아래');
   // 날과 상관없는 팔레트는 서른 칸이 같은 것을 쓴다(칸마다 66색을 다시 만들지 않는다)
   assert.equal(tl[0].props.pal, tl[29].props.pal);
+  assert.equal(tl[30].props.pal, tl[0].props.pal);
   assert.equal(widgetTimeline(doc, NOW, { pat: 'grid', lang: 'en' })[3].props.pal, tl[0].props.pal);
 });
 
