@@ -47,7 +47,7 @@ EAS does most of this on the **first** build (v2-5), and only when that build is
 `app.json` has no `extra.eas.projectId` or `owner`, so every EAS command below needs this step first.
 
 - [ ] `npx eas-cli@latest login` with the owner's Expo account.
-- [ ] `npx eas-cli@latest init`. It writes `extra.eas.projectId` and `owner` into `app.json`. Send the diff to the lead, because `app.json` is lead-only.
+- [ ] `npx eas-cli@latest init`. It writes `extra.eas.projectId` and `owner` into `app.json`. Commit that change (`app.json` is otherwise lead-only; this one edit is expected).
 - [ ] Check the Expo plan's allowance for iOS builds, simulator builds and Workflows. The plan uses a `preview` build after waves 2, 4 and 5, one `e2e` build per Maestro run, and the fix-wave builds.
 - [ ] Link the GitHub repository to the EAS project, so EAS Workflows can run `.eas/workflows/e2e-ios.yml`.
 - [ ] Optional: an App Store Connect API key in EAS, for `eas submit` and `eas metadata`.
@@ -75,7 +75,7 @@ To bring Sentry back in an update:
   - Re-shoot ja on macOS so it uses Hiragino.
   - Push them with `npx eas-cli metadata:push` (after v2-2), or upload by hand.
   - `supportsTablet` is now true, so the iPad set is **required**.
-- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음). 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; there are no purchases. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
+- [ ] **App Privacy questionnaire**: **Data Not Collected** (데이터를 수집하지 않음), then press **Publish**: the answer is not saved to the listing until it is published. 1.0 has no server, analytics, ads or crash-reporting SDK. Records stay on the device and in the user's own iCloud; there are no purchases. This matches `app.json` (`NSPrivacyCollectedDataTypes: []`, `NSPrivacyTracking: false`) and `docs/v2/privacy.md`.
 - [ ] **Age rating** questionnaire: every answer is None or No (lowest rating).
 - [ ] **Availability — countries**: the v1 plan was 대한민국 only. With ja and en, decide whether to add Japan and other regions. Publish the Japanese listing only after the J-PlatPat search (V9).
 - [ ] **DSA trader status**: App Store Connect asks for it on a first submission (the Digital Services Act section under Business). The owner answers trader or non-trader for their own situation; a trader's address, phone and e-mail are shown on the product page in the EU.
@@ -194,7 +194,7 @@ Check against the mockups in `docs/design/mockups/a/*.png`, on an iPhone and an 
 - [ ] Pause shows `잠시 멈췄어요`; resume continues.
 - [ ] Locked until the end, with notifications allowed: the banner counts down to 0:00 and stays there, and the local notification `25분이 지났어요` arrives. The banner does **not** change to `25분 집중을 마쳤어요` and does **not** leave by itself while the phone stays locked (known limit, v2-9). Open the app: the banner now reads `25분 집중을 마쳤어요` and leaves about 5 minutes later. If iOS ended the app in the meantime, the banner is removed at once on the next launch instead. Returning before 25:00 sends no notification.
 - [ ] App on screen at 25:00: the banner changes to `25분 집중을 마쳤어요` at once and leaves about 5 minutes later.
-- [ ] Closing the timer ends the activity at once. After a force-quit, the stale activity is removed.
+- [ ] Closing the timer before 25:00 ends the activity at once. After a force-quit, the stale activity is removed on the next launch.
 - [ ] Live Activities turned off: no error, and the notification still fires. With no notification permission, the activity is the only signal.
 - [ ] iPad: a Live Activity where iPadOS offers one, otherwise only the notification; no error either way.
 - [ ] A tap opens the running timer. Dark mode, and ja/en captions.
