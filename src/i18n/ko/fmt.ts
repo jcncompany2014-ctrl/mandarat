@@ -81,4 +81,6 @@ export default {
   weekNo: ({ y, w }: { y: number; w: number }) => `${y} · ${w}주`,
   /** '올해 78일 남음' */
   daysLeftYear: ({ n }: { n: number }) => `올해 ${n}일 남음`,
+  /** 지난 마감을 좁은 자리에 말로 — '2일 지남'(days는 마감까지 남은 날, 지났으면 음수). 'D+2'는 'D-2'와 헷갈린다 */
+  dueOver: ({ days }: { days: number }) => `${Math.abs(Math.round(days))}일 지남`,
 } satisfies Namespace;

@@ -31,10 +31,18 @@ export function RowRule({ M, inset = ROW.inset }: { M: M; inset?: number }) {
   );
 }
 
+/** 잰 글 한 줄 — 첫 줄에서 내려온 거리 · 글 폭 */
+type StrikeLine = { y: number; w: number };
+
+const sameLines = (a: StrikeLine[] | null, b: StrikeLine[]) =>
+  !!a && a.length === b.length && a.every((ln, i) => Math.abs(ln.y - b[i].y) <= 0.5 && Math.abs(ln.w - b[i].w) <= 0.5);
+
 /**
  * 줄 제목(rowTitle 500 16/23, 한 줄) — done이면 ink2 글자 위에 1pt ink2 먹선을 한글 가운데(y 12)에 긋는다.
  * 먹선은 textDecorationLine이 아니라 잰 글 폭(onTextLayout; 재지 못하면 글 상자 폭) 위의 View — 라틴 글자 높이가 아니라
  * 한글 가운데를 지나게. 체크 획이 그어진 뒤 왼쪽에서 오른쪽으로 220ms에 그어지고, 처음부터 끝낸 줄 · '동작 줄이기'는 바로.
+ * 글 폭은 끝낸 줄만 잰다 — 먹선만 그 폭을 쓰므로, 안 끝낸 줄은 재지 않아 줄마다 한 번 더 그리지 않는다.
+ * 제목이 여러 줄로 접히면(글자를 키운 오늘 줄) 줄마다 긋는다 — 못 잰 동안(웹)은 첫 줄에만.
  */
 export const RowTitle = memo(function RowTitle({ M, text, done = false, lines = 1, style }: {
   M: M;
@@ -45,7 +53,7 @@ export const RowTitle = memo(function RowTitle({ M, text, done = false, lines = 
 }) {
   const strike = useRef(new Animated.Value(done ? 1 : 0)).current;
   const shown = useRef(done);
-  const [measured, setMeasured] = useState<number | null>(null);
+  const [measured, setMeasured] = useState<StrikeLine[] | null>(null);
   const top = strikeTop(useWindowDimensions().fontScale || 1);
   useEffect(() => {
     if (shown.current === done) return;
@@ -60,29 +68,32 @@ export const RowTitle = memo(function RowTitle({ M, text, done = false, lines = 
     return () => run.stop();
   }, [done, strike]);
 
-  // 잰 폭이 있으면 그 폭 + 양쪽 1, 없으면(웹) 글 상자 양끝에서 1씩 밖으로
-  const across: ViewStyle = measured != null ? strikeBox(measured) : { left: -1, right: -1 };
+  // 잰 폭이 있으면 줄마다 그 폭 + 양쪽 1, 없으면(웹) 첫 줄에 글 상자 양끝에서 1씩 밖으로
+  const strikes: (StrikeLine | null)[] = measured ?? [null];
   return (
     <View style={{ alignSelf: 'flex-start', flexShrink: 1, minWidth: 0, maxWidth: '100%' }}>
       <Text
         style={[ROLE.rowTitle, { color: done ? M.ink2 : M.ink }, style]}
         numberOfLines={lines}
-        onTextLayout={(e) => {
-          const w = e.nativeEvent.lines[0]?.width;
-          if (typeof w === 'number' && Math.abs((measured ?? -1) - w) > 0.5) setMeasured(w);
-        }}
+        onTextLayout={done ? (e) => {
+          const got = lines > 0 ? e.nativeEvent.lines.slice(0, lines) : e.nativeEvent.lines;
+          const y0 = got[0]?.y ?? 0;
+          const next = got.filter((ln) => typeof ln.width === 'number').map((ln, i) => ({ y: i === 0 ? 0 : (ln.y ?? y0) - y0, w: ln.width }));
+          if (next.length > 0 && !sameLines(measured, next)) setMeasured(next);
+        } : undefined}
       >
         {text}
       </Text>
-      {done && (
+      {done && strikes.map((ln, i) => (
         <Animated.View
+          key={i}
           pointerEvents="none"
           style={[
-            { position: 'absolute', top, height: ROW.strike, backgroundColor: M.ink2, transformOrigin: 'left', transform: [{ scaleX: strike }] },
-            across,
+            { position: 'absolute', top: top + (ln?.y ?? 0), height: ROW.strike, backgroundColor: M.ink2, transformOrigin: 'left', transform: [{ scaleX: strike }] },
+            (ln ? strikeBox(ln.w) : { left: -1, right: -1 }) as ViewStyle,
           ]}
         />
-      )}
+      ))}
     </View>
   );
 });
@@ -102,11 +113,15 @@ export const RowMeta = memo(function RowMeta({ M, area, text, lines = 1 }: { M: 
   );
 });
 
-/** 오른쪽 글(rowRight 500 13/18) — 제목 줄 위에. 주인이 쓴 숫자(D-2)는 ink, 인쇄된 낱말(중점)은 print */
-export function RowRight({ M, text, tone = 'ink', alone = false }: { M: M; text: string; tone?: 'ink' | 'print'; alone?: boolean }) {
+/** 오른쪽 글의 색 — 주인이 쓴 숫자(D-2)는 ink, 인쇄된 낱말(중점)은 print, 지난 마감(2일 지남)은 signal */
+export type RowRightTone = 'ink' | 'print' | 'signal';
+
+/** 오른쪽 글(rowRight 500 13/18) — 제목 줄 위에. 주인이 쓴 숫자(D-2)는 ink, 인쇄된 낱말(중점)은 print, 지난 마감은 signal */
+export function RowRight({ M, text, tone = 'ink', alone = false }: { M: M; text: string; tone?: RowRightTone; alone?: boolean }) {
+  const color = tone === 'print' ? M.print : tone === 'signal' ? M.signal : M.ink;
   return (
     <Text
-      style={[ROLE.rowRight, { flexShrink: 0, marginLeft: ROW.gap, marginTop: alone ? ROW.rightDropAlone : ROW.rightDrop, color: tone === 'print' ? M.print : M.ink }]}
+      style={[ROLE.rowRight, { flexShrink: 0, marginLeft: ROW.gap, marginTop: alone ? ROW.rightDropAlone : ROW.rightDrop, color }]}
       numberOfLines={1}
     >
       {text}
@@ -130,7 +145,7 @@ export interface RowProps {
   done?: boolean;
   /** 오른쪽 글(D-2 · 중점) — 제목 줄 위에 */
   right?: string;
-  rightTone?: 'ink' | 'print';
+  rightTone?: RowRightTone;
   /** 오른쪽 끝, 줄 가운데에 놓을 것 — 꺾쇠 · 펜 획 · 시각 칩 */
   trailing?: React.ReactNode;
   /** 위쪽 줄 사이 선 — 목록의 첫 줄이 아니면 true */
