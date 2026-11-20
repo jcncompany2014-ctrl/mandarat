@@ -80,7 +80,7 @@ test('유형 이름 · 설명 · 마감 빠른 선택 · 점수 글 · 연도가
   assert.deepEqual(K.duePresets(WED, 'ja').map((p) => p.label), ['今週中', '今月中', '3か月後', '年内']);
   assert.deepEqual(K.duePresets(WED, 'en').map((p) => p.label), ['This week', 'This month', 'In 3 months', 'By year end']);
   assert.deepEqual(K.ratingTexts('ko'), ['', '거의 못 지켰어요', '조금 지켰어요', '반쯤 지켰어요', '잘 지켰어요', '아주 잘 지켰어요']);
-  assert.equal(K.ratingTexts('en')[5], 'Kept it very well');
+  assert.equal(K.ratingTexts('en')[5], 'Stuck to it all week');
   assert.equal(K.dateText('2027-01-04', WED, 'ja'), '2027/1/4(月)');
   assert.equal(K.dateText('2027-01-04', WED, 'en'), 'Mon, Jan 4, 2027');
   assert.equal(K.dateText('2026-10-20', WED, 'en'), 'Tue, Oct 20');

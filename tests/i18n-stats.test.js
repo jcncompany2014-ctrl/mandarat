@@ -65,10 +65,12 @@ test('ja · en: 날짜 · 요일 · 횟수를 그 언어로, 분수(5/7)로 읽�
   assert.deepEqual(sv.recordParts(12, 3, 1, 'en'), { lead: 'Best 12 days', best: false, month: '1 square achieved this month' });
   assert.equal(sv.weekDelta(1, 3, 'en'), '−2 vs. this time last week');
   assert.equal(sv.weekDelta(5, 3, 'ja'), '先週の今ごろより+2回');
-  assert.equal(sv.bestLine({ date: '2026-10-14', count: 1, thisWeek: true }, 'en'), 'Busiest day Wed, Oct 14 · 1 time · this week');
+  assert.equal(sv.bestLine({ date: '2026-10-14', count: 1, thisWeek: true }, 'en'), 'Busiest day Wed, Oct 14 · 1 time · This week');
   assert.equal(sv.bestLine({ date: '2026-10-14', count: 6, thisWeek: false }, 'ja'), 'いちばん多かった日 10/14(水)・6回');
   assert.equal(sv.fmtMinutes(65, 'en'), '1 hr 5 min');
-  assert.equal(sv.weekAddedText(3, 'km', 'en'), '+3 km this week');
+  // 단위는 윗줄('7/12 km')에 이미 있다 — 영어는 사용자가 적은 단위를 세지 않는다('+1 books this week'가 되지 않게)
+  assert.equal(sv.weekAddedText(3, 'km', 'en'), '+3 this week');
+  assert.equal(sv.weekAddedText(1, 'books', 'en'), '+1 this week');
   const meta = { '2026-10-13': { mood: 3, reflection: 'ok' } };
   assert.equal(sv.moodSpeech(sv.moodStrip(meta, WED, 14, 'en'), 'en'), 'Mood logged on 1 of the last 14 days, Tuesday, October 13: Good');
   assert.equal(sv.reflections(meta, WED, 14, 'ja')[0].say, '10月13日 火曜日、よい');

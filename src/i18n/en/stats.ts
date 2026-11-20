@@ -4,9 +4,6 @@ import type { Like } from '../types';
 import fmt from './fmt';
 import { plural } from './plural';
 
-/** A Latin unit is set off by a space ('+2 books'); a sign, an empty unit or a unit in another script is not ('+12권') */
-const withUnit = (n: string, unit: string) => (/^[a-z]/i.test(unit) ? `${n} ${unit}` : `${n}${unit}`);
-
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const times = (n: number) => plural(n, 'time', 'times');
 const days = (n: number) => plural(n, 'day', 'days');
@@ -61,7 +58,7 @@ export default {
   monthLabel: ({ n }) => MON[n - 1] ?? '',
   bestNone: 'No record yet',
   bestDay: ({ date, n }) => `Busiest day ${date} · ${n} ${times(n)}`,
-  thisWeek: 'this week',
+  thisWeek: 'This week',
   heatSay: ({ n }) => `Active on ${n} ${days(n)} in the last 10 weeks`,
   heatBestSay: ({ date, n }) => `busiest day ${date}, ${n} ${times(n)}`,
   heatHint: 'Swipe up or down to move one day',
@@ -76,9 +73,10 @@ export default {
   secMind: 'Mindset',
   last8w: 'Last 8 weeks',
   pace: ({ date }) => `At this pace, ${date}`,
-  monthZero: ({ unit }) => `${withUnit('0', unit)} this month`,
+  // The unit is the user's own word ('books'), so it is never counted here — the row above already shows '7/12 books'
+  monthZero: () => 'Nothing yet this month',
   goalReached: 'Goal reached',
-  weekAdded: ({ num, unit }) => `${withUnit(`+${num}`, unit)} this week`,
+  weekAdded: ({ num }) => `+${num} this week`,
   mindAvg: ({ n, avg }) => `${n} rated ${plural(n, 'week', 'weeks')}, avg ${avg}`,
   mindNoWeeks: 'No weeks rated yet',
   mindWeekSay: ({ n }) => `This week: ${n} of 5`,
@@ -102,7 +100,7 @@ export default {
   moodSay: ({ days: d, n }) => `Mood logged on ${n} of the last ${d} ${days(d)}`,
   moodDaySay: ({ date, word }) => `${date}: ${word}`,
 
-  eyebrow: ({ y, w, days }) => `${fmt.weekNo({ y, w })} · ${days} ${plural(days, 'day', 'days')} left`,
+  eyebrow: ({ y, w, days: left }) => `${fmt.weekNo({ y, w })} · ${fmt.daysLeftYear({ n: left })}`,
   heroCells: ({ done }) => `${done}/64`,
   monthCells: ({ n }) => `${n} ${plural(n, 'square', 'squares')} this month`,
   scopeWeek: 'This week',
@@ -111,7 +109,7 @@ export default {
   reading: ({ top, n, low, lowN }) => {
     const did = (k: number) => (k === 1 ? 'once' : `${k} ${times(k)}`);
     if (!low) return `You worked on ${top} ${did(n)}`;
-    if (!(lowN > 0)) return `You worked on ${top} ${did(n)}, and not yet on ${low}`;
+    if (!(lowN > 0)) return `You worked on ${top} ${did(n)}. Nothing on ${low} yet.`;
     return `You worked on ${top} ${did(n)} and on ${low} ${did(lowN)}`;
   },
   readingEven: ({ k, n }) => `You worked on ${k} areas ${n === 1 ? 'once' : `${n} ${times(n)}`} each`,
@@ -122,7 +120,7 @@ export default {
   mindNone: 'No mindset squares',
   focusNone: 'No focus time yet',
   linkSet: 'Set up',
-  linkSetHint: 'Choose a square’s kind on the Mandalart',
+  linkSetHint: 'Set a square’s type on your chart',
   linkRate: 'Rate',
   linkRateHint: 'Opens a square to rate this week',
   linkToday: 'Open Today',

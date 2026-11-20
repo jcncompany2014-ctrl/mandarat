@@ -50,13 +50,14 @@ test('en — plurals and short streak cells', () => {
   assert.deepEqual(T.streakCell({ cur: 12, best: 12, unit: 'day' }, 'en'), { text: '12d', a11y: 'Streak of 12 days' });
   assert.equal(T.streakSummaryLabel({ lead: { text: 'Walk', cur: 1, unit: 'day', best: 5 } }, 'en'), 'Current streak 1 day, Walk. Best 5 days');
   assert.equal(T.mindProgress(4, 1, 'en'), '1 of 4 rated');
-  assert.equal(dayCloseText(WED, 1, 'en').speech, "Wednesday, October 14, day closed. You did the one thing on Today's list");
-  assert.equal(dayCloseText(WED, 4, 'en').speech, "Wednesday, October 14, day closed. You did all 4 items on Today's list");
+  assert.equal(dayCloseText(WED, 1, 'en').speech, 'Wednesday, October 14, day closed. You did the one thing on Today’s list');
+  assert.equal(dayCloseText(WED, 4, 'en').speech, 'Wednesday, October 14, day closed. You did all 4 items on Today’s list');
   assert.equal(dayCloseText(WED, 4, 'en').left, 'Wednesday, October 14 · closed');
-  assert.equal(autoLine({ autoCount: 4, autoNames: ['Walk', 'Water', 'Journal', 'Read'] }, 'en'), 'Added automatically 4 · Walk, Water + 2 more');
+  assert.equal(autoLine({ autoCount: 4, autoNames: ['Walk', 'Water', 'Journal', 'Read'] }, 'en'), '4 added automatically · Walk, Water + 2 more');
   assert.equal(t.unitDay({ n: 1 }), ' day');
   assert.equal(t.unitWeek({ n: 2 }), ' weeks');
-  assert.equal(t.whyWeekLeft({ n: 1 }), 'Already on Today with 1 more time to go this week');
+  assert.equal(t.whyWeekLeft({ n: 1 }), 'Already on Today because 1 is left this week');
+  assert.equal(t.whyWeekLeft({ n: 2 }), 'Already on Today because 2 are left this week');
   assert.equal(t.guideFill({ n: 8 }), 'Fill in 8 action squares');
 });
 

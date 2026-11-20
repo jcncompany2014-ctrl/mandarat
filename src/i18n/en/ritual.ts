@@ -5,8 +5,11 @@ import { plural } from './plural';
 import { groupNum } from '../num';
 import type { Like } from '../types';
 
-/** A Latin unit is set off by a space ('+2 books', '+5 km'); a sign or a unit in another script is not ('+12권') */
-const withUnit = (n: string, unit: string) => (/^[a-z]/i.test(unit) ? `${n} ${unit}` : `${n}${unit}`);
+/**
+ * The unit is the user's own word, so it is a label in front of the amount, never a counted noun: 'books +1 · km +5' (not '+1 books').
+ * A sign or a unit in another script stays attached after the number ('+12권'); no unit leaves the bare amount.
+ */
+const isWord = (unit: string) => /^[a-z]/i.test(unit);
 const times = (n: number) => (n === 1 ? 'once' : `${groupNum(n)} ${plural(n, 'time', 'times')}`);
 
 export default {
@@ -14,7 +17,7 @@ export default {
 
   pageWeek: 'The week',
   pageMind: 'Mindset',
-  pageNext: "Next week's focus",
+  pageNext: 'Next week’s focus',
   pageSay: ({ title, page }) => `${title}, ${page}`,
   next: 'Next',
   finish: 'Finish',
@@ -32,9 +35,9 @@ export default {
   rowSay: ({ label, value }) => `${label}, ${value}`,
   rowNone: 'none',
   habitValue: ({ done, total }) => `${done}/${total}`,
-  addedValue: ({ n, unit }) => withUnit(`+${groupNum(n)}`, unit),
+  addedValue: ({ n, unit }) => (isWord(unit) ? `${unit} +${groupNum(n)}` : `+${groupNum(n)}${unit}`),
   addedSep: ' · ',
-  addedSay: ({ n, unit }) => `${withUnit(groupNum(n), unit)} added`,
+  addedSay: ({ n, unit }) => (isWord(unit) ? `${unit} plus ${groupNum(n)}` : `${groupNum(n)}${unit} added`),
   addedSaySep: ', ',
   mindValue: ({ n }) => `Avg ${n} of 5`,
   pickSay: ({ area, text }) => `${area}, ${text}`,
@@ -52,5 +55,5 @@ export default {
 
   sentenceAll: 'You worked on all eight areas at least once',
   sentenceTop: ({ area, n }) => `You worked on ${area} ${times(n)}`,
-  sentenceTopLow: ({ area, n, low }) => `You worked on ${area} ${times(n)}, and not yet on ${low}`,
+  sentenceTopLow: ({ area, n, low }) => `You worked on ${area} ${times(n)}. Nothing on ${low} yet.`,
 } satisfies Like<typeof ko>;

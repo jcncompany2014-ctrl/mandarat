@@ -94,8 +94,8 @@ test('저장본의 ja · en 이름은 sync.copyNote와 같다', () => {
 
 test('en 수 — 하나와 여럿', () => {
   const s = msg('en').settings;
-  assert.equal(s.snapRowSub({ n: 1, days: 1 }), '1 square filled · 1 day recorded');
-  assert.equal(s.snapRowSub({ n: 12, days: 3 }), '12 squares filled · 3 days recorded');
+  assert.equal(s.snapRowSub({ n: 1, days: 1 }), '1 square filled · 1 active day');
+  assert.equal(s.snapRowSub({ n: 12, days: 3 }), '12 squares filled · 3 active days');
   assert.match(s.templateAskBody({ n: 1, name: 'Health' }), /^Your 1 written action and/);
   assert.equal(msg('ja').settings.snapRowSub({ n: 12, days: 3 }), '記入したマス12・記録3日');
 });

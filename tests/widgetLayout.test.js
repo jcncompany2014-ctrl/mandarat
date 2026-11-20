@@ -214,7 +214,7 @@ test('글은 props의 틀에서만 — 남은 수 · 다 했어요 · 비었어�
   const ja = texts(widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'ja' })[0].props, 'systemMedium');
   for (const w of ['今日やること', 'あと', String(left), '件']) assert.ok(ja.includes(w), `ja: ${w}`);
   const en = texts(widgetTimeline(doc(), NOW, { pat: 'dots', lang: 'en' })[0].props, 'systemMedium');
-  for (const w of ["Today's list", String(left), ' left']) assert.ok(en.includes(w), `en: ${w}`);
+  for (const w of ['Today’s list', String(left), ' left']) assert.ok(en.includes(w), `en: ${w}`);
   // 빈 props는 글이 없을 뿐 깨지지 않는다
   for (const f of FAMILIES) for (const t of texts({}, f)) assert.doesNotMatch(t, /undefined|NaN|\{[nt]\}/);
 });

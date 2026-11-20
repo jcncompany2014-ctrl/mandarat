@@ -110,7 +110,7 @@ test('세 언어 — V4-B 글', () => {
     assert.match(y.sheetSpeech({ label: 'L', goal: '', n: 5 }), /5/);
   }
   assert.equal(msg('ko').year.shelfLine({ n: 24, days: 120 }), '64칸 중 24칸 달성 · 120일 기록');
-  assert.equal(msg('en').year.shelfLine({ n: 1, days: 1 }), '1 of 64 squares achieved · 1 day recorded');
+  assert.equal(msg('en').year.shelfLine({ n: 1, days: 1 }), '1 of 64 squares achieved · 1 active day');
 });
 
 test('디자인: 둥근 카드 · 그림자 · 그라데이션 · 이모지 · 도장이 없다', () => {

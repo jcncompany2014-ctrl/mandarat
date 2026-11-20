@@ -68,7 +68,7 @@ test('마감 글 — 우리말 수, 마감 시각은 알 때만', () => {
   assert.equal(L.closeNote(1, null, 'ko'), '한 가지를 했어요');
   assert.equal(L.closeNote(3, null, 'ko'), '세 가지를 모두 했어요');
   assert.equal(L.closeNote(12, null, 'ko'), '12가지를 모두 했어요');
-  assert.equal(L.closeNote(10, WED, 'en'), 'All 10 done · closed at 9:40 PM');
+  assert.equal(L.closeNote(10, WED, 'en'), 'All 10 done · Closed at 9:40 PM');
   assert.equal(L.closeNote(1, null, 'en'), 'The one thing is done');
   assert.equal(L.closeNote(3, WED, 'ja'), '3件、全部できました・21:40 締め');
   assert.equal(msg('ko').today.closeTitle, '오늘은 여기까지예요.');

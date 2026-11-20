@@ -1,11 +1,13 @@
 // 'sheet' namespace — action sheet, Today row check, 64-square finale (X-C, docs/v2/plan.md Appendix B).
-// The unit is whatever the user typed; English puts a space before it, and drops it when empty.
+// The unit is whatever the user typed ('books', 'km'), so English never counts it: steps and remainders are bare numbers
+// ('Log 1', '1 to go' — the figure beside them shows '7/12 books'), and the unit only follows a total ('7 of 12 books'),
+// where a total of exactly 1 goes without it ('your goal of 1', not '1 books').
 import type ko from '../ko/sheet';
 import type { Like } from '../types';
 import { groupNum } from '../num';
 import { plural } from './plural';
 
-const amt = ({ n, unit }: { n: number; unit: string }) => (unit ? `${groupNum(n)} ${unit}` : groupNum(n));
+const amt = ({ n, unit }: { n: number; unit: string }) => (unit && n !== 1 ? `${groupNum(n)} ${unit}` : groupNum(n));
 
 export default {
   areaFallback: ({ n }) => `Area ${n}`,
@@ -13,10 +15,10 @@ export default {
   headSub: ({ n }) => `Action ${n} of 8`,
   actionFallback: 'Action',
   titleA11y: ({ text, subtitle }) => `${text}, ${subtitle}, edit text and type`,
-  perStep: (p) => `${amt(p)} at a time`,
+  perStep: ({ n }) => `${groupNum(n)} at a time`,
   onceAWeek: 'Once a week',
   kindPlan: ({ name, plan }) => `${name} · ${plan}`,
-  autoMeta: "Added to Today's list automatically",
+  autoMeta: 'Added to Today’s list automatically',
 
   checkHint: 'Tap again to undo',
   doneToday: 'Done today',
@@ -30,16 +32,16 @@ export default {
   backfillDone: ({ dow }) => `Logged ${dow} as done`,
   backfillCleared: ({ dow }) => `Cleared ${dow}`,
 
-  countPlus: (p) => `Log ${amt(p)}`,
-  countMinus: (p) => `Remove ${amt(p)}`,
+  countPlus: ({ n }) => `Log ${groupNum(n)}`,
+  countMinus: ({ n }) => `Remove ${groupNum(n)}`,
   countSoFar: 'So far',
   countFigure: ({ count, goal }) => `${count}/${goal}`,
   countA11y: ({ said, pct }) => `So far ${said}, ${pct}%`,
-  countWeek: (p) => `This week +${amt(p)}`,
+  countWeek: ({ n }) => `This week +${groupNum(n)}`,
   countReached: 'Goal reached',
-  countLeft: (p) => `${amt(p)} to go`,
+  countLeft: ({ n }) => `${groupNum(n)} to go`,
   countGoal: (p) => `Reached your goal of ${amt(p)}`,
-  plusShort: (p) => `+${amt(p)}`,
+  plusShort: ({ n }) => `+${groupNum(n)}`,
 
   onceDone: 'Done',
   due: 'Due date',
@@ -55,8 +57,8 @@ export default {
   setDueRow: 'Set a due date',
   noDueA11y: 'No due date, set a due date',
 
-  mindAsk: 'How well did you keep it this week?',
-  mindScore: "This week's score",
+  mindAsk: 'How well did you stick to it this week?',
+  mindScore: 'This week’s score',
   mindPrompt: 'Go with your first instinct',
   mindRecent: ({ n }) => `Last ${n} ${plural(n, 'week', 'weeks')}`,
   mindHistory: ({ n, list }) => `Scores for the last ${n} ${plural(n, 'week', 'weeks')}: ${list}`,
@@ -64,9 +66,9 @@ export default {
   mindNone: 'none',
   weeksAgo: ({ n }) => `${n} ${plural(n, 'week', 'weeks')} ago`,
 
-  todayAlready: "Already on Today's list",
-  todayRemoved: "Removed from Today's list",
-  todayAdded: "Added to Today's list",
+  todayAlready: 'Already on Today’s list',
+  todayRemoved: 'Removed from Today’s list',
+  todayAdded: 'Added to Today’s list',
   todayRow: 'Add to Today',
   todayAutoHint: 'Tells you why it was added',
   focusRow: 'Focus for 25 min',
@@ -81,18 +83,18 @@ export default {
   memoPlaceholder: 'Leave a line about how it went',
 
   rowDone: 'Done',
-  rowUnlog: "Remove today's log",
-  rowUndone: 'Clear Done',
+  rowUnlog: 'Remove today’s log',
+  rowUndone: 'Mark not done',
   rowMarkDone: 'Mark done',
   rowDelete: 'Delete',
   rowOpenHint: 'Shows action details',
   rowOpen: 'Details',
   rowWritten: 'Added by you',
-  undoAdd: (p) => `Removed today's ${amt(p)}`,
+  undoAdd: ({ n }) => `Removed the ${groupNum(n)} logged today`,
   extraRemoved: 'To-do deleted',
   hintMark: 'Marks it done',
-  hintUnlog: "Removes today's log",
-  hintUndone: 'Clears Done',
+  hintUnlog: 'Removes today’s log',
+  hintUndone: 'Marks it not done',
   checkedLeft: ({ text, n }) => `${text}, done. ${n} left today`,
   checked: ({ text }) => `${text}, done`,
   addedSpeech: ({ text, count, total, unit }) => `${text}, ${groupNum(count)} of ${amt({ n: total, unit })}`,

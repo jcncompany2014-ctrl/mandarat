@@ -41,7 +41,7 @@ export default {
     const words = [noWhat && 'what', noHow && 'how much', noWhen && 'when or where'].filter((w): w is string => !!w);
     if (words.length === 0) return '';
     const list = words.length === 1 ? words[0] : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
-    return `Saying ${list} makes it easier to do`;
+    return `Add ${list} to make it easier to do`;
   },
 
   kindLabel: 'Type',
@@ -73,16 +73,19 @@ export default {
   goal: 'Goal',
   unit: 'Unit',
   unitPlaceholder: 'books, km',
-  step: 'Amount per log',
+  step: 'Amount each time',
   sofar: 'So far',
-  left: ({ n, unit }) => (unit ? `${fmt.count({ n, unit })} to go` : `${groupNum(n)} to go`),
+  // The unit is the user's own word, so it is not counted ('1 books') — the Unit field sits right above this line
+  left: ({ n }) => `${groupNum(n)} to go`,
   reached: 'Goal reached · Save to mark it achieved',
   needGoal: 'Enter a goal number',
   tooBig: 'Numbers can go up to 1 billion',
-  stepNumbers: 'Use only numbers for the amount per log',
-  sofarNumbers: 'Use only numbers for "So far"',
+  stepNumbers: 'Use only numbers for the amount each time',
+  sofarNumbers: 'Use only numbers for “So far”',
 
   due: 'Due',
+  // Four cells share the sheet width: at 375pt a cell holds about 62pt of 14pt text, so 'This week' (67) and 'This month' (74) do not fit
+  // (tests/a-o1.test.js). VoiceOver reads the long names (kinds.preset*).
   dueWeek: 'Week',
   dueMonth: 'Month',
   due3Months: '3 months',

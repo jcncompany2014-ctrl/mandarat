@@ -107,7 +107,7 @@ test('살아 있는 보기는 setLang을 따라 바뀐다(키는 저장값 그�
     assert.equal(C.MOOD_WORDS[4], 'Great');
     assert.equal(K.weekDayActionLabel(0, false), 'Mark Monday done');
     assert.equal(K.weekStripSummary(['done', 'missed', 'today', 'planned', 'rest', 'rest', 'rest'], 2).split(', ')[2], 'Wednesday: today');
-    assert.equal(areaLabel('Health', 5, 3, 2), "Health, 3 of 8 squares achieved, 2 on Today's list");
+    assert.equal(areaLabel('Health', 5, 3, 2), 'Health, 3 of 8 squares achieved, 2 on Today’s list');
     assert.equal(cellLabel({ ai: 2, text: '', meta: null, isToday: false, didIt: false, done: false }), 'third square, empty');
   });
   inLang('ja', () => {

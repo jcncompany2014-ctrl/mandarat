@@ -20,8 +20,8 @@ export default {
   setGoalHint: 'Sets the core goal',
   setGoalText: 'Set your\ncore goal',
 
-  saveFailTitle: "Couldn't save your chart",
-  saveFailBody: "Check your device's free space. We'll try again with each change.",
+  saveFailTitle: 'Couldn’t save your chart',
+  saveFailBody: 'Check your device’s free space. We’ll try again with each change.',
   saveFailAction: 'Export a backup',
 
   ritualTitle: 'Weekly review',
@@ -29,15 +29,15 @@ export default {
   areaFallback: ({ n }) => `Area ${n}`,
   actionHint: 'Shows the action',
 
-  todayTitle: "Today's list",
+  todayTitle: 'Today’s list',
   seeAll: 'See all',
   openToday: 'Open Today',
-  todayHeadLabel: ({ total, done }) => `Today's list: ${done} of ${total} done, open Today`,
+  todayHeadLabel: ({ total, done }) => `Today’s list: ${done} of ${total} done, open Today`,
   pickMore: 'Pick more from your actions',
   addToday: 'Add to Today',
   closeLabel: ({ day, n }) => (n === 1
-    ? `${day}, day closed. You did the one thing on Today's list`
-    : `${day}, day closed. You did all ${n} ${plural(n, 'item', 'items')} on Today's list`),
+    ? `${day}, day closed. You did the one thing on Today’s list`
+    : `${day}, day closed. You did all ${n} ${plural(n, 'item', 'items')} on Today’s list`),
 
   weekTitle: 'This week',
   weekDay: ({ day, n }) => `${day}: ${n} ${plural(n, 'time', 'times')}`,
@@ -66,11 +66,11 @@ export default {
   sumGoal: ({ goal }) => `Core goal: ${goal}.`,
   sumNoGoal: 'No core goal yet.',
   sumDone: ({ n }) => `${n} of 64 squares achieved.`,
-  sumNone: "Nothing on Today's list yet.",
-  sumAllDone: "Today's list is all done.",
-  sumLeft: ({ n }) => `${n} left on Today's list.`,
-  todayNone: "Nothing on Today's list yet",
-  todayAll: ({ total }) => (total === 1 ? "Today's list: 1 of 1 done" : `Today's list: all ${total} done`),
-  todayOf: ({ total, done }) => `Today's list: ${done} of ${total} done`,
+  sumNone: 'Nothing on Today’s list yet.',
+  sumAllDone: 'Today’s list is all done.',
+  sumLeft: ({ n }) => `${n} left on Today’s list.`,
+  todayNone: 'Nothing on Today’s list yet',
+  todayAll: ({ total }) => (total === 1 ? 'Today’s list: 1 of 1 done' : `Today’s list: all ${total} done`),
+  todayOf: ({ total, done }) => `Today’s list: ${done} of ${total} done`,
 
 } satisfies Like<typeof ko>;

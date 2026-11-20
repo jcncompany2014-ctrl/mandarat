@@ -40,8 +40,10 @@ test('ritualView: 언어마다', () => {
   assert.equal(V.deltaLine(5, 5, 'en'), 'Same as last week');
   assert.equal(V.deltaLine(12, 8, 'en'), '4 more than last week');
   const added = [{ ti: 0, ai: 0, amount: 2, unit: 'books' }, { ti: 0, ai: 1, amount: 5, unit: 'km' }, { ti: 1, ai: 0, amount: 1, unit: 'x' }];
-  assert.equal(V.addedLine(added, 'en'), '+2 books · +5 km');
-  assert.equal(V.addedSpeech(added, 'en'), '2 books added, 5 km added');
+  // 단위는 사용자가 적은 말 — 영어는 세지 않게 이름표처럼 앞에 둔다('+1 books'가 되지 않게)
+  assert.equal(V.addedLine(added, 'en'), 'books +2 · km +5');
+  assert.equal(V.addedSpeech(added, 'en'), 'books plus 2, km plus 5');
+  assert.equal(V.addedLine([{ ti: 0, ai: 0, amount: 1, unit: 'books' }], 'en'), 'books +1');
   assert.equal(V.addedLine([{ ti: 0, ai: 0, amount: 2, unit: '冊' }], 'ja'), '+2冊');
   assert.equal(V.addedSpeech([{ ti: 0, ai: 0, amount: 2, unit: '冊' }], 'ja'), '2冊足しました');
   assert.equal(V.habitLine({ habitCount: 2, routineDone: 5, routineDue: 7 }, 'ja'), '5/7回');
@@ -59,14 +61,14 @@ test('weekSentence: 언어마다 어순·조사·복수를 다시 짠다', () =>
   const doc = mk(eight);
   const one = { total: 9, areaCounts: [9, 0, 0, 0, 0, 0, 0, 0] };
   assert.equal(R.weekSentence(one, doc, 'ja'), '「건강」に9回取り組み、「커리어」はまだです');
-  assert.equal(R.weekSentence(one, doc, 'en'), 'You worked on 건강 9 times, and not yet on 커리어');
+  assert.equal(R.weekSentence(one, doc, 'en'), 'You worked on 건강 9 times. Nothing on 커리어 yet.');
   assert.equal(R.weekSentence({ total: 1, areaCounts: [1, 0, 0, 0, 0, 0, 0, 0] }, mk(['Health']), 'en'), 'You worked on Health once');
   assert.equal(R.weekSentence({ total: 1, areaCounts: [1, 0, 0, 0, 0, 0, 0, 0] }, mk(['健康']), 'ja'), '「健康」に1回取り組みました');
   assert.equal(R.weekSentence({ total: 8, areaCounts: [1, 1, 1, 1, 1, 1, 1, 1] }, doc, 'ja'), '8つの分野すべてに1回以上取り組みました');
   assert.equal(R.weekSentence({ total: 8, areaCounts: [1, 1, 1, 1, 1, 1, 1, 1] }, doc, 'en'), 'You worked on all eight areas at least once');
   // 이름 없는 영역은 그 언어의 '영역 n'
   const blank = mk(['Health', '']);
-  assert.equal(R.weekSentence({ total: 2, areaCounts: [2, 0, 0, 0, 0, 0, 0, 0] }, blank, 'en'), 'You worked on Health 2 times, and not yet on Area 2');
+  assert.equal(R.weekSentence({ total: 2, areaCounts: [2, 0, 0, 0, 0, 0, 0, 0] }, blank, 'en'), 'You worked on Health 2 times. Nothing on Area 2 yet.');
   assert.equal(R.weekSentence({ total: 2, areaCounts: [2, 0, 0, 0, 0, 0, 0, 0] }, blank, 'ja'), '「Health」に2回取り組み、「分野2」はまだです');
   assert.equal(R.weekSentence({ total: 2, areaCounts: [2, 0, 0, 0, 0, 0, 0, 0] }, blank), 'Health는 2번 챙겼고, 영역 2는 아직이에요');
   // 긴 이름은 어느 언어든 같은 길이로 줄인다

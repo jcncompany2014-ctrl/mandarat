@@ -68,17 +68,17 @@ test('areaLine: 언어마다', () => {
 test('homeSummary · todaySummary: 일본어는 문장을 붙여 쓰고, 영어는 짧게', () => {
   const d = blank();
   assert.equal(homeSummary(d, WED, 'ja'), '10月14日 水曜日。中心の目標はまだ決めていません。64マス中0マス達成。今日やることはまだありません。');
-  assert.equal(homeSummary(d, WED, 'en'), "Wednesday, October 14. No core goal yet. 0 of 64 squares achieved. Nothing on Today's list yet.");
+  assert.equal(homeSummary(d, WED, 'en'), 'Wednesday, October 14. No core goal yet. 0 of 64 squares achieved. Nothing on Today’s list yet.');
   d.centerGoal = '건강한 한 해.';
   d.todayExtra = [{ id: 'a', ti: 0, text: 'a', done: true }, { id: 'b', ti: 0, text: 'b', done: false }];
   assert.match(homeSummary(d, WED, 'ja'), /中心の目標は「건강한 한 해」。/);
   assert.match(homeSummary(d, WED, 'ja'), /今日やることは残り1件です。$/);
-  assert.match(homeSummary(d, WED, 'en'), /Core goal: 건강한 한 해\. .* 1 left on Today's list\.$/);
+  assert.match(homeSummary(d, WED, 'en'), /Core goal: 건강한 한 해\. .* 1 left on Today’s list\.$/);
   assert.equal(todaySummary(d, WED, 'ja'), '今日やること2件のうち1件できました');
-  assert.equal(todaySummary(d, WED, 'en'), "Today's list: 1 of 2 done");
+  assert.equal(todaySummary(d, WED, 'en'), 'Today’s list: 1 of 2 done');
   d.todayExtra[1].done = true;
-  assert.equal(todaySummary(d, WED, 'en'), "Today's list: all 2 done");
-  assert.equal(todaySummary(blank(), WED, 'en'), "Nothing on Today's list yet");
+  assert.equal(todaySummary(d, WED, 'en'), 'Today’s list: all 2 done');
+  assert.equal(todaySummary(blank(), WED, 'en'), 'Nothing on Today’s list yet');
   // 한국어는 그대로(기본 언어)
   assert.equal(todaySummary(d, WED), '오늘 할 일 2개를 다 했어요');
 });

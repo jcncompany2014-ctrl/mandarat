@@ -6,11 +6,11 @@ import { plural } from './plural';
 
 export default {
   errEmpty: 'Nothing pasted yet',
-  errNotFound: "Couldn't find a backup here. Please paste the whole exported text",
+  errNotFound: 'Couldn’t find a backup here. Please paste the whole exported text',
   errBroken: 'This backup is cut off or damaged. Please copy it again from start to end',
-  errNotOurs: "This isn't a Mandalart backup",
+  errNotOurs: 'This isn’t a Mandalart backup',
   errNewer: 'This backup was made by a newer version of the app. Please update the app, then import it',
-  fileFailed: "Couldn't read the file. Please choose it again",
+  fileFailed: 'Couldn’t read the file. Please choose it again',
 
   sheetTitle: 'Import backup',
   sheetBody: 'Your current records will be replaced by the backup. You can undo right after.',
@@ -37,7 +37,7 @@ export default {
   rowGoal: 'Core goal',
   rowFilled: 'Filled',
   rowDone: 'Achieved',
-  rowDays: 'Days logged',
+  rowDays: 'Active days',
   rowLast: 'Last record',
   filledSay: ({ n }) => `${n} of 64 squares`,
   rowSay: ({ label, now, backup }) => `${label}, current ${now}, backup ${backup}`,
